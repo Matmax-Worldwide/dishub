@@ -17,6 +17,13 @@ import {
   ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 
+// Define proper types for navigation items
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -39,7 +46,7 @@ export default function DashboardLayout({
           { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
           { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: CogIcon },
           { name: 'Help', href: `/${locale}/dashboard/help`, icon: QuestionMarkCircleIcon },
-        ] as any}
+        ] as NavItem[]}
         externalLinks={[
           {
             name: 'E-Voque Benefits',
@@ -51,7 +58,7 @@ export default function DashboardLayout({
             href: 'https://jobs.e-voque.com/#services-area',
             icon: BriefcaseIcon,
           },
-        ] as any}
+        ] as NavItem[]}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
