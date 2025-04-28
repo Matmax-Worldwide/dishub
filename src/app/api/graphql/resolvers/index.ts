@@ -63,7 +63,7 @@ const authResolvers = {
   },
   
   Mutation: {
-    login: async (_parent: unknown, { email, password }: { email: string, password: string }) => {
+    login: async (_parent: unknown, { email, password: inputPassword }: { email: string, password: string }) => {
       const user = await prisma.user.findUnique({ 
         where: { email },
         select: {
@@ -83,7 +83,7 @@ const authResolvers = {
         throw new Error('No user found with this email');
       }
       
-      const valid = await bcrypt.compare(password, user.password);
+      const valid = await bcrypt.compare(inputPassword, user.password);
       
       if (!valid) {
         throw new Error('Invalid password');
@@ -93,14 +93,16 @@ const authResolvers = {
       const token = jwt.sign({ userId: user.id, role: user.role.toString() }, JWT_SECRET, { expiresIn: '7d' });
       console.log('Generated JWT with role:', user.role.toString());
       
-      // Remove password from returned user object
-      const userWithoutPassword = { ...user };
-      delete userWithoutPassword.password;
-      
-      // Convert enum to string for consistent serialization
+      // Create a new object with just the fields we need (omitting password)
       const userResponse = {
-        ...userWithoutPassword,
-        role: userWithoutPassword.role.toString()
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: user.role.toString(),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       };
       
       return {
