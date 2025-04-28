@@ -37,6 +37,7 @@ export async function POST(request: Request) {
         id: true,
         email: true,
         password: true,
+        role: true,
       }
     });
 
