@@ -8,7 +8,7 @@ export interface LocaleLayoutProps {
 }
 
 // Avoid direct access to params by handling it safely
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
 }: LocaleLayoutProps) {
   return children;
