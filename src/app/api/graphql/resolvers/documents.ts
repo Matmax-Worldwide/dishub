@@ -2,19 +2,22 @@ import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Correct enum types
+type DocumentStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+
 // Define interfaces for document input types
 interface DocumentCreateInput {
   title: string;
   description?: string;
   fileUrl?: string;
-  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status?: DocumentStatus;
 }
 
 interface DocumentUpdateInput {
   title?: string;
   description?: string;
   fileUrl?: string;
-  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status?: DocumentStatus;
 }
 
 export const documentResolvers = {
@@ -154,7 +157,7 @@ export const documentResolvers = {
           title: string;
           description: string;
           fileUrl: string;
-          status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+          status: DocumentStatus;
         }> = {};
         
         // Only update fields that are provided
