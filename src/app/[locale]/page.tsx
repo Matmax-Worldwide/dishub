@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getDictionary, Locale, locales } from '../i18n';
 
 export function generateStaticParams() {
@@ -30,10 +31,12 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
                     <div className="flex w-full items-center justify-between md:w-auto">
                       <a href="#" className="flex">
                         <span className="sr-only">Evoque</span>
-                        <img
+                        <Image
                           alt="Evoque"
                           className="h-8 w-auto sm:h-10"
                           src="/evoque.png"
+                          width={100}
+                          height={100}
                         />
                       </a>
                     </div>
@@ -64,10 +67,12 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
             </div>
           </div>
           <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-            <img
+            <Image
               className="h-56 w-full object-cover sm:h-72 md:h-96 lg:h-full lg:w-full"
               src="https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=2850&q=80"
               alt=""
+              width={100}
+              height={100}
             />
           </div>
         </div>
@@ -79,28 +84,34 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
             <div className="flex space-x-4 items-center">
               <div>
                 <p className="text-sm text-gray-500 mb-2">Imagen desde public:</p>
-                <img 
+                <Image  
                   src="/logo.png" 
                   alt="Logo desde public" 
                   className="h-16 w-auto" 
+                  width={100}
+                  height={100}
                 />
               </div>
 
               <div className="mt-4">
                 <p className="text-sm text-gray-500 mb-2">Imagen desde public (URL relativa):</p>
-                <img 
+                <Image
                   src="/logo.png" 
                   alt="Logo desde public" 
                   className="h-16 w-auto" 
+                  width={100}
+                  height={100}
                 />
               </div>
 
               <div className="mt-4">
                 <p className="text-sm text-gray-500 mb-2">Imagen desde public (URL absoluta):</p>
-                <img 
+                <Image
                   src="http://localhost:3000/logo.png" 
                   alt="Logo desde public (absoluta)" 
                   className="h-16 w-auto" 
+                  width={100}
+                  height={100}
                 />
               </div>
             </div>

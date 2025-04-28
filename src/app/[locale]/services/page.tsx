@@ -41,7 +41,7 @@ export default async function ServicesPage(props: PageProps) {
 }
 
 // Separate component to avoid direct rendering with params
-async function ServicesContent({ locale, dictionary }: ServicesContentProps) {
+function ServicesContent({ locale, dictionary }: ServicesContentProps) {
   // Service categories
   const serviceCategories = [
     {

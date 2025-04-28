@@ -1,4 +1,4 @@
-import { getDictionary, Locale, locales, Dictionary } from '../../i18n';
+import { getDictionary, Locale, locales } from '../../i18n';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import { notFound } from 'next/navigation';

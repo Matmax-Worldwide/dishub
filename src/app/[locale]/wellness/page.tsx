@@ -43,7 +43,7 @@ export default async function WellnessPage(props: PageProps) {
 }
 
 // Separate component to avoid direct rendering with params
-async function WellnessContent({ locale, dictionary }: WellnessContentProps) {
+function WellnessContent({ locale, dictionary }: WellnessContentProps) {
   // Wellness programs
   const wellnessPrograms = [
     {
@@ -352,7 +352,7 @@ async function WellnessContent({ locale, dictionary }: WellnessContentProps) {
                     </div>
                   </div>
                   <p className="text-gray-600 mb-4">
-                    "The morning yoga sessions have completely transformed my daily routine. I feel more energized and focused throughout the day."
+                    &quot;The morning yoga sessions have completely transformed my daily routine. I feel more energized and focused throughout the day.&quot;
                   </p>
                   <div className="flex text-amber-400">
                     {[...Array(5)].map((_, i) => (
@@ -375,7 +375,7 @@ async function WellnessContent({ locale, dictionary }: WellnessContentProps) {
                     </div>
                   </div>
                   <p className="text-gray-600 mb-4">
-                    "As a busy executive, the guided meditation has been a lifesaver. I can manage stress better and stay focused during intense workdays."
+                    &quot;As a busy executive, the guided meditation has been a lifesaver. I can manage stress better and stay focused during intense workdays.&quot;
                   </p>
                   <div className="flex text-amber-400">
                     {[...Array(5)].map((_, i) => (
@@ -398,7 +398,7 @@ async function WellnessContent({ locale, dictionary }: WellnessContentProps) {
                     </div>
                   </div>
                   <p className="text-gray-600 mb-4">
-                    "The flexibility training has significantly reduced my back pain. The instructors are knowledgeable and the sessions are easy to follow."
+                    &quot;The flexibility training has significantly reduced my back pain. The instructors are knowledgeable and the sessions are easy to follow.&quot;
                   </p>
                   <div className="flex text-amber-400">
                     {[...Array(5)].map((_, i) => (
