@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     console.log('Login successful for user:', email);
     // Convert the role to string for JSON response
-    const roleStr = typeof user.role === 'object' ? user.role.toString() : String(user.role);
+    const roleStr = String(user.role);
     
 
     
