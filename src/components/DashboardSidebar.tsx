@@ -96,7 +96,7 @@ export function DashboardSidebar() {
     <>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col h-full bg-white border-r">
+        <div className="flex flex-col bg-white border-r">
           {/* Sidebar header */}
           <div className="flex items-center border-b px-4">
             <Link href={`/${locale}`} className="flex items-center">
@@ -105,7 +105,7 @@ export function DashboardSidebar() {
                 alt="E-voque Logo" 
                 width={12} 
                 height={12} 
-                className="h-auto w-auto" 
+                className="" 
               />
             </Link>
           </div>
@@ -182,7 +182,7 @@ export function DashboardSidebar() {
                   alt="E-voque Logo" 
                   width={24} 
                   height={24} 
-                  className="h-auto w-auto" 
+                  className="h-12 w-12" 
                 />
               </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
