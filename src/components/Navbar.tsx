@@ -62,36 +62,6 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link
-              href={`/${locale}`}
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-            >
-              {dictionary.nav.home}
-            </Link>
-            <Link
-              href={`/${locale}/about`}
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-            >
-              {dictionary.nav.about}
-            </Link>
-            <Link
-              href={`/${locale}/services`}
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-            >
-              {dictionary.nav.services}
-            </Link>
-            <Link
-              href={`/${locale}/wellness`}
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-            >
-              {dictionary.nav.wellness}
-            </Link>
-            <Link
-              href={`/${locale}/contact`}
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-            >
-              {dictionary.nav.contact}
-            </Link>
             <LanguageSwitcher />
             <div className="relative">
               <button

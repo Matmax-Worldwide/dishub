@@ -32,14 +32,8 @@ export default function Hero({ dictionary, locale }: HeroProps) {
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
-                href={`/${locale}#contact`}
+                href={`/${locale}/signup`}
                 className="btn-primary text-lg px-6 py-3"
-              >
-                {dictionary.hero.cta}
-              </Link>
-              <Link
-                href={`/${locale}#services`}
-                className="btn-secondary text-lg px-6 py-3"
               >
                 {dictionary.hero.cta}
               </Link>
