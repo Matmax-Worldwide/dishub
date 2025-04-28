@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +5,201 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  password        String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  firstName       String
+  lastName        String
+  phoneNumber     String?
+  bio             String?
+  department      String?
+  isActive        Boolean        @default(true)
+  position        String?
+  profileImageUrl String?
+  role            Role           @default(USER)
+  accounts        Account[]
+  appointments    Appointment[]
+  clients         Client[]
+  documents       Document[]
+  notifications   Notification[]
+  performances    Performance[]
+  projects        Project[]
+  sessions        Session[]
+  tasksAssigned   Task[]         @relation("TaskAssignee")
+  tasksCreated    Task[]         @relation("TaskCreator")
+  timeEntries     TimeEntry[]
+  settings        UserSettings?
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Document {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String?
+  status      DocumentStatus @default(DRAFT)
+  userId      String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id           String        @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  address      String?
+  userId       String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects     Project[]
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  clientId    String?
+  userId      String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  client      Client?       @relation(fields: [clientId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  timeEntries TimeEntry[]
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  isVirtual   Boolean  @default(false)
+  meetingUrl  String?
+  userId      String
+  clientId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  client      Client?  @relation(fields: [clientId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(NOT_STARTED)
+  dueDate     DateTime?
+  priority    Int        @default(1)
+  assigneeId  String
+  creatorId   String
+  projectId   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
+  project     Project?   @relation(fields: [projectId], references: [id])
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  date        String
+  hours       Float
+  description String
+  userId      String
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project? @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  type            NotificationType
+  title           String
+  message         String
+  isRead          Boolean          @default(false)
+  userId          String
+  relatedItemId   String?
+  relatedItemType String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Performance {
+  id             String   @id @default(cuid())
+  userId         String
+  period         String
+  completedTasks Int
+  totalHours     Float
+  efficiency     Float?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  emailNotifications Boolean  @default(true)
+  theme              String   @default("light")
+  language           String   @default("en")
+  timeFormat         String   @default("12h")
+  dateFormat         String   @default("MM/DD/YYYY")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HelpArticle {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
@@ -45,202 +234,4 @@ enum NotificationType {
   TASK
   APPOINTMENT
   SYSTEM
-}
-
-model User {
-  id              String        @id @default(cuid())
-  email           String        @unique
-  password        String
-  firstName       String
-  lastName        String
-  phoneNumber     String?
-  role            Role          @default(USER)
-  profileImageUrl String?
-  bio             String?       @db.Text
-  position        String?
-  department      String?
-  isActive        Boolean       @default(true)
-  sessions        Session[]
-  accounts        Account[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  // Relations
-  documents       Document[]
-  appointments    Appointment[]
-  tasksAssigned   Task[]        @relation("TaskAssignee")
-  tasksCreated    Task[]        @relation("TaskCreator")
-  timeEntries     TimeEntry[]
-  notifications   Notification[]
-  performances    Performance[]
-  settings        UserSettings?
-  projects        Project[]
-  clients         Client[]
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Document {
-  id          String         @id @default(cuid())
-  title       String
-  description String?        @db.Text
-  fileUrl     String?
-  status      DocumentStatus @default(DRAFT)
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-}
-
-model Client {
-  id          String       @id @default(cuid())
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  projects    Project[]
-  appointments Appointment[]
-}
-
-model Project {
-  id          String       @id @default(cuid())
-  name        String
-  description String?      @db.Text
-  status      ProjectStatus @default(ACTIVE)
-  clientId    String?
-  client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-  timeEntries TimeEntry[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
-
-model Appointment {
-  id          String    @id @default(cuid())
-  title       String
-  description String?   @db.Text
-  startTime   DateTime
-  endTime     DateTime
-  location    String?
-  isVirtual   Boolean   @default(false)
-  meetingUrl  String?
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clientId    String?
-  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Task {
-  id          String     @id @default(cuid())
-  title       String
-  description String?    @db.Text
-  status      TaskStatus @default(NOT_STARTED)
-  dueDate     DateTime?
-  priority    Int        @default(1) // 1-low, 2-medium, 3-high
-  assigneeId  String
-  assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creatorId   String
-  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
-  projectId   String?
-  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model TimeEntry {
-  id          String   @id @default(cuid())
-  date        String
-  hours       Float
-  description String   @db.Text
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Notification {
-  id             String           @id @default(cuid())
-  type           NotificationType
-  title          String
-  message        String           @db.Text
-  isRead         Boolean          @default(false)
-  userId         String
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  relatedItemId  String?
-  relatedItemType String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-}
-
-model Performance {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  period         String
-  completedTasks Int
-  totalHours     Float
-  efficiency     Float?
-  notes          String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-model UserSettings {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailNotifications Boolean  @default(true)
-  theme             String   @default("light")
-  language          String   @default("en")
-  timeFormat        String   @default("12h")
-  dateFormat        String   @default("MM/DD/YYYY")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
-model HelpArticle {
-  id        String    @id @default(cuid())
-  title     String
-  content   String    @db.Text
-  category  String
-  tags      String[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
 }
