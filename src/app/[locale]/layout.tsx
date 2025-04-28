@@ -1,11 +1,13 @@
 import React from 'react';
 
+interface LayoutProps {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}
+
 // Avoid direct access to params by handling it safely
 export default async function LocaleLayout({
   children,
-}: {
-  children: React.ReactNode;
-  params: { locale: string };
-}) {
+}: LayoutProps) {
   return children;
 } 
