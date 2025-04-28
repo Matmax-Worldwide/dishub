@@ -79,14 +79,6 @@ interface UserSettings {
   timeFormat: string;
 }
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  settings: UserSettings;
-}
-
 export default function SettingsPage() {
   // Form states
   const [accountSettings, setAccountSettings] = useState({
@@ -115,7 +107,7 @@ export default function SettingsPage() {
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   
   // GraphQL hooks
-  const { loading, error, data } = useQuery(GET_USER_SETTINGS, {
+  const { loading, error } = useQuery(GET_USER_SETTINGS, {
     client,
     onCompleted: (data) => {
       if (data?.me) {
@@ -322,7 +314,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Notification Settings</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Decide which notifications you'd like to receive.
+                  Decide which notifications you&apos;d like to receive.
                 </p>
               </div>
               
