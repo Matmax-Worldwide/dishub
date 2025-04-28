@@ -113,22 +113,7 @@ export function DashboardSidebar() {
           {/* Nav items */}
           <div className="flex-1 overflow-y-auto">
             <nav className="p-3 space-y-1">
-              {navigationItems.map((item) => (
-                <Link 
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                    pathname === item.href 
-                      ? 'bg-indigo-100 text-indigo-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </Link>
-              ))}
-              
-              <div className="mt-6 pt-3 border-t">
+              <div className="mb-6">
                 <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                   External Links
                 </h3>
@@ -143,6 +128,23 @@ export function DashboardSidebar() {
                     <item.icon className="h-4 w-4" />
                     <span>{item.name}</span>
                   </a>
+                ))}
+              </div>
+              
+              <div className="border-t pt-3">
+                {navigationItems.map((item) => (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                      pathname === item.href 
+                        ? 'bg-indigo-100 text-indigo-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </Link>
                 ))}
               </div>
             </nav>
@@ -191,23 +193,7 @@ export function DashboardSidebar() {
             {/* Mobile nav items */}
             <div className="flex-1 overflow-y-auto">
               <nav className="p-3 space-y-1">
-                {navigationItems.map((item) => (
-                  <Link 
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      pathname === item.href 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.name}</span>
-                  </Link>
-                ))}
-                
-                <div className="mt-6 pt-3 border-t">
+                <div className="mb-6">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     External Links
                   </h3>
@@ -222,6 +208,24 @@ export function DashboardSidebar() {
                       <item.icon className="h-4 w-4" />
                       <span>{item.name}</span>
                     </a>
+                  ))}
+                </div>
+                
+                <div className="border-t pt-3">
+                  {navigationItems.map((item) => (
+                    <Link 
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                        pathname === item.href 
+                          ? 'bg-indigo-100 text-indigo-700' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </Link>
                   ))}
                 </div>
               </nav>
