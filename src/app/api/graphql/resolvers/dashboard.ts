@@ -35,6 +35,9 @@ export const dashboardResolvers = {
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - now.getDay()); // Start of the current week (Sunday)
           
+          // Format dates as strings for TimeEntry queries
+          const startOfWeekString = startOfWeek.toISOString().split('T')[0]; // YYYY-MM-DD format
+          
           // Total documents and documents this month
           const totalDocuments = await prisma.document.count({
             where: { userId: decoded.userId }
@@ -84,7 +87,7 @@ export const dashboardResolvers = {
           const timeEntriesThisWeek = await prisma.timeEntry.findMany({
             where: {
               userId: decoded.userId,
-              date: { gte: startOfWeek }
+              date: { gte: startOfWeekString }
             }
           });
           
@@ -201,11 +204,14 @@ export const dashboardResolvers = {
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
           
+          // Format as string for TimeEntry query
+          const startOfWeekString = startOfWeek.toISOString().split('T')[0]; // YYYY-MM-DD format
+          
           // Get time entries for the current week
           const timeEntries = await prisma.timeEntry.findMany({
             where: {
               userId: decoded.userId,
-              date: { gte: startOfWeek }
+              date: { gte: startOfWeekString }
             }
           });
           
