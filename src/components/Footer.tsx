@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { 
-  FaFacebook, 
-  FaTwitter, 
-  FaLinkedin, 
-  FaInstagram 
-} from 'react-icons/fa';
+  Facebook, 
+  Twitter, 
+  Linkedin, 
+  Instagram 
+} from 'lucide-react';
 
 interface FooterProps {
   dictionary: {
@@ -29,10 +29,10 @@ export default function Footer({ dictionary, locale }: FooterProps) {
   const currentYear = new Date().getFullYear();
   
   const socialLinks = [
-    { icon: <FaFacebook />, url: 'https://facebook.com' },
-    { icon: <FaTwitter />, url: 'https://twitter.com' },
-    { icon: <FaLinkedin />, url: 'https://linkedin.com' },
-    { icon: <FaInstagram />, url: 'https://instagram.com' },
+    { icon: <Facebook size={20} />, url: 'https://facebook.com' },
+    { icon: <Twitter size={20} />, url: 'https://twitter.com' },
+    { icon: <Linkedin size={20} />, url: 'https://linkedin.com' },
+    { icon: <Instagram size={20} />, url: 'https://instagram.com' },
   ];
 
   return (
