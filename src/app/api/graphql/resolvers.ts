@@ -4,8 +4,21 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Import individual resolver modules
+import { appointmentResolvers } from './resolvers/appointments';
+import { dashboardResolvers } from './resolvers/dashboard';
+import { documentResolvers } from './resolvers/documents';
+import { helpResolvers } from './resolvers/help';
+import { notificationResolvers } from './resolvers/notifications';
+import { performanceResolvers } from './resolvers/performance';
+import { settingsResolvers } from './resolvers/settings';
+import { timeEntryResolvers } from './resolvers/timeEntries';
+import { taskResolvers } from './resolvers/tasks';
+import { projectResolvers } from './resolvers/projects';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Merge all resolvers
 const resolvers = {
   Query: {
     // User queries
@@ -77,11 +90,40 @@ const resolvers = {
         throw new Error('Invalid token');
       }
     },
+    
+    // Include other Query resolvers from imported modules - using type assertion
+    ...((appointmentResolvers.Query as object) || {}),
+    ...((dashboardResolvers.Query as object) || {}),
+    ...((documentResolvers.Query as object) || {}),
+    ...((helpResolvers.Query as object) || {}),
+    ...((notificationResolvers.Query as object) || {}),
+    ...((performanceResolvers.Query as object) || {}),
+    ...((settingsResolvers.Query as object) || {}),
+    ...((timeEntryResolvers.Query as object) || {}),
+    ...((taskResolvers.Query as object) || {}),
+    ...((projectResolvers.Query as object) || {}),
+    
+    // Add explicit fallback for projects query to ensure it exists
+    projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        if (projectResolvers.Query.projects) {
+          return await projectResolvers.Query.projects(_parent, _args, context);
+        } else {
+          console.error("Project resolver missing - returning fallback empty array");
+          return [];
+        }
+      } catch (error) {
+        console.error("Error in projects resolver fallback:", error);
+        return [];
+      }
+    }
   },
   
   Mutation: {
     // Auth mutations
-    login: async (_parent: unknown, { email, password }: { email: string, password: string }) => {
+    login: async (_parent: unknown, args: { email: string, password: string }) => {
+      const { email, password: inputPassword } = args;
+      
       const user = await prisma.user.findUnique({ 
         where: { email },
         select: {
@@ -101,7 +143,7 @@ const resolvers = {
         throw new Error('No user found with this email');
       }
       
-      const valid = await bcrypt.compare(password, user.password);
+      const valid = await bcrypt.compare(inputPassword, user.password);
       
       if (!valid) {
         throw new Error('Invalid password');
@@ -112,33 +154,34 @@ const resolvers = {
       console.log('Login successful for:', email, 'with role:', roleAsString);
       const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
       
-      // Remove password from returned user object and ignore the password field
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...userWithoutPassword } = user;
+      // Remove password from returned user object
+      const userWithoutPassword = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: roleAsString,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
       
       // Return user with role converted to string
       return {
         token,
-        user: {
-          ...userWithoutPassword,
-          role: roleAsString
-        },
+        user: userWithoutPassword,
       };
     },
     
-    register: async (_parent: unknown, { 
-      email, 
-      password, 
-      firstName, 
-      lastName, 
-      phoneNumber 
-    }: { 
+    register: async (_parent: unknown, args: { 
       email: string, 
       password: string, 
       firstName: string, 
       lastName: string, 
       phoneNumber?: string 
     }) => {
+      const { email, password, firstName, lastName, phoneNumber } = args;
+      
       const existingUser = await prisma.user.findUnique({ where: { email } });
       
       if (existingUser) {
@@ -173,102 +216,35 @@ const resolvers = {
       console.log('User registered:', email, 'with role:', roleAsString);
       const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
       
+      const userWithoutPassword = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: roleAsString,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+      
       return {
         token,
-        user: {
-          ...user,
-          role: roleAsString
-        },
+        user: userWithoutPassword,
       };
     },
-    
-    updateUser: async (_parent: unknown, { input }: { input: { firstName?: string; lastName?: string; phoneNumber?: string; email?: string; currentPassword?: string; newPassword?: string } }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        const userData: { 
-          firstName?: string; 
-          lastName?: string; 
-          phoneNumber?: string; 
-          email?: string; 
-          password?: string 
-        } = {};
-        
-        // Only update fields that are provided
-        if (input.firstName) userData.firstName = input.firstName;
-        if (input.lastName) userData.lastName = input.lastName;
-        if (input.phoneNumber) userData.phoneNumber = input.phoneNumber;
-        
-        // Handle email update
-        if (input.email) {
-          const existingUser = await prisma.user.findUnique({ 
-            where: { 
-              email: input.email,
-              NOT: {
-                id: decoded.userId
-              }
-            } 
-          });
-          
-          if (existingUser) {
-            throw new Error('Email already in use');
-          }
-          
-          userData.email = input.email;
-        }
-        
-        // Handle password update
-        if (input.currentPassword && input.newPassword) {
-          const user = await prisma.user.findUnique({ 
-            where: { id: decoded.userId },
-            select: { password: true }
-          });
-          
-          if (!user) {
-            throw new Error('User not found');
-          }
-          
-          const valid = await bcrypt.compare(input.currentPassword, user.password);
-          
-          if (!valid) {
-            throw new Error('Current password is incorrect');
-          }
-          
-          userData.password = await bcrypt.hash(input.newPassword, 10);
-        }
-        
-        const updatedUser = await prisma.user.update({
-          where: { id: decoded.userId },
-          data: userData,
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-          }
-        });
-        
-        // Convert role to string for consistent serialization
-        return {
-          ...updatedUser,
-          role: updatedUser.role.toString()
-        };
-      } catch (error) {
-        console.error('GraphQL resolver error:', error);
-        throw error;
-      }
-    }
-  }
+
+    // Include other Mutation resolvers - using type assertion for safety
+    ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),
+    ...('Mutation' in dashboardResolvers ? (dashboardResolvers.Mutation as object) : {}),
+    ...('Mutation' in documentResolvers ? (documentResolvers.Mutation as object) : {}),
+    ...('Mutation' in helpResolvers ? (helpResolvers.Mutation as object) : {}),
+    ...('Mutation' in notificationResolvers ? (notificationResolvers.Mutation as object) : {}),
+    ...('Mutation' in performanceResolvers ? (performanceResolvers.Mutation as object) : {}),
+    ...('Mutation' in settingsResolvers ? (settingsResolvers.Mutation as object) : {}),
+    ...('Mutation' in timeEntryResolvers ? (timeEntryResolvers.Mutation as object) : {}),
+    ...('Mutation' in taskResolvers ? (taskResolvers.Mutation as object) : {}),
+    ...('Mutation' in projectResolvers ? (projectResolvers.Mutation as object) : {}),
+  },
 };
 
 export default resolvers; 

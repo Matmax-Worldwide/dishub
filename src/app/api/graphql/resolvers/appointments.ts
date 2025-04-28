@@ -2,6 +2,29 @@ import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Define input types
+interface CreateAppointmentInput {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  isVirtual?: boolean;
+  meetingUrl?: string;
+  clientId?: string;
+}
+
+interface UpdateAppointmentInput {
+  title?: string;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  isVirtual?: boolean;
+  meetingUrl?: string;
+  clientId?: string;
+}
+
 export const appointmentResolvers = {
   Query: {
     appointments: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -14,26 +37,37 @@ export const appointmentResolvers = {
 
         const decoded = await verifyToken(token) as { userId: string };
         
-        const appointments = await prisma.appointment.findMany({
-          where: { userId: decoded.userId },
-          orderBy: { startTime: 'asc' },
-          include: {
-            client: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
+        try {
+          if (!prisma || !prisma.appointment) {
+            console.error('Prisma client or appointment model is not available');
+            return []; // Return empty array instead of throwing an error
+          }
+          
+          const appointments = await prisma.appointment.findMany({
+            where: { userId: decoded.userId },
+            orderBy: { startTime: 'asc' },
+            include: {
+              client: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
               }
             }
-          }
-        });
-        
-        return appointments;
+          });
+          
+          return appointments;
+        } catch (dbError) {
+          console.error('Database error in appointments query:', dbError);
+          return []; // Return empty array on database error
+        }
       } catch (error) {
         console.error('Get appointments error:', error);
-        throw error;
+        // Return empty array instead of throwing error
+        return [];
       }
     },
     
@@ -111,13 +145,13 @@ export const appointmentResolvers = {
         return appointments;
       } catch (error) {
         console.error('Get upcoming appointments error:', error);
-        throw error;
+        return []; // Return empty array instead of throwing
       }
     }
   },
   
   Mutation: {
-    createAppointment: async (_parent: unknown, { input }: { input: any }, context: { req: NextRequest }) => {
+    createAppointment: async (_parent: unknown, { input }: { input: CreateAppointmentInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -153,6 +187,8 @@ export const appointmentResolvers = {
             startTime: input.startTime,
             endTime: input.endTime,
             location: input.location || '',
+            isVirtual: input.isVirtual || false,
+            meetingUrl: input.meetingUrl || '',
             clientId: input.clientId || null,
             userId: decoded.userId
           },
@@ -176,7 +212,7 @@ export const appointmentResolvers = {
       }
     },
     
-    updateAppointment: async (_parent: unknown, { id, input }: { id: string, input: any }, context: { req: NextRequest }) => {
+    updateAppointment: async (_parent: unknown, { id, input }: { id: string, input: UpdateAppointmentInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -209,13 +245,15 @@ export const appointmentResolvers = {
           }
         }
         
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         
         // Only update fields that are provided
         if (input.title !== undefined) updateData.title = input.title;
         if (input.description !== undefined) updateData.description = input.description;
         if (input.location !== undefined) updateData.location = input.location;
         if (input.clientId !== undefined) updateData.clientId = input.clientId;
+        if (input.isVirtual !== undefined) updateData.isVirtual = input.isVirtual;
+        if (input.meetingUrl !== undefined) updateData.meetingUrl = input.meetingUrl;
         
         // Validate and update time if provided
         if (input.startTime !== undefined) updateData.startTime = input.startTime;
@@ -264,15 +302,15 @@ export const appointmentResolvers = {
 
         const decoded = await verifyToken(token) as { userId: string };
         
-        // Make sure the appointment exists and belongs to the user
-        const existingAppointment = await prisma.appointment.findUnique({
-          where: { 
+        // Ensure the appointment exists and belongs to the user
+        const appointment = await prisma.appointment.findUnique({
+          where: {
             id,
             userId: decoded.userId
           }
         });
         
-        if (!existingAppointment) {
+        if (!appointment) {
           throw new Error('Appointment not found or you do not have permission to delete it');
         }
         
@@ -283,7 +321,7 @@ export const appointmentResolvers = {
         return true;
       } catch (error) {
         console.error('Delete appointment error:', error);
-        return false;
+        throw error;
       }
     }
   }

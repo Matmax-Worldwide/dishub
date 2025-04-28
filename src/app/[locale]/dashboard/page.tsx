@@ -20,6 +20,12 @@ const GET_USER = gql`
 export default function DashboardPage() {
   const { locale } = useParams();
   const [isLoggedOut, setIsLoggedOut] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    error?: string;
+    graphQLErrors?: string[];
+    networkError?: string;
+    stack?: string;
+  } | null>(null);
   
   const { loading, error, data, refetch } = useQuery(GET_USER, {
     client,
@@ -27,8 +33,14 @@ export default function DashboardPage() {
       console.error('GraphQL Error:', error);
       console.error('Error details:', error.graphQLErrors);
       console.error('Network error:', error.networkError);
-      console.error('Error stack:', error.stack);
-      console.error('Error message:', error.message);
+      
+      // Show debug info to help troubleshoot
+      setDebugInfo({
+        error: error.message,
+        graphQLErrors: error.graphQLErrors?.map(e => e.message),
+        networkError: error.networkError?.message,
+        stack: error.stack
+      });
       
       // If the error is related to an invalid token, clear the token and redirect to login
       if (error.message.includes('Invalid token') || error.message.includes('Not authenticated')) {
@@ -43,6 +55,7 @@ export default function DashboardPage() {
       // If we have valid user data, we're logged in
       if (data?.me) {
         console.log('User is logged in:', data.me.email, 'with role:', data.me.role);
+        setDebugInfo(null); // Clear debug info
       }
     },
     fetchPolicy: 'network-only',
@@ -52,8 +65,10 @@ export default function DashboardPage() {
   // Check for cookie on component mount and when needed
   useEffect(() => {
     const checkLoginStatus = () => {
-      const hasToken = document.cookie.includes('session-token=');
+      const cookies = document.cookie;
+      const hasToken = cookies.includes('session-token=');
       console.log('Session token present in cookies:', hasToken);
+      console.log('All cookies:', cookies);
       
       if (!hasToken && !isLoggedOut) {
         console.log('No session token detected, redirecting to login');
@@ -105,25 +120,40 @@ export default function DashboardPage() {
   if (error) {
     console.error('Dashboard Error:', error);
     
-    // Only show the error message if it's not an authentication error
-    // For authentication errors, we should have already redirected
-    if (!error.message.includes('Invalid token') && !error.message.includes('Not authenticated')) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-xl text-red-600">
-            Error loading user data: {error.message}
-            <div className="mt-4 text-sm">
-              Please try logging in again or contact support if the problem persists.
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // Return a loading state while redirecting for auth errors
+    // Display debug info instead of redirecting
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Redirecting to login...</div>
+        <div className="max-w-2xl text-xl text-red-600">
+          <h1 className="text-2xl mb-4">Error loading user data</h1>
+          <p className="mb-2">{error.message}</p>
+          
+          {debugInfo && (
+            <div className="mt-4 p-4 bg-gray-100 rounded text-sm text-left">
+              <h2 className="text-lg mb-2">Debug Information:</h2>
+              <pre className="overflow-auto max-h-80">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+              <p className="mt-4 text-gray-700">
+                Please try logging in again or contact support with this information.
+              </p>
+            </div>
+          )}
+          
+          <div className="mt-6 flex space-x-4">
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Go to Login
+            </button>
+            <button 
+              onClick={() => refetch()}
+              className="px-4 py-2 bg-gray-600 text-white rounded"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

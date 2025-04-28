@@ -14,6 +14,7 @@ import {
   BriefcaseIcon,
   ChartBarIcon,
   BellIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 
 export default function DashboardLayout({
@@ -30,6 +31,7 @@ export default function DashboardLayout({
         navigation={[
           { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
           { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
+          { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardDocumentListIcon },
           { name: 'Schedule', href: `/${locale}/dashboard/schedule`, icon: CalendarIcon },
           { name: 'Time Tracking', href: `/${locale}/dashboard/time`, icon: ClockIcon },
           { name: 'Documents', href: `/${locale}/dashboard/documents`, icon: DocumentTextIcon },

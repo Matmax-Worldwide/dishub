@@ -11,6 +11,8 @@ import { performanceResolvers } from './performance';
 import { notificationResolvers } from './notifications';
 import { settingsResolvers } from './settings';
 import { helpResolvers } from './help';
+import { taskResolvers } from './tasks';
+import { projectResolvers } from './projects';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -107,19 +109,15 @@ const authResolvers = {
       };
     },
     
-    register: async (_parent: unknown, { 
-      email, 
-      password, 
-      firstName, 
-      lastName, 
-      phoneNumber 
-    }: { 
+    register: async (_parent: unknown, args: { 
       email: string, 
       password: string, 
       firstName: string, 
       lastName: string, 
       phoneNumber?: string 
     }) => {
+      const { email, password, firstName, lastName, phoneNumber } = args;
+      
       const existingUser = await prisma.user.findUnique({ where: { email } });
       
       if (existingUser) {
@@ -149,11 +147,25 @@ const authResolvers = {
         }
       });
       
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      // Convert role to string
+      const roleAsString = user.role.toString();
+      console.log('User registered:', email, 'with role:', roleAsString);
+      const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
+      
+      const userWithoutPassword = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: roleAsString,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
       
       return {
         token,
-        user,
+        user: userWithoutPassword,
       };
     },
     
@@ -165,7 +177,12 @@ const authResolvers = {
           throw new Error('Not authenticated');
         }
         
-        const decoded = await verifyToken(token) as { userId: string };
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          console.error('Invalid token payload:', decoded);
+          throw new Error('Invalid token');
+        }
         
         const userData: {
           firstName?: string;
@@ -233,7 +250,11 @@ const authResolvers = {
           }
         });
         
-        return updatedUser;
+        // Convert role to string for consistent serialization
+        return {
+          ...updatedUser,
+          role: updatedUser.role.toString()
+        };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
         throw error;
@@ -251,7 +272,15 @@ const authResolvers = {
         }
         
         try {
-          const decoded = await verifyToken(token) as { userId: string };
+          console.log('Verifying token for updateUserProfile...');
+          const decoded = await verifyToken(token) as { userId: string; role?: string };
+          
+          if (!decoded || !decoded.userId) {
+            console.error('Invalid token payload:', decoded);
+            throw new Error('Invalid token');
+          }
+          
+          console.log('Token verified, updating profile for user:', decoded.userId);
           
           const userData: {
             firstName?: string;
@@ -270,6 +299,20 @@ const authResolvers = {
           if (input.position !== undefined) userData.position = input.position;
           if (input.department !== undefined) userData.department = input.department;
           
+          console.log('Updating user with data:', userData);
+          
+          // First check if user exists
+          const userExists = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { id: true }
+          });
+          
+          if (!userExists) {
+            console.error('User not found for profile update:', decoded.userId);
+            throw new Error('User not found');
+          }
+          
+          // Update user
           const updatedUser = await prisma.user.update({
             where: { id: decoded.userId },
             data: userData,
@@ -288,7 +331,13 @@ const authResolvers = {
             }
           });
           
-          return updatedUser;
+          console.log('User profile updated successfully');
+          
+          // Convert role to string for consistent serialization
+          return {
+            ...updatedUser,
+            role: updatedUser.role.toString()
+          };
         } catch (tokenError) {
           console.error('Token validation error in updateUserProfile:', tokenError);
           throw new Error('Invalid token');
@@ -333,6 +382,8 @@ const resolvers = {
     ...notificationResolvers.Query,
     ...settingsResolvers.Query,
     ...helpResolvers.Query,
+    ...taskResolvers.Query,
+    ...projectResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -343,6 +394,7 @@ const resolvers = {
     ...notificationResolvers.Mutation,
     ...settingsResolvers.Mutation,
     ...helpResolvers.Mutation,
+    ...taskResolvers.Mutation,
   }
 };
 

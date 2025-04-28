@@ -149,6 +149,8 @@ const typeDefs = gql`
     startTime: String!
     endTime: String!
     location: String
+    isVirtual: Boolean
+    meetingUrl: String
     userId: ID!
     user: User
     clientId: ID
@@ -163,6 +165,8 @@ const typeDefs = gql`
     startTime: String!
     endTime: String!
     location: String
+    isVirtual: Boolean
+    meetingUrl: String
     clientId: ID
   }
 
@@ -172,6 +176,8 @@ const typeDefs = gql`
     startTime: String
     endTime: String
     location: String
+    isVirtual: Boolean
+    meetingUrl: String
     clientId: ID
   }
 

@@ -11,47 +11,79 @@ const GET_TIME_ENTRIES = gql`
     timeEntries {
       id
       description
-      startTime
-      endTime
-      project
+      date
+      hours
+      projectId
+      project {
+        id
+        name
+      }
+      createdAt
+      updatedAt
     }
   }
 `;
 
-const START_TIME_ENTRY = gql`
-  mutation StartTimeEntry($input: StartTimeEntryInput!) {
-    startTimeEntry(input: $input) {
+const GET_PROJECTS = gql`
+  query GetProjects {
+    projects {
+      id
+      name
+      status
+    }
+  }
+`;
+
+const CREATE_TIME_ENTRY = gql`
+  mutation CreateTimeEntry($input: CreateTimeEntryInput!) {
+    createTimeEntry(input: $input) {
       id
       description
-      startTime
-      project
+      date
+      hours
+      projectId
+      project {
+        id
+        name
+      }
     }
   }
 `;
 
-const STOP_TIME_ENTRY = gql`
-  mutation StopTimeEntry($id: ID!) {
-    stopTimeEntry(id: $id) {
+const UPDATE_TIME_ENTRY = gql`
+  mutation UpdateTimeEntry($id: ID!, $input: UpdateTimeEntryInput!) {
+    updateTimeEntry(id: $id, input: $input) {
       id
-      endTime
+      hours
+      updatedAt
     }
   }
 `;
 
 const DELETE_TIME_ENTRY = gql`
   mutation DeleteTimeEntry($id: ID!) {
-    deleteTimeEntry(id: $id) {
-      id
-    }
+    deleteTimeEntry(id: $id)
   }
 `;
 
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface TimeEntry {
   id: string;
-  description?: string;
-  startTime: string;
-  endTime?: string;
-  project?: string;
+  description: string;
+  date: string; // ISO date string
+  hours: number;
+  projectId?: string;
+  project?: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function TimePage() {
@@ -59,36 +91,70 @@ export default function TimePage() {
   const [elapsedTime, setElapsedTime] = useState('');
   const [formData, setFormData] = useState({
     description: '',
-    project: '',
+    projectId: '', // This will hold the actual project ID
+    projectName: '', // Display name for UI
   });
+  const [timerStartTime, setTimerStartTime] = useState<Date | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   // Cargar entradas de tiempo
   const { loading, error, data, refetch } = useQuery(GET_TIME_ENTRIES, {
     client,
     onCompleted: (data) => {
-      // Verificar si hay una entrada activa (sin endTime)
-      const active = data?.timeEntries?.find((entry: TimeEntry) => !entry.endTime);
-      if (active) {
-        setActiveTimer(active);
+      // Check for existing time entry created today that we can continue
+      const today = new Date().toISOString().split('T')[0];
+      const activeEntry = data?.timeEntries?.find((entry: TimeEntry) => 
+        entry.date === today && entry.hours < 24
+      );
+      
+      if (activeEntry) {
+        // For demonstration, consider the most recent entry from today as active
+        setActiveTimer(activeEntry);
+        
+        // Simulate a start time based on hours already logged
+        const startTime = new Date();
+        startTime.setHours(startTime.getHours() - activeEntry.hours);
+        setTimerStartTime(startTime);
       }
     },
   });
 
-  // Mutaciones
-  const [startTimeEntry] = useMutation(START_TIME_ENTRY, {
+  // Load available projects
+  useQuery(GET_PROJECTS, {
     client,
     onCompleted: (data) => {
-      setActiveTimer(data.startTimeEntry);
-      refetch();
-    },
+      if (data?.projects) {
+        setProjects(data.projects);
+      }
+    }
   });
 
-  const [stopTimeEntry] = useMutation(STOP_TIME_ENTRY, {
+  // Mutaciones
+  const [createTimeEntry] = useMutation(CREATE_TIME_ENTRY, {
+    client,
+    onCompleted: (data) => {
+      setActiveTimer(data.createTimeEntry);
+      setTimerStartTime(new Date());
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Error creating time entry:', error);
+      // Show an alert or toast with the error message
+      alert(`Failed to create time entry: ${error.message}`);
+    }
+  });
+
+  const [updateTimeEntry] = useMutation(UPDATE_TIME_ENTRY, {
     client,
     onCompleted: () => {
       setActiveTimer(null);
+      setTimerStartTime(null);
       refetch();
     },
+    onError: (error) => {
+      console.error('Error updating time entry:', error);
+      alert(`Failed to update time entry: ${error.message}`);
+    }
   });
 
   const [deleteTimeEntry] = useMutation(DELETE_TIME_ENTRY, {
@@ -96,22 +162,25 @@ export default function TimePage() {
     onCompleted: () => {
       refetch();
     },
+    onError: (error) => {
+      console.error('Error deleting time entry:', error);
+      alert(`Failed to delete time entry: ${error.message}`);
+    }
   });
 
   // Actualizar temporizador
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (activeTimer) {
+    if (activeTimer && timerStartTime) {
       interval = setInterval(() => {
-        const seconds = differenceInSeconds(new Date(), parseISO(activeTimer.startTime));
+        const seconds = differenceInSeconds(new Date(), timerStartTime);
         const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
         
         const formatted = formatDuration(duration, {
           format: ['hours', 'minutes', 'seconds'],
           zero: true,
-          delimiter: ':',
-          padding: true
+          delimiter: ':'
         }).replace(/(\d+) hours?/, '$1').replace(/(\d+) minutes?/, '$1').replace(/(\d+) seconds?/, '$1');
         
         setElapsedTime(formatted);
@@ -121,27 +190,78 @@ export default function TimePage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activeTimer]);
+  }, [activeTimer, timerStartTime]);
 
   // Manejadores
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'projectName') {
+      // If user is typing the project name, find the matching project ID
+      const selectedProject = projects.find(p => p.name.toLowerCase() === value.toLowerCase());
+      setFormData(prev => ({ 
+        ...prev, 
+        projectName: value,
+        projectId: selectedProject?.id || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleProjectSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const projectId = e.target.value;
+    if (projectId) {
+      const selectedProject = projects.find(p => p.id === projectId);
+      setFormData(prev => ({ 
+        ...prev, 
+        projectId: projectId,
+        projectName: selectedProject?.name || ''
+      }));
+    } else {
+      // No project selected
+      setFormData(prev => ({ 
+        ...prev, 
+        projectId: '',
+        projectName: ''
+      }));
+    }
   };
 
   const handleStartTimer = () => {
-    startTimeEntry({
+    if (!formData.description.trim()) {
+      alert('Please enter a description for your time entry');
+      return;
+    }
+    
+    const today = new Date();
+    createTimeEntry({
       variables: {
-        input: formData,
+        input: {
+          description: formData.description,
+          date: today.toISOString().split('T')[0], // YYYY-MM-DD format
+          hours: 0, // Start with 0 hours
+          projectId: formData.projectId || undefined,
+        },
       },
     });
   };
 
   const handleStopTimer = () => {
-    if (activeTimer) {
-      stopTimeEntry({
+    if (activeTimer && timerStartTime) {
+      // Calculate hours spent
+      const now = new Date();
+      const hoursSpent = (now.getTime() - timerStartTime.getTime()) / (1000 * 60 * 60);
+      
+      // Add to existing hours
+      const totalHours = activeTimer.hours + hoursSpent;
+      
+      updateTimeEntry({
         variables: {
           id: activeTimer.id,
+          input: {
+            hours: parseFloat(totalHours.toFixed(2)), // Round to 2 decimal places
+          },
         },
       });
     }
@@ -155,23 +275,83 @@ export default function TimePage() {
     });
   };
 
-  const formatTimeSpent = (startTime: string, endTime?: string) => {
-    if (!endTime) return 'Running...';
+  const formatTimeSpent = (hours: number) => {    
+    if (hours === 0) return 'Just started';
     
-    const seconds = differenceInSeconds(parseISO(endTime), parseISO(startTime));
-    const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
+    const totalSeconds = hours * 3600;
+    const duration = intervalToDuration({ start: 0, end: totalSeconds * 1000 });
     
-    const hours = duration.hours ? `${duration.hours}h ` : '';
-    const minutes = duration.minutes ? `${duration.minutes}m ` : '';
-    const secs = duration.seconds ? `${duration.seconds}s` : '';
+    const h = duration.hours ? `${duration.hours}h ` : '';
+    const m = duration.minutes ? `${duration.minutes}m ` : '';
+    const s = duration.seconds ? `${duration.seconds}s` : '';
     
-    return `${hours}${minutes}${secs}`;
+    return `${h}${m}${s}`;
   };
 
-  if (loading) return <div className="flex justify-center p-6">Loading time entries...</div>;
-  if (error) return <div className="text-red-500 p-6">Error loading time entries: {error.message}</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center p-12 bg-white shadow rounded-lg">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-lg text-gray-700">Loading your time entries...</p>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="max-w-2xl mx-auto p-4 bg-white shadow-md rounded-lg">
+      <div className="p-4 text-red-600">
+        <h2 className="text-xl font-bold mb-4">Error loading time entries</h2>
+        <p className="mb-2">{error.message}</p>
+        
+        <div className="mt-4 p-4 bg-gray-100 rounded text-sm text-left">
+          <h3 className="text-lg mb-2">Debug Information:</h3>
+          <pre className="overflow-auto max-h-60 text-xs">
+            {JSON.stringify(
+              {
+                message: error.message,
+                graphQLErrors: error.graphQLErrors?.map(e => e.message),
+                networkError: error.networkError?.message,
+              }, 
+              null, 
+              2
+            )}
+          </pre>
+        </div>
+        
+        <button 
+          onClick={() => refetch({ fetchPolicy: 'network-only' })}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
 
-  const timeEntries = data?.timeEntries || [];
+  // Fallback for when data comes back empty
+  if (!data || !data.timeEntries) {
+    return (
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="bg-indigo-700 px-4 py-5 sm:px-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Time Tracker</h1>
+        </div>
+
+        <div className="p-12 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-xl font-medium text-gray-700 mb-2">No time entries found</h2>
+          <p className="text-gray-500 mb-6">Start tracking your time to see entries here.</p>
+          <button
+            onClick={() => setActiveTimer(null)}
+            className="px-4 py-2 bg-indigo-600 rounded text-white hover:bg-indigo-700"
+          >
+            Start Tracking
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const timeEntries = data.timeEntries || [];
 
   return (
     <div className="space-y-8">
@@ -185,7 +365,7 @@ export default function TimePage() {
               <div className="flex-1">
                 <div className="text-3xl font-mono text-indigo-600">{elapsedTime}</div>
                 <div className="text-gray-600">{activeTimer.description || 'No description'}</div>
-                {activeTimer.project && <div className="text-sm text-gray-500">Project: {activeTimer.project}</div>}
+                {activeTimer.project && <div className="text-sm text-gray-500">Project: {activeTimer.project.name}</div>}
               </div>
               <button
                 onClick={handleStopTimer}
@@ -211,14 +391,19 @@ export default function TimePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Project</label>
-                <input
-                  type="text"
-                  name="project"
-                  value={formData.project}
-                  onChange={handleInputChange}
-                  placeholder="Project name (optional)"
+                <select
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleProjectSelect}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                />
+                >
+                  <option value="">Select a project (optional)</option>
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex justify-end">
@@ -248,16 +433,15 @@ export default function TimePage() {
                 <div>
                   <div className="font-medium text-gray-900">{entry.description || 'No description'}</div>
                   <div className="text-sm text-gray-500">
-                    {format(parseISO(entry.startTime), 'MMM d, yyyy • h:mm a')}
-                    {entry.endTime && ` - ${format(parseISO(entry.endTime), 'h:mm a')}`}
+                    {format(parseISO(entry.date), 'MMM d, yyyy')}
                   </div>
-                  {entry.project && <div className="text-xs text-gray-500 mt-1">Project: {entry.project}</div>}
+                  {entry.project && <div className="text-xs text-gray-500 mt-1">Project: {entry.project.name}</div>}
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className={`text-sm font-medium ${entry.endTime ? 'text-gray-700' : 'text-green-600'}`}>
-                    {formatTimeSpent(entry.startTime, entry.endTime)}
+                  <div className={`text-sm font-medium ${activeTimer && activeTimer.id === entry.id ? 'text-green-600' : 'text-gray-700'}`}>
+                    {formatTimeSpent(entry.hours)}
                   </div>
-                  {entry.endTime && (
+                  {(!activeTimer || activeTimer.id !== entry.id) && (
                     <button
                       onClick={() => handleDeleteEntry(entry.id)}
                       className="text-red-600 hover:text-red-800"
@@ -292,22 +476,47 @@ export default function TimePage() {
           <div className="bg-indigo-50 p-4 rounded-lg">
             <div className="text-sm text-indigo-700 font-medium">Today</div>
             <div className="text-2xl font-semibold text-indigo-900">
-              {/* Calcular horas del día */}
-              {formatTimeSpent(new Date().toISOString(), new Date().toISOString())}
+              {/* Calculate today's hours */}
+              {formatTimeSpent(
+                timeEntries
+                  .filter((entry: TimeEntry) => entry.date === new Date().toISOString().split('T')[0])
+                  .reduce((sum: number, entry: TimeEntry) => sum + entry.hours, 0)
+              )}
             </div>
           </div>
           <div className="bg-indigo-50 p-4 rounded-lg">
             <div className="text-sm text-indigo-700 font-medium">This Week</div>
             <div className="text-2xl font-semibold text-indigo-900">
-              {/* Calcular horas de la semana */}
-              {formatTimeSpent(new Date().toISOString(), new Date().toISOString())}
+              {/* Calculate this week's hours */}
+              {formatTimeSpent(
+                timeEntries
+                  .filter((entry: TimeEntry) => {
+                    const entryDate = new Date(entry.date);
+                    const now = new Date();
+                    const daysSinceMonday = (now.getDay() + 6) % 7; // Days since last Monday
+                    const monday = new Date(now);
+                    monday.setDate(now.getDate() - daysSinceMonday);
+                    monday.setHours(0, 0, 0, 0);
+                    return entryDate >= monday;
+                  })
+                  .reduce((sum: number, entry: TimeEntry) => sum + entry.hours, 0)
+              )}
             </div>
           </div>
           <div className="bg-indigo-50 p-4 rounded-lg">
             <div className="text-sm text-indigo-700 font-medium">This Month</div>
             <div className="text-2xl font-semibold text-indigo-900">
-              {/* Calcular horas del mes */}
-              {formatTimeSpent(new Date().toISOString(), new Date().toISOString())}
+              {/* Calculate this month's hours */}
+              {formatTimeSpent(
+                timeEntries
+                  .filter((entry: TimeEntry) => {
+                    const entryDate = new Date(entry.date);
+                    const now = new Date();
+                    return entryDate.getMonth() === now.getMonth() && 
+                           entryDate.getFullYear() === now.getFullYear();
+                  })
+                  .reduce((sum: number, entry: TimeEntry) => sum + entry.hours, 0)
+              )}
             </div>
           </div>
         </div>
