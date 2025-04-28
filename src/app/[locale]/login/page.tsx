@@ -33,13 +33,41 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Set the session token in cookies
+      // Set the session token in cookies with additional security
       console.log('Setting session token in cookies...');
-      document.cookie = `session-token=${data.session.token}; path=/; max-age=604800`; // 7 days
-
-      // Force a hard navigation to ensure the middleware runs
-      console.log('Redirecting to dashboard...');
-      window.location.href = `/${locale}/dashboard`;
+      console.log('Token value type:', typeof data.session.token);
+      console.log('Token exists:', !!data.session.token);
+      console.log('Token length:', data.session.token ? data.session.token.length : 0);
+      
+      if (!data.session?.token) {
+        throw new Error('No session token received from server');
+      }
+      
+      // Clear any existing token first
+      document.cookie = 'session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // Secure cookie with HttpOnly, SameSite, and secure flags
+      // Note: in dev environment, secure might need to be removed if not using HTTPS
+      const isSecure = window.location.protocol === 'https:';
+      const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
+      document.cookie = `session-token=${data.session.token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+      
+      // Verify the cookie was set
+      setTimeout(() => {
+        const hasToken = document.cookie.includes('session-token=');
+        console.log('Cookie verification - Token set successfully:', hasToken);
+        
+        if (!hasToken) {
+          console.error('Failed to set session token cookie!');
+          setError('Failed to store session. Please check your browser cookie settings.');
+          setLoading(false);
+          return;
+        }
+        
+        // Force a hard navigation to ensure the middleware runs
+        console.log('Redirecting to dashboard...');
+        window.location.href = `/${locale}/dashboard`;
+      }, 100);
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');

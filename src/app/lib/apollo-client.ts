@@ -41,12 +41,18 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 const authLink = setContext((_, { headers }) => {
   // Get the authentication token from cookies
   if (typeof window !== 'undefined') {
-    const token = document.cookie
+    const cookieValue = document.cookie
       .split('; ')
       .find(row => row.startsWith('session-token='))
       ?.split('=')[1];
+      
+    const token = cookieValue && cookieValue.trim();
 
     console.log('Apollo auth token:', token ? 'Token found' : 'No token found');
+    if (token) {
+      console.log('Token length:', token.length);
+      console.log('Token first 10 chars:', token.substring(0, 10) + '...');
+    }
 
     // Return the headers to the context so httpLink can read them
     return {

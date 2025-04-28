@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery, gql } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const GET_USER = gql`
   query GetUser {
@@ -19,7 +19,9 @@ const GET_USER = gql`
 
 export default function DashboardPage() {
   const { locale } = useParams();
-  const { loading, error, data } = useQuery(GET_USER, {
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
+  
+  const { loading, error, data, refetch } = useQuery(GET_USER, {
     client,
     onError: (error) => {
       console.error('GraphQL Error:', error);
@@ -27,15 +29,46 @@ export default function DashboardPage() {
       console.error('Network error:', error.networkError);
       console.error('Error stack:', error.stack);
       console.error('Error message:', error.message);
+      
+      // If the error is related to an invalid token, clear the token and redirect to login
+      if (error.message.includes('Invalid token') || error.message.includes('Not authenticated')) {
+        console.log('Authentication error detected, redirecting to login');
+        handleLogout();
+      }
     },
     onCompleted: (data) => {
-      console.log('Query completed successfully');
-      console.log('Response data:', data);
+      console.log('User query completed successfully');
       console.log('User data:', data?.me);
+      
+      // If we have valid user data, we're logged in
+      if (data?.me) {
+        console.log('User is logged in:', data.me.email, 'with role:', data.me.role);
+      }
     },
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
   });
+
+  // Check for cookie on component mount and when needed
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const hasToken = document.cookie.includes('session-token=');
+      console.log('Session token present in cookies:', hasToken);
+      
+      if (!hasToken && !isLoggedOut) {
+        console.log('No session token detected, redirecting to login');
+        window.location.href = `/${locale}/login`;
+      }
+      
+      // If the token exists but we got an error, let's retry the query once
+      if (hasToken && error && !isLoggedOut) {
+        console.log('Token exists but query failed, retrying...');
+        setTimeout(() => refetch(), 1000);
+      }
+    };
+    
+    checkLoginStatus();
+  }, [locale, error, isLoggedOut, refetch]);
 
   useEffect(() => {
     console.log('Query status:', {
@@ -43,10 +76,17 @@ export default function DashboardPage() {
       error: error?.message,
       data: data?.me,
     });
+    
+    // If we have an authentication error, redirect to login
+    if (error && (error.message.includes('Invalid token') || error.message.includes('Not authenticated'))) {
+      handleLogout();
+    }
   }, [loading, error, data]);
 
   const handleLogout = async () => {
     try {
+      setIsLoggedOut(true);
+      console.log('Logging out user - clearing session token');
       document.cookie = 'session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       window.location.href = `/${locale}/login`;
     } catch (err) {
@@ -64,20 +104,32 @@ export default function DashboardPage() {
 
   if (error) {
     console.error('Dashboard Error:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-red-600">
-          Error loading user data: {error.message}
-          <div className="mt-4 text-sm">
-            Please try logging in again or contact support if the problem persists.
+    
+    // Only show the error message if it's not an authentication error
+    // For authentication errors, we should have already redirected
+    if (!error.message.includes('Invalid token') && !error.message.includes('Not authenticated')) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-xl text-red-600">
+            Error loading user data: {error.message}
+            <div className="mt-4 text-sm">
+              Please try logging in again or contact support if the problem persists.
+            </div>
           </div>
         </div>
+      );
+    }
+    
+    // Return a loading state while redirecting for auth errors
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Redirecting to login...</div>
       </div>
     );
   }
 
   const user = data?.me;
-  console.log('User data:', user);
+  console.log('Rendering dashboard with user data:', user);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-6 sm:pt-10 md:pt-12">

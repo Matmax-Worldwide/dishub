@@ -24,7 +24,10 @@ export const dashboardResolvers = {
         }
 
         try {
-          const decoded = await verifyToken(token) as { userId: string };
+          const decoded = await verifyToken(token) as { userId: string; role?: string };
+          if (!decoded || !decoded.userId) {
+            throw new Error('Invalid token payload');
+          }
           
           // Get current date information for filtering
           const now = new Date();

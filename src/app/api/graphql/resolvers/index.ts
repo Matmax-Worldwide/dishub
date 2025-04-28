@@ -25,14 +25,17 @@ const authResolvers = {
           throw new Error('Not authenticated');
         }
 
-        const decoded = await verifyToken(token) as { userId: string };
+        console.log('Verifying token in me query:', token.substring(0, 10) + '...');
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        console.log('Token verified, userId:', decoded.userId, 'role:', decoded.role);
+        
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: {
             id: true,
             email: true,
             firstName: true,
-            lastName: true,
+            lastName: true, 
             phoneNumber: true,
             role: true,
             createdAt: true,
@@ -41,10 +44,15 @@ const authResolvers = {
         });
 
         if (!user) {
+          console.error('User not found for id:', decoded.userId);
           throw new Error('User not found');
         }
 
-        return user;
+        // Convert role to string for the response to avoid enum serialization issues
+        return {
+          ...user,
+          role: user.role.toString(),
+        };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
         throw new Error('Invalid token');
@@ -79,15 +87,23 @@ const authResolvers = {
         throw new Error('Invalid password');
       }
       
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      // Include role in the token payload
+      const token = jwt.sign({ userId: user.id, role: user.role.toString() }, JWT_SECRET, { expiresIn: '7d' });
+      console.log('Generated JWT with role:', user.role.toString());
       
       // Remove password from returned user object
       const userWithoutPassword = { ...user };
       delete userWithoutPassword.password;
       
+      // Convert enum to string for consistent serialization
+      const userResponse = {
+        ...userWithoutPassword,
+        role: userWithoutPassword.role.toString()
+      };
+      
       return {
         token,
-        user: userWithoutPassword,
+        user: userResponse,
       };
     },
     
