@@ -17,10 +17,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // Allow root path (/) to be accessed directly without redirection
+  // Redirect root path (/) to default locale
   if (pathname === '/') {
-    console.log('Root path detected, allowing access without redirection');
-    return NextResponse.next()
+    console.log('Root path detected, redirecting to default locale');
+    return NextResponse.redirect(new URL(`/${defaultLocale}`, request.url))
   }
 
   // Check if pathname already includes a locale
@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
   // Redirect to default locale if no locale is present
   if (!pathnameHasLocale) {
     console.log('No locale in path, redirecting to default locale');
-    return NextResponse.redirect(new URL(`/${defaultLocale}${pathname === '/' ? '' : pathname}`, request.url))
+    return NextResponse.redirect(new URL(`/${defaultLocale}${pathname}`, request.url))
   }
 
   // Extract current locale and path without locale
