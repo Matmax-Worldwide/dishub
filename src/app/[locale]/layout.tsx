@@ -1,9 +1,15 @@
-type LayoutProps = {
+import React from 'react';
+
+export interface LocaleLayoutProps {
   children: React.ReactNode;
-  params: { locale: string };
-};
+  params: {
+    locale: string;
+  };
+}
 
 // Avoid direct access to params by handling it safely
-export default function LocaleLayout({ children }: LayoutProps) {
+export default function LocaleLayout({
+  children,
+}: LocaleLayoutProps) {
   return children;
 } 

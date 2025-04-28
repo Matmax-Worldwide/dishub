@@ -1,215 +1,153 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { HelpCircleIcon, MailIcon, BookOpenIcon } from 'lucide-react';
 
-// GraphQL Queries and Mutations
-const GET_FAQS = gql`
-  query GetFAQs {
-    faqs {
-      id
-      question
-      answer
-      category
-    }
+// Sample FAQ data
+const FAQS = [
+  {
+    id: '1',
+    question: 'How do I update my profile information?',
+    answer: 'You can update your profile by navigating to the Settings page and selecting the Account tab. There you can edit your personal information and contact details.',
+    category: 'account'
+  },
+  {
+    id: '2',
+    question: 'How do I change my notification preferences?',
+    answer: 'Go to Settings > Notifications where you can choose which types of notifications you want to receive and through which channels.',
+    category: 'notifications'
+  },
+  {
+    id: '3',
+    question: 'What types of assignments can I expect?',
+    answer: 'As an interpreter, you may receive various types of assignments including in-person interpretation, virtual meetings, document translation, and phone calls depending on your qualifications and availability.',
+    category: 'assignments'
+  },
+  {
+    id: '4',
+    question: 'How do I report a technical issue?',
+    answer: 'Technical issues can be reported through the Contact Support tab in the Help section. Please provide as much detail as possible about the issue you encountered.',
+    category: 'technical'
+  },
+  {
+    id: '5',
+    question: 'When and how do I get paid?',
+    answer: 'Payments are typically processed on the 15th and last day of each month. You can view your payment history and status in the Payments section of your dashboard.',
+    category: 'billing'
   }
-`;
+];
 
-const CREATE_SUPPORT_TICKET = gql`
-  mutation CreateSupportTicket($input: CreateSupportTicketInput!) {
-    createSupportTicket(input: $input) {
-      id
-      subject
-      status
-      createdAt
-    }
+// Documentation resources
+const RESOURCES = [
+  {
+    title: 'Getting Started Guide',
+    description: 'Learn the basics of using the platform and set up your account.',
+    link: '/docs/getting-started',
+    icon: '📘'
+  },
+  {
+    title: 'Interpreter Handbook',
+    description: 'Comprehensive guide on interpretation best practices and policies.',
+    link: '/docs/interpreter-handbook',
+    icon: '📔'
+  },
+  {
+    title: 'Video Tutorials',
+    description: 'Step-by-step video guides for common tasks and features.',
+    link: '/docs/videos',
+    icon: '🎬'
+  },
+  {
+    title: 'FAQ Database',
+    description: 'Browse our complete database of frequently asked questions.',
+    link: '/docs/faq',
+    icon: '❓'
   }
-`;
-
-interface FAQ {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-}
-
-interface SupportTicket {
-  subject: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  category: string;
-}
+];
 
 export default function HelpPage() {
-  // State for FAQ filter
+  const [activeTab, setActiveTab] = useState('faqs');
   const [faqCategory, setFaqCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // State for support ticket form
-  const [supportTicket, setSupportTicket] = useState<SupportTicket>({
+  const [supportForm, setSupportForm] = useState({
     subject: '',
     description: '',
     priority: 'medium',
-    category: 'general',
+    category: 'general'
   });
-  
-  // State for selected help section
-  const [activeSection, setActiveSection] = useState('faqs');
-  
-  // State for feedback
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // GraphQL hooks
-  const { loading, error, data } = useQuery(GET_FAQS, {
-    client,
-  });
-  
-  const [createSupportTicket] = useMutation(CREATE_SUPPORT_TICKET, {
-    client,
-    onCompleted: () => {
-      setNotification({ type: 'success', message: 'Support ticket submitted successfully! Our team will get back to you soon.' });
-      setSupportTicket({
-        subject: '',
-        description: '',
-        priority: 'medium',
-        category: 'general',
-      });
-      setIsSubmitting(false);
-      setTimeout(() => setNotification(null), 5000);
-    },
-    onError: (error) => {
-      setNotification({ type: 'error', message: `Error submitting ticket: ${error.message}` });
-      setIsSubmitting(false);
-      setTimeout(() => setNotification(null), 5000);
-    },
-  });
+  const [formSubmitted, setFormSubmitted] = useState(false);
   
   // Filter FAQs based on category and search
-  const filteredFAQs = data?.faqs.filter((faq: FAQ) => {
+  const filteredFAQs = FAQS.filter(faq => {
     const matchesCategory = faqCategory === 'all' || faq.category === faqCategory;
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = !searchQuery || 
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
-  }) || [];
+  });
   
-  // Support ticket categories
-  const ticketCategories = [
-    { id: 'general', name: 'General Inquiry' },
-    { id: 'technical', name: 'Technical Issue' },
-    { id: 'billing', name: 'Billing Question' },
-    { id: 'feature', name: 'Feature Request' },
-    { id: 'bug', name: 'Bug Report' },
-  ];
-  
-  // Documentation resources
-  const documentationResources = [
-    {
-      title: 'Getting Started Guide',
-      description: 'Learn the basics of using the platform and set up your account.',
-      link: '/docs/getting-started',
-      icon: '📘',
-    },
-    {
-      title: 'API Documentation',
-      description: 'Comprehensive documentation for our API endpoints and integration.',
-      link: '/docs/api',
-      icon: '🔌',
-    },
-    {
-      title: 'Video Tutorials',
-      description: 'Step-by-step video guides for common tasks and features.',
-      link: '/docs/videos',
-      icon: '🎬',
-    },
-    {
-      title: 'Best Practices',
-      description: 'Tips and recommendations for getting the most out of the platform.',
-      link: '/docs/best-practices',
-      icon: '✨',
-    },
-    {
-      title: 'Troubleshooting Guide',
-      description: 'Solutions to common issues and error messages.',
-      link: '/docs/troubleshooting',
-      icon: '🔧',
-    },
-  ];
-  
-  // Handle support ticket form submission
-  const handleSubmitTicket = async (e: React.FormEvent) => {
+  const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    await createSupportTicket({
-      variables: {
-        input: supportTicket,
-      },
-    });
+    // Simulate API submission
+    setTimeout(() => {
+      setFormSubmitted(true);
+      // Reset form
+      setSupportForm({
+        subject: '',
+        description: '',
+        priority: 'medium',
+        category: 'general'
+      });
+    }, 500);
   };
   
-  // Handle support ticket form field changes
-  const handleTicketChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setSupportTicket({
-      ...supportTicket,
-      [name]: value,
+    setSupportForm({
+      ...supportForm,
+      [name]: value
     });
   };
   
-  if (loading) return <div className="flex justify-center p-6">Loading help resources...</div>;
-  if (error) return <div className="text-red-500 p-6">Error loading help resources: {error.message}</div>;
+  const tabs = [
+    { id: 'faqs', label: 'FAQs', icon: HelpCircleIcon },
+    { id: 'support', label: 'Contact Support', icon: MailIcon },
+    { id: 'docs', label: 'Documentation', icon: BookOpenIcon }
+  ];
   
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900">Help & Support</h1>
       
-      {notification && (
-        <div className={`p-4 rounded-md ${notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-          {notification.message}
+      {formSubmitted && (
+        <div className="p-4 rounded-md bg-green-50 text-green-800 mb-4">
+          Your support request has been submitted successfully. Our team will get back to you soon.
         </div>
       )}
       
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px">
-            <button
-              onClick={() => setActiveSection('faqs')}
-              className={`px-6 py-4 text-sm font-medium ${
-                activeSection === 'faqs'
-                  ? 'border-b-2 border-indigo-500 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              FAQs
-            </button>
-            <button
-              onClick={() => setActiveSection('support')}
-              className={`px-6 py-4 text-sm font-medium ${
-                activeSection === 'support'
-                  ? 'border-b-2 border-indigo-500 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Contact Support
-            </button>
-            <button
-              onClick={() => setActiveSection('docs')}
-              className={`px-6 py-4 text-sm font-medium ${
-                activeSection === 'docs'
-                  ? 'border-b-2 border-indigo-500 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Documentation
-            </button>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-4 text-sm font-medium flex items-center ${
+                  activeTab === tab.id
+                    ? 'border-b-2 border-indigo-500 text-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <tab.icon className="h-4 w-4 mr-2" />
+                {tab.label}
+              </button>
+            ))}
           </nav>
         </div>
         
         <div className="p-6">
-          {activeSection === 'faqs' && (
+          {/* FAQs Section */}
+          {activeTab === 'faqs' && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Frequently Asked Questions</h3>
@@ -218,24 +156,25 @@ export default function HelpPage() {
                 </p>
               </div>
               
-              <div className="flex items-center space-x-4 pb-4">
-                <div className="w-1/3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4">
+                <div className="w-full sm:w-1/3">
                   <select
                     id="faq-category"
                     name="faq-category"
                     value={faqCategory}
                     onChange={(e) => setFaqCategory(e.target.value)}
-                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                   >
                     <option value="all">All Categories</option>
                     <option value="account">Account</option>
-                    <option value="billing">Billing</option>
-                    <option value="features">Features</option>
+                    <option value="notifications">Notifications</option>
+                    <option value="assignments">Assignments</option>
                     <option value="technical">Technical</option>
+                    <option value="billing">Billing</option>
                   </select>
                 </div>
                 
-                <div className="w-2/3">
+                <div className="w-full sm:w-2/3">
                   <div className="relative rounded-md shadow-sm">
                     <input
                       type="text"
@@ -255,173 +194,151 @@ export default function HelpPage() {
                 </div>
               </div>
               
-              {filteredFAQs.length === 0 ? (
-                <div className="text-center py-10 px-6">
-                  <p className="text-gray-500">No FAQs found matching your criteria. Try adjusting your filters or search.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredFAQs.map((faq: FAQ) => (
-                    <details key={faq.id} className="bg-gray-50 p-4 rounded-lg">
-                      <summary className="font-medium text-gray-900 cursor-pointer">
-                        {faq.question}
-                      </summary>
-                      <div className="mt-3 text-gray-700">
-                        <p>{faq.answer}</p>
+              <div className="mt-6 space-y-6">
+                {filteredFAQs.length > 0 ? (
+                  <dl className="space-y-6 divide-y divide-gray-200">
+                    {filteredFAQs.map((faq) => (
+                      <div key={faq.id} className="pt-6 first:pt-0">
+                        <dt className="text-base font-medium text-gray-900">
+                          {faq.question}
+                        </dt>
+                        <dd className="mt-2 text-sm text-gray-500">
+                          {faq.answer}
+                        </dd>
                       </div>
-                    </details>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </dl>
+                ) : (
+                  <div className="text-center py-6">
+                    <HelpCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No matching FAQs</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Try adjusting your search or filter to find what you&apos;re looking for.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
-          {activeSection === 'support' && (
+          {/* Contact Support Section */}
+          {activeTab === 'support' && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Contact Support</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Submit a support ticket and our team will assist you as soon as possible.
+                  Submit a support ticket and our team will get back to you as soon as possible.
                 </p>
               </div>
               
-              <form onSubmit={handleSubmitTicket} className="space-y-6">
+              <form onSubmit={handleSupportSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                   <div className="sm:col-span-4">
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-                      Subject
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="subject"
-                        id="subject"
-                        required
-                        value={supportTicket.subject}
-                        onChange={handleTicketChange}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      />
-                    </div>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700">Subject</label>
+                    <input
+                      type="text"
+                      name="subject"
+                      id="subject"
+                      value={supportForm.subject}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="Brief description of your issue"
+                    />
                   </div>
                   
                   <div className="sm:col-span-3">
-                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                      Category
-                    </label>
-                    <div className="mt-1">
-                      <select
-                        id="category"
-                        name="category"
-                        required
-                        value={supportTicket.category}
-                        onChange={handleTicketChange}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      >
-                        {ticketCategories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={supportForm.category}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                    >
+                      <option value="general">General Inquiry</option>
+                      <option value="technical">Technical Issue</option>
+                      <option value="billing">Billing Question</option>
+                      <option value="assignments">Assignment Related</option>
+                      <option value="feature">Feature Request</option>
+                    </select>
                   </div>
                   
                   <div className="sm:col-span-3">
-                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-                      Priority
-                    </label>
-                    <div className="mt-1">
-                      <select
-                        id="priority"
-                        name="priority"
-                        required
-                        value={supportTicket.priority}
-                        onChange={handleTicketChange}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
+                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Priority</label>
+                    <select
+                      id="priority"
+                      name="priority"
+                      value={supportForm.priority}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
                   </div>
                   
                   <div className="sm:col-span-6">
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <div className="mt-1">
-                      <textarea
-                        id="description"
-                        name="description"
-                        rows={5}
-                        required
-                        value={supportTicket.description}
-                        onChange={handleTicketChange}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Please describe your issue in detail, including any error messages you've received."
-                      />
-                    </div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={supportForm.description}
+                      onChange={handleInputChange}
+                      required
+                      rows={5}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="Please provide detailed information about your issue"
+                    />
                   </div>
                 </div>
                 
-                <div className="pt-5">
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
-                    </button>
-                  </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Submit Ticket
+                  </button>
                 </div>
               </form>
             </div>
           )}
           
-          {activeSection === 'docs' && (
+          {/* Documentation Section */}
+          {activeTab === 'docs' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Documentation Resources</h3>
+                <h3 className="text-lg font-medium text-gray-900">Documentation & Resources</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Browse our comprehensive documentation to learn more about the platform.
+                  Explore our documentation and resources to learn more about the platform.
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {documentationResources.map((resource, index) => (
-                  <a
-                    key={index}
-                    href={resource.link}
-                    className="block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition duration-150"
-                  >
-                    <div className="text-3xl mb-3">{resource.icon}</div>
-                    <h3 className="text-base font-medium text-gray-900">{resource.title}</h3>
-                    <p className="mt-2 text-sm text-gray-500">{resource.description}</p>
-                  </a>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {RESOURCES.map((resource) => (
+                  <div key={resource.title} className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-start space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                    <div className="flex-shrink-0 text-2xl">
+                      {resource.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <a href={resource.link} className="focus:outline-none">
+                        <span className="absolute inset-0" aria-hidden="true" />
+                        <p className="text-sm font-medium text-gray-900">{resource.title}</p>
+                        <p className="text-sm text-gray-500 truncate">{resource.description}</p>
+                      </a>
+                    </div>
+                  </div>
                 ))}
               </div>
               
-              <div className="mt-6 p-6 bg-indigo-50 rounded-lg border border-indigo-100">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-base font-medium text-indigo-800">Need more help?</h3>
-                    <div className="mt-2 text-sm text-indigo-700">
-                      <p>If you can&apos;t find what you&apos;re looking for in our documentation, you can:</p>
-                      <ul className="list-disc pl-5 mt-2 space-y-1">
-                        <li>Join our community forum for peer support</li>
-                        <li>Schedule a call with our customer success team</li>
-                        <li>Attend one of our weekly live webinars</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-500">
+                  Need more help? Contact our support team at <a href="mailto:support@e-voque.com" className="font-medium text-indigo-600 hover:text-indigo-500">support@e-voque.com</a>
+                </p>
               </div>
             </div>
           )}
