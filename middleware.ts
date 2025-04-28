@@ -16,6 +16,12 @@ export async function middleware(request: NextRequest) {
     console.log('Skipping middleware for API/next path');
     return NextResponse.next()
   }
+  
+  // Allow root path (/) to be accessed directly without redirection
+  if (pathname === '/') {
+    console.log('Root path detected, allowing access without redirection');
+    return NextResponse.next()
+  }
 
   // Check if pathname already includes a locale
   const pathnameHasLocale = locales.some(
