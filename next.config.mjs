@@ -9,6 +9,12 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  
+  // Add image configuration
+  images: {
+    unoptimized: process.env.NODE_ENV !== 'production',
+    remotePatterns: [],
+  },
 };
 
 export default nextConfig; 

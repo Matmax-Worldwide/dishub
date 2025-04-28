@@ -301,7 +301,7 @@ const Sidebar = React.forwardRef<
               height={32}
               className="h-8 w-auto"
               src="/evoque.png"
-              alt="Your Company"
+              alt="E-voque logo"
             />
           </div>
           <div className="mt-5 flex flex-1 flex-col">
