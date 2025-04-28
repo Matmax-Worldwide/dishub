@@ -131,7 +131,7 @@ export const performanceResolvers = {
           
           const completedTasks = await prisma.task.count({
             where: {
-              userId: decoded.userId,
+              assigneeId: decoded.userId,
               status: 'COMPLETED',
               updatedAt: {
                 gte: startOfMonth,
