@@ -40,7 +40,7 @@ export default async function ContactPage(props: PageProps) {
 }
 
 // Separate component to avoid direct rendering with params
-async function ContactContent({ locale, dictionary }: ContactContentProps) {
+function ContactContent({ locale, dictionary }: ContactContentProps) {
   // Contact information
   const contactInfo = [
     {
