@@ -4,8 +4,19 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { BellIcon, CheckIcon, TrashIcon, FilterIcon } from 'lucide-react';
 
+type NotificationType = 'assignment' | 'payment' | 'schedule' | 'system' | 'document';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  isRead: boolean;
+  date: string;
+}
+
 // Sample notification data
-const MOCK_NOTIFICATIONS = [
+const MOCK_NOTIFICATIONS: Notification[] = [
   {
     id: '1',
     title: 'New assignment available',
@@ -48,18 +59,8 @@ const MOCK_NOTIFICATIONS = [
   }
 ];
 
-type NotificationType = 'assignment' | 'payment' | 'schedule' | 'system' | 'document';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: NotificationType;
-  isRead: boolean;
-  date: string;
-}
-
 export default function NotificationsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { locale } = useParams();
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState<string>('all');
@@ -218,7 +219,7 @@ export default function NotificationsPage() {
               <BellIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
               <p className="mt-1 text-sm text-gray-500">
-                You don't have any notifications matching your current filters.
+                You don&apos;t have any notifications matching your current filters.
               </p>
             </div>
           )}
