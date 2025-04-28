@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "about": "Nosotros",
+    "services": "Servicios",
+    "wellness": "Bienestar",
+    "contact": "Contacto"
+  },
+  "hero": {
+    "title": "Servicios Profesionales de Interpretación",
+    "subtitle": "Rompiendo barreras lingüísticas a través de interpretación telefónica de alta calidad",
+    "cta": "Comenzar"
+  },
+  "about": {
+    "title": "Sobre E-Voque",
+    "description": "E-Voque es un proveedor líder de servicios de interpretación telefónica. Conectamos empresas y particulares con intérpretes profesionales en segundos, garantizando una comunicación clara a través de las barreras lingüísticas.",
+    "mission": "Nuestra misión es facilitar una comunicación fluida independientemente de las diferencias lingüísticas, proporcionando servicios de interpretación precisos y culturalmente sensibles."
+  },
+  "services": {
+    "title": "Nuestros Servicios",
+    "medical": {
+      "title": "Interpretación Médica",
+      "description": "Interpretación médica profesional para proveedores de salud, asegurando una comunicación precisa entre el personal médico y los pacientes."
+    },
+    "legal": {
+      "title": "Interpretación Legal",
+      "description": "Servicios precisos de interpretación legal para bufetes de abogados, tribunales y consultas jurídicas."
+    },
+    "business": {
+      "title": "Interpretación de Negocios",
+      "description": "Soporte para reuniones internacionales de negocios, negociaciones e interacciones con servicio al cliente."
+    },
+    "emergency": {
+      "title": "Servicios de Emergencia",
+      "description": "Soporte de interpretación 24/7 para situaciones de emergencia y gestión de crisis."
+    }
+  },
+  "benefits": {
+    "title": "Por Qué Elegir E-Voque",
+    "quality": "Interpretación de alta calidad",
+    "speed": "Conexión en segundos",
+    "availability": "Disponible 24/7",
+    "languages": "Más de 100 idiomas",
+    "security": "Seguro y confidencial",
+    "technology": "Tecnología avanzada"
+  },
+  "contact": {
+    "title": "Contáctenos",
+    "description": "¿Listo para romper las barreras del idioma? Póngase en contacto con nuestro equipo.",
+    "phone": "Teléfono",
+    "email": "Correo Electrónico",
+    "address": "Dirección",
+    "form": {
+      "name": "Nombre",
+      "email": "Correo Electrónico",
+      "message": "Mensaje",
+      "submit": "Enviar Mensaje"
+    }
+  },
+  "footer": {
+    "rights": "Todos los derechos reservados",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio"
+  }
+} 
