@@ -63,7 +63,7 @@ function AboutUsContent({ locale, dictionary }: AboutUsContentProps) {
                   E-Voque was founded in 2015 with a simple mission: to break down language barriers and connect people through professional interpretation services. What began as a small operation with a handful of interpreters has grown into a global network of language professionals serving clients across industries.
                 </p>
                 <p className="text-lg text-gray-700 mb-6">
-                  Our founder, Maria Rodriguez, experienced firsthand the challenges of language barriers when her grandmother needed medical care but couldn&apos;t communicate effectively with her doctors. This personal experience inspired Maria to build a company dedicated to providing accessible, high-quality interpretation services.
+                  Our founder, Maria Rodriguez, experienced firsthand the challenges of language barriers when her grandmother needed medical care but could not communicate effectively with her doctors. This personal experience inspired Maria to build a company dedicated to providing accessible, high-quality interpretation services.
                 </p>
                 <p className="text-lg text-gray-700">
                   Today, E-Voque connects thousands of clients with interpreters in over 100 languages, facilitating clear communication in healthcare settings, legal environments, business meetings, and more.
