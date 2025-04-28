@@ -22,7 +22,6 @@ const navigation = [
   { name: 'Time Tracking', href: '/dashboard/time', icon: ClockIcon },
   { name: 'Documents', href: '/dashboard/documents', icon: DocumentTextIcon },
   { name: 'Performance', href: '/dashboard/performance', icon: ChartBarIcon },
-  { name: 'Jobs', href: '/dashboard/jobs', icon: BriefcaseIcon },
   { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
   { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
   { name: 'Help', href: '/dashboard/help', icon: QuestionMarkCircleIcon },

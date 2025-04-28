@@ -13,18 +13,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum DocumentStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum NotificationType {
+  SYSTEM
+  TASK
+  DOCUMENT
+  MESSAGE
+  APPOINTMENT
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  firstName     String
-  lastName      String
-  phoneNumber   String?
-  role          String    @default("USER")
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  Account       Account[]
+  id              String        @id @default(cuid())
+  email           String        @unique
+  password        String
+  firstName       String
+  lastName        String
+  phoneNumber     String?
+  role            Role          @default(USER)
+  profileImageUrl String?
+  bio             String?       @db.Text
+  position        String?
+  department      String?
+  isActive        Boolean       @default(true)
+  sessions        Session[]
+  accounts        Account[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relaciones
+  documents       Document[]
+  appointments    Appointment[]
+  tasksAssigned   Task[]        @relation("TaskAssignee")
+  tasksCreated    Task[]        @relation("TaskCreator")
+  timeEntries     TimeEntry[]
+  notifications   Notification[]
+  performance     Performance?
 }
 
 model Session {
@@ -32,7 +75,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -56,7 +99,91 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-enum Role {
-  USER
-  ADMIN
+model Document {
+  id          String         @id @default(cuid())
+  title       String
+  description String?        @db.Text
+  fileUrl     String
+  status      DocumentStatus @default(DRAFT)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Appointment {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  isVirtual   Boolean   @default(false)
+  meetingUrl  String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(NOT_STARTED)
+  dueDate     DateTime?
+  priority    Int        @default(1) // 1-low, 2-medium, 3-high
+  assigneeId  String
+  assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creatorId   String
+  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  description String?  @db.Text
+  startTime   DateTime
+  endTime     DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkUrl   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model Performance {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  efficiency     Float?
+  qualityScore   Float?
+  attendanceRate Float?
+  lastReviewDate DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  theme     String   @default("light")
+  language  String   @default("en")
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

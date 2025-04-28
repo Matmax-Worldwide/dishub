@@ -4,7 +4,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,7 +23,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import Image from "next/image"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -173,6 +172,13 @@ const Sidebar = React.forwardRef<
   }
 >(({ navigation, externalLinks, sidebarOpen, setSidebarOpen, className, ...props }, ref) => {
   const pathname = usePathname();
+  const [logoUrl, setLogoUrl] = useState("/logo.png");
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLogoUrl(`${window.location.origin}/logo.png`);
+    }
+  }, []);
   
   return (
     <div className={className} {...props} ref={ref}>
@@ -226,11 +232,11 @@ const Sidebar = React.forwardRef<
                   </div>
                 </Transition.Child>
                 <div className="flex flex-shrink-0 items-center px-4">
-                  <Image
+                  <img
                     width={32}
                     height={32}
                     className="h-8 w-auto"
-                    src="/evoque.png"
+                    src={logoUrl}
                     alt="Your Company"
                   />
                 </div>
@@ -296,11 +302,11 @@ const Sidebar = React.forwardRef<
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white pt-5">
           <div className="flex flex-shrink-0 items-center px-4">
-            <Image
+            <img
               width={32}
               height={32}
               className="h-8 w-auto"
-              src="/evoque.png"
+              src={logoUrl}
               alt="E-voque logo"
             />
           </div>
