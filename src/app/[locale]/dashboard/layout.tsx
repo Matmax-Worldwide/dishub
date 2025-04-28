@@ -8,15 +8,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
+      {/* Sidebar component - manages both desktop and mobile views */}
       <DashboardSidebar />
       
-      <div className="lg:pl-64 flex flex-col flex-1">
-        <main className="flex-1 pb-8">
-          <div className="mt-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {children}
-            </div>
+      {/* Main content - with padding to account for the fixed sidebar */}
+      <div className="flex flex-col flex-1 w-full overflow-y-auto lg:pl-64">
+        <main className="flex-1 p-4">
+          <div className="max-w-7xl mx-auto">
+            {children}
           </div>
         </main>
       </div>

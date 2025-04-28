@@ -17,19 +17,10 @@ import {
   BellIcon,
   ClipboardListIcon,
   LogOutIcon,
-  MenuIcon
+  MenuIcon,
+  XIcon
 } from 'lucide-react';
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger
-} from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -43,7 +34,27 @@ interface NavItem {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { locale } = useParams();
-  const [open, setOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("/logo.png");
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLogoUrl(`${window.location.origin}/logo.png`);
+      
+      // Close sidebar on mobile when route changes
+      setIsOpen(false);
+      
+      // Handle resize event
+      const handleResize = () => {
+        if (window.innerWidth >= 1024) {
+          setIsOpen(false);
+        }
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [pathname]);
 
   // Generate navigation items
   const navigationItems: NavItem[] = [
@@ -72,76 +83,73 @@ export function DashboardSidebar() {
     },
   ];
 
-  const [logoUrl, setLogoUrl] = useState("/logo.png");
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLogoUrl(`${window.location.origin}/logo.png`);
-    }
-  }, []);
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const handleLogout = () => {
+    document.cookie = 'session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    window.location.href = `/${locale}/login`;
+  };
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex h-screen">
-        <Sidebar className="border-r">
-          <SidebarHeader className="flex h-16 items-center border-b px-6">
-            <Link href={`/${locale}`} className="flex items-center gap-2">
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+        <div className="flex flex-col h-full bg-white border-r">
+          {/* Sidebar header */}
+          <div className="flex items-center border-b px-4">
+            <Link href={`/${locale}`} className="flex items-center">
               <Image 
                 src={logoUrl} 
                 alt="E-voque Logo" 
-                width={32} 
-                height={32} 
+                width={12} 
+                height={12} 
                 className="h-auto w-auto" 
               />
-              <span className="text-lg font-bold">E-Voque</span>
             </Link>
-            <div className="ml-auto">
-              <SidebarTrigger />
-            </div>
-          </SidebarHeader>
+          </div>
           
-          <SidebarContent>
-            <SidebarMenu>
+          {/* Nav items */}
+          <div className="flex-1 overflow-y-auto">
+            <nav className="p-3 space-y-1">
               {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <Link 
+                <Link 
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                    pathname === item.href 
+                      ? 'bg-indigo-100 text-indigo-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+              
+              <div className="mt-6 pt-3 border-t">
+                <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                  External Links
+                </h3>
+                {externalLinks.map((item) => (
+                  <a
+                    key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      pathname === item.href 
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                    }`}
+                    target="_blank"
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.name}</span>
-                  </Link>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-
-            <div className="mt-6 px-3">
-              <h3 className="mb-2 text-xs font-medium uppercase text-sidebar-foreground/50">
-                External Links
-              </h3>
-              <SidebarMenu>
-                {externalLinks.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer" 
-                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
-                    </a>
-                  </SidebarMenuItem>
+                  </a>
                 ))}
-              </SidebarMenu>
-            </div>
-          </SidebarContent>
+              </div>
+            </nav>
+          </div>
           
-          <SidebarFooter className="border-t p-3">
+          {/* Sidebar footer */}
+          <div className="border-t p-3">
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarImage src="" alt="User" />
@@ -149,29 +157,107 @@ export function DashboardSidebar() {
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">User Name</span>
-                <span className="text-xs text-sidebar-foreground/60">Interpreter</span>
+                <span className="text-xs text-gray-500">Interpreter</span>
               </div>
-              <Button variant="ghost" size="icon" className="ml-auto" asChild>
-                <Link href={`/${locale}/auth/logout`}>
-                  <LogOutIcon className="h-4 w-4" />
-                  <span className="sr-only">Log out</span>
-                </Link>
+              <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
+                <LogOutIcon className="h-4 w-4" />
+                <span className="sr-only">Log out</span>
               </Button>
             </div>
-          </SidebarFooter>
-        </Sidebar>
-        
-        {/* Mobile menu button */}
-        <div className="fixed bottom-4 right-4 z-40 lg:hidden">
-          <Button 
-            size="icon" 
-            className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => setOpen(!open)}
-          >
-            <MenuIcon className="h-6 w-6" />
-          </Button>
+          </div>
         </div>
       </div>
-    </SidebarProvider>
+      
+      {/* Mobile sidebar */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-gray-900/50">
+          <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-lg">
+            {/* Mobile sidebar header with close button */}
+            <div className="flex items-center justify-between h-16 px-4 border-b">
+              <Link href={`/${locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
+                <Image 
+                  src={logoUrl} 
+                  alt="E-voque Logo" 
+                  width={24} 
+                  height={24} 
+                  className="h-auto w-auto" 
+                />
+              </Link>
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                <XIcon className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Mobile nav items */}
+            <div className="flex-1 overflow-y-auto">
+              <nav className="p-3 space-y-1">
+                {navigationItems.map((item) => (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                      pathname === item.href 
+                        ? 'bg-indigo-100 text-indigo-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </Link>
+                ))}
+                
+                <div className="mt-6 pt-3 border-t">
+                  <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                    External Links
+                  </h3>
+                  {externalLinks.map((item) => (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer" 
+                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </nav>
+            </div>
+            
+            {/* Mobile sidebar footer */}
+            <div className="border-t p-3">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src="" alt="User" />
+                  <AvatarFallback>UN</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">User Name</span>
+                  <span className="text-xs text-gray-500">Interpreter</span>
+                </div>
+                <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
+                  <LogOutIcon className="h-4 w-4" />
+                  <span className="sr-only">Log out</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Mobile menu toggle button */}
+      <div className="fixed bottom-4 right-4 z-40 lg:hidden">
+        <Button 
+          size="icon" 
+          className="h-12 w-12 rounded-full shadow-lg"
+          onClick={toggleSidebar}
+        >
+          <MenuIcon className="h-6 w-6" />
+        </Button>
+      </div>
+    </>
   );
 } 

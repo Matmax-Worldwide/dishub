@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Todo from '../../../../../app/components/Todo';
+import Todo from '../../../../components/Todo';
 
 export default function TasksPage() {
   const [isClient, setIsClient] = useState(false);
