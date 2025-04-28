@@ -13,8 +13,11 @@ export async function comparePasswords(password: string, hashedPassword: string)
   return bcrypt.compare(password, hashedPassword);
 }
 
-export async function generateToken(userId: string, role: string): Promise<string> {
-  const token = await new SignJWT({ userId, role })
+export async function generateToken(userId: string, role: string | { toString(): string }): Promise<string> {
+  // Convert role to string if it's not already a string
+  const roleStr = typeof role === 'object' ? role.toString() : role;
+  
+  const token = await new SignJWT({ userId, role: roleStr })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -39,7 +42,13 @@ export async function verifyToken(token: string) {
 }
 
 export async function createSession(userId: string) {
-  const sessionToken = await generateToken(userId, 'USER');
+  // Get the user to access the correct role
+  const user = await prisma.user.findUnique({ 
+    where: { id: userId },
+    select: { role: true }
+  });
+  
+  const sessionToken = await generateToken(userId, user?.role || 'USER');
   const expires = new Date();
   expires.setDate(expires.getDate() + 7); // 7 days from now
 

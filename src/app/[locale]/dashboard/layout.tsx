@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react'; 
+import { useParams } from 'next/navigation';
 import { Sidebar } from '@/components/ui/sidebar';
 import {
   HomeIcon,
@@ -15,43 +16,40 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
-  { name: 'Schedule', href: '/dashboard/schedule', icon: CalendarIcon },
-  { name: 'Time Tracking', href: '/dashboard/time', icon: ClockIcon },
-  { name: 'Documents', href: '/dashboard/documents', icon: DocumentTextIcon },
-  { name: 'Performance', href: '/dashboard/performance', icon: ChartBarIcon },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
-  { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
-  { name: 'Help', href: '/dashboard/help', icon: QuestionMarkCircleIcon },
-];
-
-const externalLinks = [
-  {
-    name: 'E-Voque Benefits',
-    href: 'https://pe.e-voquebenefit.com/',
-    icon: UserIcon,
-  },
-  {
-    name: 'E-Voque Jobs',
-    href: 'https://jobs.e-voque.com/#services-area',
-    icon: BriefcaseIcon,
-  },
-];
-
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { locale } = useParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar
-        navigation={navigation}
-        externalLinks={externalLinks}
+        navigation={[
+          { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
+          { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
+          { name: 'Schedule', href: `/${locale}/dashboard/schedule`, icon: CalendarIcon },
+          { name: 'Time Tracking', href: `/${locale}/dashboard/time`, icon: ClockIcon },
+          { name: 'Documents', href: `/${locale}/dashboard/documents`, icon: DocumentTextIcon },
+          { name: 'Performance', href: `/${locale}/dashboard/performance`, icon: ChartBarIcon },
+          { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
+          { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: CogIcon },
+          { name: 'Help', href: `/${locale}/dashboard/help`, icon: QuestionMarkCircleIcon },
+        ] as any}
+        externalLinks={[
+          {
+            name: 'E-Voque Benefits',
+            href: 'https://pe.e-voquebenefit.com/',
+            icon: UserIcon,
+          },
+          {
+            name: 'E-Voque Jobs',
+            href: 'https://jobs.e-voque.com/#services-area',
+            icon: BriefcaseIcon,
+          },
+        ] as any}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />

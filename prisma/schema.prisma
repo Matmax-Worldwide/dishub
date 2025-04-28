@@ -31,15 +31,20 @@ enum TaskStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
-  BLOCKED
+  CANCELLED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
 }
 
 enum NotificationType {
-  SYSTEM
-  TASK
   DOCUMENT
-  MESSAGE
+  TASK
   APPOINTMENT
+  SYSTEM
 }
 
 model User {
@@ -60,14 +65,17 @@ model User {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
-  // Relaciones
+  // Relations
   documents       Document[]
   appointments    Appointment[]
   tasksAssigned   Task[]        @relation("TaskAssignee")
   tasksCreated    Task[]        @relation("TaskCreator")
   timeEntries     TimeEntry[]
   notifications   Notification[]
-  performance     Performance?
+  performances    Performance[]
+  settings        UserSettings?
+  projects        Project[]
+  clients         Client[]
 }
 
 model Session {
@@ -103,12 +111,41 @@ model Document {
   id          String         @id @default(cuid())
   title       String
   description String?        @db.Text
-  fileUrl     String
+  fileUrl     String?
   status      DocumentStatus @default(DRAFT)
   userId      String
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+}
+
+model Client {
+  id          String       @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  projects    Project[]
+  appointments Appointment[]
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  description String?      @db.Text
+  status      ProjectStatus @default(ACTIVE)
+  clientId    String?
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  timeEntries TimeEntry[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Appointment {
@@ -122,6 +159,8 @@ model Appointment {
   meetingUrl  String?
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -137,53 +176,71 @@ model Task {
   assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creatorId   String
   creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
 
 model TimeEntry {
   id          String   @id @default(cuid())
-  description String?  @db.Text
-  startTime   DateTime
-  endTime     DateTime?
+  date        String
+  hours       Float
+  description String   @db.Text
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project     String?
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  type      NotificationType
-  title     String
-  message   String           @db.Text
-  isRead    Boolean          @default(false)
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  linkUrl   String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id             String           @id @default(cuid())
+  type           NotificationType
+  title          String
+  message        String           @db.Text
+  isRead         Boolean          @default(false)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedItemId  String?
+  relatedItemType String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model Performance {
   id             String   @id @default(cuid())
-  userId         String   @unique
+  userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period         String
+  completedTasks Int
+  totalHours     Float
   efficiency     Float?
-  qualityScore   Float?
-  attendanceRate Float?
-  lastReviewDate DateTime?
+  notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
-model Setting {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  theme     String   @default("light")
-  language  String   @default("en")
-  timezone  String   @default("UTC")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNotifications Boolean  @default(true)
+  theme             String   @default("light")
+  language          String   @default("en")
+  timeFormat        String   @default("12h")
+  dateFormat        String   @default("MM/DD/YYYY")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model HelpArticle {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text
+  category  String
+  tags      String[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

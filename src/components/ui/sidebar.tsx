@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
+import Image from "next/image";
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
@@ -232,7 +232,7 @@ const Sidebar = React.forwardRef<
                   </div>
                 </Transition.Child>
                 <div className="flex flex-shrink-0 items-center px-4">
-                  <img
+                  <Image
                     width={32}
                     height={32}
                     className="h-8 w-auto"
@@ -302,7 +302,7 @@ const Sidebar = React.forwardRef<
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white pt-5">
           <div className="flex flex-shrink-0 items-center px-4">
-            <img
+            <Image
               width={32}
               height={32}
               className="h-8 w-auto"
