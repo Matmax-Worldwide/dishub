@@ -2,6 +2,21 @@ import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Define interfaces for document input types
+interface DocumentCreateInput {
+  title: string;
+  description?: string;
+  fileUrl?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+}
+
+interface DocumentUpdateInput {
+  title?: string;
+  description?: string;
+  fileUrl?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+}
+
 export const documentResolvers = {
   Query: {
     documents: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -76,7 +91,7 @@ export const documentResolvers = {
   },
   
   Mutation: {
-    createDocument: async (_parent: unknown, { input }: { input: any }, context: { req: NextRequest }) => {
+    createDocument: async (_parent: unknown, { input }: { input: DocumentCreateInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -113,7 +128,7 @@ export const documentResolvers = {
       }
     },
     
-    updateDocument: async (_parent: unknown, { id, input }: { id: string, input: any }, context: { req: NextRequest }) => {
+    updateDocument: async (_parent: unknown, { id, input }: { id: string, input: DocumentUpdateInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -135,7 +150,12 @@ export const documentResolvers = {
           throw new Error('Document not found or you do not have permission to update it');
         }
         
-        const updateData: any = {};
+        const updateData: Partial<{
+          title: string;
+          description: string;
+          fileUrl: string;
+          status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+        }> = {};
         
         // Only update fields that are provided
         if (input.title !== undefined) updateData.title = input.title;

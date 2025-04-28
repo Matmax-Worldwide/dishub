@@ -62,14 +62,14 @@ export const dashboardResolvers = {
           // Tasks - completed and pending
           const completedTasks = await prisma.task.count({
             where: {
-              userId: decoded.userId,
+              assigneeId: decoded.userId,
               status: 'COMPLETED'
             }
           });
           
           const pendingTasks = await prisma.task.count({
             where: {
-              userId: decoded.userId,
+              assigneeId: decoded.userId,
               status: { not: 'COMPLETED' }
             }
           });
@@ -266,7 +266,7 @@ export const dashboardResolvers = {
             _count: {
               status: true
             },
-            where: { userId: decoded.userId }
+            where: { assigneeId: decoded.userId }
           });
           
           // Format the results to match the expected schema
