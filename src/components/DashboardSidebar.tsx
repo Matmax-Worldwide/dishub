@@ -95,8 +95,8 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col bg-white border-r">
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 h-screen">
+        <div className="flex flex-col bg-white border-r h-screen">
           {/* Sidebar header */}
           <div className="flex items-center border-b px-4">
             <Link href={`/${locale}`} className="flex items-center">
@@ -105,7 +105,7 @@ export function DashboardSidebar() {
                 alt="E-voque Logo" 
                 width={12} 
                 height={12} 
-                className="" 
+                className="h-14 w-16" 
               />
             </Link>
           </div>
