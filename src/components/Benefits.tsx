@@ -422,49 +422,29 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       {benefitsList.map((benefit, index) => {
         // Determinar los colores de transición
         const nextIndex = (index + 1) % benefitsList.length;
+        const prevIndex = (index - 1 + benefitsList.length) % benefitsList.length;
         const nextBenefit = benefitsList[nextIndex];
-        const isLastBenefit = index === benefitsList.length - 1;
-        const isSecondBenefit = index === 1;
-        const isThirdBenefit = index === 2;
+        const prevBenefit = benefitsList[prevIndex];
+        const isFirstBenefit = index === 0;
         
-        // Extraer colores para las transiciones
-        const nextColorFrom = isLastBenefit ? 'from-indigo-600' : nextBenefit.color.split(' ')[1];
-        
-        // Colores personalizados para las transiciones específicas
-        let topGradient = "";
-        let bottomGradient = "";
-        
-        if (index === 0) {
-          topGradient = "from-white via-blue-50 to-transparent";
-        } else if (isSecondBenefit) {
-          topGradient = "from-[#01319c]/30 to-transparent";
-        } else if (isThirdBenefit) {
-          topGradient = "from-[#c026d3]/30 to-transparent";
-          bottomGradient = "from-[#041c36]/70 to-transparent";
-        } else if (benefit.isTech) {
-          topGradient = "from-[#f0f9ff]/30 to-transparent";
-        }
+        // Extraer los colores para transiciones basados en el "from-" color del gradiente
+        const nextColorFrom = nextBenefit.color.split(' ')[1].replace('from-', '');
+        const prevColorFrom = isFirstBenefit 
+          ? '#f9fafb' // Color blanco para la transición desde la intro
+          : prevBenefit.color.split(' ')[1].replace('from-', '');
         
         return (
           <section 
             key={index} 
             className="relative overflow-hidden"
           >
-            {/* Transición de degradado en la parte superior */}
-            <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${topGradient} z-10 pointer-events-none`}></div>
+            {/* Transición de degradado en la parte superior - desde la sección anterior */}
+            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+                 style={{ background: `linear-gradient(to bottom, ${prevColorFrom}, ${prevColorFrom}50, transparent)` }}></div>
             
-            {/* Transición de degradado en la parte inferior */}
-            {isThirdBenefit ? (
-              <div className={`absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t ${bottomGradient} z-20 pointer-events-none`}></div>
-            ) : (
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-transparent to-transparent z-20 pointer-events-none transition-colors duration-1000" 
-                style={{
-                  background: isLastBenefit ? 
-                    `linear-gradient(to top, rgba(79, 70, 229, 0.3), transparent)` : 
-                    (isSecondBenefit ? `linear-gradient(to top, rgba(4, 28, 54, 0.7), transparent)` : 
-                    `linear-gradient(to top, ${nextColorFrom.replace('from-', '').replace('[', '').replace(']', '')}, transparent)`)
-                }}></div>
-            )}
+            {/* Transición de degradado en la parte inferior - hacia la siguiente sección */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t z-20 pointer-events-none"
+                 style={{ background: `linear-gradient(to top, ${nextColorFrom}, ${nextColorFrom}50, transparent)` }}></div>
             
             {/* Fondo principal */}
             <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} opacity-95 z-0`}></div>
