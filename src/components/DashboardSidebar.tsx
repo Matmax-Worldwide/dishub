@@ -60,12 +60,12 @@ export function DashboardSidebar() {
   const navigationItems: NavItem[] = [
     { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
     { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
-    { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },
     { name: 'Schedule', href: `/${locale}/dashboard/schedule`, icon: CalendarIcon },
     { name: 'Time Tracking', href: `/${locale}/dashboard/time`, icon: ClockIcon },
     { name: 'Documents', href: `/${locale}/dashboard/documents`, icon: FileTextIcon },
     { name: 'Performance', href: `/${locale}/dashboard/performance`, icon: BarChartIcon },
     { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
+    { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },
     { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
     { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
   ];
