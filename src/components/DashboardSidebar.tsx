@@ -23,6 +23,23 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { gql, useQuery } from '@apollo/client';
+
+// GraphQL queries y mutations
+const GET_USER_PROFILE = gql`
+  query GetUserProfile {
+    me {
+      id
+      email
+      firstName
+      lastName
+      phoneNumber
+      role
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
 interface NavItem {
   name: string;
@@ -37,6 +54,21 @@ export function DashboardSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/logo.png");
   
+   // Cargar datos del perfil
+   const { data } = useQuery(GET_USER_PROFILE, {
+    errorPolicy: 'all',
+    fetchPolicy: 'network-only',
+    context: {
+      headers: {
+        // This ensures the authorization header is added correctly
+        credentials: 'include',
+      }
+    },
+    onCompleted: (data) => {
+      console.log('Profile data loaded:', data?.me);
+    },
+  });
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setLogoUrl(`${window.location.origin}/logo.png`);
@@ -158,8 +190,8 @@ export function DashboardSidebar() {
                 <AvatarFallback>UN</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <span className="text-sm font-medium">User Name</span>
-                <span className="text-xs text-gray-500">Interpreter</span>
+                <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
+                <span className="text-xs text-gray-500">{data?.me?.role}</span>
               </div>
               <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
                 <LogOutIcon className="h-4 w-4" />
