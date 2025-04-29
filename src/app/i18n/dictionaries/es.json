@@ -4,7 +4,10 @@
     "about": "Nosotros",
     "services": "Servicios",
     "wellness": "Bienestar",
-    "contact": "Contacto"
+    "contact": "Contacto",
+    "login": "Iniciar sesión",
+    "apply": "Aplicar",
+    "loginOrApply": "Ingresa o aplica aquí"
   },
   "hero": {
     "tagline": "Traduce. Conecta. Impacta.",

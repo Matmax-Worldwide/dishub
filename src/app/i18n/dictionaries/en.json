@@ -4,7 +4,10 @@
     "about": "About Us",
     "services": "Services",
     "wellness": "Wellness",
-    "contact": "Contact"
+    "contact": "Contact",
+    "login": "Login",
+    "apply": "Apply",
+    "loginOrApply": "Login or Apply here"
   },
   "hero": {
     "title": "Professional Interpretation Opportunities",

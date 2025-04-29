@@ -15,6 +15,9 @@ interface NavbarProps {
       services: string;
       wellness: string;
       contact: string;
+      apply: string;
+      login: string;
+      loginOrApply: string;
     };
   };
   locale: string;
@@ -83,7 +86,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
                   : 'bg-[#01319c] text-white hover:bg-[#012b88]'
                 } transition-colors`}
               >
-                <span>Login or Apply here</span>
+                <span>{dictionary.nav.loginOrApply}</span>
                 <ChevronDownIcon className="h-4 w-4" />
               </button>
               {isLoginDropdownOpen && (
@@ -92,13 +95,13 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
                     href={`/${locale}/login`}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:bg-white/50"
                   >
-                    Login
+                    {dictionary.nav.login}
                   </Link>
                   <Link
                     href={`/${locale}/register`}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:bg-white/50"
                   >
-                    Apply here
+                    {dictionary.nav.apply}
                   </Link>
                 </div>
               )}
