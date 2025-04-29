@@ -114,25 +114,35 @@ export default function ContactSection({ dictionary, onSubmit }: ContactSectionP
       />
       <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
-            transition={{
-              duration: Math.random() * 3 + 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+        {Array.from({ length: 30 }).map((_, i) => {
+          // Use seeded values based on index instead of random
+          const width = 1 + ((i * 7) % 3);
+          const height = 1 + ((i * 13) % 3);
+          const left = ((i * 17) % 100);
+          const top = ((i * 23) % 100);
+          const duration = 2 + ((i * 11) % 3);
+          const delay = (i * 19) % 2;
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                width: `${width}px`,
+                height: `${height}px`,
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: delay,
+              }}
+            />
+          );
+        })}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
