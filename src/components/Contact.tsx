@@ -12,8 +12,10 @@ interface ContactProps {
       form: {
         name: string;
         email: string;
-        message: string;
+        message?: string;
         submit: string;
+        namePlaceholder?: string;
+        emailPlaceholder?: string;
       };
     };
   };
