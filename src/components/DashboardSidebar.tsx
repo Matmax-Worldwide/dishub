@@ -12,7 +12,6 @@ import {
   HelpCircleIcon,
   BriefcaseIcon,
   BellIcon,
-  ClipboardListIcon,
   LogOutIcon,
   MenuIcon,
   XIcon
@@ -87,7 +86,6 @@ export function DashboardSidebar() {
     { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
     { name: 'Book now', href: `/${locale}/dashboard/bookings`, icon: CalendarIcon },
     { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
-    { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },
     { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
     { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
   ];
