@@ -43,12 +43,16 @@
     "title": "Why Choose E-Voque",
     "subtitle": "Scroll down to discover our unique advantages",
     "connect": "Instantly connect and make an impact",
+    "qualityTitle": "Deliver world-class interpretation",
     "quality": "High-quality interpretation",
     "speed": "Connect in seconds",
     "availability": "Available 24/7",
     "languages": "Over 100 languages",
+    "securityTitle": "Protect every word with total security",
     "security": "Secure and confidential",
-    "technology": "Advanced technology"
+    "technology": "Advanced technology",
+    "technologyTitle": "Work with cutting-edge technology"
+
   },
   "contact": {
     "title": "Contact Us",

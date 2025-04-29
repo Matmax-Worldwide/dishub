@@ -23,13 +23,17 @@ interface BenefitsProps {
     benefits: {
       title: string;
       subtitle: string;
+      tagline: string;
+      qualityTitle: string;
       quality: string;
       speed: string;
       availability: string;
       languages: string;
       security: string;
+      securityTitle: string;
       technology: string;
       connect: string;
+      technologyTitle: string;
     };
     contact: {
       title: string;
@@ -100,7 +104,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
 
   const benefitsList: BenefitItem[] = [
     {
-      title: "Deliver world-class interpretation",
+      title: dictionary.benefits.qualityTitle,
       description: dictionary.benefits.quality,
       icon: <CheckBadgeIcon className="h-16 w-16 text-[#01319c]" />,
       color: "from-[#ffffff] to-[#f0f9ff]",
@@ -122,7 +126,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Protect every word with total security",
+      title: dictionary.benefits.securityTitle,
       description: dictionary.benefits.security,
       icon: <ShieldCheckIcon className="h-16 w-16 text-[#01319c]" />,
       color: "from-[#ffffff] to-[#f0f9ff]",
@@ -132,7 +136,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Work smarter with cutting-edge tech",
+      title: dictionary.benefits.technologyTitle,
       description: dictionary.benefits.technology,
       icon: <CogIcon className="h-16 w-16 text-[#01319c]" />,
       color: "from-[#ffffff] to-[#f0f9ff]",
