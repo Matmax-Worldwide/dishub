@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import { useEffect, useState } from 'react';
 
@@ -17,6 +17,47 @@ const GET_USER = gql`
   }
 `;
 
+const GET_NOTIFICATIONS = gql`
+  query GetNotifications {
+    notifications {
+      id
+      title
+      message
+      type
+      isRead
+      createdAt
+      updatedAt
+    }
+    unreadNotificationsCount
+  }
+`;
+
+const MARK_NOTIFICATION_READ = gql`
+  mutation MarkNotificationRead($id: ID!, $input: UpdateNotificationInput!) {
+    updateNotification(id: $id, input: $input) {
+      id
+      isRead
+    }
+  }
+`;
+
+const MARK_ALL_READ = gql`
+  mutation MarkAllNotificationsAsRead {
+    markAllNotificationsAsRead
+  }
+`;
+
+// Define a type for notifications
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function DashboardPage() {
   const { locale } = useParams();
   const [isLoggedOut, setIsLoggedOut] = useState(false);
@@ -27,6 +68,7 @@ export default function DashboardPage() {
     stack?: string;
   } | null>(null);
   const [selectedBenefit, setSelectedBenefit] = useState<string | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   
   const { loading, error, data, refetch } = useQuery(GET_USER, {
@@ -62,6 +104,38 @@ export default function DashboardPage() {
     },
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
+  });
+
+  const { 
+    data: notificationsData, 
+    loading: notificationsLoading,
+    refetch: refetchNotifications
+  } = useQuery(GET_NOTIFICATIONS, {
+    client,
+    fetchPolicy: 'network-only',
+    onError: (error) => {
+      console.error('Notifications error:', error);
+    },
+    onCompleted: (data) => {
+      // Auto-show notifications panel if there are unread notifications
+      if (data?.unreadNotificationsCount > 0) {
+        setShowNotifications(true);
+      }
+    }
+  });
+
+  const [markAsRead] = useMutation(MARK_NOTIFICATION_READ, {
+    client,
+    onCompleted: () => {
+      refetchNotifications();
+    }
+  });
+
+  const [markAllAsRead] = useMutation(MARK_ALL_READ, {
+    client,
+    onCompleted: () => {
+      refetchNotifications();
+    }
   });
 
   // Check for cookie on component mount and when needed
@@ -109,6 +183,19 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Logout error:', err);
     }
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    markAsRead({
+      variables: {
+        id,
+        input: { isRead: true }
+      }
+    });
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
   };
 
   if (loading) {
@@ -162,6 +249,8 @@ export default function DashboardPage() {
 
   const user = data?.me;
   console.log('Rendering dashboard with user data:', user);
+  const notifications = notificationsData?.notifications || [];
+  const unreadCount = notificationsData?.unreadNotificationsCount || 0;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-6 sm:pt-10 md:pt-12">
@@ -170,7 +259,77 @@ export default function DashboardPage() {
       
           {user && (
             <div className="space-y-4 sm:space-y-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
+                
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Notifications Panel */}
+              {showNotifications && (
+                <div className="mb-6 border rounded-lg overflow-hidden">
+                  <div className="flex justify-between items-center bg-gray-50 p-3 border-b">
+                    <h3 className="font-medium">Notificaciones</h3>
+                    <button 
+                      onClick={handleMarkAllAsRead}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Marcar todas como leídas
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-auto max-h-96">
+                    {notificationsLoading ? (
+                      <div className="p-4 text-center text-gray-500">Cargando notificaciones...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">No tienes notificaciones</div>
+                    ) : (
+                      <ul className="divide-y">
+                        {notifications.map((notification: Notification) => (
+                          <li 
+                            key={notification.id} 
+                            className={`p-3 hover:bg-gray-50 transition ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                          >
+                            <div className="flex justify-between">
+                              <div className="flex-1">
+                                <p className={`font-medium ${!notification.isRead ? 'text-blue-700' : 'text-gray-800'}`}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(notification.createdAt).toLocaleString()}
+                                </p>
+                              </div>
+                              {!notification.isRead && (
+                                <button 
+                                  onClick={() => handleMarkAsRead(notification.id)}
+                                  className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                                >
+                                  Marcar como leída
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-4 mb-8 justify-center flex-wrap">
                 {/* Beneficios E-Voque */}
   {/* Beneficios E-Voque */}
