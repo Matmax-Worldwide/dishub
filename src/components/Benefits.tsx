@@ -8,10 +8,10 @@ import {
   CogIcon,
   BoltIcon,
   CheckBadgeIcon,
-  PaperAirplaneIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { Button } from './ui/button';
+import ContactForm from './ContactForm';
 
 interface BenefitsProps {
   dictionary: {
@@ -40,9 +40,11 @@ interface BenefitsProps {
       description: string;
       form: {
         name: string;
+        lastName: string;
         email: string;
         submit: string;
         namePlaceholder: string;
+        lastNamePlaceholder: string;
         emailPlaceholder: string;
       };
     };
@@ -65,10 +67,6 @@ interface BenefitItem {
 }
 
 export default function Benefits({ dictionary }: BenefitsProps) {
-  const [formState, setFormState] = useState({
-    name: '',
-    email: '',
-  });
 
   const [isFlowCompleted, setIsFlowCompleted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -76,32 +74,9 @@ export default function Benefits({ dictionary }: BenefitsProps) {
   // Añadir esta variable para rastrear si ya se ha scrolleado más allá del contacto
   const [scrolledBeyondContact, setScrolledBeyondContact] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormState({
-      ...formState,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formState);
-    // Reset form
-    setFormState({ name: '', email: ''});
-    // Show success message
-    alert('Thank you for your message! We will get back to you soon.');
-    // Set flow as completed
-    setIsFlowCompleted(true);
-  };
-
   const heroRef = useInView({ triggerOnce: false, threshold: 0.7 });
   const introRef = useInView({ triggerOnce: false, threshold: 0.7 });
-  const contactRef = useInView({ 
-    triggerOnce: false, 
-    threshold: 0.3,
-    onChange: (inView) => handleViewportChange(inView)
-  });
+
 
   const benefitsList: BenefitItem[] = [
     {
@@ -203,17 +178,6 @@ export default function Benefits({ dictionary }: BenefitsProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrolledBeyondContact]); // Solo depende de scrolledBeyondContact para evitar actualizaciones innecesarias
 
-  // Detectar cuando la sección de contacto está en vista para mostrar u ocultar el footer
-  const handleViewportChange = (inView: boolean) => {
-    // Si no está en vista, verificamos si se ha scrolleado hacia abajo (más allá del contacto)
-    if (!inView) {
-      checkScrollPosition();
-    } else {
-      // Si está en vista de nuevo, asegurarnos de que el footer esté oculto
-      setScrolledBeyondContact(false);
-      updateFooterVisibility(false);
-    }
-  };
 
   return (
     <div id="benefits" className="full-page-flow">
@@ -624,154 +588,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
         id="contact" 
         className="relative overflow-hidden"
       >
-        {/* Transición de degradado en la parte superior - desde el último benefit */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
-             style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}></div>
-        
-        {/* Fondo principal - gradiente más dramático */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0"></div>
-        
-        {/* Partículas animadas para efecto espacial */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Estrellas/partículas brillantes */}
-          {Array.from({ length: 30 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-white"
-              style={{
-                width: Math.random() * 3 + 1 + 'px',
-                height: Math.random() * 3 + 1 + 'px',
-                left: Math.random() * 100 + '%',
-                top: Math.random() * 100 + '%',
-              }}
-              animate={{
-                opacity: [0.1, 0.8, 0.1],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-          
-          {/* Órbitas luminosas */}
-          <motion.div 
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] border border-blue-500/10 rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.div 
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[130%] h-[120%] border border-indigo-500/10 rounded-full"
-            animate={{ rotate: -360 }}
-            transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.div 
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[110%] h-[130%] border border-purple-500/10 rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
-          />
-          
-          {/* Destellos de luz */}
-          <motion.div
-            className="absolute top-20 right-[20%] w-40 h-40 bg-blue-500/20 blur-3xl rounded-full"
-            animate={{ 
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute bottom-40 left-[15%] w-60 h-60 bg-indigo-500/20 blur-3xl rounded-full"
-            animate={{ 
-              opacity: [0.2, 0.5, 0.2],
-              scale: [1, 1.3, 1],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
-          <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0">
-            <motion.div
-              ref={contactRef.ref}
-              initial={{ opacity: 0, y: 30 }}
-              animate={contactRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-              transition={{ duration: 0.7 }}
-              className="text-center mb-8"
-            >
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={contactRef.inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.7 }}
-                className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
-              >
-                <PaperAirplaneIcon className="h-14 w-14 text-white" />
-              </motion.div>
-              
-              <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-2 drop-shadow-md">
-                {dictionary.contact.title}
-              </h2>
-              <p className="text-lg md:text-xl text-white/80 max-w-xl mx-auto mb-8">
-                {dictionary.contact.description}
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={contactRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="w-full"
-            >
-              <div className="bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10">              
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-white mb-1">
-                      {dictionary.contact.form.name}
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formState.name}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                      placeholder={dictionary.contact.form.namePlaceholder}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-white mb-1">
-                      {dictionary.contact.form.email}
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formState.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                      placeholder={dictionary.contact.form.emailPlaceholder}
-                    />
-                  </div>
-                  
-                  <motion.button
-                    type="submit"
-                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px 5px rgba(59, 130, 246, 0.3)" }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
-                  >
-                    {dictionary.contact.form.submit}
-                  </motion.button>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+       <ContactForm dictionary={dictionary}/>
       </section>
 
       {/* Simplified footer that shows while scrolling */}

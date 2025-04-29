@@ -74,10 +74,12 @@ export interface Dictionary {
     address: string;
     form: {
       name: string;
+      lastName: string;
       email: string;
       message: string;
       submit: string;
       namePlaceholder: string;
+      lastNamePlaceholder: string;
       emailPlaceholder: string;
     };
   };

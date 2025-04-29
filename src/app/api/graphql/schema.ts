@@ -15,6 +15,21 @@ const typeDefs = gql`
     settings: UserSettings
   }
 
+  # ContactFormSubmission type
+  type ContactFormSubmission {
+    id: ID!
+    firstName: String!
+    lastName: String!
+    email: String!
+    createdAt: String!
+  }
+
+  input ContactFormSubmissionInput {
+    firstName: String!
+    lastName: String!
+    email: String!
+  }
+
   input UpdateUserInput {
     firstName: String
     lastName: String
@@ -358,6 +373,9 @@ const typeDefs = gql`
     # User queries
     me: User
     
+    # Contact form queries
+    contactFormSubmissions: [ContactFormSubmission!]!
+    
     # Dashboard queries
     dashboardStats: DashboardStats!
     documentsByStatus: [DocumentStatusCount!]!
@@ -413,6 +431,9 @@ const typeDefs = gql`
     # Auth mutations
     login(email: String!, password: String!): AuthPayload!
     register(email: String!, password: String!, firstName: String!, lastName: String!, phoneNumber: String): AuthPayload!
+    
+    # Contact form mutation
+    createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
     # User mutations
     updateUser(input: UpdateUserInput!): User!

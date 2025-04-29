@@ -61,7 +61,9 @@
     "address": "Dirección",
     "form": {
       "name": "Nombre",
+      "lastName": "Apellido",
       "namePlaceholder": "Tu nombre",
+      "lastNamePlaceholder": "Tu apellido",
       "email": "Correo Electrónico",
       "emailPlaceholder": "Tu correo electrónico",
       "message": "Mensaje",

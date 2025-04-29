@@ -61,7 +61,9 @@
     "address": "Address",
     "form": {
       "name": "Name",
+      "lastName": "Last Name",
       "namePlaceholder": "Your name",
+      "lastNamePlaceholder": "Your last name",
       "email": "Email",
       "emailPlaceholder": "Your email",
       "message": "Message",

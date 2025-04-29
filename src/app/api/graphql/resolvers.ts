@@ -15,6 +15,7 @@ import { settingsResolvers } from './resolvers/settings';
 import { timeEntryResolvers } from './resolvers/timeEntries';
 import { taskResolvers } from './resolvers/tasks';
 import { projectResolvers } from './resolvers/projects';
+import { contactResolvers } from './resolvers/contact';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -102,6 +103,7 @@ const resolvers = {
     ...((timeEntryResolvers.Query as object) || {}),
     ...((taskResolvers.Query as object) || {}),
     ...((projectResolvers.Query as object) || {}),
+    ...((contactResolvers.Query as object) || {}),
     
     // Add explicit fallback for projects query to ensure it exists
     projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -244,6 +246,7 @@ const resolvers = {
     ...('Mutation' in timeEntryResolvers ? (timeEntryResolvers.Mutation as object) : {}),
     ...('Mutation' in taskResolvers ? (taskResolvers.Mutation as object) : {}),
     ...('Mutation' in projectResolvers ? (projectResolvers.Mutation as object) : {}),
+    ...('Mutation' in contactResolvers ? (contactResolvers.Mutation as object) : {}),
   },
 };
 
