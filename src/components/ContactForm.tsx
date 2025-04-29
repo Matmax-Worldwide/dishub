@@ -136,7 +136,7 @@ export default function ContactSection({ dictionary, onSubmit }: ContactSectionP
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
-        <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0">
+        <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0 flex flex-col sm:flex-row sm:items-center justify-center md:justify-between items-center gap-4">
           <motion.div
             ref={contactRef}
             initial={{ opacity: 0, y: 30 }}
@@ -153,10 +153,10 @@ export default function ContactSection({ dictionary, onSubmit }: ContactSectionP
               <PaperAirplaneIcon className="h-14 w-14 text-white" />
             </motion.div>
 
-            <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-2 drop-shadow-md">
+            <h2 className="text-xl md:text-4xl lg:text-3xl font-bold text-white mb-2 drop-shadow-md">
               {dictionary.contact.title}
             </h2>
-            <p className="text-lg md:text-xl text-white/80 max-w-xl mx-auto mb-8">
+            <p className="text-sm md:text-md text-white/80 max-w-xl mx-auto mb-8">
               {dictionary.contact.description}
             </p>
           </motion.div>

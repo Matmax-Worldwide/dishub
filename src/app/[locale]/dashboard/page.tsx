@@ -167,16 +167,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-6 sm:pt-10 md:pt-12">
       <div className="w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl px-2 sm:px-4 md:px-6">
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 md:p-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-            <button
-              onClick={handleLogout}
-              className="mt-4 sm:mt-0 px-4 sm:px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-            >
-              Logout
-            </button>
-          </div>
-
+      
           {user && (
             <div className="space-y-4 sm:space-y-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
@@ -184,7 +175,7 @@ export default function DashboardPage() {
                 {/* Beneficios E-Voque */}
   {/* Beneficios E-Voque */}
   <button
-    className={`relative overflow-hidden flex flex-col items-center justify-end w-60 h-24 rounded-lg bg-contain bg-center transition-all duration-300 ${
+    className={`relative overflow-hidden flex flex-col items-center justify-end w-60 h-20 rounded-lg bg-contain bg-center transition-all duration-300 ${
       selectedBenefit === 'benefits' 
         ? 'ring-4 ring-blue-500' 
         : 'opacity-80 hover:opacity-100'
@@ -202,14 +193,14 @@ export default function DashboardPage() {
 
   {/* Wellness */}
   <button
-    className={`relative overflow-hidden flex flex-col items-center justify-end w-40 h-24 rounded-lg bg-green-200 transition-all duration-300 ${
+    className={`relative overflow-hidden flex flex-col items-center justify-end w-48 h-20 rounded-lg bg-green-200 transition-all duration-300 ${
       selectedBenefit === 'wellness' 
         ? 'ring-4 ring-green-500' 
         : 'opacity-80 hover:opacity-100'
     }`}
     style={{
-      backgroundImage: "url('/images/wellness-background.png')", // O puedes poner otro fondo si tienes
-      backgroundSize: 'cover',
+      backgroundImage: "url('/images/wellness-benefits.png')", // O puedes poner otro fondo si tienes
+      backgroundSize: 'contain',
       backgroundPosition: 'center',
     }}
     onClick={() => setSelectedBenefit(selectedBenefit === 'wellness' ? null : 'wellness')}
@@ -221,7 +212,7 @@ export default function DashboardPage() {
   </button>
 
   {/* Círculo Extra (Próximamente) */}
-  <div className="flex flex-col items-center justify-center w-40 h-24 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+  <div className="flex flex-col items-center justify-center w-40 h-20 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
     <span className="text-xs font-medium text-center">Próximamente</span>
   </div>
 </div>
