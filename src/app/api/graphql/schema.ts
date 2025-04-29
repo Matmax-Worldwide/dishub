@@ -15,6 +15,25 @@ const typeDefs = gql`
     settings: UserSettings
   }
 
+  # Role and Permission related types
+  type Role {
+    id: ID!
+    name: String!
+    description: String
+    permissions: [Permission!]
+    createdAt: String
+    updatedAt: String
+  }
+
+  type Permission {
+    id: ID!
+    name: String!
+    description: String
+    roles: [Role!]
+    createdAt: String
+    updatedAt: String
+  }
+
   # ContactFormSubmission type
   type ContactFormSubmission {
     id: ID!
@@ -372,6 +391,13 @@ const typeDefs = gql`
   type Query {
     # User queries
     me: User
+    users: [User!]!
+    
+    # Role and Permission queries
+    role(id: ID!): Role
+    roles: [Role!]
+    permissions: [Permission!]
+    rolePermissions(roleId: ID!): [Permission!]
     
     # Contact form queries
     contactFormSubmissions: [ContactFormSubmission!]!
@@ -385,6 +411,7 @@ const typeDefs = gql`
     # Document queries
     documents: [Document!]!
     document(id: ID!): Document
+    documentStatusCounts: [DocumentStatusCount!]
     
     # Time entry queries
     timeEntries: [TimeEntry!]!

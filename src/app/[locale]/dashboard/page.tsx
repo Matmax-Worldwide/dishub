@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import { useEffect, useState } from 'react';
+import { Lock } from 'lucide-react';
 
 const GET_USER = gql`
   query GetUser {
@@ -350,25 +351,23 @@ export default function DashboardPage() {
     </span>
   </button>
 
-  {/* Wellness */}
-  <button
-    className={`relative overflow-hidden flex flex-col items-center justify-end w-48 h-20 rounded-lg bg-green-200 transition-all duration-300 ${
-      selectedBenefit === 'wellness' 
-        ? 'ring-4 ring-green-500' 
-        : 'opacity-80 hover:opacity-100'
-    }`}
-    style={{
-      backgroundImage: "url('/images/wellness-benefits.png')", // O puedes poner otro fondo si tienes
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-    }}
-    onClick={() => setSelectedBenefit(selectedBenefit === 'wellness' ? null : 'wellness')}
-  >
-    <div className="absolute inset-0 bg-black/20" />
-    <span className="relative text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
-      Wellness
-    </span>
-  </button>
+
+{/* Wellness */}
+<button
+  className="relative overflow-hidden flex flex-col items-center justify-end w-48 h-20 rounded-lg bg-green-200 opacity-50 cursor-not-allowed"
+  style={{
+    backgroundImage: "url('/images/wellness-benefits.png')",
+    backgroundSize: 'contain',
+    backgroundPosition: 'center',
+  }}
+  disabled
+>
+  <div className="absolute inset-0 bg-black/30 z-10" />
+  <Lock className="absolute top-2 right-2 z-20 text-white opacity-90" size={20} />
+  <span className="relative z-20 text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
+    Wellness (Bloqueado)
+  </span>
+</button>
 
   {/* Círculo Extra (Próximamente) */}
   <div className="flex flex-col items-center justify-center w-40 h-20 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
@@ -396,6 +395,8 @@ export default function DashboardPage() {
       </button>
     </div>
 
+    
+
     <div className="text-center p-8 bg-white border border-gray-200 rounded-b-lg">
       <p className="text-gray-600 text-lg">
         Abre la plataforma en una nueva pestaña:
@@ -411,6 +412,68 @@ export default function DashboardPage() {
     </div>
   </div>
 )}
+
+              {/* Brand Carousel */}
+              <div className="mt-8 mb-4">
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Marcas Asociadas</h3>
+                <div className="relative overflow-hidden">
+                  <div className="brand-carousel flex animate-scroll">
+                    {/* First set of brands */}
+                    <div className="flex space-x-8 items-center mr-16">
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/b2.png" alt="Be balance Gimnasio" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" />
+                      </div>
+                    </div>
+                    {/* Duplicate set for continuous scrolling */}
+                    <div className="flex space-x-8 items-center mr-16">
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" />
+                      </div>
+                      <div className="brand-item w-32 h-20 flex items-center justify-center">
+                        <img src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <style jsx>{`
+                @keyframes scroll {
+                  0% {
+                    transform: translateX(0);
+                  }
+                  100% {
+                    transform: translateX(-50%);
+                  }
+                }
+                .animate-scroll {
+                  animation: scroll 20s linear infinite;
+                }
+              `}</style>
             </div>
           )}
         </div>

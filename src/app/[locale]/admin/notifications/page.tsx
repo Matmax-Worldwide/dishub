@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,10 +68,27 @@ export default function AdminNotificationsPage() {
   const [showInDashboard, setShowInDashboard] = useState<boolean>(true);
   
   // Get users for selection
-  const { data: usersData, loading: usersLoading } = useQuery(GET_USERS, {
+  const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_USERS, {
     client,
     fetchPolicy: 'network-only',
+    onError: (error) => {
+      console.error('Failed to fetch users:', error.message);
+      setStatusMessage({
+        type: 'error',
+        text: `Error fetching users: ${error.message}. You might not have admin privileges.`
+      });
+    }
   });
+  
+  useEffect(() => {
+    // Display error message if users query fails
+    if (usersError) {
+      setStatusMessage({
+        type: 'error',
+        text: `Cannot load users list: ${usersError.message}. Make sure you have admin privileges.`
+      });
+    }
+  }, [usersError]);
   
   // Create notification mutation
   const [createNotification, { loading: mutationLoading }] = useMutation(CREATE_NOTIFICATION, {
@@ -120,15 +137,40 @@ export default function AdminNotificationsPage() {
       
       // Determine target users based on selection
       if (recipientType === 'all') {
-        // No need to specify users - the backend will handle sending to all
-        targetUsers = [];
+        // For "all users" we'll use a special value the backend will recognize
+        await createNotification({
+          variables: {
+            input: {
+              userId: "ALL_USERS", // Special value for all users
+              type: notificationType,
+              title,
+              message,
+              relatedItemType: "NOTIFICATION",
+            }
+          }
+        });
+        return; // Early return since we already sent the notification
       } else if (recipientType === 'role' && selectedRole) {
+        if (!usersData?.users) {
+          setStatusMessage({ 
+            type: 'error', 
+            text: 'Cannot filter users by role as user data is not available. Try sending to all users instead.' 
+          });
+          return;
+        }
+        
         // Filter users by role
-        targetUsers = usersData?.users
-          ? (usersData.users as User[])
-              .filter(user => user.role === selectedRole)
-              .map(user => user.id)
-          : [];
+        targetUsers = (usersData.users as User[])
+          .filter(user => user.role === selectedRole)
+          .map(user => user.id);
+          
+        if (targetUsers.length === 0) {
+          setStatusMessage({ 
+            type: 'error', 
+            text: `No users found with role ${selectedRole}` 
+          });
+          return;
+        }
       } else if (recipientType === 'specific' && selectedUser) {
         // Specific user
         targetUsers = [selectedUser];
@@ -137,13 +179,12 @@ export default function AdminNotificationsPage() {
         return;
       }
       
-      // Create notifications for each target user or use special flag for "all"
-      if (recipientType === 'all') {
-        // Special case for "all users" - send with a special target ID that backend recognizes
+      // For role-based or specific users, process each user individually
+      for (const userId of targetUsers) {
         await createNotification({
           variables: {
             input: {
-              userId: "ALL_USERS", // Special value the backend will recognize
+              userId,
               type: notificationType,
               title,
               message,
@@ -151,22 +192,6 @@ export default function AdminNotificationsPage() {
             }
           }
         });
-      } else {
-        // For role-based or specific users
-        // Process each user individually (or you can enhance backend to accept an array)
-        for (const userId of targetUsers) {
-          await createNotification({
-            variables: {
-              input: {
-                userId,
-                type: notificationType,
-                title,
-                message,
-                relatedItemType: "NOTIFICATION",
-              }
-            }
-          });
-        }
       }
       
     } catch (error: unknown) {

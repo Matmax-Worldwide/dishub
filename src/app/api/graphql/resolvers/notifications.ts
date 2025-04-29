@@ -126,23 +126,80 @@ export const notificationResolvers = {
           throw new Error('Not authenticated');
         }
 
-        // For security, we'll always use the decoded userId for user-created notifications
-        // except for admin users who can create notifications for other users
-        const decoded = await verifyToken(token) as { userId: string };
+        // Decode token to get user info
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
         
-        // Check if the user has admin rights
+        // Get the user's role
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: { role: true }
         });
         
-        let targetUserId = decoded.userId;
-        
-        // If the user is an admin, they can create notifications for other users
-        if (user?.role === 'ADMIN' && input.userId) {
-          targetUserId = input.userId;
+        // Only admins can send notifications to all users or other users
+        if (user?.role !== 'ADMIN' && input.userId !== decoded.userId && input.userId !== 'ALL_USERS') {
+          throw new Error('Unauthorized: Only admins can send notifications to other users');
         }
         
+        // Handle the special case for sending to all users
+        if (input.userId === 'ALL_USERS') {
+          // Only admins can send to all users
+          if (user?.role !== 'ADMIN') {
+            throw new Error('Unauthorized: Only admins can send notifications to all users');
+          }
+          
+          console.log('Creating notifications for all users');
+          
+          // Get all active users
+          const users = await prisma.user.findMany({
+            where: { isActive: true },
+            select: { id: true }
+          });
+          
+          // Create a notification for each user
+          const notifications = await Promise.all(
+            users.map(async (user) => {
+              return prisma.notification.create({
+                data: {
+                  userId: user.id,
+                  type: input.type,
+                  title: input.title,
+                  message: input.message,
+                  isRead: false,
+                  relatedItemId: input.relatedItemId || null,
+                  relatedItemType: input.relatedItemType || null,
+                },
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      email: true
+                    }
+                  }
+                }
+              });
+            })
+          );
+          
+          // Return the first notification as a result (since GraphQL can't return an array here)
+          if (notifications.length > 0) {
+            console.log(`Created ${notifications.length} notifications for all users`);
+            return notifications[0];
+          } else {
+            throw new Error('No users found to send notifications to');
+          }
+        } 
+        
+        // Regular case - single user notification
+        let targetUserId = input.userId;
+        
+        // For non-admins, enforce they can only create notifications for themselves
+        if (user?.role !== 'ADMIN') {
+          targetUserId = decoded.userId;
+        }
+        
+        // Create the notification for a specific user
         const notification = await prisma.notification.create({
           data: {
             userId: targetUserId,
@@ -258,18 +315,27 @@ export const notificationResolvers = {
           throw new Error('Not authenticated');
         }
 
-        const decoded = await verifyToken(token) as { userId: string };
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
         
-        // Make sure the notification exists and belongs to the user
-        const existingNotification = await prisma.notification.findUnique({
-          where: { 
-            id,
-            userId: decoded.userId
-          }
+        // Get user role
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
         });
         
-        if (!existingNotification) {
-          throw new Error('Notification not found or you do not have permission to delete it');
+        // Find the notification
+        const notification = await prisma.notification.findUnique({
+          where: { id },
+          select: { userId: true }
+        });
+        
+        if (!notification) {
+          throw new Error('Notification not found');
+        }
+        
+        // Allow users to delete their own notifications and admins to delete any notification
+        if (notification.userId !== decoded.userId && user?.role !== 'ADMIN') {
+          throw new Error('You do not have permission to delete this notification');
         }
         
         await prisma.notification.delete({

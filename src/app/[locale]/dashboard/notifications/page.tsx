@@ -3,8 +3,44 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { BellIcon, CheckIcon, TrashIcon, FilterIcon } from 'lucide-react';
+import { gql, useQuery, useMutation } from '@apollo/client';
 
-type NotificationType = 'assignment' | 'payment' | 'schedule' | 'system' | 'document';
+// GraphQL queries and mutations
+const GET_NOTIFICATIONS = gql`
+  query GetNotifications {
+    notifications {
+      id
+      title
+      message
+      type
+      isRead
+      createdAt
+    }
+  }
+`;
+
+const MARK_AS_READ = gql`
+  mutation UpdateNotification($id: ID!, $input: UpdateNotificationInput!) {
+    updateNotification(id: $id, input: $input) {
+      id
+      isRead
+    }
+  }
+`;
+
+const MARK_ALL_AS_READ = gql`
+  mutation MarkAllNotificationsAsRead {
+    markAllNotificationsAsRead
+  }
+`;
+
+const DELETE_NOTIFICATION = gql`
+  mutation DeleteNotification($id: ID!) {
+    deleteNotification(id: $id)
+  }
+`;
+
+type NotificationType = 'DOCUMENT' | 'TASK' | 'APPOINTMENT' | 'SYSTEM';
 
 interface Notification {
   id: string;
@@ -12,59 +48,22 @@ interface Notification {
   message: string;
   type: NotificationType;
   isRead: boolean;
-  date: string;
+  createdAt: string;
 }
-
-// Sample notification data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    title: 'New assignment available',
-    message: 'You have been assigned to a new interpretation job on July 15, 2023.',
-    type: 'assignment',
-    isRead: false,
-    date: '2023-07-12T10:30:00Z'
-  },
-  {
-    id: '2',
-    title: 'Payment processed',
-    message: 'Your payment for June services has been processed successfully.',
-    type: 'payment',
-    isRead: true,
-    date: '2023-07-10T08:15:00Z'
-  },
-  {
-    id: '3',
-    title: 'Schedule change',
-    message: 'Your appointment on July 20 has been rescheduled to July 21 at 2:00 PM.',
-    type: 'schedule',
-    isRead: false,
-    date: '2023-07-09T16:45:00Z'
-  },
-  {
-    id: '4',
-    title: 'System maintenance',
-    message: 'The platform will be under maintenance on July 22 from 1:00 AM to 3:00 AM EST.',
-    type: 'system',
-    isRead: false,
-    date: '2023-07-08T11:20:00Z'
-  },
-  {
-    id: '5',
-    title: 'Document verification',
-    message: 'Your submitted documents have been verified successfully.',
-    type: 'document',
-    isRead: true,
-    date: '2023-07-05T09:10:00Z'
-  }
-];
 
 export default function NotificationsPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { locale } = useParams();
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState<string>('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState<boolean>(false);
+  
+  // Fetch notifications
+  const { data, loading, error, refetch } = useQuery(GET_NOTIFICATIONS);
+  
+  // Mutations
+  const [markAsReadMutation] = useMutation(MARK_AS_READ);
+  const [markAllAsReadMutation] = useMutation(MARK_ALL_AS_READ);
+  const [deleteNotificationMutation] = useMutation(DELETE_NOTIFICATION);
   
   // Format date to relative time (e.g., "2 days ago")
   const formatRelativeTime = (dateString: string) => {
@@ -86,6 +85,9 @@ export default function NotificationsPage() {
     }
   };
   
+  // Get notifications from query result
+  const notifications: Notification[] = data?.notifications || [];
+  
   // Filter notifications based on current filter settings
   const filteredNotifications = notifications.filter(notification => {
     const matchesType = filter === 'all' || notification.type === filter;
@@ -94,21 +96,59 @@ export default function NotificationsPage() {
   });
   
   // Mark a notification as read
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, isRead: true } : notification
-    ));
+  const markAsRead = async (id: string) => {
+    try {
+      await markAsReadMutation({
+        variables: {
+          id,
+          input: { isRead: true }
+        }
+      });
+      refetch();
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
   };
   
   // Delete a notification
-  const deleteNotification = (id: string) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
+  const deleteNotification = async (id: string) => {
+    try {
+      await deleteNotificationMutation({
+        variables: { id }
+      });
+      refetch();
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    }
   };
   
   // Mark all as read
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, isRead: true })));
+  const markAllAsRead = async () => {
+    try {
+      await markAllAsReadMutation();
+      refetch();
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
   };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">Loading notifications...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <p className="text-red-700">
+          Error loading notifications: {error.message}
+        </p>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -129,11 +169,10 @@ export default function NotificationsPage() {
                   className="block w-full pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                 >
                   <option value="all">All types</option>
-                  <option value="assignment">Assignments</option>
-                  <option value="payment">Payments</option>
-                  <option value="schedule">Schedule</option>
-                  <option value="system">System</option>
-                  <option value="document">Documents</option>
+                  <option value="DOCUMENT">Documents</option>
+                  <option value="TASK">Tasks</option>
+                  <option value="APPOINTMENT">Appointments</option>
+                  <option value="SYSTEM">System</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <FilterIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -190,7 +229,7 @@ export default function NotificationsPage() {
                       )}
                     </div>
                     <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
-                    <p className="mt-1 text-xs text-gray-400">{formatRelativeTime(notification.date)}</p>
+                    <p className="mt-1 text-xs text-gray-400">{formatRelativeTime(notification.createdAt)}</p>
                   </div>
                   
                   <div className="ml-4 flex-shrink-0 flex items-center space-x-2">

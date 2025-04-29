@@ -21,7 +21,8 @@ import {
   BarChartIcon,
   ShieldIcon,
   UserPlusIcon,
-  LineChartIcon
+  LineChartIcon,
+  LockIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -56,7 +57,9 @@ interface NavItem {
   badge?: {
     key: string;
     value: number;
-  }
+  };
+  disabled?: boolean;
+  locked?: boolean;
 }
 
 export function DashboardSidebar() {
@@ -125,10 +128,17 @@ export function DashboardSidebar() {
         value: unreadCount
       }
     },
-    { name: 'Book now', href: `/${locale}/dashboard/bookings`, icon: CalendarIcon },
+    { 
+      name: 'Book now', 
+      href: `/${locale}/dashboard/bookings`, 
+      icon: CalendarIcon,
+      disabled: true,
+      locked: true
+    },
     { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
-    { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
     { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
+
+    { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
   ];
 
   // Admin-specific navigation items
@@ -190,6 +200,7 @@ export function DashboardSidebar() {
   } else if (isManager) {
     navigationItems = [...baseNavigationItems, ...managerNavigationItems];
   }
+  
 
   const externalLinks: NavItem[] = [
     {
@@ -252,47 +263,8 @@ export function DashboardSidebar() {
               </span>
             )}
           </div>
-          
-          {/* Nav items */}
-          <div className="flex-1 overflow-y-auto">
-            <nav className="p-3 space-y-1">
-              <div className="mb-6">
-                <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                  External Links
-                </h3>
-                {externalLinks.map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer" 
-                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.name}</span>
-                  </a>
-                ))}
-              </div>
-              
-              <div className="border-t pt-3">
-                {navigationItems.map((item) => (
-                  <Link 
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      pathname === item.href 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.name}</span>
-                    {renderBadge(item)}
-                  </Link>
-                ))}
-              </div>
 
-              {isAdmin && (
+          {isAdmin && (
                 <div className="mt-6 pt-3 border-t">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     Admin Tools
@@ -323,6 +295,48 @@ export function DashboardSidebar() {
                   </div>
                 </div>
               )}
+          
+          {/* Nav items */}
+          <div className="flex-1 overflow-y-auto">
+            <nav className="p-3 space-y-1">
+              <div className="mb-6">
+                <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                  External Links
+                </h3>
+                {externalLinks.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </a>
+                ))}
+              </div>
+              
+              <div className="border-t pt-3">
+                {navigationItems.map((item) => (
+                  <Link 
+                    key={item.href}
+                    href={item.disabled ? "#" : item.href}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                      pathname === item.href 
+                        ? 'bg-indigo-100 text-indigo-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+                  >
+                    {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                    <span>{item.name}</span>
+                    {renderBadge(item)}
+                  </Link>
+                ))}
+              </div>
+
+              
               
               {isManager && (
                 <div className="mt-6 pt-3 border-t">
@@ -412,15 +426,15 @@ export function DashboardSidebar() {
                   {navigationItems.map((item) => (
                     <Link 
                       key={item.href}
-                      href={item.href}
+                      href={item.disabled ? "#" : item.href}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                         pathname === item.href 
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                      onClick={() => setIsOpen(false)}
+                      } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
                     >
-                      <item.icon className="h-4 w-4" />
+                      {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
                       <span>{item.name}</span>
                       {renderBadge(item)}
                     </Link>

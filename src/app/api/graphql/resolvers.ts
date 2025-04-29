@@ -19,6 +19,34 @@ import { contactResolvers } from './resolvers/contact';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Helper function to ensure system permissions exist
+async function ensureSystemPermissions(context: any) {
+  const defaultPermissions = [
+    { name: 'user:read', description: 'View user information' },
+    { name: 'user:write', description: 'Create or update users' },
+    { name: 'user:delete', description: 'Delete users' },
+    { name: 'role:read', description: 'View roles' },
+    { name: 'role:write', description: 'Create or update roles' },
+    { name: 'role:delete', description: 'Delete roles' },
+    { name: 'permission:read', description: 'View permissions' },
+    { name: 'permission:write', description: 'Create or update permissions' },
+    { name: 'permission:delete', description: 'Delete permissions' },
+  ];
+
+  // Check if permissions exist, if not create them
+  for (const perm of defaultPermissions) {
+    const existingPerm = await prisma.permission.findFirst({
+      where: { name: perm.name }
+    });
+
+    if (!existingPerm) {
+      await prisma.permission.create({
+        data: perm
+      });
+    }
+  }
+}
+
 // Merge all resolvers
 const resolvers = {
   Query: {
@@ -89,6 +117,161 @@ const resolvers = {
       } catch (error) {
         console.error('GraphQL resolver error:', error);
         throw new Error('Invalid token');
+      }
+    },
+    
+    // Get all users - admin only
+    users: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Check if user is an admin
+        const roleResult = await prisma.$queryRaw`
+          SELECT role FROM "User" WHERE id = ${decoded.userId}
+        `;
+        
+        const userRole = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
+          ? String(roleResult[0].role)
+          : 'USER';
+        
+        // Only allow admins to access this endpoint
+        if (userRole !== 'ADMIN') {
+          throw new Error('Unauthorized: Admin access required');
+        }
+        
+        // Get all users
+        const users = await prisma.user.findMany({
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+        
+        // Convert role to string for each user
+        return users.map(user => ({
+          ...user,
+          role: String(user.role)
+        }));
+      } catch (error) {
+        console.error('Get users error:', error);
+        throw error;
+      }
+    },
+    
+    // Role and permission queries
+    role: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        return prisma.role.findUnique({
+          where: { id: args.id }
+        });
+      } catch (error) {
+        console.error('Get role error:', error);
+        throw error;
+      }
+    },
+    
+    roles: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        return prisma.role.findMany();
+      } catch (error) {
+        console.error('Get roles error:', error);
+        throw error;
+      }
+    },
+    
+    permissions: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Ensure default permissions exist
+        await ensureSystemPermissions(context);
+        
+        return prisma.permission.findMany();
+      } catch (error) {
+        console.error('Get permissions error:', error);
+        throw error;
+      }
+    },
+    
+    rolePermissions: async (_parent: unknown, args: { roleId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        return prisma.permission.findMany({
+          where: { 
+            roles: {
+              some: {
+                id: args.roleId
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Get role permissions error:', error);
+        throw error;
       }
     },
     

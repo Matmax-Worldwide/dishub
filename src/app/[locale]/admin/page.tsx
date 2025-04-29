@@ -4,17 +4,69 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsersIcon, BellIcon, Clock9Icon, FileTextIcon } from 'lucide-react';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// GraphQL queries
+const GET_ADMIN_STATS = gql`
+  query GetAdminStats {
+    stats {
+      totalUsers
+      totalNotifications
+      activeUsers
+      pendingTasks
+    }
+  }
+`;
+
+// GraphQL queries
+const GET_USERS = gql`
+  query GetUsers {
+    users {
+      id
+      email
+      firstName
+      lastName
+      phoneNumber
+      role
+      createdAt
+    }
+  }
+`;
+
+
+const GET_NOTIFICATIONS = gql`
+  query GetNotifications {
+    notifications {
+      id
+      title
+      message
+      type
+      isRead
+      createdAt
+      updatedAt
+    }
+    unreadNotificationsCount
+  }
+`;
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   
-  // These would ideally come from GraphQL queries
-  const statsData = {
-    totalUsers: 142,
-    totalNotifications: 568,
-    activeUsers: 87,
-    pendingTasks: 24
+  // Fetch stats data with GraphQL
+  const { data, loading, error } = useQuery(GET_ADMIN_STATS);
+  const { data: usersData, loading: usersLoading } = useQuery(GET_USERS);
+  const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS);
+  
+  // Extract stats from query result or provide fallbacks
+  const statsData = data?.stats || {
+    totalUsers: usersData?.users?.length || 0,
+    totalNotifications: notificationsData?.unreadNotificationsCount || 0,
+    pendingTasks: 0
   };
+
+  
   
   return (
     <div className="space-y-6">
@@ -43,10 +95,16 @@ export default function AdminDashboardPage() {
                 <UsersIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statsData.totalUsers}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active accounts in system
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{statsData.totalUsers}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Active accounts in system
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             
@@ -58,42 +116,19 @@ export default function AdminDashboardPage() {
                 <BellIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statsData.totalNotifications}</div>
-                <p className="text-xs text-muted-foreground">
-                  Total notifications created
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{statsData.totalNotifications}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Total notifications created
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Users
-                </CardTitle>
-                <Clock9Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{statsData.activeUsers}</div>
-                <p className="text-xs text-muted-foreground">
-                  Users active in last 30 days
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pending Tasks
-                </CardTitle>
-                <FileTextIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{statsData.pendingTasks}</div>
-                <p className="text-xs text-muted-foreground">
-                  Tasks awaiting completion
-                </p>
-              </CardContent>
-            </Card>
+
           </div>
           
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">

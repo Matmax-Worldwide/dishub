@@ -38,14 +38,6 @@ const GET_TIME_ENTRIES_BY_DAY = gql`
   }
 `;
 
-const GET_TASKS_BY_STATUS = gql`
-  query GetTasksByStatus {
-    tasksByStatus {
-      status
-      count
-    }
-  }
-`;
 
 // Tipos
 interface DashboardStats {
@@ -62,12 +54,8 @@ interface DashboardStats {
 interface DocumentStatus {
   status: string;
   count: number;
-}
+  }
 
-interface TaskStatus {
-  status: string;
-  count: number;
-}
 
 export default function DashboardPage() {
   const { loading: statsLoading, error: statsError, data: statsData } = useQuery(GET_DASHBOARD_STATS, {
@@ -85,17 +73,12 @@ export default function DashboardPage() {
     errorPolicy: 'all',
   });
 
-  const { loading: taskStatusLoading, error: taskStatusError, data: taskStatusData } = useQuery(GET_TASKS_BY_STATUS, {
-    client,
-    errorPolicy: 'all',
-  });
-
-  const loading = statsLoading || docStatusLoading || timeLoading || taskStatusLoading;
+  const loading = statsLoading || docStatusLoading || timeLoading;
   
   // Only show error message if it's not an authentication-related error
   let errorMessage = null;
-  if (statsError || docStatusError || timeError || taskStatusError) {
-    const error = statsError || docStatusError || timeError || taskStatusError;
+  if (statsError || docStatusError || timeError) {
+    const error = statsError || docStatusError || timeError;
     if (error) {
       console.error('Dashboard error:', error);
       
@@ -126,17 +109,9 @@ export default function DashboardPage() {
     { day: 'Sunday', hours: 0 },
   ];
 
-  const mockTaskData = [
-    { status: 'NOT_STARTED', count: 4 },
-    { status: 'IN_PROGRESS', count: 7 },
-    { status: 'COMPLETED', count: 12 },
-    { status: 'CANCELLED', count: 2 },
-  ];
-
   // Datos para gráficos
   const documentData = docStatusData?.documentsByStatus || mockDocumentData;
   const timeEntryData = timeData?.timeEntriesByDay || mockTimeData;
-  const taskData = taskStatusData?.tasksByStatus || mockTaskData;
 
   // Stats
   const stats: DashboardStats = statsData?.dashboardStats || {
@@ -158,13 +133,7 @@ export default function DashboardPage() {
     REJECTED: '#F87171',
   };
 
-  // Colores para estados de tareas
-  const taskColors: { [key: string]: string } = {
-    NOT_STARTED: '#9CA3AF',
-    IN_PROGRESS: '#60A5FA',
-    COMPLETED: '#34D399',
-    CANCELLED: '#F87171',
-  };
+
 
   if (loading) return <div className="flex justify-center p-6">Loading dashboard...</div>;
   if (errorMessage) return <div className="text-red-500 p-6">Error loading dashboard: {errorMessage}</div>;
@@ -327,36 +296,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Gráfico de tareas por estado */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Tasks by Status</h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={taskData}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="status" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="count" name="Number of Tasks" fill="#10B981">
-                    {taskData.map((entry: TaskStatus, index: number) => (
-                      <Cell key={`cell-${index}`} fill={taskColors[entry.status] || '#10B981'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
 
         {/* Actividad reciente */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
