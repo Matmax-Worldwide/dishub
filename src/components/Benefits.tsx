@@ -41,7 +41,6 @@ interface BenefitsProps {
       form: {
         name: string;
         email: string;
-        message: string;
         submit: string;
         namePlaceholder: string;
         emailPlaceholder: string;
@@ -69,7 +68,6 @@ export default function Benefits({ dictionary }: BenefitsProps) {
   const [formState, setFormState] = useState({
     name: '',
     email: '',
-    message: '',
   });
 
   const [isFlowCompleted, setIsFlowCompleted] = useState(false);
@@ -90,7 +88,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
     // Handle form submission here
     console.log('Form submitted:', formState);
     // Reset form
-    setFormState({ name: '', email: '', message: '' });
+    setFormState({ name: '', email: ''});
     // Show success message
     alert('Thank you for your message! We will get back to you soon.');
     // Set flow as completed

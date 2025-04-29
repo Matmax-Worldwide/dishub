@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Navbar from './Navbar';
 import Hero from './Hero';
 import Benefits from './Benefits';
@@ -20,11 +20,11 @@ export default function PageContent({ locale, dictionary }: PageContentProps) {
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   
   // Secciones
-  const sections = [
+  const sections = useMemo(() => [
     { id: 'home', component: <Hero dictionary={dictionary} locale={locale} /> },
     { id: 'benefits', component: <Benefits dictionary={dictionary} locale={locale} /> },
     { id: 'contact', component: <Contact dictionary={dictionary} /> },
-  ];
+  ], [dictionary, locale]);
   
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
