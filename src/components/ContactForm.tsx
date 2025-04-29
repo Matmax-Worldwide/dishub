@@ -95,10 +95,10 @@ export default function ContactSection({ dictionary, onSubmit }: ContactSectionP
       setSubmitStatus('success');
       setFormState({ firstName: '', lastName: '', email: '' });
       
-      // Reset status after 3 seconds
+      // Redirigir después de un breve delay opcional (por UX)
       setTimeout(() => {
-        setSubmitStatus('idle');
-      }, 3000);
+        window.location.href = 'https://jobs.e-voque.com/';
+      }, 500); // puedes ajustar el delay (ms) o quitarlo si quieres que sea instantáneo
       
     } catch (error) {
       console.error('Error submitting contact form:', error);
