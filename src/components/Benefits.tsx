@@ -11,6 +11,7 @@ import {
   CheckBadgeIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
+import Image from 'next/image';
 
 interface BenefitsProps {
   dictionary: {
@@ -385,41 +386,50 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       </section>
 
       {/* Introducción de la sección */}
-      <section id="intro" className="relative bg-white overflow-hidden">
-        {/* Transición de degradado en la parte superior */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#e0f2fe] to-transparent z-10 pointer-events-none"></div>
-        
-        {/* Transición de degradado en la parte inferior - hacia el primer benefit */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#01319c]/10 to-transparent z-10 pointer-events-none"></div>
-        
-        <div className="absolute inset-0 bg-gradient-to-br from-[#f9fafb] to-white z-0"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
-          <motion.div 
-            ref={introRef.ref}
-            initial={{ opacity: 0, y: 30 }}
-            animate={introRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Why Choose E-Voque
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Scroll down to discover our unique advantages
-            </p>
-            <motion.div
-              className="mt-10"
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <svg className="w-10 h-10 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
 
+      <section id="intro" className="relative w-full h-screen overflow-hidden">
+  {/* VIDEO DE FONDO */}
+  <video
+    className="absolute inset-0 w-full h-full object-cover z-0"
+    autoPlay
+    muted
+    loop
+    playsInline
+  >
+    <source src="/videos/video.mp4" type="video/mp4" />
+    Your browser does not support the video tag.
+  </video>
+
+  {/* Capa encima del video para contraste */}
+  <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10"></div>
+
+  {/* CONTENIDO PRINCIPAL */}
+  <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center items-center text-center">
+  <motion.div 
+  ref={introRef.ref}
+  initial={{ opacity: 0, y: 30 }}
+  animate={introRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+  transition={{ duration: 0.8 }}
+>
+  <h2 className="text-5xl md:text-7xl font-extrabold text-white drop-shadow-lg mb-6 tracking-tight leading-tight">
+    Why Choose E-Voque
+  </h2>
+  <p className="text-2xl text-white/80 max-w-3xl mx-auto font-medium leading-relaxed">
+    Scroll down to discover our unique advantages
+  </p>
+
+  <motion.div
+    className="mt-10"
+    animate={{ y: [0, 10, 0] }}
+    transition={{ duration: 2, repeat: Infinity }}
+  >
+    <svg className="w-10 h-10 mx-auto text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+    </svg>
+  </motion.div>
+</motion.div>
+  </div>
+</section>
       {/* Beneficios individuales con scroll snap */}
       {benefitsList.map((benefit, index) => {
         // Determinar los colores de transición
