@@ -3,14 +3,15 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { 
   ShieldCheckIcon, 
   CogIcon,
   BoltIcon,
   CheckBadgeIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { Button } from './ui/button';
 
 interface BenefitsProps {
   dictionary: {
@@ -37,11 +38,14 @@ interface BenefitsProps {
     };
     contact: {
       title: string;
+      description: string;
       form: {
         name: string;
         email: string;
         message: string;
         submit: string;
+        namePlaceholder: string;
+        emailPlaceholder: string;
       };
     };
   };
@@ -62,7 +66,7 @@ interface BenefitItem {
   ref: ReturnType<typeof useInView>;
 }
 
-export default function Benefits({ dictionary, locale }: BenefitsProps) {
+export default function Benefits({ dictionary }: BenefitsProps) {
   const [formState, setFormState] = useState({
     name: '',
     email: '',
@@ -113,6 +117,16 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       isTech: true,
       textColor: "text-gray-800",
       descriptionColor: "text-gray-600",
+      ref: useInView({ triggerOnce: false, threshold: 0.5 }),
+    },
+    {
+      title: dictionary.benefits.availability,
+      description: dictionary.benefits.availability,
+      icon: <ClockIcon className="h-16 w-16 text-[#01319c]" />,
+      color: "from-[#ffffff] to-[#f0f9ff]",
+      iconBg: "bg-[#14f195]/20",
+      accentColor: "#01319c",
+      isTech: true,
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
@@ -279,12 +293,17 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                 animate={heroRef.inView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                <Link
-                  href={`/${locale}/register`}
+                <Button
+                  onClick={() => {
+                    const section = document.getElementById('intro'); // o 'benefits' si prefieres
+                    if (section) {
+                      section.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                   className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
                 >
                   {dictionary.hero.cta}
-                </Link>
+                </Button>
               </motion.div>
             </motion.div>
             
@@ -696,10 +715,10 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
               </motion.div>
               
               <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-2 drop-shadow-md">
-                Join Our Mission
+                {dictionary.contact.title}
               </h2>
               <p className="text-lg md:text-xl text-white/80 max-w-xl mx-auto mb-8">
-                Be part of a revolutionary team connecting people across languages and cultures. Your skills can change how the world communicates.
+                {dictionary.contact.description}
               </p>
             </motion.div>
 
@@ -723,7 +742,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                      placeholder="Your name"
+                      placeholder={dictionary.contact.form.namePlaceholder}
                     />
                   </div>
                   
@@ -739,23 +758,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                      placeholder="your.email@example.com"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-white mb-1">
-                      {dictionary.contact.form.message}
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={formState.message}
-                      onChange={handleChange}
-                      required
-                      rows={4}
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                      placeholder="Tell us about your experience and interests"
+                      placeholder={dictionary.contact.form.emailPlaceholder}
                     />
                   </div>
                   

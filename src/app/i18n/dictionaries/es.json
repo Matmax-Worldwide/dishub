@@ -40,30 +40,32 @@
     }
   },
   "benefits": {
-    "title": "Por Qué Elegir E-Voque",
-    "subtitle": "Desliza hacia abajo para descubrir nuestras ventajas únicas",
-    "connect": "Conecta y genera impacto",
-    "qualityTitle": "Entrega interpretación de clase mundial",
-    "quality": "Interpretación de alta calidad",
-    "speed": "Conexión en segundos",
-    "availability": "Disponible 24/7",
-    "languages": "Más de 100 idiomas",
-    "securityTitle": "Protege cada palabra con seguridad total",
-    "security": "Seguro y confidencial",
-    "technology": "Tecnología avanzada",
-    "technologyTitle": "Trabaja con tecnología de vanguardia"
-  },
+  "title": "Por Qué Unirte a E-Voque",
+  "subtitle": "Desliza hacia abajo y descubre cómo impulsamos tu crecimiento",
+  "connect": "Amplía tu impacto en todo el mundo al instante",
+  "qualityTitle": "Entrega excelencia y potencia tu carrera",
+  "quality": "Interpretación de primer nivel que abre oportunidades",
+  "speed": "Conexiones rápidas en cuestión de segundos",
+  "availability": "Trabaja donde y cuando quieras",
+  "languages": "Comparte tu pasión por los idiomas y la comunicación",
+  "securityTitle": "Trabaja con la confianza de estándares de seguridad líderes",
+  "security": "Confidencialidad y protección garantizadas",
+  "technology": "Mantente a la vanguardia con tecnología innovadora",
+  "technologyTitle": "Utiliza herramientas de última generación para triunfar"
+},
   "contact": {
-    "title": "Contáctenos",
-    "description": "¿Listo para romper las barreras del idioma? Póngase en contacto con nuestro equipo.",
+    "title": "Contáctanos",
+    "description": "¿Listo para superar las barreras del idioma? Conecta con nuestro equipo y da el siguiente paso.",
     "phone": "Teléfono",
     "email": "Correo Electrónico",
     "address": "Dirección",
     "form": {
       "name": "Nombre",
+      "namePlaceholder": "Tu nombre",
       "email": "Correo Electrónico",
+      "emailPlaceholder": "Tu correo electrónico",
       "message": "Mensaje",
-      "submit": "Enviar Mensaje"
+      "submit": "Comenzar"
     }
   },
   "footer": {

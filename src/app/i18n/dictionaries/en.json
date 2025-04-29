@@ -38,33 +38,33 @@
       "description": "24/7 interpretation support for emergency situations and crisis management."
     }
   },
-  "benefits": {
-    "tagline": "Translate. Connect. Impact.",
-    "title": "Why Choose E-Voque",
-    "subtitle": "Scroll down to discover our unique advantages",
-    "connect": "Instantly connect and make an impact",
-    "qualityTitle": "Deliver world-class interpretation",
-    "quality": "High-quality interpretation",
-    "speed": "Connect in seconds",
-    "availability": "Available 24/7",
-    "languages": "Over 100 languages",
-    "securityTitle": "Protect every word with total security",
-    "security": "Secure and confidential",
-    "technology": "Advanced technology",
-    "technologyTitle": "Work with cutting-edge technology"
-
-  },
+ "benefits": {
+  "title": "Why Join E-Voque",
+  "subtitle": "Scroll down and discover how we help you grow",
+  "connect": "Expand your global impact instantly",
+  "qualityTitle": "Deliver excellence and boost your career",
+  "quality": "Top-level interpretation that opens new opportunities",
+  "speed": "Get connected in just seconds",
+  "availability": "Work whenever and wherever you want",
+  "languages": "Share your passion for language and communication",
+  "securityTitle": "Work with the confidence of top security standards",
+  "security": "Guaranteed confidentiality and protection",
+  "technology": "Stay ahead with innovative technology",
+  "technologyTitle": "Use cutting-edge tools to achieve success"
+},
   "contact": {
     "title": "Contact Us",
-    "description": "Ready to break language barriers? Get in touch with our team.",
+    "description": "Ready to break language barriers? Connect with our team and take the next step.",
     "phone": "Phone",
     "email": "Email",
     "address": "Address",
     "form": {
       "name": "Name",
+      "namePlaceholder": "Your name",
       "email": "Email",
+      "emailPlaceholder": "Your email",
       "message": "Message",
-      "submit": "Send Message"
+      "submit": "Get Started"
     }
   },
   "footer": {
