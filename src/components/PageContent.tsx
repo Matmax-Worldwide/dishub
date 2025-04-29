@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Navbar from './Navbar';
 import Hero from './Hero';
-import AboutUs from './AboutUs';
-import Services from './Services';
 import Benefits from './Benefits';
 import Contact from './Contact';
 import Footer from './Footer';
@@ -94,7 +92,7 @@ export default function PageContent({ locale, dictionary }: PageContentProps) {
   // Secciones
   const sections = [
     { id: 'home', component: <Hero dictionary={dictionary} locale={locale} /> },
-    { id: 'benefits', component: <Benefits dictionary={dictionary} /> },
+    { id: 'benefits', component: <Benefits dictionary={dictionary} locale={locale} /> },
     { id: 'contact', component: <Contact dictionary={dictionary} /> },
   ];
   
