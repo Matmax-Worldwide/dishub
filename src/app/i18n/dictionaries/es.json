@@ -7,8 +7,9 @@
     "contact": "Contacto"
   },
   "hero": {
-    "title": "Traduce. Conecta. Impacta.",
-    "subtitle": "Tu puente para hablar con el mundo, en segundos",
+    "tagline": "Traduce. Conecta. Impacta.",
+    "title": "Interpretación Profesional en Acción",
+    "subtitle": "Conecta culturas, transforma conversaciones, marca la diferencia.",
     "cta": "Comenzar"
   },
   "about": {
@@ -37,6 +38,8 @@
   },
   "benefits": {
     "title": "Por Qué Elegir E-Voque",
+    "subtitle": "Desliza hacia abajo para descubrir nuestras ventajas únicas",
+    "connect": "Conecta y genera impacto",
     "quality": "Interpretación de alta calidad",
     "speed": "Conexión en segundos",
     "availability": "Disponible 24/7",

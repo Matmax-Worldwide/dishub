@@ -15,18 +15,21 @@ import {
 interface BenefitsProps {
   dictionary: {
     hero: {
+      tagline: string;
       title: string;
       subtitle: string;
       cta: string;
     };
     benefits: {
       title: string;
+      subtitle: string;
       quality: string;
       speed: string;
       availability: string;
       languages: string;
       security: string;
       technology: string;
+      connect: string;
     };
     contact: {
       title: string;
@@ -109,7 +112,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Instantly connect and make an impact",
+      title: dictionary.benefits.connect,
       description: dictionary.benefits.speed,
       icon: <BoltIcon className="h-16 w-16 text-[#01319c]" />,
       color: "from-[#ffffff] to-[#f0f9ff]",
@@ -258,7 +261,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                 transition={{ delay: 0.2, duration: 0.8 }}
                 className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
               >
-                Professional Interpretation
+                {dictionary.hero.tagline}
               </motion.div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                 {dictionary.hero.title}
@@ -411,10 +414,10 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
   transition={{ duration: 0.8 }}
 >
   <h2 className="text-5xl md:text-7xl font-extrabold text-white drop-shadow-lg mb-6 tracking-tight leading-tight">
-    Why Choose E-Voque
+    {dictionary.benefits.title}
   </h2>
   <p className="text-2xl text-white/80 max-w-3xl mx-auto font-medium leading-relaxed">
-    Scroll down to discover our unique advantages
+    {dictionary.benefits.subtitle}
   </p>
 
   <motion.div
@@ -570,7 +573,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                   initial={{ opacity: 0, y: 30 }}
                   animate={benefit.ref.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
-                  className={`text-xl md:text-2xl text-center max-w-3xl ${benefit.descriptionColor || "text-white"}`}
+                  className={`text-xl md:text-2xl text-center max-w-3xl ${benefit.descriptionColor || "text-black"}`}
                 >
                   {benefit.description || "Our highly trained interpreters provide accurate and culturally sensitive interpretations every time."}
                 </motion.p>
