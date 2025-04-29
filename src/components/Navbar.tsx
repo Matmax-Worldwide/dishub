@@ -29,6 +29,27 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
   const [isContactInView, setIsContactInView] = useState(false);
 
+  function smoothScrollTo(start: number, end: number, duration: number) {
+    const startTime = performance.now();
+  
+    function scroll(currentTime: number) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = easeInOutCubic(progress);
+      window.scrollTo(0, start + (end - start) * ease);
+  
+      if (elapsed < duration) {
+        requestAnimationFrame(scroll);
+      }
+    }
+  
+    requestAnimationFrame(scroll);
+  }
+  
+  function easeInOutCubic(t: number) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -110,7 +131,15 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
                     {dictionary.nav.login}
                   </Link>
                   <Link
-                    href={`/${locale}/register`}
+                    href={`/${locale}/#contact`}
+                    onClick={() => {
+                      const section = document.getElementById('contact');
+                      if (section) {
+                        const targetY = section.getBoundingClientRect().top + window.scrollY;
+                        smoothScrollTo(window.scrollY, targetY, 1500); // duración en ms (más lenta)
+                      }
+                      setIsLoginDropdownOpen(false);
+                    }}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:bg-white/50"
                   >
                     {dictionary.nav.apply}
@@ -191,7 +220,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
                   Login
                 </Link>
                 <Link
-                  href={`/${locale}/register`}
+                  href={`/${locale}/#contact`}
                   className="block px-3 py-2 bg-white text-[#01319c] border border-[#01319c] hover:bg-blue-50 rounded-md text-center"
                   onClick={() => setIsOpen(false)}
                 >
