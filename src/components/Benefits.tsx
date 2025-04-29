@@ -99,11 +99,13 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
     {
       title: "High-quality interpretation",
       description: dictionary.benefits.quality,
-      icon: <CheckBadgeIcon className="h-16 w-16 text-[#59c3ff]" />,
-      color: "from-[#01319c] to-[#2563eb]",
-      iconBg: "bg-[#59c3ff]/20",
-      accentColor: "#59c3ff",
+      icon: <CheckBadgeIcon className="h-16 w-16 text-[#01319c]" />,
+      color: "from-[#ffffff] to-[#f0f9ff]",
+      iconBg: "bg-[#01319c]/10",
+      accentColor: "#01319c",
       isTech: true,
+      textColor: "text-gray-800",
+      descriptionColor: "text-gray-600",
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
