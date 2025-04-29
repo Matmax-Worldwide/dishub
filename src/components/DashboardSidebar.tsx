@@ -7,15 +7,10 @@ import Image from 'next/image';
 import {
   HomeIcon,
   UserIcon,
-  CalendarIcon,
-  ClockIcon,
-  FileTextIcon,
   SettingsIcon,
   HelpCircleIcon,
   BriefcaseIcon,
-  BarChartIcon,
   BellIcon,
-  ClipboardListIcon,
   LogOutIcon,
   MenuIcon,
   XIcon
@@ -88,14 +83,9 @@ export function DashboardSidebar() {
   // Generate navigation items
   const navigationItems: NavItem[] = [
     { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
-    { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
-    { name: 'Schedule', href: `/${locale}/dashboard/schedule`, icon: CalendarIcon },
-    { name: 'Time Tracking', href: `/${locale}/dashboard/time`, icon: ClockIcon },
-    { name: 'Documents', href: `/${locale}/dashboard/documents`, icon: FileTextIcon },
-    { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
-    { name: 'Performance', href: `/${locale}/dashboard/performance`, icon: BarChartIcon },
     { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
-    { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },
+    { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
+    { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
     { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
     { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
   ];
