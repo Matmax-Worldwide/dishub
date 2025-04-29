@@ -97,7 +97,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
 
   const benefitsList: BenefitItem[] = [
     {
-      title: "High-quality interpretation",
+      title: "Deliver world-class interpretation",
       description: dictionary.benefits.quality,
       icon: <CheckBadgeIcon className="h-16 w-16 text-[#01319c]" />,
       color: "from-[#ffffff] to-[#f0f9ff]",
@@ -109,7 +109,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Connect in seconds",
+      title: "Instantly connect and make an impact",
       description: dictionary.benefits.speed,
       icon: <BoltIcon className="h-16 w-16 text-[#e879f9]" />,
       color: "from-[#5b21b6] to-[#7c3aed]",
@@ -119,7 +119,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Secure and confidential",
+      title: "Protect every word with total security",
       description: dictionary.benefits.security,
       icon: <ShieldCheckIcon className="h-16 w-16 text-[#14f195]" />,
       color: "from-[#132f4c] to-[#1e3a5f]",
@@ -129,7 +129,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
       ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      title: "Advanced technology",
+      title: "Work smarter with cutting-edge tech",
       description: dictionary.benefits.technology,
       icon: <CogIcon className="h-16 w-16 text-[#0dfff7]" />,
       color: "from-[#041c36] to-[#1a253b]",
