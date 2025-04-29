@@ -18,8 +18,12 @@ export interface Dictionary {
     services: string;
     wellness: string;
     contact: string;
+    apply: string;
+    login: string;
+    loginOrApply: string;
   };
   hero: {
+    tagline: string;
     title: string;
     subtitle: string;
     cta: string;
@@ -50,12 +54,17 @@ export interface Dictionary {
   };
   benefits: {
     title: string;
+    subtitle: string;
+    qualityTitle: string;
     quality: string;
     speed: string;
     availability: string;
     languages: string;
     security: string;
+    securityTitle: string;
     technology: string;
+    connect: string;
+    technologyTitle: string;
   };
   contact: {
     title: string;
@@ -68,6 +77,8 @@ export interface Dictionary {
       email: string;
       message: string;
       submit: string;
+      namePlaceholder: string;
+      emailPlaceholder: string;
     };
   };
   footer: {

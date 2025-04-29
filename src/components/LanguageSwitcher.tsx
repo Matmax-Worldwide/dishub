@@ -5,7 +5,11 @@ import { locales } from '../app/i18n';
 import { useState } from 'react';
 import { GlobeAltIcon } from '@heroicons/react/24/outline';
 
-export default function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  isContactInView?: boolean;
+}
+
+export default function LanguageSwitcher({ isContactInView = false }: LanguageSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -45,10 +49,14 @@ export default function LanguageSwitcher() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="flex items-center space-x-1 text-sm font-medium text-gray-700 hover:text-gray-900"
+        className={`flex items-center space-x-1 text-sm font-medium transition-colors duration-300 ${
+          isContactInView 
+            ? 'text-white hover:text-gray-200' 
+            : 'text-gray-700 hover:text-gray-900'
+        }`}
         aria-expanded={isOpen}
       >
-        <GlobeAltIcon className="h-5 w-5" />
+        <GlobeAltIcon className={`h-5 w-5 ${isContactInView ? 'text-white' : ''}`} />
         <span>{getLanguageName(currentLocale)}</span>
       </button>
 

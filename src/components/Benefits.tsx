@@ -24,7 +24,6 @@ interface BenefitsProps {
     benefits: {
       title: string;
       subtitle: string;
-      tagline: string;
       qualityTitle: string;
       quality: string;
       speed: string;

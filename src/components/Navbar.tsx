@@ -27,6 +27,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
+  const [isContactInView, setIsContactInView] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,6 +35,17 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
         setScrolled(true);
       } else {
         setScrolled(false);
+      }
+      
+      // Check if contact section is in view
+      const contactSection = document.getElementById('contact');
+      if (contactSection) {
+        const rect = contactSection.getBoundingClientRect();
+        const isInView = (
+          rect.top <= window.innerHeight && 
+          rect.bottom >= 0
+        );
+        setIsContactInView(isInView);
       }
     };
 
@@ -76,7 +88,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <LanguageSwitcher />
+            <LanguageSwitcher isContactInView={isContactInView} />
             <div className="relative">
               <button
                 onClick={toggleLoginDropdown}
@@ -110,7 +122,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
-            <LanguageSwitcher />
+            <LanguageSwitcher isContactInView={isContactInView} />
             <button
               onClick={toggleMenu}
               className={`ml-4 focus:outline-none ${scrolled ? 'text-gray-700' : 'text-white'}`}
