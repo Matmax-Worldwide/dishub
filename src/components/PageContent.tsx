@@ -7,77 +7,7 @@ import Benefits from './Benefits';
 import Contact from './Contact';
 import Footer from './Footer';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface Dictionary {
-  nav: {
-    home: string;
-    about: string;
-    services: string;
-    wellness: string;
-    contact: string;
-  };
-  hero: {
-    title: string;
-    subtitle: string;
-    cta: string;
-  };
-  about: {
-    title: string;
-    description: string;
-    mission: string;
-  };
-  services: {
-    title: string;
-    medical: {
-      title: string;
-      description: string;
-    };
-    legal: {
-      title: string;
-      description: string;
-    };
-    business: {
-      title: string;
-      description: string;
-    };
-    emergency: {
-      title: string;
-      description: string;
-    };
-  };
-  benefits: {
-    title: string;
-    quality: string;
-    speed: string;
-    availability: string;
-    languages: string;
-    security: string;
-    technology: string;
-  };
-  testimonials?: {
-    title: string;
-    subtitle: string;
-    cta: string;
-  };
-  contact: {
-    title: string;
-    description: string;
-    phone: string;
-    email: string;
-    address: string;
-    form: {
-      name: string;
-      email: string;
-      message: string;
-      submit: string;
-    };
-  };
-  footer: {
-    rights: string;
-    privacy: string;
-    terms: string;
-  };
-}
+import { Dictionary } from '../app/i18n';
 
 interface PageContentProps {
   locale: string;
