@@ -154,7 +154,7 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
             <LanguageSwitcher isContactInView={isContactInView} />
             <button
               onClick={toggleMenu}
-              className={`ml-4 focus:outline-none ${scrolled ? 'text-gray-700' : 'text-white'}`}
+              className={`ml-4 focus:outline-none ${scrolled ? 'text-gray-700' : 'text-[hsla(225,55%,21%,1)]'}`}
             >
               {isOpen ? (
                 <XMarkIcon className="h-6 w-6" />
@@ -176,41 +176,6 @@ export default function Navbar({ dictionary, locale }: NavbarProps) {
             className="md:hidden bg-white/90 backdrop-blur-md shadow-lg"
           >
             <div className="px-4 py-2 space-y-1">
-              <Link
-                href={`/${locale}`}
-                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                {dictionary.nav.home}
-              </Link>
-              <Link
-                href={`/${locale}/about`}
-                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                {dictionary.nav.about}
-              </Link>
-              <Link
-                href={`/${locale}/services`}
-                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                {dictionary.nav.services}
-              </Link>
-              <Link
-                href={`/${locale}/wellness`}
-                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                {dictionary.nav.wellness}
-              </Link>
-              <Link
-                href={`/${locale}/contact`}
-                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setIsOpen(false)}
-              >
-                Work with us
-              </Link>
               <div className="space-y-2 mt-4">
                 <Link
                   href={`/${locale}/login`}

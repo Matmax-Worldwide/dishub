@@ -52,7 +52,7 @@ export default function LanguageSwitcher({ isContactInView = false }: LanguageSw
         className={`flex items-center space-x-1 text-sm font-medium transition-colors duration-300 ${
           isContactInView 
             ? 'text-white hover:text-gray-200' 
-            : 'text-gray-700 hover:text-gray-900'
+            : 'text-[hsla(225,55%,21%,1)] hover:text-[hsla(225,55%,21%,0.8)]'
         }`}
         aria-expanded={isOpen}
       >
