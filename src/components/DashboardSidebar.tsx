@@ -269,8 +269,8 @@ export function DashboardSidebar() {
                   <AvatarFallback>UN</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">User Name</span>
-                  <span className="text-xs text-gray-500">Interpreter</span>
+                  <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
+                  <span className="text-xs text-gray-500">{data?.me?.role}</span>
                 </div>
                 <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
                   <LogOutIcon className="h-4 w-4" />
