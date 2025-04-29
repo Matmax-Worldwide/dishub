@@ -33,10 +33,7 @@ const GET_USER_PROFILE = gql`
       email
       firstName
       lastName
-      phoneNumber
       role
-      createdAt
-      updatedAt
     }
   }
 `;
@@ -95,6 +92,7 @@ export function DashboardSidebar() {
     { name: 'Schedule', href: `/${locale}/dashboard/schedule`, icon: CalendarIcon },
     { name: 'Time Tracking', href: `/${locale}/dashboard/time`, icon: ClockIcon },
     { name: 'Documents', href: `/${locale}/dashboard/documents`, icon: FileTextIcon },
+    { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
     { name: 'Performance', href: `/${locale}/dashboard/performance`, icon: BarChartIcon },
     { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
     { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },

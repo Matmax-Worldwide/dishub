@@ -26,6 +26,8 @@ export default function DashboardPage() {
     networkError?: string;
     stack?: string;
   } | null>(null);
+  const [selectedBenefit, setSelectedBenefit] = useState<string | null>(null);
+
   
   const { loading, error, data, refetch } = useQuery(GET_USER, {
     client,
@@ -177,21 +179,88 @@ export default function DashboardPage() {
 
           {user && (
             <div className="space-y-4 sm:space-y-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">User Information</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-500">Name</p>
-                  <p className="mt-1 text-base sm:text-lg text-gray-900 font-semibold">{`${user.firstName} ${user.lastName}`}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-500">Email</p>
-                  <p className="mt-1 text-base sm:text-lg text-gray-900 font-semibold break-all">{user.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-500">Role</p>
-                  <p className="mt-1 text-base sm:text-lg text-gray-900 font-semibold uppercase">{user.role}</p>
-                </div>
-              </div>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
+              <div className="flex gap-4 mb-8 justify-center flex-wrap">
+                {/* Beneficios E-Voque */}
+  {/* Beneficios E-Voque */}
+  <button
+    className={`relative overflow-hidden flex flex-col items-center justify-end w-60 h-24 rounded-lg bg-contain bg-center transition-all duration-300 ${
+      selectedBenefit === 'benefits' 
+        ? 'ring-4 ring-blue-500' 
+        : 'opacity-80 hover:opacity-100'
+    }`}
+    style={{
+      backgroundImage: "url('/images/evoque-benefits.png')",
+    }}
+    onClick={() => setSelectedBenefit(selectedBenefit === 'benefits' ? null : 'benefits')}
+  >
+    <div className="absolute inset-0 bg-black/30" />
+    <span className="relative text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
+      Beneficios
+    </span>
+  </button>
+
+  {/* Wellness */}
+  <button
+    className={`relative overflow-hidden flex flex-col items-center justify-end w-40 h-24 rounded-lg bg-green-200 transition-all duration-300 ${
+      selectedBenefit === 'wellness' 
+        ? 'ring-4 ring-green-500' 
+        : 'opacity-80 hover:opacity-100'
+    }`}
+    style={{
+      backgroundImage: "url('/images/wellness-background.png')", // O puedes poner otro fondo si tienes
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }}
+    onClick={() => setSelectedBenefit(selectedBenefit === 'wellness' ? null : 'wellness')}
+  >
+    <div className="absolute inset-0 bg-black/20" />
+    <span className="relative text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
+      Wellness
+    </span>
+  </button>
+
+  {/* Círculo Extra (Próximamente) */}
+  <div className="flex flex-col items-center justify-center w-40 h-24 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+    <span className="text-xs font-medium text-center">Próximamente</span>
+  </div>
+</div>
+              
+              {/* Iframe container */}
+              {selectedBenefit && (
+  <div className="mt-6 w-full">
+    <div className="bg-gray-50 p-3 mb-3 flex justify-between items-center rounded-t-lg border border-gray-200">
+      <a
+        href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-lg font-medium text-blue-600 hover:underline"
+      >
+        {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
+      </a>
+      <button 
+        onClick={() => setSelectedBenefit(null)}
+        className="text-gray-500 hover:text-gray-700"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div className="text-center p-8 bg-white border border-gray-200 rounded-b-lg">
+      <p className="text-gray-600 text-lg">
+        Abre la plataforma en una nueva pestaña:
+      </p>
+      <a
+        href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+      >
+        Ir a {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
+      </a>
+    </div>
+  </div>
+)}
             </div>
           )}
         </div>
