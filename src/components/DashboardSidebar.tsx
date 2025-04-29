@@ -7,15 +7,16 @@ import Image from 'next/image';
 import {
   HomeIcon,
   UserIcon,
+  CalendarIcon,
   SettingsIcon,
   HelpCircleIcon,
   BriefcaseIcon,
   BellIcon,
+  ClipboardListIcon,
   LogOutIcon,
   MenuIcon,
   XIcon
 } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
@@ -84,8 +85,9 @@ export function DashboardSidebar() {
   const navigationItems: NavItem[] = [
     { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
     { name: 'Notifications', href: `/${locale}/dashboard/notifications`, icon: BellIcon },
+    { name: 'Book now', href: `/${locale}/dashboard/bookings`, icon: CalendarIcon },
     { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
-    { name: 'Profile', href: `/${locale}/dashboard/profile`, icon: UserIcon },
+    { name: 'Tasks', href: `/${locale}/dashboard/tasks`, icon: ClipboardListIcon },
     { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
     { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
   ];
