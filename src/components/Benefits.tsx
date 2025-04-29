@@ -593,17 +593,72 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
         className="relative overflow-hidden"
       >
         {/* Transición de degradado en la parte superior - desde el último benefit */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#8b5cf6]/30 to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+             style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}></div>
         
-        <div className="absolute inset-0 bg-gradient-to-br from-[#01319c] to-[#4f46e5] opacity-95 z-0"></div>
+        {/* Fondo principal - gradiente más dramático */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0"></div>
         
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/10 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/10 to-transparent"></div>
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm"></div>
-          <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-white/10 backdrop-blur-sm"></div>
-          <div className="absolute top-1/3 right-20 w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm"></div>
+        {/* Partículas animadas para efecto espacial */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Estrellas/partículas brillantes */}
+          {Array.from({ length: 30 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                width: Math.random() * 3 + 1 + 'px',
+                height: Math.random() * 3 + 1 + 'px',
+                left: Math.random() * 100 + '%',
+                top: Math.random() * 100 + '%',
+              }}
+              animate={{
+                opacity: [0.1, 0.8, 0.1],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: Math.random() * 3 + 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+          
+          {/* Órbitas luminosas */}
+          <motion.div 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] border border-blue-500/10 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[130%] h-[120%] border border-indigo-500/10 rounded-full"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[110%] h-[130%] border border-purple-500/10 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+          />
+          
+          {/* Destellos de luz */}
+          <motion.div
+            className="absolute top-20 right-[20%] w-40 h-40 bg-blue-500/20 blur-3xl rounded-full"
+            animate={{ 
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute bottom-40 left-[15%] w-60 h-60 bg-indigo-500/20 blur-3xl rounded-full"
+            animate={{ 
+              opacity: [0.2, 0.5, 0.2],
+              scale: [1, 1.3, 1],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
@@ -619,16 +674,16 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={contactRef.inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.7 }}
-                className="mb-6 p-5 bg-white/10 rounded-full backdrop-blur-sm w-min mx-auto"
+                className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
               >
                 <PaperAirplaneIcon className="h-14 w-14 text-white" />
               </motion.div>
               
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
-                Work with us
+              <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-2 drop-shadow-md">
+                Join Our Mission
               </h2>
               <p className="text-lg md:text-xl text-white/80 max-w-xl mx-auto mb-8">
-                Ready to join our team? Send us your information and we&apos;ll get back to you with opportunities.
+                Be part of a revolutionary team connecting people across languages and cultures. Your skills can change how the world communicates.
               </p>
             </motion.div>
 
@@ -638,7 +693,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="w-full"
             >
-              <div className="bg-white/10 backdrop-blur-sm p-8 rounded-lg border border-white/20">              
+              <div className="bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10">              
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-white mb-1">
@@ -651,7 +706,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                       value={formState.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
                       placeholder="Your name"
                     />
                   </div>
@@ -667,7 +722,7 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                       value={formState.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
                       placeholder="your.email@example.com"
                     />
                   </div>
@@ -683,16 +738,16 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
                       onChange={handleChange}
                       required
                       rows={4}
-                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
-                      placeholder="How can we help you?"
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
+                      placeholder="Tell us about your experience and interests"
                     />
                   </div>
                   
                   <motion.button
                     type="submit"
-                    whileHover={{ scale: 1.03 }}
+                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px 5px rgba(59, 130, 246, 0.3)" }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full bg-white text-indigo-700 py-3 px-6 rounded-md font-bold text-lg hover:bg-opacity-90 transition-all"
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
                   >
                     {dictionary.contact.form.submit}
                   </motion.button>
@@ -705,9 +760,9 @@ export default function Benefits({ dictionary, locale }: BenefitsProps) {
 
       {/* Simplified footer that shows while scrolling */}
       {isFlowCompleted && (
-        <div id="mini-footer" className="bg-gray-900">
-          <div className="text-center text-white py-2">
-            <p>© 2023 E-Voque. All rights reserved.</p>
+        <div id="mini-footer" className="bg-gradient-to-r from-[#01112A] to-[#01319c] text-white shadow-lg">
+          <div className="text-center py-3">
+            <p>© {new Date().getFullYear()} E-Voque. All rights reserved.</p>
           </div>
         </div>
       )}
