@@ -2,104 +2,71 @@
 
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { PhoneIcon, GlobeAltIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, BriefcaseIcon, AcademicCapIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 
-interface AboutUsProps {
-  dictionary: {
-    about: {
-      title: string;
-      description: string;
-      mission: string;
-    };
-  };
-}
-
-export default function AboutUs({ dictionary }: AboutUsProps) {
-  const [ref, inView] = useInView({
+export default function AboutUs() {
+  const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true,
   });
 
-  const features = [
+  const careerBenefits = [
     {
       icon: <PhoneIcon className="h-8 w-8 text-primary-600" />,
-      title: 'Over-the-Phone Interpretation',
-      description: 'Professional interpretation services available instantly over the phone.',
+      title: 'Flexible Schedules',
+      description: 'Perfect for students! Work part-time or full-time with shifts that fit your academic schedule.',
     },
     {
-      icon: <GlobeAltIcon className="h-8 w-8 text-primary-600" />,
-      title: 'Multiple Languages',
-      description: 'Support for over 100 languages with native-speaking interpreters.',
+      icon: <BriefcaseIcon className="h-8 w-8 text-primary-600" />,
+      title: 'Launch Your Career',
+      description: 'Gain valuable customer service and language skills that employers value worldwide.',
     },
     {
-      icon: <UserGroupIcon className="h-8 w-8 text-primary-600" />,
-      title: 'Expert Interpreters',
-      description: 'Highly trained professionals with subject matter expertise.',
+      icon: <AcademicCapIcon className="h-8 w-8 text-primary-600" />,
+      title: 'Paid Training',
+      description: 'Receive comprehensive paid training and ongoing professional development opportunities.',
+    },
+    {
+      icon: <CurrencyDollarIcon className="h-8 w-8 text-primary-600" />,
+      title: 'Competitive Pay',
+      description: 'Earn while you learn with competitive compensation and regular performance bonuses.',
     },
   ];
 
   return (
-    <section id="about" className="py-16 md:py-24 bg-gray-50">
+    <section id="about" ref={ref} className="py-16 md:py-24 bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          ref={ref}
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            {dictionary.about.title}
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Jump-start Your Career with Teleperformance
           </h2>
-          <p className="mt-6 text-lg text-gray-600 max-w-3xl mx-auto">
-            {dictionary.about.description}
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Ready to work with a global leader in customer experience management? Join our diverse team of young professionals!
           </p>
         </motion.div>
 
-        {/* Company/Team Image Placeholder */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-16"
-        >
-          <div className="relative h-64 md:h-96 bg-gradient-to-r from-primary-100 to-indigo-100 rounded-lg shadow-md overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center p-6 bg-white bg-opacity-80 rounded-lg shadow-sm">
-                <div className="flex justify-center mb-4">
-                  {/* Team icon */}
-                  <svg className="w-16 h-16 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Our Team of Expert Interpreters</h3>
-                <p className="mt-2 text-gray-600">Experienced professionals dedicated to breaking language barriers</p>
-              </div>
-            </div>
-            {/* Decorative elements */}
-            <div className="absolute top-4 left-4 w-20 h-20 rounded-full bg-primary-400 opacity-20"></div>
-            <div className="absolute bottom-6 right-8 w-16 h-16 rounded-full bg-indigo-500 opacity-20"></div>
-            <div className="absolute top-1/3 right-1/4 w-12 h-12 rounded-full bg-primary-300 opacity-30"></div>
-          </div>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {careerBenefits.map((benefit, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.6, delay: index * 0.2 + 0.4 }}
-              className="bg-white p-6 rounded-lg shadow-md"
+              transition={{ duration: 0.6, delay: index * 0.1 + 0.4 }}
+              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1"
             >
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-primary-100 mb-4 mx-auto">
-                {feature.icon}
+              <div className="flex items-center justify-center h-14 w-14 rounded-full bg-primary-100 mb-4 mx-auto">
+                {benefit.icon}
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-3 text-center">
-                {feature.title}
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                {benefit.title}
               </h3>
               <p className="text-gray-600 text-center">
-                {feature.description}
+                {benefit.description}
               </p>
             </motion.div>
           ))}
@@ -108,13 +75,21 @@ export default function AboutUs({ dictionary }: AboutUsProps) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 1 }}
-          className="mt-16 bg-primary-600 text-white p-8 rounded-lg"
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="mt-16 bg-primary-600 text-white p-8 rounded-lg shadow-lg overflow-hidden relative"
         >
-          <h3 className="text-2xl font-bold mb-4">Our Mission</h3>
-          <p className="text-lg">
-            {dictionary.about.mission}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-primary-400 rounded-full opacity-20"></div>
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-primary-400 rounded-full opacity-20"></div>
+          
+          <h3 className="text-2xl font-bold mb-4 relative z-10">Join Our Team Today!</h3>
+          <p className="text-lg relative z-10">
+            At Teleperformance, we believe in empowering young talent. Whether you&apos;re a student looking for flexible work or a recent graduate starting your career path, we offer the perfect environment to grow your skills and build your future.
           </p>
+          <div className="mt-6 relative z-10">
+            <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-bold hover:bg-primary-50 transition-colors duration-300">
+              Apply Now
+            </button>
+          </div>
         </motion.div>
       </div>
     </section>

@@ -9,9 +9,6 @@ import {
   FireIcon,
   ArrowPathIcon,
   ClockIcon,
-  SparklesIcon,
-  BoltIcon,
-  ArrowTrendingUpIcon
 } from '@heroicons/react/24/outline';
 import { notFound } from 'next/navigation';
 
@@ -149,28 +146,7 @@ function WellnessContent({ locale, dictionary }: WellnessContentProps) {
   ];
 
   // Wellness benefits
-  const wellnessBenefits = [
-    {
-      icon: <SparklesIcon className="h-10 w-10 text-primary-600" />,
-      title: "Improved Mental Clarity",
-      description: "Regular practice helps clear mental fog and improve focus throughout your day."
-    },
-    {
-      icon: <BoltIcon className="h-10 w-10 text-primary-600" />,
-      title: "Increased Energy",
-      description: "Our programs are designed to boost your natural energy levels without stimulants."
-    },
-    {
-      icon: <HeartIcon className="h-10 w-10 text-primary-600" />,
-      title: "Better Health",
-      description: "Consistent wellness practice has been linked to improved overall health outcomes."
-    },
-    {
-      icon: <ArrowTrendingUpIcon className="h-10 w-10 text-primary-600" />,
-      title: "Enhanced Performance",
-      description: "Many clients report improved work performance and productivity after following our programs."
-    }
-  ];
+
 
   return (
     <>
@@ -319,21 +295,7 @@ function WellnessContent({ locale, dictionary }: WellnessContentProps) {
           <div className="mb-20 bg-gray-50 p-10 rounded-xl">
             <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">Benefits of Regular Practice</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {wellnessBenefits.map((benefit, index) => (
-                <div key={index} className="bg-white p-6 rounded-lg shadow-md">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-primary-50 p-3 rounded-full mr-4">
-                      {benefit.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{benefit.title}</h3>
-                      <p className="text-gray-600">{benefit.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+   
           </div>
           
           {/* Testimonials */}

@@ -2,17 +2,23 @@
 
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
-  CheckCircleIcon, 
-  ClockIcon, 
-  GlobeAltIcon, 
-  ShieldCheckIcon,
-  ServerIcon,
-  BoltIcon 
+  ShieldCheckIcon, 
+  CogIcon,
+  BoltIcon,
+  CheckBadgeIcon,
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
 
 interface BenefitsProps {
   dictionary: {
+    hero: {
+      title: string;
+      subtitle: string;
+      cta: string;
+    };
     benefits: {
       title: string;
       quality: string;
@@ -22,108 +28,707 @@ interface BenefitsProps {
       security: string;
       technology: string;
     };
+    contact: {
+      title: string;
+      form: {
+        name: string;
+        email: string;
+        message: string;
+        submit: string;
+      };
+    };
   };
+  locale: string;
 }
 
-export default function Benefits({ dictionary }: BenefitsProps) {
-  const [ref, inView] = useInView({
-    threshold: 0.1,
-    triggerOnce: true,
+interface BenefitItem {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  iconBg: string;
+  accentColor: string;
+  isTech: boolean;
+  textColor?: string;
+  descriptionColor?: string;
+  techLight?: boolean;
+  ref: ReturnType<typeof useInView>;
+}
+
+export default function Benefits({ dictionary, locale }: BenefitsProps) {
+  const [formState, setFormState] = useState({
+    name: '',
+    email: '',
+    message: '',
   });
 
-  const benefits = [
+  const [isFlowCompleted, setIsFlowCompleted] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Añadir esta variable para rastrear si ya se ha scrolleado más allá del contacto
+  const [scrolledBeyondContact, setScrolledBeyondContact] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormState({
+      ...formState,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle form submission here
+    console.log('Form submitted:', formState);
+    // Reset form
+    setFormState({ name: '', email: '', message: '' });
+    // Show success message
+    alert('Thank you for your message! We will get back to you soon.');
+    // Set flow as completed
+    setIsFlowCompleted(true);
+  };
+
+  const heroRef = useInView({ triggerOnce: false, threshold: 0.7 });
+  const introRef = useInView({ triggerOnce: false, threshold: 0.7 });
+  const contactRef = useInView({ 
+    triggerOnce: false, 
+    threshold: 0.3,
+    onChange: (inView) => handleViewportChange(inView)
+  });
+
+  const benefitsList: BenefitItem[] = [
     {
-      icon: <CheckCircleIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.quality,
+      title: "High-quality interpretation",
+      description: dictionary.benefits.quality,
+      icon: <CheckBadgeIcon className="h-16 w-16 text-[#59c3ff]" />,
+      color: "from-[#01319c] to-[#2563eb]",
+      iconBg: "bg-[#59c3ff]/20",
+      accentColor: "#59c3ff",
+      isTech: true,
+      ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      icon: <BoltIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.speed,
+      title: "Connect in seconds",
+      description: dictionary.benefits.speed,
+      icon: <BoltIcon className="h-16 w-16 text-[#e879f9]" />,
+      color: "from-[#5b21b6] to-[#7c3aed]",
+      iconBg: "bg-[#e879f9]/20",
+      accentColor: "#e879f9",
+      isTech: true,
+      ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      icon: <ClockIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.availability,
+      title: "Secure and confidential",
+      description: dictionary.benefits.security,
+      icon: <ShieldCheckIcon className="h-16 w-16 text-[#14f195]" />,
+      color: "from-[#132f4c] to-[#1e3a5f]",
+      iconBg: "bg-[#14f195]/20",
+      accentColor: "#14f195",
+      isTech: true,
+      ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
     {
-      icon: <GlobeAltIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.languages,
-    },
-    {
-      icon: <ShieldCheckIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.security,
-    },
-    {
-      icon: <ServerIcon className="h-6 w-6 text-primary-600" />,
-      title: dictionary.benefits.technology,
+      title: "Advanced technology",
+      description: dictionary.benefits.technology,
+      icon: <CogIcon className="h-16 w-16 text-[#0dfff7]" />,
+      color: "from-[#041c36] to-[#1a253b]",
+      iconBg: "bg-[#0dfff7]/20",
+      accentColor: "#0dfff7",
+      isTech: true,
+      ref: useInView({ triggerOnce: false, threshold: 0.5 }),
     },
   ];
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  // Función para verificar la posición de scroll
+  const checkScrollPosition = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      // Añadir un margen de 100px después del final de la sección de contacto
+      // para asegurarnos de que se ha scrolleado suficientemente
+      const extraMargin = 100; // píxeles adicionales para mostrar el footer
+      const scrolledBeyond = window.scrollY > contactSection.offsetTop + contactSection.offsetHeight + extraMargin;
+      
+      if (scrolledBeyond !== scrolledBeyondContact) {
+        setScrolledBeyondContact(scrolledBeyond);
+        updateFooterVisibility(scrolledBeyond);
+      }
+    }
   };
 
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  // Función para actualizar la visibilidad del footer
+  const updateFooterVisibility = (show: boolean) => {
+    const mainFooter = document.getElementById('main-footer');
+    if (mainFooter) {
+      if (show) {
+        setIsFlowCompleted(true);
+        mainFooter.classList.remove('hidden');
+        setTimeout(() => {
+          mainFooter.classList.add('visible');
+        }, 10);
+      } else {
+        setIsFlowCompleted(false);
+        mainFooter.classList.remove('visible');
+        setTimeout(() => {
+          mainFooter.classList.add('hidden');
+        }, 300);
+      }
+    }
+  };
+
+  // Añadir el evento de scroll
+  useEffect(() => {
+    window.addEventListener('scroll', checkScrollPosition);
+    return () => {
+      window.removeEventListener('scroll', checkScrollPosition);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrolledBeyondContact]); // Solo depende de scrolledBeyondContact para evitar actualizaciones innecesarias
+
+  // Detectar cuando la sección de contacto está en vista para mostrar u ocultar el footer
+  const handleViewportChange = (inView: boolean) => {
+    // Si no está en vista, verificamos si se ha scrolleado hacia abajo (más allá del contacto)
+    if (!inView) {
+      checkScrollPosition();
+    } else {
+      // Si está en vista de nuevo, asegurarnos de que el footer esté oculto
+      setScrolledBeyondContact(false);
+      updateFooterVisibility(false);
+    }
   };
 
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-b from-primary-50 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-            {dictionary.benefits.title}
-          </h2>
-          <div className="mt-6 h-1 w-20 bg-primary-600 mx-auto rounded-full"></div>
-        </motion.div>
+    <div id="benefits" className="full-page-flow">
+      {/* Hero Section */}
+      <section id="hero" className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50">
+        {/* Transición de degradado en la parte inferior */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#e0f2fe] to-transparent z-10 pointer-events-none"></div>
+        
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute top-20 left-10 w-20 h-20 rounded-full bg-[#01319c]/10 opacity-60"
+            animate={{
+              x: [0, 30, 0],
+              y: [0, 40, 0],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute top-40 right-20 w-32 h-32 rounded-full bg-[#4f46e5]/10 opacity-60"
+            animate={{
+              x: [0, -40, 0],
+              y: [0, 30, 0],
+            }}
+            transition={{
+              duration: 18,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute bottom-20 left-1/3 w-24 h-24 rounded-full bg-[#2563eb]/10 opacity-60"
+            animate={{
+              x: [0, 20, 0],
+              y: [0, -30, 0],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </div>
 
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate={inView ? "show" : "hidden"}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-        >
-          {benefits.map((benefit, index) => (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <motion.div
-              key={index}
-              variants={item}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              ref={heroRef.ref}
+              initial={{ opacity: 0, y: 20 }}
+              animate={heroRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.8 }}
+              className="relative z-10"
             >
-              <div className="flex items-center">
-                <div className="flex-shrink-0 mr-4">
+              <motion.div
+                initial={{ x: -10, opacity: 0 }}
+                animate={heroRef.inView ? { x: 0, opacity: 1 } : { x: -10, opacity: 0 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+              >
+                Professional Interpretation
+              </motion.div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                {dictionary.hero.title}
+              </h1>
+              <p className="mt-6 text-xl text-gray-600">
+                {dictionary.hero.subtitle}
+              </p>
+              <motion.div 
+                className="mt-8 flex flex-wrap gap-4"
+                initial={{ opacity: 0 }}
+                animate={heroRef.inView ? { opacity: 1 } : { opacity: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+              >
+                <Link
+                  href={`/${locale}/register`}
+                  className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
+                >
+                  {dictionary.hero.cta}
+                </Link>
+              </motion.div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={heroRef.inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="relative"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <motion.div 
+                className="relative z-10 flex justify-center"
+                animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <svg
+                  viewBox="0 0 200 200"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-full h-auto max-w-md"
+                >
+                  {/* Background Circle */}
+                  <circle cx="100" cy="100" r="95" stroke="#3B82F6" strokeWidth="5" fill="#F9FAFB" />
+
+                  {/* Headset */}
+                  <path
+                    d="M50 80 C50 50, 150 50, 150 80 M50 120 C50 150, 150 150, 150 120"
+                    stroke="#3B82F6"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <circle cx="45" cy="100" r="5" fill="#3B82F6" />
+                  <circle cx="155" cy="100" r="5" fill="#3B82F6" />
+                  <path
+                    d="M70 140 L70 160 Q100 170, 130 160 L130 140"
+                    stroke="#3B82F6"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+
+                  {/* Chat bubbles */}
+                  <rect x="60" y="40" width="40" height="20" rx="5" ry="5" fill="#8B5CF6" />
+                  <rect x="100" y="50" width="40" height="20" rx="5" ry="5" fill="#3B82F6" />
+
+                  {/* Tiny text indicators */}
+                  <circle cx="70" cy="50" r="2" fill="#F9FAFB" />
+                  <circle cx="80" cy="50" r="2" fill="#F9FAFB" />
+                  <circle cx="90" cy="50" r="2" fill="#F9FAFB" />
+
+                  <circle cx="110" cy="60" r="2" fill="#F9FAFB" />
+                  <circle cx="120" cy="60" r="2" fill="#F9FAFB" />
+                  <circle cx="130" cy="60" r="2" fill="#F9FAFB" />
+                </svg>
+              </motion.div>
+              
+              {/* Interactive elements */}
+              <motion.div
+                className="absolute -top-8 -right-8 w-16 h-16 bg-primary-200 rounded-full z-0"
+                animate={{
+                  y: [0, -10, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute bottom-10 -left-8 w-12 h-12 bg-indigo-300 rounded-full z-0"
+                animate={{
+                  y: [0, 10, 0],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              
+              <motion.div
+                className="absolute -bottom-4 right-12 w-8 h-8 bg-primary-300 rounded-md rotate-12 z-0"
+                animate={{
+                  rotate: [12, 45, 12],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.div>
+          </div>
+        </div>
+        
+        <motion.div
+          className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <svg className="w-10 h-10 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </motion.div>
+      </section>
+
+      {/* Introducción de la sección */}
+      <section id="intro" className="relative bg-white overflow-hidden">
+        {/* Transición de degradado en la parte superior */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#e0f2fe] to-transparent z-10 pointer-events-none"></div>
+        
+        {/* Transición de degradado en la parte inferior - hacia el primer benefit */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#01319c]/10 to-transparent z-10 pointer-events-none"></div>
+        
+        <div className="absolute inset-0 bg-gradient-to-br from-[#f9fafb] to-white z-0"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
+          <motion.div 
+            ref={introRef.ref}
+            initial={{ opacity: 0, y: 30 }}
+            animate={introRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Why Choose E-Voque
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Scroll down to discover our unique advantages
+            </p>
+            <motion.div
+              className="mt-10"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <svg className="w-10 h-10 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Beneficios individuales con scroll snap */}
+      {benefitsList.map((benefit, index) => {
+        // Determinar los colores de transición
+        const nextIndex = (index + 1) % benefitsList.length;
+        const nextBenefit = benefitsList[nextIndex];
+        const isLastBenefit = index === benefitsList.length - 1;
+        const isSecondBenefit = index === 1;
+        const isThirdBenefit = index === 2;
+        
+        // Extraer colores para las transiciones
+        const nextColorFrom = isLastBenefit ? 'from-indigo-600' : nextBenefit.color.split(' ')[1];
+        
+        // Colores personalizados para las transiciones específicas
+        let topGradient = "";
+        let bottomGradient = "";
+        
+        if (index === 0) {
+          topGradient = "from-white via-blue-50 to-transparent";
+        } else if (isSecondBenefit) {
+          topGradient = "from-[#01319c]/30 to-transparent";
+        } else if (isThirdBenefit) {
+          topGradient = "from-[#c026d3]/30 to-transparent";
+          bottomGradient = "from-[#041c36]/70 to-transparent";
+        } else if (benefit.isTech) {
+          topGradient = "from-[#f0f9ff]/30 to-transparent";
+        }
+        
+        return (
+          <section 
+            key={index} 
+            className="relative overflow-hidden"
+          >
+            {/* Transición de degradado en la parte superior */}
+            <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${topGradient} z-10 pointer-events-none`}></div>
+            
+            {/* Transición de degradado en la parte inferior */}
+            {isThirdBenefit ? (
+              <div className={`absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t ${bottomGradient} z-20 pointer-events-none`}></div>
+            ) : (
+              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-transparent to-transparent z-20 pointer-events-none transition-colors duration-1000" 
+                style={{
+                  background: isLastBenefit ? 
+                    `linear-gradient(to top, rgba(79, 70, 229, 0.3), transparent)` : 
+                    (isSecondBenefit ? `linear-gradient(to top, rgba(4, 28, 54, 0.7), transparent)` : 
+                    `linear-gradient(to top, ${nextColorFrom.replace('from-', '').replace('[', '').replace(']', '')}, transparent)`)
+                }}></div>
+            )}
+            
+            {/* Fondo principal */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} opacity-95 z-0`}></div>
+            
+            {/* Elementos decorativos tecnológicos adaptados a cada sección */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {/* Patrón de cuadrícula */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute left-0 right-0 h-[1px] top-1/4" style={{ backgroundColor: benefit.accentColor }}></div>
+                <div className="absolute left-0 right-0 h-[1px] top-2/4" style={{ backgroundColor: benefit.accentColor }}></div>
+                <div className="absolute left-0 right-0 h-[1px] top-3/4" style={{ backgroundColor: benefit.accentColor }}></div>
+                <div className="absolute top-0 bottom-0 w-[1px] left-1/4" style={{ backgroundColor: benefit.accentColor }}></div>
+                <div className="absolute top-0 bottom-0 w-[1px] left-2/4" style={{ backgroundColor: benefit.accentColor }}></div>
+                <div className="absolute top-0 bottom-0 w-[1px] left-3/4" style={{ backgroundColor: benefit.accentColor }}></div>
+              </div>
+              
+              {/* Círculos tecnológicos */}
+              <motion.div 
+                className="absolute top-20 left-10 w-48 h-48 rounded-full border"
+                style={{ borderColor: `${benefit.accentColor}30` }}
+                animate={{
+                  scale: [1, 1.1, 1],
+                  opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute bottom-20 right-10 w-64 h-64 rounded-full border"
+                style={{ borderColor: `${benefit.accentColor}20` }}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.1, 0.3, 0.1],
+                }}
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              
+              {/* Partículas */}
+              <motion.div 
+                className="absolute top-1/3 right-1/4 w-2 h-2 rounded-full"
+                style={{ backgroundColor: benefit.accentColor }}
+                animate={{
+                  y: [0, -20, 0],
+                  opacity: [0.5, 0.8, 0.5],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute top-2/3 left-1/3 w-3 h-3 rounded-full"
+                style={{ backgroundColor: benefit.accentColor }}
+                animate={{
+                  y: [0, 30, 0],
+                  opacity: [0.4, 0.7, 0.4],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div 
+                className="absolute top-1/2 right-1/3 w-1 h-1 rounded-full"
+                style={{ backgroundColor: benefit.accentColor }}
+                animate={{
+                  x: [0, -15, 0],
+                  y: [0, 15, 0],
+                  opacity: [0.6, 0.9, 0.6],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+            
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
+              <div className={`flex flex-col items-center justify-center ${benefit.textColor || "text-white"} px-4 py-8 md:py-12`}>
+                <motion.div
+                  ref={benefit.ref.ref}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={benefit.ref.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+                  transition={{ duration: 0.7 }}
+                  className={`mb-8 p-6 ${benefit.iconBg} rounded-full backdrop-blur-sm border`}
+                  style={{ borderColor: `${benefit.accentColor}50` }}
+                >
                   {benefit.icon}
-                </div>
-                <h3 className="text-lg font-medium text-gray-900">
+                </motion.div>
+                
+                <motion.h3
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={benefit.ref.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                  transition={{ duration: 0.7, delay: 0.1 }}
+                  className={`text-4xl md:text-5xl font-bold mb-6 text-center ${benefit.textColor || ""}`}
+                  style={!benefit.textColor ? { color: benefit.accentColor } : {}}
+                >
                   {benefit.title}
-                </h3>
+                </motion.h3>
+                
+                <motion.p
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={benefit.ref.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  className={`text-xl md:text-2xl text-center max-w-3xl ${benefit.descriptionColor || "text-white"}`}
+                >
+                  {benefit.description || "Our highly trained interpreters provide accurate and culturally sensitive interpretations every time."}
+                </motion.p>
+                
+                <motion.div
+                  className="mt-16"
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <svg 
+                    className={`w-10 h-10 mx-auto ${benefit.textColor ? 'text-gray-400' : ''}`} 
+                    style={!benefit.textColor ? { color: `${benefit.accentColor}70` } : {}}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+        );
+      })}
+
+      {/* Contact Form Section */}
+      <section 
+        id="contact" 
+        className="relative overflow-hidden"
+      >
+        {/* Transición de degradado en la parte superior - desde el último benefit */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#8b5cf6]/30 to-transparent z-10 pointer-events-none"></div>
+        
+        <div className="absolute inset-0 bg-gradient-to-br from-[#01319c] to-[#4f46e5] opacity-95 z-0"></div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/10 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/10 to-transparent"></div>
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm"></div>
+          <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-white/10 backdrop-blur-sm"></div>
+          <div className="absolute top-1/3 right-20 w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
+          <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0">
+            <motion.div
+              ref={contactRef.ref}
+              initial={{ opacity: 0, y: 30 }}
+              animate={contactRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.7 }}
+              className="text-center mb-8"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={contactRef.inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.7 }}
+                className="mb-6 p-5 bg-white/10 rounded-full backdrop-blur-sm w-min mx-auto"
+              >
+                <PaperAirplaneIcon className="h-14 w-14 text-white" />
+              </motion.div>
+              
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                Work with us
+              </h2>
+              <p className="text-lg md:text-xl text-white/80 max-w-xl mx-auto mb-8">
+                Ready to join our team? Send us your information and we&apos;ll get back to you with opportunities.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={contactRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="w-full"
+            >
+              <div className="bg-white/10 backdrop-blur-sm p-8 rounded-lg border border-white/20">              
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-white mb-1">
+                      {dictionary.contact.form.name}
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formState.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-white mb-1">
+                      {dictionary.contact.form.email}
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formState.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
+                      placeholder="your.email@example.com"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-white mb-1">
+                      {dictionary.contact.form.message}
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={formState.message}
+                      onChange={handleChange}
+                      required
+                      rows={4}
+                      className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-white focus:border-transparent placeholder-white/50"
+                      placeholder="How can we help you?"
+                    />
+                  </div>
+                  
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full bg-white text-indigo-700 py-3 px-6 rounded-md font-bold text-lg hover:bg-opacity-90 transition-all"
+                  >
+                    {dictionary.contact.form.submit}
+                  </motion.button>
+                </form>
               </div>
             </motion.div>
-          ))}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-16 text-center"
-        >
-          <div className="bg-primary-600 text-white py-3 px-6 rounded-md inline-block font-medium">
-            Get started with our services today
           </div>
-        </motion.div>
-      </div>
-    </section>
+        </div>
+      </section>
+
+      {/* Simplified footer that shows while scrolling */}
+      {isFlowCompleted && (
+        <div id="mini-footer" className="bg-gray-900">
+          <div className="text-center text-white py-2">
+            <p>© 2023 E-Voque. All rights reserved.</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 } 

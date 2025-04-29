@@ -94,8 +94,6 @@ export default function PageContent({ locale, dictionary }: PageContentProps) {
   // Secciones
   const sections = [
     { id: 'home', component: <Hero dictionary={dictionary} locale={locale} /> },
-    { id: 'about', component: <AboutUs dictionary={dictionary} /> },
-    { id: 'services', component: <Services dictionary={dictionary} /> },
     { id: 'benefits', component: <Benefits dictionary={dictionary} /> },
     { id: 'contact', component: <Contact dictionary={dictionary} /> },
   ];

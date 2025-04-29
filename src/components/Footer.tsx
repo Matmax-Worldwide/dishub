@@ -5,7 +5,8 @@ import {
   Facebook, 
   Twitter, 
   Linkedin, 
-  Instagram 
+  Instagram,
+  EyeOff
 } from 'lucide-react';
 
 interface FooterProps {
@@ -38,7 +39,7 @@ export default function Footer({ dictionary, locale }: FooterProps) {
   return (
     <footer className="bg-gray-900 text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
           {/* Logo and description */}
           <div className="col-span-1 md:col-span-1">
             <Link href={`/${locale}`} className="flex items-center">
@@ -94,23 +95,48 @@ export default function Footer({ dictionary, locale }: FooterProps) {
             <h3 className="text-lg font-semibold mb-4 text-white">Services</h3>
             <ul className="space-y-2">
               <li>
-                <Link href={`/${locale}#services`} className="text-gray-400 hover:text-white transition-colors">
+                <Link href={`/${locale}/services`} className="text-gray-400 hover:text-white transition-colors">
                   Medical Interpretation
                 </Link>
               </li>
               <li>
-                <Link href={`/${locale}#services`} className="text-gray-400 hover:text-white transition-colors">
+                <Link href={`/${locale}/services`} className="text-gray-400 hover:text-white transition-colors">
                   Legal Interpretation
                 </Link>
               </li>
               <li>
-                <Link href={`/${locale}#services`} className="text-gray-400 hover:text-white transition-colors">
+                <Link href={`/${locale}/services`} className="text-gray-400 hover:text-white transition-colors">
                   Business Interpretation
                 </Link>
               </li>
               <li>
-                <Link href={`/${locale}#services`} className="text-gray-400 hover:text-white transition-colors">
+                <Link href={`/${locale}/services`} className="text-gray-400 hover:text-white transition-colors">
                   Emergency Services
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Hidden Sections */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-white flex items-center">
+              <EyeOff size={16} className="mr-2" />
+              Hidden Sections
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href={`/${locale}/hidden/services`} className="text-gray-400 hover:text-white transition-colors">
+                  Services Section
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/hidden/wellness`} className="text-gray-400 hover:text-white transition-colors">
+                  Wellness Programs
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/careers`} className="text-gray-400 hover:text-white transition-colors">
+                  Careers at Teleperformance
                 </Link>
               </li>
             </ul>

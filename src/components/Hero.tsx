@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 
 interface HeroProps {
   dictionary: {
@@ -14,54 +15,156 @@ interface HeroProps {
   locale: string;
 }
 
-export default function Hero({ dictionary, locale }: HeroProps) {
+function InterpretationSVG(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <section className="pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <svg
+      viewBox="0 0 200 200"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      {/* Background Circle */}
+      <circle cx="100" cy="100" r="95" stroke="#3B82F6" strokeWidth="5" fill="#F9FAFB" />
+
+      {/* Headset */}
+      <path
+        d="M50 80 C50 50, 150 50, 150 80 M50 120 C50 150, 150 150, 150 120"
+        stroke="#3B82F6"
+        strokeWidth="4"
+        fill="none"
+      />
+      <circle cx="45" cy="100" r="5" fill="#3B82F6" />
+      <circle cx="155" cy="100" r="5" fill="#3B82F6" />
+      <path
+        d="M70 140 L70 160 Q100 170, 130 160 L130 140"
+        stroke="#3B82F6"
+        strokeWidth="4"
+        fill="none"
+      />
+
+      {/* Chat bubbles */}
+      <rect x="60" y="40" width="40" height="20" rx="5" ry="5" fill="#8B5CF6" />
+      <rect x="100" y="50" width="40" height="20" rx="5" ry="5" fill="#3B82F6" />
+
+      {/* Tiny text indicators */}
+      <circle cx="70" cy="50" r="2" fill="#F9FAFB" />
+      <circle cx="80" cy="50" r="2" fill="#F9FAFB" />
+      <circle cx="90" cy="50" r="2" fill="#F9FAFB" />
+
+      <circle cx="110" cy="60" r="2" fill="#F9FAFB" />
+      <circle cx="120" cy="60" r="2" fill="#F9FAFB" />
+      <circle cx="130" cy="60" r="2" fill="#F9FAFB" />
+    </svg>
+  );
+}
+
+export default function Hero({ dictionary, locale }: HeroProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <section className="relative h-screen w-full bg-gradient-to-b from-white to-blue-50 overflow-hidden flex items-center">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary-100 opacity-60"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, 40, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute top-40 right-20 w-32 h-32 rounded-full bg-indigo-100 opacity-60"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute bottom-20 left-1/3 w-24 h-24 rounded-full bg-blue-100 opacity-60"
+          animate={{
+            x: [0, 20, 0],
+            y: [0, -30, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="relative z-10"
           >
+            <motion.div
+              initial={{ x: -10, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+            >
+              Professional Interpretation
+            </motion.div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
               {dictionary.hero.title}
             </h1>
             <p className="mt-6 text-xl text-gray-600">
               {dictionary.hero.subtitle}
             </p>
-            <div className="mt-8 flex flex-wrap gap-4">
+            <motion.div 
+              className="mt-8 flex flex-wrap gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+            >
               <Link
-                href={`/${locale}/signup`}
-                className="btn-primary text-lg px-6 py-3"
+                href={`/${locale}/register`}
+                className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
               >
                 {dictionary.hero.cta}
               </Link>
-            </div>
+              <Link
+                href={`/${locale}/services`}
+                className="border-2 border-gray-300 text-gray-700 text-lg px-6 py-3 rounded-lg hover:bg-gray-50 transform transition-all duration-300 hover:-translate-y-1"
+              >
+                Explore Services
+              </Link>
+            </motion.div>
           </motion.div>
           
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
             className="relative"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
-            <div className="aspect-w-4 aspect-h-3 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-lg shadow-xl overflow-hidden">
-              <div className="absolute inset-0 bg-white opacity-20 flex items-center justify-center flex-col">
-                <div className="text-white mb-4">
-                  {/* Interpreter Icon */}
-                  <svg className="w-24 h-24 mx-auto" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-                  </svg>
-                </div>
-                <div className="text-3xl font-bold text-white">E-Voque</div>
-                <div className="text-sm text-white mt-2">Professional Interpretation Services</div>
-              </div>
-            </div>
+            <motion.div 
+              className="relative z-10 flex justify-center"
+              animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <InterpretationSVG className="w-full h-auto max-w-md" />
+            </motion.div>
             
-            {/* Floating elements for decoration */}
+            {/* Interactive elements */}
             <motion.div
-              className="absolute -top-8 -right-8 w-16 h-16 bg-primary-200 rounded-full"
+              className="absolute -top-8 -right-8 w-16 h-16 bg-primary-200 rounded-full z-0"
               animate={{
                 y: [0, -10, 0],
               }}
@@ -72,7 +175,7 @@ export default function Hero({ dictionary, locale }: HeroProps) {
               }}
             />
             <motion.div
-              className="absolute bottom-8 -left-8 w-12 h-12 bg-indigo-300 rounded-full"
+              className="absolute bottom-10 -left-8 w-12 h-12 bg-indigo-300 rounded-full z-0"
               animate={{
                 y: [0, 10, 0],
               }}
@@ -83,9 +186,8 @@ export default function Hero({ dictionary, locale }: HeroProps) {
               }}
             />
             
-            {/* Additional decorative element */}
             <motion.div
-              className="absolute -bottom-4 right-12 w-8 h-8 bg-primary-300 rounded-md rotate-12"
+              className="absolute -bottom-4 right-12 w-8 h-8 bg-primary-300 rounded-md rotate-12 z-0"
               animate={{
                 rotate: [12, 45, 12],
               }}
