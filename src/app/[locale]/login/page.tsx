@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const { locale } = useParams();
@@ -109,6 +110,7 @@ export default function LoginPage() {
 
       <div className="max-w-md w-full space-y-8 relative z-10 px-4">
         <div className="flex flex-col items-center">
+          <Link href={`/${locale}`}>
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -122,6 +124,7 @@ export default function LoginPage() {
               className="mb-6" 
             />
           </motion.div>
+          </Link>
           
           <motion.h2 
             className="text-center text-3xl font-extrabold text-white"
