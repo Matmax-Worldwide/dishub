@@ -106,7 +106,7 @@ export default function Contact({ dictionary }: ContactProps) {
                 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                    {dictionary.contact.form.message}
+                    {dictionary.contact.form.message || "Message"}
                   </label>
                   <textarea
                     id="message"
