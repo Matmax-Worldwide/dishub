@@ -11,7 +11,6 @@ import {
   CheckBadgeIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
-import Image from 'next/image';
 
 interface BenefitsProps {
   dictionary: {
