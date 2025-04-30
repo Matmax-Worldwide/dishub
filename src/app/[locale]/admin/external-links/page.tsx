@@ -94,8 +94,8 @@ const formSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
   icon: z.string().min(1, "Icon name is required"),
   description: z.string().optional(),
-  isActive: z.boolean().default(true),
-  order: z.number().int().default(0),
+  isActive: z.boolean(),
+  order: z.number().int(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -126,10 +126,16 @@ export default function ExternalLinksPage() {
 
   const [createExternalLink, { loading: createLoading }] = useMutation(CREATE_EXTERNAL_LINK, {
     client,
-    onCompleted: () => {
-      refetch();
-      setIsAddDialogOpen(false);
-      toast.success("External link created successfully");
+    onCompleted: (data) => {
+      if (data?.createExternalLink) {
+        refetch();
+        setIsAddDialogOpen(false);
+        toast.success("External link created successfully");
+      } else {
+        // Handle null response
+        console.error("Failed to create external link - received null");
+        toast.error("Failed to create external link");
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -138,11 +144,17 @@ export default function ExternalLinksPage() {
 
   const [updateExternalLink, { loading: updateLoading }] = useMutation(UPDATE_EXTERNAL_LINK, {
     client,
-    onCompleted: () => {
-      refetch();
-      setIsEditDialogOpen(false);
-      setSelectedLink(null);
-      toast.success("External link updated successfully");
+    onCompleted: (data) => {
+      if (data?.updateExternalLink) {
+        refetch();
+        setIsEditDialogOpen(false);
+        setSelectedLink(null);
+        toast.success("External link updated successfully");
+      } else {
+        // Handle null response
+        console.error("Failed to update external link - received null");
+        toast.error("Failed to update external link");
+      }
     },
     onError: (error) => {
       toast.error(error.message);

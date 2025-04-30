@@ -60,10 +60,13 @@ export const resolvers = {
             order: 'asc',
           },
         });
-        return links || []; // Return empty array if links is null
+        
+        // Ensure we always return an array, even if links is null
+        return links || [];
       } catch (error) {
         console.error('Error fetching active external links:', error);
-        return []; // Return empty array on error
+        // Return empty array on error instead of null
+        return [];
       }
     },
   },

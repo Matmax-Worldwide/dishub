@@ -119,7 +119,9 @@ export function DashboardSidebar() {
   // Get external links
   const { data: externalLinksData } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
     client,
-    fetchPolicy: 'network-only',
+    onError: (error) => {
+      console.error('Error fetching external links:', error);
+    }
   });
 
   const unreadCount = notificationsData?.unreadNotificationsCount || 0;
@@ -235,12 +237,6 @@ export function DashboardSidebar() {
       href: `/${locale}/admin/external-links`,
       icon: LinkIcon,
       roles: ['ADMIN']
-    },
-    {
-      name: 'Admin Settings',
-      href: `/${locale}/admin/settings`,
-      icon: SettingsIcon,
-      roles: ['ADMIN']
     }
   ];
 
@@ -290,7 +286,7 @@ export function DashboardSidebar() {
     return icons[iconName] || UserIcon; // Default to UserIcon if not found
   };
 
-  const externalLinks: NavItem[] = externalLinksData?.activeExternalLinks?.map((link: ExternalLinkType) => ({
+  const externalLinks: NavItem[] = (externalLinksData?.activeExternalLinks || []).map((link: ExternalLinkType) => ({
     name: link.name,
     href: link.url,
     icon: getIconComponent(link.icon),

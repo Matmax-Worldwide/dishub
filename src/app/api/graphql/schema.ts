@@ -486,9 +486,9 @@ const typeDefs = gql`
     searchHelpArticles(query: String!): [HelpArticle!]!
 
     # External Link queries
-    externalLinks: [ExternalLink!]!
+    externalLinks: [ExternalLink!]
     externalLink(id: ID!): ExternalLink
-    activeExternalLinks: [ExternalLink!]!
+    activeExternalLinks: [ExternalLink!]
   }
 
   type Mutation {
@@ -548,8 +548,8 @@ const typeDefs = gql`
     deleteHelpArticle(id: ID!): Boolean!
 
     # External Link mutations
-    createExternalLink(input: CreateExternalLinkInput!): ExternalLink!
-    updateExternalLink(id: ID!, input: UpdateExternalLinkInput!): ExternalLink!
+    createExternalLink(input: CreateExternalLinkInput!): ExternalLink
+    updateExternalLink(id: ID!, input: UpdateExternalLinkInput!): ExternalLink
     deleteExternalLink(id: ID!): Boolean!
   }
 
