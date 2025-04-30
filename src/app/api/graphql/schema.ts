@@ -370,6 +370,38 @@ const typeDefs = gql`
     tags: [String!]
   }
 
+  # External Link types
+  type ExternalLink {
+    id: ID!
+    name: String!
+    url: String!
+    icon: String!
+    description: String
+    isActive: Boolean!
+    order: Int!
+    createdBy: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  input CreateExternalLinkInput {
+    name: String!
+    url: String!
+    icon: String!
+    description: String
+    isActive: Boolean
+    order: Int
+  }
+
+  input UpdateExternalLinkInput {
+    name: String
+    url: String
+    icon: String
+    description: String
+    isActive: Boolean
+    order: Int
+  }
+
   # Dashboard stats type
   type DashboardStats {
     totalDocuments: Int!
@@ -452,6 +484,11 @@ const typeDefs = gql`
     helpArticle(id: ID!): HelpArticle
     helpArticlesByCategory(category: String!): [HelpArticle!]!
     searchHelpArticles(query: String!): [HelpArticle!]!
+
+    # External Link queries
+    externalLinks: [ExternalLink!]!
+    externalLink(id: ID!): ExternalLink
+    activeExternalLinks: [ExternalLink!]!
   }
 
   type Mutation {
@@ -509,6 +546,11 @@ const typeDefs = gql`
     createHelpArticle(input: CreateHelpArticleInput!): HelpArticle!
     updateHelpArticle(id: ID!, input: UpdateHelpArticleInput!): HelpArticle!
     deleteHelpArticle(id: ID!): Boolean!
+
+    # External Link mutations
+    createExternalLink(input: CreateExternalLinkInput!): ExternalLink!
+    updateExternalLink(id: ID!, input: UpdateExternalLinkInput!): ExternalLink!
+    deleteExternalLink(id: ID!): Boolean!
   }
 
   input UpdateProjectInput {

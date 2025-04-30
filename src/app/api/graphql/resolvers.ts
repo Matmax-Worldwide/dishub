@@ -20,7 +20,7 @@ import { contactResolvers } from './resolvers/contact';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Helper function to ensure system permissions exist
-async function ensureSystemPermissions(context: any) {
+async function ensureSystemPermissions() {
   const defaultPermissions = [
     { name: 'user:read', description: 'View user information' },
     { name: 'user:write', description: 'Create or update users' },
@@ -167,7 +167,7 @@ const resolvers = {
         });
         
         // Convert role to string for each user
-        return users.map(user => ({
+        return users.map((user: { id: string; email: string; firstName: string; lastName: string; phoneNumber: string | null; role: unknown; createdAt: Date; updatedAt: Date }) => ({
           ...user,
           role: String(user.role)
         }));
@@ -237,7 +237,7 @@ const resolvers = {
         }
         
         // Ensure default permissions exist
-        await ensureSystemPermissions(context);
+        await ensureSystemPermissions();
         
         return prisma.permission.findMany();
       } catch (error) {

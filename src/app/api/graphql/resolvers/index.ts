@@ -13,6 +13,7 @@ import { settingsResolvers } from './settings';
 import { helpResolvers } from './help';
 import { taskResolvers } from './tasks';
 import { projectResolvers } from './projects';
+import { resolvers as externalLinksResolvers } from './externalLinks';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -386,6 +387,7 @@ const resolvers = {
     ...helpResolvers.Query,
     ...taskResolvers.Query,
     ...projectResolvers.Query,
+    ...externalLinksResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -397,6 +399,7 @@ const resolvers = {
     ...settingsResolvers.Mutation,
     ...helpResolvers.Mutation,
     ...taskResolvers.Mutation,
+    ...externalLinksResolvers.Mutation,
   }
 };
 

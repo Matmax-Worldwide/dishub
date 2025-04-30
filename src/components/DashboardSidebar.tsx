@@ -10,7 +10,6 @@ import {
   CalendarIcon,
   SettingsIcon,
   HelpCircleIcon,
-  BriefcaseIcon,
   BellIcon,
   LogOutIcon,
   MenuIcon,
@@ -22,7 +21,10 @@ import {
   ShieldIcon,
   UserPlusIcon,
   LineChartIcon,
-  LockIcon
+  LockIcon,
+  LinkIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -48,6 +50,19 @@ const GET_UNREAD_NOTIFICATIONS_COUNT = gql`
   }
 `;
 
+const GET_ACTIVE_EXTERNAL_LINKS = gql`
+  query GetActiveExternalLinks {
+    activeExternalLinks {
+      id
+      name
+      url
+      icon
+      description
+      order
+    }
+  }
+`;
+
 interface NavItem {
   name: string;
   href: string;
@@ -62,11 +77,21 @@ interface NavItem {
   locked?: boolean;
 }
 
+interface ExternalLinkType {
+  id: string;
+  name: string;
+  url: string;
+  icon: string;
+  description?: string;
+  order: number;
+}
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { locale } = useParams();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/logo.png");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   
    // Cargar datos del perfil
    const { data } = useQuery(GET_USER_PROFILE, {
@@ -89,6 +114,12 @@ export function DashboardSidebar() {
     client,
     fetchPolicy: 'network-only',
     pollInterval: 30000, // Poll every 30 seconds
+  });
+
+  // Get external links
+  const { data: externalLinksData } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
+    client,
+    fetchPolicy: 'network-only',
   });
 
   const unreadCount = notificationsData?.unreadNotificationsCount || 0;
@@ -161,11 +192,54 @@ export function DashboardSidebar() {
       icon: MessageSquareIcon,
       roles: ['ADMIN']
     },
-
     {
       name: 'Role Management',
       href: `/${locale}/admin/roles`,
       icon: ShieldIcon,
+      roles: ['ADMIN']
+    },
+    {
+      name: 'CMS',
+      href: `/${locale}/admin/cms`,
+      icon: ClipboardListIcon,
+      roles: ['ADMIN'],
+      children: [
+        {
+          name: 'Pages',
+          href: `/${locale}/admin/cms/pages`,
+          icon: LineChartIcon,
+          roles: ['ADMIN']
+        },
+        {
+          name: 'Media Library',
+          href: `/${locale}/admin/cms/media`,
+          icon: LinkIcon,
+          roles: ['ADMIN']
+        },
+        {
+          name: 'Menus',
+          href: `/${locale}/admin/cms/menus`,
+          icon: MenuIcon,
+          roles: ['ADMIN']
+        },
+        {
+          name: 'Settings',
+          href: `/${locale}/admin/cms/settings`,
+          icon: SettingsIcon,
+          roles: ['ADMIN']
+        }
+      ]
+    },
+    {
+      name: 'External Links',
+      href: `/${locale}/admin/external-links`,
+      icon: LinkIcon,
+      roles: ['ADMIN']
+    },
+    {
+      name: 'Admin Settings',
+      href: `/${locale}/admin/settings`,
+      icon: SettingsIcon,
       roles: ['ADMIN']
     }
   ];
@@ -192,27 +266,40 @@ export function DashboardSidebar() {
     }
   ];
 
-  // Combine navigation items based on user role
-  let navigationItems = [...baseNavigationItems];
-  
-  if (isAdmin) {
-    navigationItems = [...baseNavigationItems, ...adminNavigationItems];
-  } else if (isManager) {
-    navigationItems = [...baseNavigationItems, ...managerNavigationItems];
-  }
-  
+  // Convertir los enlaces externos del API a objetos NavItem
+  const getIconComponent = (iconName: string): React.ElementType => {
+    const icons: { [key: string]: React.ElementType } = {
+      HomeIcon,
+      UserIcon,
+      CalendarIcon,
+      SettingsIcon,
+      HelpCircleIcon,
+      BellIcon,
+      LogOutIcon,
+      UsersIcon,
+      MessageSquareIcon,
+      ClipboardListIcon,
+      BarChartIcon,
+      ShieldIcon,
+      UserPlusIcon,
+      LineChartIcon,
+      LockIcon,
+      LinkIcon
+    };
+    
+    return icons[iconName] || UserIcon; // Default to UserIcon if not found
+  };
 
-  const externalLinks: NavItem[] = [
+  const externalLinks: NavItem[] = externalLinksData?.activeExternalLinks?.map((link: ExternalLinkType) => ({
+    name: link.name,
+    href: link.url,
+    icon: getIconComponent(link.icon),
+  })) || [
     {
       name: 'E-Voque Benefits',
       href: 'https://pe.e-voquebenefit.com/',
       icon: UserIcon,
-    },
-    {
-      name: 'E-Voque Jobs',
-      href: 'https://jobs.e-voque.com/#services-area',
-      icon: BriefcaseIcon,
-    },
+    }
   ];
 
   const toggleSidebar = () => {
@@ -234,6 +321,131 @@ export function DashboardSidebar() {
       );
     }
     return null;
+  };
+
+  // Render navigation items
+  const renderNavigationItems = () => {
+    if (isAdmin) {
+      return (
+        <>
+          {/* Admin Navigation Items */}
+          {adminNavigationItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.disabled ? "#" : item.href}
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                pathname === item.href 
+                  ? 'bg-indigo-100 text-indigo-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+            >
+              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+              <span>{item.name}</span>
+              {renderBadge(item)}
+            </Link>
+          ))}
+          
+          {/* User Navigation Items Dropdown */}
+          <div className="mt-2 border-t pt-2">
+            <button 
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <UserIcon className="h-4 w-4" />
+                <span>User Menu</span>
+              </div>
+              {userMenuOpen ? (
+                <ChevronUpIcon className="h-4 w-4" />
+              ) : (
+                <ChevronDownIcon className="h-4 w-4" />
+              )}
+            </button>
+            
+            {userMenuOpen && (
+              <div className="pl-4 mt-1 space-y-1">
+                {baseNavigationItems.map((item) => (
+                  <Link 
+                    key={item.href}
+                    href={item.disabled ? "#" : item.href}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                      pathname === item.href 
+                        ? 'bg-indigo-100 text-indigo-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+                  >
+                    {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                    <span>{item.name}</span>
+                    {renderBadge(item)}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      );
+    } else if (isManager) {
+      // Render manager items followed by base items 
+      return (
+        <>
+          {/* Manager Navigation Items */}
+          {managerNavigationItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.disabled ? "#" : item.href}
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                pathname === item.href 
+                  ? 'bg-indigo-100 text-indigo-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+            >
+              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+              <span>{item.name}</span>
+              {renderBadge(item)}
+            </Link>
+          ))}
+          
+          {/* Base Navigation Items */}
+          {baseNavigationItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.disabled ? "#" : item.href}
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                pathname === item.href 
+                  ? 'bg-indigo-100 text-indigo-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+            >
+              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+              <span>{item.name}</span>
+              {renderBadge(item)}
+            </Link>
+          ))}
+        </>
+      );
+    } else {
+      // Regular user - just render base items
+      return baseNavigationItems.map((item) => (
+        <Link 
+          key={item.href}
+          href={item.disabled ? "#" : item.href}
+          className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+            pathname === item.href 
+              ? 'bg-indigo-100 text-indigo-700' 
+              : 'text-gray-700 hover:bg-gray-100'
+          } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+        >
+          {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+          <span>{item.name}</span>
+          {renderBadge(item)}
+        </Link>
+      ));
+    }
   };
 
   return (
@@ -265,7 +477,7 @@ export function DashboardSidebar() {
           </div>
 
           {isAdmin && (
-                <div className="mt-6 pt-3 border-t">
+                <div className="mt-2 p-3">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     Admin Tools
                   </h3>
@@ -299,6 +511,10 @@ export function DashboardSidebar() {
           {/* Nav items */}
           <div className="flex-1 overflow-y-auto">
             <nav className="p-3 space-y-1">
+              <div className="border-t pt-3">
+                {renderNavigationItems()}
+              </div>
+
               <div className="mb-6">
                 <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                   External Links
@@ -316,38 +532,6 @@ export function DashboardSidebar() {
                   </a>
                 ))}
               </div>
-              
-              <div className="border-t pt-3">
-                {navigationItems.map((item) => (
-                  <Link 
-                    key={item.href}
-                    href={item.disabled ? "#" : item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      pathname === item.href 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-                  >
-                    {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                    <span>{item.name}</span>
-                    {renderBadge(item)}
-                  </Link>
-                ))}
-              </div>
-
-              
-              
-              {isManager && (
-                <div className="mt-6 pt-3 border-t">
-                  <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                    Manager Tools
-                  </h3>
-                  <div className="px-3 py-2 text-sm text-gray-500">
-                    <p>Manage your team effectively.</p>
-                  </div>
-                </div>
-              )}
             </nav>
           </div>
           
@@ -423,72 +607,8 @@ export function DashboardSidebar() {
                 </div>
                 
                 <div className="border-t pt-3">
-                  {navigationItems.map((item) => (
-                    <Link 
-                      key={item.href}
-                      href={item.disabled ? "#" : item.href}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === item.href 
-                          ? 'bg-indigo-100 text-indigo-700' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-                    >
-                      {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                      <span>{item.name}</span>
-                      {renderBadge(item)}
-                    </Link>
-                  ))}
+                  {renderNavigationItems()}
                 </div>
-
-                {isAdmin && (
-                  <div className="mt-6 pt-3 border-t">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                      Admin Tools
-                    </h3>
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      <p>Full administrative access.</p>
-                    </div>
-                    
-                    <div className="mt-2 grid grid-cols-2 gap-2 px-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center justify-center gap-2"
-                        onClick={() => {
-                          setIsOpen(false);
-                          window.location.href = `/${locale}/admin/users`;
-                        }}
-                      >
-                        <UserPlusIcon className="h-3 w-3" />
-                        New User
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center justify-center gap-2"
-                        onClick={() => {
-                          setIsOpen(false);
-                          window.location.href = `/${locale}/admin/notifications`;
-                        }}
-                      >
-                        <BellIcon className="h-3 w-3" />
-                        Message
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                {isManager && (
-                  <div className="mt-6 pt-3 border-t">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                      Manager Tools
-                    </h3>
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      <p>Manage your team effectively.</p>
-                    </div>
-                  </div>
-                )}
               </nav>
             </div>
             

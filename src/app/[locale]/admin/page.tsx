@@ -8,17 +8,7 @@ import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// GraphQL queries
-const GET_ADMIN_STATS = gql`
-  query GetAdminStats {
-    stats {
-      totalUsers
-      totalNotifications
-      activeUsers
-      pendingTasks
-    }
-  }
-`;
+
 
 // GraphQL queries
 const GET_USERS = gql`
@@ -55,12 +45,14 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   
   // Fetch stats data with GraphQL
-  const { data, loading, error } = useQuery(GET_ADMIN_STATS);
   const { data: usersData, loading: usersLoading } = useQuery(GET_USERS);
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS);
   
+  // Combine loading states
+  const loading = usersLoading || notificationsLoading;
+  
   // Extract stats from query result or provide fallbacks
-  const statsData = data?.stats || {
+  const statsData = {
     totalUsers: usersData?.users?.length || 0,
     totalNotifications: notificationsData?.unreadNotificationsCount || 0,
     pendingTasks: 0

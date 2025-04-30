@@ -12,6 +12,15 @@ interface CreateNotificationInput {
   relatedItemType?: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+
 interface UpdateNotificationInput {
   isRead?: boolean;
 }
@@ -157,7 +166,7 @@ export const notificationResolvers = {
           
           // Create a notification for each user
           const notifications = await Promise.all(
-            users.map(async (user) => {
+            users.map(async (user: User) => {
               return prisma.notification.create({
                 data: {
                   userId: user.id,
