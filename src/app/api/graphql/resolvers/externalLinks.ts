@@ -54,6 +54,11 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
     if (link.allowedRoles && link.allowedRoles.includes(userRole)) {
       return true;
     }
+    
+    // Si es solo basado en roles y el rol no está permitido, no hay acceso
+    if (link.accessType === 'ROLES') {
+      return false;
+    }
   }
 
   // Control basado en usuarios específicos
@@ -61,10 +66,15 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
     if (link.allowedUsers && link.allowedUsers.includes(userId)) {
       return true;
     }
+    
+    // Si es solo basado en usuarios y el usuario no está permitido, no hay acceso
+    if (link.accessType === 'USERS') {
+      return false;
+    }
   }
 
-  // Si no cumple con ninguna condición de acceso
-  return link.accessType === 'MIXED' ? false : link.accessType === 'ROLES' || link.accessType === 'USERS';
+  // Para tipo MIXED, si no está en ninguna de las listas de permitidos, no tiene acceso
+  return false;
 }
 
 // Use the shared Prisma instance rather than creating a new one
@@ -178,14 +188,14 @@ export const externalLinksResolvers = {
       }
       
       try {
-        const { id: userId, role } = context.user;
+        const { id: userId } = context.user;
         
         // Obtener el nombre del rol como string
         let userRole = '';
-        if (typeof role === 'string') {
-          userRole = role;
-        } else if (role && typeof role === 'object' && 'name' in role) {
-          userRole = role.name;
+        if (typeof context.user.role === 'string') {
+          userRole = context.user.role;
+        } else if (context.user.role && typeof context.user.role === 'object' && 'name' in context.user.role) {
+          userRole = context.user.role.name;
         }
         
         const allLinks = await prisma.externalLink.findMany();

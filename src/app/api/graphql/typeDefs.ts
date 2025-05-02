@@ -421,7 +421,10 @@ export const typeDefs = gql`
     createdAt: String
     updatedAt: String
     createdBy: ID
-    accessControl: AccessControl
+    accessType: AccessControlType!
+    allowedRoles: [String]
+    allowedUsers: [ID]
+    deniedUsers: [ID]
   }
 
   enum AccessControlType {
