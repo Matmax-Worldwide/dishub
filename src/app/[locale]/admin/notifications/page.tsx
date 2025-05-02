@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { BellIcon, CheckIcon, AlertCircleIcon } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import { useParams } from 'next/navigation';
 // Define user type
 interface User {
   id: string;
@@ -57,6 +57,7 @@ const notificationTypes = [
 ];
 
 export default function AdminNotificationsPage() {
+  const { locale } = useParams();
   const [recipientType, setRecipientType] = useState<'all' | 'role' | 'specific'>('all');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('');
@@ -411,7 +412,7 @@ export default function AdminNotificationsPage() {
                   <div className="pt-4">
                     <Button 
                       variant="outline" 
-                      onClick={() => window.location.href = '{locale}/admin/notifications/manage'} 
+                      onClick={() => window.location.href = `/${locale}/admin/notifications/manage`} 
                       className="flex items-center gap-2"
                     >
                       <span className="mr-1">Manage All Notifications</span>

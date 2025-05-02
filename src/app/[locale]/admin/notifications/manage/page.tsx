@@ -201,8 +201,21 @@ export default function ManageNotificationsPage() {
   
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return formatDistance(date, new Date(), { addSuffix: true });
+    try {
+      if (!dateString) return 'N/A';
+      
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return formatDistance(date, new Date(), { addSuffix: true });
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Unknown date';
+    }
   };
   
   return (
