@@ -7,11 +7,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
-// Helper function to set a cookie
+// Helper function to set a cookie with better security practices
 function setCookie(name: string, value: string, days: number) {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+  try {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+    return true;
+  } catch (error) {
+    console.error('Error setting cookie:', error);
+    return false;
+  }
 }
 
 export default function RegisterPage() {
@@ -43,6 +49,7 @@ export default function RegisterPage() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Important for cookies
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -54,14 +61,17 @@ export default function RegisterPage() {
 
       // Store the user and token in the auth context
       if (data.user && data.token) {
+        // First set the cookie
+        const cookieSet = setCookie('session-token', data.token, 7); // 7 days expiry
+        console.log('Set session-token cookie:', cookieSet ? 'Success' : 'Failed');
+        
+        // Then update auth context
         login(data.user, data.token);
         
-        // Set the session-token cookie for Apollo client
-        setCookie('session-token', data.token, 7); // 7 days expiry
-        console.log('Set session-token cookie');
-        
-        // Redirect to dashboard
-        router.push(`/${locale}/dashboard`);
+        // Short delay before redirect to ensure cookie is set
+        setTimeout(() => {
+          router.push(`/${locale}/dashboard`);
+        }, 100);
       } else {
         throw new Error('Invalid response from server');
       }

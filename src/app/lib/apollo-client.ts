@@ -2,9 +2,28 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
+// Safely read a cookie by name
+function getCookie(name: string): string | undefined {
+  try {
+    if (typeof document === 'undefined') {
+      return undefined; // Not in browser environment
+    }
+    
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift();
+    }
+    return undefined;
+  } catch (error) {
+    console.error('Error reading cookie:', error);
+    return undefined;
+  }
+}
+
 const httpLink = createHttpLink({
   uri: '/api/graphql',
-  credentials: 'same-origin',
+  credentials: 'include', // This is critical for including cookies in requests
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,20 +60,17 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 const authLink = setContext((_, { headers }) => {
   // Get the authentication token from cookies
   if (typeof window !== 'undefined') {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('session-token='))
-      ?.split('=')[1];
+    // Use the safer helper function to get token
+    const token = getCookie('session-token');
       
-    const token = cookieValue && cookieValue.trim();
-
-    console.log('Apollo auth token:', token ? 'Token found' : 'No token found');
     if (token) {
-      console.log('Token length:', token.length);
-      console.log('Token first 10 chars:', token.substring(0, 10) + '...');
+      console.log('Apollo auth token found, length:', token.length);
+      // Only log a portion for security
+      if (token.length > 10) {
+        console.log('Token first 5 chars:', token.substring(0, 5) + '...');
+      }
     } else {
       console.warn('No authentication token found. Requests requiring authentication will fail.');
-      console.log('Available cookies:', document.cookie);
     }
 
     // Return the headers to the context so httpLink can read them
@@ -74,10 +90,14 @@ export const client = new ApolloClient({
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'network-only',
+      errorPolicy: 'all',
     },
     query: {
       fetchPolicy: 'network-only',
-      errorPolicy: 'all', // This will prevent throwing on errors
+      errorPolicy: 'all',
+    },
+    mutate: {
+      errorPolicy: 'all',
     },
   },
 }); 
