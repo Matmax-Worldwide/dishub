@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -22,7 +22,6 @@ function setCookie(name: string, value: string, days: number) {
 
 export default function RegisterPage() {
   const { locale } = useParams();
-  const router = useRouter();
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -68,10 +67,12 @@ export default function RegisterPage() {
         // Then update auth context
         login(data.user, data.token);
         
-        // Short delay before redirect to ensure cookie is set
-        setTimeout(() => {
-          router.push(`/${locale}/dashboard`);
-        }, 100);
+        // Store login success in sessionStorage (this persists across a page refresh)
+        sessionStorage.setItem('justLoggedIn', 'true');
+        
+        // Use window.location for a full page refresh instead of Next.js router
+        // This prevents React hydration issues when transitioning after login
+        window.location.href = `/${locale}/dashboard`;
       } else {
         throw new Error('Invalid response from server');
       }
