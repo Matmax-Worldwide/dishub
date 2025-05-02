@@ -57,6 +57,7 @@ const GET_EXTERNAL_LINKS = gql`
       description
       isActive
       order
+      accessType
       createdAt
       updatedAt
     }
@@ -64,7 +65,7 @@ const GET_EXTERNAL_LINKS = gql`
 `;
 
 const CREATE_EXTERNAL_LINK = gql`
-  mutation CreateExternalLink($input: CreateExternalLinkInput!) {
+  mutation CreateExternalLink($input: ExternalLinkInput!) {
     createExternalLink(input: $input) {
       id
       name
@@ -73,6 +74,7 @@ const CREATE_EXTERNAL_LINK = gql`
       description
       isActive
       order
+      accessType
       createdBy
       createdAt
     }
@@ -80,10 +82,11 @@ const CREATE_EXTERNAL_LINK = gql`
 `;
 
 const UPDATE_EXTERNAL_LINK = gql`
-  mutation UpdateExternalLink($id: ID!, $input: UpdateExternalLinkInput!) {
+  mutation UpdateExternalLink($id: ID!, $input: ExternalLinkInput!) {
     updateExternalLink(id: $id, input: $input) {
       id
       name
+      accessType
     }
   }
 `;
@@ -102,8 +105,10 @@ const formSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean(),
   order: z.number().int(),
+  accessType: z.enum(['PUBLIC', 'ROLES', 'USERS', 'MIXED']),
 });
 
+// Define type based on the schema
 type FormValues = z.infer<typeof formSchema>;
 
 // Define interface for external link
@@ -115,6 +120,7 @@ interface ExternalLinkType {
   description?: string;
   isActive: boolean;
   order: number;
+  accessType?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -332,6 +338,7 @@ export default function ExternalLinksPage() {
       description: "",
       isActive: true,
       order: 0,
+      accessType: "PUBLIC",
     },
   });
 
@@ -344,6 +351,7 @@ export default function ExternalLinksPage() {
       description: "",
       isActive: true,
       order: 0,
+      accessType: "PUBLIC",
     },
   });
 
@@ -373,7 +381,8 @@ export default function ExternalLinksPage() {
       icon: values.icon,
       description: values.description || "",
       isActive: values.isActive,
-      order: values.order
+      order: values.order,
+      accessType: values.accessType,
     };
     
     console.log('Submitting external link with exact input:', JSON.stringify(inputData));
@@ -421,6 +430,7 @@ export default function ExternalLinksPage() {
       description: link.description || "",
       isActive: link.isActive,
       order: link.order,
+      accessType: (link.accessType as 'PUBLIC' | 'ROLES' | 'USERS' | 'MIXED') || 'PUBLIC',
     });
     setIsEditDialogOpen(true);
   };
@@ -558,6 +568,28 @@ export default function ExternalLinksPage() {
                           {...field} 
                           onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="accessType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Access Type</FormLabel>
+                      <FormControl>
+                        <select
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          {...field}
+                        >
+                          {['PUBLIC', 'ROLES', 'USERS', 'MIXED'].map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -768,6 +800,28 @@ export default function ExternalLinksPage() {
                         {...field} 
                         onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="accessType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Access Type</FormLabel>
+                    <FormControl>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        {...field}
+                      >
+                        {['PUBLIC', 'ROLES', 'USERS', 'MIXED'].map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

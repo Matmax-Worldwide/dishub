@@ -268,23 +268,30 @@ export default function ExternalLinksAccessPage() {
         const userId = user.id;
         const userRole = user.role?.name || 'USER';
         
-        let hasAccess = true;
+        let hasAccess = false;
         
         // Aplicar reglas de acceso según el tipo
-        if (link.accessType !== 'PUBLIC') {
-          hasAccess = false;
-          
-          // Verificar si está en la lista de denegados
-          if (link.deniedUsers.includes(userId)) {
+        if (link.accessType === 'PUBLIC') {
+          // Enlaces públicos son accesibles para todos
+          hasAccess = true;
+        } else {
+          // Verificar si está en la lista de denegados (prioridad más alta)
+          if (link.deniedUsers && link.deniedUsers.includes(userId)) {
             hasAccess = false;
           } 
           // Verificar acceso por rol
-          else if ((link.accessType === 'ROLES' || link.accessType === 'MIXED') && link.allowedRoles.includes(userRole)) {
+          else if ((link.accessType === 'ROLES' || link.accessType === 'MIXED') && 
+                  link.allowedRoles && link.allowedRoles.includes(userRole)) {
             hasAccess = true;
           } 
           // Verificar acceso por usuario específico
-          else if ((link.accessType === 'USERS' || link.accessType === 'MIXED') && link.allowedUsers.includes(userId)) {
+          else if ((link.accessType === 'USERS' || link.accessType === 'MIXED') && 
+                  link.allowedUsers && link.allowedUsers.includes(userId)) {
             hasAccess = true;
+          }
+          // De lo contrario, no tiene acceso
+          else {
+            hasAccess = false;
           }
         }
         
