@@ -7,6 +7,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
+// Helper function to set a cookie
+function setCookie(name: string, value: string, days: number) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
 export default function RegisterPage() {
   const { locale } = useParams();
   const router = useRouter();
@@ -48,6 +55,10 @@ export default function RegisterPage() {
       // Store the user and token in the auth context
       if (data.user && data.token) {
         login(data.user, data.token);
+        
+        // Set the session-token cookie for Apollo client
+        setCookie('session-token', data.token, 7); // 7 days expiry
+        console.log('Set session-token cookie');
         
         // Redirect to dashboard
         router.push(`/${locale}/dashboard`);
