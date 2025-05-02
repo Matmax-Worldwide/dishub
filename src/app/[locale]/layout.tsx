@@ -1,4 +1,3 @@
-import '@/app/globals.css';
 import { ReactNode } from 'react';
 import { Providers } from './providers';
 import { notFound } from 'next/navigation';
