@@ -40,6 +40,10 @@ const nextConfig = {
         source: '/:locale(en|es)/:path*.svg',
         destination: '/:path*.svg',
       },
+      {
+        source: '/:locale(en|es)/:path*.webp',
+        destination: '/:path*.webp',
+      },
     ];
   },
   

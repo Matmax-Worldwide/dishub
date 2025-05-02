@@ -58,7 +58,12 @@ export const notificationResolvers = {
           }
         });
         
-        return notifications;
+        // Ensure dates are properly serialized
+        return notifications.map(notification => ({
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+          updatedAt: notification.updatedAt.toISOString()
+        }));
       } catch (error) {
         console.error('Get notifications error:', error);
         throw error;
@@ -96,7 +101,11 @@ export const notificationResolvers = {
           throw new Error('Notification not found');
         }
         
-        return notification;
+        return {
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+          updatedAt: notification.updatedAt.toISOString()
+        };
       } catch (error) {
         console.error('Get notification error:', error);
         throw error;
@@ -162,7 +171,12 @@ export const notificationResolvers = {
           }
         });
         
-        return notifications;
+        // Ensure dates are properly serialized
+        return notifications.map(notification => ({
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+          updatedAt: notification.updatedAt.toISOString()
+        }));
       } catch (error) {
         console.error('Get all notifications error:', error);
         throw error;
@@ -253,7 +267,12 @@ export const notificationResolvers = {
           // Return the first notification as a result (since GraphQL can't return an array here)
           if (notifications.length > 0) {
             console.log(`Created ${notifications.length} notifications for all users`);
-            return notifications[0];
+            const firstNotification = notifications[0];
+            return {
+              ...firstNotification,
+              createdAt: firstNotification.createdAt.toISOString(),
+              updatedAt: firstNotification.updatedAt.toISOString()
+            };
           } else {
             throw new Error('No users found to send notifications to');
           }
@@ -290,7 +309,11 @@ export const notificationResolvers = {
           }
         });
         
-        return notification;
+        return {
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+          updatedAt: notification.updatedAt.toISOString()
+        };
       } catch (error) {
         console.error('Create notification error:', error);
         throw error;
@@ -343,7 +366,11 @@ export const notificationResolvers = {
           }
         });
         
-        return updatedNotification;
+        return {
+          ...updatedNotification,
+          createdAt: updatedNotification.createdAt.toISOString(),
+          updatedAt: updatedNotification.updatedAt.toISOString()
+        };
       } catch (error) {
         console.error('Update notification error:', error);
         throw error;

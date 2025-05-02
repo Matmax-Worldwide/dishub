@@ -89,6 +89,38 @@ function WelcomeBanner({ userName }: { userName: string }) {
   );
 }
 
+// Format date to relative time (e.g., "2 days ago")
+const formatRelativeTime = (dateString: string) => {
+  if (!dateString) return 'Fecha no disponible';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.log('Invalid date:', dateString);
+      return 'Fecha no disponible';
+    }
+    
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffSeconds < 60) {
+      return 'hace un momento';
+    } else if (diffSeconds < 3600) {
+      const minutes = Math.floor(diffSeconds / 60);
+      return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else if (diffSeconds < 86400) {
+      const hours = Math.floor(diffSeconds / 3600);
+      return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
+    } else {
+      const days = Math.floor(diffSeconds / 86400);
+      return `hace ${days} día${days > 1 ? 's' : ''}`;
+    }
+  } catch (error) {
+    console.error('Error formatting date:', error, dateString);
+    return 'Fecha no disponible';
+  }
+};
+
 export default function DashboardPage() {
   const { locale } = useParams();
   const [isLoggedOut, setIsLoggedOut] = useState(false);
@@ -151,6 +183,13 @@ export default function DashboardPage() {
       // Auto-show notifications panel if there are unread notifications
       if (data?.unreadNotificationsCount > 0) {
         setShowNotifications(true);
+      }
+      
+      // Debug: Log the complete notification data
+      if (data?.notifications?.length > 0) {
+        console.log('Sample notification data:', JSON.stringify(data.notifications[0]));
+        console.log('Notification createdAt type:', typeof data.notifications[0].createdAt);
+        console.log('Notification createdAt value:', data.notifications[0].createdAt);
       }
     }
   });
@@ -294,6 +333,7 @@ export default function DashboardPage() {
   const user = data?.me;
   console.log('Rendering dashboard with user data:', user);
   const notifications = notificationsData?.notifications || [];
+  const unreadNotifications = notifications.filter((notification: Notification) => !notification.isRead);
   const unreadCount = notificationsData?.unreadNotificationsCount || 0;
 
   return (
@@ -333,44 +373,50 @@ export default function DashboardPage() {
                   <div className="mb-6 border rounded-lg overflow-hidden">
                     <div className="flex justify-between items-center bg-gray-50 p-3 border-b">
                       <h3 className="font-medium">Notificaciones</h3>
-                      <button 
-                        onClick={handleMarkAllAsRead}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Marcar todas como leídas
-                      </button>
+                      <div className="flex space-x-3">
+                        <button 
+                          onClick={handleMarkAllAsRead}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          Marcar todas como leídas
+                        </button>
+                        <button 
+                          onClick={() => window.location.href = `/${locale}/dashboard/notifications`}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          Ver todas
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="overflow-auto max-h-96">
                       {notificationsLoading ? (
                         <div className="p-4 text-center text-gray-500">Cargando notificaciones...</div>
-                      ) : notifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">No tienes notificaciones</div>
+                      ) : unreadNotifications.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">No tienes notificaciones sin leer</div>
                       ) : (
                         <ul className="divide-y">
-                          {notifications.map((notification: Notification) => (
+                          {unreadNotifications.map((notification: Notification) => (
                             <li 
                               key={notification.id} 
-                              className={`p-3 hover:bg-gray-50 transition ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                              className="p-3 hover:bg-gray-50 transition bg-blue-50"
                             >
                               <div className="flex justify-between">
                                 <div className="flex-1">
-                                  <p className={`font-medium ${!notification.isRead ? 'text-blue-700' : 'text-gray-800'}`}>
+                                  <p className="font-medium text-blue-700">
                                     {notification.title}
                                   </p>
                                   <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                                   <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(notification.createdAt).toLocaleString()}
+                                    {formatRelativeTime(notification.createdAt)}
                                   </p>
                                 </div>
-                                {!notification.isRead && (
-                                  <button 
-                                    onClick={() => handleMarkAsRead(notification.id)}
-                                    className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                                  >
-                                    Marcar como leída
-                                  </button>
-                                )}
+                                <button 
+                                  onClick={() => handleMarkAsRead(notification.id)}
+                                  className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                                >
+                                  Marcar como leída
+                                </button>
                               </div>
                             </li>
                           ))}
