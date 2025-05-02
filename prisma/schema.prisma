@@ -29,7 +29,8 @@ model User {
   isActive        Boolean        @default(true)
   position        String?
   profileImageUrl String?
-  role            Role           @default(USER)
+  roleId          String?
+  role            RoleModel?     @relation(fields: [roleId], references: [id])
   accounts        Account[]
   appointments    Appointment[]
   clients         Client[]
@@ -218,6 +219,7 @@ model RoleModel {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   permissions Permission[] @relation("PermissionToRoleModel")
+  users       User[]
 
   @@map("RoleTable")
 }
@@ -242,13 +244,6 @@ model ExternalLink {
   createdBy   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
-  MANAGER
-  EMPLOYEE
 }
 
 enum DocumentStatus {

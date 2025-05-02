@@ -28,20 +28,25 @@ async function ensureSystemRoles() {
     { name: 'MANAGER', description: 'Manager with access to team resources' },
     { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
   ];
-
+  
   // Check if roles exist, if not create them
   for (const role of defaultRoles) {
     const existingRole = await prisma.roleModel.findFirst({
       where: { name: role.name }
     });
-
+    
     if (!existingRole) {
       await prisma.roleModel.create({
         data: role
       });
       console.log(`Created default role: ${role.name}`);
+    } else {
+      console.log(`Role ${role.name} already exists`);
     }
   }
+  
+  // Return all roles
+  return await prisma.roleModel.findMany();
 }
 
 // Helper function to ensure system permissions exist
@@ -167,7 +172,7 @@ const resolvers = {
         }
 
         console.log('Resolving me query with token:', token.substring(0, 10) + '...');
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string };
         
         if (!decoded || !decoded.userId) {
           console.error('Invalid token payload:', decoded);
@@ -186,7 +191,7 @@ const resolvers = {
           throw new Error('User not found');
         }
         
-        // Then get the user fields separately
+        // Then get the user with role relationship
         console.log('Fetching user with ID:', decoded.userId);
         try {
           const user = await prisma.user.findUnique({
@@ -197,25 +202,30 @@ const resolvers = {
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              roleId: true,
+              role: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
               createdAt: true,
               updatedAt: true,
             },
           });
           
-          // Get the role as a raw value using Prisma's raw queries
-          const roleResult = await prisma.$queryRaw`
-            SELECT role FROM "User" WHERE id = ${decoded.userId}
-          `;
+          if (!user) {
+            throw new Error('User not found');
+          }
           
-          const roleValue = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
-            ? roleResult[0].role
-            : 'USER';
+          // Get role name from the relationship or default to 'USER'
+          const roleName = user.role?.name || 'USER';
           
-          console.log('User found:', user?.email, 'with role:', roleValue);
+          console.log('User found:', user?.email, 'with role:', roleName);
           
           return {
             ...user,
-            role: String(roleValue), // Convert to string explicitly
+            role: roleName, // Return role name for compatibility
           };
         } catch (prismaError) {
           console.error('Prisma error:', prismaError);
@@ -236,27 +246,32 @@ const resolvers = {
           throw new Error('Not authenticated');
         }
 
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string };
         
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
         }
         
-        // Check if user is an admin
-        const roleResult = await prisma.$queryRaw`
-          SELECT role FROM "User" WHERE id = ${decoded.userId}
-        `;
+        // Check if user is an admin by fetching the user and their role
+        const currentUser = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
         
-        const userRole = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
-          ? String(roleResult[0].role)
-          : 'USER';
+        const userRole = currentUser?.role?.name || 'USER';
         
         // Only allow admins to access this endpoint
         if (userRole !== 'ADMIN') {
           throw new Error('Unauthorized: Admin access required');
         }
         
-        // Get all users
+        // Get all users with their roles
         const users = await prisma.user.findMany({
           select: {
             id: true,
@@ -264,7 +279,13 @@ const resolvers = {
             firstName: true,
             lastName: true,
             phoneNumber: true,
-            role: true,
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
             createdAt: true,
             updatedAt: true,
           },
@@ -273,10 +294,10 @@ const resolvers = {
           }
         });
         
-        // Convert role to string for each user
-        return users.map((user: { id: string; email: string; firstName: string; lastName: string; phoneNumber: string | null; role: unknown; createdAt: Date; updatedAt: Date }) => ({
+        // Format users to include role name as string
+        return users.map(user => ({
           ...user,
-          role: String(user.role)
+          role: user.role?.name || 'USER'
         }));
       } catch (error) {
         console.error('Get users error:', error);
@@ -325,9 +346,86 @@ const resolvers = {
         // Ensure default roles exist
         await ensureSystemRoles();
         
-        return prisma.roleModel.findMany();
+        // Add more detailed logging for debugging
+        console.log('Fetching roles with count information');
+        
+        try {
+          // Try to get roles with count data first
+          const rolesWithCount = await prisma.roleModel.findMany({
+            include: {
+              _count: {
+                select: {
+                  users: true,
+                  permissions: true
+                }
+              }
+            }
+          });
+          console.log('Successfully fetched roles with count data');
+          return rolesWithCount;
+        } catch (countError) {
+          // If that fails, fall back to just getting the roles without count
+          console.error('Failed to get roles with count, falling back to basic query:', countError);
+          return prisma.roleModel.findMany();
+        }
       } catch (error) {
         console.error('Get roles error:', error);
+        throw error;
+      }
+    },
+    
+    rolesWithCounts: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Ensure default roles exist
+        await ensureSystemRoles();
+        
+        // Get all roles
+        const roles = await prisma.roleModel.findMany();
+        
+        // For each role, get user count and permission count
+        const rolesWithCounts = await Promise.all(
+          roles.map(async (role) => {
+            // Get user count
+            const userCount = await prisma.user.count({
+              where: {
+                roleId: role.id
+              }
+            });
+            
+            // Get permission count
+            const permissionCount = await prisma.permission.count({
+              where: {
+                roles: {
+                  some: {
+                    id: role.id
+                  }
+                }
+              }
+            });
+            
+            return {
+              ...role,
+              userCount,
+              permissionCount
+            };
+          })
+        );
+        
+        return rolesWithCounts;
+      } catch (error) {
+        console.error('Get roles with counts error:', error);
         throw error;
       }
     },
@@ -429,8 +527,14 @@ const resolvers = {
           firstName: true,
           lastName: true,
           phoneNumber: true,
-          role: true,
           password: true,
+          roleId: true,
+          role: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           createdAt: true,
           updatedAt: true,
         }
@@ -446,10 +550,16 @@ const resolvers = {
         throw new Error('Invalid password');
       }
       
-      // Convert role to string before adding to token
-      const roleAsString = user.role.toString();
-      console.log('Login successful for:', email, 'with role:', roleAsString);
-      const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
+      // Get role name and ID for the token
+      const roleName = user.role?.name || 'USER';
+      console.log('Login successful for:', email, 'with role:', roleName);
+      
+      // Include both roleId and role name in the token
+      const token = jwt.sign({ 
+        userId: user.id, 
+        roleId: user.roleId,
+        role: roleName 
+      }, JWT_SECRET, { expiresIn: '7d' });
       
       // Remove password from returned user object
       const userWithoutPassword = {
@@ -458,12 +568,12 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleAsString,
+        role: roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
       
-      // Return user with role converted to string
+      // Return user with role as string
       return {
         token,
         user: userWithoutPassword,
@@ -485,6 +595,21 @@ const resolvers = {
         throw new Error('User with this email already exists');
       }
       
+      // Find the USER role
+      const userRole = await prisma.roleModel.findFirst({
+        where: { name: 'USER' }
+      });
+      
+      if (!userRole) {
+        // Create default roles if they don't exist
+        await ensureSystemRoles();
+      }
+      
+      // Try to get the role again
+      const defaultRole = await prisma.roleModel.findFirst({
+        where: { name: 'USER' }
+      });
+      
       const hashedPassword = await bcrypt.hash(password, 10);
       
       const user = await prisma.user.create({
@@ -494,7 +619,7 @@ const resolvers = {
           firstName,
           lastName,
           phoneNumber,
-          role: 'USER', // Default role
+          roleId: defaultRole?.id, // Connect to the USER role
         },
         select: {
           id: true,
@@ -502,16 +627,28 @@ const resolvers = {
           firstName: true,
           lastName: true,
           phoneNumber: true,
-          role: true,
+          roleId: true,
+          role: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           createdAt: true,
           updatedAt: true,
         }
       });
       
-      // Convert role to string
-      const roleAsString = user.role.toString();
-      console.log('User registered:', email, 'with role:', roleAsString);
-      const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
+      // Get role name
+      const roleName = user.role?.name || 'USER';
+      console.log('User registered:', email, 'with role:', roleName);
+      
+      // Include both roleId and role name in token
+      const token = jwt.sign({ 
+        userId: user.id, 
+        roleId: user.roleId, 
+        role: roleName 
+      }, JWT_SECRET, { expiresIn: '7d' });
       
       const userWithoutPassword = {
         id: user.id,
@@ -519,7 +656,7 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleAsString,
+        role: roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -555,19 +692,25 @@ const resolvers = {
           throw new Error('Not authenticated');
         }
         
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string; role?: string };
         
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
         }
         
-        // Only admin can create roles
+        // Only admin can create roles - check using relationship
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
         });
         
-        if (String(user?.role) !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can create roles');
         }
         
@@ -595,19 +738,25 @@ const resolvers = {
           throw new Error('Not authenticated');
         }
         
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string; role?: string };
         
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
         }
         
-        // Only admin can create permissions
+        // Only admin can create permissions - check via relationship
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
         });
         
-        if (String(user?.role) !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can create permissions');
         }
         
@@ -650,7 +799,7 @@ const resolvers = {
           throw new Error('Not authenticated');
         }
         
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string; role?: string };
         
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
@@ -659,10 +808,16 @@ const resolvers = {
         // Only admin can assign permissions
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
         });
         
-        if (String(user?.role) !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can assign permissions to roles');
         }
         
@@ -708,7 +863,7 @@ const resolvers = {
           throw new Error('Not authenticated');
         }
         
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string; role?: string };
         
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
@@ -717,10 +872,16 @@ const resolvers = {
         // Only admin can remove permissions
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
         });
         
-        if (String(user?.role) !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can remove permissions from roles');
         }
         

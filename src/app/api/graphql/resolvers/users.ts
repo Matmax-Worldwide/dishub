@@ -47,11 +47,13 @@ export const userResolvers = {
         
         // Check if user is an admin
         const roleResult = await prisma.$queryRaw`
-          SELECT role FROM "User" WHERE id = ${decoded.userId}
+          SELECT "roleId", r.name as role_name FROM "User" u
+          LEFT JOIN "RoleTable" r ON u."roleId" = r.id
+          WHERE u.id = ${decoded.userId}
         `;
         
         const userRole = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
-          ? String(roleResult[0].role)
+          ? String(roleResult[0].role_name)
           : 'USER';
         
         // Only allow admins to create users
@@ -73,6 +75,26 @@ export const userResolvers = {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        // Check if role is an ID or a name
+        let roleId: string | undefined;
+        if (role) {
+          const isId = /^[0-9a-f-]+$/i.test(role);
+          
+          if (isId) {
+            roleId = role;
+          } else {
+            const roleRecord = await prisma.roleModel.findFirst({
+              where: { name: role }
+            });
+            
+            if (roleRecord) {
+              roleId = roleRecord.id;
+            } else {
+              throw new Error(`Role "${role}" not found`);
+            }
+          }
+        }
+        
         // Create the user
         const user = await prisma.user.create({
           data: {
@@ -81,24 +103,23 @@ export const userResolvers = {
             firstName,
             lastName,
             phoneNumber,
-            role: role as 'USER' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
+            ...(roleId ? {
+              role: {
+                connect: {
+                  id: roleId
+                }
+              }
+            } : {})
           },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
+          include: {
+            role: true
           }
         });
         
         // Return user with role converted to string
         return {
           ...user,
-          role: String(user.role)
+          role: user.role?.name || 'USER'
         };
       } catch (error) {
         console.error('Create user error:', error);
@@ -126,11 +147,13 @@ export const userResolvers = {
         
         // Check if user is an admin
         const roleResult = await prisma.$queryRaw`
-          SELECT role FROM "User" WHERE id = ${decoded.userId}
+          SELECT "roleId", r.name as role_name FROM "User" u
+          LEFT JOIN "RoleTable" r ON u."roleId" = r.id
+          WHERE u.id = ${decoded.userId}
         `;
         
         const userRole = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
-          ? String(roleResult[0].role)
+          ? String(roleResult[0].role_name)
           : 'USER';
         
         // Only allow admins to update users
@@ -158,32 +181,56 @@ export const userResolvers = {
           }
         }
         
-        // Update the user
+        // Prepare update data with correct Prisma types
+        const updateData = {
+          ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
+          ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
+          ...(input.email !== undefined ? { email: input.email } : {}),
+          ...(input.phoneNumber !== undefined ? { phoneNumber: input.phoneNumber } : {})
+        };
+        
+        // Only add role connection if it exists
+        if (input.role) {
+          // Check if the role is a valid ID or a role name
+          const isId = /^[0-9a-f-]+$/i.test(input.role); // Check if it looks like a UUID
+          
+          if (isId) {
+            // If it's an ID, connect directly
+            Object.assign(updateData, {
+              role: {
+                connect: { id: input.role }
+              }
+            });
+          } else {
+            // If it's a role name, find the role first
+            const roleRecord = await prisma.roleModel.findFirst({
+              where: { name: input.role }
+            });
+            
+            if (roleRecord) {
+              Object.assign(updateData, {
+                role: {
+                  connect: { id: roleRecord.id }
+                }
+              });
+            } else {
+              throw new Error(`Role "${input.role}" not found`);
+            }
+          }
+        }
+        
         const updatedUser = await prisma.user.update({
           where: { id },
-          data: {
-            firstName: input.firstName,
-            lastName: input.lastName,
-            email: input.email,
-            phoneNumber: input.phoneNumber,
-            role: input.role as 'USER' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
-          },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
+          data: updateData,
+          include: {
+            role: true
           }
         });
         
         // Return user with role converted to string
         return {
           ...updatedUser,
-          role: String(updatedUser.role)
+          role: updatedUser.role?.name || 'USER'
         };
       } catch (error) {
         console.error('Update user error:', error);
@@ -211,11 +258,13 @@ export const userResolvers = {
         
         // Check if user is an admin
         const roleResult = await prisma.$queryRaw`
-          SELECT role FROM "User" WHERE id = ${decoded.userId}
+          SELECT "roleId", r.name as role_name FROM "User" u
+          LEFT JOIN "RoleTable" r ON u."roleId" = r.id
+          WHERE u.id = ${decoded.userId}
         `;
         
         const userRole = roleResult && Array.isArray(roleResult) && roleResult.length > 0 
-          ? String(roleResult[0].role)
+          ? String(roleResult[0].role_name)
           : 'USER';
         
         // Only allow admins to delete users

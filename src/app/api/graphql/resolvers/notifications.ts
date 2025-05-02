@@ -17,7 +17,13 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role?: {
+    id: string;
+    name: string;
+    description?: string | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+  } | null;
 }
 
 
@@ -135,10 +141,10 @@ export const notificationResolvers = {
         // Check if user is an admin
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: { role: { select: { name: true } } }
         });
         
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can access all notifications');
         }
         
@@ -187,14 +193,14 @@ export const notificationResolvers = {
         });
         
         // Only admins can send notifications to all users or other users
-        if (user?.role !== 'ADMIN' && input.userId !== decoded.userId && input.userId !== 'ALL_USERS') {
+        if (user?.role?.name !== 'ADMIN' && input.userId !== decoded.userId && input.userId !== 'ALL_USERS') {
           throw new Error('Unauthorized: Only admins can send notifications to other users');
         }
         
         // Handle the special case for sending to all users
         if (input.userId === 'ALL_USERS') {
           // Only admins can send to all users
-          if (user?.role !== 'ADMIN') {
+          if (user?.role?.name !== 'ADMIN') {
             throw new Error('Unauthorized: Only admins can send notifications to all users');
           }
           
@@ -208,7 +214,12 @@ export const notificationResolvers = {
               email: true,
               firstName: true,
               lastName: true,
-              role: true
+              role: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
             }
           });
           
@@ -252,7 +263,7 @@ export const notificationResolvers = {
         let targetUserId = input.userId;
         
         // For non-admins, enforce they can only create notifications for themselves
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           targetUserId = decoded.userId;
         }
         
@@ -377,7 +388,7 @@ export const notificationResolvers = {
         // Get user role
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: { role: true }
+          select: { role: { select: { name: true } } }
         });
         
         // Find the notification
@@ -391,7 +402,7 @@ export const notificationResolvers = {
         }
         
         // Allow users to delete their own notifications and admins to delete any notification
-        if (notification.userId !== decoded.userId && user?.role !== 'ADMIN') {
+        if (notification.userId !== decoded.userId && user?.role?.name !== 'ADMIN') {
           throw new Error('You do not have permission to delete this notification');
         }
         
@@ -423,7 +434,7 @@ export const notificationResolvers = {
           select: { role: true }
         });
         
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Unauthorized: Only admins can perform bulk deletion');
         }
         

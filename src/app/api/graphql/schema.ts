@@ -446,6 +446,7 @@ const typeDefs = gql`
     # Role and Permission queries
     role(id: ID!): Role
     roles: [Role!]
+    rolesWithCounts: [RoleWithCounts!]
     permissions: [Permission!]
     rolePermissions(roleId: ID!): [Permission!]
     
@@ -600,6 +601,17 @@ const typeDefs = gql`
     name: String!
     description: String
     roleId: ID
+  }
+
+  # Role with counts type
+  type RoleWithCounts {
+    id: ID!
+    name: String!
+    description: String
+    userCount: Int!
+    permissionCount: Int!
+    createdAt: String
+    updatedAt: String
   }
 `;
 

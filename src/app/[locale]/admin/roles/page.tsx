@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 import {
   Table,
@@ -59,13 +59,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useAuth } from '@/hooks/useAuth';
+
 // GraphQL queries and mutations
-const ROLES_QUERY = `
-  query GetRoles {
-    roles {
+const ROLES_WITH_COUNTS_QUERY = `
+  query GetRolesWithCounts {
+    rolesWithCounts {
       id
       name
       description
+      userCount
+      permissionCount
     }
   }
 `;
@@ -100,67 +104,65 @@ const CREATE_ROLE_MUTATION = `
   }
 `;
 
+const DELETE_ROLE_MUTATION = `
+  mutation DeleteRole($id: ID!) {
+    deleteRole(id: $id)
+  }
+`;
+
 const ASSIGN_PERMISSION_MUTATION = `
-  mutation AssignPermission($roleId: ID!, $permissionId: ID!) {
+  mutation AssignPermissionToRole($roleId: ID!, $permissionId: ID!) {
     assignPermissionToRole(roleId: $roleId, permissionId: $permissionId) {
       id
-      action
-      subject
+      name
     }
   }
 `;
 
 const REMOVE_PERMISSION_MUTATION = `
-  mutation RemovePermission($roleId: ID!, $permissionId: ID!) {
+  mutation RemovePermissionFromRole($roleId: ID!, $permissionId: ID!) {
     removePermissionFromRole(roleId: $roleId, permissionId: $permissionId)
   }
 `;
 
+
 // Helper function for GraphQL requests
-async function fetchGraphQL(query: string, variables = {}) {
+async function fetchGraphQL(query: string, variables = {}, token: string | null = null) {
   try {
-    // Get token from cookies instead of localStorage
-    let authHeader = {};
-    if (typeof window !== 'undefined') {
-      const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('session-token='))
-        ?.split('=')[1];
-        
-      const token = cookieValue && cookieValue.trim();
-      
-      if (token) {
-        console.log('Using token for request:', token.substring(0, 10) + '...');
-        authHeader = {
-          Authorization: `Bearer ${token}`
-        };
-      } else {
-        console.warn('No session token found in cookies');
-      }
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     const response = await fetch('/api/graphql', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeader
-      },
+      headers,
       body: JSON.stringify({
         query,
         variables,
       }),
     });
-    
-    const result = await response.json();
-    
-    if (result.errors) {
-      throw new Error(result.errors[0].message);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to fetch. Status: ${response.status}`, errorText);
+      throw new Error(`Failed to fetch. Status: ${response.status}: ${errorText.substring(0, 200)}`);
     }
-    
+
+    const result = await response.json();
+
+    if (result.errors) {
+      console.error('GraphQL errors:', JSON.stringify(result.errors));
+      throw new Error(result.errors[0].message || 'Unknown GraphQL error');
+    }
+
     return result.data;
   } catch (error) {
-    console.error('GraphQL request failed:', error);
-    toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error fetching from GraphQL:', error);
     throw error;
   }
 }
@@ -178,10 +180,8 @@ interface Role {
   id: string;
   name: string;
   description: string | null;
-  _count?: {
-    users: number;
-    permissions: number;
-  };
+  userCount?: number;
+  permissionCount?: number;
 }
 
 interface Permission {
@@ -191,30 +191,25 @@ interface Permission {
 }
 
 export default function RolesPermissionsPage() {
+  const { locale } = useParams();
   const router = useRouter();
+  const { token, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("roles");
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Check if user is authenticated
   useEffect(() => {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('session-token='))
-      ?.split('=')[1];
-      
-    const hasToken = cookieValue && cookieValue.trim();
-    
-    if (!hasToken) {
-      toast.error('Please login to access this page');
-      router.push('/login');
+    if (!isAuthenticated && !isLoading) {
+      router.push(`/${locale}/login`);
     }
-  }, [router]);
+  }, [isAuthenticated, isLoading, router, locale]);
 
   const form = useForm<z.infer<typeof roleFormSchema>>({
     resolver: zodResolver(roleFormSchema),
@@ -228,20 +223,29 @@ export default function RolesPermissionsPage() {
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
+      setError(null);
       try {
-        // Load roles without userId parameter
-        const rolesData = await fetchGraphQL(ROLES_QUERY);
-        if (rolesData.roles) {
-          setRoles(rolesData.roles);
+        console.log('Fetching roles with counts data...');
+        // Load roles with counts
+        const rolesData = await fetchGraphQL(ROLES_WITH_COUNTS_QUERY, {}, token);
+        if (rolesData.rolesWithCounts) {
+          console.log('Received roles with counts data:', rolesData.rolesWithCounts);
+          setRoles(rolesData.rolesWithCounts);
+        } else {
+          console.error('No roles data in response:', rolesData);
+          setError('Failed to load roles data');
         }
         
         // Load permissions
-        const permissionsData = await fetchGraphQL(PERMISSIONS_QUERY);
+        const permissionsData = await fetchGraphQL(PERMISSIONS_QUERY, {}, token);
         if (permissionsData.permissions) {
           setPermissions(permissionsData.permissions);
+        } else {
+          console.error('No permissions data in response:', permissionsData);
         }
       } catch (error) {
         console.error('Failed to load roles and permissions:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load data');
         toast.error('Failed to load data. Please try again.');
       } finally {
         setIsLoading(false);
@@ -249,7 +253,7 @@ export default function RolesPermissionsPage() {
     }
     
     loadData();
-  }, []);
+  }, [token]);
 
   // Function to handle form submission
   async function onSubmit(values: z.infer<typeof roleFormSchema>) {
@@ -262,20 +266,18 @@ export default function RolesPermissionsPage() {
       
       const result = await fetchGraphQL(CREATE_ROLE_MUTATION, {
         input,
-      });
+      }, token);
       
       if (result.createRole) {
         toast.success("Role created successfully");
         setShowAddRoleDialog(false);
         form.reset();
         
-        // Add new role to the list with empty counts
+        // Add new role to the list with zero counts
         setRoles(prev => [...prev, {
           ...result.createRole,
-          _count: {
-            users: 0,
-            permissions: 0
-          }
+          userCount: 0,
+          permissionCount: 0
         }]);
       }
     } catch {
@@ -285,11 +287,11 @@ export default function RolesPermissionsPage() {
 
   // Function to handle viewing role permissions
   const handleViewPermissions = async (roleId: string) => {
-    setSelectedRole(roleId);
+    setSelectedRole(roles.find(r => r.id === roleId) || null);
     setShowPermissionsDialog(true);
     
     try {
-      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId });
+      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId }, token);
       if (result.rolePermissions) {
         setRolePermissions(result.rolePermissions);
       }
@@ -303,21 +305,36 @@ export default function RolesPermissionsPage() {
     return rolePermissions.some(p => p.id === permissionId);
   };
 
+  // Function to refresh role counts
+  const refreshRoleCounts = async () => {
+    try {
+      const rolesData = await fetchGraphQL(ROLES_WITH_COUNTS_QUERY, {}, token);
+      if (rolesData.rolesWithCounts) {
+        setRoles(rolesData.rolesWithCounts);
+      }
+    } catch (error) {
+      console.error('Failed to refresh role counts:', error);
+    }
+  };
+
   // Function to handle assigning permission to a role
   const handleAssignPermission = async (permissionId: string) => {
     if (!selectedRole) return;
     
     try {
       await fetchGraphQL(ASSIGN_PERMISSION_MUTATION, {
-        roleId: selectedRole,
+        roleId: selectedRole.id,
         permissionId
-      });
+      }, token);
       
       // Refresh the role permissions
-      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId: selectedRole });
+      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId: selectedRole.id }, token);
       if (result.rolePermissions) {
         setRolePermissions(result.rolePermissions);
         toast.success("Permission assigned successfully");
+        
+        // Refresh role counts to update the UI
+        await refreshRoleCounts();
       }
     } catch (error) {
       toast.error("Failed to assign permission");
@@ -331,21 +348,71 @@ export default function RolesPermissionsPage() {
     
     try {
       await fetchGraphQL(REMOVE_PERMISSION_MUTATION, {
-        roleId: selectedRole,
+        roleId: selectedRole.id,
         permissionId
-      });
+      }, token);
       
       // Refresh the role permissions
-      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId: selectedRole });
+      const result = await fetchGraphQL(ROLE_PERMISSIONS_QUERY, { roleId: selectedRole.id }, token);
       if (result.rolePermissions) {
         setRolePermissions(result.rolePermissions);
         toast.success("Permission removed successfully");
+        
+        // Refresh role counts to update the UI
+        await refreshRoleCounts();
       }
     } catch (error) {
       toast.error("Failed to remove permission");
       console.error(error);
     }
   };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!token) {
+      setError('You need to be logged in to delete a role');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this role?')) {
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const result = await fetchGraphQL(
+        DELETE_ROLE_MUTATION, 
+        { id: roleId },
+        token
+      );
+      
+      if (result.deleteRole) {
+        // Instead of filtering locally, refresh the data to get updated counts
+        const rolesData = await fetchGraphQL(ROLES_WITH_COUNTS_QUERY, {}, token);
+        if (rolesData.rolesWithCounts) {
+          setRoles(rolesData.rolesWithCounts);
+        } else {
+          // If refresh fails, fall back to local filtering
+          setRoles(prev => prev.filter(role => role.id !== roleId));
+        }
+        
+        if (selectedRole?.id === roleId) {
+          setSelectedRole(null);
+          setRolePermissions([]);
+        }
+        
+        toast.success("Role deleted successfully");
+      }
+    } catch (err) {
+      console.error('Error deleting role:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete role');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
 
   return (
     <div className="space-y-6">
@@ -355,6 +422,11 @@ export default function RolesPermissionsPage() {
           <p className="text-muted-foreground">
             Manage roles and permissions for your system.
           </p>
+          {error && (
+            <div className="mt-2 p-2 bg-red-100 text-red-800 rounded">
+              {error}
+            </div>
+          )}
         </div>
         <div className="flex justify-between mb-6">          
           {activeTab === "roles" ? (  
@@ -475,10 +547,12 @@ export default function RolesPermissionsPage() {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell>{role._count?.users || 0}</TableCell>
+                            <TableCell>
+                              {role.userCount || 0}
+                            </TableCell>
                             <TableCell>
                               <Badge variant="secondary">
-                                {role._count?.permissions || 0} permissions
+                                {role.permissionCount || 0} permissions
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -500,7 +574,10 @@ export default function RolesPermissionsPage() {
                                     Edit Role
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => handleDeleteRole(role.id)}
+                                  >
                                     <Trash className="mr-2 h-4 w-4" />
                                     Delete Role
                                   </DropdownMenuItem>
@@ -547,7 +624,7 @@ export default function RolesPermissionsPage() {
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedRole && roles.find(r => r.id === selectedRole)?.name} Permissions
+              {selectedRole && roles.find(r => r.id === selectedRole.id)?.name} Permissions
             </DialogTitle>
             <DialogDescription>
               Permissions assigned to this role determine what actions users with this role can perform.

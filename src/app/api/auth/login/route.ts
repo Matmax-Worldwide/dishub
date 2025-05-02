@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
-import { comparePasswords, generateToken } from '../../../lib/auth';
+import { prisma } from '@/lib/prisma';
+import { comparePasswords, generateToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
@@ -16,33 +16,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // First find the user without selecting the role to avoid enum conversion issues
-    const userExists = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true }
-    });
-
-    if (!userExists) {
-      console.log('User not found for email:', email);
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    // Then get the full user with all necessary fields
+    // Find the user with role relationship
     const user = await prisma.user.findUnique({
-      where: { id: userExists.id },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        role: true,
+      where: { email },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
 
     if (!user) {
-      console.log('User not found');
+      console.log('User not found for email:', email);
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -60,38 +48,43 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Password verified, generating token');
-    // Pass the role as is - the generateToken function will handle conversion
-    const token = await generateToken(user.id, user.role);
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 7); // 7 days from now
+    // Create role info object for token generation
+    const roleInfo = {
+      id: user.roleId || undefined,
+      name: user.role?.name || 'USER'
+    };
 
+    console.log('Password verified, generating token');
+    // Generate token with roleInfo
+    const token = await generateToken(user.id, roleInfo);
+    console.log('Generating token with role:', roleInfo.name);
+    
     // Create session in database
     console.log('Creating session in database');
-    await prisma.session.create({
-      data: {
-        sessionToken: token,
-        userId: user.id,
-        expires,
-      },
-    });
+    try {
+      await prisma.session.create({
+        data: {
+          sessionToken: token,
+          userId: user.id,
+          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        },
+      });
+    } catch (sessionError) {
+      console.error('Session creation error:', sessionError);
+      // Continue even if session creation fails, as we'll use localStorage as backup
+    }
 
+    // Return user data (excluding password) and token directly
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    const { password: _password, ...userWithoutPassword } = user;
+    
     console.log('Login successful for user:', email);
-    // Convert the role to string for JSON response
-    const roleStr = String(user.role);
-    
-
-    
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
-        role: roleStr,
+        ...userWithoutPassword,
+        role: user.role?.name || 'USER'
       },
-      session: {
-        token,
-        expires,
-      },
+      token
     });
   } catch (error) {
     console.error('Login error:', error);
