@@ -119,6 +119,48 @@ export const notificationResolvers = {
         console.error('Get unread notifications count error:', error);
         throw error;
       }
+    },
+    
+    // Admin query to get all notifications in the system
+    allNotifications: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        // Check if user is an admin
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (user?.role !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can access all notifications');
+        }
+        
+        const notifications = await prisma.notification.findMany({
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        });
+        
+        return notifications;
+      } catch (error) {
+        console.error('Get all notifications error:', error);
+        throw error;
+      }
     }
   },
   
@@ -361,6 +403,45 @@ export const notificationResolvers = {
       } catch (error) {
         console.error('Delete notification error:', error);
         return false;
+      }
+    },
+    
+    // Admin mutation to delete multiple notifications 
+    deleteMultipleNotifications: async (_parent: unknown, { ids }: { ids: string[] }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        // Verify admin permissions
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (user?.role !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can perform bulk deletion');
+        }
+        
+        if (!ids || ids.length === 0) {
+          throw new Error('No notification IDs provided');
+        }
+        
+        // Delete notifications
+        const { count } = await prisma.notification.deleteMany({
+          where: {
+            id: { in: ids }
+          }
+        });
+        
+        return count;
+      } catch (error) {
+        console.error('Delete multiple notifications error:', error);
+        throw error;
       }
     }
   }

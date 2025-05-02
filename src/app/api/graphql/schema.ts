@@ -493,6 +493,7 @@ const typeDefs = gql`
     notifications: [Notification!]!
     notification(id: ID!): Notification
     unreadNotificationsCount: Int!
+    allNotifications: [Notification!]!
     
     # Settings queries
     userSettings: UserSettings!
@@ -558,6 +559,7 @@ const typeDefs = gql`
     updateNotification(id: ID!, input: UpdateNotificationInput!): Notification!
     markAllNotificationsAsRead: Boolean!
     deleteNotification(id: ID!): Boolean!
+    deleteMultipleNotifications(ids: [ID!]!): Int!
     
     # Settings mutations
     updateUserSettings(input: UpdateUserSettingsInput!): UserSettings!

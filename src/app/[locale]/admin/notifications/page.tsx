@@ -407,6 +407,19 @@ export default function AdminNotificationsPage() {
                   <p className="text-sm mt-4">
                     Notifications will appear in the user&apos;s notification center and can be marked as read by the recipient.
                   </p>
+                  
+                  <div className="pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => window.location.href = '{locale}/admin/notifications/manage'} 
+                      className="flex items-center gap-2"
+                    >
+                      <span className="mr-1">Manage All Notifications</span>
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      View and manage all notifications in the system
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
