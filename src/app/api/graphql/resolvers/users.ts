@@ -119,7 +119,7 @@ export const userResolvers = {
         // Return user with role converted to string
         return {
           ...user,
-          role: user.role?.name || 'USER',
+          role: user.role || { id: "default", name: "USER", description: null },
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()
         };
@@ -232,7 +232,7 @@ export const userResolvers = {
         // Return user with role converted to string
         return {
           ...updatedUser,
-          role: updatedUser.role?.name || 'USER',
+          role: updatedUser.role || { id: "default", name: "USER", description: null },
           createdAt: updatedUser.createdAt.toISOString(),
           updatedAt: updatedUser.updatedAt.toISOString()
         };

@@ -39,19 +39,24 @@ interface AccessControlInput {
 
 // Comprobar si un usuario tiene acceso a un enlace
 async function userHasAccessToLink(userId: string, userRole: string, link: ExternalLink): Promise<boolean> {
+  // Verificaciones de seguridad para valores null o undefined
+  if (!link) return false;
+  if (!userId) return link.accessType === 'PUBLIC';
+  
   // Si el enlace es público, todos tienen acceso
   if (link.accessType === 'PUBLIC') {
     return true;
   }
 
-  // Si el usuario está en la lista de usuarios denegados, no tiene acceso
-  if (link.deniedUsers && link.deniedUsers.includes(userId)) {
+  // Verificar denegación explícita primero (mayor prioridad)
+  // Si el usuario está en la lista de usuarios denegados, no tiene acceso independientemente de otras reglas
+  if (link.deniedUsers && Array.isArray(link.deniedUsers) && link.deniedUsers.includes(userId)) {
     return false;
   }
 
   // Control basado en roles
   if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
-    if (link.allowedRoles && link.allowedRoles.includes(userRole)) {
+    if (link.allowedRoles && Array.isArray(link.allowedRoles) && link.allowedRoles.includes(userRole)) {
       return true;
     }
     
@@ -63,7 +68,7 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
 
   // Control basado en usuarios específicos
   if (link.accessType === 'USERS' || link.accessType === 'MIXED') {
-    if (link.allowedUsers && link.allowedUsers.includes(userId)) {
+    if (link.allowedUsers && Array.isArray(link.allowedUsers) && link.allowedUsers.includes(userId)) {
       return true;
     }
     

@@ -64,6 +64,8 @@ const GET_ACTIVE_EXTERNAL_LINKS = gql`
       icon
       description
       order
+      accessType
+      allowedRoles
     }
   }
 `;
@@ -81,6 +83,8 @@ interface NavItem {
   };
   disabled?: boolean;
   locked?: boolean;
+  accessType?: string;
+  allowedRoles?: string[];
 }
 
 interface ExternalLinkType {
@@ -90,6 +94,8 @@ interface ExternalLinkType {
   icon: string;
   description?: string;
   order: number;
+  accessType: string;
+  allowedRoles: string[];
 }
 
 export function DashboardSidebar() {
@@ -200,12 +206,6 @@ export function DashboardSidebar() {
       icon: MessageSquareIcon,
       permissions: ['notifications:create']
     },
-    {
-      name: 'External Links',
-      href: `/${params.locale}/admin/external-links`,
-      icon: LinkIcon,
-      permissions: ['admin:view']
-    },
     { 
       name: 'User Management', 
       href: `/${params.locale}/admin/users`, 
@@ -249,7 +249,13 @@ export function DashboardSidebar() {
           permissions: ['cms:access']
         }
       ]
-    }
+    },
+    {
+      name: 'External Links',
+      href: `/${params.locale}/admin/external-links`,
+      icon: LinkIcon,
+      permissions: ['admin:view']
+    },
   ];
 
   // Manager-specific navigation items
@@ -302,11 +308,15 @@ export function DashboardSidebar() {
     name: link.name,
     href: link.url,
     icon: getIconComponent(link.icon),
+    accessType: link.accessType,
+    allowedRoles: link.allowedRoles,
   })) || [
     {
       name: 'E-Voque Benefits',
       href: 'https://pe.e-voquebenefit.com/',
       icon: UserIcon,
+      accessType: 'PUBLIC',
+      allowedRoles: [],
     }
   ];
 
@@ -561,6 +571,13 @@ export function DashboardSidebar() {
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.name}</span>
+                    {item.accessType === 'ROLES' && (
+                      <span className="ml-auto px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap">
+                        {item.allowedRoles && item.allowedRoles.length === 1 
+                          ? `Role: ${item.allowedRoles[0]}` 
+                          : 'Roles'}
+                      </span>
+                    )}
                   </a>
                 ))}
               </div>
@@ -668,6 +685,13 @@ export function DashboardSidebar() {
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.name}</span>
+                      {item.accessType === 'ROLES' && (
+                        <span className="ml-auto px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap">
+                          {item.allowedRoles && item.allowedRoles.length === 1 
+                            ? `Role: ${item.allowedRoles[0]}` 
+                            : 'Roles'}
+                        </span>
+                      )}
                     </a>
                   ))}
                 </div>

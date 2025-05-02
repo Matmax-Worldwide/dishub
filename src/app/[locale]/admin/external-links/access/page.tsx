@@ -276,17 +276,17 @@ export default function ExternalLinksAccessPage() {
           hasAccess = true;
         } else {
           // Verificar si está en la lista de denegados (prioridad más alta)
-          if (link.deniedUsers && link.deniedUsers.includes(userId)) {
+          if (link.deniedUsers && Array.isArray(link.deniedUsers) && link.deniedUsers.includes(userId)) {
             hasAccess = false;
           } 
           // Verificar acceso por rol
           else if ((link.accessType === 'ROLES' || link.accessType === 'MIXED') && 
-                  link.allowedRoles && link.allowedRoles.includes(userRole)) {
+                  link.allowedRoles && Array.isArray(link.allowedRoles) && link.allowedRoles.includes(userRole)) {
             hasAccess = true;
           } 
           // Verificar acceso por usuario específico
           else if ((link.accessType === 'USERS' || link.accessType === 'MIXED') && 
-                  link.allowedUsers && link.allowedUsers.includes(userId)) {
+                  link.allowedUsers && Array.isArray(link.allowedUsers) && link.allowedUsers.includes(userId)) {
             hasAccess = true;
           }
           // De lo contrario, no tiene acceso
