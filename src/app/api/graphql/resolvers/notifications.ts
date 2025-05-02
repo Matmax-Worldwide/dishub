@@ -161,7 +161,13 @@ export const notificationResolvers = {
           // Get all active users
           const users = await prisma.user.findMany({
             where: { isActive: true },
-            select: { id: true }
+            select: { 
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true
+            }
           });
           
           // Create a notification for each user
