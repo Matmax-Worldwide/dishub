@@ -183,16 +183,22 @@ export function DashboardSidebar() {
       roles: ['ADMIN'] 
     },
     { 
-      name: 'User Management', 
-      href: `/${locale}/admin/users`, 
-      icon: UsersIcon, 
-      roles: ['ADMIN'] 
-    },
-    { 
       name: 'Create Notifications', 
       href: `/${locale}/admin/notifications`, 
       icon: MessageSquareIcon,
       roles: ['ADMIN']
+    },
+    {
+      name: 'External Links',
+      href: `/${locale}/admin/external-links`,
+      icon: LinkIcon,
+      roles: ['ADMIN']
+    },
+    { 
+      name: 'User Management', 
+      href: `/${locale}/admin/users`, 
+      icon: UsersIcon, 
+      roles: ['ADMIN'] 
     },
     {
       name: 'Role Management',
@@ -231,12 +237,6 @@ export function DashboardSidebar() {
           roles: ['ADMIN']
         }
       ]
-    },
-    {
-      name: 'External Links',
-      href: `/${locale}/admin/external-links`,
-      icon: LinkIcon,
-      roles: ['ADMIN']
     }
   ];
 
