@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Table,
@@ -58,19 +59,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-
 // GraphQL queries and mutations
 const ROLES_QUERY = `
-  query GetRoles($tenantId: ID!) {
-    roles(tenantId: $tenantId) {
+  query GetRoles {
+    roles {
       id
       name
       description
-      tenantId
-      _count {
-        users
-        permissions
-      }
     }
   }
 `;
@@ -79,8 +74,7 @@ const PERMISSIONS_QUERY = `
   query GetPermissions {
     permissions {
       id
-      action
-      subject
+      name
       description
     }
   }
@@ -90,8 +84,7 @@ const ROLE_PERMISSIONS_QUERY = `
   query GetRolePermissions($roleId: ID!) {
     rolePermissions(roleId: $roleId) {
       id
-      action
-      subject
+      name
       description
     }
   }
@@ -126,10 +119,31 @@ const REMOVE_PERMISSION_MUTATION = `
 // Helper function for GraphQL requests
 async function fetchGraphQL(query: string, variables = {}) {
   try {
+    // Get token from cookies instead of localStorage
+    let authHeader = {};
+    if (typeof window !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('session-token='))
+        ?.split('=')[1];
+        
+      const token = cookieValue && cookieValue.trim();
+      
+      if (token) {
+        console.log('Using token for request:', token.substring(0, 10) + '...');
+        authHeader = {
+          Authorization: `Bearer ${token}`
+        };
+      } else {
+        console.warn('No session token found in cookies');
+      }
+    }
+    
     const response = await fetch('/api/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeader
       },
       body: JSON.stringify({
         query,
@@ -157,7 +171,6 @@ const roleFormSchema = z.object({
     message: "Role name must be at least 2 characters.",
   }),
   description: z.string().optional(),
-  tenantId: z.string(), // We'll set this in the component
 });
 
 // Types for data
@@ -165,7 +178,7 @@ interface Role {
   id: string;
   name: string;
   description: string | null;
-  _count: {
+  _count?: {
     users: number;
     permissions: number;
   };
@@ -173,12 +186,12 @@ interface Role {
 
 interface Permission {
   id: string;
-  action: string;
-  subject: string;
+  name: string;
   description: string | null;
 }
 
 export default function RolesPermissionsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("roles");
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false);
@@ -187,13 +200,27 @@ export default function RolesPermissionsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
-  
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('session-token='))
+      ?.split('=')[1];
+      
+    const hasToken = cookieValue && cookieValue.trim();
+    
+    if (!hasToken) {
+      toast.error('Please login to access this page');
+      router.push('/login');
+    }
+  }, [router]);
+
   const form = useForm<z.infer<typeof roleFormSchema>>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: {
       name: "",
       description: "",
-      tenantId: "system", // Default value for system-wide roles
     },
   });
 
@@ -202,8 +229,8 @@ export default function RolesPermissionsPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        // Load roles
-        const rolesData = await fetchGraphQL(ROLES_QUERY, { tenantId: "system" });
+        // Load roles without userId parameter
+        const rolesData = await fetchGraphQL(ROLES_QUERY);
         if (rolesData.roles) {
           setRoles(rolesData.roles);
         }
@@ -227,8 +254,14 @@ export default function RolesPermissionsPage() {
   // Function to handle form submission
   async function onSubmit(values: z.infer<typeof roleFormSchema>) {
     try {
+      // Set default values but don't include userId since it's not needed
+      const input = {
+        name: values.name,
+        description: values.description
+      };
+      
       const result = await fetchGraphQL(CREATE_ROLE_MUTATION, {
-        input: values,
+        input,
       });
       
       if (result.createRole) {
@@ -236,7 +269,7 @@ export default function RolesPermissionsPage() {
         setShowAddRoleDialog(false);
         form.reset();
         
-        // Add new role to the list
+        // Add new role to the list with empty counts
         setRoles(prev => [...prev, {
           ...result.createRole,
           _count: {
@@ -442,10 +475,10 @@ export default function RolesPermissionsPage() {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell>{role._count.users}</TableCell>
+                            <TableCell>{role._count?.users || 0}</TableCell>
                             <TableCell>
                               <Badge variant="secondary">
-                                {role._count.permissions} permissions
+                                {role._count?.permissions || 0} permissions
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -495,7 +528,7 @@ export default function RolesPermissionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {permissions.map((permission) => (
                       <div key={permission.id} className="p-4 border rounded-md">
-                        <div className="font-medium mb-1">{`${permission.action}:${permission.subject}`}</div>
+                        <div className="font-medium mb-1">{`${permission.name}`}</div>
                         <div className="text-sm text-muted-foreground">
                           {permission.description}
                         </div>
@@ -528,7 +561,7 @@ export default function RolesPermissionsPage() {
               return (
                 <div key={permission.id} className="flex items-center justify-between p-2 border rounded-md">
                   <div>
-                    <div className="font-medium">{`${permission.action}:${permission.subject}`}</div>
+                    <div className="font-medium">{`${permission.name}`}</div>
                     <div className="text-sm text-muted-foreground">{permission.description}</div>
                   </div>
                   <div>

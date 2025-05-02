@@ -26,12 +26,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-import { ConditionBuilder } from "@/components/ui/condition-builder";
 
 // GraphQL queries and mutations
 const ROLES_QUERY = `
-  query GetRoles($tenantId: ID!) {
-    roles(tenantId: $tenantId) {
+  query GetRoles {
+    roles {
       id
       name
       description
@@ -43,9 +42,8 @@ const CREATE_PERMISSION_MUTATION = `
   mutation CreatePermission($input: PermissionInput!) {
     createPermission(input: $input) {
       id
-      action
-      subject
-      conditions
+      name
+      description
     }
   }
 `;
@@ -53,10 +51,31 @@ const CREATE_PERMISSION_MUTATION = `
 // Helper function for GraphQL requests
 async function fetchGraphQL(query: string, variables = {}) {
   try {
+    // Get token from cookies instead of localStorage
+    let authHeader = {};
+    if (typeof window !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('session-token='))
+        ?.split('=')[1];
+        
+      const token = cookieValue && cookieValue.trim();
+      
+      if (token) {
+        console.log('Using token for request:', token.substring(0, 10) + '...');
+        authHeader = {
+          Authorization: `Bearer ${token}`
+        };
+      } else {
+        console.warn('No session token found in cookies');
+      }
+    }
+    
     const response = await fetch('/api/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeader
       },
       body: JSON.stringify({
         query,
@@ -80,9 +99,8 @@ async function fetchGraphQL(query: string, variables = {}) {
 
 // Form schema
 const permissionFormSchema = z.object({
-  action: z.string().min(1, "Action is required"),
-  subject: z.string().min(1, "Subject is required"),
-  conditions: z.string().optional(),
+  name: z.string().min(1, "Permission name is required"),
+  description: z.string().optional(),
   roleId: z.string().optional(),
 });
 
@@ -99,12 +117,26 @@ export default function CreatePermissionPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   
+  // Check if user is authenticated
+  useEffect(() => {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('session-token='))
+      ?.split('=')[1];
+      
+    const hasToken = cookieValue && cookieValue.trim();
+    
+    if (!hasToken) {
+      toast.error('Please login to access this page');
+      router.push('/login');
+    }
+  }, [router]);
+
   const form = useForm<z.infer<typeof permissionFormSchema>>({
     resolver: zodResolver(permissionFormSchema),
     defaultValues: {
-      action: "",
-      subject: "",
-      conditions: "{}",
+      name: "",
+      description: "",
       roleId: "",
     },
   });
@@ -114,7 +146,7 @@ export default function CreatePermissionPage() {
     async function loadRoles() {
       setIsLoading(true);
       try {
-        const rolesData = await fetchGraphQL(ROLES_QUERY, { tenantId: "system" });
+        const rolesData = await fetchGraphQL(ROLES_QUERY);
         if (rolesData.roles) {
           setRoles(rolesData.roles);
         }
@@ -134,22 +166,9 @@ export default function CreatePermissionPage() {
     setIsLoading(true);
     
     try {
-      // Parse conditions JSON if provided
-      let conditions;
-      if (values.conditions && values.conditions.trim() !== '{}') {
-        try {
-          conditions = JSON.parse(values.conditions);
-        } catch (error) {
-          toast.error(`Invalid JSON in conditions: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsLoading(false);
-          return;
-        }
-      }
-      
       const input = {
-        action: values.action,
-        subject: values.subject,
-        conditions,
+        name: values.name,
+        description: values.description,
         roleId: values.roleId || undefined,
       };
       
@@ -197,62 +216,40 @@ export default function CreatePermissionPage() {
         <CardHeader>
           <CardTitle>{t("admin.roles.permissionDetails") || "Permission Details"}</CardTitle>
           <CardDescription>
-            {t("admin.roles.permissionDetailsDescription") || "Define the permission's action, subject, and conditions."}
+            {t("admin.roles.permissionDetailsDescription") || "Define the permission details."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="action"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.roles.actionLabel") || "Action"}</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. create, read, update, delete, manage" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        {t("admin.roles.actionDescription") || "The action this permission allows (e.g. create, read, update, delete, manage)"}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="subject"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.roles.subjectLabel") || "Subject"}</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. users, pages, settings" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        {t("admin.roles.subjectDescription") || "The resource this permission applies to (e.g. users, pages, settings)"}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("admin.roles.nameLabel") || "Permission Name"}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. user:read, post:write" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {t("admin.roles.nameDescription") || "Use format like 'resource:action' (e.g. user:read, post:write)"}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <FormField
                 control={form.control}
-                name="conditions"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("admin.roles.conditionBuilder") || "Conditions"}</FormLabel>
+                    <FormLabel>{t("admin.roles.descriptionLabel") || "Description"}</FormLabel>
                     <FormControl>
-                      <ConditionBuilder
-                        value={field.value || "{}"}
-                        onChange={field.onChange}
-                      />
+                      <Input placeholder="Describe what this permission allows" {...field} value={field.value || ""} />
                     </FormControl>
                     <FormDescription>
-                      {t("admin.roles.conditionBuilderDescription") || "Build conditions for when this permission applies"}
+                      {t("admin.roles.descriptionHelp") || "Provide a clear description of what this permission allows"}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
