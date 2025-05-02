@@ -9,14 +9,13 @@ export const metadata: Metadata = {
   description: 'Modern employee management system',
 };
 
-// Idiomas soportados
 const locales = ['en', 'es'];
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-// Usa directamente el tipo esperado por Next
+// ✅ NO usar interfaces personalizadas, usa el tipo directamente
 export default async function RootLayout({
   children,
   params,
