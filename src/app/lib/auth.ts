@@ -81,7 +81,7 @@ export async function createSession(userId: string) {
     select: { role: true }
   });
   
-  const sessionToken = await generateToken(userId, user?.role || 'USER');
+  const sessionToken = await generateToken(userId, user?.role?.name || 'USER');
   const expires = new Date();
   expires.setDate(expires.getDate() + 7); // 7 days from now
 

@@ -125,7 +125,7 @@ export const helpResolvers = {
           select: { role: true }
         });
         
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Only administrators can create help articles');
         }
         
@@ -165,7 +165,7 @@ export const helpResolvers = {
           select: { role: true }
         });
         
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Only administrators can update help articles');
         }
         
@@ -219,7 +219,7 @@ export const helpResolvers = {
           select: { role: true }
         });
         
-        if (user?.role !== 'ADMIN') {
+        if (user?.role?.name !== 'ADMIN') {
           throw new Error('Only administrators can delete help articles');
         }
         
