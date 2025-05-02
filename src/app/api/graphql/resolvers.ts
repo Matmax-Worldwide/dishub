@@ -20,8 +20,35 @@ import { externalLinksResolvers } from './resolvers/externalLinks';
 import { userResolvers } from './resolvers/users';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Helper function to ensure system roles exist
+async function ensureSystemRoles() {
+  const defaultRoles = [
+    { name: 'USER', description: 'Basic user with limited permissions' },
+    { name: 'ADMIN', description: 'Administrator with full system access' },
+    { name: 'MANAGER', description: 'Manager with access to team resources' },
+    { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
+  ];
+
+  // Check if roles exist, if not create them
+  for (const role of defaultRoles) {
+    const existingRole = await prisma.roleModel.findFirst({
+      where: { name: role.name }
+    });
+
+    if (!existingRole) {
+      await prisma.roleModel.create({
+        data: role
+      });
+      console.log(`Created default role: ${role.name}`);
+    }
+  }
+}
+
 // Helper function to ensure system permissions exist
 async function ensureSystemPermissions() {
+  // First ensure that default roles exist
+  await ensureSystemRoles();
+  
   const defaultPermissions = [
     { name: 'user:read', description: 'View user information' },
     { name: 'user:write', description: 'Create or update users' },
@@ -44,6 +71,85 @@ async function ensureSystemPermissions() {
       await prisma.permission.create({
         data: perm
       });
+      console.log(`Created default permission: ${perm.name}`);
+    }
+  }
+  
+  // Get admin role
+  const adminRole = await prisma.roleModel.findFirst({
+    where: { name: 'ADMIN' }
+  });
+  
+  if (adminRole) {
+    // Give admin role all permissions
+    const allPermissions = await prisma.permission.findMany();
+    
+    for (const permission of allPermissions) {
+      // Check if the permission is already assigned to the role
+      const isAssigned = await prisma.roleModel.findFirst({
+        where: {
+          id: adminRole.id,
+          permissions: {
+            some: {
+              id: permission.id
+            }
+          }
+        }
+      });
+      
+      if (!isAssigned) {
+        await prisma.roleModel.update({
+          where: { id: adminRole.id },
+          data: {
+            permissions: {
+              connect: { id: permission.id }
+            }
+          }
+        });
+        console.log(`Assigned permission ${permission.name} to ADMIN role`);
+      }
+    }
+  }
+  
+  // Get manager role
+  const managerRole = await prisma.roleModel.findFirst({
+    where: { name: 'MANAGER' }
+  });
+  
+  if (managerRole) {
+    // Give manager role read permissions
+    const readPermissions = await prisma.permission.findMany({
+      where: {
+        name: {
+          endsWith: ':read'
+        }
+      }
+    });
+    
+    for (const permission of readPermissions) {
+      // Check if the permission is already assigned to the role
+      const isAssigned = await prisma.roleModel.findFirst({
+        where: {
+          id: managerRole.id,
+          permissions: {
+            some: {
+              id: permission.id
+            }
+          }
+        }
+      });
+      
+      if (!isAssigned) {
+        await prisma.roleModel.update({
+          where: { id: managerRole.id },
+          data: {
+            permissions: {
+              connect: { id: permission.id }
+            }
+          }
+        });
+        console.log(`Assigned permission ${permission.name} to MANAGER role`);
+      }
     }
   }
 }
@@ -215,6 +321,9 @@ const resolvers = {
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
         }
+        
+        // Ensure default roles exist
+        await ensureSystemRoles();
         
         return prisma.roleModel.findMany();
       } catch (error) {
@@ -436,6 +545,220 @@ const resolvers = {
     ...('Mutation' in contactResolvers ? (contactResolvers.Mutation as object) : {}),
     ...('Mutation' in externalLinksResolvers ? (externalLinksResolvers.Mutation as object) : {}),
     ...('Mutation' in userResolvers ? (userResolvers.Mutation as object) : {}),
+
+    // Role and permission mutations
+    createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Only admin can create roles
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (String(user?.role) !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can create roles');
+        }
+        
+        const { name, description } = input;
+        
+        const role = await prisma.roleModel.create({
+          data: {
+            name,
+            description
+          }
+        });
+        
+        return role;
+      } catch (error) {
+        console.error('Create role error:', error);
+        throw error;
+      }
+    },
+
+    createPermission: async (_parent: unknown, { input }: { input: { name: string; description?: string; roleId?: string } }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Only admin can create permissions
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (String(user?.role) !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can create permissions');
+        }
+        
+        const { name, description, roleId } = input;
+        
+        // If roleId is provided, we'll connect this permission to that role
+        const permissionData: { 
+          name: string; 
+          description?: string; 
+          roles?: { 
+            connect: { id: string } 
+          }
+        } = {
+          name,
+          description
+        };
+        
+        if (roleId) {
+          permissionData.roles = {
+            connect: { id: roleId }
+          };
+        }
+        
+        const permission = await prisma.permission.create({
+          data: permissionData
+        });
+        
+        return permission;
+      } catch (error) {
+        console.error('Create permission error:', error);
+        throw error;
+      }
+    },
+
+    assignPermissionToRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Only admin can assign permissions
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (String(user?.role) !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can assign permissions to roles');
+        }
+        
+        // First, check if both the role and permission exist
+        const role = await prisma.roleModel.findUnique({
+          where: { id: roleId }
+        });
+        
+        if (!role) {
+          throw new Error('Role not found');
+        }
+        
+        const permission = await prisma.permission.findUnique({
+          where: { id: permissionId }
+        });
+        
+        if (!permission) {
+          throw new Error('Permission not found');
+        }
+        
+        // Add the permission to the role
+        await prisma.roleModel.update({
+          where: { id: roleId },
+          data: {
+            permissions: {
+              connect: { id: permissionId }
+            }
+          }
+        });
+        
+        return permission;
+      } catch (error) {
+        console.error('Assign permission error:', error);
+        throw error;
+      }
+    },
+
+    removePermissionFromRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Only admin can remove permissions
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { role: true }
+        });
+        
+        if (String(user?.role) !== 'ADMIN') {
+          throw new Error('Unauthorized: Only admins can remove permissions from roles');
+        }
+        
+        // First, check if both the role and permission exist
+        const role = await prisma.roleModel.findUnique({
+          where: { id: roleId }
+        });
+        
+        if (!role) {
+          throw new Error('Role not found');
+        }
+        
+        const permission = await prisma.permission.findUnique({
+          where: { id: permissionId }
+        });
+        
+        if (!permission) {
+          throw new Error('Permission not found');
+        }
+        
+        // Remove the permission from the role
+        await prisma.roleModel.update({
+          where: { id: roleId },
+          data: {
+            permissions: {
+              disconnect: { id: permissionId }
+            }
+          }
+        });
+        
+        return true;
+      } catch (error) {
+        console.error('Remove permission error:', error);
+        throw error;
+      }
+    },
+
+    // Settings mutations
   },
 };
 

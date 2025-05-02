@@ -573,6 +573,14 @@ const typeDefs = gql`
     createExternalLink(input: CreateExternalLinkInput!): ExternalLink
     updateExternalLink(id: ID!, input: UpdateExternalLinkInput!): ExternalLink
     deleteExternalLink(id: ID!): Boolean!
+
+    # Role and permission mutations
+    createRole(input: RoleCreateInput!): Role!
+    updateRole(id: ID!, input: RoleCreateInput!): Role!
+    deleteRole(id: ID!): Boolean!
+    createPermission(input: PermissionInput!): Permission!
+    assignPermissionToRole(roleId: ID!, permissionId: ID!): Permission!
+    removePermissionFromRole(roleId: ID!, permissionId: ID!): Boolean!
   }
 
   input UpdateProjectInput {
@@ -580,6 +588,18 @@ const typeDefs = gql`
     description: String
     status: ProjectStatus
     clientId: ID
+  }
+
+  # Role and Permission input types
+  input RoleCreateInput {
+    name: String!
+    description: String
+  }
+
+  input PermissionInput {
+    name: String!
+    description: String
+    roleId: ID
   }
 `;
 
