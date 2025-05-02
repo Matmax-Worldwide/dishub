@@ -193,7 +193,7 @@ const resolvers = {
           throw new Error('Invalid token');
         }
         
-        return prisma.role.findUnique({
+        return prisma.roleModel.findUnique({
           where: { id: args.id }
         });
       } catch (error) {
@@ -216,7 +216,7 @@ const resolvers = {
           throw new Error('Invalid token');
         }
         
-        return prisma.role.findMany();
+        return prisma.roleModel.findMany();
       } catch (error) {
         console.error('Get roles error:', error);
         throw error;
