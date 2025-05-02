@@ -119,7 +119,9 @@ export const userResolvers = {
         // Return user with role converted to string
         return {
           ...user,
-          role: user.role?.name || 'USER'
+          role: user.role?.name || 'USER',
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
         };
       } catch (error) {
         console.error('Create user error:', error);
@@ -230,7 +232,9 @@ export const userResolvers = {
         // Return user with role converted to string
         return {
           ...updatedUser,
-          role: updatedUser.role?.name || 'USER'
+          role: updatedUser.role?.name || 'USER',
+          createdAt: updatedUser.createdAt.toISOString(),
+          updatedAt: updatedUser.updatedAt.toISOString()
         };
       } catch (error) {
         console.error('Update user error:', error);

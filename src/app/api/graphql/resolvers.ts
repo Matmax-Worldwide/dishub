@@ -297,7 +297,9 @@ const resolvers = {
         // Format users to include role name as string
         return users.map(user => ({
           ...user,
-          role: user.role?.name || 'USER'
+          role: user.role?.name || 'USER',
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
         }));
       } catch (error) {
         console.error('Get users error:', error);

@@ -211,7 +211,32 @@ export default function UserManagementPage() {
   };
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    if (!dateString) return 'Fecha no disponible';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.log('Invalid date:', dateString);
+        return 'Fecha no disponible';
+      }
+      
+      // Nombres de los meses en español
+      const meses = [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+      ];
+      
+      const dia = date.getDate();
+      const mes = meses[date.getMonth()];
+      const anio = date.getFullYear();
+      const hora = date.getHours().toString().padStart(2, '0');
+      const minutos = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${dia} de ${mes} de ${anio}, ${hora}:${minutos}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return 'Fecha no disponible';
+    }
   };
   
   const getRoleBadgeColor = (role: string) => {
@@ -653,7 +678,14 @@ export default function UserManagementPage() {
                       .filter(user => {
                         const thirtyDaysAgo = new Date();
                         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        return new Date(user.createdAt) >= thirtyDaysAgo;
+                        
+                        try {
+                          const userDate = new Date(user.createdAt);
+                          return !isNaN(userDate.getTime()) && userDate >= thirtyDaysAgo;
+                        } catch (error) {
+                          console.error('Error comparing dates:', error);
+                          return false;
+                        }
                       })
                       .map(user => (
                         <TableRow key={user.id}>

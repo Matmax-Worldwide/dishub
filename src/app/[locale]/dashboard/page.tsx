@@ -103,17 +103,37 @@ const formatRelativeTime = (dateString: string) => {
     const now = new Date();
     const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
+    // Si es menos de un minuto, mostrar "ahora mismo"
     if (diffSeconds < 60) {
-      return 'hace un momento';
-    } else if (diffSeconds < 3600) {
+      return 'ahora mismo';
+    } 
+    // Si es menos de una hora, mostrar minutos
+    else if (diffSeconds < 3600) {
       const minutes = Math.floor(diffSeconds / 60);
       return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
-    } else if (diffSeconds < 86400) {
+    } 
+    // Si es menos de un día, mostrar horas
+    else if (diffSeconds < 86400) {
       const hours = Math.floor(diffSeconds / 3600);
       return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
-    } else {
+    } 
+    // Si es menos de una semana, mostrar días
+    else if (diffSeconds < 604800) {
       const days = Math.floor(diffSeconds / 86400);
       return `hace ${days} día${days > 1 ? 's' : ''}`;
+    } 
+    // Si es antiguo, mostrar la fecha completa en formato peruano
+    else {
+      const meses = [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+      ];
+      
+      const dia = date.getDate();
+      const mes = meses[date.getMonth()];
+      const anio = date.getFullYear();
+      
+      return `${dia} de ${mes} de ${anio}`;
     }
   } catch (error) {
     console.error('Error formatting date:', error, dateString);
