@@ -5,14 +5,15 @@ import { getMessages } from '@/lib/getMessages';
 
 const inter = Inter({ subsets: ["latin"] });
 
-type LayoutProps = {
+export default async function RootLayout({ 
+  children,
+  params: { locale }
+}: {
   children: React.ReactNode;
   params: {
     locale: string;
   };
-};
-
-export default async function RootLayout({ children, params: { locale } }: LayoutProps) {
+}) {
   const messages = await getMessages(locale);
   
   return (
