@@ -54,7 +54,7 @@ const authResolvers = {
         // Convert role to string for the response to avoid enum serialization issues
         return {
           ...user,
-          role: user.role.toString(),
+          role: user.role?.name || 'USER',
         };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
@@ -91,8 +91,8 @@ const authResolvers = {
       }
       
       // Include role in the token payload
-      const token = jwt.sign({ userId: user.id, role: user.role.toString() }, JWT_SECRET, { expiresIn: '7d' });
-      console.log('Generated JWT with role:', user.role.toString());
+      const token = jwt.sign({ userId: user.id, role: user.role?.name || 'USER' }, JWT_SECRET, { expiresIn: '7d' });
+      console.log('Generated JWT with role:', user.role?.name || 'USER');
       
       // Create a new object with just the fields we need (omitting password)
       const userResponse = {
@@ -101,7 +101,7 @@ const authResolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: user.role.toString(),
+        role: user.role?.name || 'USER',
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -136,7 +136,11 @@ const authResolvers = {
           firstName,
           lastName,
           phoneNumber,
-          role: 'USER', // Default role
+          role: {
+            connect: {
+              name: 'USER'
+            }
+          },
         },
         select: {
           id: true,
@@ -151,7 +155,7 @@ const authResolvers = {
       });
       
       // Convert role to string
-      const roleAsString = user.role.toString();
+      const roleAsString = user.role?.name || 'USER';
       console.log('User registered:', email, 'with role:', roleAsString);
       const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
       
@@ -256,7 +260,7 @@ const authResolvers = {
         // Convert role to string for consistent serialization
         return {
           ...updatedUser,
-          role: updatedUser.role.toString()
+          role: updatedUser.role?.name || 'USER'
         };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
@@ -339,7 +343,7 @@ const authResolvers = {
           // Convert role to string for consistent serialization
           return {
             ...updatedUser,
-            role: updatedUser.role.toString()
+            role: updatedUser.role?.name || 'USER'
           };
         } catch (tokenError) {
           console.error('Token validation error in updateUserProfile:', tokenError);
