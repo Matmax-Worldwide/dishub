@@ -206,7 +206,8 @@ const resolvers = {
               role: {
                 select: {
                   id: true,
-                  name: true
+                  name: true,
+                  description: true
                 }
               },
               createdAt: true,
@@ -218,14 +219,13 @@ const resolvers = {
             throw new Error('User not found');
           }
           
-          // Get role name from the relationship or default to 'USER'
-          const roleName = user.role?.name || 'USER';
+          console.log('User found:', user?.email, 'with role:', user?.role);
           
-          console.log('User found:', user?.email, 'with role:', roleName);
-          
+          // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
           return {
             ...user,
-            role: roleName, // Return role name for compatibility
+            // En lugar de devolver role: roleName, devolvemos el objeto role completo
+            role: user.role || { id: "default", name: "USER", description: null }
           };
         } catch (prismaError) {
           console.error('Prisma error:', prismaError);
@@ -283,7 +283,8 @@ const resolvers = {
             role: {
               select: {
                 id: true,
-                name: true
+                name: true,
+                description: true
               }
             },
             createdAt: true,
@@ -294,10 +295,11 @@ const resolvers = {
           }
         });
         
-        // Format users to include role name as string
+        // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
         return users.map(user => ({
           ...user,
-          role: user.role?.name || 'USER',
+          // Asegurar que el role es siempre un objeto completo
+          role: user.role || { id: "default", name: "USER", description: null },
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()
         }));

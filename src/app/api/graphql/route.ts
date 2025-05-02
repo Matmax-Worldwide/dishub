@@ -1,7 +1,7 @@
 import { ApolloServer } from '@apollo/server';
 import { startServerAndCreateNextHandler } from '@as-integrations/next';
 import { NextRequest } from 'next/server';
-import typeDefs from './schema';
+import { typeDefs } from './typeDefs';
 import resolvers from './resolvers';
 import { verifyToken } from '@/lib/auth';
 

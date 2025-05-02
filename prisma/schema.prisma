@@ -234,16 +234,20 @@ model Permission {
 }
 
 model ExternalLink {
-  id          String   @id @default(cuid())
-  name        String
-  url         String
-  icon        String
-  description String?
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String            @id @default(cuid())
+  name            String
+  url             String
+  icon            String
+  description     String?
+  isActive        Boolean           @default(true)
+  order           Int               @default(0)
+  createdBy       String
+  accessType      AccessControlType @default(PUBLIC)
+  allowedRoles    String[]          @default([])
+  allowedUsers    String[]          @default([])
+  deniedUsers     String[]          @default([])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 enum DocumentStatus {
@@ -716,4 +720,11 @@ enum ComponentType {
   CONTACT
   SERVICES
   CUSTOM
+}
+
+enum AccessControlType {
+  PUBLIC
+  ROLES
+  USERS
+  MIXED
 }

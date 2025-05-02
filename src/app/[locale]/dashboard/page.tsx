@@ -4,8 +4,9 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import { useEffect, useState } from 'react';
-import { Lock, CheckCircle } from 'lucide-react';
+import { Lock, CheckCircle, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
+import PermissionGuard from '@/components/PermissionGuard';
 
 const GET_USER = gql`
   query GetUser {
@@ -14,7 +15,11 @@ const GET_USER = gql`
       email
       firstName
       lastName
-      role
+      role {
+        id
+        name
+        description
+      }
     }
   }
 `;
@@ -181,7 +186,7 @@ export default function DashboardPage() {
       
       // If we have valid user data, we're logged in
       if (data?.me) {
-        console.log('User is logged in:', data.me.email, 'with role:', data.me.role);
+        console.log('User is logged in:', data.me.email, 'with role:', data.me.role?.name);
         setDebugInfo(null); // Clear debug info
       }
     },
@@ -357,239 +362,259 @@ export default function DashboardPage() {
   const unreadCount = notificationsData?.unreadNotificationsCount || 0;
 
   return (
-    <div className="container mx-auto p-4 relative">
-      {/* Show welcome banner for users who just logged in */}
-      {justLoggedIn && data?.me && (
-        <WelcomeBanner userName={data.me.firstName || data.me.email.split('@')[0]} />
-      )}
-      
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-6 sm:pt-10 md:pt-12">
-        <div className="w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl px-2 sm:px-4 md:px-6">
-          <div className="bg-white shadow rounded-lg p-4 sm:p-6 md:p-8">
+    <PermissionGuard 
+      permission="dashboard:view" 
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+          <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+            <ShieldAlert className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Acceso Restringido</h1>
+            <p className="text-gray-600 mb-6">
+              No tiene permisos para acceder a esta sección del dashboard. 
+              Por favor contacte al administrador si cree que esto es un error.
+            </p>
+            <button
+              onClick={() => window.location.href = `/${locale}`}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      }
+    >
+      <div className="container mx-auto p-4 relative">
+        {justLoggedIn && data?.me && (
+          <WelcomeBanner userName={data.me.firstName || data.me.email.split('@')[0]} />
+        )}
         
-            {user && (
-              <div className="space-y-4 sm:space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
-                  
-                  <button 
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    Notificaciones
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-
-                {/* Notifications Panel */}
-                {showNotifications && (
-                  <div className="mb-6 border rounded-lg overflow-hidden">
-                    <div className="flex justify-between items-center bg-gray-50 p-3 border-b">
-                      <h3 className="font-medium">Notificaciones</h3>
-                      <div className="flex space-x-3">
-                        <button 
-                          onClick={handleMarkAllAsRead}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Marcar todas como leídas
-                        </button>
-                        <button 
-                          onClick={() => window.location.href = `/${locale}/dashboard/notifications`}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Ver todas
-                        </button>
-                      </div>
-                    </div>
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-6 sm:pt-10 md:pt-12">
+          <div className="w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl px-2 sm:px-4 md:px-6">
+            <div className="bg-white shadow rounded-lg p-4 sm:p-6 md:p-8">
+              {user && (
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-4">Beneficios E-Voque</h2>
                     
-                    <div className="overflow-auto max-h-96">
-                      {notificationsLoading ? (
-                        <div className="p-4 text-center text-gray-500">Cargando notificaciones...</div>
-                      ) : unreadNotifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">No tienes notificaciones sin leer</div>
-                      ) : (
-                        <ul className="divide-y">
-                          {unreadNotifications.map((notification: Notification) => (
-                            <li 
-                              key={notification.id} 
-                              className="p-3 hover:bg-gray-50 transition bg-blue-50"
-                            >
-                              <div className="flex justify-between">
-                                <div className="flex-1">
-                                  <p className="font-medium text-blue-700">
-                                    {notification.title}
-                                  </p>
-                                  <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {formatRelativeTime(notification.createdAt)}
-                                  </p>
-                                </div>
-                                <button 
-                                  onClick={() => handleMarkAsRead(notification.id)}
-                                  className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                                >
-                                  Marcar como leída
-                                </button>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
+                    <button 
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="relative flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      Notificaciones
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {unreadCount}
+                        </span>
                       )}
-                    </div>
+                    </button>
                   </div>
-                )}
 
-                <div className="flex gap-4 mb-8 justify-center flex-wrap">
-                  {/* Beneficios E-Voque */}
-                  <button
-                    className={`relative overflow-hidden flex flex-col items-center justify-end w-60 h-20 rounded-lg bg-contain bg-center transition-all duration-300 ${
-                      selectedBenefit === 'benefits' 
-                        ? 'ring-4 ring-blue-500' 
-                        : 'opacity-80 hover:opacity-100'
-                    }`}
-                    style={{
-                      backgroundImage: "url('/images/evoque-benefits.png')",
-                    }}
-                    onClick={() => setSelectedBenefit(selectedBenefit === 'benefits' ? null : 'benefits')}
-                  >
-                    <div className="absolute inset-0 bg-black/30" />
-                    <span className="relative text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
-                      Beneficios
-                    </span>
-                  </button>
-
-                  {/* Wellness */}
-                  <button
-                    className="relative overflow-hidden flex flex-col items-center justify-end w-48 h-20 rounded-lg bg-green-200 opacity-50 cursor-not-allowed"
-                    style={{
-                      backgroundImage: "url('/images/wellness-benefits.png')",
-                      backgroundSize: 'contain',
-                      backgroundPosition: 'center',
-                    }}
-                    disabled
-                  >
-                    <div className="absolute inset-0 bg-black/30 z-10" />
-                    <Lock className="absolute top-2 right-2 z-20 text-white opacity-90" size={20} />
-                    <span className="relative z-20 text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
-                      Wellness (Bloqueado)
-                    </span>
-                  </button>
-
-                  {/* Círculo Extra (Próximamente) */}
-                  <div className="flex flex-col items-center justify-center w-40 h-20 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
-                    <span className="text-xs font-medium text-center">Próximamente</span>
-                  </div>
-                </div>
-                
-                {/* Iframe container */}
-                {selectedBenefit && (
-                  <div className="mt-6 w-full">
-                    <div className="bg-gray-50 p-3 mb-3 flex justify-between items-center rounded-t-lg border border-gray-200">
-                      <a
-                        href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-lg font-medium text-blue-600 hover:underline"
-                      >
-                        {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
-                      </a>
-                      <button 
-                        onClick={() => setSelectedBenefit(null)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className="text-center p-8 bg-white border border-gray-200 rounded-b-lg">
-                      <p className="text-gray-600 text-lg">
-                        Abre la plataforma en una nueva pestaña:
-                      </p>
-                      <a
-                        href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                      >
-                        Ir a {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* Brand Carousel */}
-                <div className="mt-8 mb-4">
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Marcas Asociadas</h3>
-                  <div className="relative overflow-hidden">
-                    <div className="brand-carousel flex animate-scroll">
-                      {/* First set of brands */}
-                      <div className="flex space-x-8 items-center mr-16">
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/b2.png" alt="Be balance Gimnasio" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" width={100} height={100} />
+                  {/* Notifications Panel */}
+                  {showNotifications && (
+                    <div className="mb-6 border rounded-lg overflow-hidden">
+                      <div className="flex justify-between items-center bg-gray-50 p-3 border-b">
+                        <h3 className="font-medium">Notificaciones</h3>
+                        <div className="flex space-x-3">
+                          <button 
+                            onClick={handleMarkAllAsRead}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Marcar todas como leídas
+                          </button>
+                          <button 
+                            onClick={() => window.location.href = `/${locale}/dashboard/notifications`}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Ver todas
+                          </button>
                         </div>
                       </div>
-                      {/* Duplicate set for continuous scrolling */}
-                      <div className="flex space-x-8 items-center mr-16">
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" width={100} height={100} />
+                      
+                      <div className="overflow-auto max-h-96">
+                        {notificationsLoading ? (
+                          <div className="p-4 text-center text-gray-500">Cargando notificaciones...</div>
+                        ) : unreadNotifications.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">No tienes notificaciones sin leer</div>
+                        ) : (
+                          <ul className="divide-y">
+                            {unreadNotifications.map((notification: Notification) => (
+                              <li 
+                                key={notification.id} 
+                                className="p-3 hover:bg-gray-50 transition bg-blue-50"
+                              >
+                                <div className="flex justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-blue-700">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {formatRelativeTime(notification.createdAt)}
+                                    </p>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleMarkAsRead(notification.id)}
+                                    className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                                  >
+                                    Marcar como leída
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 mb-8 justify-center flex-wrap">
+                    {/* Beneficios E-Voque */}
+                    <button
+                      className={`relative overflow-hidden flex flex-col items-center justify-end w-60 h-20 rounded-lg bg-contain bg-center transition-all duration-300 ${
+                        selectedBenefit === 'benefits' 
+                          ? 'ring-4 ring-blue-500' 
+                          : 'opacity-80 hover:opacity-100'
+                      }`}
+                      style={{
+                        backgroundImage: "url('/images/evoque-benefits.png')",
+                      }}
+                      onClick={() => setSelectedBenefit(selectedBenefit === 'benefits' ? null : 'benefits')}
+                    >
+                      <div className="absolute inset-0 bg-black/30" />
+                      <span className="relative text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
+                        Beneficios
+                      </span>
+                    </button>
+
+                    {/* Wellness */}
+                    <button
+                      className="relative overflow-hidden flex flex-col items-center justify-end w-48 h-20 rounded-lg bg-green-200 opacity-50 cursor-not-allowed"
+                      style={{
+                        backgroundImage: "url('/images/wellness-benefits.png')",
+                        backgroundSize: 'contain',
+                        backgroundPosition: 'center',
+                      }}
+                      disabled
+                    >
+                      <div className="absolute inset-0 bg-black/30 z-10" />
+                      <Lock className="absolute top-2 right-2 z-20 text-white opacity-90" size={20} />
+                      <span className="relative z-20 text-xs font-semibold text-white mb-2 px-2 py-1 rounded-full bg-black/50">
+                        Wellness (Bloqueado)
+                      </span>
+                    </button>
+
+                    {/* Círculo Extra (Próximamente) */}
+                    <div className="flex flex-col items-center justify-center w-40 h-20 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+                      <span className="text-xs font-medium text-center">Próximamente</span>
+                    </div>
+                  </div>
+                  
+                  {/* Iframe container */}
+                  {selectedBenefit && (
+                    <div className="mt-6 w-full">
+                      <div className="bg-gray-50 p-3 mb-3 flex justify-between items-center rounded-t-lg border border-gray-200">
+                        <a
+                          href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-lg font-medium text-blue-600 hover:underline"
+                        >
+                          {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
+                        </a>
+                        <button 
+                          onClick={() => setSelectedBenefit(null)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="text-center p-8 bg-white border border-gray-200 rounded-b-lg">
+                        <p className="text-gray-600 text-lg">
+                          Abre la plataforma en una nueva pestaña:
+                        </p>
+                        <a
+                          href={selectedBenefit === 'benefits' ? 'https://pe.e-voquebenefit.com/' : 'https://wellness.e-voque.com/'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                        >
+                          Ir a {selectedBenefit === 'benefits' ? 'E-Voque Beneficios' : 'E-Voque Wellness'}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Brand Carousel */}
+                  <div className="mt-8 mb-4">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Marcas Asociadas</h3>
+                    <div className="relative overflow-hidden">
+                      <div className="brand-carousel flex animate-scroll">
+                        {/* First set of brands */}
+                        <div className="flex space-x-8 items-center mr-16">
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/b2.png" alt="Be balance Gimnasio" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
                         </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" width={100} height={100} />
-                        </div>
-                        <div className="brand-item w-32 h-20 flex items-center justify-center">
-                          <Image src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" width={100} height={100} />
+                        {/* Duplicate set for continuous scrolling */}
+                        <div className="flex space-x-8 items-center mr-16">
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/Logo_Ripley.svg" alt="Ripley" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/Logotipo_Sodimac.svg.webp" alt="Sodimac" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/plaza-vea-png-1.webp" alt="Plaza Vea" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/tottus.png" alt="Tottus" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
+                          <div className="brand-item w-32 h-20 flex items-center justify-center">
+                            <Image src="/images/evoque.png" alt="Evoque" className="max-h-14 max-w-full" width={100} height={100} />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <style jsx>{`
-                  @keyframes scroll {
-                    0% {
-                      transform: translateX(0);
+                  <style jsx>{`
+                    @keyframes scroll {
+                      0% {
+                        transform: translateX(0);
+                      }
+                      100% {
+                        transform: translateX(-50%);
+                      }
                     }
-                    100% {
-                      transform: translateX(-50%);
+                    .animate-scroll {
+                      animation: scroll 20s linear infinite;
                     }
-                  }
-                  .animate-scroll {
-                    animation: scroll 20s linear infinite;
-                  }
-                `}</style>
-              </div>
-            )}
+                  `}</style>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </PermissionGuard>
   );
 } 

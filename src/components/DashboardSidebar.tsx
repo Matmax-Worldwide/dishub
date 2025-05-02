@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
+import { useAuth } from '@/hooks/useAuth';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`
@@ -39,7 +40,11 @@ const GET_USER_PROFILE = gql`
       email
       firstName
       lastName
-      role
+      role {
+        id
+        name
+        description
+      }
     }
   }
 `;
@@ -69,6 +74,7 @@ interface NavItem {
   icon: React.ElementType;
   children?: NavItem[];
   roles?: string[];
+  permissions?: string[];
   badge?: {
     key: string;
     value: number;
@@ -88,13 +94,15 @@ interface ExternalLinkType {
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const { locale } = useParams();
+  const params = useParams();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/logo.png");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { user: authUser } = useAuth();
   
-   // Cargar datos del perfil
-   const { data } = useQuery(GET_USER_PROFILE, {
+  // Cargar datos del perfil
+  const { data } = useQuery(GET_USER_PROFILE, {
     client,
     errorPolicy: 'all',
     fetchPolicy: 'network-only',
@@ -109,12 +117,22 @@ export function DashboardSidebar() {
     },
   });
 
-  // Get unread notifications count
+  // Check if user is an admin (using both sources of data)
+  const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';
+  const isManager = data?.me?.role?.name === 'MANAGER' || authUser?.role?.name === 'MANAGER';
+
+  // Cargar los datos de notificaciones no leídas
   const { data: notificationsData } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
     client,
-    fetchPolicy: 'network-only',
-    pollInterval: 30000, // Poll every 30 seconds
+    fetchPolicy: 'cache-and-network',
   });
+
+  // Actualizar el contador de notificaciones cuando cambien los datos
+  useEffect(() => {
+    if (notificationsData?.unreadNotificationsCount !== undefined) {
+      setUnreadCount(notificationsData.unreadNotificationsCount);
+    }
+  }, [notificationsData]);
 
   // Get external links
   const { data: externalLinksData } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
@@ -123,8 +141,6 @@ export function DashboardSidebar() {
       console.error('Error fetching external links:', error);
     }
   });
-
-  const unreadCount = notificationsData?.unreadNotificationsCount || 0;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -145,17 +161,14 @@ export function DashboardSidebar() {
     }
   }, [pathname]);
 
-  // Check if user is an admin
-  const isAdmin = data?.me?.role === 'ADMIN';
-  const isManager = data?.me?.role === 'MANAGER';
-
   // Generate base navigation items (for all users)
   const baseNavigationItems: NavItem[] = [
-    { name: 'Dashboard', href: `/${locale}/dashboard`, icon: HomeIcon },
+    { name: 'Dashboard', href: `/${params.locale}/dashboard`, icon: HomeIcon },
     { 
       name: 'Notifications', 
-      href: `/${locale}/dashboard/notifications`, 
+      href: `/${params.locale}/dashboard/notifications`, 
       icon: BellIcon,
+      permissions: ['notifications:read'],
       badge: {
         key: 'unread',
         value: unreadCount
@@ -163,78 +176,77 @@ export function DashboardSidebar() {
     },
     { 
       name: 'Book now', 
-      href: `/${locale}/dashboard/bookings`, 
+      href: `/${params.locale}/dashboard/bookings`, 
       icon: CalendarIcon,
       disabled: true,
       locked: true
     },
-    { name: 'Beneficios', href: `/${locale}/dashboard/benefits`, icon: UserIcon },
-    { name: 'Help', href: `/${locale}/dashboard/help`, icon: HelpCircleIcon },
-
-    { name: 'Settings', href: `/${locale}/dashboard/settings`, icon: SettingsIcon },
+    { name: 'Beneficios', href: `/${params.locale}/dashboard/benefits`, icon: UserIcon },
+    { name: 'Help', href: `/${params.locale}/dashboard/help`, icon: HelpCircleIcon },
+    { name: 'Settings', href: `/${params.locale}/dashboard/settings`, icon: SettingsIcon },
   ];
 
   // Admin-specific navigation items
   const adminNavigationItems: NavItem[] = [
     { 
       name: 'Admin Dashboard', 
-      href: `/${locale}/admin`, 
+      href: `/${params.locale}/admin`, 
       icon: BarChartIcon, 
-      roles: ['ADMIN'] 
+      permissions: ['admin:view']
     },
     { 
       name: 'Create Notifications', 
-      href: `/${locale}/admin/notifications`, 
+      href: `/${params.locale}/admin/notifications`, 
       icon: MessageSquareIcon,
-      roles: ['ADMIN']
+      permissions: ['notifications:create']
     },
     {
       name: 'External Links',
-      href: `/${locale}/admin/external-links`,
+      href: `/${params.locale}/admin/external-links`,
       icon: LinkIcon,
-      roles: ['ADMIN']
+      permissions: ['admin:view']
     },
     { 
       name: 'User Management', 
-      href: `/${locale}/admin/users`, 
+      href: `/${params.locale}/admin/users`, 
       icon: UsersIcon, 
-      roles: ['ADMIN'] 
+      permissions: ['users:read']
     },
     {
       name: 'Role Management',
-      href: `/${locale}/admin/roles`,
+      href: `/${params.locale}/admin/roles`,
       icon: ShieldIcon,
-      roles: ['ADMIN']
+      permissions: ['roles:read']
     },
     {
       name: 'CMS',
-      href: `/${locale}/admin/cms`,
+      href: `/${params.locale}/admin/cms`,
       icon: ClipboardListIcon,
-      roles: ['ADMIN'],
+      permissions: ['cms:access'],
       children: [
         {
           name: 'Pages',
-          href: `/${locale}/admin/cms/pages`,
+          href: `/${params.locale}/admin/cms/pages`,
           icon: LineChartIcon,
-          roles: ['ADMIN']
+          permissions: ['cms:access']
         },
         {
           name: 'Media Library',
-          href: `/${locale}/admin/cms/media`,
+          href: `/${params.locale}/admin/cms/media`,
           icon: LinkIcon,
-          roles: ['ADMIN']
+          permissions: ['cms:access']
         },
         {
           name: 'Menus',
-          href: `/${locale}/admin/cms/menus`,
+          href: `/${params.locale}/admin/cms/menus`,
           icon: MenuIcon,
-          roles: ['ADMIN']
+          permissions: ['cms:access']
         },
         {
           name: 'Settings',
-          href: `/${locale}/admin/cms/settings`,
+          href: `/${params.locale}/admin/cms/settings`,
           icon: SettingsIcon,
-          roles: ['ADMIN']
+          permissions: ['cms:access']
         }
       ]
     }
@@ -244,21 +256,21 @@ export function DashboardSidebar() {
   const managerNavigationItems: NavItem[] = [
     {
       name: 'Staff Management',
-      href: `/${locale}/manager/staff`,
+      href: `/${params.locale}/manager/staff`,
       icon: UsersIcon,
-      roles: ['MANAGER', 'ADMIN']
+      permissions: ['staff:view', 'staff:manage']
     },
     {
       name: 'Team Reports',
-      href: `/${locale}/manager/reports`,
+      href: `/${params.locale}/manager/reports`,
       icon: LineChartIcon,
-      roles: ['MANAGER', 'ADMIN']
+      permissions: ['reports:view']
     },
     {
       name: 'Approve Requests',
-      href: `/${locale}/manager/approvals`,
+      href: `/${params.locale}/manager/approvals`,
       icon: ClipboardListIcon,
-      roles: ['MANAGER', 'ADMIN']
+      permissions: ['approvals:manage']
     }
   ];
 
@@ -304,7 +316,7 @@ export function DashboardSidebar() {
 
   const handleLogout = () => {
     document.cookie = 'session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    window.location.href = `/${locale}/login`;
+    window.location.href = `/${params.locale}/login`;
   };
 
   // Render notification badge if there are unread notifications
@@ -321,127 +333,151 @@ export function DashboardSidebar() {
 
   // Render navigation items
   const renderNavigationItems = () => {
-    if (isAdmin) {
-      return (
-        <>
-          {/* Admin Navigation Items */}
-          {adminNavigationItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.disabled ? "#" : item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                pathname === item.href 
-                  ? 'bg-indigo-100 text-indigo-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-            >
-              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-              <span>{item.name}</span>
-              {renderBadge(item)}
-            </Link>
-          ))}
-          
-          {/* User Navigation Items Dropdown */}
-          <div className="mt-2 border-t pt-2">
-            <button 
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <div className="flex items-center gap-3">
-                <UserIcon className="h-4 w-4" />
-                <span>User Menu</span>
-              </div>
-              {userMenuOpen ? (
-                <ChevronUpIcon className="h-4 w-4" />
-              ) : (
-                <ChevronDownIcon className="h-4 w-4" />
-              )}
-            </button>
+    return (
+      <>
+        {/* Admin items */}
+        {isAdmin && (
+          <>
+            <div className="mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                Administración
+              </h3>
+            </div>
+            {adminNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
             
-            {userMenuOpen && (
-              <div className="pl-4 mt-1 space-y-1">
-                {baseNavigationItems.map((item) => (
-                  <Link 
-                    key={item.href}
-                    href={item.disabled ? "#" : item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      pathname === item.href 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-                  >
-                    {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                    <span>{item.name}</span>
-                    {renderBadge(item)}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      );
-    } else if (isManager) {
-      // Render manager items followed by base items 
-      return (
-        <>
-          {/* Manager Navigation Items */}
-          {managerNavigationItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.disabled ? "#" : item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                pathname === item.href 
-                  ? 'bg-indigo-100 text-indigo-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-            >
-              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-              <span>{item.name}</span>
-              {renderBadge(item)}
-            </Link>
-          ))}
-          
-          {/* Base Navigation Items */}
-          {baseNavigationItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.disabled ? "#" : item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                pathname === item.href 
-                  ? 'bg-indigo-100 text-indigo-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-            >
-              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-              <span>{item.name}</span>
-              {renderBadge(item)}
-            </Link>
-          ))}
-        </>
-      );
-    } else {
-      // Regular user - just render base items
-      return baseNavigationItems.map((item) => (
-        <Link 
-          key={item.href}
-          href={item.disabled ? "#" : item.href}
-          className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-            pathname === item.href 
-              ? 'bg-indigo-100 text-indigo-700' 
-              : 'text-gray-700 hover:bg-gray-100'
-          } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-        >
-          {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-          <span>{item.name}</span>
-          {renderBadge(item)}
-        </Link>
-      ));
-    }
+            {/* User section for admins */}
+            <div className="mt-4 border-t pt-4">
+              <button 
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <div className="flex items-center gap-3">
+                  <UserIcon className="h-4 w-4" />
+                  <span>Usuario</span>
+                </div>
+                {userMenuOpen ? (
+                  <ChevronUpIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4" />
+                )}
+              </button>
+              
+              {userMenuOpen && (
+                <div className="pl-4 mt-1 space-y-1">
+                  {baseNavigationItems.map(item => (
+                    <Link 
+                      key={item.href}
+                      href={item.disabled ? "#" : item.href}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                        pathname === item.href 
+                          ? 'bg-indigo-100 text-indigo-700' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+                    >
+                      {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                      <span>{item.name}</span>
+                      {renderBadge(item)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        
+        {/* Manager items */}
+        {isManager && !isAdmin && (
+          <>
+            <div className="mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                Gestión
+              </h3>
+            </div>
+            {managerNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+            {/* Base items for managers */}
+            <div className="mt-4 border-t pt-4">
+              <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                Dashboard
+              </h3>
+            </div>
+            {baseNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+          </>
+        )}
+        
+        {/* Regular User Items */}
+        {!isAdmin && !isManager && (
+          <>
+            <div className="mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                Dashboard
+              </h3>
+            </div>
+            {baseNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+          </>
+        )}
+      </>
+    );
   };
 
   return (
@@ -451,7 +487,7 @@ export function DashboardSidebar() {
         <div className="flex flex-col bg-white border-r h-screen">
           {/* Sidebar header */}
           <div className="flex items-center border-b px-4">
-            <Link href={`/${locale}`} className="flex items-center">
+            <Link href={`/${params.locale}`} className="flex items-center">
               <Image 
                 src={logoUrl} 
                 alt="E-voque Logo" 
@@ -486,7 +522,7 @@ export function DashboardSidebar() {
                       variant="outline" 
                       size="sm" 
                       className="flex items-center justify-center gap-2"
-                      onClick={() => window.location.href = `/${locale}/admin/users`}
+                      onClick={() => window.location.href = `/${params.locale}/admin/users`}
                     >
                       <UserPlusIcon className="h-3 w-3" />
                       New User
@@ -495,7 +531,7 @@ export function DashboardSidebar() {
                       variant="outline" 
                       size="sm" 
                       className="flex items-center justify-center gap-2"
-                      onClick={() => window.location.href = `/${locale}/admin/notifications`}
+                      onClick={() => window.location.href = `/${params.locale}/admin/notifications`}
                     >
                       <BellIcon className="h-3 w-3" />
                       Message
@@ -540,7 +576,7 @@ export function DashboardSidebar() {
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
-                <span className="text-xs text-gray-500">{data?.me?.role}</span>
+                <span className="text-xs text-gray-500">{data?.me?.role?.name}</span>
               </div>
               <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
                 <LogOutIcon className="h-4 w-4" />
@@ -557,7 +593,7 @@ export function DashboardSidebar() {
           <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-lg">
             {/* Mobile sidebar header with close button */}
             <div className="flex items-center justify-between h-16 px-4 border-b">
-              <Link href={`/${locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
+              <Link href={`/${params.locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
                 <Image 
                   src={logoUrl} 
                   alt="E-voque Logo" 
@@ -584,6 +620,40 @@ export function DashboardSidebar() {
             {/* Mobile nav items */}
             <div className="flex-1 overflow-y-auto">
               <nav className="p-3 space-y-1">
+                {isAdmin && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                      Admin Tools
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 px-3 mb-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center justify-center gap-2"
+                        onClick={() => {
+                          window.location.href = `/${params.locale}/admin/users`;
+                          setIsOpen(false);
+                        }}
+                      >
+                        <UserPlusIcon className="h-3 w-3" />
+                        New User
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center justify-center gap-2"
+                        onClick={() => {
+                          window.location.href = `/${params.locale}/admin/notifications`;
+                          setIsOpen(false);
+                        }}
+                      >
+                        <BellIcon className="h-3 w-3" />
+                        Message
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="mb-6">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     External Links
@@ -617,7 +687,7 @@ export function DashboardSidebar() {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
-                  <span className="text-xs text-gray-500">{data?.me?.role}</span>
+                  <span className="text-xs text-gray-500">{data?.me?.role?.name}</span>
                 </div>
                 <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
                   <LogOutIcon className="h-4 w-4" />

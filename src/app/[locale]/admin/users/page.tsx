@@ -53,7 +53,11 @@ interface User {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+    description?: string;
+  };
   createdAt: string;
 }
 
@@ -66,7 +70,11 @@ const GET_USERS = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+        description
+      }
       createdAt
     }
   }
@@ -88,7 +96,11 @@ const CREATE_USER = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+        description
+      }
       createdAt
     }
   }
@@ -108,7 +120,11 @@ const UPDATE_USER = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+        description
+      }
       createdAt
     }
   }
@@ -198,13 +214,13 @@ export default function UserManagementPage() {
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Apply role filter
-    const roleMatch = !selectedRole || user.role === selectedRole;
+    const roleMatch = !selectedRole || user.role.name === selectedRole;
     
     return searchMatch && roleMatch;
   });
   
   // Get unique roles for filtering
-  const roles = [...new Set(users.map(user => user.role))];
+  const roles = [...new Set(users.map(user => user.role.name))];
   
   const handleRoleFilter = (role: string | null) => {
     setSelectedRole(role === selectedRole ? null : role);
@@ -311,7 +327,7 @@ export default function UserManagementPage() {
       email: user.email,
       phoneNumber: user.phoneNumber || '',
       password: '',
-      role: user.role
+      role: user.role.name
     });
     setIsEditUserOpen(true);
   };
@@ -442,8 +458,8 @@ export default function UserManagementPage() {
                               </TableCell>
                               <TableCell>{user.email}</TableCell>
                               <TableCell>
-                                <Badge className={getRoleBadgeColor(user.role)}>
-                                  {user.role}
+                                <Badge className={getRoleBadgeColor(user.role.name)}>
+                                  {user.role.name}
                                 </Badge>
                               </TableCell>
                               <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -610,7 +626,7 @@ export default function UserManagementPage() {
                   </TableHeader>
                   <TableBody>
                     {users
-                      .filter(user => user.role === 'ADMIN')
+                      .filter(user => user.role.name === 'ADMIN')
                       .map(user => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">
@@ -619,7 +635,7 @@ export default function UserManagementPage() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <Badge className="bg-red-100 text-red-800">
-                              {user.role}
+                              {user.role.name}
                             </Badge>
                           </TableCell>
                           <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -694,8 +710,8 @@ export default function UserManagementPage() {
                           </TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                            <Badge className={getRoleBadgeColor(user.role)}>
-                              {user.role}
+                            <Badge className={getRoleBadgeColor(user.role.name)}>
+                              {user.role.name}
                             </Badge>
                           </TableCell>
                           <TableCell>{formatDate(user.createdAt)}</TableCell>

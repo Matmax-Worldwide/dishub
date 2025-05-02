@@ -13,7 +13,11 @@ const GET_USER = gql`
       email
       firstName
       lastName
-      role
+      role {
+        id
+        name
+        description
+      }
     }
   }
 `;
@@ -32,7 +36,7 @@ export default function AdminLayout({
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       // Check if user is admin
-      if (data?.me?.role !== 'ADMIN') {
+      if (data?.me?.role?.name !== 'ADMIN') {
         console.log('User is not admin, redirecting to dashboard');
         router.push(`/${locale}/dashboard`);
       }
@@ -63,7 +67,7 @@ export default function AdminLayout({
   }
 
   // If we got here and user is not admin, we're still loading or redirecting
-  if (data?.me?.role !== 'ADMIN') {
+  if (data?.me?.role?.name !== 'ADMIN') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-2xl font-medium text-gray-700">Access restricted...</div>

@@ -15,7 +15,11 @@ const GET_USER_PROFILE = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+        description
+      }
       createdAt
       updatedAt
     }
@@ -29,7 +33,10 @@ const UPDATE_USER_PROFILE = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+      }
     }
   }
 `;
@@ -208,7 +215,11 @@ export default function ProfilePage() {
     firstName: '',
     lastName: '',
     email: '',
-    role: '',
+    role: {
+      id: '',
+      name: 'USER',
+      description: null
+    },
     phoneNumber: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -243,7 +254,7 @@ export default function ProfilePage() {
             <h2 className="text-xl font-semibold text-gray-800">
               {user.firstName} {user.lastName}
             </h2>
-            <p className="text-gray-600">{user.role}</p>
+            <p className="text-gray-600">{user.role?.name || 'USER'}</p>
             <p className="text-gray-500 text-sm mt-1">{user.email}</p>
             <p className="text-gray-500 text-sm mt-1">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
           </div>

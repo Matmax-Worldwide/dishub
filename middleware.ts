@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from './src/lib/auth'
 import { cookies } from 'next/headers'
+import { RoleName } from './src/hooks/usePermission'
 
 // Definir los locales soportados
 const locales = ['en', 'es']
-const defaultLocale = 'en'
+const defaultLocale = 'es'
+
+// Definir rutas protegidas con requisitos de roles
+const routePermissions: Record<string, { roles: RoleName[] }> = {
+  'admin': { roles: ['ADMIN'] },
+  'admin/users': { roles: ['ADMIN'] },
+  'admin/roles': { roles: ['ADMIN'] },
+  'dashboard/reports': { roles: ['ADMIN', 'MANAGER'] },
+  'dashboard/tasks': { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+  'dashboard/staff': { roles: ['ADMIN', 'MANAGER'] },
+  'dashboard/cms': { roles: ['ADMIN'] },
+}
 
 export async function middleware(request: NextRequest) {
   // Log the current path
@@ -40,16 +52,10 @@ export async function middleware(request: NextRequest) {
   console.log('Locale:', locale, 'Path without locale:', pathWithoutLocale);
 
   // Allow access to public routes without authentication
-  const publicRoutes = ['login', 'register', 'forgot-password', 'reset-password']
+  const publicRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'access-denied']
   if (publicRoutes.includes(pathWithoutLocale)) {
     console.log('Public route detected, allowing access without auth');
     return NextResponse.next()
-  }
-
-  // Dashboard route specifically - don't redirect to prevent loops
-  if (pathWithoutLocale === 'dashboard') {
-    console.log('Dashboard route detected - allowing access to prevent redirect loops');
-    return NextResponse.next();
   }
 
   // Get token from cookies
@@ -59,7 +65,7 @@ export async function middleware(request: NextRequest) {
   // If no token is present, redirect to login
   if (!token) {
     console.log('No token found, redirecting to login');
-    return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    return NextResponse.redirect(new URL(`/${locale}/login?callbackUrl=${encodeURIComponent(pathname)}`, request.url))
   }
 
   try {
@@ -67,24 +73,57 @@ export async function middleware(request: NextRequest) {
     console.log('Verifying token in middleware...');
     const decodedResult = await verifyToken(token);
     
-    // Skip token verification for dashboard to prevent loops
-    if (pathWithoutLocale === 'dashboard') {
-      console.log('Dashboard detected, skipping token validation');
-      return NextResponse.next();
-    }
-    
     if (!decodedResult) {
       console.log('Token verification failed, redirecting to login');
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
     }
     
+    // Extract role from payload
+    // Según el analizador de token, role puede ser un string o un objeto con name
+    let userRole = 'USER'; // Default role
+    if (decodedResult.role) {
+      if (typeof decodedResult.role === 'string') {
+        userRole = decodedResult.role;
+      } else if (typeof decodedResult.role === 'object' && 'name' in decodedResult.role) {
+        userRole = decodedResult.role.name as string;
+      }
+    }
+    
     // Convert payload to expected type
     const decoded = {
       userId: decodedResult.userId as string,
-      role: (decodedResult.role || 'USER') as string
+      role: userRole
     }
     
     console.log('Token verified successfully for user:', decoded.userId, 'with role:', decoded.role);
+
+    // Verificar permisos para rutas protegidas
+    const isProtectedRoute = Object.keys(routePermissions).some(route => 
+      pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`)
+    );
+
+    if (isProtectedRoute) {
+      console.log('Protected route detected, checking permissions');
+      
+      // Encontrar la configuración de permisos más específica para la ruta
+      let matchedRoute = '';
+      let matchedConfig = null;
+      
+      for (const route in routePermissions) {
+        if (pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`)) {
+          // Si esta ruta es más específica (más larga) que la anterior coincidencia, úsala
+          if (route.length > matchedRoute.length) {
+            matchedRoute = route;
+            matchedConfig = routePermissions[route];
+          }
+        }
+      }
+      
+      if (matchedConfig && !matchedConfig.roles.includes(decoded.role as RoleName)) {
+        console.log(`Access denied to ${pathWithoutLocale} for role ${decoded.role}`);
+        return NextResponse.redirect(new URL(`/${locale}/access-denied?from=${encodeURIComponent(pathname)}`, request.url));
+      }
+    }
 
     // Add user info to request headers for API routes
     if (pathWithoutLocale.startsWith('api/')) {
@@ -101,15 +140,8 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.next()
   } catch (error) {
-    // If token is invalid, log and allow request to proceed instead of redirecting
+    // If token is invalid, log and redirect to login
     console.error('Middleware token verification error:', error);
-    
-    // For dashboard specifically, always allow access even with token errors
-    if (pathWithoutLocale === 'dashboard') {
-      console.log('Allowing dashboard access despite token error');
-      return NextResponse.next();
-    }
-    
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
   }
 }

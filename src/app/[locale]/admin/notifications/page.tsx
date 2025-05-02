@@ -19,7 +19,11 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+    description?: string | null;
+  };
 }
 
 // GraphQL queries and mutations
@@ -30,7 +34,11 @@ const GET_USERS = gql`
       email
       firstName
       lastName
-      role
+      role {
+        id
+        name
+        description
+      }
     }
   }
 `;
@@ -111,7 +119,7 @@ export default function AdminNotificationsPage() {
 
   // Extract unique roles from users
   const uniqueRoles = usersData?.users 
-    ? [...new Set((usersData.users as User[]).map(user => user.role))]
+    ? [...new Set((usersData.users as User[]).map(user => user.role.name))]
     : [];
   
   const resetForm = () => {
@@ -162,7 +170,7 @@ export default function AdminNotificationsPage() {
         
         // Filter users by role
         targetUsers = (usersData.users as User[])
-          .filter(user => user.role === selectedRole)
+          .filter(user => user.role.name === selectedRole)
           .map(user => user.id);
           
         if (targetUsers.length === 0) {

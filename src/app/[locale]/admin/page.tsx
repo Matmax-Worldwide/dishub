@@ -19,7 +19,11 @@ const GET_USERS = gql`
       firstName
       lastName
       phoneNumber
-      role
+      role {
+        id
+        name
+        description
+      }
       createdAt
     }
   }

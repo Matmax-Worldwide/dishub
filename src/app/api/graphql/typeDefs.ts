@@ -1,14 +1,15 @@
 import { gql } from 'graphql-tag';
 
-const typeDefs = gql`
+export const typeDefs = gql`
   # User related types
   type User {
     id: ID!
     email: String!
-    firstName: String!
-    lastName: String!
+    firstName: String
+    lastName: String
     phoneNumber: String
-    role: String!
+    role: Role
+    isActive: Boolean
     createdAt: String
     updatedAt: String
     notifications: [Notification!]
@@ -30,6 +31,16 @@ const typeDefs = gql`
     name: String!
     description: String
     roles: [Role!]
+    createdAt: String
+    updatedAt: String
+  }
+
+  type RoleWithCounts {
+    id: ID!
+    name: String!
+    description: String
+    userCount: Int
+    permissionCount: Int
     createdAt: String
     updatedAt: String
   }
@@ -60,11 +71,14 @@ const typeDefs = gql`
   }
 
   input UpdateUserInput {
+    email: String
     firstName: String
     lastName: String
-    email: String
+    password: String
     phoneNumber: String
     role: String
+    roleId: ID
+    isActive: Boolean
   }
 
   input ProfileUpdateInput {
@@ -177,6 +191,13 @@ const typeDefs = gql`
 
   input CreateProjectInput {
     name: String!
+    description: String
+    status: ProjectStatus
+    clientId: ID
+  }
+
+  input UpdateProjectInput {
+    name: String
     description: String
     status: ProjectStatus
     clientId: ID
@@ -311,7 +332,7 @@ const typeDefs = gql`
     id: ID!
     userId: ID!
     user: User
-    type: NotificationType!
+    type: String!
     title: String!
     message: String!
     isRead: Boolean!
@@ -330,7 +351,7 @@ const typeDefs = gql`
 
   input CreateNotificationInput {
     userId: ID!
-    type: NotificationType!
+    type: String!
     title: String!
     message: String!
     relatedItemId: String
@@ -393,13 +414,55 @@ const typeDefs = gql`
     id: ID!
     name: String!
     url: String!
-    icon: String!
+    icon: String
     description: String
     isActive: Boolean!
-    order: Int!
-    createdBy: String
-    createdAt: String!
-    updatedAt: String!
+    order: Int
+    createdAt: String
+    updatedAt: String
+    createdBy: ID
+    accessControl: AccessControl
+  }
+
+  enum AccessControlType {
+    PUBLIC
+    ROLES
+    USERS
+    MIXED
+  }
+
+  type AccessControl {
+    type: AccessControlType!
+    allowedRoles: [String]
+    allowedUsers: [ID]
+    deniedUsers: [ID]
+  }
+
+  type LinkAccessStatus {
+    linkId: ID!
+    linkName: String!
+    hasAccess: Boolean!
+    accessType: AccessControlType
+    isInAllowedRoles: Boolean
+    isInAllowedUsers: Boolean
+    isInDeniedUsers: Boolean
+  }
+
+  input AccessControlInput {
+    type: AccessControlType!
+    allowedRoles: [String]
+    allowedUsers: [ID]
+    deniedUsers: [ID]
+  }
+
+  input ExternalLinkInput {
+    name: String!
+    url: String!
+    icon: String
+    description: String
+    isActive: Boolean
+    order: Int
+    accessControl: AccessControlInput
   }
 
   input CreateExternalLinkInput {
@@ -438,79 +501,95 @@ const typeDefs = gql`
     user: User!
   }
 
+  # Role and Permission input types
+  input RoleCreateInput {
+    name: String!
+    description: String
+  }
+
+  input PermissionInput {
+    name: String!
+    description: String
+    roleId: ID
+  }
+
+  # Root Query
   type Query {
     # User queries
     me: User
-    users: [User!]!
+    user(id: ID!): User
+    users: [User!]
     
-    # Role and Permission queries
+    # Role and permission queries
+    roles: [Role]
     role(id: ID!): Role
-    roles: [Role!]
-    rolesWithCounts: [RoleWithCounts!]
-    permissions: [Permission!]
-    rolePermissions(roleId: ID!): [Permission!]
+    rolesWithCounts: [RoleWithCounts]
+    permissions: [Permission]
+    rolePermissions(roleId: ID!): [Permission]
     
     # Contact form queries
-    contactFormSubmissions: [ContactFormSubmission!]!
+    contactFormSubmissions: [ContactFormSubmission!]
     
     # Dashboard queries
-    dashboardStats: DashboardStats!
-    documentsByStatus: [DocumentStatusCount!]!
-    timeEntriesByDay: [DailyTimeEntry!]!
-    tasksByStatus: [TaskStatusCount!]!
+    dashboardStats: DashboardStats
+    documentsByStatus: [DocumentStatusCount!]
+    timeEntriesByDay: [DailyTimeEntry!]
+    tasksByStatus: [TaskStatusCount!]
     
     # Document queries
-    documents: [Document!]!
+    documents: [Document!]
     document(id: ID!): Document
     documentStatusCounts: [DocumentStatusCount!]
     
     # Time entry queries
-    timeEntries: [TimeEntry!]!
+    timeEntries: [TimeEntry!]
     timeEntry(id: ID!): TimeEntry
     
     # Appointment queries
-    appointments: [Appointment!]!
+    appointments: [Appointment!]
     appointment(id: ID!): Appointment
-    upcomingAppointments(count: Int): [Appointment!]!
+    upcomingAppointments(count: Int): [Appointment!]
     
     # Task queries
-    tasks: [Task!]!
+    tasks: [Task!]
     task(id: ID!): Task
     
     # Project queries
-    projects: [Project!]!
+    projects: [Project!]
     project(id: ID!): Project
     
     # Client queries
-    clients: [Client!]!
+    clients: [Client!]
     client(id: ID!): Client
 
     # Performance queries
-    performances: [Performance!]!
+    performances: [Performance!]
     performance(id: ID!): Performance
     currentPerformance: Performance
     
     # Notification queries
-    notifications: [Notification!]!
+    notifications: [Notification!]
     notification(id: ID!): Notification
-    unreadNotificationsCount: Int!
-    allNotifications: [Notification!]!
+    unreadNotificationsCount: Int
+    allNotifications: [Notification!]
     
     # Settings queries
-    userSettings: UserSettings!
+    userSettings: UserSettings
     
     # Help queries
-    helpArticles: [HelpArticle!]!
+    helpArticles: [HelpArticle!]
     helpArticle(id: ID!): HelpArticle
-    helpArticlesByCategory(category: String!): [HelpArticle!]!
-    searchHelpArticles(query: String!): [HelpArticle!]!
+    helpArticlesByCategory(category: String!): [HelpArticle!]
+    searchHelpArticles(query: String!): [HelpArticle!]
 
     # External Link queries
-    externalLinks: [ExternalLink!]
+    externalLinks: [ExternalLink]
     externalLink(id: ID!): ExternalLink
-    activeExternalLinks: [ExternalLink!]
+    activeExternalLinks: [ExternalLink]
+    userLinkAccessStatus: [LinkAccessStatus]
   }
 
+  # Root Mutation
   type Mutation {
     # Auth mutations
     login(email: String!, password: String!): AuthPayload!
@@ -520,10 +599,10 @@ const typeDefs = gql`
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
     # User mutations
-    createUser(input: CreateUserInput!): User!
-    updateUser(id: ID!, input: UpdateUserInput!): User!
-    deleteUser(id: ID!): Boolean!
-    updateUserProfile(input: UpdateUserProfileInput!): User!
+    createUser(email: String!, password: String!, firstName: String, lastName: String, roleId: ID): User
+    updateUser(id: ID!, input: UpdateUserInput!): User
+    deleteUser(id: ID!): Boolean
+    updateUserProfile(input: UpdateUserProfileInput!): User
     
     # Document mutations
     createDocument(input: CreateDocumentInput!): Document!
@@ -558,9 +637,9 @@ const typeDefs = gql`
     # Notification mutations
     createNotification(input: CreateNotificationInput!): Notification!
     updateNotification(id: ID!, input: UpdateNotificationInput!): Notification!
-    markAllNotificationsAsRead: Boolean!
-    deleteNotification(id: ID!): Boolean!
-    deleteMultipleNotifications(ids: [ID!]!): Int!
+    markAllNotificationsAsRead: Boolean
+    deleteNotification(id: ID!): Boolean
+    deleteMultipleNotifications(ids: [ID!]!): Int
     
     # Settings mutations
     updateUserSettings(input: UpdateUserSettingsInput!): UserSettings!
@@ -571,48 +650,17 @@ const typeDefs = gql`
     deleteHelpArticle(id: ID!): Boolean!
 
     # External Link mutations
-    createExternalLink(input: CreateExternalLinkInput!): ExternalLink
-    updateExternalLink(id: ID!, input: UpdateExternalLinkInput!): ExternalLink
-    deleteExternalLink(id: ID!): Boolean!
-
+    createExternalLink(input: ExternalLinkInput!): ExternalLink
+    updateExternalLink(id: ID!, input: ExternalLinkInput!): ExternalLink
+    deleteExternalLink(id: ID!): Boolean
+    updateLinkAccess(id: ID!, accessControl: AccessControlInput!): ExternalLink
+    
     # Role and permission mutations
-    createRole(input: RoleCreateInput!): Role!
-    updateRole(id: ID!, input: RoleCreateInput!): Role!
-    deleteRole(id: ID!): Boolean!
-    createPermission(input: PermissionInput!): Permission!
-    assignPermissionToRole(roleId: ID!, permissionId: ID!): Permission!
-    removePermissionFromRole(roleId: ID!, permissionId: ID!): Boolean!
+    createRole(input: RoleCreateInput!): Role
+    updateRole(id: ID!, input: RoleCreateInput!): Role
+    deleteRole(id: ID!): Boolean
+    createPermission(input: PermissionInput!): Permission
+    assignPermissionToRole(roleId: ID!, permissionId: ID!): Permission
+    removePermissionFromRole(roleId: ID!, permissionId: ID!): Boolean
   }
-
-  input UpdateProjectInput {
-    name: String
-    description: String
-    status: ProjectStatus
-    clientId: ID
-  }
-
-  # Role and Permission input types
-  input RoleCreateInput {
-    name: String!
-    description: String
-  }
-
-  input PermissionInput {
-    name: String!
-    description: String
-    roleId: ID
-  }
-
-  # Role with counts type
-  type RoleWithCounts {
-    id: ID!
-    name: String!
-    description: String
-    userCount: Int!
-    permissionCount: Int!
-    createdAt: String
-    updatedAt: String
-  }
-`;
-
-export default typeDefs; 
+`; 
