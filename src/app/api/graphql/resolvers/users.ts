@@ -81,7 +81,7 @@ export const userResolvers = {
             firstName,
             lastName,
             phoneNumber,
-            role,
+            role: role as 'USER' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
           },
           select: {
             id: true,
@@ -166,7 +166,7 @@ export const userResolvers = {
             lastName: input.lastName,
             email: input.email,
             phoneNumber: input.phoneNumber,
-            role: input.role,
+            role: input.role as 'USER' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
           },
           select: {
             id: true,
