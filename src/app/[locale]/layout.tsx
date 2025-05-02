@@ -14,9 +14,7 @@ const locales = ['en', 'es'];
 
 interface RootLayoutProps {
   children: ReactNode;
-  params: {
-    locale: string;
-  };
+  params: Promise<{ locale: string }> | { locale: string };
 }
 
 export default async function RootLayout({

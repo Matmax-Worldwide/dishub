@@ -34,16 +34,9 @@ const authResolvers = {
         
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true, 
-            phoneNumber: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          include: {
+            role: true
+          }
         });
 
         if (!user) {
@@ -51,10 +44,16 @@ const authResolvers = {
           throw new Error('User not found');
         }
 
-        // Convert role to string for the response to avoid enum serialization issues
+        // Convert role to string for the response
         return {
-          ...user,
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
           role: user.role?.name || 'USER',
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
         };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
@@ -67,16 +66,8 @@ const authResolvers = {
     login: async (_parent: unknown, { email, password: inputPassword }: { email: string, password: string }) => {
       const user = await prisma.user.findUnique({ 
         where: { email },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          phoneNumber: true,
-          role: true,
-          password: true,
-          createdAt: true,
-          updatedAt: true,
+        include: {
+          role: true
         }
       });
       
@@ -90,9 +81,12 @@ const authResolvers = {
         throw new Error('Invalid password');
       }
       
+      // Get role name for the token payload
+      const roleName = user.role?.name || 'USER';
+      
       // Include role in the token payload
-      const token = jwt.sign({ userId: user.id, role: user.role?.name || 'USER' }, JWT_SECRET, { expiresIn: '7d' });
-      console.log('Generated JWT with role:', user.role?.name || 'USER');
+      const token = jwt.sign({ userId: user.id, role: roleName }, JWT_SECRET, { expiresIn: '7d' });
+      console.log('Generated JWT with role:', roleName);
       
       // Create a new object with just the fields we need (omitting password)
       const userResponse = {
@@ -101,7 +95,7 @@ const authResolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: user.role?.name || 'USER',
+        role: roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -129,6 +123,16 @@ const authResolvers = {
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
+      // Find USER role
+      const userRole = await prisma.roleModel.findFirst({
+        where: { name: 'USER' },
+      });
+      
+      if (!userRole) {
+        throw new Error('Default USER role not found');
+      }
+      
+      // Create user with role relationship
       const user = await prisma.user.create({
         data: {
           email,
@@ -138,26 +142,20 @@ const authResolvers = {
           phoneNumber,
           role: {
             connect: {
-              name: 'USER'
+              id: userRole.id
             }
-          },
+          }
         },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          phoneNumber: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
+        include: {
+          role: true
         }
       });
       
-      // Convert role to string
-      const roleAsString = user.role?.name || 'USER';
-      console.log('User registered:', email, 'with role:', roleAsString);
-      const token = jwt.sign({ userId: user.id, role: roleAsString }, JWT_SECRET, { expiresIn: '7d' });
+      // Get role name for token
+      const roleName = user.role?.name || 'USER';
+      console.log('User registered:', email, 'with role:', roleName);
+      
+      const token = jwt.sign({ userId: user.id, role: roleName }, JWT_SECRET, { expiresIn: '7d' });
       
       const userWithoutPassword = {
         id: user.id,
@@ -165,7 +163,7 @@ const authResolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleAsString,
+        role: roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -245,22 +243,21 @@ const authResolvers = {
         const updatedUser = await prisma.user.update({
           where: { id: decoded.userId },
           data: userData,
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
+          include: {
+            role: true
           }
         });
         
-        // Convert role to string for consistent serialization
+        // Get role name for response
         return {
-          ...updatedUser,
-          role: updatedUser.role?.name || 'USER'
+          id: updatedUser.id,
+          email: updatedUser.email, 
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          phoneNumber: updatedUser.phoneNumber,
+          role: updatedUser.role?.name || 'USER',
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt
         };
       } catch (error) {
         console.error('GraphQL resolver error:', error);
@@ -323,27 +320,26 @@ const authResolvers = {
           const updatedUser = await prisma.user.update({
             where: { id: decoded.userId },
             data: userData,
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              phoneNumber: true,
-              role: true,
-              bio: true,
-              position: true,
-              department: true,
-              createdAt: true,
-              updatedAt: true,
+            include: {
+              role: true
             }
           });
           
           console.log('User profile updated successfully');
           
-          // Convert role to string for consistent serialization
+          // Return user with role name
           return {
-            ...updatedUser,
-            role: updatedUser.role?.name || 'USER'
+            id: updatedUser.id,
+            email: updatedUser.email,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            phoneNumber: updatedUser.phoneNumber,
+            role: updatedUser.role?.name || 'USER',
+            bio: updatedUser.bio,
+            position: updatedUser.position,
+            department: updatedUser.department,
+            createdAt: updatedUser.createdAt,
+            updatedAt: updatedUser.updatedAt
           };
         } catch (tokenError) {
           console.error('Token validation error in updateUserProfile:', tokenError);
@@ -403,6 +399,7 @@ const resolvers = {
     ...settingsResolvers.Mutation,
     ...helpResolvers.Mutation,
     ...taskResolvers.Mutation,
+    ...projectResolvers.Mutation,
     ...externalLinksResolvers.Mutation,
   }
 };
