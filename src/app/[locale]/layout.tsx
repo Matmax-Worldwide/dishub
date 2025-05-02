@@ -1,4 +1,5 @@
 // src/app/[locale]/layout.tsx
+import '@/app/globals.css';
 import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getMessages } from '@/lib/getMessages';
@@ -31,7 +32,7 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
 
   return (
     <html lang={locale}>
-      <body>
+      <body className="bg-background text-foreground">
         <Providers locale={locale} messages={messages}>
           {children}
         </Providers>
