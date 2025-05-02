@@ -49,7 +49,25 @@ const typeDefs = gql`
     email: String!
   }
 
+  # User input types for CRUD operations
+  input CreateUserInput {
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    role: String!
+  }
+
   input UpdateUserInput {
+    firstName: String
+    lastName: String
+    email: String
+    phoneNumber: String
+    role: String
+  }
+
+  input ProfileUpdateInput {
     firstName: String
     lastName: String
     email: String
@@ -379,7 +397,7 @@ const typeDefs = gql`
     description: String
     isActive: Boolean!
     order: Int!
-    createdBy: String!
+    createdBy: String
     createdAt: String!
     updatedAt: String!
   }
@@ -500,7 +518,9 @@ const typeDefs = gql`
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
     # User mutations
-    updateUser(input: UpdateUserInput!): User!
+    createUser(input: CreateUserInput!): User!
+    updateUser(id: ID!, input: UpdateUserInput!): User!
+    deleteUser(id: ID!): Boolean!
     updateUserProfile(input: UpdateUserProfileInput!): User!
     
     # Document mutations

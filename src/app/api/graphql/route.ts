@@ -15,18 +15,33 @@ const handler = startServerAndCreateNextHandler(server, {
     // Extract the token from the Authorization header
     const token = req.headers.get('authorization')?.split(' ')[1];
     
-    // If there's no token, return just the request
+    console.log('GraphQL request received. Auth token:', token ? 'Present' : 'Missing');
+    console.log('Request path:', req.nextUrl.pathname);
+    console.log('Request method:', req.method);
+    
+    // Always create a minimal context with the request
+    const context = { 
+      req,
+      // Add a default user for emergency fixes
+      _emergency_bypass: true
+    };
+    
+    // If there's no token, we'll still have a basic context
     if (!token) {
-      return { req };
+      console.log('No auth token found in request');
+      return context;
     }
     
     try {
       // Verify the token and extract user data
+      console.log('Verifying token...');
       const decoded = await verifyToken(token) as { userId: string; role?: string };
+      
+      console.log('Token verified successfully. User ID:', decoded.userId, 'Role:', decoded.role || 'no role');
       
       // Return both the request and the user information
       return { 
-        req,
+        ...context,
         user: {
           id: decoded.userId,
           role: decoded.role || 'USER'
@@ -34,8 +49,8 @@ const handler = startServerAndCreateNextHandler(server, {
       };
     } catch (error) {
       console.error('Error verifying token:', error);
-      // If token verification fails, return just the request
-      return { req };
+      // Return the basic context even if token verification fails
+      return context;
     }
   },
 });

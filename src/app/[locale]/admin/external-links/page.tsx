@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import {
@@ -69,6 +69,12 @@ const CREATE_EXTERNAL_LINK = gql`
       id
       name
       url
+      icon
+      description
+      isActive
+      order
+      createdBy
+      createdAt
     }
   }
 `;
@@ -113,10 +119,62 @@ interface ExternalLinkType {
   updatedAt: string;
 }
 
+// Helper function to check the authentication token
+function checkAuthToken() {
+  if (typeof window !== 'undefined') {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('session-token='))
+      ?.split('=')[1];
+      
+    const token = cookieValue && cookieValue.trim();
+    console.log('Auth token check:', token ? `Found (${token.substring(0, 10)}...)` : 'Not found');
+    return token ? true : false;
+  }
+  return false;
+}
+
+// Check auth token and role
+function checkUserRole() {
+  if (typeof window !== 'undefined') {
+    try {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('session-token='))
+        ?.split('=')[1];
+      
+      if (!cookieValue) return null;
+      
+      // Decode JWT to check role (this doesn't validate signature, just reads payload)
+      const token = cookieValue.trim();
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const payload = JSON.parse(jsonPayload);
+      console.log('Token payload:', payload);
+      return payload.role;
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  }
+  return null;
+}
+
 export default function ExternalLinksPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState<ExternalLinkType | null>(null);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const hasAuthToken = checkAuthToken();
+    console.log('Component mounted, authentication token present:', hasAuthToken);
+  }, []);
 
   // GraphQL hooks
   const { data, loading, refetch } = useQuery(GET_EXTERNAL_LINKS, {
@@ -124,51 +182,143 @@ export default function ExternalLinksPage() {
     fetchPolicy: 'network-only',
   });
 
+  // Refresh data when dialogs close
+  useEffect(() => {
+    if (!isAddDialogOpen && !isEditDialogOpen && !isDeleteDialogOpen) {
+      console.log('Refreshing external links data');
+      refetch();
+    }
+  }, [isAddDialogOpen, isEditDialogOpen, isDeleteDialogOpen, refetch]);
+
   const [createExternalLink, { loading: createLoading }] = useMutation(CREATE_EXTERNAL_LINK, {
     client,
+    fetchPolicy: 'no-cache', // Ensure no caching
+    context: {
+      headers: {
+        // Include token in header for authentication
+        authorization: typeof window !== 'undefined' 
+          ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1]}` 
+          : '',
+      },
+    },
     onCompleted: (data) => {
+      console.log('Raw mutation response:', JSON.stringify(data));
+      
       if (data?.createExternalLink) {
+        console.log('External link created successfully:', data.createExternalLink);
         refetch();
         setIsAddDialogOpen(false);
         toast.success("External link created successfully");
+        form.reset(); // Reset the form
       } else {
-        // Handle null response
-        console.error("Failed to create external link - received null");
-        toast.error("Failed to create external link");
+        // Handle null response by clearly showing it in the UI
+        console.error("Failed to create external link - received null response");
+        console.error("Check your server logs for authentication or authorization issues");
+        console.error("Verify that the context user is being passed correctly to the resolver");
+        toast.error("Server returned null - check server logs");
       }
     },
     onError: (error) => {
-      toast.error(error.message);
+      // Enhanced error logging
+      console.error('GraphQL error creating external link:', error);
+      console.error('Network error details:', error.networkError);
+      console.error('GraphQL error details:', error.graphQLErrors);
+      
+      // More helpful error message
+      let errorMessage = "Failed to create external link";
+      if (error.graphQLErrors?.length > 0) {
+        errorMessage = `Error: ${error.graphQLErrors[0].message}`;
+        console.error('GraphQL error extensions:', error.graphQLErrors[0].extensions);
+      } else if (error.networkError) {
+        errorMessage = "Network error: Check your connection and try again";
+      }
+      
+      toast.error(errorMessage);
     },
   });
-
+  
   const [updateExternalLink, { loading: updateLoading }] = useMutation(UPDATE_EXTERNAL_LINK, {
     client,
+    fetchPolicy: 'no-cache', // Ensure no caching
+    context: {
+      headers: {
+        // Include token in header for authentication
+        authorization: typeof window !== 'undefined' 
+          ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1]}` 
+          : '',
+      },
+    },
     onCompleted: (data) => {
+      console.log('Update response:', JSON.stringify(data));
+      
       if (data?.updateExternalLink) {
+        console.log('External link updated successfully:', data.updateExternalLink);
         refetch();
         setIsEditDialogOpen(false);
-        setSelectedLink(null);
         toast.success("External link updated successfully");
+        form.reset(); // Reset the form
       } else {
-        // Handle null response
-        console.error("Failed to update external link - received null");
-        toast.error("Failed to update external link");
+        console.error("Failed to update external link - received null response");
+        toast.error("Server returned null - check server logs");
       }
     },
     onError: (error) => {
-      toast.error(error.message);
+      // Enhanced error logging
+      console.error('GraphQL error updating external link:', error);
+      console.error('Network error details:', error.networkError);
+      console.error('GraphQL error details:', error.graphQLErrors);
+      
+      // More helpful error message
+      let errorMessage = "Failed to update external link";
+      if (error.graphQLErrors?.length > 0) {
+        errorMessage = `Error: ${error.graphQLErrors[0].message}`;
+      } else if (error.networkError) {
+        errorMessage = "Network error: Check your connection and try again";
+      }
+      
+      toast.error(errorMessage);
     },
   });
 
   const [deleteExternalLink, { loading: deleteLoading }] = useMutation(DELETE_EXTERNAL_LINK, {
     client,
-    onCompleted: () => {
-      refetch();
-      toast.success("External link deleted successfully");
+    fetchPolicy: 'no-cache', // Ensure no caching
+    context: {
+      headers: {
+        // Include token in header for authentication
+        authorization: typeof window !== 'undefined' 
+          ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1]}` 
+          : '',
+      },
+    },
+    onCompleted: (data) => {
+      console.log('Delete response:', JSON.stringify(data));
+      
+      if (data?.deleteExternalLink) {
+        console.log('External link deleted successfully:', data.deleteExternalLink);
+        refetch();
+        setIsDeleteDialogOpen(false);
+        toast.success("External link deleted successfully");
+      } else {
+        console.error("Failed to delete external link - received null response");
+        toast.error("Server returned null - check server logs");
+      }
     },
     onError: (error) => {
-      toast.error(error.message);
+      // Enhanced error logging
+      console.error('GraphQL error deleting external link:', error);
+      console.error('Network error details:', error.networkError);
+      console.error('GraphQL error details:', error.graphQLErrors);
+      
+      // More helpful error message
+      let errorMessage = "Failed to delete external link";
+      if (error.graphQLErrors?.length > 0) {
+        errorMessage = `Error: ${error.graphQLErrors[0].message}`;
+      } else if (error.networkError) {
+        errorMessage = "Network error: Check your connection and try again";
+      }
+      
+      toast.error(errorMessage);
     },
   });
 
@@ -199,10 +349,40 @@ export default function ExternalLinksPage() {
 
   // Handlers
   const handleAddSubmit = (values: FormValues) => {
+    // Check if we have a token before submitting
+    if (!checkAuthToken()) {
+      console.error('No authentication token found when attempting to create external link');
+      toast.error('Authentication error: Please log in again');
+      return;
+    }
+    
+    // Check user role
+    const role = checkUserRole();
+    console.log('Current user role:', role);
+    
+    if (role !== 'ADMIN') {
+      console.error(`Authorization error: User role is ${role}, not ADMIN`);
+      toast.error('Permission denied: You need ADMIN role to create external links');
+      return;
+    }
+    
+    // Prepare the input object exactly as GraphQL expects
+    const inputData = {
+      name: values.name,
+      url: values.url,
+      icon: values.icon,
+      description: values.description || "",
+      isActive: values.isActive,
+      order: values.order
+    };
+    
+    console.log('Submitting external link with exact input:', JSON.stringify(inputData));
+    
+    // Call the mutation with correctly formatted values
     createExternalLink({
       variables: {
-        input: values,
-      },
+        input: inputData
+      }
     });
   };
 
@@ -217,14 +397,19 @@ export default function ExternalLinksPage() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this external link?")) {
-      deleteExternalLink({
-        variables: {
-          id,
-        },
-      });
-    }
+  const handleDelete = (link: ExternalLinkType) => {
+    setSelectedLink(link);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!selectedLink) return;
+    
+    deleteExternalLink({
+      variables: {
+        id: selectedLink.id
+      }
+    });
   };
 
   const handleEdit = (link: ExternalLinkType) => {
@@ -261,7 +446,13 @@ export default function ExternalLinksPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">External Links Management</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) {
+            // Reset the form when dialog is closed
+            form.reset();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
@@ -448,7 +639,7 @@ export default function ExternalLinksPage() {
                           <Button 
                             variant="destructive" 
                             size="icon" 
-                            onClick={() => handleDelete(link.id)}
+                            onClick={() => handleDelete(link)}
                             disabled={deleteLoading}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -471,7 +662,13 @@ export default function ExternalLinksPage() {
       </Card>
       
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          // Reset the form when dialog is closed
+          editForm.reset();
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit External Link</DialogTitle>
@@ -595,6 +792,24 @@ export default function ExternalLinksPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{selectedLink?.name}&rdquo;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

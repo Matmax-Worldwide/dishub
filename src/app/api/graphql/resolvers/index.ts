@@ -13,7 +13,7 @@ import { settingsResolvers } from './settings';
 import { helpResolvers } from './help';
 import { taskResolvers } from './tasks';
 import { projectResolvers } from './projects';
-import { resolvers as externalLinksResolvers } from './externalLinks';
+import externalLinksResolvers from './externalLinks';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -402,5 +402,22 @@ const resolvers = {
     ...externalLinksResolvers.Mutation,
   }
 };
+
+// Check if the external links resolver exists
+console.log('External links resolver check:', {
+  hasResolvers: Boolean(externalLinksResolvers),
+  hasMutation: Boolean(externalLinksResolvers?.Mutation),
+  hasCreateFn: Boolean(externalLinksResolvers?.Mutation?.createExternalLink)
+});
+
+// EMERGENCY FIX: Double-check the mutation is included
+try {
+  if (resolvers.Mutation && typeof resolvers.Mutation.createExternalLink !== 'function') {
+    console.log('WARNING: createExternalLink resolver missing, adding directly');
+    resolvers.Mutation.createExternalLink = externalLinksResolvers.Mutation.createExternalLink;
+  }
+} catch (e) {
+  console.error('Error adding resolver directly:', e);
+}
 
 export default resolvers; 

@@ -52,6 +52,9 @@ const authLink = setContext((_, { headers }) => {
     if (token) {
       console.log('Token length:', token.length);
       console.log('Token first 10 chars:', token.substring(0, 10) + '...');
+    } else {
+      console.warn('No authentication token found. Requests requiring authentication will fail.');
+      console.log('Available cookies:', document.cookie);
     }
 
     // Return the headers to the context so httpLink can read them

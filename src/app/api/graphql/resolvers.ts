@@ -16,7 +16,8 @@ import { timeEntryResolvers } from './resolvers/timeEntries';
 import { taskResolvers } from './resolvers/tasks';
 import { projectResolvers } from './resolvers/projects';
 import { contactResolvers } from './resolvers/contact';
-
+import { externalLinksResolvers } from './resolvers/externalLinks';
+import { userResolvers } from './resolvers/users';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Helper function to ensure system permissions exist
@@ -287,6 +288,8 @@ const resolvers = {
     ...((taskResolvers.Query as object) || {}),
     ...((projectResolvers.Query as object) || {}),
     ...((contactResolvers.Query as object) || {}),
+    ...((externalLinksResolvers.Query as object) || {}),
+    ...((userResolvers.Query as object) || {}),
     
     // Add explicit fallback for projects query to ensure it exists
     projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -418,6 +421,7 @@ const resolvers = {
       };
     },
 
+  
     // Include other Mutation resolvers - using type assertion for safety
     ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),
     ...('Mutation' in dashboardResolvers ? (dashboardResolvers.Mutation as object) : {}),
@@ -430,6 +434,8 @@ const resolvers = {
     ...('Mutation' in taskResolvers ? (taskResolvers.Mutation as object) : {}),
     ...('Mutation' in projectResolvers ? (projectResolvers.Mutation as object) : {}),
     ...('Mutation' in contactResolvers ? (contactResolvers.Mutation as object) : {}),
+    ...('Mutation' in externalLinksResolvers ? (externalLinksResolvers.Mutation as object) : {}),
+    ...('Mutation' in userResolvers ? (userResolvers.Mutation as object) : {}),
   },
 };
 
