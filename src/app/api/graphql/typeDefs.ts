@@ -608,6 +608,7 @@ export const typeDefs = gql`
     externalLinks: [ExternalLink]
     externalLink(id: ID!): ExternalLink
     activeExternalLinks: [ExternalLink]
+    activeExternalLinksAs(roleId: String!): [ExternalLink]
     userLinkAccessStatus: [LinkAccessStatus]
 
     # Permisos específicos de usuario

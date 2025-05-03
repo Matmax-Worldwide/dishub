@@ -76,6 +76,7 @@ const GET_ACTIVE_EXTERNAL_LINKS = gql`
   }
 `;
 
+
 const GET_ALL_ROLES = gql`
   query GetAllRoles {
     roles {
@@ -354,12 +355,12 @@ export function DashboardSidebar() {
       icon: UsersIcon,
       permissions: ['staff:view', 'staff:manage']
     },
-    {
-      name: t('sidebar.approveRequests'),
-      href: `/${params.locale}/manager/approvals`,
-      icon: ClipboardListIcon,
-      permissions: ['approvals:manage']
-    },
+    // {
+    //   name: t('sidebar.approveRequests'),
+    //   href: `/${params.locale}/manager/approvals`,
+    //   icon: ClipboardListIcon,
+    //   permissions: ['approvals:manage']
+    // },
     
   ];
 
@@ -466,7 +467,63 @@ export function DashboardSidebar() {
     console.log('Processing', externalLinksData.activeExternalLinks.length, 'external links');
     
     try {
-      // Si el usuario es admin y no está simulando un rol, mostrar todos los enlaces
+      // Si el usuario es admin y está simulando un rol, filtrar enlaces según el rol simulado
+      if (isAdmin && selectedRole) {
+        console.log(`Admin user simulating role ${selectedRole}`);
+        
+        // Buscar el ID del rol seleccionado para filtrar
+        const selectedRoleObj = sortedRoles.find(r => r.name === selectedRole);
+        if (!selectedRoleObj) {
+          console.warn(`Selected role ${selectedRole} not found in available roles`);
+        }
+        
+        return externalLinksData.activeExternalLinks
+          .filter((link: ExternalLinkType) => {
+            if (!link || typeof link !== 'object') {
+              console.warn('Invalid link object:', link);
+              return false;
+            }
+            
+            // Mostrar siempre enlaces públicos
+            if (link.accessType === 'PUBLIC') {
+              return true;
+            }
+            
+            // Para enlaces basados en roles, verificar si el rol simulado tiene acceso
+            if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
+              // Para enlaces de tipo ROLES, verificar si el rol simulado está permitido
+              const hasRoleAccess = Array.isArray(link.allowedRoles) && 
+                                  link.allowedRoles.some(roleId => {
+                                    // Buscar el rol por ID
+                                    const allowedRole = sortedRoles.find(r => r.id === roleId);
+                                    // Verificar si coincide con el rol simulado
+                                    return allowedRole && allowedRole.name === selectedRole;
+                                  });
+              
+              if (hasRoleAccess) {
+                console.log(`Link ${link.name} allowed for simulated role ${selectedRole}`);
+                return true;
+              }
+              
+              // Si es solo ROLES y no tiene acceso, rechazar
+              if (link.accessType === 'ROLES') {
+                return false;
+              }
+            }
+            
+            // Para MIXED o USERS, verificar también el usuario (que en este caso es irrelevante porque estamos simulando un rol)
+            return false;
+          })
+          .map((link: ExternalLinkType): NavItem => ({
+            name: link.name || 'Unnamed Link',
+            href: link.url || '#',
+            icon: getIconComponent(link.icon || 'LinkIcon'),
+            accessType: link.accessType || 'PUBLIC',
+            allowedRoles: Array.isArray(link.allowedRoles) ? link.allowedRoles : [],
+          }));
+      }
+      
+      // Si el usuario es admin sin simulación, mostrar todos los enlaces
       if (isAdmin && !selectedRole) {
         console.log('Admin user without role simulation - showing ALL links');
         return externalLinksData.activeExternalLinks.map((link: ExternalLinkType): NavItem => ({
@@ -478,65 +535,56 @@ export function DashboardSidebar() {
         }));
       }
       
-      // Para todos los demás casos, incluida la simulación de roles por admin
-      return externalLinksData.activeExternalLinks.filter((link: ExternalLinkType) => {
-        // Verificar que el enlace tenga todas las propiedades necesarias
-        if (!link || typeof link !== 'object') {
-          console.warn('Invalid link object:', link);
-          return false;
-        }
-        
-        console.log(`Filtering link: ${link.name}, accessType: ${link.accessType}, allowedRoles:`, link.allowedRoles);
-        
-        // Mostrar siempre enlaces públicos
-        if (link.accessType === 'PUBLIC') {
-          console.log(`Link ${link.name} is PUBLIC - showing`);
-          return true;
-        }
-        
-        // Para enlaces basados en roles
-        if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
-          const currentRoleToCheck = effectiveRole || data?.me?.role?.name;
-          console.log(`Checking role-based access for ${link.name}, current role: ${currentRoleToCheck}`);
-          
-          if (!currentRoleToCheck) {
-            console.warn('No role available to check against - denying access');
+      // Para usuarios normales (no admin, o cuando no hay simulación)
+      return externalLinksData.activeExternalLinks
+        .filter((link: ExternalLinkType) => {
+          if (!link || typeof link !== 'object') {
+            console.warn('Invalid link object:', link);
             return false;
           }
           
-          // Verificar si el rol actual está en la lista de roles permitidos
-          // Importante: los allowedRoles contienen los nombres de los roles, no los IDs
-          const hasRoleAccess = Array.isArray(link.allowedRoles) && link.allowedRoles.includes(currentRoleToCheck);
-          console.log(`Role check result for ${link.name}: ${hasRoleAccess ? 'ALLOWED' : 'DENIED'}`);
-          
-          if (hasRoleAccess) {
+          // Mostrar siempre enlaces públicos
+          if (link.accessType === 'PUBLIC') {
             return true;
           }
           
-          // Si es solo ROLES y no tiene acceso, rechazar
-          if (link.accessType === 'ROLES') {
-            return false;
+          // Para enlaces basados en roles
+          if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
+            const userRoleId = data?.me?.role?.id;
+            
+            if (!userRoleId) {
+              console.warn('No user role ID available - denying access');
+              return false;
+            }
+            
+            // Verificar si el rol actual está en la lista de roles permitidos
+            const hasRoleAccess = Array.isArray(link.allowedRoles) && link.allowedRoles.includes(userRoleId);
+            
+            if (hasRoleAccess) {
+              return true;
+            }
+            
+            // Si es solo ROLES y no tiene acceso, rechazar
+            if (link.accessType === 'ROLES') {
+              return false;
+            }
           }
-        }
-        
-        // Para enlaces basados en usuarios (USER o MIXED)
-        // Los enlaces con accessType USER o MIXED deberían ya venir filtrados correctamente del servidor
-        if (link.accessType === 'USERS' || link.accessType === 'MIXED') {
-          console.log(`Link ${link.name} has USER permissions - server should have filtered`);
-          return true;
-        }
-        
-        return false;
-      }).map((link: ExternalLinkType): NavItem => {
-        console.log('Mapping passed link to NavItem:', link.name);
-        return {
+          
+          // Para enlaces basados en usuarios (USER o MIXED)
+          if (link.accessType === 'USERS' || link.accessType === 'MIXED') {
+            const userId = data?.me?.id;
+            return userId && Array.isArray(link.allowedUsers) && link.allowedUsers.includes(userId);
+          }
+          
+          return false;
+        })
+        .map((link: ExternalLinkType): NavItem => ({
           name: link.name || 'Unnamed Link',
           href: link.url || '#',
           icon: getIconComponent(link.icon || 'LinkIcon'),
           accessType: link.accessType || 'PUBLIC',
           allowedRoles: Array.isArray(link.allowedRoles) ? link.allowedRoles : [],
-        };
-      });
+        }));
     } catch (error) {
       console.error('Error processing external links:', error);
       return [];
@@ -1034,17 +1082,7 @@ export function DashboardSidebar() {
                       >
                         <item.icon className="h-4 w-4" />
                         <span>{item.name}</span>
-                        {item.accessType === 'ROLES' && (
-                          <span className="ml-auto px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap">
-                            {isAdmin && !selectedRole ? 'All Roles' : (
-                              Array.isArray(item.allowedRoles) && item.allowedRoles.length === 1 
-                                ? translateRole(item.allowedRoles[0])
-                                : Array.isArray(item.allowedRoles) 
-                                  ? item.allowedRoles.map(role => translateRole(role)).join(', ')
-                                  : 'Roles'
-                            )}
-                          </span>
-                        )}
+                       
                       </a>
                     ))}
                     {isAdmin && !selectedRole && (
@@ -1370,17 +1408,7 @@ export function DashboardSidebar() {
                         >
                           <item.icon className="h-4 w-4" />
                           <span>{item.name}</span>
-                          {item.accessType === 'ROLES' && (
-                            <span className="ml-auto px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded whitespace-nowrap">
-                              {isAdmin && !selectedRole ? 'All Roles' : (
-                                Array.isArray(item.allowedRoles) && item.allowedRoles.length === 1 
-                                  ? translateRole(item.allowedRoles[0])
-                                  : Array.isArray(item.allowedRoles) 
-                                    ? item.allowedRoles.map(role => translateRole(role)).join(', ')
-                                    : 'Roles'
-                              )}
-                            </span>
-                          )}
+                          
                         </a>
                       ))}
                       {isAdmin && !selectedRole && (

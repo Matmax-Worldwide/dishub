@@ -43,6 +43,11 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
   if (!link) return false;
   if (!userId) return link.accessType === 'PUBLIC';
   
+  // Si el usuario es ADMIN, tiene acceso a todos los enlaces
+  if (userRole === 'ADMIN') {
+    return true;
+  }
+  
   // Si el enlace es público, todos tienen acceso
   if (link.accessType === 'PUBLIC') {
     return true;
@@ -56,8 +61,25 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
 
   // Control basado en roles
   if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
-    if (link.allowedRoles && Array.isArray(link.allowedRoles) && link.allowedRoles.includes(userRole)) {
-      return true;
+    try {
+      // Obtener el ID del rol del usuario si se proporcionó el nombre del rol
+      let userRoleId = userRole;
+      
+      // Si userRole no parece ser un ID (no tiene formato CUID), buscar el rol por nombre
+      if (!userRole.startsWith('cm')) {
+        const role = await prisma.roleModel.findFirst({
+          where: { name: userRole }
+        });
+        if (role) {
+          userRoleId = role.id;
+        }
+      }
+      
+      if (link.allowedRoles && Array.isArray(link.allowedRoles) && link.allowedRoles.includes(userRoleId)) {
+        return true;
+      }
+    } catch (error) {
+      console.error("Error al verificar rol:", error);
     }
     
     // Si es solo basado en roles y el rol no está permitido, no hay acceso
@@ -227,6 +249,17 @@ export const externalLinksResolvers = {
           userRole = context.user.role.name;
         }
         
+        // Obtener el ID del rol si es un nombre
+        let userRoleId = userRole;
+        if (!userRole.startsWith('cm')) {
+          const role = await prisma.roleModel.findFirst({
+            where: { name: userRole }
+          });
+          if (role) {
+            userRoleId = role.id;
+          }
+        }
+        
         const allLinks = await prisma.externalLink.findMany();
         
         const accessStatusPromises = allLinks.map(async (link) => {
@@ -236,7 +269,7 @@ export const externalLinksResolvers = {
             linkName: link.name,
             hasAccess,
             accessType: link.accessType,
-            isInAllowedRoles: link.allowedRoles?.includes(userRole) || false,
+            isInAllowedRoles: link.allowedRoles?.includes(userRoleId) || false,
             isInAllowedUsers: link.allowedUsers?.includes(userId) || false,
             isInDeniedUsers: link.deniedUsers?.includes(userId) || false
           };
@@ -249,7 +282,122 @@ export const externalLinksResolvers = {
           extensions: { code: 'INTERNAL_SERVER_ERROR', error }
         });
       }
-    }
+    },
+
+    // Nueva consulta para obtener enlaces activos simulando un rol específico
+    activeExternalLinksAs: async (_: unknown, { roleId }: { roleId: string }, context: Context) => {
+      console.log('RESOLVER: activeExternalLinksAs called with roleId:', roleId);
+      try {
+        // Verificar que el usuario sea administrador
+        if (!context.user) {
+          throw new GraphQLError('You must be logged in to use this feature', {
+            extensions: { code: 'UNAUTHENTICATED' }
+          });
+        }
+        
+        // Verificar que el usuario sea ADMIN
+        const userRole = typeof context.user.role === 'string' 
+          ? context.user.role 
+          : context.user.role?.name || '';
+          
+        if (userRole !== 'ADMIN') {
+          throw new GraphQLError('You must be an admin to use this feature', {
+            extensions: { code: 'FORBIDDEN' }
+          });
+        }
+        
+        // Obtener información del rol a simular
+        let roleToSimulate = roleId;
+        let roleName = '';
+        
+        // Si es un ID de rol, obtener su nombre
+        if (roleId.startsWith('cm')) {
+          const role = await prisma.roleModel.findUnique({
+            where: { id: roleId }
+          });
+          
+          if (!role) {
+            throw new GraphQLError('Role not found', {
+              extensions: { code: 'NOT_FOUND' }
+            });
+          }
+          
+          roleName = role.name;
+        } else {
+          // Si es un nombre de rol, buscar su ID
+          const role = await prisma.roleModel.findFirst({
+            where: { name: roleId }
+          });
+          
+          if (!role) {
+            throw new GraphQLError('Role not found', {
+              extensions: { code: 'NOT_FOUND' }
+            });
+          }
+          
+          roleToSimulate = role.id;
+          roleName = role.name;
+        }
+        
+        console.log(`RESOLVER: Simulating view as role ${roleName} (${roleToSimulate})`);
+        
+        // Obtener todos los enlaces activos
+        const allActiveLinks = await prisma.externalLink.findMany({
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        });
+        
+        console.log('RESOLVER: Found', allActiveLinks.length, 'active links');
+        
+        // Filtrar enlaces según el acceso del rol simulado
+        const userId = context.user.id; // Mantener el mismo usuario pero cambiar el rol
+        
+        const accessibleLinks = await Promise.all(
+          allActiveLinks.map(async (link) => {
+            // Para el propósito de simulación, no damos acceso automático al admin
+            // sino que evaluamos como si fuera el rol especificado
+            let hasAccess = false;
+            
+            // Verificar acceso basado en el tipo
+            if (link.accessType === 'PUBLIC') {
+              hasAccess = true;
+            } else if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
+              if (link.allowedRoles && Array.isArray(link.allowedRoles) && link.allowedRoles.includes(roleToSimulate)) {
+                hasAccess = true;
+              } else if (link.accessType === 'MIXED' && link.allowedUsers && Array.isArray(link.allowedUsers) && link.allowedUsers.includes(userId)) {
+                hasAccess = true;
+              }
+            } else if (link.accessType === 'USERS') {
+              if (link.allowedUsers && Array.isArray(link.allowedUsers) && link.allowedUsers.includes(userId)) {
+                hasAccess = true;
+              }
+            }
+            
+            // Verificar denegación explícita
+            if (link.deniedUsers && Array.isArray(link.deniedUsers) && link.deniedUsers.includes(userId)) {
+              hasAccess = false;
+            }
+            
+            console.log(`RESOLVER: Link ${link.name}, accessType ${link.accessType}, hasAccess: ${hasAccess}`);
+            return hasAccess ? link : null;
+          })
+        );
+        
+        // Filtrar los nulos y devolver los enlaces accesibles
+        const filteredLinks = accessibleLinks.filter(link => link !== null);
+        console.log('RESOLVER: Returning', filteredLinks.length, 'accessible links for simulated role');
+        return filteredLinks;
+      } catch (error) {
+        console.error('RESOLVER: Error simulating external links access:', error);
+        throw new GraphQLError('Failed to simulate links access', {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', error }
+        });
+      }
+    },
   },
   
   Mutation: {
@@ -331,13 +479,45 @@ export const externalLinksResolvers = {
         
         if (input.accessControl) {
           updateData.accessType = input.accessControl.type;
-          updateData.allowedRoles = input.accessControl.allowedRoles || [];
+          
+          // Procesar allowedRoles para asegurar que son IDs válidos
+          if (input.accessControl.allowedRoles && Array.isArray(input.accessControl.allowedRoles)) {
+            const processedRoles = [];
+            
+            for (const roleIdentifier of input.accessControl.allowedRoles) {
+              // Si el identificador ya parece un ID (empieza con 'cm'), usarlo directamente
+              if (roleIdentifier.startsWith('cm')) {
+                processedRoles.push(roleIdentifier);
+              } else {
+                // Si es un nombre de rol, buscar su ID
+                try {
+                  const role = await prisma.roleModel.findFirst({
+                    where: { name: roleIdentifier }
+                  });
+                  if (role) {
+                    processedRoles.push(role.id);
+                  } else {
+                    console.warn(`Rol no encontrado: ${roleIdentifier}`);
+                  }
+                } catch (error) {
+                  console.error(`Error al buscar rol ${roleIdentifier}:`, error);
+                }
+              }
+            }
+            
+            updateData.allowedRoles = processedRoles;
+          } else {
+            updateData.allowedRoles = [];
+          }
+          
           updateData.allowedUsers = input.accessControl.allowedUsers || [];
           updateData.deniedUsers = input.accessControl.deniedUsers || [];
           
           // Eliminar el campo accessControl para no confundir a Prisma
           delete updateData.accessControl;
         }
+        
+        console.log('Actualizando enlace con datos:', JSON.stringify(updateData));
         
         const result = await prisma.externalLink.update({
           where: {
@@ -377,12 +557,40 @@ export const externalLinksResolvers = {
           });
         }
         
+        // Procesar allowedRoles para asegurar que son IDs válidos
+        const processedAllowedRoles = [];
+        
+        if (accessControl.allowedRoles && Array.isArray(accessControl.allowedRoles)) {
+          for (const roleIdentifier of accessControl.allowedRoles) {
+            // Si el identificador ya parece un ID (empieza con 'cm'), usarlo directamente
+            if (roleIdentifier.startsWith('cm')) {
+              processedAllowedRoles.push(roleIdentifier);
+            } else {
+              // Si es un nombre de rol, buscar su ID
+              try {
+                const role = await prisma.roleModel.findFirst({
+                  where: { name: roleIdentifier }
+                });
+                if (role) {
+                  processedAllowedRoles.push(role.id);
+                } else {
+                  console.warn(`Rol no encontrado: ${roleIdentifier}`);
+                }
+              } catch (error) {
+                console.error(`Error al buscar rol ${roleIdentifier}:`, error);
+              }
+            }
+          }
+        }
+        
+        console.log('Actualizando acceso de enlace con roles procesados:', processedAllowedRoles);
+        
         // Actualizar solo los campos de control de acceso
         const result = await prisma.externalLink.update({
           where: { id },
           data: {
             accessType: accessControl.type,
-            allowedRoles: accessControl.allowedRoles || [],
+            allowedRoles: processedAllowedRoles,
             allowedUsers: accessControl.allowedUsers || [],
             deniedUsers: accessControl.deniedUsers || [],
           }
