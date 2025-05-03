@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import PermissionGuard from '@/components/PermissionGuard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ShieldIcon, ArrowLeftIcon } from 'lucide-react';
@@ -26,7 +25,7 @@ const GET_USER = gql`
   }
 `;
 
-export default function AdminLayout({
+export default function ManagerLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -50,7 +49,6 @@ export default function AdminLayout({
       setIsLoading(false);
     },
     onError: (error) => {
-      // Redirect to login on error
       console.error('Authentication error:', error);
       router.push(`/${locale}/login`);
     }
@@ -81,11 +79,11 @@ export default function AdminLayout({
           <ShieldIcon className="h-5 w-5 mr-2" />
           <AlertTitle>Acceso denegado</AlertTitle>
           <AlertDescription>
-            No tienes los permisos necesarios para acceder a esta sección.
+            No tienes permisos de gestión para acceder a esta sección.
           </AlertDescription>
         </Alert>
         <p className="text-gray-600 mb-6">
-          Esta área está reservada para usuarios con permisos de administración. 
+          Esta área está reservada para gerentes y administradores. 
           Si crees que deberías tener acceso, contacta al administrador del sistema.
         </p>
         <Button 
@@ -99,63 +97,24 @@ export default function AdminLayout({
     </div>
   );
 
-  return (
-    <>
-      {/* Debug information */}
-        {/* {process.env.NODE_ENV !== 'production' && userData?.me && (
-          <div className="fixed top-2 right-2 z-50 p-4 bg-black bg-opacity-80 text-white rounded-lg max-w-md text-xs">
-            <h4 className="font-bold mb-1">Debug Info:</h4>
-            <p>User: {userData.me.firstName} {userData.me.lastName}</p>
-            <p>Email: {userData.me.email}</p>
-            <p>Role: {userData.me.role?.name || 'No role'}</p>
-            <p>Role ID: {userData.me.role?.id || 'No role ID'}</p>
-            <button 
-              onClick={() => router.push(`/${locale}/dashboard`)}
-              className="mt-2 px-2 py-1 bg-blue-500 text-white rounded text-xs"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        )} */}
+  // Verificación directa del rol para mayor compatibilidad
+  const isManager = userData?.me?.role?.name === 'MANAGER';
+  const isAdmin = userData?.me?.role?.name === 'ADMIN';
 
-      {/* Solución temporal: Optar por no usar PermissionGuard para administradores */}
-      {userData?.me?.role?.name === 'ADMIN' ? (
-        <div className="flex min-h-screen bg-gray-50">
-          <DashboardSidebar />
-          <div className="lg:pl-64 flex flex-col flex-1">
-            {process.env.NODE_ENV !== 'production' && (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-                <p className="font-bold">Administrador verificado directamente</p>
-                <p className="text-sm">
-                  Estás accediendo con rol de administrador. Verificación de permisos omitida temporalmente.
-                </p>
-              </div>
-            )}
-            <main className="flex-1">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                {children}
-              </div>
-            </main>
+  if (!isManager && !isAdmin) {
+    return <AccessDenied />;
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <DashboardSidebar />
+      <div className="lg:pl-64 flex flex-col flex-1">
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {children}
           </div>
-        </div>
-      ) : (
-        <PermissionGuard
-          permissions={['admin:view']}
-          role="ADMIN"
-          fallback={<AccessDenied />}
-        >
-          <div className="flex min-h-screen bg-gray-50">
-            <DashboardSidebar />
-            <div className="lg:pl-64 flex flex-col flex-1">
-              <main className="flex-1">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                  {children}
-                </div>
-              </main>
-            </div>
-          </div>
-        </PermissionGuard>
-      )}
-    </>
+        </main>
+      </div>
+    </div>
   );
 } 

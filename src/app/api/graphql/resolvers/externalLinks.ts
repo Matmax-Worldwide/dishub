@@ -117,27 +117,34 @@ export const externalLinksResolvers = {
     },
     
     activeExternalLinks: async (_: unknown, __: unknown, context: Context) => {
+      console.log('RESOLVER: activeExternalLinks called');
       try {
         // Obtener token del contexto
         let userId = '';
         let userRole = '';
         
         if (context.req) {
+          console.log('RESOLVER: Processing request with headers', context.req.headers);
           const token = context.req.headers.get('authorization')?.split(' ')[1];
           if (token) {
+            console.log('RESOLVER: Found token in headers');
             try {
               const decoded = await verifyToken(token) as { userId: string, role: string | { name: string } };
               userId = decoded.userId;
+              console.log('RESOLVER: Decoded userId:', userId);
               
               // Obtener el rol del usuario
               if (typeof decoded.role === 'string') {
                 userRole = decoded.role;
+                console.log('RESOLVER: Role from token (string):', userRole);
               } else if (decoded.role && typeof decoded.role === 'object' && 'name' in decoded.role) {
                 userRole = decoded.role.name;
+                console.log('RESOLVER: Role from token (object):', userRole);
               }
               
               // Si no se pudo determinar el rol, consultar a la base de datos
               if (!userRole) {
+                console.log('RESOLVER: No role in token, fetching from database');
                 const userWithRole = await prisma.user.findUnique({
                   where: { id: userId },
                   select: { role: { select: { name: true } } }
@@ -145,15 +152,23 @@ export const externalLinksResolvers = {
                 
                 if (userWithRole?.role?.name) {
                   userRole = userWithRole.role.name;
+                  console.log('RESOLVER: Role from database:', userRole);
+                } else {
+                  console.warn('RESOLVER: Could not determine user role');
                 }
               }
             } catch (error) {
-              console.error('Error verifying token:', error);
+              console.error('RESOLVER: Error verifying token:', error);
             }
+          } else {
+            console.warn('RESOLVER: No token found in headers');
           }
+        } else {
+          console.warn('RESOLVER: No request object in context');
         }
         
         // Obtener todos los enlaces activos
+        console.log('RESOLVER: Fetching active links');
         const allActiveLinks = await prisma.externalLink.findMany({
           where: {
             isActive: true,
@@ -163,23 +178,32 @@ export const externalLinksResolvers = {
           },
         });
         
+        console.log('RESOLVER: Found', allActiveLinks.length, 'active links');
+        
         // Si no se pudo autenticar al usuario, mostrar solo enlaces públicos
         if (!userId) {
-          return allActiveLinks.filter(link => link.accessType === 'PUBLIC');
+          console.log('RESOLVER: No authenticated user, returning only public links');
+          const publicLinks = allActiveLinks.filter(link => link.accessType === 'PUBLIC');
+          console.log('RESOLVER: Returning', publicLinks.length, 'public links');
+          return publicLinks;
         }
         
         // Filtrar enlaces según el acceso del usuario
+        console.log(`RESOLVER: Filtering links for user ${userId} with role ${userRole}`);
         const accessibleLinks = await Promise.all(
           allActiveLinks.map(async (link) => {
             const hasAccess = await userHasAccessToLink(userId, userRole, link);
+            console.log(`RESOLVER: Link ${link.name}, accessType ${link.accessType}, hasAccess: ${hasAccess}`);
             return hasAccess ? link : null;
           })
         );
         
         // Filtrar los nulos y devolver los enlaces accesibles
-        return accessibleLinks.filter(link => link !== null);
+        const filteredLinks = accessibleLinks.filter(link => link !== null);
+        console.log('RESOLVER: Returning', filteredLinks.length, 'accessible links');
+        return filteredLinks;
       } catch (error) {
-        console.error('Error fetching active external links:', error);
+        console.error('RESOLVER: Error fetching active external links:', error);
         return [];
       }
     },

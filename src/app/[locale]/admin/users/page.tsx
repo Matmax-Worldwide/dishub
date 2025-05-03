@@ -40,11 +40,13 @@ import {
   UserPlusIcon, 
   FilterIcon, 
   Edit2Icon, 
-  Trash2Icon
+  Trash2Icon,
+  ShieldIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter, useParams } from 'next/navigation';
 
 // User interface
 interface User {
@@ -137,15 +139,19 @@ const DELETE_USER = gql`
 `;
 
 export default function UserManagementPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  
-  // State for user forms
+  const router = useRouter();
+  const params = useParams();
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [roles, setRoles] = useState<string[]>([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -158,9 +164,27 @@ export default function UserManagementPage() {
   });
   
   // Get users
-  const { data, loading, error, refetch } = useQuery(GET_USERS, {
+  const { error, refetch } = useQuery(GET_USERS, {
     client,
     fetchPolicy: 'network-only',
+    onCompleted: (data: { users: User[] }) => {
+      setUsers(data?.users || []);
+      setFilteredUsers(data?.users || []);
+      // Extract role names with proper type checking
+      const roleNames: string[] = [];
+      data?.users?.forEach((user: User) => {
+        if (user?.role?.name) {
+          roleNames.push(user.role.name);
+        }
+      });
+      setRoles([...new Set(roleNames)]);
+      setLoading(false);
+    },
+    onError: (error) => {
+      console.error('Error fetching users:', error);
+      setLoading(false);
+      toast.error('Error loading users');
+    }
   });
   
   // Mutations
@@ -181,7 +205,7 @@ export default function UserManagementPage() {
     client,
     onCompleted: () => {
       setIsEditUserOpen(false);
-      setUserToEdit(null);
+      setCurrentUser(null);
       resetForm();
       refetch();
       toast.success("User updated successfully");
@@ -203,24 +227,6 @@ export default function UserManagementPage() {
       toast.error(`Error deleting user: ${error.message}`);
     }
   });
-  
-  const users = data?.users as User[] || [];
-  
-  const filteredUsers = users.filter(user => {
-    // Apply search filter
-    const searchMatch = !searchTerm || 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Apply role filter
-    const roleMatch = !selectedRole || user.role.name === selectedRole;
-    
-    return searchMatch && roleMatch;
-  });
-  
-  // Get unique roles for filtering
-  const roles = [...new Set(users.map(user => user.role.name))];
   
   const handleRoleFilter = (role: string | null) => {
     setSelectedRole(role === selectedRole ? null : role);
@@ -320,7 +326,7 @@ export default function UserManagementPage() {
   };
 
   const handleEditUser = (user: User) => {
-    setUserToEdit(user);
+    setCurrentUser(user);
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -334,7 +340,7 @@ export default function UserManagementPage() {
 
   const handleCancelEdit = () => {
     setIsEditUserOpen(false);
-    setUserToEdit(null);
+    setCurrentUser(null);
     resetForm();
   };
 
@@ -345,11 +351,11 @@ export default function UserManagementPage() {
 
   const handleUpdateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userToEdit) return;
+    if (!currentUser) return;
     
     updateUser({ 
       variables: { 
-        id: userToEdit.id,
+        id: currentUser.id,
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -481,6 +487,15 @@ export default function UserManagementPage() {
                                   >
                                     <Trash2Icon className="h-4 w-4 mr-1" />
                                     Delete
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-blue-600"
+                                    onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
+                                  >
+                                    <ShieldIcon className="h-4 w-4 mr-1" />
+                                    Permisos
                                   </Button>
                                 </div>
                               </TableCell>
@@ -658,6 +673,15 @@ export default function UserManagementPage() {
                                 <Trash2Icon className="h-4 w-4 mr-1" />
                                 Delete
                               </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-blue-600"
+                                onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
+                              >
+                                <ShieldIcon className="h-4 w-4 mr-1" />
+                                Permisos
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -733,6 +757,15 @@ export default function UserManagementPage() {
                               >
                                 <Trash2Icon className="h-4 w-4 mr-1" />
                                 Delete
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-blue-600"
+                                onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
+                              >
+                                <ShieldIcon className="h-4 w-4 mr-1" />
+                                Permisos
                               </Button>
                             </div>
                           </TableCell>

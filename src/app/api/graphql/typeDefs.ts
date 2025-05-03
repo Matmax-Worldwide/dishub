@@ -1,6 +1,9 @@
 import { gql } from 'graphql-tag';
 
 export const typeDefs = gql`
+  # Scalar types
+  scalar DateTime
+
   # User related types
   type User {
     id: ID!
@@ -516,6 +519,22 @@ export const typeDefs = gql`
     roleId: ID
   }
 
+  # Permisos específicos de usuario
+  type UserPermission {
+    id: ID!
+    userId: String!
+    permissionName: String!
+    granted: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input UserPermissionInput {
+    userId: ID!
+    permissionName: String!
+    granted: Boolean
+  }
+
   # Root Query
   type Query {
     # User queries
@@ -590,6 +609,9 @@ export const typeDefs = gql`
     externalLink(id: ID!): ExternalLink
     activeExternalLinks: [ExternalLink]
     userLinkAccessStatus: [LinkAccessStatus]
+
+    # Permisos específicos de usuario
+    userSpecificPermissions(userId: ID!): [UserPermission!]!
   }
 
   # Root Mutation
@@ -665,5 +687,8 @@ export const typeDefs = gql`
     createPermission(input: PermissionInput!): Permission
     assignPermissionToRole(roleId: ID!, permissionId: ID!): Permission
     removePermissionFromRole(roleId: ID!, permissionId: ID!): Boolean
+
+    # Gestionar permisos específicos de usuario
+    setUserPermission(input: UserPermissionInput!): UserPermission!
   }
 `; 

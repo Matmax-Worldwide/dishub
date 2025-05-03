@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { RoleName } from '@/hooks/usePermission';
-import { ShieldIcon, UsersIcon, KeyIcon, CheckIcon } from 'lucide-react';
+import { ShieldIcon, UsersIcon, KeyIcon, CheckIcon, X } from 'lucide-react';
 import PermissionGuard from '@/components/PermissionGuard';
 
 // Define los roles y permisos disponibles
@@ -72,7 +72,11 @@ const permissionCategories = {
   reports: ['reports:view'],
   approvals: ['approvals:manage'],
   profile: ['profile:view', 'profile:edit'],
-  cms: ['cms:access'],
+  cms: ['cms:access', 'cms:pages', 'cms:media', 'cms:menus', 'cms:settings'],
+  benefits: ['benefits:view', 'benefits:manage'],
+  help: ['help:view'],
+  settings: ['settings:view', 'settings:manage'],
+  'external-links': ['external-links:manage'],
 };
 
 // Función para obtener todos los permisos únicos
@@ -180,6 +184,7 @@ export default function PermissionsPage() {
             <TabsTrigger value="roles">Vista por Roles</TabsTrigger>
             <TabsTrigger value="permissions">Vista por Permisos</TabsTrigger>
             <TabsTrigger value="matrix">Matriz de Permisos</TabsTrigger>
+            <TabsTrigger value="navigation">Navegación</TabsTrigger>
           </TabsList>
           
           {/* Vista por Roles */}
@@ -296,6 +301,310 @@ export default function PermissionsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Vista de Navegación */}
+          <TabsContent value="navigation">
+            <Card>
+              <CardHeader>
+                <CardTitle>Permisos de Navegación</CardTitle>
+                <CardDescription>
+                  Configure qué secciones del menú son accesibles para cada rol
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Dashboard</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sección</TableHead>
+                          <TableHead>Permiso requerido</TableHead>
+                          {roles.map(role => (
+                            <TableHead key={role}>{role}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Dashboard Principal</TableCell>
+                          <TableCell>dashboard:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'dashboard:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Notificaciones</TableCell>
+                          <TableCell>notifications:read</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'notifications:read') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Beneficios</TableCell>
+                          <TableCell>benefits:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'benefits:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Ayuda</TableCell>
+                          <TableCell>help:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'help:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Configuración</TableCell>
+                          <TableCell>settings:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'settings:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">CMS</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sección</TableHead>
+                          <TableHead>Permiso requerido</TableHead>
+                          {roles.map(role => (
+                            <TableHead key={role}>{role}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Acceso CMS</TableCell>
+                          <TableCell>cms:access</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'cms:access') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Páginas</TableCell>
+                          <TableCell>cms:pages</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'cms:pages') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Biblioteca de medios</TableCell>
+                          <TableCell>cms:media</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'cms:media') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Menús</TableCell>
+                          <TableCell>cms:menus</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'cms:menus') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Ajustes CMS</TableCell>
+                          <TableCell>cms:settings</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'cms:settings') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Administración</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sección</TableHead>
+                          <TableHead>Permiso requerido</TableHead>
+                          {roles.map(role => (
+                            <TableHead key={role}>{role}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Admin Dashboard</TableCell>
+                          <TableCell>admin:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'admin:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Gestión de usuarios</TableCell>
+                          <TableCell>users:read</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'users:read') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Gestión de roles</TableCell>
+                          <TableCell>roles:read</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'roles:read') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Enlaces externos</TableCell>
+                          <TableCell>external-links:manage</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'external-links:manage') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Manager</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sección</TableHead>
+                          <TableHead>Permiso requerido</TableHead>
+                          {roles.map(role => (
+                            <TableHead key={role}>{role}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Gestión de personal</TableCell>
+                          <TableCell>staff:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'staff:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Informes</TableCell>
+                          <TableCell>reports:view</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'reports:view') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Aprobaciones</TableCell>
+                          <TableCell>approvals:manage</TableCell>
+                          {roles.map(role => (
+                            <TableCell key={role}>
+                              {hasPermission(role, 'approvals:manage') ? (
+                                <CheckIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </CardContent>
             </Card>

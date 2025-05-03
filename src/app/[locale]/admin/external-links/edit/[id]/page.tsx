@@ -401,6 +401,20 @@ export default function EditExternalLinkPage() {
       return;
     }
     
+    // Convertir IDs de roles a nombres de roles
+    let allowedRoleNames: string[] = [];
+    if (values.accessType !== 'PUBLIC' && values.accessControl?.allowedRoles) {
+      // Mapear cada ID de rol a su nombre
+      allowedRoleNames = values.accessControl.allowedRoles
+        .map(roleId => {
+          const roleObj = roles.find(r => r.id === roleId);
+          return roleObj?.name;
+        })
+        .filter(name => name !== undefined) as string[];
+      
+      console.log('Converted role IDs to names:', allowedRoleNames);
+    }
+    
     // Prepare the input object exactly as GraphQL expects
     const inputData = {
       name: values.name,
@@ -411,7 +425,7 @@ export default function EditExternalLinkPage() {
       order: values.order,
       accessControl: {
         type: values.accessType,
-        allowedRoles: values.accessType === 'PUBLIC' ? [] : (values.accessControl?.allowedRoles || []),
+        allowedRoles: values.accessType === 'PUBLIC' ? [] : allowedRoleNames,
         allowedUsers: values.accessType === 'PUBLIC' ? [] : (values.accessControl?.allowedUsers || []),
         deniedUsers: values.accessType === 'PUBLIC' ? [] : (values.accessControl?.deniedUsers || [])
       }

@@ -3,6 +3,7 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { GraphQLScalarType, Kind } from 'graphql';
 import { dashboardResolvers } from './dashboard';
 import { documentResolvers } from './documents';
 import { timeEntryResolvers } from './timeEntries';
@@ -14,6 +15,30 @@ import { helpResolvers } from './help';
 import { taskResolvers } from './tasks';
 import { projectResolvers } from './projects';
 import externalLinksResolvers from './externalLinks';
+
+// DateTime scalar type resolver
+const dateTimeScalar = new GraphQLScalarType({
+  name: 'DateTime',
+  description: 'Date custom scalar type',
+  serialize(value) {
+    if (value instanceof Date) {
+      return value.toISOString(); // Convert outgoing Date to ISO string
+    }
+    return value;
+  },
+  parseValue(value) {
+    if (typeof value === 'string') {
+      return new Date(value); // Convert incoming string to Date
+    }
+    return null;
+  },
+  parseLiteral(ast) {
+    if (ast.kind === Kind.STRING) {
+      return new Date(ast.value); // Convert AST string to Date
+    }
+    return null;
+  },
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -375,6 +400,8 @@ interface UpdateUserProfileInput {
 
 // Merge all resolvers
 const resolvers = {
+  DateTime: dateTimeScalar,
+  
   Query: {
     ...authResolvers.Query,
     ...dashboardResolvers.Query,

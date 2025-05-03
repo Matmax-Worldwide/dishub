@@ -3,6 +3,7 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { GraphQLScalarType, Kind } from 'graphql';
 
 // Import individual resolver modules
 import { appointmentResolvers } from './resolvers/appointments';
@@ -18,6 +19,34 @@ import { projectResolvers } from './resolvers/projects';
 import { contactResolvers } from './resolvers/contact';
 import { externalLinksResolvers } from './resolvers/externalLinks';
 import { userResolvers } from './resolvers/users';
+import { roleResolvers } from './resolvers/roles';
+import { permissionResolvers } from './resolvers/permissions';
+import { userPermissionResolvers } from './resolvers/userPermissions';
+
+// DateTime scalar type resolver
+const dateTimeScalar = new GraphQLScalarType({
+  name: 'DateTime',
+  description: 'Date custom scalar type',
+  serialize(value) {
+    if (value instanceof Date) {
+      return value.toISOString(); // Convert outgoing Date to ISO string
+    }
+    return value;
+  },
+  parseValue(value) {
+    if (typeof value === 'string') {
+      return new Date(value); // Convert incoming string to Date
+    }
+    return null;
+  },
+  parseLiteral(ast) {
+    if (ast.kind === Kind.STRING) {
+      return new Date(ast.value); // Convert AST string to Date
+    }
+    return null;
+  },
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Helper function to ensure system roles exist
@@ -161,6 +190,9 @@ async function ensureSystemPermissions() {
 
 // Merge all resolvers
 const resolvers = {
+  // Add DateTime scalar resolver
+  DateTime: dateTimeScalar,
+  
   Query: {
     // User queries
     me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -236,6 +268,81 @@ const resolvers = {
         throw new Error('Invalid token');
       }
     },
+
+    // Get a single user by ID
+    user: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; roleId?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Check if requester is admin or manager
+        const requester = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+        
+        const requesterRole = requester?.role?.name || 'USER';
+        
+        // Only admin and manager can see any user
+        // Normal users can only see themselves
+        if (requesterRole !== 'ADMIN' && requesterRole !== 'MANAGER' && decoded.userId !== args.id) {
+          throw new Error('Unauthorized: You can only view your own profile');
+        }
+        
+        // Get the requested user
+        const user = await prisma.user.findUnique({
+          where: { id: args.id },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+            isActive: true,
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+                description: true
+              }
+            },
+            createdAt: true,
+            updatedAt: true,
+          }
+        });
+        
+        if (!user) {
+          throw new Error(`User with ID ${args.id} not found`);
+        }
+        
+        // Return user with formatted dates
+        return {
+          ...user,
+          role: user.role || { id: "default", name: "USER", description: null },
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
+        };
+      } catch (error) {
+        console.error('Get user error:', error);
+        throw error;
+      }
+    },
     
     // Get all users - admin only
     users: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -280,6 +387,7 @@ const resolvers = {
             lastName: true,
             phoneNumber: true,
             roleId: true,
+            isActive: true,
             role: {
               select: {
                 id: true,
@@ -501,6 +609,9 @@ const resolvers = {
     ...((contactResolvers.Query as object) || {}),
     ...((externalLinksResolvers.Query as object) || {}),
     ...((userResolvers.Query as object) || {}),
+    ...((roleResolvers.Query as object) || {}),
+    ...((permissionResolvers.Query as object) || {}),
+    ...((userPermissionResolvers.Query as object) || {}),
     
     // Add explicit fallback for projects query to ensure it exists
     projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -686,6 +797,9 @@ const resolvers = {
     ...('Mutation' in contactResolvers ? (contactResolvers.Mutation as object) : {}),
     ...('Mutation' in externalLinksResolvers ? (externalLinksResolvers.Mutation as object) : {}),
     ...('Mutation' in userResolvers ? (userResolvers.Mutation as object) : {}),
+    ...('Mutation' in roleResolvers ? (roleResolvers.Mutation as object) : {}),
+    ...('Mutation' in permissionResolvers ? (permissionResolvers.Mutation as object) : {}),
+    ...('Mutation' in userPermissionResolvers ? (userPermissionResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
     createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {

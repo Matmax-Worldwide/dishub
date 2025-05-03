@@ -728,3 +728,19 @@ enum AccessControlType {
   USERS
   MIXED
 }
+
+// Modelo para permisos específicos por usuario
+model UserPermission {
+  id             String   @id @default(cuid())
+  userId         String
+  permissionName String
+  granted        Boolean
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Definir una clave única para evitar duplicados
+  @@unique([userId, permissionName])
+  // Índice para búsquedas rápidas
+  @@index([userId])
+  @@index([permissionName])
+}
