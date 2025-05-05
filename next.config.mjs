@@ -44,6 +44,15 @@ const nextConfig = {
         source: '/:locale(en|es)/:path*.webp',
         destination: '/:path*.webp',
       },
+      // Reglas para archivos de video
+      {
+        source: '/:locale(en|es)/:path*.mp4',
+        destination: '/:path*.mp4',
+      },
+      {
+        source: '/:locale(en|es)/videos/:file*.mp4',
+        destination: '/videos/:file*.mp4',
+      },
     ];
   },
   

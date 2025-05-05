@@ -374,48 +374,51 @@ export default function Benefits({ dictionary }: BenefitsProps) {
       {/* Introducción de la sección */}
 
       <section id="intro" className="relative w-full h-screen overflow-hidden">
-  {/* VIDEO DE FONDO */}
-  <video
-    className="absolute inset-0 w-full h-full object-cover z-0"
-    autoPlay
-    muted
-    loop
-    playsInline
-  >
-    <source src="/videos/video.mp4" type="video/mp4" />
-    Your browser does not support the video tag.
-  </video>
+        {/* VIDEO DE FONDO */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="/videos/video.mp4"
+        >
+          <source src="/videos/video.mp4" type="video/mp4" />
+          <source src="/videos/evoque-interpretacion.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
 
-  {/* Capa encima del video para contraste */}
-  <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10"></div>
+        {/* Capa encima del video para contraste */}
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10"></div>
 
-  {/* CONTENIDO PRINCIPAL */}
-  <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center items-center text-center">
-  <motion.div 
-  ref={introRef.ref}
-  initial={{ opacity: 0, y: 30 }}
-  animate={introRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-  transition={{ duration: 0.8 }}
->
-  <h2 className="text-5xl md:text-7xl font-extrabold text-white drop-shadow-lg mb-6 tracking-tight leading-tight">
-    {dictionary.benefits.title}
-  </h2>
-  <p className="text-2xl text-white/80 max-w-3xl mx-auto font-medium leading-relaxed">
-    {dictionary.benefits.subtitle}
-  </p>
+        {/* CONTENIDO PRINCIPAL */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center items-center text-center">
+          <motion.div 
+            ref={introRef.ref}
+            initial={{ opacity: 0, y: 30 }}
+            animate={introRef.inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-5xl md:text-7xl font-extrabold text-white drop-shadow-lg mb-6 tracking-tight leading-tight">
+              {dictionary.benefits.title}
+            </h2>
+            <p className="text-2xl text-white/80 max-w-3xl mx-auto font-medium leading-relaxed">
+              {dictionary.benefits.subtitle}
+            </p>
 
-  <motion.div
-    className="mt-10"
-    animate={{ y: [0, 10, 0] }}
-    transition={{ duration: 2, repeat: Infinity }}
-  >
-    <svg className="w-10 h-10 mx-auto text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-    </svg>
-  </motion.div>
-</motion.div>
-  </div>
-</section>
+            <motion.div
+              className="mt-10"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <svg className="w-10 h-10 mx-auto text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
       {/* Beneficios individuales con scroll snap */}
       {benefitsList.map((benefit, index) => {
         // Determinar los colores de transición
