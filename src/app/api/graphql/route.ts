@@ -5,6 +5,28 @@ import { typeDefs } from './typeDefs';
 import resolvers from './resolvers';
 import { verifyToken } from '@/lib/auth';
 
+// Logs para verificar que los componentes se han cargado correctamente
+console.log('ApolloServer - Iniciando');
+console.log('TypeDefs cargados:', !!typeDefs);
+console.log('Resolvers cargados:', !!resolvers);
+
+try {
+  // Verificar resolvers en forma segura con respecto a tipos
+  console.log('Resolver keys - Query:', resolvers.Query ? Object.keys(resolvers.Query).length : 0);
+  console.log('Resolver keys - Mutation:', resolvers.Mutation ? Object.keys(resolvers.Mutation).length : 0);
+  
+  // Comprobar si contienen las operaciones CMS
+  if (resolvers.Query) {
+    console.log('Resolver includes CMS query:', Object.keys(resolvers.Query).includes('getSectionComponents'));
+  }
+  
+  if (resolvers.Mutation) {
+    console.log('Resolver includes CMS mutation:', Object.keys(resolvers.Mutation).includes('saveSectionComponents'));
+  }
+} catch (error) {
+  console.error('Error al inspeccionar resolvers:', error);
+}
+
 const server = new ApolloServer({
   typeDefs,
   resolvers,
@@ -60,5 +82,25 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return handler(request);
+  try {
+    // Log the request body for debugging
+    console.log('===== GraphQL Request =====');
+    const requestClone = request.clone();
+    const body = await requestClone.json();
+    console.log('Request Query:', body.query ? body.query.substring(0, 250) + '...' : 'No query');
+    console.log('Request Variables:', body.variables ? JSON.stringify(body.variables).substring(0, 250) + '...' : 'No variables');
+    console.log('=========================');
+    
+    return handler(request);
+  } catch (error) {
+    console.error('Error processing GraphQL request:', error);
+    return new Response(JSON.stringify({
+      errors: [{ message: 'Error processing request' }]
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
 } 

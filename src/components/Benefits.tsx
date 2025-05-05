@@ -12,6 +12,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from './ui/button';
 import ContactForm from './ContactForm';
+import dynamic from 'next/dynamic';
+import { Component } from './cms/SectionManager';
+import { CMSComponent } from '@/lib/graphql-client';
+
+// Dynamically import the SectionManager to avoid server/client mismatch
+const SectionManager = dynamic(() => import('./cms/SectionManager'), { ssr: false });
+const AdminControls = dynamic(() => import('./cms/AdminControls'), { ssr: false });
 
 interface BenefitsProps {
   dictionary: {
@@ -77,6 +84,169 @@ export default function Benefits({ dictionary }: BenefitsProps) {
   const heroRef = useInView({ triggerOnce: false, threshold: 0.7 });
   const introRef = useInView({ triggerOnce: false, threshold: 0.7 });
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [cmsComponents, setCmsComponents] = useState<CMSComponent[]>([]);
+
+  // Toggle edit mode with keyboard shortcut (Ctrl+Shift+E)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        setIsEditing(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Load components from API on mount
+  useEffect(() => {
+    const loadInitialComponents = async () => {
+      try {
+        console.log('Iniciando carga de componentes CMS...');
+        
+        // Import dynamically to avoid server-side issues
+        const { cmsOperations } = await import('@/lib/graphql-client');
+        console.log('Cargando componentes de la sección cms-managed-sections...');
+        
+        // Intentar cargar los datos del servidor con timestamp para evitar caché
+        const timestamp = new Date().getTime();
+        const result = await cmsOperations.getSectionComponents(`cms-managed-sections?t=${timestamp}`);
+        console.log('Resultado de getSectionComponents:', result);
+        
+        if (result && result.components && Array.isArray(result.components) && result.components.length > 0) {
+          console.log(`Se cargaron ${result.components.length} componentes correctamente:`, result.lastUpdated);
+          setCmsComponents(result.components);
+        } else {
+          console.log('No se encontraron componentes guardados o el resultado no es válido. Usando valores predeterminados.');
+          // Incluso si no estamos en modo edición, usar componentes por defecto cuando no hay datos
+          const defaultComponents: CMSComponent[] = [{
+            id: `header-${Date.now()}`,
+            type: 'Header',
+            data: {
+              title: 'Bienvenido a nuestra plataforma',
+              subtitle: 'Explora nuestros servicios y descubre cómo podemos ayudarte',
+            }
+          }];
+          setCmsComponents(defaultComponents);
+        }
+      } catch (error) {
+        console.error('Error general en loadInitialComponents:', error);
+      }
+    };
+
+    loadInitialComponents();
+  }, [isEditing]);
+
+  // Función específica para guardar componentes en la base de datos
+  const guardarComponentesCMS = async (components: Component[] | CMSComponent[], showNotification: boolean = true) => {
+    try {
+      // Import dynamically to avoid server-side issues
+      const { cmsOperations } = await import('@/lib/graphql-client');
+      
+      console.log('Guardando componentes en la base de datos...');
+      
+      // Asegurar que tenemos el formato correcto para la API
+      const componentsToSave = components as unknown as CMSComponent[];
+      
+      // Validar que los componentes son un array válido
+      if (!Array.isArray(componentsToSave)) {
+        console.error('Componentes inválidos: no es un array');
+        mostrarNotificacionError('Los componentes no tienen un formato válido');
+        return false;
+      }
+      
+      // Si no hay componentes, guardar un array vacío
+      if (componentsToSave.length === 0) {
+        console.log('No hay componentes para guardar, se guardará un array vacío');
+      }
+      
+      // Realizar la operación de guardado con un timestamp para evitar caché
+      const timestamp = new Date().getTime();
+      const result = await cmsOperations.saveSectionComponents(
+        `cms-managed-sections?t=${timestamp}`, 
+        componentsToSave
+      );
+      
+      // Verificar que result no es null antes de acceder a sus propiedades
+      if (result && result.success) {
+        console.log('Componentes guardados con éxito:', result.lastUpdated);
+        
+        // Forzar recarga de datos después del guardado
+        const refreshResult = await cmsOperations.getSectionComponents(`cms-managed-sections?t=${Date.now()}`);
+        if (refreshResult && refreshResult.components) {
+          setCmsComponents(refreshResult.components as unknown as CMSComponent[]);
+        }
+        
+        // Mostrar notificación al usuario solo si se solicita explícitamente
+        if (showNotification) {
+          mostrarNotificacionExito('Cambios guardados correctamente');
+        }
+        return true;
+      } else {
+        console.error('Error al guardar componentes:', result ? result.message : 'No se recibió respuesta del servidor');
+        
+        // Mostrar notificación de error al usuario
+        mostrarNotificacionError(result?.message || 'Error desconocido al guardar cambios');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error en la operación de guardado:', error);
+      
+      // Mostrar notificación de error al usuario
+      mostrarNotificacionError('Error al conectar con el servidor');
+      return false;
+    }
+  };
+  
+  // Función para mostrar notificación de éxito
+  const mostrarNotificacionExito = (mensaje: string) => {
+    const notificacion = document.createElement('div');
+    notificacion.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    notificacion.textContent = mensaje;
+    document.body.appendChild(notificacion);
+    
+    // Eliminar notificación después de 3 segundos
+    setTimeout(() => {
+      if (document.body.contains(notificacion)) {
+        document.body.removeChild(notificacion);
+      }
+    }, 3000);
+  };
+  
+  // Función para mostrar notificación de error
+  const mostrarNotificacionError = (mensaje: string) => {
+    const errorNotificacion = document.createElement('div');
+    errorNotificacion.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    errorNotificacion.textContent = mensaje;
+    document.body.appendChild(errorNotificacion);
+    
+    // Eliminar notificación después de 3 segundos
+    setTimeout(() => {
+      if (document.body.contains(errorNotificacion)) {
+        document.body.removeChild(errorNotificacion);
+      }
+    }, 3000);
+  };
+
+  // Handle saving components
+  const handleSaveComponents = async (components: Component[]) => {
+    try {
+      // Actualizar el estado local primero para una respuesta inmediata en la UI
+      setCmsComponents(components as unknown as CMSComponent[]);
+      
+      // Utilizar la función específica para guardar en la base de datos
+      // Mostrar notificación explícitamente cuando el usuario hace clic en guardar
+      await guardarComponentesCMS(components, true);
+    } catch (error) {
+      console.error('Error saving components:', error);
+    }
+  };
+
+  // Handle loading components
+  const handleLoadComponents = async (components: Component[]) => {
+    setCmsComponents(components as CMSComponent[]);
+  };
 
   const benefitsList: BenefitItem[] = [
     {
@@ -181,6 +351,55 @@ export default function Benefits({ dictionary }: BenefitsProps) {
 
   return (
     <div id="benefits" className="full-page-flow">
+No sí
+      <section id="cms-managed-sections" className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50">
+        <div className="container mx-auto py-12 px-4">
+          {isEditing && (
+            <div className="bg-yellow-100 p-4 mb-4 rounded flex items-center justify-between">
+              <p className="text-yellow-800">
+                <strong>Edit Mode:</strong> You can add and remove components in this section.
+                Press <kbd className="px-2 py-1 bg-yellow-200 rounded">Ctrl+Shift+E</kbd> to toggle edit mode.
+              </p>
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1 rounded"
+              >
+                Exit Edit Mode
+              </button>
+            </div>
+          )}
+          
+          {isEditing && (
+            <AdminControls 
+              components={cmsComponents as Component[]}
+              onSave={handleSaveComponents as (components: Component[]) => void}
+              onLoad={handleLoadComponents as (components: Component[]) => void}
+            />
+          )}
+          
+          <SectionManager 
+            initialComponents={cmsComponents as Component[]} 
+            isEditing={isEditing} 
+            onComponentsChange={(components) => {
+              // Actualizar el estado local
+              setCmsComponents(components as CMSComponent[]);
+              
+              // Si estamos en modo edición, guardar automáticamente los cambios
+              if (isEditing) {
+                // Usar setTimeout para no guardar en cada pequeño cambio, sino esperar un poco
+                const timerId = setTimeout(() => {
+                  // Guardar sin mostrar notificación para los guardados automáticos
+                  guardarComponentesCMS(components, false);
+                }, 2000); // Esperar 2 segundos después del último cambio
+                
+                // Limpiar el temporizador si hay más cambios antes de que pasen los 2 segundos
+                return () => clearTimeout(timerId);
+              }
+            }}
+          />
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section id="hero" className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50">
         {/* Transición de degradado en la parte inferior */}

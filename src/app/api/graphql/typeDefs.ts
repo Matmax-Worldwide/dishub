@@ -3,6 +3,7 @@ import { gql } from 'graphql-tag';
 export const typeDefs = gql`
   # Scalar types
   scalar DateTime
+  scalar JSON
 
   # User related types
   type User {
@@ -535,6 +536,35 @@ export const typeDefs = gql`
     granted: Boolean
   }
 
+  # CMS Section types
+  type SectionData {
+    components: [Component!]!
+    lastUpdated: String
+  }
+  
+  type Component {
+    id: ID!
+    type: String!
+    data: JSON!
+  }
+  
+  type SaveSectionResult {
+    success: Boolean!
+    message: String
+    lastUpdated: String
+  }
+  
+  input ComponentInput {
+    id: ID!
+    type: String!
+    data: JSON!
+  }
+  
+  input SaveSectionInput {
+    sectionId: ID!
+    components: [ComponentInput!]!
+  }
+
   # Root Query
   type Query {
     # User queries
@@ -613,6 +643,9 @@ export const typeDefs = gql`
 
     # Permisos específicos de usuario
     userSpecificPermissions(userId: ID!): [UserPermission!]!
+
+    # CMS Queries
+    getSectionComponents(sectionId: ID!): SectionData
   }
 
   # Root Mutation
@@ -691,5 +724,8 @@ export const typeDefs = gql`
 
     # Gestionar permisos específicos de usuario
     setUserPermission(input: UserPermissionInput!): UserPermission!
+
+    # CMS Mutations
+    saveSectionComponents(input: SaveSectionInput!): SaveSectionResult
   }
 `; 

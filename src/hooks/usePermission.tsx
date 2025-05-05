@@ -124,12 +124,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       const { data } = await client.query({
         query: GET_USER_SPECIFIC_PERMISSIONS,
         variables: { userId: user.id },
-        fetchPolicy: 'network-only',
-        context: {
-          headers: {
-            credentials: 'include',
-          },
-        },
+        fetchPolicy: 'network-only'
       });
       
       if (data?.userSpecificPermissions) {

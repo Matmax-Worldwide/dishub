@@ -15,6 +15,16 @@ import { helpResolvers } from './help';
 import { taskResolvers } from './tasks';
 import { projectResolvers } from './projects';
 import externalLinksResolvers from './externalLinks';
+import { cmsResolvers } from './cms';
+
+// Verificar la importación de cmsResolvers al inicio
+console.log('Verificando resolvers CMS importados:', {
+  importado: Boolean(cmsResolvers),
+  tieneQuery: Boolean(cmsResolvers?.Query),
+  tieneMutation: Boolean(cmsResolvers?.Mutation),
+  tieneFuncionGet: Boolean(cmsResolvers?.Query?.getSectionComponents),
+  tieneFuncionSave: Boolean(cmsResolvers?.Mutation?.saveSectionComponents)
+});
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -37,6 +47,36 @@ const dateTimeScalar = new GraphQLScalarType({
       return new Date(ast.value); // Convert AST string to Date
     }
     return null;
+  },
+});
+
+// Añadir el JSON scalar
+const jsonScalar = new GraphQLScalarType({
+  name: 'JSON',
+  description: 'The JSON scalar type represents JSON objects as specified by ECMA-404',
+  serialize(value) {
+    return value; // Valor como es
+  },
+  parseValue(value) {
+    return value; // Valor como es
+  },
+  parseLiteral(ast) {
+    switch (ast.kind) {
+      case Kind.STRING:
+      case Kind.BOOLEAN:
+        return ast.value;
+      case Kind.INT:
+      case Kind.FLOAT:
+        return Number(ast.value);
+      case Kind.OBJECT:
+        // Para objetos complejos, devuelve el AST tal cual
+        return ast;
+      case Kind.LIST:
+        // Para listas, devuelve el AST tal cual
+        return ast;
+      default:
+        return null;
+    }
   },
 });
 
@@ -401,6 +441,7 @@ interface UpdateUserProfileInput {
 // Merge all resolvers
 const resolvers = {
   DateTime: dateTimeScalar,
+  JSON: jsonScalar,
   
   Query: {
     ...authResolvers.Query,
@@ -415,6 +456,7 @@ const resolvers = {
     ...taskResolvers.Query,
     ...projectResolvers.Query,
     ...externalLinksResolvers.Query,
+    ...cmsResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -428,6 +470,7 @@ const resolvers = {
     ...taskResolvers.Mutation,
     ...projectResolvers.Mutation,
     ...externalLinksResolvers.Mutation,
+    ...cmsResolvers.Mutation,
   }
 };
 

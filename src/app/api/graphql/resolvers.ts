@@ -22,6 +22,7 @@ import { userResolvers } from './resolvers/users';
 import { roleResolvers } from './resolvers/roles';
 import { permissionResolvers } from './resolvers/permissions';
 import { userPermissionResolvers } from './resolvers/userPermissions';
+import { cmsResolvers } from './resolvers/cms';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -192,6 +193,13 @@ async function ensureSystemPermissions() {
 const resolvers = {
   // Add DateTime scalar resolver
   DateTime: dateTimeScalar,
+  
+  // Add JSON scalar resolver
+  JSON: {
+    __serialize(value: unknown) {
+      return value;
+    },
+  },
   
   Query: {
     // User queries
@@ -626,7 +634,10 @@ const resolvers = {
         console.error("Error in projects resolver fallback:", error);
         return [];
       }
-    }
+    },
+    
+    // Add CMS queries explicitly
+    getSectionComponents: cmsResolvers.Query.getSectionComponents,
   },
   
   Mutation: {
@@ -1038,7 +1049,29 @@ const resolvers = {
     },
 
     // Settings mutations
+    
+    // Add CMS mutations explicitly
+    saveSectionComponents: cmsResolvers.Mutation.saveSectionComponents,
   },
 };
+
+// Verificar resolvers CMS al iniciar
+try {
+  console.log('==== APOLLO SERVER RESOLVER DIAGNOSTICS ====');
+  console.log('CMS Query resolvers:', Object.keys(cmsResolvers.Query || {}).join(', '));
+  console.log('CMS Mutation resolvers:', Object.keys(cmsResolvers.Mutation || {}).join(', '));
+  
+  console.log('Final merged resolvers - Query:', Object.keys(resolvers.Query || {}).join(', '));
+  console.log('Final merged resolvers - Mutation:', Object.keys(resolvers.Mutation || {}).join(', '));
+  
+  // Comprobación de resolvers específicos
+  console.log('CMS Query resolver getSectionComponents merged:', 
+    Object.keys(resolvers.Query || {}).includes('getSectionComponents'));
+  console.log('CMS Mutation resolver saveSectionComponents merged:', 
+    Object.keys(resolvers.Mutation || {}).includes('saveSectionComponents'));
+  console.log('===========================================');
+} catch (error) {
+  console.error('Error during resolver diagnostics:', error);
+}
 
 export default resolvers; 

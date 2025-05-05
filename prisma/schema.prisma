@@ -469,6 +469,7 @@ model Page {
   title           String
   slug            String        @unique
   description     String?
+  template        String        @default("default")
   isPublished     Boolean       @default(false)
   publishDate     DateTime?
   featuredImage   String?
@@ -479,6 +480,7 @@ model Page {
   parentId        String?
   order           Int           @default(0)
   pageType        PageType      @default(CONTENT)
+  locale          String        @default("en")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   parent          Page?         @relation("PageToPage", fields: [parentId], references: [id])
@@ -496,6 +498,7 @@ model PageSection {
   order         Int           @default(0)
   isVisible     Boolean       @default(true)
   configuration Json?
+  data          Json?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   media         Media[]
@@ -547,20 +550,20 @@ model Menu {
 }
 
 model MenuItem {
-  id        String     @id @default(cuid())
+  id        String         @id @default(cuid())
   menuId    String
   parentId  String?
   title     String
   url       String?
   pageId    String?
-  target    String?    @default("_self")
+  target    String?        @default("_self")
   icon      String?
-  order     Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  menu      Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  parent    MenuItem?  @relation("MenuItemToMenuItem", fields: [parentId], references: [id])
-  children  MenuItem[] @relation("MenuItemToMenuItem")
+  order     Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  menu      Menu           @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent    MenuItem?      @relation("MenuItemToMenuItem", fields: [parentId], references: [id])
+  children  MenuItem[]     @relation("MenuItemToMenuItem")
 }
 
 model SiteSettings {
@@ -571,13 +574,24 @@ model SiteSettings {
   faviconUrl        String?
   primaryColor      String?
   secondaryColor    String?
+  accentColor       String?
+  defaultLocale     String   @default("en")
+  supportedLocales  String[] @default(["en"])
   googleAnalyticsId String?
   facebookPixelId   String?
+  metaTitle         String?
+  metaDescription   String?
+  ogImage           String?
+  twitterHandle     String?
+  twitterCardType   String?  @default("summary_large_image")
   customCss         String?
   customJs          String?
   contactEmail      String?
   contactPhone      String?
   address           String?
+  socialLinks       Json?    // Array of social media links
+  footerText        String?
+  maintenanceMode   Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -593,6 +607,144 @@ model UserPermission {
   @@unique([userId, permissionName])
   @@index([userId])
   @@index([permissionName])
+}
+
+// CMS Models
+model Collection {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  slug        String          @unique
+  description String?
+  fields      CollectionField[]
+  documents   CMSDocument[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model CollectionField {
+  id            String      @id @default(cuid())
+  collectionId  String
+  name          String
+  label         String
+  type          FieldType
+  required      Boolean     @default(false)
+  localized     Boolean     @default(false)
+  isUnique      Boolean     @default(false)
+  defaultValue  Json?
+  options       Json?
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  collection    Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, name])
+}
+
+model CMSDocument {
+  id           String     @id @default(cuid())
+  collectionId String
+  data         Json
+  locale       String     @default("en")
+  isPublished  Boolean    @default(false)
+  publishedAt  DateTime?
+  createdById  String
+  updatedById  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  collection   Collection @relation(fields: [collectionId], references: [id])
+}
+
+model CMSTemplate {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  slug        String        @unique
+  description String?
+  structure   Json?         // Template structure definition
+  thumbnail   String?       // Preview image URL
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  components  CMSComponent[]
+}
+
+model CMSComponent {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  slug        String      @unique
+  description String?
+  icon        String?
+  category    String?     // For grouping components
+  schema      Json        // Component structure and field definitions
+  preview     String?     // Preview image URL
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  templateId  String?
+  template    CMSTemplate? @relation(fields: [templateId], references: [id])
+}
+
+// Model for storing section data for the CMS editor
+model CMSSection {
+  id          String   @id @default(cuid())
+  sectionId   String   @unique  // Identifier for the section (e.g., 'cms-managed-sections')
+  components  Json     // Array of components as JSON
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  // Optional user ID who created this
+  
+  @@map("CMSSection")
+}
+
+model NavigationMenu {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  description String?
+  location    String?
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  items       NavigationMenuItem[]
+}
+
+model NavigationMenuItem {
+  id           String         @id @default(cuid())
+  menuId       String
+  parentId     String?
+  label        String
+  href         String?
+  pageId       String?
+  documentId   String?
+  collectionId String?
+  target       String?        @default("_self")
+  icon         String?
+  order        Int            @default(0)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  menu         NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent       NavigationMenuItem? @relation("NavigationMenuItemToItem", fields: [parentId], references: [id])
+  children     NavigationMenuItem[] @relation("NavigationMenuItemToItem")
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  RICHTEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  DATETIME
+  IMAGE
+  FILE
+  RELATION
+  JSON
+  COLOR
+  SELECT
+  MULTISELECT
+  EMAIL
+  URL
+  PASSWORD
 }
 
 enum DocumentStatus {
