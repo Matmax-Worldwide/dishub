@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma, PageType } from '@prisma/client';
+import { Prisma, PageType, ComponentType } from '@prisma/client';
 import crypto from 'crypto';
 
 // Tipo para los componentes de una sección
@@ -49,6 +49,132 @@ export const cmsResolvers = {
       }
     },
     
+    getPageBySlug: async (_parent: unknown, args: { slug: string }) => {
+      console.log('======== START getPageBySlug resolver ========');
+      try {
+        const { slug } = args;
+        console.log(`Buscando página con slug: "${slug}" (type: ${typeof slug})`);
+        
+        if (!slug) {
+          console.log('Error: Se intentó buscar una página sin proporcionar un slug');
+          return null;
+        }
+        
+        // Clean the slug - normalize to lowercase, trim spaces, replace accents
+        const normalizedSlug = slug.trim().toLowerCase();
+        
+        // Create additional slug variants for more flexible matching
+        const dashedSlug = normalizedSlug.replace(/\s+/g, '-');
+        const undashSlug = normalizedSlug.replace(/-/g, ' ');
+        
+        // Add additional logging for debugging
+        console.log('Executing query with parameters:', JSON.stringify({
+          originalSlug: slug,
+          normalizedSlug,
+          dashedSlug,
+          undashSlug
+        }));
+        
+        // Try to find the page with any of our slug variants
+        console.log('Attempting to find page with multiple slug variants...');
+        let page = await prisma.page.findFirst({
+          where: { 
+            OR: [
+              { slug: normalizedSlug },
+              { slug: dashedSlug },
+              { slug: undashSlug }
+            ]
+          },
+          include: {
+            sections: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        });
+        
+        // If not found with direct variants, try more flexible matching
+        if (!page) {
+          console.log(`No se encontró ninguna página con slug exacto, intentando alternativas más flexibles...`);
+          
+          // Try with case-insensitive search
+          page = await prisma.page.findFirst({
+            where: { 
+              OR: [
+                { slug: { contains: normalizedSlug, mode: 'insensitive' } },
+                { slug: { contains: dashedSlug, mode: 'insensitive' } },
+                { slug: { contains: undashSlug, mode: 'insensitive' } }
+              ]
+            },
+            include: {
+              sections: {
+                orderBy: {
+                  order: 'asc'
+                }
+              }
+            }
+          });
+          
+          // If still not found, check if it's substring of a page or vice versa
+          if (!page) {
+            console.log(`Intentando búsqueda parcial...`);
+            
+            const allPages = await prisma.page.findMany({
+              select: { id: true, slug: true, title: true },
+            });
+            
+            console.log(`Buscando entre ${allPages.length} páginas disponibles...`);
+            
+            // List all pages for debugging
+            console.log(`Páginas disponibles: ${JSON.stringify(allPages.map(p => ({ 
+              id: p.id, 
+              slug: p.slug,
+              title: p.title
+            })))}`);
+            
+            // Find best partial match
+            const partialMatches = allPages.filter(p => 
+              p.slug.includes(normalizedSlug) || 
+              normalizedSlug.includes(p.slug) ||
+              p.slug.includes(dashedSlug) || 
+              dashedSlug.includes(p.slug)
+            );
+            
+            if (partialMatches.length > 0) {
+              console.log(`Encontradas ${partialMatches.length} coincidencias parciales:`, 
+                JSON.stringify(partialMatches.map(p => `${p.title} (${p.slug})`)));
+              
+              // Get the full page data for the first match
+              page = await prisma.page.findUnique({
+                where: { id: partialMatches[0].id },
+                include: {
+                  sections: {
+                    orderBy: {
+                      order: 'asc'
+                    }
+                  }
+                }
+              });
+            } else {
+              return null;
+            }
+          }
+        }
+        
+        if (page) {
+          console.log(`Página encontrada: "${page.title}" (ID: ${page.id}, slug: ${page.slug})`);
+          return page;
+        }
+        
+        console.log('No se encontró ninguna página con el slug proporcionado');
+        return null;
+      } catch (error) {
+        console.error('Error al obtener página por slug:', error);
+        return null;
+      }
+    },
+    
     getSectionComponents: async (_parent: unknown, args: { sectionId: string }) => {
       console.log('======== START getSectionComponents resolver ========');
       try {
@@ -91,7 +217,7 @@ export const cmsResolvers = {
             const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
               id: sc.id,
               type: sc.component.slug,
-              data: sc.data || {}
+              data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
             }));
             
             console.log('Number of components in section:', components.length);
@@ -754,6 +880,179 @@ export const cmsResolvers = {
         return {
           success: false,
           message: `Error al crear página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          page: null
+        };
+      }
+    },
+
+    // Update page mutation
+    updatePage: async (_parent: unknown, args: { 
+      id: string;
+      input: { 
+        title?: string;
+        slug?: string;
+        description?: string | null;
+        template?: string;
+        isPublished?: boolean;
+        publishDate?: string | null;
+        featuredImage?: string | null;
+        metaTitle?: string | null;
+        metaDescription?: string | null;
+        parentId?: string | null;
+        order?: number;
+        pageType?: string;
+        locale?: string;
+        sections?: Array<{
+          id?: string;
+          order: number;
+          title?: string;
+          componentType?: string;
+          data?: Record<string, unknown>;
+          isVisible?: boolean;
+        }>;
+      } 
+    }) => {
+      console.log('======== START updatePage resolver ========');
+      try {
+        const { id, input } = args;
+        console.log(`Actualizando página con ID: ${id}`);
+        
+        // Verificar si la página existe
+        const existingPage = await prisma.page.findUnique({
+          where: { id },
+          include: {
+            sections: true
+          }
+        });
+        
+        if (!existingPage) {
+          return {
+            success: false,
+            message: `No se encontró ninguna página con ID: ${id}`,
+            page: null
+          };
+        }
+        
+        // Actualizar la página básica
+        const updatedPage = await prisma.page.update({
+          where: { id },
+          data: {
+            ...(input.title !== undefined && { title: input.title }),
+            ...(input.slug !== undefined && { slug: input.slug }),
+            ...(input.description !== undefined && { description: input.description }),
+            ...(input.template !== undefined && { template: input.template }),
+            ...(input.isPublished !== undefined && { isPublished: input.isPublished }),
+            ...(input.publishDate !== undefined && { publishDate: input.publishDate ? new Date(input.publishDate) : null }),
+            ...(input.featuredImage !== undefined && { featuredImage: input.featuredImage }),
+            ...(input.metaTitle !== undefined && { metaTitle: input.metaTitle }),
+            ...(input.metaDescription !== undefined && { metaDescription: input.metaDescription }),
+            ...(input.parentId !== undefined && { parentId: input.parentId }),
+            ...(input.order !== undefined && { order: input.order }),
+            ...(input.pageType !== undefined && { pageType: input.pageType as PageType }),
+            ...(input.locale !== undefined && { locale: input.locale }),
+            updatedAt: new Date()
+          },
+          include: {
+            sections: true
+          }
+        });
+        
+        // Si hay secciones nuevas o modificadas, actualizarlas
+        if (input.sections && Array.isArray(input.sections)) {
+          console.log(`Actualizando ${input.sections.length} secciones para la página`);
+          
+          // Recopilar IDs existentes para eliminar los que ya no están presentes
+          const newSectionIds = input.sections
+            .filter(s => s.id)
+            .map(s => s.id);
+          
+          const sectionsToDelete = existingPage.sections
+            .filter(s => !newSectionIds.includes(s.id));
+          
+          // Eliminar secciones que ya no están en la lista
+          if (sectionsToDelete.length > 0) {
+            await prisma.pageSection.deleteMany({
+              where: { 
+                id: { 
+                  in: sectionsToDelete.map(s => s.id) 
+                } 
+              }
+            });
+            console.log(`Eliminadas ${sectionsToDelete.length} secciones obsoletas`);
+          }
+          
+          // Procesar cada sección
+          for (const section of input.sections) {
+            // Preparar datos de componentes si existen
+            const componentType = section.componentType || 'GENERIC';
+            
+            if (section.id && !section.id.startsWith('temp-')) {
+              // Actualizar sección existente
+              await prisma.pageSection.update({
+                where: { id: section.id },
+                data: {
+                  title: section.title,
+                  order: section.order,
+                  componentType: componentType as ComponentType,
+                  isVisible: section.isVisible !== false, // default to true if undefined
+                  data: section.data ? section.data as Prisma.InputJsonValue : Prisma.JsonNull,
+                  updatedAt: new Date()
+                }
+              });
+              console.log(`Sección actualizada: ${section.id}`);
+            } else {
+              // Crear nueva sección
+              await prisma.pageSection.create({
+                data: {
+                  pageId: id,
+                  title: section.title || `Sección ${section.order + 1}`,
+                  order: section.order,
+                  componentType: componentType as ComponentType,
+                  isVisible: section.isVisible !== false, // default to true if undefined
+                  data: section.data ? section.data as Prisma.InputJsonValue : Prisma.JsonNull,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                }
+              });
+              console.log(`Nueva sección creada con orden ${section.order}`);
+            }
+          }
+        }
+        
+        // Obtener la página actualizada con sus secciones
+        const pageWithSections = await prisma.page.findUnique({
+          where: { id: updatedPage.id },
+          include: {
+            sections: {
+              select: {
+                id: true,
+                order: true,
+                title: true,
+                componentType: true,
+                isVisible: true,
+                data: true,
+                createdAt: true,
+                updatedAt: true
+              },
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        });
+        
+        console.log(`Página "${updatedPage.title}" actualizada correctamente`);
+        
+        return {
+          success: true,
+          message: `Página "${updatedPage.title}" actualizada correctamente`,
+          page: pageWithSections
+        };
+      } catch (error) {
+        console.error('Error al actualizar página CMS:', error);
+        return {
+          success: false,
+          message: `Error al actualizar página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
           page: null
         };
       }

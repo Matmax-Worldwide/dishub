@@ -16,8 +16,8 @@ export default function CMSLayout({
     <div className="flex h-screen">
       <CMSSidebar locale={locale} />
       <div className="flex-1 p-6 overflow-auto">
-        {/* This is a nested layout inside the admin layout */}
-        {children}
+      {/* This is a nested layout inside the admin layout */}
+      {children}
       </div>
     </div>
   );

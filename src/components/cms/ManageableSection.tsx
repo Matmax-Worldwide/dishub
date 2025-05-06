@@ -241,7 +241,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   });
 
   return (
-    <div className="my-6">
+    <div className={isEditing ? "my-6" : ""}>
       {isEditing && autoSave && (
         <AdminControls
           components={pendingComponents}

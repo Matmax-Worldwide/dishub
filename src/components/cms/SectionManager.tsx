@@ -188,9 +188,9 @@ export default function SectionManager({
     
     console.log(`🔍 [${renderId}] Datos del componente:`, JSON.stringify(component.data, null, 2));
     
-    // Definir un wrapper común para todos los componentes
+    // Definir un wrapper común para todos los componentes - solo aplicable en modo edición
     const ComponentWrapper = ({ children }: { children: React.ReactNode }) => (
-      <div key={component.id} className="relative mb-4">
+      <div key={component.id} className={isEditing ? "relative mb-4" : ""}>
         {isEditing && (
           <button 
             onClick={() => removeComponent(component.id)}
@@ -349,10 +349,10 @@ export default function SectionManager({
   };
 
   return (
-    <div className="relative min-h-[200px] border-dashed border-2 border-blue-200 rounded-lg p-4 mb-8">
-      {components.length === 0 && !showComponentPicker && (
+    <div className={isEditing ? "relative min-h-[200px] border-dashed border-2 border-blue-200 rounded-lg p-4 mb-8" : "w-full"}>
+      {isEditing && components.length === 0 && !showComponentPicker && (
         <div className="flex items-center justify-center h-[200px] text-gray-400">
-          {isEditing ? 'Add components to this section' : 'No components in this section'}
+          Add components to this section
         </div>
       )}
 

@@ -266,9 +266,25 @@ export default function CreatePage() {
     title: '',
     slug: '',
     description: '',
+    template: 'default',
     isPublished: false,
+    publishDate: '',
+    featuredImage: '',
+    metaTitle: '',
+    metaDescription: '',
+    parentId: '',
+    order: 0,
     pageType: 'CONTENT',
-    sections: [] as string[] // IDs de las secciones seleccionadas
+    locale: Array.isArray(locale) ? locale[0] : (locale || 'en'),
+    sections: [] as string[], // IDs de las secciones seleccionadas
+    sectionComponents: [] as Array<{
+      id: string;
+      title?: string;
+      order: number;
+      componentType?: string;
+      data?: Record<string, unknown>;
+      isVisible?: boolean;
+    }>
   });
 
   // Convertir secciones seleccionadas al formato que espera PageWrapper
@@ -430,8 +446,14 @@ export default function CreatePage() {
         title: pageData.title,
         slug: pageData.slug,
         description: pageData.description || null,
-        template: "default",
+        template: pageData.template || "default",
         isPublished: pageData.isPublished,
+        publishDate: pageData.publishDate ? new Date(pageData.publishDate).toISOString() : null,
+        featuredImage: pageData.featuredImage || null,
+        metaTitle: pageData.metaTitle || null,
+        metaDescription: pageData.metaDescription || null,
+        parentId: pageData.parentId || null,
+        order: pageData.order,
         pageType: pageData.pageType,
         locale: localeStr,
         sections: pageData.sections
@@ -441,15 +463,15 @@ export default function CreatePage() {
       const result = await cmsOperations.createPage(pageInput);
       
       if (result && result.success) {
-        setNotification({
-          type: 'success',
-          message: 'Page created successfully!'
-        });
-        
-        // Después de un breve delay, redirigir a la lista de páginas
-        setTimeout(() => {
-          router.push(`/${locale}/cms/pages`);
-        }, 1500);
+      setNotification({
+        type: 'success',
+        message: 'Page created successfully!'
+      });
+      
+      // Después de un breve delay, redirigir a la lista de páginas
+      setTimeout(() => {
+        router.push(`/${locale}/cms/pages`);
+      }, 1500);
       } else {
         throw new Error(result?.message || 'Unknown error creating page');
       }
@@ -573,7 +595,7 @@ export default function CreatePage() {
             }
           }
         } catch (error) {
-          console.error('Error al obtener componentes de sección existente:', error); 
+          console.error('Error al obtener componentes de sección existente:', error);
         }
       }
       
@@ -610,12 +632,12 @@ export default function CreatePage() {
         // Añadir un retraso para asegurar que la operación de base de datos se complete
         // antes de intentar cargar los componentes de la nueva sección
         setTimeout(() => {
-          // Si estamos en el modo de edición, cambiar a la pestaña de edición
-          // para permitir editar inmediatamente la nueva sección
-          setActiveTab('edit');
-          
-          // Quizá también queremos establecer esto como la sección en edición
-          setEditingSectionId(sectionId);
+        // Si estamos en el modo de edición, cambiar a la pestaña de edición
+        // para permitir editar inmediatamente la nueva sección
+        setActiveTab('edit');
+        
+        // Quizá también queremos establecer esto como la sección en edición
+        setEditingSectionId(sectionId);
         }, 1000); // Retraso de 1 segundo
         
         // Limpiar la notificación después de 3 segundos
@@ -1105,6 +1127,104 @@ export default function CreatePage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  
+                  {/* Template */}
+                  <div>
+                    <label htmlFor="template" className="block text-sm font-medium text-gray-700 mb-1">
+                      Template
+                    </label>
+                    <select
+                      id="template"
+                      name="template"
+                      value={pageData.template}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="default">Default</option>
+                      <option value="full-width">Full Width</option>
+                      <option value="sidebar">With Sidebar</option>
+                      <option value="landing">Landing Page</option>
+                    </select>
+                  </div>
+                  
+                  {/* Order */}
+                  <div>
+                    <label htmlFor="order" className="block text-sm font-medium text-gray-700 mb-1">
+                      Display Order
+                    </label>
+                    <input
+                      type="number"
+                      id="order"
+                      name="order"
+                      value={pageData.order}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+                  
+                  {/* Publish Date */}
+                  <div>
+                    <label htmlFor="publishDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Publish Date
+                    </label>
+                    <input
+                      type="date"
+                      id="publishDate"
+                      name="publishDate"
+                      value={pageData.publishDate}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  {/* Featured Image */}
+                  <div>
+                    <label htmlFor="featuredImage" className="block text-sm font-medium text-gray-700 mb-1">
+                      Featured Image URL
+                    </label>
+                    <input
+                      type="text"
+                      id="featuredImage"
+                      name="featuredImage"
+                      value={pageData.featuredImage}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  
+                  {/* Meta Title */}
+                  <div>
+                    <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                      Meta Title (SEO)
+                    </label>
+                    <input
+                      type="text"
+                      id="metaTitle"
+                      name="metaTitle"
+                      value={pageData.metaTitle}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="SEO title for search engines"
+                    />
+                  </div>
+                  
+                  {/* Meta Description */}
+                  <div>
+                    <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                      Meta Description (SEO)
+                    </label>
+                    <textarea
+                      id="metaDescription"
+                      name="metaDescription"
+                      value={pageData.metaDescription}
+                      onChange={handleChange}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Brief description for search engines"
+                    />
                   </div>
                   
                   {/* Publicada */}

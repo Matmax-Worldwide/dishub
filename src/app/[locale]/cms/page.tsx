@@ -45,11 +45,19 @@ export default function CMSDashboard() {
         console.log('Secciones obtenidas:', sectionsData);
         setSectionsCount(Array.isArray(sectionsData) ? sectionsData.length : 0);
         
+        // Obtener componentes desde GraphQL
+        const componentsData = await cmsOperations.getAllComponents();
+        console.log('Componentes obtenidos:', componentsData);
+        setComponentsCount(Array.isArray(componentsData) ? componentsData.length : 0);
+        
+        // Obtener páginas desde GraphQL
+        const pagesData = await cmsOperations.getAllPages();
+        console.log('Páginas obtenidas:', pagesData);
+        setPageCount(Array.isArray(pagesData) ? pagesData.length : 0);
+        
         // Mock data para otros conteos (hasta que implementemos esas APIs)
-        setPageCount(0);
         setMediaCount(0);
-        setMenuCount(2);
-        setComponentsCount(6);
+        setMenuCount(0);
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {

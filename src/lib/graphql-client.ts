@@ -205,6 +205,498 @@ interface SectionComponentsResponse {
   };
 }
 
+// Interfaces for page data
+export interface PageData {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  template?: string;
+  isPublished: boolean;
+  publishDate?: string | null;
+  featuredImage?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  parentId?: string | null;
+  order?: number;
+  pageType: string;
+  locale?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  sections?: PageSectionData[] | Array<{id: string; order?: number}>; // Allow for different structure
+}
+
+// Generic GraphQL response type
+interface GraphQLResponse<T> {
+  data?: {
+    [key: string]: T;
+  };
+  errors?: Array<{ message: string }>;
+}
+
+export interface PageSectionData {
+  id: string;
+  order: number;
+  title?: string;
+  componentType?: string;
+  data?: Record<string, unknown>;
+  isVisible?: boolean;
+}
+
+// Get a page by its slug
+async function getPageBySlug(slug: string): Promise<PageData | null> {
+  try {
+    const query = `
+      query GetPageBySlug($slug: String!) {
+        getPageBySlug(slug: $slug) {
+          id
+          title
+          slug
+          description
+          template
+          isPublished
+          publishDate
+          featuredImage
+          metaTitle
+          metaDescription
+          parentId
+          order
+          pageType
+          locale
+          createdAt
+          updatedAt
+          sections {
+            id
+            order
+            title
+            componentType
+            data
+            isVisible
+          }
+        }
+      }
+    `;
+
+    const variables = { slug };
+    
+    const result = await gqlRequest<{ 
+      getPageBySlug?: PageData; 
+      data?: { getPageBySlug: PageData };
+      errors?: Array<{ message: string }>
+    }>(query, variables);
+    
+    // Check for errors in the response
+    if (result.errors && result.errors.length > 0) {
+      console.error(`Error in getPageBySlug: ${result.errors.map(e => e.message).join(', ')}`);
+      return null;
+    }
+    
+    // Try to extract page data from different possible response structures
+    let page: PageData | null = null;
+    
+    // Direct property
+    if (result.getPageBySlug) {
+      page = result.getPageBySlug;
+    } 
+    // Nested under data
+    else if (result.data?.getPageBySlug) {
+      page = result.data.getPageBySlug;
+    }
+    // Check if data is the top-level property with getPageBySlug inside
+    else if (typeof result === 'object' && result !== null && 'data' in result) {
+      const data = (result as GraphQLResponse<PageData>).data;
+      if (data && typeof data === 'object' && 'getPageBySlug' in data) {
+        page = data.getPageBySlug;
+      }
+    }
+    
+    // Found a page
+    if (page && page.id) {
+      // Log section info if page has sections
+      if (page.sections && Array.isArray(page.sections)) {
+        console.log(`Page "${page.title}" has ${page.sections.length} sections`);
+        page.sections.forEach((section, index) => {
+          // Check if section is a PageSectionData type with componentType
+          if ('componentType' in section) {
+            console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order}, Type=${section.componentType || 'unknown'}`);
+          } else {
+            console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order || 0}`);
+          }
+        });
+      } else {
+        console.log(`Page "${page.title}" has no sections defined`);
+      }
+      return page;
+    }
+    
+    // For debugging purposes, try to list available pages
+    try {
+      const listQuery = `
+        query GetAllPages {
+          getAllCMSPages {
+            id
+            slug
+            title
+          }
+        }
+      `;
+      const listResult = await gqlRequest<{ 
+        getAllCMSPages: Array<{ id: string; slug: string; title: string }> 
+      }>(listQuery);
+      
+      // Check different possible structures for the getAllCMSPages result
+      let pages: Array<{ id: string; slug: string; title: string }> = [];
+      
+      if (listResult.getAllCMSPages) {
+        pages = listResult.getAllCMSPages;
+      } else if (typeof listResult === 'object' && listResult !== null && 'data' in listResult) {
+        const data = (listResult as GraphQLResponse<Array<{ id: string; slug: string; title: string }>>).data;
+        if (data && typeof data === 'object' && 'getAllCMSPages' in data) {
+          pages = data.getAllCMSPages;
+        }
+      }
+      
+      // Check if a matching page exists but wasn't returned correctly
+      if (pages.length > 0) {
+        const matchingPage = pages.find(p => 
+          p.slug === slug || 
+          p.slug.toLowerCase() === slug.toLowerCase() ||
+          p.slug.replace(/-/g, '') === slug.replace(/-/g, '') ||
+          p.slug.replace(/-/g, ' ') === slug.replace(/-/g, ' ')
+        );
+        
+        if (matchingPage) {
+          console.log(`Found matching page "${matchingPage.title}" but couldn't fetch its sections`);
+          
+          // Try to fetch by ID as a fallback
+          try {
+            const foundPage = await getPageById(matchingPage.id);
+            if (foundPage) {
+              // Log section info
+              if (foundPage.sections && Array.isArray(foundPage.sections)) {
+                console.log(`Page "${foundPage.title}" (fetched by ID) has ${foundPage.sections.length} sections`);
+                foundPage.sections.forEach((section, index) => {
+                  // Check if section is a PageSectionData type with componentType
+                  if ('componentType' in section) {
+                    console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order}, Type=${section.componentType || 'unknown'}`);
+                  } else {
+                    console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order || 0}`);
+                  }
+                });
+              } else {
+                console.log(`Page "${foundPage.title}" (fetched by ID) has no sections defined`);
+              }
+              return foundPage;
+            }
+          } catch (idError) {
+            console.error(`Error fetching page sections by ID:`, idError);
+          }
+        }
+      }
+    } catch (listError) {
+      console.error(`Error listing sections:`, listError);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error retrieving page sections:`, error);
+    throw error;
+  }
+}
+
+// Update a page
+async function updatePage(id: string, input: {
+  title?: string;
+  slug?: string;
+  description?: string | null;
+  template?: string;
+  isPublished?: boolean;
+  publishDate?: string | null;
+  featuredImage?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  parentId?: string | null;
+  order?: number;
+  pageType?: string;
+  locale?: string;
+  sections?: Array<{
+    id?: string;
+    order: number;
+    title?: string;
+    componentType?: string;
+    data?: Record<string, unknown>;
+    isVisible?: boolean;
+  }>;
+}): Promise<{
+  success: boolean;
+  message: string;
+  page: PageData | null;
+}> {
+  try {
+    const mutation = `
+      mutation UpdatePage($id: ID!, $input: UpdatePageInput!) {
+        updatePage(id: $id, input: $input) {
+          success
+          message
+          page {
+            id
+            title
+            slug
+            description
+            template
+            isPublished
+            pageType
+            locale
+            updatedAt
+            sections {
+              id
+              order
+            }
+          }
+        }
+      }
+    `;
+
+    console.log('Updating page with data:', { id, input });
+    const variables = { id, input };
+    const result = await gqlRequest<{ 
+      updatePage?: { success: boolean; message: string; page: PageData | null };
+      data?: { updatePage: { success: boolean; message: string; page: PageData | null } }
+    }>(mutation, variables);
+    console.log('Update page result:', result);
+    
+    // Handle different response structures
+    if (result.updatePage) {
+      return result.updatePage;
+    } else if (result.data?.updatePage) {
+      return result.data.updatePage;
+    }
+    
+    return {
+      success: false,
+      message: 'Failed to update page: Unexpected response format',
+      page: null
+    };
+  } catch (error) {
+    console.error('Error updating page:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error updating page',
+      page: null
+    };
+  }
+}
+
+// Get a page by ID
+async function getPageById(id: string): Promise<PageData | null> {
+  const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
+  console.log(`🔍 [${requestId}] GraphQL CLIENT - getPageById - Starting request for ID: "${id}"`);
+  
+  try {
+    // First try to get all pages and filter by ID
+    const allPages = await cmsOperations.getAllPages();
+    const page = allPages.find(p => p.id === id);
+    
+    if (page) {
+      console.log(`✅ [${requestId}] GraphQL CLIENT - getPageById - Found page with title: "${page.title}"`);
+      return page as PageData;
+    }
+    
+    console.log(`❓ [${requestId}] GraphQL CLIENT - getPageById - No page found with ID: ${id}`);
+    return null;
+  } catch (error) {
+    console.error(`❌ [${requestId}] GraphQL CLIENT - getPageById - Error:`, error);
+    return null;
+  }
+}
+
+// Get page with detailed section components for preview
+export async function getPagePreview(pageData: PageData): Promise<{
+  page: PageData;
+  sections: Array<{
+    id: string;
+    title?: string;
+    order: number;
+    components: CMSComponent[];
+  }>;
+}> {
+  console.log(`Generating preview for page: "${pageData.title}"`);
+  
+  const sections: Array<{
+    id: string;
+    title?: string;
+    order: number;
+    components: CMSComponent[];
+  }> = [];
+  
+  if (!pageData.sections || !Array.isArray(pageData.sections) || pageData.sections.length === 0) {
+    console.log(`Page has no sections to preview`);
+    return { page: pageData, sections: [] };
+  }
+  
+  // Log all sections we're going to fetch
+  console.log(`Fetching components for ${pageData.sections.length} sections`);
+  
+  // Process each section to get its components
+  for (const section of pageData.sections) {
+    try {
+      // Only fetch if we have a section ID
+      if (!section.id) {
+        console.log(`Section missing ID, skipping component fetch`);
+        continue;
+      }
+      
+      console.log(`Fetching components for section ID: ${section.id}`);
+      
+      // Get section title if available
+      const sectionTitle = 'title' in section ? section.title : `Section ${section.order || 0}`;
+      
+      // Fetch the components for this section
+      const { components } = await cmsOperations.getSectionComponents(section.id);
+      
+      console.log(`Fetched ${components.length} components for section "${sectionTitle}"`);
+      
+      // Add to our sections array with components
+      sections.push({
+        id: section.id,
+        title: sectionTitle,
+        order: section.order || 0,
+        components
+      });
+      
+      // Log component types for debugging
+      if (components.length > 0) {
+        console.log(`Component types in section "${sectionTitle}":`, 
+          components.map(c => c.type).join(', '));
+      }
+    } catch (error) {
+      console.error(`Error fetching components for section ${section.id}:`, error);
+      
+      // Add the section with empty components to maintain structure
+      sections.push({
+        id: section.id,
+        title: 'title' in section ? section.title : `Section ${section.order || 0}`,
+        order: section.order || 0,
+        components: []
+      });
+    }
+  }
+  
+  // Sort sections by order
+  sections.sort((a, b) => a.order - b.order);
+  
+  console.log(`Page preview generated with ${sections.length} populated sections`);
+  
+  return {
+    page: pageData,
+    sections
+  };
+}
+
+// Get section components for editing
+export async function loadSectionComponentsForEdit(sectionId: string): Promise<{
+  sectionId: string;
+  components: CMSComponent[];
+  lastUpdated: string | null;
+}> {
+  try {
+    console.log(`Loading components for section ${sectionId} in editor`);
+    
+    // Fetch the components for this section
+    const { components, lastUpdated } = await cmsOperations.getSectionComponents(sectionId);
+    
+    console.log(`Editor: Loaded ${components.length} components for section ${sectionId}`);
+    
+    if (components.length > 0) {
+      // Log types and data structure to help with editing
+      console.log(`Component types for editing:`, components.map(c => c.type));
+      console.log(`First component data structure:`, 
+        Object.keys(components[0].data || {}).join(', '));
+    }
+    
+    return { 
+      sectionId,
+      components, 
+      lastUpdated 
+    };
+  } catch (error) {
+    console.error(`Error loading section components for edit:`, error);
+    return { 
+      sectionId,
+      components: [], 
+      lastUpdated: null 
+    };
+  }
+}
+
+// Apply edits to a component within a section
+export async function applyComponentEdit(
+  sectionId: string,
+  componentId: string,
+  editedData: Record<string, unknown>
+): Promise<{
+  success: boolean;
+  message: string;
+  lastUpdated: string | null;
+}> {
+  try {
+    console.log(`Applying edits to component ${componentId} in section ${sectionId}`);
+    
+    // First fetch the current components
+    const { components } = await cmsOperations.getSectionComponents(sectionId);
+    
+    if (!components || components.length === 0) {
+      return {
+        success: false,
+        message: `No components found in section ${sectionId}`,
+        lastUpdated: null
+      };
+    }
+    
+    // Find the component to update
+    const componentIndex = components.findIndex(c => c.id === componentId);
+    
+    if (componentIndex === -1) {
+      console.error(`Component ${componentId} not found in section ${sectionId}`);
+      return {
+        success: false,
+        message: `Component ${componentId} not found in section`,
+        lastUpdated: null
+      };
+    }
+    
+    console.log(`Found component at index ${componentIndex}, updating data`);
+    
+    // Create a new array with the updated component
+    const updatedComponents = [...components];
+    updatedComponents[componentIndex] = {
+      ...updatedComponents[componentIndex],
+      data: {
+        ...updatedComponents[componentIndex].data,
+        ...editedData
+      }
+    };
+    
+    console.log(`Saving updated component: ${JSON.stringify({
+      id: updatedComponents[componentIndex].id,
+      type: updatedComponents[componentIndex].type,
+      dataKeys: Object.keys(updatedComponents[componentIndex].data || {})
+    })}`);
+    
+    // Save all components back to the section
+    const result = await cmsOperations.saveSectionComponents(sectionId, updatedComponents);
+    
+    return result;
+  } catch (error) {
+    console.error('Error applying component edit:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error updating component',
+      lastUpdated: null
+    };
+  }
+}
+
 // Operaciones CMS
 export const cmsOperations = {
   // Obtener todas las secciones CMS
@@ -801,4 +1293,14 @@ export const cmsOperations = {
       };
     }
   },
+
+  applyComponentEdit,
+  
+  loadSectionComponentsForEdit,
+  
+  getPagePreview,
+  
+  getPageBySlug,
+  updatePage,
+  getPageById,
 }; 

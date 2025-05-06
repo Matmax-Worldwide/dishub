@@ -614,16 +614,20 @@ export const typeDefs = gql`
     sections: [PageSection]
   }
 
-  # Input for creating pages
+  # Input types for page operations
   input CreatePageInput {
     title: String!
     slug: String!
     description: String
     template: String
     isPublished: Boolean
+    publishDate: DateTime
+    featuredImage: String
+    metaTitle: String
+    metaDescription: String
     pageType: String
     locale: String
-    sections: [String]
+    sections: [String!]
   }
   
   # Page creation result
@@ -684,6 +688,39 @@ export const typeDefs = gql`
     schema: JSON
     icon: String
     isActive: Boolean
+  }
+
+  # Input for updating pages
+  input UpdatePageInput {
+    title: String
+    slug: String
+    description: String
+    template: String
+    isPublished: Boolean
+    publishDate: DateTime
+    featuredImage: String
+    metaTitle: String
+    metaDescription: String
+    parentId: String
+    order: Int
+    pageType: String
+    locale: String
+    sections: [PageSectionInput!]
+  }
+
+  input PageSectionInput {
+    id: ID
+    order: Int!
+    title: String
+    componentType: String
+    data: JSON
+    isVisible: Boolean
+  }
+
+  type PageMutationResponse {
+    success: Boolean!
+    message: String!
+    page: Page
   }
 
   # Root Query
@@ -776,6 +813,7 @@ export const typeDefs = gql`
     
     # Nuevas queries para páginas CMS
     getAllCMSPages: [Page!]!
+    getPageBySlug(slug: String!): Page
   }
 
   # Root Mutation
@@ -866,5 +904,6 @@ export const typeDefs = gql`
     
     # Page mutations
     createPage(input: CreatePageInput!): PageResult
+    updatePage(id: ID!, input: UpdatePageInput!): PageResult
   }
 `; 

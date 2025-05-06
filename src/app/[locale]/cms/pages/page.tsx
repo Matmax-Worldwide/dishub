@@ -115,9 +115,8 @@ export default function PagesManagement() {
   };
 
   const handleEditPage = (id: string, slug: string) => {
-    // En lugar de navegar a una página de edición separada,
-    // abrimos la página en el frontend con un parámetro que activa el modo de edición
-    window.open(`/${locale}/${slug}?edit=true`, '_blank');
+    // Navigate to the edit page route
+    router.push(`/${locale}/cms/pages/edit/${slug}`);
   };
 
   const handleViewPage = (slug: string) => {
