@@ -53,14 +53,23 @@ export default function SectionManager({
 
   // Update parent component when components change
   useEffect(() => {
+    console.log('Components changed in SectionManager:', components.length, 'components');
     if (onComponentsChange) {
       onComponentsChange(components);
     }
   }, [components, onComponentsChange]);
 
+  // Update components when initialComponents change (from parent)
+  useEffect(() => {
+    if (initialComponents && initialComponents.length > 0) {
+      console.log('Initial components received:', initialComponents.length);
+      setComponents(initialComponents);
+    }
+  }, [initialComponents]);
+
   // Available component types
   const availableComponents: ComponentType[] = [
-    'Hero', 'Text', 'Image', 'Feature', 'Testimonial'
+    'Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header'
   ];
 
   // Add a new component
@@ -127,6 +136,9 @@ export default function SectionManager({
 
       {/* Render each component */}
       {components.map(component => {
+        // Log to debug component data
+        console.log(`Rendering component: ${component.id}, type: ${component.type}`, component.data);
+        
         // Type-safe rendering based on component type
         switch(component.type) {
           case 'Hero':
@@ -162,8 +174,8 @@ export default function SectionManager({
               </div>
             );
           
-          case 'Text':
-            const TextComponent = componentMap.Text;
+          case 'Header':
+            const HeaderComponent = componentMap.Header;
             return (
               <div key={component.id} className="relative mb-4">
                 {isEditing && (
@@ -174,9 +186,57 @@ export default function SectionManager({
                     <XMarkIcon className="h-4 w-4 text-red-500" />
                   </button>
                 )}
-                <TextComponent 
+                <HeaderComponent 
                   title={component.data.title as string || "Default Title"} 
-                  content={component.data.content as string || "Default Content"}
+                  subtitle={component.data.subtitle as string || "Default Subtitle"}
+                  isEditing={isEditing}
+                  onUpdate={(updatedData) => {
+                    const updatedComponent = {
+                      ...component,
+                      data: { ...component.data, ...updatedData }
+                    };
+                    setComponents(
+                      components.map(c => 
+                        c.id === component.id ? updatedComponent : c
+                      )
+                    );
+                  }}
+                />
+              </div>
+            );
+          
+          case 'Text':
+            const TextComponent = componentMap.Text;
+            console.log(`TextComponent props:`, {
+              title: component.data.title,
+              content: component.data.content,
+              isEditing
+            });
+            return (
+              <div key={component.id} className="relative mb-4 border-2 border-transparent hover:border-blue-100">
+                {isEditing && (
+                  <button 
+                    onClick={() => removeComponent(component.id)}
+                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
+                  >
+                    <XMarkIcon className="h-4 w-4 text-red-500" />
+                  </button>
+                )}
+                <TextComponent 
+                  title={component.data.title as string} 
+                  content={component.data.content as string}
+                  isEditing={isEditing}
+                  onUpdate={(updatedData) => {
+                    const updatedComponent = {
+                      ...component,
+                      data: { ...component.data, ...updatedData }
+                    };
+                    setComponents(
+                      components.map(c => 
+                        c.id === component.id ? updatedComponent : c
+                      )
+                    );
+                  }}
                 />
               </div>
             );

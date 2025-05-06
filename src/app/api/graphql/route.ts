@@ -86,7 +86,38 @@ export async function POST(request: NextRequest) {
     // Log the request body for debugging
     console.log('===== GraphQL Request =====');
     const requestClone = request.clone();
-    const body = await requestClone.json();
+    
+    // Check if the request has a body before parsing
+    const text = await requestClone.text();
+    if (!text || text.trim() === '') {
+      console.error('Empty request body received');
+      return new Response(JSON.stringify({
+        errors: [{ message: 'Empty request body' }]
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+    
+    // Parse the body as JSON
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Invalid JSON in request body:', parseError);
+      console.log('Raw request text (first 100 chars):', text.substring(0, 100));
+      return new Response(JSON.stringify({
+        errors: [{ message: 'Invalid JSON in request body' }]
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+    
     console.log('Request Query:', body.query ? body.query.substring(0, 250) + '...' : 'No query');
     console.log('Request Variables:', body.variables ? JSON.stringify(body.variables).substring(0, 250) + '...' : 'No variables');
     console.log('=========================');

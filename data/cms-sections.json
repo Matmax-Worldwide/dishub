@@ -1,6 +1,37 @@
 {
   "cms-managed-sections": {
-    "components": [],
-    "lastUpdated": "2025-05-05T20:47:58.136Z"
+    "components": [
+      {
+        "id": "component-1746486327612",
+        "type": "Hero",
+        "data": {
+          "title": "New Hero Section",
+          "subtitle": "Add your subtitle here",
+          "image": ""
+        }
+      }
+    ],
+    "lastUpdated": "2025-05-05T23:05:31.673Z"
+  },
+  "cms-managed-sections": {
+    "components": [
+      {
+        "id": "header-1746486891234",
+        "type": "Header",
+        "data": {
+          "title": "Welcome to Evoque",
+          "subtitle": "Explore our platform and discover what we have to offer"
+        }
+      },
+      {
+        "id": "text-1746486891235",
+        "type": "Text",
+        "data": {
+          "title": "About Us",
+          "content": "We are a platform dedicated to providing the best services for our users."
+        }
+      }
+    ],
+    "lastUpdated": "2023-06-06T10:15:00.000Z"
   }
 }
