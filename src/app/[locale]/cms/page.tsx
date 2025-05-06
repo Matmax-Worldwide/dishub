@@ -10,6 +10,7 @@ import {
   SettingsIcon,
   ArrowRightIcon,
   LayoutIcon,
+  PackageIcon,
   AlertCircleIcon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
@@ -30,6 +31,7 @@ export default function CMSDashboard() {
   const [mediaCount, setMediaCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
   const [sectionsCount, setSectionsCount] = useState(0);
+  const [componentsCount, setComponentsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,7 +48,8 @@ export default function CMSDashboard() {
         // Mock data para otros conteos (hasta que implementemos esas APIs)
         setPageCount(0);
         setMediaCount(0);
-        setMenuCount(0);
+        setMenuCount(2);
+        setComponentsCount(6);
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {
@@ -62,7 +65,7 @@ export default function CMSDashboard() {
       title: 'Páginas',
       description: 'Crear y gestionar páginas del sitio web con contenido dinámico',
       icon: FileTextIcon,
-      href: `/${locale}/admin/cms/pages`,
+      href: `/${locale}/cms/pages`,
       count: pageCount,
       color: 'bg-blue-500',
       disabled: false
@@ -71,16 +74,25 @@ export default function CMSDashboard() {
       title: 'Secciones',
       description: 'Crear y gestionar secciones modulares reutilizables para las páginas',
       icon: LayoutIcon,
-      href: `/${locale}/admin/cms/sections`,
+      href: `/${locale}/cms/sections`,
       count: sectionsCount,
       color: 'bg-indigo-500',
+      disabled: false
+    },
+    {
+      title: 'Componentes',
+      description: 'Gestionar componentes reusables para las secciones de contenido',
+      icon: PackageIcon,
+      href: `/${locale}/cms/components`,
+      count: componentsCount,
+      color: 'bg-cyan-500',
       disabled: false
     },
     {
       title: 'Biblioteca de Medios',
       description: 'Subir y gestionar imágenes, videos y documentos',
       icon: ImageIcon,
-      href: `/${locale}/admin/cms/media`,
+      href: `/${locale}/cms/media`,
       count: mediaCount,
       color: 'bg-purple-500',
       disabled: true
@@ -89,18 +101,18 @@ export default function CMSDashboard() {
       title: 'Menús',
       description: 'Configurar menús de navegación en todo el sitio',
       icon: MenuIcon,
-      href: `/${locale}/admin/cms/menus`,
+      href: `/${locale}/cms/menus`,
       count: menuCount,
       color: 'bg-green-500',
-      disabled: true
+      disabled: false
     },
     {
       title: 'Configuración',
       description: 'Configurar ajustes globales del sitio web y apariencia',
       icon: SettingsIcon,
-      href: `/${locale}/admin/cms/settings`,
+      href: `/${locale}/cms/settings`,
       color: 'bg-orange-500',
-      disabled: true
+      disabled: false
     }
   ];
 
@@ -183,6 +195,10 @@ export default function CMSDashboard() {
         ) : (
           <ul className="space-y-3">
             <li className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Componente &apos;Feature Card&apos; actualizado</span>
+              <span className="text-gray-400">Hace 1 hora</span>
+            </li>
+            <li className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Página de inicio actualizada</span>
               <span className="text-gray-400">2 horas atrás</span>
             </li>
@@ -197,10 +213,6 @@ export default function CMSDashboard() {
             <li className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Menú principal actualizado</span>
               <span className="text-gray-400">2 días atrás</span>
-            </li>
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Página &quot;Sobre nosotros&quot; creada</span>
-              <span className="text-gray-400">3 días atrás</span>
             </li>
           </ul>
         )}

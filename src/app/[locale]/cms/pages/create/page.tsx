@@ -38,7 +38,7 @@ interface DebugInfo {
 }
 
 interface Section {
-  id: string;
+  sectionId: string;
   name: string;
   description?: string;
   componentCount: number;
@@ -183,7 +183,7 @@ function PreviewSectionComponent({
           </button>
         )}
         <button
-          onClick={() => onRemove(section.id)}
+          onClick={() => onRemove(section.sectionId)}
           className="p-1 bg-red-500 text-white rounded"
           title="Remove section"
         >
@@ -286,12 +286,12 @@ export default function CreatePage() {
     
     const newPageSections = pageData.sections.map((sectionId, index) => {
       // Buscar sección exacta por ID
-      let section = availableSections.find(s => s.id === sectionId);
+      let section = availableSections.find(s => s.sectionId === sectionId);
       
       // Si no encontramos coincidencia exacta, usamos la primera sección disponible como fallback
       if (!section && availableSections.length > 0 && index === 0) {
         section = availableSections[0];
-        console.log('No se encontró sección para ID:', sectionId, 'usando primera sección disponible:', section.id);
+        console.log('No se encontró sección para ID:', sectionId, 'usando primera sección disponible:', section.sectionId);
       }
       
       // Para secciones adicionales (posiblemente creadas dinámicamente), mantener su ID original
@@ -329,7 +329,7 @@ export default function CreatePage() {
         // Transformar los datos para la interfaz
         if (Array.isArray(sectionsData)) {
           const formattedSections = sectionsData.map(section => ({
-            id: section.id,
+            sectionId: section.sectionId,
             name: section.name || section.sectionId,
             description: section.description || '',
             componentCount: Array.isArray(section.components) ? section.components.length : 0
@@ -434,7 +434,7 @@ export default function CreatePage() {
       
       // Después de un breve delay, redirigir a la lista de páginas
       setTimeout(() => {
-        router.push(`/${locale}/admin/cms/pages`);
+        router.push(`/${locale}/cms/pages`);
       }, 1500);
     } catch (error) {
       console.error('Error saving page:', error);
@@ -449,7 +449,7 @@ export default function CreatePage() {
 
   // Volver a la lista de páginas
   const handleCancel = () => {
-    router.push(`/${locale}/admin/cms/pages`);
+    router.push(`/${locale}/cms/pages`);
   };
 
   // Dentro del componente CreatePage, añadir los estados y funciones para edición directa
@@ -478,18 +478,18 @@ export default function CreatePage() {
     
     setIsDeleting(true);
     try {
-      console.log(`Eliminando permanentemente sección: ${sectionToDelete.id}`);
-      const result = await deleteCMSSection(sectionToDelete.id);
+      console.log(`Eliminando permanentemente sección: ${sectionToDelete.sectionId}`);
+      const result = await deleteCMSSection(sectionToDelete.sectionId);
       
       if (result.success) {
         // Eliminar la sección de la lista de disponibles
-        setAvailableSections(prev => prev.filter(s => s.id !== sectionToDelete.id));
+        setAvailableSections(prev => prev.filter(s => s.sectionId !== sectionToDelete.sectionId));
         
         // Quitar la sección de las seleccionadas si estaba incluida
-        if (pageData.sections.includes(sectionToDelete.id)) {
+        if (pageData.sections.includes(sectionToDelete.sectionId)) {
           setPageData(prev => ({
             ...prev,
-            sections: prev.sections.filter(id => id !== sectionToDelete.id)
+            sections: prev.sections.filter(id => id !== sectionToDelete.sectionId)
           }));
         }
         
@@ -547,16 +547,16 @@ export default function CreatePage() {
       // Si se seleccionó crear desde una sección existente, obtener sus componentes
       if (newSection.fromExisting) {
         try {
-          const existingSection = availableSections.find(s => s.id === newSection.fromExisting);
+          const existingSection = availableSections.find(s => s.sectionId === newSection.fromExisting);
           if (existingSection) {
-            console.log(`Copiando componentes de sección existente: ${existingSection.id}`);
-            const result = await cmsOperations.getSectionComponents(existingSection.id);
+            console.log(`Copiando componentes de sección existente: ${existingSection.sectionId}`);
+            const result = await cmsOperations.getSectionComponents(existingSection.sectionId);
             if (result && Array.isArray(result.components)) {
               components = result.components as SectionComponent[];
             }
           }
         } catch (error) {
-          console.error('Error al obtener componentes de sección existente:', error);
+          console.error('Error al obtener componentes de sección existente:', error); 
         }
       }
       
@@ -566,7 +566,7 @@ export default function CreatePage() {
       if (saveResult.success) {
         // Crear objeto de sección para añadirlo a la lista
         const createdSection = {
-          id: sectionId,
+          sectionId: sectionId,
           name: newSection.name,
           description: newSection.description,
           componentCount: components.length
@@ -590,12 +590,16 @@ export default function CreatePage() {
         setNewSection({ name: '', description: '', fromExisting: '' });
         setShowNewSectionModal(false);
         
-        // Si estamos en el modo de edición, cambiar a la pestaña de edición
-        // para permitir editar inmediatamente la nueva sección
-        setActiveTab('edit');
-        
-        // Quizá también queremos establecer esto como la sección en edición
-        setEditingSectionId(sectionId);
+        // Añadir un retraso para asegurar que la operación de base de datos se complete
+        // antes de intentar cargar los componentes de la nueva sección
+        setTimeout(() => {
+          // Si estamos en el modo de edición, cambiar a la pestaña de edición
+          // para permitir editar inmediatamente la nueva sección
+          setActiveTab('edit');
+          
+          // Quizá también queremos establecer esto como la sección en edición
+          setEditingSectionId(sectionId);
+        }, 1000); // Retraso de 1 segundo
         
         // Limpiar la notificación después de 3 segundos
         setTimeout(() => {
@@ -624,7 +628,7 @@ export default function CreatePage() {
         <DiagnosticInfo data={{ 
           pageSections, 
           pageDataSections: pageData.sections,
-          availableSections: availableSections.map(s => ({ id: s.id, name: s.name })),
+          availableSections: availableSections.map(s => ({ id: s.sectionId, name: s.name })),
           editingSection: editingSectionId
         }} />
         
@@ -653,7 +657,7 @@ export default function CreatePage() {
             <div className="space-y-8">
               {pageSections.map((section, index) => (
                 <PreviewSectionComponent
-                  key={`preview-${section.id}-${forcedSectionLoad ? 'forced' : 'normal'}`}
+                  key={`preview-${section.sectionId}-${forcedSectionLoad ? 'forced' : 'normal'}`}
                   section={section}
                   index={index}
                   onEdit={handleEditSection}
@@ -781,7 +785,7 @@ export default function CreatePage() {
                           checked={!!newSection.fromExisting}
                           onChange={() => {
                             if (availableSections.length > 0) {
-                              setNewSection({...newSection, fromExisting: availableSections[0].id});
+                              setNewSection({...newSection, fromExisting: availableSections[0].sectionId});
                             }
                           }}
                           className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -802,7 +806,7 @@ export default function CreatePage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           {availableSections.map(section => (
-                            <option key={section.id} value={section.id}>
+                            <option key={section.sectionId} value={section.sectionId}>
                               {section.name} ({section.componentCount} components)
                             </option>
                           ))}
@@ -850,11 +854,11 @@ export default function CreatePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {availableSections.map((section) => (
                         <div
-                          key={section.id}
+                          key={section.sectionId}
                           className="p-4 border rounded-md cursor-pointer hover:border-blue-300 hover:bg-blue-50 relative group"
                         >
                           <div onClick={() => {
-                            toggleSection(section.id);
+                            toggleSection(section.sectionId);
                             setShowNewSectionModal(false);
                           }}>
                             <h4 className="font-medium">{section.name}</h4>
@@ -1140,7 +1144,7 @@ export default function CreatePage() {
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Sections</h3>
                         <div className="space-y-2">
                           {pageData.sections.map((sectionId, index) => {
-                            const section = availableSections.find(s => s.id === sectionId);
+                            const section = availableSections.find(s => s.sectionId === sectionId);
                             if (!section) return null;
                             
                             return (
@@ -1188,15 +1192,15 @@ export default function CreatePage() {
                       <div className="space-y-3">
                         {availableSections.map(section => (
                           <div
-                            key={section.id}
+                            key={section.sectionId}
                             className={`p-3 border rounded-md transition-colors ${
-                              pageData.sections.includes(section.id)
+                              pageData.sections.includes(section.sectionId)
                                 ? 'border-blue-300 bg-blue-50'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
                             <div className="flex justify-between items-start">
-                              <div className="cursor-pointer" onClick={() => toggleSection(section.id)}>
+                              <div className="cursor-pointer" onClick={() => toggleSection(section.sectionId)}>
                                 <h3 className="font-medium">{section.name}</h3>
                                 {section.description && (
                                   <p className="text-sm text-gray-500">{section.description}</p>
@@ -1207,9 +1211,9 @@ export default function CreatePage() {
                               </div>
                               <div className="flex items-center space-x-2">
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center cursor-pointer ${
-                                  pageData.sections.includes(section.id) ? 'bg-blue-500 text-white' : 'border border-gray-300'
-                                }`} onClick={() => toggleSection(section.id)}>
-                                  {pageData.sections.includes(section.id) && (
+                                  pageData.sections.includes(section.sectionId) ? 'bg-blue-500 text-white' : 'border border-gray-300'
+                                }`} onClick={() => toggleSection(section.sectionId)}>
+                                  {pageData.sections.includes(section.sectionId) && (
                                     <CheckIcon className="h-3 w-3" />
                                   )}
                                 </div>

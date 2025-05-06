@@ -583,6 +583,57 @@ export const typeDefs = gql`
     name: String!
     slug: String!
     description: String
+    category: String
+    icon: String
+    schema: JSON
+    isActive: Boolean
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+  
+  # Page type for CMS pages
+  type Page {
+    id: ID!
+    title: String!
+    slug: String!
+    description: String
+    template: String
+    isPublished: Boolean
+    publishDate: DateTime
+    featuredImage: String
+    metaTitle: String
+    metaDescription: String
+    createdById: String
+    updatedById: String
+    parentId: String
+    order: Int
+    pageType: String
+    locale: String
+    createdAt: DateTime
+    updatedAt: DateTime
+    sections: [PageSection]
+  }
+
+  # Page section type
+  type PageSection {
+    id: ID!
+    pageId: String!
+    title: String
+    content: String
+    componentType: String
+    order: Int
+    isVisible: Boolean
+    configuration: JSON
+    data: JSON
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+  
+  # Resultado de operaciones con componentes
+  type CMSComponentResult {
+    success: Boolean!
+    message: String
+    component: CMSComponent
   }
   
   input ComponentInput {
@@ -594,6 +645,26 @@ export const typeDefs = gql`
   input SaveSectionInput {
     sectionId: ID!
     components: [ComponentInput!]!
+  }
+
+  # Input para crear un componente CMS
+  input CreateCMSComponentInput {
+    name: String!
+    slug: String!
+    description: String
+    category: String
+    schema: JSON
+    icon: String
+  }
+
+  # Input para actualizar un componente CMS
+  input UpdateCMSComponentInput {
+    name: String
+    description: String
+    category: String
+    schema: JSON
+    icon: String
+    isActive: Boolean
   }
 
   # Root Query
@@ -678,6 +749,14 @@ export const typeDefs = gql`
     # CMS Queries
     getSectionComponents(sectionId: ID!): SectionData
     getAllCMSSections: [CMSSection!]!
+    
+    # Nuevas queries para componentes CMS
+    getAllCMSComponents: [CMSComponent!]!
+    getCMSComponent(id: ID!): CMSComponent
+    getCMSComponentsByType(type: String!): [CMSComponent!]!
+    
+    # Nuevas queries para páginas CMS
+    getAllCMSPages: [Page!]!
   }
 
   # Root Mutation
@@ -760,5 +839,10 @@ export const typeDefs = gql`
     # CMS Mutations
     saveSectionComponents(input: SaveSectionInput!): SaveSectionResult
     deleteCMSSection(sectionId: ID!): SaveSectionResult
+    
+    # Nuevas mutations para componentes CMS
+    createCMSComponent(input: CreateCMSComponentInput!): CMSComponentResult
+    updateCMSComponent(id: ID!, input: UpdateCMSComponentInput!): CMSComponentResult
+    deleteCMSComponent(id: ID!): SaveSectionResult
   }
 `; 

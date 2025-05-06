@@ -368,35 +368,35 @@ export function DashboardSidebar() {
   const designNavigationItems: NavItem[] = [
     {
       name: t('sidebar.cms'),
-      href: `/${params.locale}/admin/cms`,
+      href: `/${params.locale}/cms`,
       icon: ClipboardListIcon,
       permissions: ['cms:access'],
       roles: ['ADMIN', 'MANAGER'],
       children: [
         {
           name: t('sidebar.cmsPages'),
-          href: `/${params.locale}/admin/cms/pages`,
+          href: `/${params.locale}/cms/pages`,
           icon: LineChartIcon,
           permissions: ['cms:access'],
           roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsMedia'),
-          href: `/${params.locale}/admin/cms/media`,
+          href: `/${params.locale}/cms/media`,
           icon: LinkIcon,
           permissions: ['cms:access'],
           roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsMenus'),
-          href: `/${params.locale}/admin/cms/menus`,
+          href: `/${params.locale}/cms/menus`,
           icon: MenuIcon,
           permissions: ['cms:access'],
           roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsSettings'),
-          href: `/${params.locale}/admin/cms/settings`,
+          href: `/${params.locale}/cms/settings`,
           icon: SettingsIcon,
           permissions: ['cms:access'],
           roles: ['ADMIN', 'MANAGER']

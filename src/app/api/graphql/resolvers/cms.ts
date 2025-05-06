@@ -117,6 +117,109 @@ export const cmsResolvers = {
         return { components: [], lastUpdated: null };
       }
     },
+
+    // Nuevo resolver para obtener todos los componentes CMS
+    getAllCMSComponents: async () => {
+      console.log('======== START getAllCMSComponents resolver ========');
+      try {
+        console.log('Obteniendo todos los componentes CMS');
+        
+        // Obtener los componentes de la base de datos
+        const components = await prisma.cMSComponent.findMany({
+          orderBy: {
+            updatedAt: 'desc'
+          }
+        });
+        
+        console.log(`Se encontraron ${components.length} componentes`);
+        
+        return components;
+      } catch (error) {
+        console.error('Error al obtener componentes CMS:', error);
+        return [];
+      }
+    },
+
+    // Obtener un componente CMS por ID
+    getCMSComponent: async (_parent: unknown, args: { id: string }) => {
+      console.log('======== START getCMSComponent resolver ========');
+      try {
+        const { id } = args;
+        console.log(`Obteniendo componente con ID: ${id}`);
+        
+        const component = await prisma.cMSComponent.findUnique({
+          where: { id }
+        });
+        
+        if (!component) {
+          console.log(`No se encontró ningún componente con ID: ${id}`);
+          return null;
+        }
+        
+        console.log(`Componente encontrado: ${component.name}`);
+        return component;
+      } catch (error) {
+        console.error('Error al obtener componente CMS:', error);
+        return null;
+      }
+    },
+
+    // Obtener componentes CMS por tipo
+    getCMSComponentsByType: async (_parent: unknown, args: { type: string }) => {
+      console.log('======== START getCMSComponentsByType resolver ========');
+      try {
+        const { type } = args;
+        console.log(`Obteniendo componentes de tipo: ${type}`);
+        
+        const components = await prisma.cMSComponent.findMany({
+          where: {
+            category: type
+          },
+          orderBy: {
+            name: 'asc'
+          }
+        });
+        
+        console.log(`Se encontraron ${components.length} componentes de tipo ${type}`);
+        return components;
+      } catch (error) {
+        console.error(`Error al obtener componentes de tipo ${args.type}:`, error);
+        return [];
+      }
+    },
+
+    // Obtener todas las páginas CMS
+    getAllCMSPages: async () => {
+      console.log('======== START getAllCMSPages resolver ========');
+      try {
+        console.log('Obteniendo todas las páginas CMS');
+        
+        // Obtener las páginas de la base de datos con sus secciones
+        const pages = await prisma.page.findMany({
+          include: {
+            sections: {
+              select: {
+                id: true,
+                order: true
+              },
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          },
+          orderBy: {
+            updatedAt: 'desc'
+          }
+        });
+        
+        console.log(`Se encontraron ${pages.length} páginas`);
+        
+        return pages;
+      } catch (error) {
+        console.error('Error al obtener páginas CMS:', error);
+        return [];
+      }
+    },
   },
   
   Mutation: {
@@ -354,6 +457,186 @@ export const cmsResolvers = {
         return {
           success: false,
           message: `Error al eliminar la sección: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        };
+      }
+    },
+
+    // Nuevo mutation para crear un componente CMS
+    createCMSComponent: async (_parent: unknown, args: { 
+      input: { 
+        name: string;
+        slug: string;
+        description?: string;
+        category?: string;
+        schema?: Record<string, unknown>;
+        icon?: string;
+      } 
+    }) => {
+      console.log('======== START createCMSComponent resolver ========');
+      try {
+        const { input } = args;
+        console.log(`Creando nuevo componente: ${input.name}`);
+        
+        // Validar campos obligatorios
+        if (!input.name || !input.slug) {
+          throw new Error('Nombre y slug son campos requeridos');
+        }
+        
+        // Verificar si ya existe un componente con el mismo slug
+        const existingComponent = await prisma.cMSComponent.findFirst({
+          where: { slug: input.slug }
+        });
+        
+        if (existingComponent) {
+          return {
+            success: false,
+            message: `Ya existe un componente con el slug: ${input.slug}`,
+            component: null
+          };
+        }
+        
+        const timestamp = new Date();
+        
+        // Crear el nuevo componente
+        const newComponent = await prisma.cMSComponent.create({
+          data: {
+            name: input.name,
+            slug: input.slug,
+            description: input.description || `Componente ${input.name}`,
+            category: input.category || null,
+            schema: input.schema as Prisma.InputJsonValue || Prisma.JsonNull,
+            icon: input.icon || null,
+            isActive: true,
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        });
+        
+        console.log(`Componente creado correctamente: ${newComponent.id}`);
+        
+        return {
+          success: true,
+          message: `Componente ${input.name} creado correctamente`,
+          component: newComponent
+        };
+      } catch (error) {
+        console.error('Error al crear componente CMS:', error);
+        return {
+          success: false,
+          message: `Error al crear componente: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          component: null
+        };
+      }
+    },
+
+    // Mutation para actualizar un componente CMS
+    updateCMSComponent: async (_parent: unknown, args: { 
+      id: string;
+      input: { 
+        name?: string;
+        description?: string;
+        category?: string;
+        schema?: Record<string, unknown>;
+        icon?: string;
+        isActive?: boolean;
+      } 
+    }) => {
+      console.log('======== START updateCMSComponent resolver ========');
+      try {
+        const { id, input } = args;
+        console.log(`Actualizando componente con ID: ${id}`);
+        
+        // Verificar si el componente existe
+        const existingComponent = await prisma.cMSComponent.findUnique({
+          where: { id }
+        });
+        
+        if (!existingComponent) {
+          return {
+            success: false,
+            message: `No se encontró ningún componente con ID: ${id}`,
+            component: null
+          };
+        }
+        
+        // Actualizar el componente
+        const updatedComponent = await prisma.cMSComponent.update({
+          where: { id },
+          data: {
+            ...(input.name && { name: input.name }),
+            ...(input.description && { description: input.description }),
+            ...(input.category !== undefined && { category: input.category }),
+            ...(input.schema !== undefined && { schema: input.schema as Prisma.InputJsonValue }),
+            ...(input.icon !== undefined && { icon: input.icon }),
+            ...(input.isActive !== undefined && { isActive: input.isActive }),
+            updatedAt: new Date()
+          }
+        });
+        
+        console.log(`Componente actualizado correctamente: ${updatedComponent.id}`);
+        
+        return {
+          success: true,
+          message: `Componente actualizado correctamente`,
+          component: updatedComponent
+        };
+      } catch (error) {
+        console.error('Error al actualizar componente CMS:', error);
+        return {
+          success: false,
+          message: `Error al actualizar componente: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          component: null
+        };
+      }
+    },
+
+    // Mutation para eliminar un componente CMS
+    deleteCMSComponent: async (_parent: unknown, args: { id: string }) => {
+      console.log('======== START deleteCMSComponent resolver ========');
+      try {
+        const { id } = args;
+        console.log(`Intentando eliminar el componente con ID: ${id}`);
+        
+        // Verificar si el componente existe
+        const existingComponent = await prisma.cMSComponent.findUnique({
+          where: { id }
+        });
+        
+        if (!existingComponent) {
+          return {
+            success: false,
+            message: `No se encontró ningún componente con ID: ${id}`
+          };
+        }
+        
+        // Verificar si el componente está siendo utilizado en secciones
+        const usageCount = await prisma.sectionComponent.count({
+          where: { componentId: id }
+        });
+        
+        if (usageCount > 0) {
+          return {
+            success: false,
+            message: `No se puede eliminar el componente porque está siendo utilizado en ${usageCount} secciones`
+          };
+        }
+        
+        // Eliminar el componente
+        await prisma.cMSComponent.delete({
+          where: { id }
+        });
+        
+        console.log(`Componente con ID: ${id} eliminado correctamente`);
+        
+        return {
+          success: true,
+          message: `Componente eliminado correctamente`
+        };
+      } catch (error) {
+        console.error('Error al eliminar componente CMS:', error);
+        return {
+          success: false,
+          message: `Error al eliminar componente: ${error instanceof Error ? error.message : 'Error desconocido'}`
         };
       }
     },

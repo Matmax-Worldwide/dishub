@@ -233,7 +233,7 @@ export default function CmsSectionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Link href={`/${locale}/admin/cms`} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
+          <Link href={`/${locale}/cms`} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
             <ArrowLeftIcon className="w-4 h-4 mr-1" />
             Volver al CMS
           </Link>
@@ -368,7 +368,7 @@ export default function CmsSectionsPage() {
               
               <CardFooter className="border-t bg-gray-50 p-3 flex justify-between">
                 <Button variant="default" size="sm" asChild>
-                  <Link href={`/${locale}/admin/cms/sections/preview/${section.id}`}>
+                  <Link href={`/${locale}/cms/sections/preview/${section.id}`}>
                     <EyeIcon className="h-4 w-4 mr-2" />
                     Ver y editar
                   </Link>

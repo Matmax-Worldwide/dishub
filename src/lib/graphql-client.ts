@@ -136,6 +136,55 @@ export interface CMSComponent {
   data: Record<string, unknown>;
 }
 
+// Estructura de un componente de la base de datos
+export interface CMSComponentDB {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  category?: string;
+  icon?: string;
+  schema?: Record<string, unknown>;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Estructura de una página CMS
+export interface CMSPageDB {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  template?: string;
+  isPublished: boolean;
+  publishDate?: string;
+  featuredImage?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  pageType: string;
+  createdAt: string;
+  updatedAt: string;
+  sections?: Array<{id: string; order?: number}>;
+}
+
+// Input para crear/actualizar componentes
+export interface CMSComponentInput {
+  name: string;
+  slug: string;
+  description?: string;
+  category?: string;
+  schema?: Record<string, unknown>;
+  icon?: string;
+}
+
+// Resultado de operaciones con componentes
+export interface CMSComponentResult {
+  success: boolean;
+  message: string;
+  component: CMSComponentDB | null;
+}
+
 // Actualizar según la nueva estructura de relaciones
 export interface CMSSectionComponent {
   id: string;
@@ -409,6 +458,283 @@ export const cmsOperations = {
         success: false,
         message: error instanceof Error ? error.message : 'Error desconocido al guardar',
         lastUpdated: null
+      };
+    }
+  },
+
+  // Obtener todas las páginas CMS
+  getAllPages: async () => {
+    try {
+      const query = `
+        query GetAllCMSPages {
+          getAllCMSPages {
+            id
+            title
+            slug
+            description
+            isPublished
+            pageType
+            createdAt
+            updatedAt
+            sections {
+              id
+            }
+          }
+        }
+      `;
+
+      console.log('GraphQL query para getAllCMSPages');
+
+      try {
+        const result = await gqlRequest<{ getAllCMSPages: CMSPageDB[] }>(query);
+        
+        console.log("Resultado GraphQL getAllCMSPages:", JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getAllCMSPages) {
+          console.log("No se encontraron páginas o la estructura no es la esperada");
+          return [];
+        }
+        
+        return result.getAllCMSPages;
+      } catch (error) {
+        console.error('Error en la consulta GraphQL getAllCMSPages:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getAllPages:`, error);
+      return [];
+    }
+  },
+
+  // Obtener todos los componentes CMS
+  getAllComponents: async () => {
+    try {
+      const query = `
+        query GetAllCMSComponents {
+          getAllCMSComponents {
+            id
+            name
+            slug
+            description
+            category
+            icon
+            isActive
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      console.log('GraphQL query para getAllCMSComponents');
+
+      try {
+        const result = await gqlRequest<{ getAllCMSComponents: CMSComponentDB[] }>(query);
+        
+        console.log("Resultado GraphQL getAllCMSComponents:", JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getAllCMSComponents) {
+          console.log("No se encontraron componentes o la estructura no es la esperada");
+          return [];
+        }
+        
+        return result.getAllCMSComponents;
+      } catch (error) {
+        console.error('Error en la consulta GraphQL getAllCMSComponents:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getAllComponents:`, error);
+      return [];
+    }
+  },
+
+  // Obtener componentes por tipo
+  getComponentsByType: async (type: string) => {
+    try {
+      const query = `
+        query GetCMSComponentsByType($type: String!) {
+          getCMSComponentsByType(type: $type) {
+            id
+            name
+            slug
+            description
+            category
+            icon
+            isActive
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      console.log(`GraphQL query para getCMSComponentsByType, tipo: ${type}`);
+
+      try {
+        const result = await gqlRequest<{ getCMSComponentsByType: CMSComponentDB[] }>(query, { type });
+        
+        console.log(`Resultado GraphQL getCMSComponentsByType (${type}):`, JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getCMSComponentsByType) {
+          console.log(`No se encontraron componentes de tipo ${type}`);
+          return [];
+        }
+        
+        return result.getCMSComponentsByType;
+      } catch (error) {
+        console.error(`Error en la consulta GraphQL getCMSComponentsByType (${type}):`, error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getComponentsByType:`, error);
+      return [];
+    }
+  },
+
+  // Obtener un componente por ID
+  getComponentById: async (id: string) => {
+    try {
+      const query = `
+        query GetCMSComponent($id: ID!) {
+          getCMSComponent(id: $id) {
+            id
+            name
+            slug
+            description
+            category
+            icon
+            schema
+            isActive
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      console.log(`GraphQL query para getCMSComponent, id: ${id}`);
+
+      try {
+        const result = await gqlRequest<{ getCMSComponent: CMSComponentDB | null }>(query, { id });
+        
+        if (!result || !result.getCMSComponent) {
+          console.log(`No se encontró el componente con id ${id}`);
+          return null;
+        }
+        
+        return result.getCMSComponent;
+      } catch (error) {
+        console.error(`Error en la consulta GraphQL getCMSComponent (${id}):`, error);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error general en getComponentById:`, error);
+      return null;
+    }
+  },
+
+  // Crear un nuevo componente
+  createComponent: async (input: CMSComponentInput) => {
+    try {
+      const mutation = `
+        mutation CreateCMSComponent($input: CreateCMSComponentInput!) {
+          createCMSComponent(input: $input) {
+            success
+            message
+            component {
+              id
+              name
+              slug
+              description
+              category
+              icon
+              isActive
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+
+      console.log('Mutation para crear componente:', input.name);
+      
+      const result = await gqlRequest<{ createCMSComponent: CMSComponentResult }>(mutation, { input });
+      
+      console.log('Resultado de crear componente:', result);
+      
+      return result.createCMSComponent;
+    } catch (error) {
+      console.error('Error al crear componente:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido al crear componente',
+        component: null
+      };
+    }
+  },
+
+  // Actualizar un componente existente
+  updateComponent: async (id: string, input: Partial<CMSComponentInput>) => {
+    try {
+      const mutation = `
+        mutation UpdateCMSComponent($id: ID!, $input: UpdateCMSComponentInput!) {
+          updateCMSComponent(id: $id, input: $input) {
+            success
+            message
+            component {
+              id
+              name
+              slug
+              description
+              category
+              icon
+              isActive
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+
+      console.log(`Mutation para actualizar componente: ${id}`);
+      
+      const result = await gqlRequest<{ updateCMSComponent: CMSComponentResult }>(mutation, { id, input });
+      
+      console.log('Resultado de actualizar componente:', result);
+      
+      return result.updateCMSComponent;
+    } catch (error) {
+      console.error('Error al actualizar componente:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido al actualizar componente',
+        component: null
+      };
+    }
+  },
+
+  // Eliminar un componente
+  deleteComponent: async (id: string) => {
+    try {
+      const mutation = `
+        mutation DeleteCMSComponent($id: ID!) {
+          deleteCMSComponent(id: $id) {
+            success
+            message
+          }
+        }
+      `;
+
+      console.log(`Mutation para eliminar componente: ${id}`);
+      
+      const result = await gqlRequest<{ deleteCMSComponent: { success: boolean; message: string } }>(mutation, { id });
+      
+      console.log('Resultado de eliminar componente:', result);
+      
+      return result.deleteCMSComponent;
+    } catch (error) {
+      console.error('Error al eliminar componente:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido al eliminar componente'
       };
     }
   },

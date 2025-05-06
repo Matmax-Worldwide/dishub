@@ -14,8 +14,10 @@ import {
   CheckIcon,
   XIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  AlertCircleIcon
 } from 'lucide-react';
+import { cmsOperations } from '@/lib/graphql-client';
 
 interface PageItem {
   id: string;
@@ -36,91 +38,39 @@ export default function PagesManagement() {
   const [filterType, setFilterType] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    // In a real app, you would fetch pages from the API
-    // For now, we'll just simulate a loading state and then set dummy data
-    const timer = setTimeout(() => {
-      const dummyPages = [
-        {
-          id: '1',
-          title: 'Home',
-          slug: 'home',
-          pageType: 'HOME',
-          isPublished: true,
-          updatedAt: '2023-10-15',
-          sections: 5
-        },
-        {
-          id: '2',
-          title: 'About Us',
-          slug: 'about',
-          pageType: 'ABOUT',
-          isPublished: true,
-          updatedAt: '2023-10-10',
-          sections: 3
-        },
-        {
-          id: '3',
-          title: 'Services',
-          slug: 'services',
-          pageType: 'SERVICES',
-          isPublished: true,
-          updatedAt: '2023-10-08',
-          sections: 4
-        },
-        {
-          id: '4',
-          title: 'Contact',
-          slug: 'contact',
-          pageType: 'CONTACT',
-          isPublished: true,
-          updatedAt: '2023-10-05',
-          sections: 2
-        },
-        {
-          id: '5',
-          title: 'Blog',
-          slug: 'blog',
-          pageType: 'BLOG',
-          isPublished: true,
-          updatedAt: '2023-10-01',
-          sections: 1
-        },
-        {
-          id: '6',
-          title: 'Terms & Conditions',
-          slug: 'terms',
-          pageType: 'CONTENT',
-          isPublished: true,
-          updatedAt: '2023-09-20',
-          sections: 1
-        },
-        {
-          id: '7',
-          title: 'Privacy Policy',
-          slug: 'privacy',
-          pageType: 'CONTENT',
-          isPublished: true,
-          updatedAt: '2023-09-20',
-          sections: 1
-        },
-        {
-          id: '8',
-          title: 'Landing Page (Draft)',
-          slug: 'landing-promo',
-          pageType: 'LANDING',
-          isPublished: false,
-          updatedAt: '2023-09-15',
-          sections: 6
-        }
-      ];
-      setPages(dummyPages);
-      setIsLoading(false);
-    }, 1000);
+    // Fetch real page data from API
+    const fetchPages = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const pagesData = await cmsOperations.getAllPages();
+        
+        // Transform the data to match our PageItem interface
+        const formattedPages: PageItem[] = pagesData.map(page => ({
+          id: page.id,
+          title: page.title,
+          slug: page.slug,
+          pageType: page.pageType,
+          isPublished: page.isPublished,
+          updatedAt: new Date(page.updatedAt).toISOString().split('T')[0], // Format date as YYYY-MM-DD
+          sections: page.sections?.length || 0
+        }));
+        
+        setPages(formattedPages);
+      } catch (error) {
+        console.error('Error fetching pages:', error);
+        setError('Failed to load pages. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    fetchPages();
   }, []);
 
   const filteredPages = pages
@@ -161,7 +111,7 @@ export default function PagesManagement() {
   );
 
   const handleCreatePage = () => {
-    router.push(`/${locale}/admin/cms/pages/create`);
+    router.push(`/${locale}/cms/pages/create`);
   };
 
   const handleEditPage = (id: string, slug: string) => {
@@ -184,6 +134,13 @@ export default function PagesManagement() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 text-red-700 rounded-md flex items-center">
+          <AlertCircleIcon className="h-5 w-5 mr-2" />
+          {error}
+        </div>
+      )}
+      
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Pages</h1>
         <button

@@ -157,10 +157,10 @@ export default function PreviewSectionPage() {
   // Navigation functions
   const handleBackClick = () => {
     if (isEditing && hasUnsavedChanges) {
-      setRedirectTarget(`/${locale}/admin/cms/sections`);
+      setRedirectTarget(`/${locale}/cms/sections`);
       setShowExitConfirmation(true);
     } else {
-      router.push(`/${locale}/admin/cms/sections`);
+      router.push(`/${locale}/cms/sections`);
     }
   };
   

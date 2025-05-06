@@ -639,6 +639,10 @@ const resolvers = {
     // Add CMS queries explicitly
     getSectionComponents: cmsResolvers.Query.getSectionComponents,
     getAllCMSSections: cmsResolvers.Query.getAllCMSSections,
+    getAllCMSComponents: cmsResolvers.Query.getAllCMSComponents,
+    getCMSComponent: cmsResolvers.Query.getCMSComponent,
+    getCMSComponentsByType: cmsResolvers.Query.getCMSComponentsByType,
+    getAllCMSPages: cmsResolvers.Query.getAllCMSPages,
   },
   
   Mutation: {
