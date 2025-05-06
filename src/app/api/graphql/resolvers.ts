@@ -1058,6 +1058,10 @@ const resolvers = {
     // Add CMS mutations explicitly
     saveSectionComponents: cmsResolvers.Mutation.saveSectionComponents,
     deleteCMSSection: cmsResolvers.Mutation.deleteCMSSection,
+    createCMSComponent: cmsResolvers.Mutation.createCMSComponent,
+    updateCMSComponent: cmsResolvers.Mutation.updateCMSComponent,
+    deleteCMSComponent: cmsResolvers.Mutation.deleteCMSComponent,
+    createPage: cmsResolvers.Mutation.createPage,
   },
 };
 

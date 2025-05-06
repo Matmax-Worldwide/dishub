@@ -423,24 +423,41 @@ export default function CreatePage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      // Aquí iría la lógica para guardar la página en la base de datos
-      // Por ahora solo simulamos el guardado
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setNotification({
-        type: 'success',
-        message: 'Page created successfully!'
-      });
+      // Preparar los datos de la página para el GraphQL
+      const localeStr = Array.isArray(locale) ? locale[0] : (locale || "en");
+      const pageInput = {
+        title: pageData.title,
+        slug: pageData.slug,
+        description: pageData.description || null,
+        template: "default",
+        isPublished: pageData.isPublished,
+        pageType: pageData.pageType,
+        locale: localeStr,
+        sections: pageData.sections
+      };
       
-      // Después de un breve delay, redirigir a la lista de páginas
-      setTimeout(() => {
-        router.push(`/${locale}/cms/pages`);
-      }, 1500);
+      // Ejecutar la mutación GraphQL para crear la página
+      const result = await cmsOperations.createPage(pageInput);
+      
+      if (result && result.success) {
+        setNotification({
+          type: 'success',
+          message: 'Page created successfully!'
+        });
+        
+        // Después de un breve delay, redirigir a la lista de páginas
+        setTimeout(() => {
+          router.push(`/${locale}/cms/pages`);
+        }, 1500);
+      } else {
+        throw new Error(result?.message || 'Unknown error creating page');
+      }
     } catch (error) {
       console.error('Error saving page:', error);
       setNotification({
         type: 'error',
-        message: 'Failed to create page. Please try again.'
+        message: error instanceof Error ? error.message : 'Failed to create page. Please try again.'
       });
     } finally {
       setIsSaving(false);

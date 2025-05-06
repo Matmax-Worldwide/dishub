@@ -738,4 +738,67 @@ export const cmsOperations = {
       };
     }
   },
+
+  // Create a new page
+  createPage: async (pageInput: {
+    title: string;
+    slug: string;
+    description?: string | null;
+    template?: string;
+    isPublished?: boolean;
+    pageType?: string;
+    locale?: string;
+    sections?: string[];
+  }) => {
+    const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
+    console.log(`🔍 [${requestId}] GraphQL CLIENT - createPage - Starting request`);
+    
+    try {
+      const query = `
+        mutation CreatePage($input: CreatePageInput!) {
+          createPage(input: $input) {
+            success
+            message
+            page {
+              id
+              title
+              slug
+            }
+          }
+        }
+      `;
+      
+      const variables = {
+        input: pageInput
+      };
+      
+      const result = await gqlRequest<{
+        createPage: {
+          success: boolean;
+          message: string;
+          page: {
+            id: string;
+            title: string;
+            slug: string;
+          } | null;
+        }
+      }>(query, variables);
+      
+      console.log(`✅ [${requestId}] GraphQL CLIENT - createPage - Result:`, result);
+      
+      if (!result || !result.createPage) {
+        console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error: No valid response`);
+        return { success: false, message: 'Failed to create page' };
+      }
+      
+      return result.createPage;
+    } catch (error) {
+      console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error:`, error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Unknown error creating page',
+        page: null
+      };
+    }
+  },
 }; 

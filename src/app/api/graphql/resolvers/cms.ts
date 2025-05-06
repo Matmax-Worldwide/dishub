@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, PageType } from '@prisma/client';
 import crypto from 'crypto';
 
 // Tipo para los componentes de una sección
@@ -637,6 +637,124 @@ export const cmsResolvers = {
         return {
           success: false,
           message: `Error al eliminar componente: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        };
+      }
+    },
+
+    // Crear página CMS
+    createPage: async (_parent: unknown, args: { 
+      input: { 
+        title: string;
+        slug: string;
+        description?: string;
+        template?: string;
+        isPublished?: boolean;
+        pageType?: string;
+        locale?: string;
+        sections?: string[];
+      } 
+    }) => {
+      console.log('======== START createPage resolver ========');
+      try {
+        const { input } = args;
+        console.log(`Creando nueva página: ${input.title} (${input.slug})`);
+        
+        // Validar campos obligatorios
+        if (!input.title || !input.slug) {
+          throw new Error('El título y el slug son campos requeridos');
+        }
+        
+        // Verificar si ya existe una página con el mismo slug
+        const existingPage = await prisma.page.findFirst({
+          where: { slug: input.slug }
+        });
+        
+        if (existingPage) {
+          return {
+            success: false,
+            message: `Ya existe una página con el slug: ${input.slug}`,
+            page: null
+          };
+        }
+        
+        const timestamp = new Date();
+        
+        // Crear la página en la base de datos
+        const newPage = await prisma.page.create({
+          data: {
+            title: input.title,
+            slug: input.slug,
+            description: input.description || null,
+            template: input.template || "default",
+            isPublished: input.isPublished || false,
+            pageType: (input.pageType as PageType) || PageType.CONTENT,
+            locale: input.locale || "en",
+            order: 0,
+            createdById: "system",
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        });
+        
+        // Si hay secciones, crear relaciones
+        if (input.sections && input.sections.length > 0) {
+          for (let i = 0; i < input.sections.length; i++) {
+            const sectionId = input.sections[i];
+            
+            // Buscar la sección en la base de datos
+            const section = await prisma.cMSSection.findFirst({
+              where: { sectionId }
+            });
+            
+            if (section) {
+              // Crear relación entre la página y la sección
+              await prisma.pageSection.create({
+                data: {
+                  pageId: newPage.id,
+                  title: `Section ${i + 1}`,
+                  componentType: "CUSTOM",
+                  order: i,
+                  isVisible: true,
+                  data: { sectionId },
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              });
+            } else {
+              console.warn(`Sección con ID ${sectionId} no encontrada, omitiendo`);
+            }
+          }
+        }
+        
+        console.log(`Página creada correctamente: ${newPage.id}`);
+        
+        // Obtener la página completa con sus secciones
+        const pageWithSections = await prisma.page.findUnique({
+          where: { id: newPage.id },
+          include: {
+            sections: {
+              select: {
+                id: true,
+                order: true
+              },
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        });
+        
+        return {
+          success: true,
+          message: `Página "${input.title}" creada correctamente`,
+          page: pageWithSections
+        };
+      } catch (error) {
+        console.error('Error al crear página CMS:', error);
+        return {
+          success: false,
+          message: `Error al crear página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          page: null
         };
       }
     },

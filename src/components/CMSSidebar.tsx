@@ -97,7 +97,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 space-y-3">
           <Link
-            href={`/${locale}/cms/dashboard`}
+            href={`/${locale}/dashboard`}
             className="flex items-center text-sm text-gray-600 hover:text-gray-900"
           >
             ← Return to Dashboard
