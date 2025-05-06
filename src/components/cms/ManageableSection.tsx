@@ -43,32 +43,115 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   // Load components on initial render
   useEffect(() => {
     const loadComponents = async () => {
+      // Identificador único para esta operación de carga
+      const loadId = `load-${Math.random().toString(36).substring(2, 9)}`;
+      const startTime = Date.now();
+      
+      console.log(`⏳ [${loadId}] INICIO CARGA de componentes para sección '${normalizedSectionId}'`);
+      console.log(`🔍 [${loadId}] ID de sección original: '${sectionId}', normalizado: '${normalizedSectionId}'`);
+      
       setIsLoading(true);
       setError(null);
       
       try {
-        console.log(`Loading components for section ${normalizedSectionId}...`);
-        console.log(`Original section ID: ${sectionId}, Normalized: ${normalizedSectionId}`);
-        
         // Add a timestamp to avoid caching
-        const timestamp = new Date().getTime();
+        const timestamp = Date.now();
+        console.log(`🔍 [${loadId}] Solicitando componentes con timestamp anti-caché: ${timestamp}`);
+        console.log(`🔍 [${loadId}] URL efectiva para getSectionComponents: '${normalizedSectionId}?t=${timestamp}'`);
+        
+        console.log(`⏳ [${loadId}] Enviando solicitud a getSectionComponents...`);
         const result = await cmsOperations.getSectionComponents(`${normalizedSectionId}?t=${timestamp}`);
         
-        if (result && result.components && Array.isArray(result.components)) {
-          console.log(`Loaded ${result.components.length} components from section ${normalizedSectionId}`);
-          const loadedComponents = result.components as unknown as Component[];
-          setComponents(loadedComponents);
-          setPendingComponents(loadedComponents);
-          setLastSaved(result.lastUpdated || null);
-        } else {
-          console.warn(`No components found for section ${normalizedSectionId}`);
+        // Registrar información de diagnóstico sobre la respuesta
+        console.log(`✅ [${loadId}] Respuesta recibida después de ${Date.now() - startTime}ms:`);
+        console.log(`🔍 [${loadId}] Tipo de respuesta:`, result ? typeof result : 'null/undefined');
+        
+        // Verificar si result es nulo o indefinido
+        if (!result) {
+          console.error(`❌ [${loadId}] La respuesta es NULL o UNDEFINED`);
+          setError('No se recibió respuesta del servidor');
           setComponents([]);
           setPendingComponents([]);
+          return;
         }
+        
+        // Verificar la estructura de la respuesta
+        console.log(`🔍 [${loadId}] Claves en la respuesta:`, Object.keys(result).join(', '));
+        
+        // Verificar el campo components
+        if (!('components' in result)) {
+          console.error(`❌ [${loadId}] La respuesta NO contiene el campo 'components'`);
+          console.error(`❌ [${loadId}] Respuesta completa:`, JSON.stringify(result, null, 2));
+          setError('La respuesta del servidor no tiene el formato esperado (falta components)');
+          setComponents([]);
+          setPendingComponents([]);
+          return;
+        }
+        
+        // Verificar si components es un array
+        if (!Array.isArray(result.components)) {
+          console.error(`❌ [${loadId}] El campo 'components' NO ES UN ARRAY, es:`, typeof result.components);
+          setError(`El campo 'components' no es un array válido (${typeof result.components})`);
+          setComponents([]);
+          setPendingComponents([]);
+          return;
+        }
+        
+        // Verificar el lastUpdated
+        if (!result.lastUpdated) {
+          console.warn(`⚠️ [${loadId}] El campo 'lastUpdated' es ${result.lastUpdated === null ? 'NULL' : 'UNDEFINED'}`);
+        } else {
+          console.log(`🔍 [${loadId}] lastUpdated:`, result.lastUpdated);
+        }
+        
+        // Información sobre los componentes recibidos
+        if (result.components.length === 0) {
+          console.warn(`⚠️ [${loadId}] Se recibió un array de componentes VACÍO`);
+        } else {
+          console.log(`✅ [${loadId}] Se recibieron ${result.components.length} componentes`);
+          
+          // Analizar cada componente para verificar su estructura
+          result.components.forEach((comp, idx) => {
+            console.log(`🔍 [${loadId}] Componente #${idx+1}:`);
+            console.log(`  - ID: ${comp.id || 'FALTA'}`);
+            console.log(`  - Type: ${comp.type || 'FALTA'}`);
+            console.log(`  - Data: ${comp.data ? 'PRESENTE' : 'FALTA'}`);
+            
+            if (comp.data) {
+              console.log(`  - Data keys: ${Object.keys(comp.data).join(', ')}`);
+            }
+            
+            // Verificar si el componente es válido
+            if (!comp.id || !comp.type) {
+              console.warn(`⚠️ [${loadId}] El componente #${idx+1} tiene estructura INCOMPLETA`);
+            }
+            
+            if (!comp.data) {
+              console.warn(`⚠️ [${loadId}] El componente #${idx+1} NO TIENE data`);
+            }
+          });
+        }
+        
+        console.log(`✅ [${loadId}] Actualizando estados con ${result.components.length} componentes`);
+        const loadedComponents = result.components as unknown as Component[];
+        setComponents(loadedComponents);
+        setPendingComponents(loadedComponents);
+        setLastSaved(result.lastUpdated || null);
+        
+        // Registrar la finalización exitosa
+        console.log(`✅ [${loadId}] CARGA COMPLETADA en ${Date.now() - startTime}ms`);
       } catch (error) {
-        console.error(`Error loading components for section ${normalizedSectionId}:`, error);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        console.error(`❌ [${loadId}] ERROR al cargar componentes:`, error);
+        console.error(`❌ [${loadId}] Detalles del error:`, error instanceof Error ? {
+          message: error.message,
+          stack: error.stack
+        } : 'Error no es una instancia de Error');
+        
+        setError(error instanceof Error ? error.message : 'Error desconocido al cargar componentes');
+        setComponents([]);
+        setPendingComponents([]);
       } finally {
+        console.log(`⏳ [${loadId}] Finalizando carga, tiempo total: ${Date.now() - startTime}ms`);
         setIsLoading(false);
       }
     };

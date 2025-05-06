@@ -160,6 +160,194 @@ export default function SectionManager({
     </div>
   );
 
+  // Render each component
+  const renderComponent = (component: Component) => {
+    // Generar un ID único para este evento de renderizado
+    const renderId = `render-${component.id.substring(0, 4)}-${Math.random().toString(36).substring(2, 5)}`;
+    console.log(`🔄 [${renderId}] Iniciando renderizado de componente: ${component.id}, tipo: ${component.type}`);
+    
+    // Verificar que el componente tenga los campos necesarios
+    if (!component.type) {
+      console.error(`❌ [${renderId}] Tipo de componente no definido:`, component);
+      return (
+        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
+          <p className="text-red-500">Error: Tipo de componente no definido</p>
+        </div>
+      );
+    }
+    
+    // Verificar que el tipo de componente exista en el mapa
+    if (!componentMap[component.type]) {
+      console.error(`❌ [${renderId}] Tipo de componente no soportado: ${component.type}`);
+      return (
+        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
+          <p className="text-red-500">Error: Tipo de componente no soportado: {component.type}</p>
+        </div>
+      );
+    }
+    
+    console.log(`🔍 [${renderId}] Datos del componente:`, JSON.stringify(component.data, null, 2));
+    
+    // Definir un wrapper común para todos los componentes
+    const ComponentWrapper = ({ children }: { children: React.ReactNode }) => (
+      <div key={component.id} className="relative mb-4">
+        {isEditing && (
+          <button 
+            onClick={() => removeComponent(component.id)}
+            className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
+          >
+            <XMarkIcon className="h-4 w-4 text-red-500" />
+          </button>
+        )}
+        {children}
+      </div>
+    );
+    
+    // Función común para actualizar componentes
+    const handleUpdate = (updatedData: Record<string, unknown>) => {
+      console.log(`🔄 [${renderId}] Actualizando datos de componente:`, updatedData);
+      const updatedComponent = {
+        ...component,
+        data: { ...component.data, ...updatedData }
+      };
+      setComponents(
+        components.map(c => 
+          c.id === component.id ? updatedComponent : c
+        )
+      );
+    };
+    
+    try {
+      // Renderizar el componente según su tipo
+      switch(component.type) {
+        case 'Hero': {
+          console.log(`🔄 [${renderId}] Renderizando Hero Component`);
+          const HeroComponent = componentMap.Hero;
+          return (
+            <ComponentWrapper key={component.id}>
+              <HeroComponent 
+                title={component.data.title as string || "Default Title"} 
+                subtitle={component.data.subtitle as string || "Default Subtitle"}
+                image={component.data.image as string}
+                cta={component.data.cta as { text: string; url: string }}
+                isEditing={isEditing}
+                onUpdate={handleUpdate}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Header': {
+          console.log(`🔄 [${renderId}] Renderizando Header Component`);
+          const HeaderComponent = componentMap.Header;
+          return (
+            <ComponentWrapper key={component.id}>
+              <HeaderComponent 
+                title={component.data.title as string || "Default Title"} 
+                subtitle={component.data.subtitle as string || "Default Subtitle"}
+                isEditing={isEditing}
+                onUpdate={handleUpdate}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Text': {
+          console.log(`🔄 [${renderId}] Renderizando Text Component`);
+          const TextComponent = componentMap.Text;
+          return (
+            <ComponentWrapper key={component.id}>
+              <TextComponent 
+                title={component.data.title as string} 
+                content={component.data.content as string}
+                isEditing={isEditing}
+                onUpdate={handleUpdate}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Image': {
+          console.log(`🔄 [${renderId}] Renderizando Image Component`);
+          const ImageComponent = componentMap.Image;
+          return (
+            <ComponentWrapper key={component.id}>
+              <ImageComponent 
+                src={component.data.src as string} 
+                alt={component.data.alt as string}
+                caption={component.data.caption as string}
+                isEditing={isEditing}
+                onUpdate={handleUpdate}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Feature': {
+          console.log(`🔄 [${renderId}] Renderizando Feature Component`);
+          const FeatureComponent = componentMap.Feature;
+          return (
+            <ComponentWrapper key={component.id}>
+              <FeatureComponent 
+                title={component.data.title as string} 
+                description={component.data.description as string}
+                icon={component.data.icon as string}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Testimonial': {
+          console.log(`🔄 [${renderId}] Renderizando Testimonial Component`);
+          const TestimonialComponent = componentMap.Testimonial;
+          return (
+            <ComponentWrapper key={component.id}>
+              <TestimonialComponent 
+                quote={component.data.quote as string} 
+                author={component.data.author as string}
+                role={component.data.role as string}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        case 'Card': {
+          console.log(`🔄 [${renderId}] Renderizando Card Component`);
+          const CardComponent = componentMap.Card;
+          return (
+            <ComponentWrapper key={component.id}>
+              <CardComponent 
+                title={component.data.title as string} 
+                description={component.data.description as string}
+                image={component.data.image as string}
+                link={component.data.link as string}
+                buttonText={component.data.buttonText as string}
+                isEditing={isEditing}
+                onUpdate={handleUpdate}
+              />
+            </ComponentWrapper>
+          );
+        }
+        
+        default: {
+          console.error(`❌ [${renderId}] Tipo de componente no manejado: ${component.type}`);
+          return (
+            <div key={component.id} className="p-4 bg-yellow-50 rounded border border-yellow-200 mb-4">
+              <p className="text-yellow-700">Componente desconocido: {component.type}</p>
+            </div>
+          );
+        }
+      }
+    } catch (error) {
+      console.error(`❌ [${renderId}] Error al renderizar componente:`, error);
+      return (
+        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
+          <p className="text-red-500">Error al renderizar: {error instanceof Error ? error.message : String(error)}</p>
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="relative min-h-[200px] border-dashed border-2 border-blue-200 rounded-lg p-4 mb-8">
       {components.length === 0 && !showComponentPicker && (
@@ -168,244 +356,23 @@ export default function SectionManager({
         </div>
       )}
 
-      {/* Render each component */}
-      {components.map(component => {
-        // Log to debug component data
-        console.log(`Rendering component: ${component.id}, type: ${component.type}`, component.data);
-        
-        // Type-safe rendering based on component type
-        switch(component.type) {
-          case 'Hero':
-            const HeroComponent = componentMap.Hero;
-            return (
-              <div key={component.id} className="relative mb-4">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <HeroComponent 
-                  title={component.data.title as string || "Default Title"} 
-                  subtitle={component.data.subtitle as string || "Default Subtitle"}
-                  image={component.data.image as string}
-                  cta={component.data.cta as { text: string; url: string }}
-                  isEditing={isEditing}
-                  onUpdate={(updatedData) => {
-                    const updatedComponent = {
-                      ...component,
-                      data: { ...component.data, ...updatedData }
-                    };
-                    setComponents(
-                      components.map(c => 
-                        c.id === component.id ? updatedComponent : c
-                      )
-                    );
-                  }}
-                />
-              </div>
-            );
-          
-          case 'Header':
-            const HeaderComponent = componentMap.Header;
-            return (
-              <div key={component.id} className="relative mb-4">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <HeaderComponent 
-                  title={component.data.title as string || "Default Title"} 
-                  subtitle={component.data.subtitle as string || "Default Subtitle"}
-                  isEditing={isEditing}
-                  onUpdate={(updatedData) => {
-                    const updatedComponent = {
-                      ...component,
-                      data: { ...component.data, ...updatedData }
-                    };
-                    setComponents(
-                      components.map(c => 
-                        c.id === component.id ? updatedComponent : c
-                      )
-                    );
-                  }}
-                />
-              </div>
-            );
-          
-          case 'Text':
-            const TextComponent = componentMap.Text;
-            console.log(`TextComponent props:`, {
-              title: component.data.title,
-              content: component.data.content,
-              isEditing
-            });
-            return (
-              <div key={component.id} className="relative mb-4 border-2 border-transparent hover:border-blue-100">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <TextComponent 
-                  title={component.data.title as string} 
-                  content={component.data.content as string}
-                  isEditing={isEditing}
-                  onUpdate={(updatedData) => {
-                    const updatedComponent = {
-                      ...component,
-                      data: { ...component.data, ...updatedData }
-                    };
-                    setComponents(
-                      components.map(c => 
-                        c.id === component.id ? updatedComponent : c
-                      )
-                    );
-                  }}
-                />
-              </div>
-            );
-          
-          case 'Image':
-            const ImageComponent = componentMap.Image;
-            return (
-              <div key={component.id} className="relative mb-4 border-2 border-transparent hover:border-blue-100">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <ImageComponent 
-                  src={component.data.src as string || ""} 
-                  alt={component.data.alt as string || "Image"}
-                  caption={component.data.caption as string}
-                  isEditing={isEditing}
-                  onUpdate={(updatedData) => {
-                    const updatedComponent = {
-                      ...component,
-                      data: { ...component.data, ...updatedData }
-                    };
-                    setComponents(
-                      components.map(c => 
-                        c.id === component.id ? updatedComponent : c
-                      )
-                    );
-                  }}
-                />
-              </div>
-            );
-          
-          case 'Feature':
-            const FeatureComponent = componentMap.Feature;
-            return (
-              <div key={component.id} className="relative mb-4">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <FeatureComponent 
-                  title={component.data.title as string || "Feature Title"} 
-                  description={component.data.description as string || "Feature Description"}
-                  icon={component.data.icon as string || "star"}
-                />
-              </div>
-            );
-          
-          case 'Testimonial':
-            const TestimonialComponent = componentMap.Testimonial;
-            return (
-              <div key={component.id} className="relative mb-4">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <TestimonialComponent 
-                  quote={component.data.quote as string || "Testimonial Quote"} 
-                  author={component.data.author as string || "Author"}
-                  role={component.data.role as string}
-                  avatar={component.data.avatar as string}
-                />
-              </div>
-            );
-          
-          case 'Card':
-            const CardComponent = componentMap.Card;
-            return (
-              <div key={component.id} className="relative mb-4">
-                {isEditing && (
-                  <button 
-                    onClick={() => removeComponent(component.id)}
-                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-                <CardComponent 
-                  title={component.data.title as string || "Card Title"} 
-                  description={component.data.description as string || "Card Description"}
-                  image={component.data.image as string}
-                  link={component.data.link as string}
-                  buttonText={component.data.buttonText as string}
-                  isEditing={isEditing}
-                  onUpdate={(updatedData: Partial<{
-                    title: string;
-                    description: string;
-                    image?: string;
-                    link?: string;
-                    buttonText?: string;
-                  }>) => {
-                    const updatedComponent = {
-                      ...component,
-                      data: { ...component.data, ...updatedData }
-                    };
-                    setComponents(
-                      components.map(c => 
-                        c.id === component.id ? updatedComponent : c
-                      )
-                    );
-                  }}
-                />
-              </div>
-            );
-          
-          default:
-            return <div key={component.id}>Unknown component type: {component.type}</div>;
-        }
-      })}
+      {/* Renderizar cada componente usando la función de renderizado */}
+      <div className="section-components">
+        {components.map(component => renderComponent(component))}
+      </div>
 
-      {/* Add component button (only in edit mode) */}
+      {/* Show component picker button only in editing mode */}
       {isEditing && (
-        <>
+        <div className="mt-4 flex justify-center">
           <button
             onClick={() => setShowComponentPicker(!showComponentPicker)}
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
-            <PlusIcon className="h-5 w-5" />
-            <span>Add Component</span>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Component
           </button>
-          
           {showComponentPicker && <ComponentPicker />}
-        </>
+        </div>
       )}
     </div>
   );

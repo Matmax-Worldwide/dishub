@@ -3,15 +3,17 @@ export async function gqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
 ): Promise<T> {
+  // Generar un ID único para esta solicitud para facilitar el seguimiento en logs
+  const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
+  
   try {
-    console.log('GraphQL Request:', { 
-      query: query.substring(0, 100) + '...', // Log solo parte de la query para no saturar
-      variables 
-    });
+    console.log(`🔍 gqlRequest [${requestId}] - Iniciando solicitud GraphQL`); 
+    console.log(`🔍 gqlRequest [${requestId}] - Query: ${query.substring(0, 100).replace(/\s+/g, ' ')}...`);
+    console.log(`🔍 gqlRequest [${requestId}] - Variables: ${JSON.stringify(variables)}`);
     
     // Añadir etiqueta de tiempo para depuración
     const requestTime = new Date().toISOString();
-    console.log(`[${requestTime}] Iniciando solicitud GraphQL`);
+    console.log(`🔍 gqlRequest [${requestId}] [${requestTime}] - Enviando solicitud a /api/graphql`);
     
     const response = await fetch('/api/graphql', {
       method: 'POST',
@@ -19,7 +21,8 @@ export async function gqlRequest<T>(
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'X-Request-ID': requestId // Añadir ID de seguimiento en cabeceras
       },
       body: JSON.stringify({
         query,
@@ -31,12 +34,12 @@ export async function gqlRequest<T>(
     });
 
     // Log de la respuesta
-    console.log(`[${requestTime}] Respuesta recibida, status:`, response.status);
+    console.log(`🔍 gqlRequest [${requestId}] - Respuesta recibida, status:`, response.status);
     
     // Si hay un error, intentemos recuperar el mensaje detallado
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[${requestTime}] GraphQL Error Response:`, errorText);
+      console.error(`❌ gqlRequest [${requestId}] - Error HTTP ${response.status}: ${errorText.substring(0, 500)}`);
       
       try {
         // Intentar parsear como JSON por si contiene detalles
@@ -49,56 +52,79 @@ export async function gqlRequest<T>(
     }
 
     const responseText = await response.text();
-    console.log(`[${requestTime}] Respuesta cruda (primeros 200 caracteres):`, responseText.substring(0, 200));
+    
+    // Tamaño de la respuesta para diagnóstico
+    const responseSize = responseText.length;
+    console.log(`🔍 gqlRequest [${requestId}] - Respuesta recibida, tamaño: ${responseSize} bytes`);
+    console.log(`🔍 gqlRequest [${requestId}] - Respuesta cruda (primeros 500 caracteres):`, 
+      responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
     
     // Si la respuesta está vacía, lanzar un error
     if (!responseText.trim()) {
+      console.error(`❌ gqlRequest [${requestId}] - Respuesta vacía del servidor`);
       throw new Error('La respuesta del servidor está vacía');
     }
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
+      console.log(`🔍 gqlRequest [${requestId}] - JSON parseado correctamente`);
     } catch (e) {
-      console.error(`[${requestTime}] Error al parsear respuesta JSON:`, e);
+      console.error(`❌ gqlRequest [${requestId}] - Error al parsear respuesta JSON:`, e);
+      console.error(`❌ gqlRequest [${requestId}] - Texto de respuesta problemático:`, responseText.substring(0, 500));
       throw new Error(`Error al parsear la respuesta del servidor: ${responseText.substring(0, 200)}`);
     }
     
-    console.log(`[${requestTime}] GraphQL Response:`, responseData);
+    console.log(`🔍 gqlRequest [${requestId}] - Estructura de la respuesta:`, 
+      Object.keys(responseData).join(', '));
     
     // Verificar que la respuesta tiene la estructura esperada
     if (!responseData || typeof responseData !== 'object') {
-      console.error(`[${requestTime}] Respuesta con formato inválido:`, responseData);
+      console.error(`❌ gqlRequest [${requestId}] - Respuesta con formato inválido:`, responseData);
       throw new Error('La respuesta GraphQL no tiene un formato válido');
     }
     
     const { data, errors } = responseData as { 
       data?: T; 
-      errors?: Array<{ message: string }> 
+      errors?: Array<{ message: string; path?: string[]; locations?: Array<{line: number; column: number}> }> 
     };
 
     if (errors && errors.length > 0) {
-      console.error(`[${requestTime}] GraphQL Errors:`, errors);
+      console.error(`❌ gqlRequest [${requestId}] - Errores GraphQL:`, JSON.stringify(errors, null, 2));
+      
+      // Información más detallada sobre cada error
+      errors.forEach((error, index) => {
+        console.error(`❌ Error ${index + 1}: ${error.message}`);
+        if (error.path) console.error(`  Path: ${error.path.join('.')}`);
+        if (error.locations) {
+          error.locations.forEach(loc => {
+            console.error(`  Location: línea ${loc.line}, columna ${loc.column}`);
+          });
+        }
+      });
+      
       throw new Error(errors.map(e => e.message).join('\n'));
     }
     
     // Verificar que data no es null o undefined
     if (data === undefined || data === null) {
-      console.error(`[${requestTime}] La respuesta no contiene datos:`, responseData);
+      console.error(`❌ gqlRequest [${requestId}] - La respuesta no contiene datos:`, responseData);
+      
       // Intentar otra estrategia: si responseData parece ser válido, devolverlo
       if (responseData && Object.keys(responseData).length > 0) {
-        console.log(`[${requestTime}] Intentando usar responseData directamente como alternativa`);
+        console.log(`🔧 gqlRequest [${requestId}] - Intentando usar responseData directamente como alternativa`);
         return responseData as T;
       }
       
       // Si llegamos aquí, la respuesta está vacía, devolver un objeto vacío
-      console.log(`[${requestTime}] Devolviendo objeto vacío como valor por defecto`);
+      console.log(`🔧 gqlRequest [${requestId}] - Devolviendo objeto vacío como valor por defecto`);
       return {} as T;
     }
 
+    console.log(`✅ gqlRequest [${requestId}] - Solicitud exitosa, devolviendo datos`);
     return data;
   } catch (error) {
-    console.error('GraphQL request failed:', error);
+    console.error(`❌ gqlRequest [${requestId}] - Fallo en solicitud GraphQL:`, error);
     throw error;
   }
 }
@@ -191,6 +217,19 @@ export const cmsOperations = {
   // Obtener componentes de una sección
   getSectionComponents: async (sectionId: string) => {
     try {
+      // Identificador único para esta solicitud
+      const requestId = `getSections-${Math.random().toString(36).substring(2, 9)}`;
+      const startTime = Date.now();
+      
+      console.log(`🔍 [${requestId}] GraphQL CLIENT - getSectionComponents - INICIO PETICIÓN, sectionId: [${sectionId}]`);
+      
+      // Verificar si el sectionId es válido
+      if (!sectionId) {
+        console.error(`❌ [${requestId}] sectionId inválido o vacío`);
+        return { components: [], lastUpdated: null };
+      }
+      
+      // Definir la consulta GraphQL
       const query = `
         query GetSectionComponents($sectionId: ID!) {
           getSectionComponents(sectionId: $sectionId) {
@@ -204,113 +243,107 @@ export const cmsOperations = {
         }
       `;
 
-      console.log('GraphQL query completa para getSectionComponents:', query);
-      console.log('Variables para la query:', { sectionId });
+      console.log(`🔍 [${requestId}] Query completa:`, query.replace(/\s+/g, ' '));
+      console.log(`🔍 [${requestId}] Variables:`, { sectionId });
 
       try {
-        const result = await gqlRequest<SectionComponentsResponse>(query, { sectionId });
+        // Agregar un timestamp para evitar caching
+        const timestamp = Date.now();
+        console.log(`🔍 [${requestId}] Enviando solicitud con timestamp ${timestamp}, tiempo transcurrido: ${timestamp - startTime}ms`);
         
-        console.log("Resultado completo GraphQL:", JSON.stringify(result).substring(0, 200));
+        // Ejecutar la consulta GraphQL con el timestamp para evitar cachés
+        const queryWithCache = `${query}#${timestamp}`;
+        const result = await gqlRequest<SectionComponentsResponse>(queryWithCache, { sectionId });
         
-        // Si la respuesta está vacía o no tiene la estructura esperada, crear un objeto por defecto
-        if (!result || !result.getSectionComponents) {
-          console.log("Creando estructura de respuesta predeterminada", { sectionId });
+        console.log(`🔍 [${requestId}] Respuesta recibida después de ${Date.now() - startTime}ms`);
+        
+        // Inspección profunda de la respuesta
+        if (!result) {
+          console.error(`❌ [${requestId}] Respuesta NULA`);
+          return { components: [], lastUpdated: null };
+        } 
+        
+        // Mostrar las claves disponibles en la respuesta
+        console.log(`🔍 [${requestId}] Claves en respuesta:`, Object.keys(result).join(', '));
+        
+        // Verificar si la respuesta contiene getSectionComponents
+        if (!result.hasOwnProperty('getSectionComponents')) {
+          console.error(`❌ [${requestId}] Campo 'getSectionComponents' NO ENCONTRADO en la respuesta`);
+          console.error(`❌ [${requestId}] Contenido de la respuesta:`, JSON.stringify(result, null, 2).substring(0, 1000));
+          return { components: [], lastUpdated: null };
+        }
+        
+        // Verificar si getSectionComponents es nulo o indefinido
+        if (result.getSectionComponents === null || result.getSectionComponents === undefined) {
+          console.error(`❌ [${requestId}] 'getSectionComponents' es ${result.getSectionComponents === null ? 'NULL' : 'UNDEFINED'}`);
+          return { components: [], lastUpdated: null };
+        }
+        
+        // Verificar que components existe y es un array
+        const { components, lastUpdated } = result.getSectionComponents;
+        
+        if (!components) {
+          console.error(`❌ [${requestId}] El campo 'components' NO EXISTE en getSectionComponents`);
+          console.error(`❌ [${requestId}] Contenido de getSectionComponents:`, result.getSectionComponents);
+          return { components: [], lastUpdated };
+        }
+        
+        if (!Array.isArray(components)) {
+          console.error(`❌ [${requestId}] 'components' NO ES UN ARRAY, es de tipo:`, typeof components);
+          return { components: [], lastUpdated };
+        }
+        
+        // Mostrar información sobre los componentes
+        console.log(`✅ [${requestId}] ÉXITO! Se encontraron ${components.length} componentes`);
+        
+        if (components.length === 0) {
+          console.warn(`⚠️ [${requestId}] Array de componentes VACÍO aunque la respuesta fue correcta`);
+        } else {
+          console.log(`🔍 [${requestId}] Primer componente:`, JSON.stringify(components[0], null, 2));
           
-          const defaultResponse = {
-            getSectionComponents: {
-              components: [
-                {
-                  id: `header-${Date.now()}`,
-                  type: 'Header',
-                  data: {
-                    title: 'Bienvenido a nuestra plataforma',
-                    subtitle: 'Explora nuestros servicios y descubre cómo podemos ayudarte'
-                  }
-                }
-              ],
-              lastUpdated: new Date().toISOString()
+          // Verificar la estructura de cada componente
+          components.forEach((comp, idx) => {
+            console.log(`🔍 [${requestId}] Componente #${idx+1}: ID=${comp.id}, Type=${comp.type}`);
+            
+            if (!comp.id || !comp.type) {
+              console.warn(`⚠️ [${requestId}] Componente #${idx+1} tiene estructura INCOMPLETA`);
             }
-          };
-          
-          // Usar resultado predefinido de data/cms-sections.json si estamos en el servidor
-          try {
-            if (typeof window === 'undefined') {
-              // Solo en el servidor - intentar leer el archivo JSON directamente
-              // Importaciones dinámicas para evitar problemas de SSR
-              const { readFileSync, existsSync } = await import('fs');
-              const { join } = await import('path');
-              const dataPath = join(process.cwd(), 'data', 'cms-sections.json');
-              
-              if (existsSync(dataPath)) {
-                const rawData = readFileSync(dataPath, 'utf8');
-                const jsonData = JSON.parse(rawData);
-                
-                if (jsonData[sectionId]) {
-                  console.log('Usando datos del archivo JSON local');
-                  defaultResponse.getSectionComponents = jsonData[sectionId];
-                }
-              }
+            
+            if (!comp.data) {
+              console.warn(`⚠️ [${requestId}] Componente #${idx+1} NO TIENE datos`);
             } else {
-              // En el cliente - intentar cargar desde localStorage
-              const savedData = localStorage.getItem(`cms-data-${sectionId}`);
-              if (savedData) {
-                console.log('Usando datos de localStorage');
-                defaultResponse.getSectionComponents = JSON.parse(savedData);
-              }
+              console.log(`🔍 [${requestId}] Componente #${idx+1} data keys:`, Object.keys(comp.data).join(', '));
             }
-          } catch (err) {
-            console.error('Error al intentar leer archivo JSON o localStorage:', err);
-          }
-          
-          return defaultResponse.getSectionComponents;
+          });
         }
         
-        // Guardar respuesta en localStorage para futuro uso offline
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(
-              `cms-data-${sectionId}`, 
-              JSON.stringify(result.getSectionComponents)
-            );
-          } catch (e) {
-            console.error('Error al guardar en localStorage:', e);
-          }
+        // Mostrar información sobre lastUpdated
+        if (!lastUpdated) {
+          console.warn(`⚠️ [${requestId}] El campo 'lastUpdated' es ${lastUpdated === null ? 'NULL' : 'UNDEFINED'}`);
+        } else {
+          console.log(`🔍 [${requestId}] lastUpdated:`, lastUpdated);
         }
         
-        return result.getSectionComponents;
+        console.log(`✅ [${requestId}] COMPLETADO en ${Date.now() - startTime}ms - Devolviendo respuesta con ${components.length} componentes`);
+        return { 
+          components, 
+          lastUpdated 
+        };
       } catch (error) {
-        console.error('Error en la consulta GraphQL:', error);
+        console.error(`❌ [${requestId}] ERROR EN CONSULTA:`, error);
         
         // Datos por defecto en caso de error
         return {
-          components: [
-            {
-              id: `header-fallback-${Date.now()}`,
-              type: 'Header',
-              data: {
-                title: 'Bienvenido a nuestra plataforma',
-                subtitle: 'Explora nuestros servicios y descubre cómo podemos ayudarte'
-              }
-            }
-          ],
+          components: [],
           lastUpdated: null
         };
       }
     } catch (error) {
-      console.error(`Error general en getSectionComponents:`, error);
+      console.error(`❌ ERROR GENERAL EN getSectionComponents:`, error);
       
       // Datos por defecto en caso de error general
       return {
-        components: [
-          {
-            id: `header-error-${Date.now()}`,
-            type: 'Header',
-            data: {
-              title: 'Error al cargar datos',
-              subtitle: 'Por favor, inténtelo de nuevo más tarde'
-            }
-          }
-        ],
+        components: [],
         lastUpdated: null
       };
     }

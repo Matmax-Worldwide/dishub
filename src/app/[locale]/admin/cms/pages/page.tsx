@@ -164,8 +164,10 @@ export default function PagesManagement() {
     router.push(`/${locale}/admin/cms/pages/create`);
   };
 
-  const handleEditPage = (id: string) => {
-    router.push(`/${locale}/admin/cms/pages/edit/${id}`);
+  const handleEditPage = (id: string, slug: string) => {
+    // En lugar de navegar a una página de edición separada,
+    // abrimos la página en el frontend con un parámetro que activa el modo de edición
+    window.open(`/${locale}/${slug}?edit=true`, '_blank');
   };
 
   const handleViewPage = (slug: string) => {
@@ -308,7 +310,7 @@ export default function PagesManagement() {
                           <EyeIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleEditPage(page.id)}
+                          onClick={() => handleEditPage(page.id, page.slug)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit page"
                         >
