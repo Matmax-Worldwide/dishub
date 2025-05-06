@@ -554,6 +554,37 @@ export const typeDefs = gql`
     lastUpdated: String
   }
   
+  # Definición del tipo CMSSection para respuestas
+  type CMSSection {
+    id: ID!
+    sectionId: String!
+    name: String
+    description: String
+    lastUpdated: DateTime!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    createdBy: String
+    components: [SectionComponent!]
+  }
+
+  # Definición del componente de sección
+  type SectionComponent {
+    id: ID!
+    sectionId: String!
+    componentId: String!
+    order: Int!
+    data: JSON
+    component: CMSComponent
+  }
+
+  # Definición del tipo de componente
+  type CMSComponent {
+    id: ID!
+    name: String!
+    slug: String!
+    description: String
+  }
+  
   input ComponentInput {
     id: ID!
     type: String!
@@ -646,6 +677,7 @@ export const typeDefs = gql`
 
     # CMS Queries
     getSectionComponents(sectionId: ID!): SectionData
+    getAllCMSSections: [CMSSection!]!
   }
 
   # Root Mutation
@@ -727,5 +759,6 @@ export const typeDefs = gql`
 
     # CMS Mutations
     saveSectionComponents(input: SaveSectionInput!): SaveSectionResult
+    deleteCMSSection(sectionId: ID!): SaveSectionResult
   }
 `; 

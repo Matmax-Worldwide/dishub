@@ -6,7 +6,7 @@ import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
 
 export interface Component {
   id: string;
@@ -35,6 +35,9 @@ const componentMap = {
   }),
   Header: dynamic(() => import('./sections/HeaderSection'), {
     loading: () => <div className="p-12 text-center">Loading Header component...</div>
+  }),
+  Card: dynamic(() => import('./sections/CardSection'), {
+    loading: () => <div className="p-12 text-center">Loading Card component...</div>
   }),
 };
 
@@ -81,7 +84,7 @@ export default function SectionManager({
 
   // Available component types
   const availableComponents: ComponentType[] = [
-    'Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header'
+    'Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'
   ];
 
   // Add a new component
@@ -92,8 +95,17 @@ export default function SectionManager({
       data: getDefaultData(type),
     };
     
-    setComponents([...components, newComponent]);
+    const updatedComponents = [...components, newComponent];
+    setComponents(updatedComponents);
     setShowComponentPicker(false);
+    
+    // Forzar la notificación de cambios al padre inmediatamente
+    // Esto ayuda especialmente cuando se añade el primer componente a una sección vacía
+    if (onComponentsChange) {
+      console.log('Notificando al padre inmediatamente después de añadir componente:', 
+                 updatedComponents.length);
+      onComponentsChange(updatedComponents);
+    }
   };
 
   // Get default data based on component type
@@ -111,6 +123,8 @@ export default function SectionManager({
         return { quote: 'Testimonial quote', author: 'Author name', role: 'Author role' };
       case 'Header':
         return { title: 'Header Section', subtitle: 'Add your subtitle here' };
+      case 'Card':
+        return { title: 'Card Title', description: 'Card description', image: '', link: '', buttonText: 'Leer más' };
       default:
         return {};
     }
@@ -118,7 +132,15 @@ export default function SectionManager({
 
   // Remove a component
   const removeComponent = (id: string) => {
-    setComponents(components.filter(comp => comp.id !== id));
+    const updatedComponents = components.filter(comp => comp.id !== id);
+    setComponents(updatedComponents);
+    
+    // Forzar la notificación de cambios al padre inmediatamente
+    if (onComponentsChange) {
+      console.log('Notificando al padre inmediatamente después de eliminar componente:', 
+                 updatedComponents.length);
+      onComponentsChange(updatedComponents);
+    }
   };
 
   // ComponentPicker popover
@@ -322,6 +344,46 @@ export default function SectionManager({
                   author={component.data.author as string || "Author"}
                   role={component.data.role as string}
                   avatar={component.data.avatar as string}
+                />
+              </div>
+            );
+          
+          case 'Card':
+            const CardComponent = componentMap.Card;
+            return (
+              <div key={component.id} className="relative mb-4">
+                {isEditing && (
+                  <button 
+                    onClick={() => removeComponent(component.id)}
+                    className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
+                  >
+                    <XMarkIcon className="h-4 w-4 text-red-500" />
+                  </button>
+                )}
+                <CardComponent 
+                  title={component.data.title as string || "Card Title"} 
+                  description={component.data.description as string || "Card Description"}
+                  image={component.data.image as string}
+                  link={component.data.link as string}
+                  buttonText={component.data.buttonText as string}
+                  isEditing={isEditing}
+                  onUpdate={(updatedData: Partial<{
+                    title: string;
+                    description: string;
+                    image?: string;
+                    link?: string;
+                    buttonText?: string;
+                  }>) => {
+                    const updatedComponent = {
+                      ...component,
+                      data: { ...component.data, ...updatedData }
+                    };
+                    setComponents(
+                      components.map(c => 
+                        c.id === component.id ? updatedComponent : c
+                      )
+                    );
+                  }}
                 />
               </div>
             );

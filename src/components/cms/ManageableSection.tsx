@@ -5,9 +5,6 @@ import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';
 import AdminControls from './AdminControls';
 
-// Define the valid section ID as a constant
-const VALID_SECTION_ID = 'cms-managed-sections';
-
 interface ManageableSectionProps {
   sectionId: string;
   isEditing?: boolean;
@@ -33,9 +30,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   // Validate and normalize the section ID
-  const normalizedSectionId = sectionId === VALID_SECTION_ID ? 
-    sectionId : 
-    (sectionId.startsWith('cmabj51ke0000brep4j5e3c') ? VALID_SECTION_ID : sectionId);
+  const normalizedSectionId = sectionId;
 
   // Expose saveChanges method to parent component
   useImperativeHandle(ref, () => ({
@@ -83,22 +78,31 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
   // Handle component changes
   const handleComponentsChange = (newComponents: Component[]) => {
-    // Only update if the components have actually changed
-    if (JSON.stringify(newComponents) !== JSON.stringify(pendingComponents)) {
-      console.log('Components changed in ManageableSection, updating state');
+    // Siempre imprimir información de depuración sobre los componentes
+    console.log('Componentes actuales:', pendingComponents.length, 'Nuevos componentes:', newComponents.length);
+    
+    // Calcular si hay un cambio real comparando los arrays
+    const currentJson = JSON.stringify(pendingComponents);
+    const newJson = JSON.stringify(newComponents);
+    const hasChanges = currentJson !== newJson;
+    
+    // Si hay cambios, o los arrays tienen longitudes diferentes (añadido/eliminado), actualizar
+    if (hasChanges || pendingComponents.length !== newComponents.length) {
+      console.log('Componentes cambiados en ManageableSection, actualizando estado');
       setPendingComponents(newComponents);
       
-      // Notify parent component of changes if callback provided
+      // Notificar al componente padre sobre los cambios si se proporcionó un callback
       if (onComponentsChange) {
+        console.log('Notificando al padre sobre cambios en componentes');
         onComponentsChange();
       }
       
-      // If autoSave is enabled, save the changes immediately
+      // Si autoSave está habilitado, guardar los cambios inmediatamente
       if (autoSave) {
         handleSave(newComponents);
       }
     } else {
-      console.log('Components unchanged, skipping update');
+      console.log('Los componentes no han cambiado, omitiendo actualización');
     }
   };
 

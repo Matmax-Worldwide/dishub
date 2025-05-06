@@ -668,32 +668,53 @@ model CMSTemplate {
 }
 
 model CMSComponent {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  slug        String      @unique
-  description String?
-  icon        String?
-  category    String?     // For grouping components
-  schema      Json        // Component structure and field definitions
-  preview     String?     // Preview image URL
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  templateId  String?
-  template    CMSTemplate? @relation(fields: [templateId], references: [id])
+  id              String              @id @default(cuid())
+  name            String              @unique
+  slug            String              @unique
+  description     String?
+  icon            String?
+  category        String?             // For grouping components
+  schema          Json                // Component structure and field definitions
+  preview         String?             // Preview image URL
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  templateId      String?
+  template        CMSTemplate?        @relation(fields: [templateId], references: [id])
+  sectionInstances SectionComponent[] // Relación con las secciones donde se usa este componente
 }
 
 // Model for storing section data for the CMS editor
 model CMSSection {
-  id          String   @id @default(cuid())
-  sectionId   String   @unique  // Identifier for the section (e.g., 'cms-managed-sections')
-  components  Json     // Array of components as JSON
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?  // Optional user ID who created this
+  id          String              @id @default(cuid())
+  sectionId   String              @unique  // Identifier for the section (e.g., 'cms-managed-sections')
+  name        String?             // Nombre amigable para la sección
+  description String?             // Descripción opcional
+  lastUpdated DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdBy   String?             // Optional user ID who created this
+  components  SectionComponent[]  // Relación con componentes a través de tabla intermedia
   
   @@map("CMSSection")
+}
+
+// Tabla intermedia para relación many-to-many entre secciones y componentes
+model SectionComponent {
+  id           String       @id @default(cuid())
+  sectionId    String       // ID de la sección
+  componentId  String       // ID del componente
+  order        Int          @default(0)  // Orden dentro de la sección
+  data         Json?        // Datos específicos de esta instancia
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  
+  // Relaciones
+  section      CMSSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  component    CMSComponent @relation(fields: [componentId], references: [id])
+  
+  @@unique([sectionId, componentId, order])
+  @@map("SectionComponent")
 }
 
 model NavigationMenu {

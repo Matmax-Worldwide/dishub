@@ -638,6 +638,7 @@ const resolvers = {
     
     // Add CMS queries explicitly
     getSectionComponents: cmsResolvers.Query.getSectionComponents,
+    getAllCMSSections: cmsResolvers.Query.getAllCMSSections,
   },
   
   Mutation: {
@@ -1052,6 +1053,7 @@ const resolvers = {
     
     // Add CMS mutations explicitly
     saveSectionComponents: cmsResolvers.Mutation.saveSectionComponents,
+    deleteCMSSection: cmsResolvers.Mutation.deleteCMSSection,
   },
 };
 

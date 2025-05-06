@@ -110,6 +110,18 @@ export interface CMSComponent {
   data: Record<string, unknown>;
 }
 
+// Actualizar según la nueva estructura de relaciones
+export interface CMSSectionComponent {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
+}
+
+export interface CMSSectionResult {
+  components: CMSSectionComponent[];
+  lastUpdated: string | null;
+}
+
 // Definir la estructura de respuesta esperada para las importaciones dinámicas
 interface SectionComponentsResponse {
   getSectionComponents?: {
@@ -120,6 +132,62 @@ interface SectionComponentsResponse {
 
 // Operaciones CMS
 export const cmsOperations = {
+  // Obtener todas las secciones CMS
+  getAllCMSSections: async () => {
+    try {
+      const query = `
+        query GetAllCMSSections {
+          getAllCMSSections {
+            id
+            sectionId
+            name
+            description
+            lastUpdated
+            createdAt
+            updatedAt
+            createdBy
+            components {
+              id
+              componentId
+              order
+            }
+          }
+        }
+      `;
+
+      console.log('GraphQL query completa para getAllCMSSections:', query);
+
+      try {
+        const result = await gqlRequest<{ getAllCMSSections: Array<{
+          id: string;
+          sectionId: string;
+          name: string;
+          description: string;
+          lastUpdated: string;
+          createdAt: string;
+          updatedAt: string;
+          createdBy: string | null;
+          components: unknown;
+        }> }>(query);
+        
+        console.log("Resultado completo GraphQL getAllCMSSections:", JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getAllCMSSections) {
+          console.log("No se encontraron resultados o la estructura no es la esperada");
+          return [];
+        }
+        
+        return result.getAllCMSSections;
+      } catch (error) {
+        console.error('Error en la consulta GraphQL getAllCMSSections:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getAllCMSSections:`, error);
+      return [];
+    }
+  },
+
   // Obtener componentes de una sección
   getSectionComponents: async (sectionId: string) => {
     try {
@@ -249,10 +317,9 @@ export const cmsOperations = {
   },
 
   // Guardar componentes de una sección
-  saveSectionComponents: async (
-    sectionId: string,
-    components: CMSComponent[]
-  ) => {
+  saveSectionComponents: async (sectionId: string, components: CMSComponent[]) => {
+    console.log('Enviando componentes a guardar:', components.length);
+    
     try {
       const mutation = `
         mutation SaveSectionComponents($input: SaveSectionInput!) {
@@ -263,74 +330,52 @@ export const cmsOperations = {
           }
         }
       `;
-
-      // Validar los datos de entrada
-      if (!Array.isArray(components)) {
-        throw new Error('Los componentes deben ser un array');
-      }
-
-      // Limpia y valida los componentes
-      const sanitizedComponents = components.map(c => {
-        // Asegurar que el id es válido
-        const id = c.id || `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Asegurar que el tipo es válido
-        const type = c.type || 'Text';
-        
-        // Asegurar que los datos son un objeto válido
-        const data = c.data && typeof c.data === 'object' ? c.data : {};
-        
-        return { id, type, data };
-      });
-
-      console.log(`Intentando guardar ${sanitizedComponents.length} componentes para la sección ${sectionId}`);
-      if (sanitizedComponents.length > 0) {
-        console.log('Primer componente (muestra):', sanitizedComponents[0]);
-      } else {
-        console.log('No hay componentes para guardar');
-      }
-
-      const input = {
-        sectionId,
-        components: sanitizedComponents
-      };
-
-      console.log('Enviando mutation GraphQL');
       
-      try {
-        // Usar la función genérica gqlRequest para hacer la petición
-        const result = await gqlRequest<{ saveSectionComponents: { success: boolean; message?: string; lastUpdated?: string } }>(
-          mutation, 
-          { input }
-        );
-        
-        console.log('Respuesta del servidor:', result);
-        
-        // Verificar si tenemos la estructura esperada
-        if (!result || !result.saveSectionComponents) {
-          console.error('La respuesta no contiene saveSectionComponents:', result);
-          return { 
-            success: false, 
-            message: 'La estructura de la respuesta no es la esperada',
-            lastUpdated: null 
-          };
+      const variables = {
+        input: {
+          sectionId,
+          components
         }
-        
-        return result.saveSectionComponents;
-      } catch (error) {
-        console.error('Error en la petición GraphQL:', error);
-        return { 
-          success: false, 
-          message: error instanceof Error ? error.message : 'Error desconocido en la comunicación con el servidor',
-          lastUpdated: null 
-        };
+      };
+      
+      console.log('Mutation para guardar componentes:', mutation);
+      console.log('Variables de la mutation:', JSON.stringify({
+        sectionId,
+        componentsCount: components.length
+      }));
+      
+      const result = await gqlRequest<{
+        saveSectionComponents: {
+          success: boolean;
+          message: string;
+          lastUpdated: string | null;
+        }
+      }>(mutation, variables);
+      
+      console.log('Resultado de guardar componentes:', result);
+      
+      // Almacenar en localStorage para uso offline
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(
+            `cms-data-${sectionId}`, 
+            JSON.stringify({
+              components,
+              lastUpdated: new Date().toISOString()
+            })
+          );
+        } catch (e) {
+          console.error('Error al guardar en localStorage:', e);
+        }
       }
+      
+      return result.saveSectionComponents;
     } catch (error) {
-      console.error(`Error general al guardar componentes de la sección ${sectionId}:`, error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Error desconocido',
-        lastUpdated: null 
+      console.error('Error al guardar componentes:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido al guardar',
+        lastUpdated: null
       };
     }
   },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -8,104 +8,172 @@ import {
   ImageIcon,
   MenuIcon,
   SettingsIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  LayoutIcon,
+  AlertCircleIcon
 } from 'lucide-react';
+import { cmsOperations } from '@/lib/graphql-client';
+
+type CMSModule = {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+  count?: number;
+  color: string;
+  disabled: boolean;
+};
 
 export default function CMSDashboard() {
   const { locale } = useParams();
   const [pageCount, setPageCount] = useState(0);
   const [mediaCount, setMediaCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
+  const [sectionsCount, setSectionsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch these counts from the API
-    // For now, we'll just simulate a loading state and then set dummy data
-    const timer = setTimeout(() => {
-      setPageCount(8);
-      setMediaCount(24);
-      setMenuCount(3);
-      setIsLoading(false);
-    }, 500);
+    // Obtener el número real de secciones desde la API GraphQL
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Obtener secciones desde GraphQL
+        const sectionsData = await cmsOperations.getAllCMSSections();
+        console.log('Secciones obtenidas:', sectionsData);
+        setSectionsCount(Array.isArray(sectionsData) ? sectionsData.length : 0);
+        
+        // Mock data para otros conteos (hasta que implementemos esas APIs)
+        setPageCount(0);
+        setMediaCount(0);
+        setMenuCount(0);
+      } catch (error) {
+        console.error('Error fetching CMS data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    fetchData();
   }, []);
 
-  const cmsModules = [
+  const cmsModules: CMSModule[] = [
     {
-      title: 'Pages',
-      description: 'Create and manage website pages and content',
+      title: 'Páginas',
+      description: 'Crear y gestionar páginas del sitio web con contenido dinámico',
       icon: FileTextIcon,
       href: `/${locale}/admin/cms/pages`,
       count: pageCount,
-      color: 'bg-blue-500'
+      color: 'bg-blue-500',
+      disabled: false
     },
     {
-      title: 'Media Library',
-      description: 'Upload and manage images, videos, and documents',
+      title: 'Secciones',
+      description: 'Crear y gestionar secciones modulares reutilizables para las páginas',
+      icon: LayoutIcon,
+      href: `/${locale}/admin/cms/sections`,
+      count: sectionsCount,
+      color: 'bg-indigo-500',
+      disabled: false
+    },
+    {
+      title: 'Biblioteca de Medios',
+      description: 'Subir y gestionar imágenes, videos y documentos',
       icon: ImageIcon,
       href: `/${locale}/admin/cms/media`,
       count: mediaCount,
-      color: 'bg-purple-500'
+      color: 'bg-purple-500',
+      disabled: true
     },
     {
-      title: 'Menus',
-      description: 'Configure navigation menus throughout the site',
+      title: 'Menús',
+      description: 'Configurar menús de navegación en todo el sitio',
       icon: MenuIcon,
       href: `/${locale}/admin/cms/menus`,
       count: menuCount,
-      color: 'bg-green-500'
+      color: 'bg-green-500',
+      disabled: true
     },
     {
-      title: 'Site Settings',
-      description: 'Configure global website settings and appearance',
+      title: 'Configuración',
+      description: 'Configurar ajustes globales del sitio web y apariencia',
       icon: SettingsIcon,
       href: `/${locale}/admin/cms/settings`,
-      color: 'bg-orange-500'
+      color: 'bg-orange-500',
+      disabled: true
     }
   ];
+
+  const ModuleCard = ({ module }: { module: CMSModule }) => {
+    const CardWrapper = ({ children }: { children: ReactNode }) => {
+      if (module.disabled) {
+        return (
+          <div className="group block p-6 bg-white rounded-lg border border-gray-200 shadow-sm opacity-80 cursor-not-allowed">
+            {children}
+          </div>
+        );
+      }
+      
+      return (
+        <Link
+          href={module.href}
+          className="group block p-6 bg-white rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md hover:border-blue-300"
+        >
+          {children}
+        </Link>
+      );
+    };
+
+    return (
+      <CardWrapper>
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-lg ${module.color} ${module.disabled ? '' : 'transition-transform group-hover:scale-110'}`}>
+              {module.icon && <module.icon className="h-6 w-6 text-white" />}
+            </div>
+            {module.count !== undefined && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                {isLoading ? '...' : module.count}
+              </span>
+            )}
+          </div>
+          <h2 className={`text-lg font-semibold ${module.disabled ? 'text-gray-700' : 'group-hover:text-blue-600'}`}>{module.title}</h2>
+          <p className="mt-2 text-sm text-gray-500 flex-grow">{module.description}</p>
+          
+          {module.disabled ? (
+            <div className="mt-4 flex items-center text-amber-600 text-sm">
+              <AlertCircleIcon className="mr-1 h-4 w-4" />
+              Trabajo en progreso
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center text-blue-600 text-sm group-hover:translate-x-1 transition-transform">
+              Gestionar
+              <ArrowRightIcon className="ml-1 h-4 w-4" />
+            </div>
+          )}
+        </div>
+      </CardWrapper>
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Content Management System</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Sistema de Gestión de Contenido</h1>
       </div>
       
       <p className="text-gray-500">
-        Manage all aspects of your website content through this centralized CMS dashboard.
+        Gestiona todos los aspectos del contenido de tu sitio web a través de este panel de control centralizado.
       </p>
       
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {cmsModules.map((module) => (
-          <Link
-            key={module.title}
-            href={module.href}
-            className="block p-6 bg-white rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md"
-          >
-            <div className="flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-lg ${module.color}`}>
-                  {module.icon && <module.icon className="h-6 w-6 text-white" />}
-                </div>
-                {module.count !== undefined && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    {isLoading ? '...' : module.count}
-                  </span>
-                )}
-              </div>
-              <h2 className="text-lg font-semibold">{module.title}</h2>
-              <p className="mt-2 text-sm text-gray-500 flex-grow">{module.description}</p>
-              <div className="mt-4 flex items-center text-blue-600 text-sm">
-                Manage
-                <ArrowRightIcon className="ml-1 h-4 w-4" />
-              </div>
-            </div>
-          </Link>
+          <ModuleCard key={module.title} module={module} />
         ))}
       </div>
       
       <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-medium mb-4">Recent Activity</h2>
+        <h2 className="text-lg font-medium mb-4">Actividad Reciente</h2>
         {isLoading ? (
           <div className="animate-pulse space-y-4">
             {[...Array(4)].map((_, i) => (
@@ -115,20 +183,24 @@ export default function CMSDashboard() {
         ) : (
           <ul className="space-y-3">
             <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Home page updated</span>
-              <span className="text-gray-400">2 hours ago</span>
+              <span className="text-gray-600">Página de inicio actualizada</span>
+              <span className="text-gray-400">2 horas atrás</span>
             </li>
             <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">New image uploaded to Media Library</span>
-              <span className="text-gray-400">Yesterday</span>
+              <span className="text-gray-600">Nueva sección &quot;Hero&quot; creada</span>
+              <span className="text-gray-400">Ayer</span>
             </li>
             <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Main menu updated</span>
-              <span className="text-gray-400">2 days ago</span>
+              <span className="text-gray-600">Nueva imagen subida a la Biblioteca</span>
+              <span className="text-gray-400">Ayer</span>
             </li>
             <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">About page created</span>
-              <span className="text-gray-400">3 days ago</span>
+              <span className="text-gray-600">Menú principal actualizado</span>
+              <span className="text-gray-400">2 días atrás</span>
+            </li>
+            <li className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Página &quot;Sobre nosotros&quot; creada</span>
+              <span className="text-gray-400">3 días atrás</span>
             </li>
           </ul>
         )}
