@@ -62,7 +62,13 @@ export default function ManageableSection({
 
   // Handle component changes
   const handleComponentsChange = (newComponents: Component[]) => {
-    setComponents(newComponents);
+    // Only update if the components have actually changed
+    if (JSON.stringify(newComponents) !== JSON.stringify(components)) {
+      console.log('Components changed in ManageableSection, updating state');
+      setComponents(newComponents);
+    } else {
+      console.log('Components unchanged, skipping update');
+    }
   };
 
   // Save components

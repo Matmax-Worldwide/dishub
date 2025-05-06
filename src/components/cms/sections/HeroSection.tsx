@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import Image from 'next/image';
-import { PencilIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 interface HeroSectionProps {
   title: string;
@@ -22,23 +21,15 @@ export default function HeroSection({
   isEditing = false,
   onUpdate
 }: HeroSectionProps) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(title);
-  const [subtitleValue, setSubtitleValue] = useState(subtitle);
+  // Debug logging
+  useEffect(() => {
+    console.log('HeroSection rendering with:', { title, subtitle, image, isEditing });
+  }, [title, subtitle, image, isEditing]);
 
-  const handleTitleSave = () => {
+  const handleUpdate = (field: string, value: string) => {
     if (onUpdate) {
-      onUpdate({ title: titleValue });
+      onUpdate({ [field]: value });
     }
-    setIsEditingTitle(false);
-  };
-
-  const handleSubtitleSave = () => {
-    if (onUpdate) {
-      onUpdate({ subtitle: subtitleValue });
-    }
-    setIsEditingSubtitle(false);
   };
 
   return (
@@ -59,68 +50,54 @@ export default function HeroSection({
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        {isEditing && isEditingTitle ? (
-          <div className="mb-6">
-            <textarea
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              className="w-full text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 bg-white/80 p-2 border border-blue-300 rounded"
-              rows={2}
+        {isEditing ? (
+          <div className="space-y-6">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => handleUpdate('title', e.target.value)}
+              className="w-full text-4xl md:text-5xl font-bold text-gray-900 bg-white/90 p-3 border border-blue-300 rounded mb-4"
+              placeholder="Enter hero title..."
             />
-            <button
-              onClick={handleTitleSave}
-              className="mt-2 p-2 bg-green-500 text-white rounded-full"
-            >
-              <CheckIcon className="h-5 w-5" />
-            </button>
-          </div>
-        ) : (
-          <h1 className="relative text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 group">
-            {titleValue}
-            {isEditing && (
-              <button
-                onClick={() => setIsEditingTitle(true)}
-                className="absolute -right-10 top-1/2 transform -translate-y-1/2 p-2 bg-blue-100 text-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </button>
-            )}
-          </h1>
-        )}
-
-        {isEditing && isEditingSubtitle ? (
-          <div className="mb-10">
+            
             <textarea
-              value={subtitleValue}
-              onChange={(e) => setSubtitleValue(e.target.value)}
-              className="w-full text-xl md:text-2xl text-gray-600 bg-white/80 p-2 border border-blue-300 rounded"
+              value={subtitle}
+              onChange={(e) => handleUpdate('subtitle', e.target.value)}
+              className="w-full text-xl md:text-2xl text-gray-600 bg-white/90 p-3 border border-blue-300 rounded mb-6"
               rows={3}
+              placeholder="Enter hero subtitle..."
             />
-            <button
-              onClick={handleSubtitleSave}
-              className="mt-2 p-2 bg-green-500 text-white rounded-full"
-            >
-              <CheckIcon className="h-5 w-5" />
-            </button>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Background Image URL (optional)
+              </label>
+              <input
+                type="text"
+                value={image || ''}
+                onChange={(e) => handleUpdate('image', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="Enter image URL..."
+              />
+            </div>
+            
+            {/* CTA editing could be added here */}
           </div>
         ) : (
-          <p className="relative text-xl md:text-2xl mx-auto max-w-3xl mb-10 text-gray-600 group">
-            {subtitleValue}
-            {isEditing && (
-              <button
-                onClick={() => setIsEditingSubtitle(true)}
-                className="absolute -right-10 top-1/2 transform -translate-y-1/2 p-2 bg-blue-100 text-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <PencilIcon className="h-5 w-5" />
+          <>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
+              {title}
+            </h1>
+            <p className="text-xl md:text-2xl mx-auto max-w-3xl mb-10 text-gray-600">
+              {subtitle}
+            </p>
+            
+            {cta && (
+              <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                {cta.text}
               </button>
             )}
-          </p>
-        )}
-        
-        {cta && (
-          <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
-            {cta.text}
-          </button>
+          </>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header';
@@ -48,24 +49,35 @@ export default function SectionManager({
   isEditing = false,
   onComponentsChange
 }: SectionManagerProps) {
+  // Create a ref to track if initialComponents have been set
   const [components, setComponents] = useState<Component[]>(initialComponents);
   const [showComponentPicker, setShowComponentPicker] = useState(false);
+  const initialComponentsRef = React.useRef(false);
 
-  // Update parent component when components change
+  // Update components when initialComponents change (from parent)
+  // But only if they've not been initialized yet or have actually changed
   useEffect(() => {
-    console.log('Components changed in SectionManager:', components.length, 'components');
-    if (onComponentsChange) {
+    if (initialComponents && initialComponents.length > 0) {
+      // Only set components from initialComponents on first render or
+      // if they've actually changed and haven't been edited locally
+      const initialString = JSON.stringify(initialComponents);
+      const currentString = JSON.stringify(components);
+      
+      if (!initialComponentsRef.current || (initialString !== currentString && components.length === 0)) {
+        console.log('Setting components from initialComponents:', initialComponents.length);
+        setComponents(initialComponents);
+        initialComponentsRef.current = true;
+      }
+    }
+  }, [initialComponents]);
+
+  // Update parent component when components change, but only after initial render
+  useEffect(() => {
+    if (initialComponentsRef.current && onComponentsChange) {
+      console.log('Notifying parent of component changes:', components.length);
       onComponentsChange(components);
     }
   }, [components, onComponentsChange]);
-
-  // Update components when initialComponents change (from parent)
-  useEffect(() => {
-    if (initialComponents && initialComponents.length > 0) {
-      console.log('Initial components received:', initialComponents.length);
-      setComponents(initialComponents);
-    }
-  }, [initialComponents]);
 
   // Available component types
   const availableComponents: ComponentType[] = [
@@ -244,7 +256,7 @@ export default function SectionManager({
           case 'Image':
             const ImageComponent = componentMap.Image;
             return (
-              <div key={component.id} className="relative mb-4">
+              <div key={component.id} className="relative mb-4 border-2 border-transparent hover:border-blue-100">
                 {isEditing && (
                   <button 
                     onClick={() => removeComponent(component.id)}
@@ -257,6 +269,18 @@ export default function SectionManager({
                   src={component.data.src as string || ""} 
                   alt={component.data.alt as string || "Image"}
                   caption={component.data.caption as string}
+                  isEditing={isEditing}
+                  onUpdate={(updatedData) => {
+                    const updatedComponent = {
+                      ...component,
+                      data: { ...component.data, ...updatedData }
+                    };
+                    setComponents(
+                      components.map(c => 
+                        c.id === component.id ? updatedComponent : c
+                      )
+                    );
+                  }}
                 />
               </div>
             );

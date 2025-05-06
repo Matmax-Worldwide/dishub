@@ -30,15 +30,14 @@ export default function AdminControls({
 
   // Save current state
   const saveState = async () => {
+    if (isSaving) return; // Prevent multiple save operations
+    
     setIsSaving(true);
     setErrorMsg(null);
     
     try {
-      // First call the local onSave handler to update UI
-      onSave(components);
-      
       // Log what we're saving for debugging
-      console.log(`Saving ${components.length} components for section: ${sectionId}`);
+      console.log(`AdminControls: Saving ${components.length} components for section: ${sectionId}`);
       
       // Then save to the server via GraphQL
       const result = await cmsOperations.saveSectionComponents(
@@ -47,8 +46,12 @@ export default function AdminControls({
       );
       
       if (result?.success) {
+        // Update the last saved time
         setLastSavedTime(result.lastUpdated || null);
-        console.log('Components saved successfully at:', result.lastUpdated);
+        console.log('AdminControls: Components saved successfully at:', result.lastUpdated);
+        
+        // Now call the onSave handler to update the parent component
+        onSave(components);
       } else {
         throw new Error(result.message || 'Unknown error');
       }

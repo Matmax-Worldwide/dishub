@@ -351,7 +351,6 @@ export default function Benefits({ dictionary }: BenefitsProps) {
 
   return (
     <div id="benefits" className="full-page-flow">
-No sí
       <section id="cms-managed-sections" className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50">
         <div className="container mx-auto py-12 px-4">
           {isEditing && (
