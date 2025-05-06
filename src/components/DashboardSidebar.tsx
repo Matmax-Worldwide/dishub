@@ -195,7 +195,8 @@ export function DashboardSidebar() {
   const showAsAdmin = effectiveRole === 'ADMIN';
   const showAsManager = effectiveRole === 'MANAGER' || (!showAsAdmin && isManager);
   const showAsUser = effectiveRole === 'USER';
-  const shouldShowRegularUserView = !showAsAdmin && !showAsManager && !showAsUser;
+  const showAsEmployee = effectiveRole === 'EMPLOYEE';
+  const shouldShowRegularUserView = !showAsAdmin && !showAsManager && !showAsUser && !showAsEmployee;
 
   // Cargar los datos de notificaciones no leídas
   const { data: notificationsData } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
@@ -370,30 +371,35 @@ export function DashboardSidebar() {
       href: `/${params.locale}/admin/cms`,
       icon: ClipboardListIcon,
       permissions: ['cms:access'],
+      roles: ['ADMIN', 'MANAGER'],
       children: [
         {
           name: t('sidebar.cmsPages'),
           href: `/${params.locale}/admin/cms/pages`,
           icon: LineChartIcon,
-          permissions: ['cms:access']
+          permissions: ['cms:access'],
+          roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsMedia'),
           href: `/${params.locale}/admin/cms/media`,
           icon: LinkIcon,
-          permissions: ['cms:access']
+          permissions: ['cms:access'],
+          roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsMenus'),
           href: `/${params.locale}/admin/cms/menus`,
           icon: MenuIcon,
-          permissions: ['cms:access']
+          permissions: ['cms:access'],
+          roles: ['ADMIN', 'MANAGER']
         },
         {
           name: t('sidebar.cmsSettings'),
           href: `/${params.locale}/admin/cms/settings`,
           icon: SettingsIcon,
-          permissions: ['cms:access']
+          permissions: ['cms:access'],
+          roles: ['ADMIN', 'MANAGER']
         }
       ]
     },
@@ -727,7 +733,7 @@ export function DashboardSidebar() {
               </Link>
             ))}
 
-            {/* Manager items for admins too */}
+            {/* Design section for admins */}
             <div className="mt-4 border-t pt-4 mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
                 {t('sidebar.design')}
@@ -853,6 +859,30 @@ export function DashboardSidebar() {
                 {renderBadge(item)}
               </Link>
             ))}
+            
+            {/* Design section for managers */}
+            <div className="mt-4 border-t pt-4 mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.design')}
+              </h3>
+            </div>
+            {designNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+            
             {/* Base items for managers */}
             <div className="mt-4 border-t pt-4">
               <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
@@ -882,6 +912,33 @@ export function DashboardSidebar() {
         
         {/* Regular User Items (excluding USER role) */}
         {shouldShowRegularUserView && (
+          <>
+            <div className="mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.dashboard')}
+              </h3>
+            </div>
+            {baseNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+          </>
+        )}
+        
+        {/* Employee Items - Similar to regular users but for employees specifically */}
+        {showAsEmployee && (
           <>
             <div className="mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
