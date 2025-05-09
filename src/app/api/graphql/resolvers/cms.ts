@@ -212,23 +212,102 @@ export const cmsResolvers = {
           
           if (sectionFromDB) {
             console.log('Section found in database:', sectionId);
+            console.log('Raw section data from DB:', JSON.stringify(sectionFromDB, null, 2));
+            console.log('Components count:', sectionFromDB.components.length);
             
-            // Transformar los componentes al formato esperado por el cliente
-            const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
-              id: sc.id,
-              type: sc.component.slug,
-              data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
-            }));
-            
-            console.log('Number of components in section:', components.length);
-            console.log('Returning data from database');
-            
-            return {
-              components,
-              lastUpdated: sectionFromDB.lastUpdated.toISOString()
-            };
+            // Log each component for debugging
+            if (sectionFromDB.components.length > 0) {
+              console.log('Components in database:');
+              sectionFromDB.components.forEach((sc, index) => {
+                console.log(`Component ${index + 1}:`, {
+                  id: sc.id,
+                  sectionId: sc.sectionId,
+                  componentId: sc.componentId,
+                  order: sc.order,
+                  componentName: sc.component?.name || 'N/A',
+                  componentSlug: sc.component?.slug || 'N/A',
+                  hasData: sc.data ? true : false
+                });
+              });
+              
+              // Transformar los componentes al formato esperado por el cliente
+              const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
+                id: sc.id,
+                type: sc.component.slug,
+                data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
+              }));
+              
+              console.log('Number of components in section:', components.length);
+              console.log('Returning data from database');
+              
+              return {
+                components,
+                lastUpdated: sectionFromDB.lastUpdated.toISOString()
+              };
+            } else {
+              console.log('No components found for this section in the database');
+              console.log('Section exists but has no components. Initializing with empty array.');
+              
+              // Section exists but has no components
+              return { 
+                components: [], 
+                lastUpdated: sectionFromDB.lastUpdated.toISOString() 
+              };
+            }
           } else {
-            console.log('Section not found in database:', sectionId);
+            // Check if the section ID exists but doesn't have the right format
+            // Try to find it by matching with the start of the ID
+            console.log('Section not found by exact ID, trying to match by prefix...');
+            
+            const allSections = await prisma.cMSSection.findMany({
+              select: { sectionId: true }
+            });
+            
+            console.log('All available section IDs:', allSections.map(s => s.sectionId).join(', '));
+            
+            // Check if any of the existing IDs start with our sectionId
+            const matchingSection = allSections.find(s => 
+              sectionId.startsWith(s.sectionId) || s.sectionId.startsWith(sectionId)
+            );
+            
+            if (matchingSection) {
+              console.log('Found potential match!', matchingSection.sectionId);
+              console.log('Original sectionId:', sectionId);
+              console.log('Matched sectionId:', matchingSection.sectionId);
+              
+              // Retry with the matched ID
+              const matchedSectionData = await prisma.cMSSection.findUnique({
+                where: { sectionId: matchingSection.sectionId },
+                include: {
+                  components: {
+                    include: {
+                      component: true
+                    },
+                    orderBy: {
+                      order: 'asc'
+                    }
+                  }
+                }
+              });
+              
+              if (matchedSectionData && matchedSectionData.components.length > 0) {
+                const components = (matchedSectionData.components as SectionComponentWithRelation[]).map((sc) => ({
+                  id: sc.id,
+                  type: sc.component.slug,
+                  data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
+                }));
+                
+                console.log('Found components through prefix matching!', components.length);
+                
+                return {
+                  components,
+                  lastUpdated: matchedSectionData.lastUpdated.toISOString()
+                };
+              }
+            }
+            
+            // If we get here, we either couldn't find a matching section or the matched section had no components
+            console.log('Section not found in database or no matching section found:', sectionId);
             console.log('Returning empty components array');
             return { components: [], lastUpdated: null };
           }
@@ -1118,7 +1197,7 @@ export const cmsResolvers = {
           // Procesar cada sección
           for (const section of input.sections) {
             // Preparar datos de componentes si existen
-            const componentType = section.componentType || 'GENERIC';
+            const componentType = section.componentType || 'CUSTOM';
             
             if (section.id && !section.id.startsWith('temp-')) {
               // Actualizar sección existente

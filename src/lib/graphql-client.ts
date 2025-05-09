@@ -970,6 +970,9 @@ export const cmsOperations = {
             updatedAt
             sections {
               id
+              componentType
+              content
+              data
             }
           }
         }

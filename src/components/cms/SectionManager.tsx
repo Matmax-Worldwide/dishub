@@ -166,6 +166,16 @@ export default function SectionManager({
     const renderId = `render-${component.id.substring(0, 4)}-${Math.random().toString(36).substring(2, 5)}`;
     console.log(`🔄 [${renderId}] Iniciando renderizado de componente: ${component.id}, tipo: ${component.type}`);
     
+    // Verify component is valid object
+    if (!component || typeof component !== 'object') {
+      console.error(`❌ [${renderId}] Componente inválido:`, component);
+      return (
+        <div className="p-4 bg-red-50 rounded border border-red-200 mb-4">
+          <p className="text-red-500">Error: Componente inválido o mal formado</p>
+        </div>
+      );
+    }
+    
     // Verificar que el componente tenga los campos necesarios
     if (!component.type) {
       console.error(`❌ [${renderId}] Tipo de componente no definido:`, component);

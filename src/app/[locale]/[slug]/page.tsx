@@ -1,206 +1,225 @@
-import React from 'react';
-import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { cmsOperations, PageData } from '@/lib/graphql-client';
+import { 
+  Loader2Icon, 
+  AlertCircleIcon,
+  FileTextIcon 
+} from 'lucide-react';
 import ManageableSection from '@/components/cms/ManageableSection';
 
-// Metadata generation based on page data
-export async function generateMetadata({ params }: { params: { slug: string, locale: string } }) {
-  const { slug, locale } = params;
+export default function PublicPage() {
+  const params = useParams();
+  const { locale, slug } = params;
   
-  // Check if we're in development mode
-  const isDev = process.env.NODE_ENV === 'development';
-  
-  // Fetch page from database
-  const page = await prisma.page.findFirst({
-    where: {
-      slug,
-      locale,
-      ...(isDev ? {} : { isPublished: true }) // Only filter published in production
-    }
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pageData, setPageData] = useState<PageData | null>(null);
+  const [sectionIds, setSectionIds] = useState<string[]>([]);
 
-  if (!page) {
-    return {
-      title: 'Page Not Found',
-      description: 'The requested page does not exist.'
-    };
-  }
-
-  return {
-    title: page.metaTitle || page.title,
-    description: page.metaDescription || page.description,
-  };
-}
-
-async function getPageData(slug: string, locale: string) {
-  console.log(`Fetching page with slug: ${slug}, locale: ${locale}`);
-  
-  try {
-    // Check if we're in development mode
-    const isDev = process.env.NODE_ENV === 'development';
-    
-    // First try to find the page without the isPublished filter in dev mode
-    const page = await prisma.page.findFirst({
-      where: {
-        slug,
-        locale,
-        ...(isDev ? {} : { isPublished: true }) // Only filter published in production
-      },
-      include: {
-        sections: {
-          orderBy: {
-            order: 'asc'
-          }
+  // Load page data
+  useEffect(() => {
+    const loadPage = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        console.log(`⏳ INICIO CARGA: Página con slug: '${slug}'`);
+        
+        // Normalize slug
+        const normalizedSlug = String(slug).trim();
+        const page = await cmsOperations.getPageBySlug(normalizedSlug);
+        
+        if (!page) {
+          console.error(`❌ ERROR: Página no encontrada con slug '${normalizedSlug}'`);
+          setError('Página no encontrada');
+          setIsLoading(false);
+          return;
         }
-      }
-    });
-
-    console.log(`Page query result:`, page ? `Found page: ${page.title}` : 'Page not found');
-    
-    if (!page) {
-      // If not found, let's check if ANY page exists with this slug (ignoring locale)
-      const anyPageWithSlug = await prisma.page.findFirst({
-        where: { slug }
-      });
-      
-      console.log(`Any page with slug ${slug}?`, anyPageWithSlug ? 'Yes' : 'No');
-      
-      // List all available pages for debugging
-      const allPages = await prisma.page.findMany({
-        select: { id: true, title: true, slug: true, locale: true, isPublished: true }
-      });
-      
-      console.log(`All available pages:`, allPages);
-      
-      return null;
-    }
-
-    // Check if any navigation menus reference this page
-    const menus = await prisma.navigationMenu.findMany({
-      where: {
-        isActive: true,
-        items: {
-          some: {
-            href: `/${locale}/${slug}`
-          }
-        }
-      },
-      include: {
-        items: {
-          where: {
-            isActive: true
-          },
-          orderBy: {
-            order: 'asc'
-          }
-        }
-      }
-    });
-
-    console.log(`Found ${menus.length} menus that reference this page`);
-    
-    return { page, menus };
-  } catch (error) {
-    console.error('Error fetching page data:', error);
-    return null;
-  }
-}
-
-export default async function DynamicPage({ params }: { params: { slug: string, locale: string } }) {
-  const { slug, locale } = params;
-  const pageData = await getPageData(slug, locale);
-  
-  if (!pageData) {
-    // For debugging only - let's check if our hard-coded page exists
-    try {
-      if (slug === 'pagina-de-prueba') {
-        // Directly fetch the test page
-        const testPage = await prisma.page.findFirst({
-          where: { slug },
-          include: {
-            sections: true
-          }
+        
+        console.log(`✅ Página encontrada: "${page.title}" (ID: ${page.id})`);
+        console.log(`📊 Datos de página:`, {
+          title: page.title,
+          slug: page.slug,
+          template: page.template,
+          sections: Array.isArray(page.sections) ? page.sections.length : 'no es array'
         });
         
-        console.log('Direct test page query result:', testPage);
+        setPageData(page);
         
-        if (testPage) {
-          return (
-            <main className="min-h-screen">
-              <div className="py-8 px-4 bg-yellow-100 text-center">
-                <h1 className="text-3xl font-bold">{testPage.title}</h1>
-                <p className="mt-4">This page is visible in development mode only (not published)</p>
-                <pre className="mt-4 text-left bg-white p-4 rounded overflow-auto max-h-96">
-                  {JSON.stringify(testPage, null, 2)}
-                </pre>
-              </div>
-            </main>
-          );
+        // Extract section IDs from the page data
+        if (page.sections && Array.isArray(page.sections)) {
+          // Handle both string[] and object[] formats for sections
+          const ids = page.sections.map(section => {
+            if (typeof section === 'string') {
+              return section;
+            } else if (typeof section === 'object' && section !== null) {
+              return section.id;
+            }
+            return null;
+          }).filter(Boolean) as string[];
+          
+          console.log(`✅ Extraídos ${ids.length} IDs de secciones:`, ids);
+          setSectionIds(ids);
+        } else {
+          console.log('⚠️ La página no tiene secciones');
+          setSectionIds([]);
         }
+      } catch (error) {
+        console.error('❌ ERROR al cargar la página:', error);
+        setError(error instanceof Error ? error.message : 'Error al cargar la página');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error in fallback handler:', error);
+    };
+
+    if (slug) {
+      loadPage();
+    } else {
+      setError('URL inválida');
+      setIsLoading(false);
     }
-    
-    notFound();
+  }, [slug]);
+
+  // Display loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen py-12">
+        <Loader2Icon className="h-12 w-12 animate-spin text-blue-500 mb-4" />
+        <h2 className="text-xl font-medium text-gray-700">Cargando página...</h2>
+      </div>
+    );
   }
-  
-  const { page, menus } = pageData;
-  
-  return (
-    <main className="min-h-screen w-full">
-      {/* Navigation Menus if any */}
-      {menus.length > 0 && (
-        <div className="bg-gray-100 py-4">
-          <div className="w-full mx-auto">
-            {menus.map(menu => (
-              <div key={menu.id} className="mb-4">
-                <nav className="flex space-x-4 px-4">
-                  {menu.items.map(item => (
-                    <a 
-                      key={item.id}
-                      href={item.href || '#'}
-                      target={item.target || '_self'}
-                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200"
-                    >
-                      {item.label}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-            ))}
+
+  // Display error state
+  if (error || !pageData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen py-12">
+        <div className="max-w-lg w-full bg-white p-8 rounded-lg shadow-md">
+          <div className="flex items-center justify-center mb-6">
+            <AlertCircleIcon className="h-12 w-12 text-red-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-center text-gray-900 mb-4">
+            {error || 'La página no se encuentra disponible'}
+          </h1>
+          <p className="text-center text-gray-600 mb-6">
+            Lo sentimos, no se pudo cargar la página solicitada.
+          </p>
+          <div className="flex justify-center">
+            <a 
+              href={`/${locale}`}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Volver al inicio
+            </a>
           </div>
         </div>
-      )}
-      
-      {/* Page Content Sections - No titles, full width */}
-      <div className="w-full">
-        {page.sections.map(section => {
-          // Extract sectionId from data field if it exists
-          const sectionData = section.data as { sectionId?: string } | null;
-          const sectionId = sectionData?.sectionId;
-          
-          if (!sectionId) {
-            return null; // Don't render sections without ID
-          }
-          
-          return (
-            <div key={section.id}>
-              <ManageableSection
-                sectionId={sectionId}
-                isEditing={false}
-                autoSave={false}
-              />
+      </div>
+    );
+  }
+
+  // Get template class based on the page template
+  const getTemplateClass = (template: string = 'default') => {
+    switch (template) {
+      case 'full-width':
+        return 'max-w-full';
+      case 'sidebar':
+        return 'max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-8';
+      case 'landing':
+        return 'max-w-full px-0';
+      default:
+        return 'max-w-4xl';
+    }
+  };
+
+  // Determine if the page has a sidebar
+  const hasSidebar = pageData.template === 'sidebar';
+
+  // Render page
+  return (
+    <div className="min-h-screen">
+      {/* Page content */}
+      <main className={`mx-auto px-4 py-8 ${getTemplateClass(pageData.template)}`}>
+        {/* Page header - only shown for non-landing pages */}
+        {pageData.template !== 'landing' && (
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">{pageData.title}</h1>
+            {pageData.description && (
+              <p className="mt-2 text-xl text-gray-600">{pageData.description}</p>
+            )}
+          </header>
+        )}
+
+        {/* Debug information */}
+        <div className="mb-4 p-4 bg-blue-50 rounded-md text-xs text-blue-800 font-mono">
+          <p>📄 Página: {pageData.title} ({pageData.id})</p>
+          <p>🔢 Secciones: {sectionIds.length}</p>
+          <p>🧩 IDs: {sectionIds.join(', ') || 'ninguna'}</p>
+        </div>
+
+        {/* Page content with optional sidebar */}
+        {hasSidebar ? (
+          <>
+            {/* Main content */}
+            <div className="col-span-1 lg:col-span-3">
+              {sectionIds.length > 0 ? (
+                sectionIds.map((sectionId, index) => (
+                  <div key={sectionId} className="mb-8 border border-gray-200 rounded-lg p-4">
+                    <div className="mb-2 text-xs text-gray-500 p-1 bg-gray-50 rounded">
+                      ID Sección #{index + 1}: {sectionId}
+                    </div>
+                    <ManageableSection
+                      sectionId={sectionId}
+                      isEditing={false}
+                      autoSave={false}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <FileTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">No hay contenido</h3>
+                  <p className="text-gray-500">Esta página no tiene secciones de contenido todavía.</p>
+                </div>
+              )}
             </div>
-          );
-        })}
-        
-        {page.sections.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">This page has no content sections.</p>
+
+            {/* Sidebar */}
+            <div className="col-span-1 space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="font-medium text-gray-900 mb-2">Sidebar</h3>
+                <p className="text-sm text-gray-600">Contenido adicional o navegación puede ir aquí.</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Regular content layout */
+          <div>
+            {sectionIds.length > 0 ? (
+              sectionIds.map((sectionId, index) => (
+                <div key={sectionId} className="mb-8 border border-gray-200 rounded-lg p-4">
+                  <div className="mb-2 text-xs text-gray-500 p-1 bg-gray-50 rounded">
+                    ID Sección #{index + 1}: {sectionId}
+                  </div>
+                  <ManageableSection
+                    sectionId={sectionId}
+                    isEditing={false}
+                    autoSave={false}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <FileTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No hay contenido</h3>
+                <p className="text-gray-500">Esta página no tiene secciones de contenido todavía.</p>
+              </div>
+            )}
           </div>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

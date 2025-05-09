@@ -16,11 +16,12 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   AlertCircleIcon,
-  LayoutIcon,
-  Loader2Icon
+  Loader2Icon,
+  LayoutIcon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { deleteCMSSection } from '@/lib/cms-delete';
+import SectionManager, { Component } from '@/components/cms/SectionManager';
 
 interface PageItem {
   id: string;
@@ -43,6 +44,201 @@ interface SectionComponent {
   id: string;
   type: string;
   data: Record<string, unknown>;
+}
+
+// Define the component types that match SectionManager's ComponentType exactly
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
+
+// Add a function to ensure component types are valid
+function validateComponentType(type: string): ComponentType {
+  const validTypes: ComponentType[] = ['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'];
+  
+  // Check if the type is already valid
+  if (validTypes.includes(type as ComponentType)) {
+    return type as ComponentType;
+  }
+  
+  // If not valid, try to find a matching type (case insensitive)
+  const normalizedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+  if (validTypes.includes(normalizedType as ComponentType)) {
+    console.log(`⚠️ Fixed component type case: ${type} → ${normalizedType}`);
+    return normalizedType as ComponentType;
+  }
+  
+  // If still not valid, default to Text
+  console.log(`⚠️ Invalid component type: ${type}, defaulting to Text`);
+  return 'Text';
+}
+
+// Add a SectionPreview component similar to the one in other pages
+function SectionPreview({ sectionId, refreshKey }: { sectionId: string; refreshKey?: string | number }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [components, setComponents] = useState<SectionComponent[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [sectionLoaded, setSectionLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadSectionComponents = async () => {
+      // Generate a unique operation ID for this load operation
+      const loadId = `load-${Math.random().toString(36).substring(2, 9)}`;
+      const startTime = Date.now();
+      
+      console.log(`⏳ [${loadId}] INICIO CARGA de componentes para sección '${sectionId}'`);
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Make sure to pass just the sectionId without query parameters
+        const cleanSectionId = sectionId.split('?')[0];
+        console.log(`🔍 [${loadId}] Solicitando componentes para sección: ${cleanSectionId}`);
+        
+        // Call the getSectionComponents method from the GraphQL client
+        const result = await cmsOperations.getSectionComponents(cleanSectionId);
+        
+        // Log diagnostic information about the response
+        console.log(`✅ [${loadId}] Respuesta recibida después de ${Date.now() - startTime}ms`);
+        console.log(`🔍 [${loadId}] Respuesta completa:`, JSON.stringify(result));
+        
+        if (!result) {
+          console.error(`❌ [${loadId}] La respuesta es NULL o UNDEFINED`);
+          setError('No se recibió respuesta del servidor');
+          setComponents([]);
+          setSectionLoaded(false);
+          return;
+        }
+        
+        // Check that the response has a components property that is an array
+        if (!result.components) {
+          console.error(`❌ [${loadId}] La respuesta NO contiene el campo 'components' o es NULL`);
+          setError('La respuesta no contiene datos de componentes');
+          setComponents([]);
+          setSectionLoaded(false);
+          return;
+        }
+        
+        if (!Array.isArray(result.components)) {
+          console.error(`❌ [${loadId}] El campo 'components' NO ES UN ARRAY, es:`, typeof result.components);
+          setError(`El campo 'components' no es un array válido (${typeof result.components})`);
+          setComponents([]);
+          setSectionLoaded(false);
+          return;
+        }
+        
+        // Log detail about the components
+        console.log(`🔍 [${loadId}] Cantidad de componentes:`, result.components.length);
+        if (result.components.length > 0) {
+          result.components.forEach((comp, idx) => {
+            console.log(`🔍 [${loadId}] Componente #${idx+1}:`, JSON.stringify({
+              id: comp.id,
+              type: comp.type,
+              dataKeys: comp.data ? Object.keys(comp.data) : 'no data'
+            }));
+          });
+        }
+        
+        // Set components state
+        setComponents(result.components);
+        setSectionLoaded(true);
+        console.log(`✅ [${loadId}] CARGA COMPLETADA en ${Date.now() - startTime}ms`);
+      } catch (error) {
+        console.error(`❌ [${loadId}] ERROR al cargar componentes:`, error);
+        setError(error instanceof Error ? error.message : 'Error desconocido al cargar componentes');
+        setComponents([]);
+        setSectionLoaded(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSectionComponents();
+  }, [sectionId, refreshKey]);
+
+  // Log the state of the component for debugging
+  useEffect(() => {
+    console.log(`⚡ SectionPreview state for ${sectionId}:`, {
+      isLoading,
+      componentsCount: components.length,
+      sectionLoaded,
+      error
+    });
+  }, [isLoading, components, sectionLoaded, error, sectionId]);
+
+  if (isLoading) {
+    return (
+      <div className="py-4 text-center">
+        <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+        <p className="mt-1 text-sm text-gray-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-3 rounded-md text-red-600 text-xs">
+        <AlertCircleIcon className="h-4 w-4 inline-block mr-1" />
+        Error: {error}
+      </div>
+    );
+  }
+
+  // Section loaded successfully
+  if (sectionLoaded) {
+    console.log(`🎯 Rendering section ${sectionId} with ${components.length} components`);
+    
+    // Check if components array really has valid items
+    if (!components || components.length === 0) {
+      return (
+        <div className="py-4 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <LayoutIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+          <p className="text-gray-600 text-sm">Esta sección no tiene componentes</p>
+        </div>
+      );
+    }
+
+    // Make sure we're working with valid component objects
+    const validComponents = components.filter(comp => 
+      comp && typeof comp === 'object' && comp.id && comp.type
+    );
+    
+    console.log(`🎯 Valid components for section ${sectionId}: ${validComponents.length}/${components.length}`);
+    
+    if (validComponents.length === 0) {
+      return (
+        <div className="py-4 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <LayoutIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+          <p className="text-gray-600 text-sm">Componentes inválidos en la sección</p>
+        </div>
+      );
+    }
+
+    // Map the components to the format expected by SectionManager
+    const mappedComponents: Component[] = validComponents.map(comp => ({
+      id: comp.id,
+      type: validateComponentType(comp.type),
+      data: comp.data || {}
+    }));
+
+    console.log(`🎯 Mapped ${mappedComponents.length} components for SectionManager`);
+
+    // We have components, display them using SectionManager directly
+    return (
+      <div className="bg-white rounded-md">
+        <SectionManager 
+          initialComponents={mappedComponents}
+          isEditing={false}
+        />
+      </div>
+    );
+  }
+
+  // Fallback if none of the above conditions are met
+  return (
+    <div className="py-4 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+      <AlertCircleIcon className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+      <p className="text-gray-600 text-sm">No se pudo cargar la vista previa</p>
+    </div>
+  );
 }
 
 export default function PagesManagement() {
@@ -185,6 +381,11 @@ export default function PagesManagement() {
   const handleViewPage = (slug: string) => {
     // Open the page in a new tab
     window.open(`/${locale}/${slug}`, '_blank');
+  };
+
+  const handleViewSection = (sectionId: string) => {
+    // Navigate to the section preview page
+    router.push(`/${locale}/cms/sections/preview/${sectionId}`);
   };
 
   const handleDeletePage = async (id: string, title: string) => {
@@ -369,13 +570,7 @@ export default function PagesManagement() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Pages</h1>
         <div className="flex space-x-3">
-          <button
-            onClick={() => setShowNewSectionModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center hover:bg-green-700"
-          >
-            <LayoutIcon className="h-4 w-4 mr-2" />
-            Create Section
-          </button>
+
           <button
             onClick={handleCreatePage}
             className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700"
@@ -731,6 +926,7 @@ export default function PagesManagement() {
                       <div
                         key={section.sectionId}
                         className="p-4 border rounded-md cursor-pointer hover:border-blue-300 hover:bg-blue-50 relative group"
+                        onClick={() => handleViewSection(section.sectionId)}
                       >
                         <div>
                           <h4 className="font-medium">{section.name}</h4>
@@ -739,6 +935,11 @@ export default function PagesManagement() {
                           )}
                           <div className="text-xs text-gray-400 mt-1">
                             {section.componentCount} {section.componentCount === 1 ? 'component' : 'components'}
+                          </div>
+                          
+                          {/* Section preview */}
+                          <div className="mt-2 border border-gray-100 rounded overflow-hidden">
+                            <SectionPreview sectionId={section.sectionId} />
                           </div>
                         </div>
                         <button
