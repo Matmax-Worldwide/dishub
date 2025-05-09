@@ -11,14 +11,14 @@ import {
   CopyIcon,
   MoreHorizontalIcon,
   EyeIcon,
-  CheckIcon
+  CheckIcon,
+  PencilIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
@@ -42,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cmsOperations } from '@/lib/graphql-client';
 import { deleteCMSSection } from '@/lib/cms-delete';
+import { updateCMSSection } from '@/lib/cms-update';
 
 // Tipos para las secciones
 interface Section {
@@ -51,12 +52,18 @@ interface Section {
   type: string;
   componentsCount: number;
   lastUpdated: string;
+  usedInPages?: Array<{
+    id: string;
+    title: string;
+    slug: string;
+  }>;
 }
 
 export default function CmsSectionsPage() {
   const { locale } = useParams();
   const [sections, setSections] = useState<Section[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPagesLoading, setIsPagesLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
   const [newSectionDescription, setNewSectionDescription] = useState('');
@@ -65,6 +72,10 @@ export default function CmsSectionsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editSectionName, setEditSectionName] = useState('');
+  const [editSectionDescription, setEditSectionDescription] = useState('');
 
   useEffect(() => {
     // Obtener las secciones desde GraphQL
@@ -106,10 +117,33 @@ export default function CmsSectionsPage() {
             type,
             componentsCount: components.length,
             lastUpdated: section.lastUpdated || section.updatedAt,
+            usedInPages: [] // Inicializar vacío y será llenado en el siguiente paso
           };
         });
         
-        setSections(formattedSections);
+        // Cargar las páginas que usan cada sección
+        setIsPagesLoading(true);
+        const sectionsWithPages = await Promise.all(
+          formattedSections.map(async (section) => {
+            try {
+              const usedInPages = await cmsOperations.getPagesUsingSectionId(section.id);
+              return {
+                ...section,
+                usedInPages: usedInPages.map(page => ({
+                  id: page.id,
+                  title: page.title,
+                  slug: page.slug
+                }))
+              };
+            } catch (err) {
+              console.error(`Error al cargar páginas para la sección ${section.id}:`, err);
+              return section;
+            }
+          })
+        );
+        setIsPagesLoading(false);
+        
+        setSections(sectionsWithPages);
       } catch (err) {
         console.error('Error al cargar las secciones:', err);
         setError('No se pudieron cargar las secciones. Por favor, inténtalo de nuevo más tarde.');
@@ -164,6 +198,7 @@ export default function CmsSectionsPage() {
             type: 'component',
             componentsCount: 0,
             lastUpdated: new Date().toISOString(),
+            usedInPages: []
           };
           
           setSections([...sections, newSection]);
@@ -227,6 +262,57 @@ export default function CmsSectionsPage() {
     setIsDeletingSection(null);
     setDeleteProgress('idle');
     setDeleteError(null);
+  };
+
+  const handleEditSection = (section: Section) => {
+    setEditingSectionId(section.id);
+    setEditSectionName(section.name);
+    setEditSectionDescription(section.description);
+    setIsEditDialogOpen(true);
+  };
+
+  const updateSectionDetails = async () => {
+    if (!editingSectionId || !editSectionName.trim()) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Call the GraphQL mutation to update the section
+      const result = await updateCMSSection(
+        editingSectionId, 
+        {
+          name: editSectionName,
+          description: editSectionDescription || 'Sin descripción'
+        }
+      );
+      
+      if (result && result.success) {
+        // Update section data locally
+        setSections(sections.map(section => 
+          section.id === editingSectionId 
+            ? { 
+                ...section, 
+                name: editSectionName,
+                description: editSectionDescription || 'Sin descripción',
+                lastUpdated: result.lastUpdated || new Date().toISOString()
+              } 
+            : section
+        ));
+        
+        // Close the dialog and reset state
+        setIsEditDialogOpen(false);
+        setEditingSectionId(null);
+        setEditSectionName('');
+        setEditSectionDescription('');
+      } else {
+        setError(result?.message || 'Error al actualizar la sección. Por favor, inténtalo de nuevo.');
+      }
+    } catch (err) {
+      console.error('Error al actualizar la sección:', err);
+      setError('Error al actualizar la sección. Por favor, inténtalo de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -345,6 +431,18 @@ export default function CmsSectionsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                       <DropdownMenuItem 
+                        onClick={() => handleEditSection(section)}
+                      >
+                        <PencilIcon className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/${locale}/cms/sections/preview/${section.id}`}>
+                          <EyeIcon className="h-4 w-4 mr-2" />
+                          Ver y Personalizar
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
                         onClick={() => handleDeleteSection(section.id)}
                         className="text-red-600 focus:text-red-700"
                       >
@@ -364,16 +462,42 @@ export default function CmsSectionsPage() {
                 <div className="text-xs text-gray-400 mt-1">
                   Última actualización: {formatDate(section.lastUpdated)}
                 </div>
+                
+                {isPagesLoading ? (
+                  <div className="mt-3 border-t pt-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-opacity-20 border-t-blue-500 rounded-full"></div>
+                      <p className="text-xs text-gray-400">Cargando páginas donde se usa esta sección...</p>
+                    </div>
+                  </div>
+                ) : section.usedInPages && section.usedInPages.length > 0 ? (
+                  <div className="mt-3 border-t pt-2">
+                    <div className="text-xs font-medium text-gray-500 mb-1">
+                      Utilizada en {section.usedInPages.length} página{section.usedInPages.length !== 1 ? 's' : ''}:
+                    </div>
+                    <ul className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                      {section.usedInPages.map(page => (
+                        <li key={page.id} className="text-xs flex items-center space-x-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+                          <Link 
+                            href={`/${locale}/cms/pages/edit/${page.id}`}
+                            className="text-blue-600 hover:text-blue-800 truncate max-w-full"
+                            title={page.title}
+                          >
+                            {page.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="mt-3 border-t pt-2">
+                    <p className="text-xs text-gray-400">
+                      Esta sección no está asignada a ninguna página actualmente.
+                    </p>
+                  </div>
+                )}
               </CardContent>
-              
-              <CardFooter className="border-t bg-gray-50 p-3 flex justify-between">
-                <Button variant="default" size="sm" asChild>
-                  <Link href={`/${locale}/cms/sections/preview/${section.id}`}>
-                    <EyeIcon className="h-4 w-4 mr-2" />
-                    Ver y editar
-                  </Link>
-                </Button>
-              </CardFooter>
             </Card>
           ))
         )}
@@ -434,6 +558,42 @@ export default function CmsSectionsPage() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog for editing section */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar sección</DialogTitle>
+            <DialogDescription>
+              Actualiza el nombre y la descripción de esta sección.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nombre</Label>
+              <Input 
+                id="edit-name" 
+                placeholder="Ej: Hero Principal" 
+                value={editSectionName}
+                onChange={(e) => setEditSectionName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descripción</Label>
+              <Input 
+                id="edit-description" 
+                placeholder="Ej: Sección de héroe para la página principal" 
+                value={editSectionDescription}
+                onChange={(e) => setEditSectionDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={updateSectionDetails}>Guardar cambios</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

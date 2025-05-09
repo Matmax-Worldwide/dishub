@@ -1238,6 +1238,12 @@ export const cmsOperations = {
     description?: string | null;
     template?: string;
     isPublished?: boolean;
+    publishDate?: string | null;
+    featuredImage?: string | null;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    parentId?: string | null;
+    order?: number;
     pageType?: string;
     locale?: string;
     sections?: string[];
@@ -1303,4 +1309,92 @@ export const cmsOperations = {
   getPageBySlug,
   updatePage,
   getPageById,
+
+  // Eliminar una página CMS
+  deletePage: async (id: string): Promise<{
+    success: boolean;
+    message: string;
+  }> => {
+    try {
+      const mutation = `
+        mutation DeletePage($id: ID!) {
+          deletePage(id: $id) {
+            success
+            message
+          }
+        }
+      `;
+      
+      console.log(`Eliminando página con ID: ${id}`);
+      
+      const variables = { id };
+      const result = await gqlRequest<{ 
+        deletePage: { 
+          success: boolean; 
+          message: string; 
+        } 
+      }>(mutation, variables);
+      
+      if (!result.deletePage) {
+        return {
+          success: false,
+          message: 'Error: No se recibió respuesta del servidor'
+        };
+      }
+      
+      return result.deletePage;
+    } catch (error) {
+      console.error('Error al eliminar página:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido al eliminar la página'
+      };
+    }
+  },
+
+  // Obtener páginas que usan una sección específica
+  getPagesUsingSectionId: async (sectionId: string) => {
+    try {
+      const query = `
+        query GetPagesUsingSectionId($sectionId: ID!) {
+          getPagesUsingSectionId(sectionId: $sectionId) {
+            id
+            title
+            slug
+            description
+            isPublished
+            pageType
+            locale
+            updatedAt
+            sections {
+              id
+              order
+              data
+            }
+          }
+        }
+      `;
+
+      console.log(`GraphQL query para getPagesUsingSectionId, sectionId: ${sectionId}`);
+
+      try {
+        const result = await gqlRequest<{ getPagesUsingSectionId: PageData[] }>(query, { sectionId });
+        
+        console.log(`Resultado GraphQL getPagesUsingSectionId (${sectionId}):`, JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getPagesUsingSectionId) {
+          console.log(`No se encontraron páginas que usen la sección ${sectionId}`);
+          return [];
+        }
+        
+        return result.getPagesUsingSectionId;
+      } catch (error) {
+        console.error(`Error en la consulta GraphQL getPagesUsingSectionId (${sectionId}):`, error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getPagesUsingSectionId:`, error);
+      return [];
+    }
+  },
 }; 

@@ -20,12 +20,12 @@ import {
   AlignLeftIcon,
   PlusIcon,
   ArrowUpDownIcon,
-  TrashIcon,
-  EditIcon,
-  RefreshCwIcon
+  SearchIcon,
 } from 'lucide-react';
-import { cmsOperations, CMSComponent, PageData } from '@/lib/graphql-client';
+import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
+import Image from 'next/image';
 import ManageableSection from '@/components/cms/ManageableSection';
+import { ComponentType } from '@prisma/client';
 
 interface Notification {
   type: 'success' | 'error';
@@ -42,250 +42,11 @@ interface SectionItem {
   components?: CMSComponent[];
 }
 
-// Define preview data structure
-interface SectionPreview {
-  id: string;
-  title?: string;
-  order: number;
-  components: CMSComponent[];
-}
-
-interface PagePreview {
-  page: PageData;
-  sections: SectionPreview[];
-}
-
 interface AvailableSection {
   sectionId: string;
   name: string;
   description: string;
   componentCount: number;
-}
-
-// Component to handle section component loading and editing
-function SectionComponentEditor({ sectionId }: { sectionId: string }) {
-  const [components, setComponents] = useState<CMSComponent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingComponent, setEditingComponent] = useState<string | null>(null);
-  const [componentData, setComponentData] = useState<Record<string, unknown>>({});
-
-  // Load components for this section
-  const loadComponents = async () => {
-    if (!sectionId) return;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log(`Loading components for section ${sectionId}`);
-      const sectionData = await cmsOperations.loadSectionComponentsForEdit(sectionId);
-      
-      if (sectionData && Array.isArray(sectionData.components)) {
-        console.log(`Loaded ${sectionData.components.length} components for section ${sectionId}`);
-        setComponents(sectionData.components);
-      } else {
-        console.log(`No components found for section ${sectionId}`);
-        setComponents([]);
-      }
-    } catch (error) {
-      console.error(`Error loading section components for ${sectionId}:`, error);
-      setError('Failed to load components');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load components when the component mounts
-  useEffect(() => {
-    loadComponents();
-  }, [sectionId]);
-
-  // Handle saving component edits
-  const handleSaveComponent = async () => {
-    if (!editingComponent || !sectionId) return;
-    
-    try {
-      setIsLoading(true);
-      
-      const result = await cmsOperations.applyComponentEdit(
-        sectionId, 
-        editingComponent, 
-        componentData
-      );
-      
-      if (result.success) {
-        // Reload components to show the updated data
-        await loadComponents();
-        setEditingComponent(null);
-      } else {
-        setError(`Failed to save: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error saving component:', error);
-      setError('Failed to save component');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Start editing a component
-  const startEditing = (component: CMSComponent) => {
-    setEditingComponent(component.id);
-    setComponentData(component.data || {});
-    setError(null);
-  };
-
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingComponent(null);
-    setComponentData({});
-    setError(null);
-  };
-
-  // Handle input change for component editing
-  const handleInputChange = (key: string, value: unknown) => {
-    setComponentData(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
-
-  if (isLoading && components.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-8 text-gray-500">
-        <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
-        <span>Loading components...</span>
-      </div>
-    );
-  }
-
-  if (error && components.length === 0) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4 flex flex-col items-center">
-        <p className="text-red-600 mb-2">{error}</p>
-        <button 
-          onClick={loadComponents}
-          className="flex items-center text-sm px-3 py-1 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-        >
-          <RefreshCwIcon className="w-4 h-4 mr-1" />
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (components.length === 0) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-center">
-        <p className="text-gray-500 mb-2">No components in this section</p>
-        <p className="text-sm text-gray-400">Components can be added in the section editor</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-2 text-sm text-red-600">
-          {error}
-        </div>
-      )}
-      
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-gray-700">
-          {components.length} component{components.length !== 1 ? 's' : ''}
-        </h3>
-        <button
-          onClick={loadComponents}
-          disabled={isLoading}
-          className="text-xs flex items-center text-blue-600 hover:text-blue-800"
-        >
-          <RefreshCwIcon className="w-3 h-3 mr-1" />
-          Refresh
-        </button>
-      </div>
-      
-      <div className="space-y-3">
-        {components.map(component => (
-          <div 
-            key={component.id} 
-            className={`border rounded-md ${
-              editingComponent === component.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
-            }`}
-          >
-            <div className="px-3 py-2 flex justify-between items-center border-b border-gray-200">
-              <div className="font-medium text-sm">{component.type}</div>
-              
-              {editingComponent === component.id ? (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={cancelEditing}
-                    className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveComponent}
-                    disabled={isLoading}
-                    className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2Icon className="w-3 h-3 mr-1 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save'
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEditing(component)}
-                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded flex items-center"
-                >
-                  <EditIcon className="w-3 h-3 mr-1" />
-                  Edit
-                </button>
-              )}
-            </div>
-            
-            <div className="p-3">
-              {editingComponent === component.id ? (
-                <div className="space-y-3">
-                  {Object.entries(componentData).map(([key, value]) => (
-                    <div key={key} className="grid grid-cols-3 gap-2 items-center">
-                      <label className="text-xs font-medium text-gray-700 col-span-1">
-                        {key}:
-                      </label>
-                      <input
-                        type="text"
-                        value={String(value)}
-                        onChange={(e) => handleInputChange(key, e.target.value)}
-                        className="col-span-2 px-2 py-1 text-sm border border-gray-300 rounded-md"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {Object.entries(component.data || {}).map(([key, value]) => (
-                    <div key={key} className="grid grid-cols-3 gap-2 items-center">
-                      <span className="text-xs font-medium text-gray-600 col-span-1">{key}:</span>
-                      <span className="text-xs text-gray-800 col-span-2 break-words">
-                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export default function EditPage() {
@@ -321,9 +82,6 @@ export default function EditPage() {
     locale: locale || 'en',
     sections: [] as SectionItem[]
   });
-
-  const [previewData, setPreviewData] = useState<PagePreview | null>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // Page type options
   const pageTypes = [
@@ -473,101 +231,38 @@ export default function EditPage() {
     setPageData(prev => ({ ...prev, [name]: checked }));
   };
 
-  // Handle section changes
-  const handleSectionChange = (sectionId: string, updatedData: Partial<SectionItem>) => {
-    setPageData(prev => ({
-      ...prev,
-      sections: prev.sections.map(section => 
-        section.id === sectionId ? { ...section, ...updatedData } : section
-      )
-    }));
-  };
-
-  // Add a new section
-  const handleAddSection = () => {
-    // Generate a temporary ID for the new section
-    const newSectionId = `temp-section-${Date.now()}`;
+  // Función para asegurar que se usa un valor válido del enum ComponentType
+  const getValidComponentType = (type?: string): ComponentType => {
+    if (!type) return ComponentType.CUSTOM;
     
-    // Add new section to the end
-    const newOrder = pageData.sections.length > 0 
-      ? Math.max(...pageData.sections.map(s => s.order)) + 1 
-      : 0;
-    
-    setPageData(prev => ({
-      ...prev,
-      sections: [
-        ...prev.sections,
-        {
-          id: newSectionId,
-          title: 'New Section',
-          order: newOrder,
-          componentType: 'generic',
-          data: {},
-          isVisible: true
-        }
-      ]
-    }));
-  };
-
-  // Remove a section
-  const handleRemoveSection = (sectionId: string) => {
-    if (confirm('Are you sure you want to remove this section?')) {
-      setPageData(prev => ({
-        ...prev,
-        sections: prev.sections.filter(section => section.id !== sectionId)
-      }));
+    // Comprobar si el valor es parte del enum ComponentType
+    if (Object.values(ComponentType).includes(type as ComponentType)) {
+      return type as ComponentType;
     }
-  };
-
-  // Reorder sections
-  const handleMoveSectionUp = (sectionId: string) => {
-    setPageData(prev => {
-      const sectionIndex = prev.sections.findIndex(s => s.id === sectionId);
-      if (sectionIndex <= 0) return prev;
-      
-      const newSections = [...prev.sections];
-      const currentSection = newSections[sectionIndex];
-      const prevSection = newSections[sectionIndex - 1];
-      
-      // Swap orders
-      const tempOrder = currentSection.order;
-      currentSection.order = prevSection.order;
-      prevSection.order = tempOrder;
-      
-      // Swap positions in array
-      newSections[sectionIndex] = prevSection;
-      newSections[sectionIndex - 1] = currentSection;
-      
-      return {
-        ...prev,
-        sections: newSections
-      };
-    });
-  };
-
-  const handleMoveSectionDown = (sectionId: string) => {
-    setPageData(prev => {
-      const sectionIndex = prev.sections.findIndex(s => s.id === sectionId);
-      if (sectionIndex < 0 || sectionIndex >= prev.sections.length - 1) return prev;
-      
-      const newSections = [...prev.sections];
-      const currentSection = newSections[sectionIndex];
-      const nextSection = newSections[sectionIndex + 1];
-      
-      // Swap orders
-      const tempOrder = currentSection.order;
-      currentSection.order = nextSection.order;
-      nextSection.order = tempOrder;
-      
-      // Swap positions in array
-      newSections[sectionIndex] = nextSection;
-      newSections[sectionIndex + 1] = currentSection;
-      
-      return {
-        ...prev,
-        sections: newSections
-      };
-    });
+    
+    // Mapear valores comunes a valores válidos del enum
+    switch (type.toUpperCase()) {
+      case 'GENERIC':
+        return ComponentType.CUSTOM;
+      case 'TEXT':
+        return ComponentType.TEXT;
+      case 'IMAGE':
+        return ComponentType.IMAGE;
+      case 'HERO':
+        return ComponentType.HERO;
+      case 'GALLERY':
+        return ComponentType.GALLERY;
+      case 'VIDEO':
+        return ComponentType.VIDEO;
+      case 'FORM':
+        return ComponentType.FORM;
+      case 'CTA':
+        return ComponentType.CTA;
+      case 'TESTIMONIALS':
+        return ComponentType.TESTIMONIALS;
+      default:
+        return ComponentType.CUSTOM; // Valor por defecto
+    }
   };
 
   // Handle saving
@@ -576,14 +271,49 @@ export default function EditPage() {
       setIsSaving(true);
       
       // Prepare section data
-      const sectionData = pageData.sections.map((section, index) => ({
-        id: section.id.startsWith('temp-') ? undefined : section.id,
-        order: index, // Use array index as order to guarantee sequence
-        title: section.title || `Section ${index + 1}`,
-        componentType: section.componentType || 'generic',
-        data: section.data || {},
-        isVisible: section.isVisible !== false
-      }));
+      const sectionData = pageData.sections.map((section, index) => {
+        // Asegurarnos de que section.data tenga un sectionId válido
+        let sectionDataObject = section.data ? { ...section.data } : {};
+        
+        // Si es un objeto, podemos verificar si ya tiene un sectionId
+        if (typeof sectionDataObject === 'object') {
+          if ('sectionId' in sectionDataObject && sectionDataObject.sectionId) {
+            console.log(`Section ${index} already has sectionId:`, sectionDataObject.sectionId);
+          } else {
+            // No tiene sectionId, o es null/undefined - usar componentType como fallback
+            // pero solo si tampoco tiene un sectionId definido
+            if (section.componentType) {
+              sectionDataObject.sectionId = section.componentType;
+              console.log(`Added sectionId to section ${index}:`, sectionDataObject.sectionId);
+            } else {
+              console.warn(`Section ${index} has no componentType to use as sectionId`);
+            }
+          }
+        } else {
+          // Si data no es un objeto, crear uno nuevo con sectionId
+          sectionDataObject = {
+            sectionId: section.componentType || `section-${index}`
+          };
+          console.log(`Created new data object for section ${index} with sectionId:`, sectionDataObject.sectionId);
+        }
+        
+        // Asegurarnos de que el sectionId esté definido
+        if (!sectionDataObject.sectionId) {
+          console.warn(`No sectionId for section ${index}, using fallback`);
+          sectionDataObject.sectionId = `section-${index}`;
+        }
+        
+        return {
+          id: section.id.startsWith('temp-') ? undefined : section.id,
+          order: index, // Use array index as order to guarantee sequence
+          title: section.title || `Section ${index + 1}`,
+          componentType: getValidComponentType(section.componentType), // Convert to valid enum value
+          data: sectionDataObject,
+          isVisible: section.isVisible !== false
+        };
+      });
+      
+      console.log('Sending sections data for save:', sectionData);
       
       // Call the API to update the page
       const result = await cmsOperations.updatePage(pageData.id, {
@@ -631,32 +361,6 @@ export default function EditPage() {
   const handleCancel = () => {
     router.push(`/${locale}/cms/pages`);
   };
-
-  // Load preview data
-  const loadPagePreview = async () => {
-    if (!pageData.id) return;
-    
-    try {
-      setIsLoadingPreview(true);
-      console.log(`Loading preview for page: ${pageData.title}`);
-      
-      const previewData = await cmsOperations.getPagePreview(pageData);
-      console.log(`Preview loaded with ${previewData.sections.length} sections`);
-      
-      setPreviewData(previewData);
-    } catch (error) {
-      console.error("Error loading page preview:", error);
-    } finally {
-      setIsLoadingPreview(false);
-    }
-  };
-  
-  // Load preview when switching to preview tab
-  useEffect(() => {
-    if (activeTab === 'preview' && pageData.id && !previewData) {
-      loadPagePreview();
-    }
-  }, [activeTab, pageData.id, previewData]);
 
   if (isLoading) {
     return (
@@ -771,6 +475,19 @@ export default function EditPage() {
           <div className="flex items-center">
             <PencilIcon className="h-4 w-4 mr-2" />
             Edit
+          </div>
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm focus:outline-none ${
+            activeTab === 'seo'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+          onClick={() => setActiveTab('seo')}
+        >
+          <div className="flex items-center">
+            <SearchIcon className="h-4 w-4 mr-2" />
+            SEO
           </div>
         </button>
         <button
@@ -996,7 +713,10 @@ export default function EditPage() {
               </div>
             </div>
           </div>
-          
+
+        </>
+      ) : activeTab === 'seo' ? (
+        <>
           {/* SEO Information */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6">
@@ -1020,6 +740,9 @@ export default function EditPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="SEO title (shown in search results)"
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    {!pageData.metaTitle && "If left empty, the page title will be used"}
+                  </p>
                 </div>
                 
                 {/* Meta Description */}
@@ -1039,176 +762,129 @@ export default function EditPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="SEO description (shown in search results)"
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    {!pageData.metaDescription && "If left empty, the page description will be used"}
+                  </p>
                 </div>
+
+                {/* Featured Image Preview */}
+                {pageData.featuredImage && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Featured Image Preview
+                    </label>
+                    <div className="mt-1 border border-gray-200 rounded-md overflow-hidden">
+                      <Image 
+                        src={pageData.featuredImage} 
+                        alt="Featured" 
+                        className="h-40 w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://via.placeholder.com/400x200?text=Image+Not+Found";
+                        }}
+                      />
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                      The featured image can be set in the Edit tab
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          
-          {/* Sections */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+
+          {/* SEO Preview */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mt-6">
             <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium flex items-center">
-                  <LayoutIcon className="h-5 w-5 mr-2" />
-                  Sections
-                </h2>
-                <button
-                  onClick={handleAddSection}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 text-sm"
-                >
-                  <PlusIcon className="h-4 w-4 mr-1" />
-                  Add Section
-                </button>
-              </div>
+              <h2 className="text-lg font-medium mb-4">Search Result Preview</h2>
               
-              {pageData.sections.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No sections added yet. Click &quot;Add Section&quot; to create your first section.</p>
+              <div className="border border-gray-100 rounded-md p-4 bg-gray-50">
+                <div className="text-blue-700 text-lg font-medium truncate">
+                  {pageData.metaTitle || pageData.title}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {pageData.sections.map((section, index) => (
-                    <div 
-                      key={section.id} 
-                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-200 hover:bg-blue-50/30 transition"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">Section {index + 1}:</span>
-                          <input
-                            type="text"
-                            value={section.title || ''}
-                            onChange={(e) => handleSectionChange(section.id, { title: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="Section Title"
-                          />
-                        </div>
-                        <div className="flex space-x-1">
-                          <button
-                            onClick={() => handleMoveSectionUp(section.id)}
-                            disabled={index === 0}
-                            className={`p-1 rounded-md ${index === 0 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
-                            title="Move up"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleMoveSectionDown(section.id)}
-                            disabled={index === pageData.sections.length - 1}
-                            className={`p-1 rounded-md ${index === pageData.sections.length - 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
-                            title="Move down"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleRemoveSection(section.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded-md"
-                            title="Remove section"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Component Type
-                          </label>
-                          <select
-                            value={section.componentType || 'generic'}
-                            onChange={(e) => handleSectionChange(section.id, { componentType: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="generic">Generic</option>
-                            <option value="hero">Hero</option>
-                            <option value="text">Text</option>
-                            <option value="image">Image</option>
-                            <option value="gallery">Gallery</option>
-                            <option value="feature">Feature</option>
-                            <option value="testimonial">Testimonial</option>
-                            <option value="contact">Contact</option>
-                          </select>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id={`isVisible-${section.id}`}
-                            checked={section.isVisible !== false}
-                            onChange={(e) => handleSectionChange(section.id, { isVisible: e.target.checked })}
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor={`isVisible-${section.id}`} className="ml-2 block text-sm text-gray-700">
-                            Visible (show this section on the page)
-                          </label>
-                        </div>
-                      </div>
-                      
-                      {/* Section components editor */}
-                      <div className="mt-4 border-t pt-4">
-                        <ManageableSection 
-                          sectionId={section.id}
-                          isEditing={true}
-                          autoSave={false}
-                        />
-                        <div className="mt-4 border-t border-gray-200 pt-4">
-                          <h4 className="text-sm font-medium text-gray-600 mb-3">Section Components</h4>
-                          <SectionComponentEditor sectionId={section.id} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-green-700 text-sm truncate">
+                  {`${window.location.origin}/${locale}/${pageData.slug}`}
                 </div>
-              )}
+                <div className="text-gray-700 text-sm mt-1 line-clamp-2">
+                  {pageData.metaDescription || pageData.description || "No description available"}
+                </div>
+              </div>
             </div>
           </div>
         </>
       ) : (
         // Preview tab
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="prose max-w-full">
-            <h1>{pageData.title}</h1>
-            {pageData.description && <p className="text-gray-600">{pageData.description}</p>}
-            
-            {isLoadingPreview ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2Icon className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-                <span>Loading preview...</span>
-              </div>
-            ) : previewData ? (
-              <div className="mt-8 space-y-8">
-                {previewData.sections.map((section: SectionPreview, index: number) => (
-                  <div key={section.id} className="border-t pt-4">
-                    <h2>{section.title || `Section ${index + 1}`}</h2>
-                    <div className="bg-gray-100 p-4 rounded-md">
-                      <p className="text-sm font-medium text-gray-700">
-                        {section.components.length} components in this section
-                      </p>
-                      <div className="mt-2 space-y-2">
-                        {section.components.map((component: CMSComponent) => (
-                          <div key={component.id} className="bg-white p-3 rounded border">
-                            <div className="font-medium">{component.type}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {Object.keys(component.data || {}).length} properties
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Preview not available. Try refreshing.</p>
-              </div>
-            )}
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <div className="prose max-w-full">
+              <h1>{pageData.title}</h1>
+              {pageData.description && <p className="text-gray-600">{pageData.description}</p>}
+            </div>
           </div>
+          
+          {pageData.sections && pageData.sections.length > 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 className="text-lg font-medium">Page Preview</h2>
+              </div>
+              
+              <div className="relative">
+                {/* Contenido de la página */}
+                <div className="page-content">
+                  {pageData.sections.map((section, index) => {
+                    // Extraer el sectionId de manera segura
+                    let sectionId: string | null = null;
+                    
+                    // Si section.data existe y es un objeto
+                    if (section.data && typeof section.data === 'object') {
+                      // Intentar obtener sectionId directamente
+                      if ('sectionId' in section.data) {
+                        sectionId = String(section.data.sectionId);
+                      }
+                    }
+                    
+                    // Si no se encontró sectionId, usar componentType como fallback
+                    if (!sectionId && section.componentType) {
+                      sectionId = section.componentType;
+                    }
+                    
+                    return (
+                      <div key={section.id} className="relative">
+                        {/* Etiqueta flotante con el nombre de la sección */}
+                        <div className="absolute top-0 right-0 z-10 px-2 py-1 text-xs text-gray-500 bg-white/80 border-l border-b border-gray-200 rounded-bl">
+                          {section.title || `Section ${index + 1}`}
+                        </div>
+                        
+                        {/* Línea separadora sutil entre secciones */}
+                        {index > 0 && (
+                          <div className="border-t border-dashed border-gray-200 my-1 mx-4"></div>
+                        )}
+                        
+                        {/* Contenido de la sección */}
+                        <div className="section-content relative">
+                          {sectionId ? (
+                            <ManageableSection 
+                              sectionId={sectionId}
+                              isEditing={false}
+                              autoSave={false}
+                            />
+                          ) : (
+                            <div className="py-4 px-6 text-center text-gray-400 italic text-sm">
+                              Esta sección no tiene un ID válido configurado
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-gray-500">This page doesn&apos;t have any sections yet.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

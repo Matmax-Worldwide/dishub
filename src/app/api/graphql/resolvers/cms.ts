@@ -346,6 +346,74 @@ export const cmsResolvers = {
         return [];
       }
     },
+
+    // Obtener páginas que usan una sección específica
+    getPagesUsingSectionId: async (_parent: unknown, args: { sectionId: string }) => {
+      console.log('======== START getPagesUsingSectionId resolver ========');
+      try {
+        const { sectionId } = args;
+        console.log(`Buscando páginas que usan la sección con ID: ${sectionId}`);
+        
+        // Obtener la sección de la base de datos
+        const section = await prisma.cMSSection.findFirst({
+          where: { sectionId }
+        });
+        
+        if (!section) {
+          console.log(`No se encontró ninguna sección con ID: ${sectionId}`);
+          return [];
+        }
+        
+        console.log(`Sección encontrada: ${section.id} (${section.name})`);
+        
+        // Buscar todas las páginas que tienen secciones con datos que contienen el sectionId
+        // La búsqueda es más compleja porque el campo data es de tipo JSON
+        const pages = await prisma.$queryRaw`
+          SELECT p.* 
+          FROM "Page" p 
+          JOIN "PageSection" ps ON p."id" = ps."pageId" 
+          WHERE ps."data"::jsonb ? 'sectionId' 
+          AND ps."data"->>'sectionId' = ${sectionId}
+          ORDER BY p."updatedAt" DESC
+        `;
+        
+        console.log(`Se encontraron ${Array.isArray(pages) ? pages.length : 0} páginas que usan la sección ${sectionId}`);
+        
+        // Si no es un array o está vacío, devolver un array vacío
+        if (!Array.isArray(pages) || pages.length === 0) {
+          return [];
+        }
+        
+        // Para cada página, cargar sus secciones
+        const pagesWithSections = await Promise.all(
+          pages.map(async (page) => {
+            const sections = await prisma.pageSection.findMany({
+              where: {
+                pageId: page.id
+              },
+              select: {
+                id: true,
+                order: true,
+                data: true
+              },
+              orderBy: {
+                order: 'asc'
+              }
+            });
+            
+            return {
+              ...page,
+              sections
+            };
+          })
+        );
+        
+        return pagesWithSections;
+      } catch (error) {
+        console.error(`Error al obtener páginas usando sectionId ${args.sectionId}:`, error);
+        return [];
+      }
+    },
   },
   
   Mutation: {
@@ -767,6 +835,61 @@ export const cmsResolvers = {
       }
     },
 
+    // Mutation para actualizar una sección CMS
+    updateCMSSection: async (_parent: unknown, args: { 
+      sectionId: string;
+      input: { 
+        name?: string;
+        description?: string;
+      } 
+    }) => {
+      console.log('======== START updateCMSSection resolver ========');
+      try {
+        const { sectionId, input } = args;
+        console.log(`Actualizando sección con ID: ${sectionId}`);
+        
+        // Verificar si la sección existe
+        const existingSection = await prisma.cMSSection.findFirst({
+          where: { sectionId }
+        });
+        
+        if (!existingSection) {
+          console.log(`No se encontró ninguna sección con ID: ${sectionId}`);
+          return {
+            success: false,
+            message: `No se encontró ninguna sección con ID: ${sectionId}`
+          };
+        }
+        
+        // Actualizar la sección
+        const timestamp = new Date();
+        const updatedSection = await prisma.cMSSection.update({
+          where: { id: existingSection.id },
+          data: {
+            ...(input.name && { name: input.name }),
+            ...(input.description && { description: input.description }),
+            lastUpdated: timestamp,
+            updatedAt: timestamp
+          }
+        });
+        
+        console.log(`Sección "${updatedSection.name}" actualizada correctamente`);
+        
+        return {
+          success: true,
+          message: `Sección actualizada correctamente`,
+          lastUpdated: timestamp.toISOString()
+        };
+      } catch (error) {
+        console.error('Error al actualizar sección CMS:', error);
+        return {
+          success: false,
+          message: `Error al actualizar sección: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          lastUpdated: null
+        };
+      }
+    },
+
     // Crear página CMS
     createPage: async (_parent: unknown, args: { 
       input: { 
@@ -775,6 +898,12 @@ export const cmsResolvers = {
         description?: string;
         template?: string;
         isPublished?: boolean;
+        publishDate?: string | null;
+        featuredImage?: string | null;
+        metaTitle?: string | null;
+        metaDescription?: string | null;
+        parentId?: string | null;
+        order?: number;
         pageType?: string;
         locale?: string;
         sections?: string[];
@@ -813,9 +942,14 @@ export const cmsResolvers = {
             description: input.description || null,
             template: input.template || "default",
             isPublished: input.isPublished || false,
+            publishDate: input.publishDate ? new Date(input.publishDate) : null,
+            featuredImage: input.featuredImage || null,
+            metaTitle: input.metaTitle || null,
+            metaDescription: input.metaDescription || null,
+            parentId: input.parentId || null,
+            order: input.order !== undefined ? input.order : 0,
             pageType: (input.pageType as PageType) || PageType.CONTENT,
             locale: input.locale || "en",
-            order: 0,
             createdById: "system",
             createdAt: timestamp,
             updatedAt: timestamp
@@ -1054,6 +1188,64 @@ export const cmsResolvers = {
           success: false,
           message: `Error al actualizar página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
           page: null
+        };
+      }
+    },
+
+    // Eliminar página CMS
+    deletePage: async (_parent: unknown, args: { id: string }) => {
+      console.log('======== START deletePage resolver ========');
+      try {
+        const { id } = args;
+        console.log(`Eliminando página con ID: ${id}`);
+        
+        // Verificar si la página existe
+        const existingPage = await prisma.page.findUnique({
+          where: { id },
+          include: {
+            sections: true
+          }
+        });
+        
+        if (!existingPage) {
+          return {
+            success: false,
+            message: `No se encontró ninguna página con ID: ${id}`,
+          };
+        }
+        
+        // Eliminar primero las secciones asociadas a la página
+        if (existingPage.sections.length > 0) {
+          const sectionIds = existingPage.sections.map(section => section.id);
+          
+          // Eliminar todas las secciones de la página
+          await prisma.pageSection.deleteMany({
+            where: {
+              id: {
+                in: sectionIds
+              }
+            }
+          });
+          
+          console.log(`Se eliminaron ${sectionIds.length} secciones asociadas a la página`);
+        }
+        
+        // Eliminar la página
+        await prisma.page.delete({
+          where: { id }
+        });
+        
+        console.log(`Página "${existingPage.title}" eliminada correctamente`);
+        
+        return {
+          success: true,
+          message: `Página "${existingPage.title}" eliminada correctamente`,
+        };
+      } catch (error) {
+        console.error('Error al eliminar página CMS:', error);
+        return {
+          success: false,
+          message: `Error al eliminar página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         };
       }
     },

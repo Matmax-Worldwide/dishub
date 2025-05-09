@@ -625,6 +625,8 @@ export const typeDefs = gql`
     featuredImage: String
     metaTitle: String
     metaDescription: String
+    parentId: String
+    order: Int
     pageType: String
     locale: String
     sections: [String!]
@@ -688,6 +690,12 @@ export const typeDefs = gql`
     schema: JSON
     icon: String
     isActive: Boolean
+  }
+
+  # Input para actualizar una sección CMS
+  input UpdateCMSSectionInput {
+    name: String
+    description: String
   }
 
   # Input for updating pages
@@ -814,6 +822,7 @@ export const typeDefs = gql`
     # Nuevas queries para páginas CMS
     getAllCMSPages: [Page!]!
     getPageBySlug(slug: String!): Page
+    getPagesUsingSectionId(sectionId: ID!): [Page!]!
   }
 
   # Root Mutation
@@ -896,6 +905,7 @@ export const typeDefs = gql`
     # CMS Mutations
     saveSectionComponents(input: SaveSectionInput!): SaveSectionResult
     deleteCMSSection(sectionId: ID!): SaveSectionResult
+    updateCMSSection(sectionId: ID!, input: UpdateCMSSectionInput!): SaveSectionResult
     
     # Nuevas mutations para componentes CMS
     createCMSComponent(input: CreateCMSComponentInput!): CMSComponentResult
@@ -905,5 +915,6 @@ export const typeDefs = gql`
     # Page mutations
     createPage(input: CreatePageInput!): PageResult
     updatePage(id: ID!, input: UpdatePageInput!): PageResult
+    deletePage(id: ID!): PageResult
   }
 `; 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  PlusCircleIcon, 
+  // PlusCircleIcon, 
   SearchIcon, 
   PackageIcon,
   LayoutIcon,
@@ -237,7 +237,7 @@ export default function ComponentsPage() {
         </div>
       )}
       
-      <div className="flex justify-between items-center">
+      {/* <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Components Library</h1>
         <button 
           className="px-4 py-2 bg-[#01319c] text-white rounded-md flex items-center"
@@ -246,10 +246,10 @@ export default function ComponentsPage() {
           <PlusCircleIcon className="h-5 w-5 mr-2" />
           New Component
         </button>
-      </div>
+      </div> */}
       
       <p className="text-gray-500">
-        Create and manage reusable components that can be used across your website.
+        Manage reusable components that can be used across your website.
       </p>
       
       {/* Filters and Search */}

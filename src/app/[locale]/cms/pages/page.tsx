@@ -15,9 +15,12 @@ import {
   XIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  AlertCircleIcon
+  AlertCircleIcon,
+  LayoutIcon,
+  Loader2Icon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
+import { deleteCMSSection } from '@/lib/cms-delete';
 
 interface PageItem {
   id: string;
@@ -27,6 +30,19 @@ interface PageItem {
   isPublished: boolean;
   updatedAt: string;
   sections: number;
+}
+
+interface Section {
+  sectionId: string;
+  name: string;
+  description?: string;
+  componentCount: number;
+}
+
+interface SectionComponent {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
 }
 
 export default function PagesManagement() {
@@ -39,7 +55,23 @@ export default function PagesManagement() {
   const [sortOrder, setSortOrder] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const itemsPerPage = 10;
+  
+  // Section management states
+  const [availableSections, setAvailableSections] = useState<Section[]>([]);
+  const [isLoadingSections, setIsLoadingSections] = useState(false);
+  const [showNewSectionModal, setShowNewSectionModal] = useState(false);
+  const [isCreatingSectionMode, setIsCreatingSectionMode] = useState(true);
+  const [newSection, setNewSection] = useState({
+    name: '',
+    description: '',
+    fromExisting: ''
+  });
+  const [isCreatingSection, setIsCreatingSection] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     // Fetch real page data from API
@@ -71,6 +103,37 @@ export default function PagesManagement() {
     };
 
     fetchPages();
+  }, []);
+
+  // Cargar las secciones disponibles
+  useEffect(() => {
+    const fetchSections = async () => {
+      try {
+        setIsLoadingSections(true);
+        const sectionsData = await cmsOperations.getAllCMSSections();
+        
+        // Transformar los datos para la interfaz
+        if (Array.isArray(sectionsData)) {
+          const formattedSections = sectionsData.map(section => ({
+            sectionId: section.sectionId,
+            name: section.name || section.sectionId,
+            description: section.description || '',
+            componentCount: Array.isArray(section.components) ? section.components.length : 0
+          }));
+          setAvailableSections(formattedSections);
+        }
+      } catch (error) {
+        console.error('Error loading sections:', error);
+        setNotification({
+          type: 'error',
+          message: 'Failed to load available sections'
+        });
+      } finally {
+        setIsLoadingSections(false);
+      }
+    };
+
+    fetchSections();
   }, []);
 
   const filteredPages = pages
@@ -124,11 +187,163 @@ export default function PagesManagement() {
     window.open(`/${locale}/${slug}`, '_blank');
   };
 
-  const handleDeletePage = (id: string) => {
-    // In a real app, you would call an API to delete the page
-    if (confirm('Are you sure you want to delete this page?')) {
-      setPages(pages.filter(page => page.id !== id));
+  const handleDeletePage = async (id: string, title: string) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar la página "${title}"? Esta acción no se puede deshacer.`)) {
+      try {
+        setIsLoading(true);
+        
+        const result = await cmsOperations.deletePage(id);
+        
+        if (result.success) {
+          // Actualizar la lista de páginas localmente
+          setPages(prevPages => prevPages.filter(page => page.id !== id));
+          setNotification({
+            type: 'success',
+            message: `La página "${title}" ha sido eliminada correctamente.`
+          });
+          
+          // Ocultar la notificación después de 5 segundos
+          setTimeout(() => {
+            setNotification(null);
+          }, 5000);
+        } else {
+          setError(`Error al eliminar la página: ${result.message}`);
+        }
+      } catch (error) {
+        console.error('Error eliminando página:', error);
+        setError('Error al eliminar la página. Por favor, inténtalo de nuevo.');
+      } finally {
+        setIsLoading(false);
+      }
     }
+  };
+
+  // Manejar creación de una nueva sección
+  const handleCreateSection = async () => {
+    if (!newSection.name.trim()) {
+      setNotification({
+        type: 'error',
+        message: 'El nombre de la sección es obligatorio'
+      });
+      return;
+    }
+
+    setIsCreatingSection(true);
+    try {
+      // Generar un ID único para la nueva sección
+      const sectionId = `section-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      let components: SectionComponent[] = [];
+      
+      // Si se seleccionó crear desde una sección existente, obtener sus componentes
+      if (newSection.fromExisting) {
+        try {
+          const existingSection = availableSections.find(s => s.sectionId === newSection.fromExisting);
+          if (existingSection) {
+            console.log(`Copiando componentes de sección existente: ${existingSection.sectionId}`);
+            const result = await cmsOperations.getSectionComponents(existingSection.sectionId);
+            if (result && Array.isArray(result.components)) {
+              components = result.components as SectionComponent[];
+            }
+          }
+        } catch (error) {
+          console.error('Error al obtener componentes de sección existente:', error);
+        }
+      }
+      
+      // Guardar la nueva sección con componentes (vacíos o copiados)
+      const saveResult = await cmsOperations.saveSectionComponents(sectionId, components);
+      
+      if (saveResult.success) {
+        // Crear objeto de sección para añadirlo a la lista
+        const createdSection = {
+          sectionId: sectionId,
+          name: newSection.name,
+          description: newSection.description,
+          componentCount: components.length
+        };
+        
+        // Añadir a la lista de secciones disponibles
+        setAvailableSections(prev => [createdSection, ...prev]);
+        
+        setNotification({
+          type: 'success',
+          message: `Sección "${newSection.name}" creada exitosamente`
+        });
+        
+        // Limpiar y cerrar modal
+        setNewSection({ name: '', description: '', fromExisting: '' });
+        setShowNewSectionModal(false);
+        
+        // Limpiar la notificación después de 3 segundos
+        setTimeout(() => {
+          setNotification(null);
+        }, 3000);
+      } else {
+        throw new Error(saveResult.message || 'Error al crear la sección');
+      }
+    } catch (error) {
+      console.error('Error creando nueva sección:', error);
+      setNotification({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Error desconocido al crear la sección'
+      });
+    } finally {
+      setIsCreatingSection(false);
+    }
+  };
+
+  // Inicia el proceso de eliminación de sección (mostrar modal)
+  const handleDeleteSection = (section: Section) => {
+    setSectionToDelete(section);
+    setShowDeleteModal(true);
+  };
+
+  // Confirma y ejecuta la eliminación permanente de la sección
+  const confirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      console.log(`Eliminando permanentemente sección: ${sectionToDelete.sectionId}`);
+      const result = await deleteCMSSection(sectionToDelete.sectionId);
+      
+      if (result.success) {
+        // Eliminar la sección de la lista de disponibles
+        setAvailableSections(prev => prev.filter(s => s.sectionId !== sectionToDelete.sectionId));
+        
+        setNotification({
+          type: 'success',
+          message: `Sección "${sectionToDelete.name}" eliminada permanentemente`
+        });
+        
+        // Limpiar después de 3 segundos
+        setTimeout(() => {
+          setNotification(null);
+        }, 3000);
+      } else {
+        setNotification({
+          type: 'error',
+          message: `Error al eliminar la sección: ${result.message || 'Error desconocido'}`
+        });
+      }
+    } catch (error) {
+      console.error('Error eliminando sección:', error);
+      setNotification({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Error desconocido al eliminar la sección'
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setSectionToDelete(null);
+    }
+  };
+
+  // Cancelar la eliminación
+  const cancelDeleteSection = () => {
+    setShowDeleteModal(false);
+    setSectionToDelete(null);
   };
 
   return (
@@ -140,15 +355,35 @@ export default function PagesManagement() {
         </div>
       )}
       
+      {notification && (
+        <div className={`p-4 ${notification.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'} rounded-md flex items-center`}>
+          {notification.type === 'success' ? (
+            <CheckIcon className="h-5 w-5 mr-2" />
+          ) : (
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+          )}
+          {notification.message}
+        </div>
+      )}
+      
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Pages</h1>
-        <button
-          onClick={handleCreatePage}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700"
-        >
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Create Page
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowNewSectionModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center hover:bg-green-700"
+          >
+            <LayoutIcon className="h-4 w-4 mr-2" />
+            Create Section
+          </button>
+          <button
+            onClick={handleCreatePage}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Page
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -273,7 +508,7 @@ export default function PagesManagement() {
                           <PencilIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleDeletePage(page.id)}
+                          onClick={() => handleDeletePage(page.id, page.title)}
                           className="text-red-600 hover:text-red-900"
                           title="Delete page"
                         >
@@ -333,6 +568,239 @@ export default function PagesManagement() {
           </div>
         )}
       </div>
+
+      {/* Modal para añadir sección - Nueva versión con pestañas para nuevo/existente */}
+      {showNewSectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">
+                {isCreatingSectionMode ? "Create New Section" : "Select Existing Section"}
+              </h3>
+              <button
+                onClick={() => setShowNewSectionModal(false)}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Pestañas para alternar entre crear nuevo y seleccionar existente */}
+            <div className="flex border-b border-gray-200 mb-4">
+              <button
+                className={`px-4 py-2 font-medium ${
+                  isCreatingSectionMode 
+                    ? 'text-blue-600 border-b-2 border-blue-600' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setIsCreatingSectionMode(true)}
+              >
+                Create New Section
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  !isCreatingSectionMode 
+                    ? 'text-blue-600 border-b-2 border-blue-600' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setIsCreatingSectionMode(false)}
+              >
+                Use Existing Section
+              </button>
+            </div>
+            
+            {isCreatingSectionMode ? (
+              /* Formulario para crear nueva sección */
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Section Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="sectionName"
+                    type="text"
+                    value={newSection.name}
+                    onChange={(e) => setNewSection({...newSection, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter a name for your new section"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="sectionDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    id="sectionDescription"
+                    value={newSection.description}
+                    onChange={(e) => setNewSection({...newSection, description: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Optional description for this section"
+                  />
+                </div>
+                
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Start with:</h4>
+                  
+                  <div className="flex space-x-4 mb-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={!newSection.fromExisting}
+                        onChange={() => setNewSection({...newSection, fromExisting: ''})}
+                        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Empty Section</span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={!!newSection.fromExisting}
+                        onChange={() => {
+                          if (availableSections.length > 0) {
+                            setNewSection({...newSection, fromExisting: availableSections[0].sectionId});
+                          }
+                        }}
+                        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Copy from Existing</span>
+                    </label>
+                  </div>
+                  
+                  {newSection.fromExisting && (
+                    <div className="ml-6 mt-2">
+                      <label htmlFor="existingSection" className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Section to Copy
+                      </label>
+                      <select
+                        id="existingSection"
+                        value={newSection.fromExisting}
+                        onChange={(e) => setNewSection({...newSection, fromExisting: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {availableSections.map(section => (
+                          <option key={section.sectionId} value={section.sectionId}>
+                            {section.name} ({section.componentCount} components)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setShowNewSectionModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 mr-2"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateSection}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center disabled:bg-blue-300"
+                    disabled={!newSection.name.trim() || isCreatingSection}
+                  >
+                    {isCreatingSection ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Create Section
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Lista de secciones existentes */
+              <div>
+                {isLoadingSections ? (
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {availableSections.map((section) => (
+                      <div
+                        key={section.sectionId}
+                        className="p-4 border rounded-md cursor-pointer hover:border-blue-300 hover:bg-blue-50 relative group"
+                      >
+                        <div>
+                          <h4 className="font-medium">{section.name}</h4>
+                          {section.description && (
+                            <p className="text-sm text-gray-500">{section.description}</p>
+                          )}
+                          <div className="text-xs text-gray-400 mt-1">
+                            {section.componentCount} {section.componentCount === 1 ? 'component' : 'components'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSection(section);
+                          }}
+                          className="absolute top-2 right-2 p-1 text-red-400 hover:text-red-600 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Eliminar permanentemente"
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-red-600 mb-4">Eliminar sección permanentemente</h3>
+            <p className="mb-4">
+              ¿Estás seguro de que deseas eliminar permanentemente la sección &ldquo;<strong>{sectionToDelete?.name}</strong>&rdquo;?
+            </p>
+            <p className="mb-6 text-sm text-gray-500">
+              Esta acción no se puede deshacer y eliminará la sección de la base de datos. Todos los componentes asociados a esta sección se perderán.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDeleteSection}
+                className="px-4 py-2 border border-gray-300 rounded-md"
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteSection}
+                className="px-4 py-2 bg-red-600 text-white rounded-md flex items-center"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <XIcon className="h-4 w-4 mr-2" />
+                    Eliminar permanentemente
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

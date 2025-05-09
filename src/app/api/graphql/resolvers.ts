@@ -643,6 +643,7 @@ const resolvers = {
     getCMSComponent: cmsResolvers.Query.getCMSComponent,
     getCMSComponentsByType: cmsResolvers.Query.getCMSComponentsByType,
     getAllCMSPages: cmsResolvers.Query.getAllCMSPages,
+    getPagesUsingSectionId: cmsResolvers.Query.getPagesUsingSectionId,
   },
   
   Mutation: {
@@ -1058,10 +1059,13 @@ const resolvers = {
     // Add CMS mutations explicitly
     saveSectionComponents: cmsResolvers.Mutation.saveSectionComponents,
     deleteCMSSection: cmsResolvers.Mutation.deleteCMSSection,
+    updateCMSSection: cmsResolvers.Mutation.updateCMSSection,
     createCMSComponent: cmsResolvers.Mutation.createCMSComponent,
     updateCMSComponent: cmsResolvers.Mutation.updateCMSComponent,
     deleteCMSComponent: cmsResolvers.Mutation.deleteCMSComponent,
     createPage: cmsResolvers.Mutation.createPage,
+    updatePage: cmsResolvers.Mutation.updatePage,
+    deletePage: cmsResolvers.Mutation.deletePage,
   },
 };
 
