@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
+import StableInput from './StableInput';
 
 interface TextSectionProps {
   title?: string;
@@ -10,80 +11,107 @@ interface TextSectionProps {
   onUpdate?: (data: { title?: string; subtitle?: string; content?: string }) => void;
 }
 
-function TextSection({ 
+const TextSection = React.memo(function TextSection({ 
   title, 
   subtitle, 
   content,
   isEditing = false,
   onUpdate
 }: TextSectionProps) {
-  // Debug logging
-  useEffect(() => {
-    console.log('TextSection rendering with:', { title, subtitle, content, isEditing });
-  }, [title, subtitle, content, isEditing]);
+  // Local state to maintain during typing
+  const [localTitle, setLocalTitle] = useState(title || '');
+  const [localSubtitle, setLocalSubtitle] = useState(subtitle || '');
+  const [localContent, setLocalContent] = useState(content || '');
 
-  // Optimize update handler with useCallback
-  const handleUpdate = useCallback((field: string, value: string) => {
+  // Update local state when props change
+  useEffect(() => {
+    if (title !== localTitle) setLocalTitle(title || '');
+    if (subtitle !== localSubtitle) setLocalSubtitle(subtitle || '');
+    if (content !== localContent) setLocalContent(content || '');
+  }, [title, subtitle, content]);
+
+  // Optimized update function
+  const handleUpdateField = useCallback((field: string, value: string) => {
     if (onUpdate) {
       onUpdate({ [field]: value });
     }
   }, [onUpdate]);
 
+  // Individual change handlers
+  const handleTitleChange = (newValue: string) => {
+    setLocalTitle(newValue);
+    handleUpdateField('title', newValue);
+  };
+
+  const handleSubtitleChange = (newValue: string) => {
+    setLocalSubtitle(newValue);
+    handleUpdateField('subtitle', newValue);
+  };
+
+  const handleContentChange = (newValue: string) => {
+    setLocalContent(newValue);
+    handleUpdateField('content', newValue);
+  };
+
   return (
-    <div className="py-12 px-4 border border-gray-200 rounded">
+    <div className="py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {isEditing ? (
-          <>
-            <div className="mb-4">
-              <input
-                type="text"
-                value={title || ''}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  handleUpdate('title', newValue);
-                }}
-                className="w-full text-3xl font-bold mb-4 p-2 border border-gray-300 rounded"
-                placeholder="Enter title..."
-              />
-            </div>
-            <div>
-              <textarea
-                value={content || ''}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  handleUpdate('content', newValue);
-                }}
-                className="w-full h-40 p-2 border border-gray-300 rounded"
-                placeholder="Enter content..."
-              />
-            </div>
-          </>
+          <div className="space-y-6">
+            <StableInput
+              value={localTitle}
+              onChange={handleTitleChange}
+              placeholder="Título de la sección..."
+              className="text-3xl font-bold"
+              label="Título"
+            />
+            
+            <StableInput
+              value={localSubtitle}
+              onChange={handleSubtitleChange}
+              placeholder="Subtítulo..."
+              className="text-xl"
+              label="Subtítulo"
+            />
+            
+            <StableInput
+              value={localContent}
+              onChange={handleContentChange}
+              placeholder="Contenido principal..."
+              isTextArea={true}
+              rows={6}
+              label="Contenido"
+            />
+          </div>
         ) : (
           <>
-            {title && <h2 className="text-3xl font-bold mb-6">{title}</h2>}
-            {subtitle && <h3 className="text-xl font-bold mb-6">{subtitle}</h3>}
-            <div className="prose lg:prose-xl">
-              {content && <p>{content}</p>}
-              {!content && <p className="text-gray-400">No content provided</p>}
-            </div>
+            {title && (
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                {title}
+              </h2>
+            )}
+            
+            {subtitle && (
+              <h3 className="text-xl md:text-2xl text-gray-600 mb-6">
+                {subtitle}
+              </h3>
+            )}
+            
+            {content && (
+              <div className="prose prose-lg max-w-none">
+                {content.split('\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
     </div>
   );
-}
+});
 
-// Add React.memo to prevent unnecessary re-renders
-export default React.memo(TextSection, (prevProps, nextProps) => {
-  // If in editing mode, always re-render for fluid typing
-  if (prevProps.isEditing || nextProps.isEditing) {
-    return false;
-  }
-  
-  // For view mode, only re-render if content changed
-  return (
-    prevProps.title === nextProps.title &&
-    prevProps.subtitle === nextProps.subtitle &&
-    prevProps.content === nextProps.content
-  );
-}); 
+// Use simple React.memo to prevent unnecessary re-renders
+export default TextSection; 

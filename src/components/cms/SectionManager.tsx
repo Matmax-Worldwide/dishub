@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React from 'react';
@@ -47,7 +47,81 @@ interface SectionManagerProps {
   onComponentsChange?: (components: Component[]) => void;
 }
 
-export default function SectionManager({ 
+// Crear un componente memoizado para el wrapper de cada componente
+const ComponentWrapperMemo = memo(function ComponentWrapper({ 
+  component, 
+  isEditing, 
+  children, 
+  onRemove 
+}: { 
+  component: Component; 
+  isEditing: boolean; 
+  children: React.ReactNode; 
+  onRemove: (id: string) => void 
+}) {
+  const handleRemove = useCallback(() => {
+    onRemove(component.id);
+  }, [component.id, onRemove]);
+
+  return (
+    <div key={component.id} className={isEditing ? "relative mb-4" : ""}>
+      {isEditing && (
+        <button 
+          onClick={handleRemove}
+          className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
+        >
+          <XMarkIcon className="h-4 w-4 text-red-500" />
+        </button>
+      )}
+      {children}
+    </div>
+  );
+});
+
+// Componente memoizado para el selector de componentes
+const ComponentPickerMemo = memo(function ComponentPicker({ 
+  availableComponents, 
+  onAddComponent 
+}: { 
+  availableComponents: ComponentType[]; 
+  onAddComponent: (type: ComponentType) => void 
+}) {
+  return (
+    <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl p-4 z-50">
+      <div className="grid grid-cols-2 gap-2 w-64">
+        {availableComponents.map(type => (
+          <button
+            key={type}
+            onClick={() => onAddComponent(type)}
+            className="p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+// Componente memoizado para el botón de agregar componentes
+const AddComponentButton = memo(function AddComponentButton({
+  onClick
+}: {
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+    >
+      <PlusIcon className="h-4 w-4 mr-2" />
+      Add Component
+    </button>
+  );
+});
+
+// Componente principal memoizado
+function SectionManagerBase({ 
   initialComponents = [], 
   isEditing = false,
   onComponentsChange
@@ -56,6 +130,11 @@ export default function SectionManager({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   const [showComponentPicker, setShowComponentPicker] = useState(false);
   const initialComponentsRef = React.useRef(false);
+
+  // Creamos un objeto memoizado para los componentes disponibles
+  const availableComponents = useMemo<ComponentType[]>(() => {
+    return ['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'];
+  }, []);
 
   // Update components when initialComponents change (from parent)
   // But only if they've not been initialized yet or have actually changed
@@ -77,39 +156,31 @@ export default function SectionManager({
   // Update parent component when components change, but only after initial render
   useEffect(() => {
     if (initialComponentsRef.current && onComponentsChange) {
-      console.log('Notifying parent of component changes:', components.length);
-      onComponentsChange(components);
+      // Agregamos un pequeño delay para evitar múltiples actualizaciones
+      const timer = setTimeout(() => {
+        console.log('Notifying parent of component changes:', components.length);
+        onComponentsChange(components);
+      }, 10);
+      
+      return () => clearTimeout(timer);
     }
   }, [components, onComponentsChange]);
 
-  // Available component types
-  const availableComponents: ComponentType[] = [
-    'Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'
-  ];
-
+  // Memorizamos las funciones para evitar recreaciones en cada renderizado
   // Add a new component
-  const addComponent = (type: ComponentType) => {
+  const addComponent = useCallback((type: ComponentType) => {
     const newComponent: Component = {
       id: `component-${Date.now()}`,
       type,
       data: getDefaultData(type),
     };
     
-    const updatedComponents = [...components, newComponent];
-    setComponents(updatedComponents);
+    setComponents(prevComponents => [...prevComponents, newComponent]);
     setShowComponentPicker(false);
-    
-    // Forzar la notificación de cambios al padre inmediatamente
-    // Esto ayuda especialmente cuando se añade el primer componente a una sección vacía
-    if (onComponentsChange) {
-      console.log('Notificando al padre inmediatamente después de añadir componente:', 
-                 updatedComponents.length);
-      onComponentsChange(updatedComponents);
-    }
-  };
+  }, []);
 
   // Get default data based on component type
-  const getDefaultData = (type: ComponentType): Record<string, unknown> => {
+  const getDefaultData = useCallback((type: ComponentType): Record<string, unknown> => {
     switch (type) {
       case 'Hero':
         return { title: 'New Hero Section', subtitle: 'Add your subtitle here', image: '' };
@@ -128,235 +199,155 @@ export default function SectionManager({
       default:
         return {};
     }
-  };
+  }, []);
 
   // Remove a component
-  const removeComponent = (id: string) => {
-    const updatedComponents = components.filter(comp => comp.id !== id);
-    setComponents(updatedComponents);
-    
-    // Forzar la notificación de cambios al padre inmediatamente
-    if (onComponentsChange) {
-      console.log('Notificando al padre inmediatamente después de eliminar componente:', 
-                 updatedComponents.length);
-      onComponentsChange(updatedComponents);
-    }
-  };
+  const removeComponent = useCallback((id: string) => {
+    setComponents(prevComponents => prevComponents.filter(comp => comp.id !== id));
+  }, []);
 
-  // ComponentPicker popover
-  const ComponentPicker = () => (
-    <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl p-4 z-50">
-      <div className="grid grid-cols-2 gap-2 w-64">
-        {availableComponents.map(type => (
-          <button
-            key={type}
-            onClick={() => addComponent(type)}
-            className="p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-          >
-            {type}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  // Memoize the toggle function
+  const toggleComponentPicker = useCallback(() => {
+    setShowComponentPicker(prev => !prev);
+  }, []);
 
-  // Render each component
-  const renderComponent = (component: Component) => {
-    // Generar un ID único para este evento de renderizado
-    const renderId = `render-${component.id.substring(0, 4)}-${Math.random().toString(36).substring(2, 5)}`;
-    console.log(`🔄 [${renderId}] Iniciando renderizado de componente: ${component.id}, tipo: ${component.type}`);
-    
-    // Verify component is valid object
-    if (!component || typeof component !== 'object') {
-      console.error(`❌ [${renderId}] Componente inválido:`, component);
-      return (
-        <div className="p-4 bg-red-50 rounded border border-red-200 mb-4">
-          <p className="text-red-500">Error: Componente inválido o mal formado</p>
-        </div>
-      );
-    }
-    
-    // Verificar que el componente tenga los campos necesarios
-    if (!component.type) {
-      console.error(`❌ [${renderId}] Tipo de componente no definido:`, component);
-      return (
-        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
-          <p className="text-red-500">Error: Tipo de componente no definido</p>
-        </div>
-      );
-    }
-    
-    // Verificar que el tipo de componente exista en el mapa
-    if (!componentMap[component.type]) {
-      console.error(`❌ [${renderId}] Tipo de componente no soportado: ${component.type}`);
-      return (
-        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
-          <p className="text-red-500">Error: Tipo de componente no soportado: {component.type}</p>
-        </div>
-      );
-    }
-    
-    console.log(`🔍 [${renderId}] Datos del componente:`, JSON.stringify(component.data, null, 2));
-    
-    // Definir un wrapper común para todos los componentes - solo aplicable en modo edición
-    const ComponentWrapper = ({ children }: { children: React.ReactNode }) => (
-      <div key={component.id} className={isEditing ? "relative mb-4" : ""}>
-        {isEditing && (
-          <button 
-            onClick={() => removeComponent(component.id)}
-            className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-          >
-            <XMarkIcon className="h-4 w-4 text-red-500" />
-          </button>
-        )}
-        {children}
-      </div>
-    );
-    
-    // Función común para actualizar componentes
-    const handleUpdate = (updatedData: Record<string, unknown>) => {
-      console.log(`🔄 [${renderId}] Actualizando datos de componente:`, updatedData);
-      const updatedComponent = {
-        ...component,
-        data: { ...component.data, ...updatedData }
-      };
-      setComponents(
-        components.map(c => 
-          c.id === component.id ? updatedComponent : c
-        )
-      );
+  // Creamos una función memoizada para actualizar los componentes
+  const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
+    const updatedComponent = {
+      ...component,
+      data: { ...component.data, ...updatedData }
     };
     
-    try {
-      // Renderizar el componente según su tipo
+    setComponents(prevComponents => 
+      prevComponents.map(c => 
+        c.id === component.id ? updatedComponent : c
+      )
+    );
+  }, []);
+
+  // Render each component - usamos una función memoizada
+  const renderComponent = useCallback((component: Component) => {
+    if (!component || !component.type || !componentMap[component.type]) {
+      return null;
+    }
+
+    // Componente específico según el tipo
+    const renderComponentContent = () => {
       switch(component.type) {
         case 'Hero': {
-          console.log(`🔄 [${renderId}] Renderizando Hero Component`);
           const HeroComponent = componentMap.Hero;
           return (
-            <ComponentWrapper key={component.id}>
-              <HeroComponent 
-                title={component.data.title as string || "Default Title"} 
-                subtitle={component.data.subtitle as string || "Default Subtitle"}
-                image={component.data.image as string}
-                cta={component.data.cta as { text: string; url: string }}
-                isEditing={isEditing}
-                onUpdate={handleUpdate}
-              />
-            </ComponentWrapper>
-          );
-        }
-        
-        case 'Header': {
-          console.log(`🔄 [${renderId}] Renderizando Header Component`);
-          const HeaderComponent = componentMap.Header;
-          return (
-            <ComponentWrapper key={component.id}>
-              <HeaderComponent 
-                title={component.data.title as string || "Default Title"} 
-                subtitle={component.data.subtitle as string || "Default Subtitle"}
-                isEditing={isEditing}
-                onUpdate={handleUpdate}
-              />
-            </ComponentWrapper>
+            <HeroComponent 
+              title={component.data.title as string || "Default Title"} 
+              subtitle={component.data.subtitle as string || "Default Subtitle"}
+              image={component.data.image as string}
+              cta={component.data.cta as { text: string; url: string }}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
           );
         }
         
         case 'Text': {
-          console.log(`🔄 [${renderId}] Renderizando Text Component`);
           const TextComponent = componentMap.Text;
           return (
-            <ComponentWrapper key={component.id}>
-              <TextComponent 
-                title={component.data.title as string} 
-                content={component.data.content as string}
-                isEditing={isEditing}
-                onUpdate={handleUpdate}
-              />
-            </ComponentWrapper>
+            <TextComponent 
+              title={component.data.title as string} 
+              content={component.data.content as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
           );
         }
         
         case 'Image': {
-          console.log(`🔄 [${renderId}] Renderizando Image Component`);
           const ImageComponent = componentMap.Image;
           return (
-            <ComponentWrapper key={component.id}>
-              <ImageComponent 
-                src={component.data.src as string} 
-                alt={component.data.alt as string}
-                caption={component.data.caption as string}
-                isEditing={isEditing}
-                onUpdate={handleUpdate}
-              />
-            </ComponentWrapper>
+            <ImageComponent 
+              src={component.data.src as string} 
+              alt={component.data.alt as string}
+              caption={component.data.caption as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
           );
         }
         
         case 'Feature': {
-          console.log(`🔄 [${renderId}] Renderizando Feature Component`);
           const FeatureComponent = componentMap.Feature;
           return (
-            <ComponentWrapper key={component.id}>
-              <FeatureComponent 
-                title={component.data.title as string} 
-                description={component.data.description as string}
-                icon={component.data.icon as string}
-              />
-            </ComponentWrapper>
+            <FeatureComponent 
+              title={component.data.title as string} 
+              description={component.data.description as string}
+              icon={component.data.icon as string}
+            />
           );
         }
         
         case 'Testimonial': {
-          console.log(`🔄 [${renderId}] Renderizando Testimonial Component`);
           const TestimonialComponent = componentMap.Testimonial;
           return (
-            <ComponentWrapper key={component.id}>
-              <TestimonialComponent 
-                quote={component.data.quote as string} 
-                author={component.data.author as string}
-                role={component.data.role as string}
-              />
-            </ComponentWrapper>
+            <TestimonialComponent 
+              quote={component.data.quote as string} 
+              author={component.data.author as string}
+              role={component.data.role as string}
+            />
           );
         }
         
         case 'Card': {
-          console.log(`🔄 [${renderId}] Renderizando Card Component`);
           const CardComponent = componentMap.Card;
           return (
-            <ComponentWrapper key={component.id}>
-              <CardComponent 
-                title={component.data.title as string} 
-                description={component.data.description as string}
-                image={component.data.image as string}
-                link={component.data.link as string}
-                buttonText={component.data.buttonText as string}
-                isEditing={isEditing}
-                onUpdate={handleUpdate}
-              />
-            </ComponentWrapper>
+            <CardComponent 
+              title={component.data.title as string} 
+              description={component.data.description as string}
+              image={component.data.image as string}
+              link={component.data.link as string}
+              buttonText={component.data.buttonText as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
+          );
+        }
+        
+        case 'Header': {
+          const HeaderComponent = componentMap.Header;
+          return (
+            <HeaderComponent 
+              title={component.data.title as string} 
+              subtitle={component.data.subtitle as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
           );
         }
         
         default: {
-          console.error(`❌ [${renderId}] Tipo de componente no manejado: ${component.type}`);
           return (
-            <div key={component.id} className="p-4 bg-yellow-50 rounded border border-yellow-200 mb-4">
+            <div className="p-4 bg-yellow-50 rounded border border-yellow-200 mb-4">
               <p className="text-yellow-700">Componente desconocido: {component.type}</p>
             </div>
           );
         }
       }
-    } catch (error) {
-      console.error(`❌ [${renderId}] Error al renderizar componente:`, error);
-      return (
-        <div key={component.id} className="p-4 bg-red-50 rounded border border-red-200 mb-4">
-          <p className="text-red-500">Error al renderizar: {error instanceof Error ? error.message : String(error)}</p>
-        </div>
-      );
-    }
-  };
+    };
+
+    return (
+      <ComponentWrapperMemo 
+        key={component.id}
+        component={component}
+        isEditing={isEditing}
+        onRemove={removeComponent}
+      >
+        {renderComponentContent()}
+      </ComponentWrapperMemo>
+    );
+  }, [isEditing, handleUpdate, removeComponent]);
+
+  // Memorizamos la lista de componentes renderizados
+  const renderedComponents = useMemo(() => {
+    return components.map(component => renderComponent(component));
+  }, [components, renderComponent]);
 
   return (
     <div className={isEditing ? "relative min-h-[200px] border-dashed border-2 border-blue-200 rounded-lg p-4 mb-8" : "w-full"}>
@@ -366,24 +357,26 @@ export default function SectionManager({
         </div>
       )}
 
-      {/* Renderizar cada componente usando la función de renderizado */}
+      {/* Renderizar componentes memorizados */}
       <div className="section-components">
-        {components.map(component => renderComponent(component))}
+        {renderedComponents}
       </div>
 
       {/* Show component picker button only in editing mode */}
       {isEditing && (
         <div className="mt-4 flex justify-center">
-          <button
-            onClick={() => setShowComponentPicker(!showComponentPicker)}
-            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Component
-          </button>
-          {showComponentPicker && <ComponentPicker />}
+          <AddComponentButton onClick={toggleComponentPicker} />
+          {showComponentPicker && (
+            <ComponentPickerMemo 
+              availableComponents={availableComponents}
+              onAddComponent={addComponent}
+            />
+          )}
         </div>
       )}
     </div>
   );
-} 
+}
+
+// Exportamos el componente memoizado
+export default memo(SectionManagerBase); 

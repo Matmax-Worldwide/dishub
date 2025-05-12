@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo } from 'react';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';
 import AdminControls from './AdminControls';
@@ -21,19 +21,20 @@ interface ManageableSectionHandle {
   saveChanges: () => Promise<void>;
 }
 
+// AdminControls memoizado para evitar re-renders
+const MemoizedAdminControls = memo(AdminControls);
+
 const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionProps>(({
   sectionId,
   isEditing = false,
   autoSave = true,
   onComponentsChange
 }, ref) => {
-  const [components, setComponents] = useState<Component[]>([]);
+  // Estado local para manejar los componentes
   const [pendingComponents, setPendingComponents] = useState<Component[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  // Track changes between original and pending components
-  const [hasChanges, setHasChanges] = useState(false);
 
   // Validate and normalize the section ID
   const normalizedSectionId = sectionId;
@@ -44,7 +45,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       // Devolver la promesa para que el componente padre pueda manejar el resultado
       return handleSave(pendingComponents);
     }
-  }));
+  }), [pendingComponents]);
 
   // Fetch section components
   useEffect(() => {
@@ -53,7 +54,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       const loadId = `load-${Math.random().toString(36).substring(2, 9)}`;
       
       console.log(`⏳ [${loadId}] INICIO CARGA de componentes para sección '${normalizedSectionId}'`);
-      console.log(`🔍 [${loadId}] ID de sección original: '${sectionId}', normalizado: '${normalizedSectionId}'`);
       
       setIsLoading(true);
       setError(null);
@@ -61,25 +61,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       try {
         // Add a timestamp to avoid caching
         const timestamp = Date.now();
-        console.log(`🔍 [${loadId}] Solicitando componentes con timestamp anti-caché: ${timestamp}`);
-        console.log(`🔍 [${loadId}] URL efectiva para getSectionComponents: '${normalizedSectionId}?t=${timestamp}'`);
-        
-        console.log(`⏳ [${loadId}] Enviando solicitud a getSectionComponents...`);
         const result = await cmsOperations.getSectionComponents(`${normalizedSectionId}?t=${timestamp}`);
         
-        // 🔍 DEBUG: Add more detailed logging to find the issue
-        console.log(`🔍 [${loadId}] DEBUG: Full components response:`, JSON.stringify(result, null, 2));
-        
-        // Registrar información de diagnóstico sobre la respuesta
         if (result && Array.isArray(result.components)) {
-          console.log(`⚙️ [${loadId}] Received ${result.components.length} components`);
-          
           // Map the components to SectionManager format, ensuring type compatibility
           const mappedComponents = result.components.map((comp) => {
             // Ensure the component type is one of the allowed types in the ComponentType
             let componentType = comp.type;
             if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'].includes(componentType)) {
-              console.warn(`⚠️ [${loadId}] Component type "${componentType}" not recognized, using "Text" as fallback`);
               componentType = 'Text';
             }
             
@@ -90,18 +79,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             } as Component;
           });
           
-          console.log(`⚙️ [${loadId}] Mapped components:`, mappedComponents);
-          setComponents(mappedComponents);
           setPendingComponents(mappedComponents);
-          
-          // No changes initially
-          setHasChanges(false);
         } else {
-          console.warn(`⚙️ [${loadId}] No components or invalid result:`, result);
           // Initialize with empty array to avoid undefined issues
-          setComponents([]);
           setPendingComponents([]);
-          setHasChanges(false);
         }
       } catch (error) {
         console.error(`❌ [${loadId}] Error fetching components:`, error);
@@ -114,46 +95,41 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     loadComponents();
   }, [sectionId]);
 
-  // Handle component changes
-  const handleComponentsChange = (newComponents: Component[]) => {
-    // Siempre imprimir información de depuración sobre los componentes
-    console.log('Componentes actuales:', pendingComponents.length, 'Nuevos componentes:', newComponents.length);
-    
+  // Memoizar la función handleComponentsChange para evitar recreaciones
+  const handleComponentsChange = useCallback((newComponents: Component[]) => {
     // Calcular si hay un cambio real comparando los arrays
     const currentJson = JSON.stringify(pendingComponents);
     const newJson = JSON.stringify(newComponents);
     const hasRealChanges = currentJson !== newJson;
     
-    // Update the hasChanges state
-    setHasChanges(hasRealChanges);
-    
-    // Si hay cambios, o los arrays tienen longitudes diferentes (añadido/eliminado), actualizar
+    // Si hay cambios, o los arrays tienen longitudes diferentes, actualizar sin re-renderizaciones innecesarias
     if (hasRealChanges || pendingComponents.length !== newComponents.length) {
-      console.log('Componentes cambiados en ManageableSection, actualizando estado');
       setPendingComponents(newComponents);
       
-      // Notificar al componente padre sobre los cambios si se proporcionó un callback
+      // Notificar al componente padre sobre los cambios solo si se proporciona un callback
       if (onComponentsChange) {
-        console.log('Notificando al padre sobre cambios en componentes');
-        onComponentsChange();
+        // Usar setTimeout para evitar actualizaciones en cascada que causan pérdida de foco
+        setTimeout(() => {
+          onComponentsChange();
+        }, 0);
       }
       
-      // Si autoSave está habilitado, guardar los cambios inmediatamente
+      // Si autoSave está habilitado, guardar los cambios con un debounce para evitar llamadas frecuentes
       if (autoSave) {
-        handleSave(newComponents);
+        // Usar setTimeout para debounce básico y evitar guardar durante la edición
+        const timeoutId = setTimeout(() => {
+          handleSave(newComponents);
+        }, 2000); // 2 segundos de debounce
+        
+        return () => clearTimeout(timeoutId);
       }
-    } else {
-      console.log('Los componentes no han cambiado, omitiendo actualización');
     }
-  };
+  }, [pendingComponents, autoSave, onComponentsChange]);
 
-  // Save components to the server
-  const handleSave = async (componentsToSave: Component[]): Promise<void> => {
+  // Save components to the server - memoizado para evitar recreaciones
+  const handleSave = useCallback(async (componentsToSave: Component[]): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        console.log(`Saving ${componentsToSave.length} components to section ${normalizedSectionId}`);
-        console.log('Components to save:', componentsToSave.map(c => `${c.id} (${c.type})`));
-        
         setIsLoading(true);
         const result = await cmsOperations.saveSectionComponents(
           normalizedSectionId, 
@@ -161,49 +137,32 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         );
         
         if (result.success) {
-          console.log('Components saved successfully:', result);
           setLastSaved(result.lastUpdated || new Date().toISOString());
-          // Update the components state to reflect what was saved
-          setComponents(componentsToSave);
-          setHasChanges(false);
-          setIsLoading(false);
+          // Update the pending components to reflect what was saved
+          setPendingComponents(componentsToSave);
           resolve();
         } else {
-          console.error('Failed to save components:', result.message);
           setError(result.message || 'Failed to save components');
-          setIsLoading(false);
           reject(new Error(result.message || 'Failed to save components'));
         }
       } catch (error) {
-        console.error('Error saving components:', error);
         setError(error instanceof Error ? error.message : 'Unknown error occurred');
-        setIsLoading(false);
         reject(error);
+      } finally {
+        setIsLoading(false);
       }
     });
-  };
+  }, [normalizedSectionId]);
 
-  // Load components
-  const handleLoad = (loadedComponents: Component[]) => {
-    setComponents(loadedComponents);
+  // Load components - memoizado para evitar recreaciones
+  const handleLoad = useCallback((loadedComponents: Component[]) => {
     setPendingComponents(loadedComponents);
-    setHasChanges(false);
-  };
-
-  // Log rendering state for debugging
-  console.log('Rendering SectionManager with:', {
-    componentCount: components.length,
-    pendingComponentCount: pendingComponents.length,
-    isEditing,
-    isLoading,
-    hasUnsavedChanges: hasChanges,
-    hasError: !!error
-  });
+  }, []);
 
   return (
     <div className={isEditing ? "my-6" : ""}>
       {isEditing && autoSave && (
-        <AdminControls
+        <MemoizedAdminControls
           components={pendingComponents}
           onSave={handleSave}
           onLoad={handleLoad}
@@ -215,7 +174,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       )}
       
       <SectionManager
-        initialComponents={autoSave ? pendingComponents : components}
+        initialComponents={pendingComponents}
         isEditing={isEditing}
         onComponentsChange={handleComponentsChange}
       />
@@ -238,4 +197,5 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 // Add display name for better debugging
 ManageableSection.displayName = 'ManageableSection';
 
-export default ManageableSection; 
+// Exportar con memo para evitar re-renderizaciones innecesarias
+export default memo(ManageableSection); 

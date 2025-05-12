@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { Component } from './SectionManager';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 
@@ -14,7 +14,30 @@ interface AdminControlsProps {
   error?: string | null;
 }
 
-export default function AdminControls({ 
+// Componente botón memoizado
+const MemoButton = memo(function Button({ 
+  onClick, 
+  disabled, 
+  className, 
+  children 
+}: { 
+  onClick: () => void;
+  disabled?: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button 
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+    >
+      {children}
+    </button>
+  );
+});
+
+function AdminControlsBase({ 
   components, 
   onSave, 
   onLoad,
@@ -28,8 +51,8 @@ export default function AdminControls({
   const [errorMsg, setErrorMsg] = useState<string | null>(error);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(lastSaved);
 
-  // Save current state
-  const saveState = async () => {
+  // Save current state - memoizado para estabilidad de referencia
+  const saveState = useCallback(async () => {
     if (isSaving) return; // Prevent multiple save operations
     
     setIsSaving(true);
@@ -73,10 +96,10 @@ export default function AdminControls({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, components, sectionId, onSave]);
 
-  // Load components from the server
-  const loadComponents = async () => {
+  // Load components from the server - memoizado para estabilidad de referencia
+  const loadComponents = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg(null);
     
@@ -92,42 +115,52 @@ export default function AdminControls({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [sectionId, onLoad]);
 
   // Format date for display
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     try {
       return new Date(dateString).toLocaleString();
     } catch {
       return dateString;
     }
-  };
+  }, []);
+
+  // Clases para los botones
+  const saveButtonClass = useCallback(() => {
+    return `px-3 py-1.5 rounded text-sm ${
+      isLoading || isSaving
+        ? 'bg-blue-300 text-blue-100 cursor-not-allowed'
+        : 'bg-blue-500 text-white hover:bg-blue-600'
+    }`;
+  }, [isLoading, isSaving]);
+
+  const loadButtonClass = useCallback(() => {
+    return `px-3 py-1.5 rounded text-sm ${
+      isLoading
+        ? 'bg-green-300 text-green-100 cursor-not-allowed'
+        : 'bg-green-500 text-white hover:bg-green-600'
+    }`;
+  }, [isLoading]);
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-gray-100 rounded-lg mb-4">
       <div className="flex flex-wrap gap-2">
-        <button 
+        <MemoButton 
           onClick={saveState}
           disabled={isLoading || isSaving}
-          className={`px-3 py-1.5 rounded text-sm ${
-            isLoading || isSaving
-              ? 'bg-blue-300 text-blue-100 cursor-not-allowed'
-              : 'bg-blue-500 text-white hover:bg-blue-600'
-          }`}
+          className={saveButtonClass()}
         >
           {isSaving ? 'Guardando...' : 'Guardar Sección'}
-        </button>
-        <button 
+        </MemoButton>
+        
+        <MemoButton 
           onClick={loadComponents}
           disabled={isLoading}
-          className={`px-3 py-1.5 rounded text-sm ${
-            isLoading
-              ? 'bg-green-300 text-green-100 cursor-not-allowed'
-              : 'bg-green-500 text-white hover:bg-green-600'
-          }`}
+          className={loadButtonClass()}
         >
           {isLoading ? 'Cargando...' : 'Cargar Última Versión'}
-        </button>
+        </MemoButton>
       </div>
       
       {errorMsg && (
@@ -143,4 +176,7 @@ export default function AdminControls({
       )}
     </div>
   );
-} 
+}
+
+// Exportar componente memoizado para evitar re-renderizaciones innecesarias
+export default memo(AdminControlsBase); 

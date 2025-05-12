@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import StableInput from './StableInput';
 
 interface CardSectionProps {
   title: string;
@@ -12,7 +13,7 @@ interface CardSectionProps {
   onUpdate?: (data: Partial<CardSectionProps>) => void;
 }
 
-export default function CardSection({ 
+const CardSection = React.memo(function CardSection({ 
   title, 
   description, 
   image,
@@ -21,11 +22,53 @@ export default function CardSection({
   isEditing = false,
   onUpdate
 }: CardSectionProps) {
+  // Local state to maintain during typing
+  const [localTitle, setLocalTitle] = useState(title);
+  const [localDescription, setLocalDescription] = useState(description);
+  const [localImage, setLocalImage] = useState(image || '');
+  const [localLink, setLocalLink] = useState(link || '');
+  const [localButtonText, setLocalButtonText] = useState(buttonText);
   
-  const handleUpdate = (field: string, value: string) => {
+  // Update local state when props change but only if values are different
+  useEffect(() => {
+    if (title !== localTitle) setLocalTitle(title);
+    if (description !== localDescription) setLocalDescription(description);
+    if ((image || '') !== localImage) setLocalImage(image || '');
+    if ((link || '') !== localLink) setLocalLink(link || '');
+    if (buttonText !== localButtonText) setLocalButtonText(buttonText);
+  }, [title, description, image, link, buttonText]);
+  
+  // Optimize update handler with useCallback
+  const handleUpdateField = useCallback((field: string, value: string) => {
     if (onUpdate) {
       onUpdate({ [field]: value });
     }
+  }, [onUpdate]);
+  
+  // Individual change handlers to maintain state locally
+  const handleTitleChange = (newValue: string) => {
+    setLocalTitle(newValue);
+    handleUpdateField('title', newValue);
+  };
+  
+  const handleDescriptionChange = (newValue: string) => {
+    setLocalDescription(newValue);
+    handleUpdateField('description', newValue);
+  };
+  
+  const handleImageChange = (newValue: string) => {
+    setLocalImage(newValue);
+    handleUpdateField('image', newValue);
+  };
+  
+  const handleLinkChange = (newValue: string) => {
+    setLocalLink(newValue);
+    handleUpdateField('link', newValue);
+  };
+  
+  const handleButtonTextChange = (newValue: string) => {
+    setLocalButtonText(newValue);
+    handleUpdateField('buttonText', newValue);
   };
 
   return (
@@ -33,60 +76,43 @@ export default function CardSection({
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
         {isEditing ? (
           <div className="p-6 space-y-4">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => handleUpdate('title', e.target.value)}
-              className="w-full text-xl font-bold text-gray-900 bg-white p-2 border border-blue-300 rounded"
+            <StableInput
+              value={localTitle}
+              onChange={handleTitleChange}
               placeholder="Título de la tarjeta..."
+              className="font-bold"
+              label="Título"
             />
             
-            <textarea
-              value={description}
-              onChange={(e) => handleUpdate('description', e.target.value)}
-              className="w-full text-gray-600 bg-white p-2 border border-blue-300 rounded"
-              rows={3}
+            <StableInput
+              value={localDescription}
+              onChange={handleDescriptionChange}
               placeholder="Descripción de la tarjeta..."
+              isTextArea={true}
+              rows={3}
+              label="Descripción"
             />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                URL de la imagen (opcional)
-              </label>
-              <input
-                type="text"
-                value={image || ''}
-                onChange={(e) => handleUpdate('image', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="URL de la imagen..."
-              />
-            </div>
+            <StableInput
+              value={localImage}
+              onChange={handleImageChange}
+              placeholder="URL de la imagen..."
+              label="URL de la imagen (opcional)"
+            />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                URL del enlace (opcional)
-              </label>
-              <input
-                type="text"
-                value={link || ''}
-                onChange={(e) => handleUpdate('link', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="URL del enlace..."
-              />
-            </div>
+            <StableInput
+              value={localLink}
+              onChange={handleLinkChange}
+              placeholder="URL del enlace..."
+              label="URL del enlace (opcional)"
+            />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Texto del botón
-              </label>
-              <input
-                type="text"
-                value={buttonText}
-                onChange={(e) => handleUpdate('buttonText', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="Texto del botón..."
-              />
-            </div>
+            <StableInput
+              value={localButtonText}
+              onChange={handleButtonTextChange}
+              placeholder="Texto del botón..."
+              label="Texto del botón"
+            />
           </div>
         ) : (
           <>
@@ -125,4 +151,6 @@ export default function CardSection({
       </div>
     </div>
   );
-} 
+});
+
+export default CardSection; 
