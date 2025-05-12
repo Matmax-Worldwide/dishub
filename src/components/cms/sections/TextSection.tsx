@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+'use client';
+
+import React, { useEffect, useCallback } from 'react';
 
 interface TextSectionProps {
   title?: string;
@@ -8,7 +10,7 @@ interface TextSectionProps {
   onUpdate?: (data: { title?: string; subtitle?: string; content?: string }) => void;
 }
 
-export default function TextSection({ 
+function TextSection({ 
   title, 
   subtitle, 
   content,
@@ -20,30 +22,41 @@ export default function TextSection({
     console.log('TextSection rendering with:', { title, subtitle, content, isEditing });
   }, [title, subtitle, content, isEditing]);
 
-  const handleUpdate = (field: string, value: string) => {
+  // Optimize update handler with useCallback
+  const handleUpdate = useCallback((field: string, value: string) => {
     if (onUpdate) {
       onUpdate({ [field]: value });
     }
-  };
+  }, [onUpdate]);
 
   return (
     <div className="py-12 px-4 border border-gray-200 rounded">
       <div className="max-w-4xl mx-auto">
         {isEditing ? (
           <>
-            <input
-              type="text"
-              value={title || ''}
-              onChange={(e) => handleUpdate('title', e.target.value)}
-              className="w-full text-3xl font-bold mb-6 p-2 border border-gray-300 rounded"
-              placeholder="Enter title..."
-            />
-            <textarea
-              value={content || ''}
-              onChange={(e) => handleUpdate('content', e.target.value)}
-              className="w-full h-40 p-2 border border-gray-300 rounded mb-4"
-              placeholder="Enter content..."
-            />
+            <div className="mb-4">
+              <input
+                type="text"
+                value={title || ''}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  handleUpdate('title', newValue);
+                }}
+                className="w-full text-3xl font-bold mb-4 p-2 border border-gray-300 rounded"
+                placeholder="Enter title..."
+              />
+            </div>
+            <div>
+              <textarea
+                value={content || ''}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  handleUpdate('content', newValue);
+                }}
+                className="w-full h-40 p-2 border border-gray-300 rounded"
+                placeholder="Enter content..."
+              />
+            </div>
           </>
         ) : (
           <>
@@ -58,4 +71,19 @@ export default function TextSection({
       </div>
     </div>
   );
-} 
+}
+
+// Add React.memo to prevent unnecessary re-renders
+export default React.memo(TextSection, (prevProps, nextProps) => {
+  // If in editing mode, always re-render for fluid typing
+  if (prevProps.isEditing || nextProps.isEditing) {
+    return false;
+  }
+  
+  // For view mode, only re-render if content changed
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.subtitle === nextProps.subtitle &&
+    prevProps.content === nextProps.content
+  );
+}); 

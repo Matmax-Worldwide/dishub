@@ -223,7 +223,7 @@ export interface PageData {
   locale?: string;
   createdAt?: string;
   updatedAt?: string;
-  sections?: PageSectionData[] | Array<{id: string; order?: number}>; // Allow for different structure
+  sections?: PageSectionData[]; // Allow for different structure
 }
 
 // Generic GraphQL response type
@@ -236,6 +236,7 @@ interface GraphQLResponse<T> {
 
 export interface PageSectionData {
   id: string;
+  sectionId: string;
   order: number;
   title?: string;
   componentType?: string;
@@ -546,13 +547,20 @@ export async function getPagePreview(pageData: PageData): Promise<{
         continue;
       }
       
-      console.log(`Fetching components for section ID: ${section.id}`);
+      // Get the CMSSection data first
+      const cmsSection = await cmsOperations.getCMSSection(section.id);
+      if (!cmsSection) {
+        console.log(`CMSSection not found for ID: ${section.id}`);
+        continue;
+      }
+      
+      console.log(`Fetching components for section ID: ${cmsSection.sectionId}`);
       
       // Get section title if available
-      const sectionTitle = 'title' in section ? section.title : `Section ${section.order || 0}`;
+      const sectionTitle = cmsSection.name || `Section ${section.order || 0}`;
       
-      // Fetch the components for this section
-      const { components } = await cmsOperations.getSectionComponents(section.id);
+      // Fetch the components for this section using the CMSSection's sectionId
+      const { components } = await cmsOperations.getSectionComponents(cmsSection.sectionId);
       
       console.log(`Fetched ${components.length} components for section "${sectionTitle}"`);
       
@@ -1399,5 +1407,53 @@ export const cmsOperations = {
       console.error(`Error general en getPagesUsingSectionId:`, error);
       return [];
     }
+  },
+
+  async getCMSSection(id: string): Promise<{
+    id: string;
+    sectionId: string;
+    name: string;
+    description: string;
+    lastUpdated: string;
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string | null;
+    components: unknown;
+  } | null> {
+    const query = `
+      query GetCMSSection($id: String!) {
+        getCMSSection(id: $id) {
+          id
+          sectionId
+          name
+          description
+          lastUpdated
+          createdAt
+          updatedAt
+          createdBy
+          components {
+            id
+            componentId
+            order
+          }
+        }
+      }
+    `;
+    
+    const response = await gqlRequest<{
+      getCMSSection: {
+        id: string;
+        sectionId: string;
+        name: string;
+        description: string;
+        lastUpdated: string;
+        createdAt: string;
+        updatedAt: string;
+        createdBy: string | null;
+        components: unknown;
+      } | null;
+    }>(query, { id });
+    
+    return response?.getCMSSection || null;
   },
 }; 

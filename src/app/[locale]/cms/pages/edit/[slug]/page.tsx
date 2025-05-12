@@ -9,16 +9,15 @@ import {
   CheckIcon,
   FileTextIcon,
   LayoutIcon,
-  PencilIcon,
-  MoveIcon,
   PlusIcon,
-  MinusIcon,
   Loader2Icon,
   ChevronRightIcon,
   SearchIcon,
   InfoIcon,
   AlignLeftIcon,
-  GlobeIcon
+  GlobeIcon,
+  XIcon,
+  EyeIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,12 +63,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cmsOperations, PageData } from '@/lib/graphql-client';
+import { cmsOperations } from '@/lib/graphql-client';
 import ManageableSection from '@/components/cms/ManageableSection';
-import SectionManager from '@/components/cms/SectionManager';
-
-// Define the component types that match SectionManager's ComponentType
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
 
 interface ManageableSectionHandle {
   saveChanges: () => Promise<void>;
@@ -79,202 +74,71 @@ interface Section {
   id: string;
   sectionId: string;
   name: string;
-  description?: string;
-  order: number;
-}
-
-interface AvailableSection {
-  sectionId: string;
-  name: string;
-  description?: string;
-  components?: Array<{
-    id: string;
+  type: string;
+  data: Array<{
+    sectionId: string;
     type: string;
     data: Record<string, unknown>;
   }>;
+  order: number;
+  description: string;
 }
 
-interface SectionComponentData {
+interface AvailableSection {
   id: string;
+  sectionId: string;
+  name: string;
   type: string;
-  data: Record<string, unknown>;
+  description?: string;
 }
 
-// Add this interface right after the existing interfaces
-interface ExtendedWindow extends Window {
-  editSection?: (sectionId: string) => void;
+interface PageData {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  template: string;
+  isPublished: boolean;
+  pageType: string;
+  locale: string;
+  sections: Section[];
+  metaTitle: string;
+  metaDescription: string;
+  featuredImage: string;
 }
 
-// Section Preview Component
-function SectionPreview({ sectionId, refreshKey }: { sectionId: string; refreshKey?: string | number }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [components, setComponents] = useState<SectionComponentData[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [sectionLoaded, setSectionLoaded] = useState(false);
+interface PageParams {
+  locale: string;
+  slug: string;
+  [key: string]: string;
+}
 
-  useEffect(() => {
-    const loadSectionComponents = async () => {
-      // Generate a unique operation ID for this load operation
-      const loadId = `load-${Math.random().toString(36).substring(2, 9)}`;
-      const startTime = Date.now();
-      
-      console.log(`⏳ [${loadId}] INICIO CARGA de componentes para sección '${sectionId}'`);
-      
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Make sure to pass just the sectionId without query parameters
-        // The resolver will handle cleaning the sectionId
-        const cleanSectionId = sectionId.split('?')[0];
-        console.log(`🔍 [${loadId}] Solicitando componentes para sección: ${cleanSectionId}`);
-        
-        // Call the getSectionComponents method from the GraphQL client
-        const result = await cmsOperations.getSectionComponents(cleanSectionId);
-        
-        // Log diagnostic information about the response
-        console.log(`✅ [${loadId}] Respuesta recibida después de ${Date.now() - startTime}ms`);
-        console.log(`🔍 [${loadId}] Respuesta:`, result);
-        
-        if (!result) {
-          console.error(`❌ [${loadId}] La respuesta es NULL o UNDEFINED`);
-          setError('No se recibió respuesta del servidor');
-          setComponents([]);
-          setSectionLoaded(false);
-          return;
-        }
-        
-        // Check that the response has a components property that is an array
-        if (!result.components) {
-          console.error(`❌ [${loadId}] La respuesta NO contiene el campo 'components' o es NULL`);
-          setError('La respuesta no contiene datos de componentes');
-          setComponents([]);
-          setSectionLoaded(false);
-          return;
-        }
-        
-        if (!Array.isArray(result.components)) {
-          console.error(`❌ [${loadId}] El campo 'components' NO ES UN ARRAY, es:`, typeof result.components);
-          setError(`El campo 'components' no es un array válido (${typeof result.components})`);
-          setComponents([]);
-          setSectionLoaded(false);
-          return;
-        }
-        
-        // Log component info
-        if (result.components.length === 0) {
-          console.warn(`⚠️ [${loadId}] Se recibió un array de componentes VACÍO`);
-        } else {
-          console.log(`✅ [${loadId}] Se recibieron ${result.components.length} componentes`);
-          
-          // Verify each component structure
-          result.components.forEach((comp, idx) => {
-            console.log(`🔍 [${loadId}] Componente #${idx+1}:`);
-            console.log(`  - ID: ${comp.id || 'FALTA'}`);
-            console.log(`  - Type: ${comp.type || 'FALTA'}`);
-            console.log(`  - Data: ${comp.data ? 'PRESENTE' : 'FALTA'}`);
-            
-            if (!comp.id || !comp.type) {
-              console.warn(`⚠️ [${loadId}] El componente #${idx+1} tiene estructura INCOMPLETA`);
-            }
-          });
-        }
-        
-        // Set components state
-        setComponents(result.components);
-        setSectionLoaded(true);
-        console.log(`✅ [${loadId}] CARGA COMPLETADA en ${Date.now() - startTime}ms`);
-      } catch (error) {
-        console.error(`❌ [${loadId}] ERROR al cargar componentes:`, error);
-        setError(error instanceof Error ? error.message : 'Error desconocido al cargar componentes');
-        setComponents([]);
-        setSectionLoaded(false);
-      } finally {
-        setIsLoading(false);
-      }
+
+interface PageResponse {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  template?: string;
+  isPublished: boolean;
+  pageType: string;
+  locale?: string;
+  sections: Array<{
+    id: string;
+    sectionId: string;
+    data: {
+      sectionId: string;
     };
-
-    loadSectionComponents();
-  }, [sectionId, refreshKey]);
-
-  if (isLoading) {
-    return (
-      <div className="py-8 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <p className="mt-2 text-gray-500">Cargando componentes...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 p-4 rounded-md text-red-600 text-sm">
-        <AlertCircleIcon className="h-5 w-5 inline-block mr-2" />
-        Error: {error}
-      </div>
-    );
-  }
-
-  // Section loaded successfully
-  if (sectionLoaded) {
-    console.log(`===== DEBUG SECTION COMPONENTS =====`);
-    console.log(`🎯 Section ID: ${sectionId}`);
-    console.log(`🎯 Components count: ${components.length}`);
-    console.log(`🎯 Components array:`, components);
-    console.log(`===== END DEBUG SECTION COMPONENTS =====`);
-    
-    // Check if components array really has valid items
-    if (!components || components.length === 0) {
-      return (
-        <div className="py-8 text-center bg-amber-50 rounded-lg border-2 border-dashed border-amber-300">
-          <LayoutIcon className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-          <h3 className="text-amber-800 font-medium text-lg mb-1">Esta sección existe pero aún no tiene componentes</h3>
-          <p className="text-amber-600 text-sm mb-4">Añade componentes para darle vida a esta sección</p>
-          <button 
-            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors" 
-            onClick={() => (window as ExtendedWindow).editSection?.(sectionId)}
-          >
-            <PlusIcon className="h-4 w-4 inline-block mr-1" />
-            Añadir componentes
-          </button>
-          <p className="mt-3 text-xs text-amber-500">
-            ID de sección: {sectionId.substring(0, 8)}...
-          </p>
-        </div>
-      );
-    }
-
-    // Map the components to the format expected by SectionManager
-    const mappedComponents = components.map(comp => ({
-      id: comp.id,
-      type: comp.type as ComponentType, // Cast to our local ComponentType
-      data: comp.data || {}
-    }));
-
-    // We have components, display them using SectionManager directly
-    return (
-      <div className="bg-white rounded-md">
-        <SectionManager 
-          initialComponents={mappedComponents}
-          isEditing={false}
-        />
-      </div>
-    );
-  }
-
-  // Fallback if none of the above conditions are met
-  return (
-    <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-      <AlertCircleIcon className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-      <p className="text-gray-600">No se pudo cargar la vista previa de la sección</p>
-      <p className="text-xs text-gray-500 mt-2">Intenta refrescar la página</p>
-    </div>
-  );
+    order?: number;
+  }>;
+  metaTitle?: string;
+  metaDescription?: string;
+  featuredImage?: string;
 }
 
 // Main Component
-export default function EditPage() {
-  const params = useParams();
+export default function EditPageWithSections() {
+  const params = useParams<PageParams>();
   const router = useRouter();
   const { locale, slug } = params;
   
@@ -287,7 +151,7 @@ export default function EditPage() {
     template: 'default',
     isPublished: false,
     pageType: 'CONTENT',
-    locale: locale as string,
+    locale: locale,
     sections: [],
     metaTitle: '',
     metaDescription: '',
@@ -306,8 +170,6 @@ export default function EditPage() {
   // Section management states
   const [availableSections, setAvailableSections] = useState<AvailableSection[]>([]);
   const [pageSections, setPageSections] = useState<Section[]>([]);
-  const [isLoadingSections, setIsLoadingSections] = useState(true);
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [showAddSectionDialog, setShowAddSectionDialog] = useState(false);
   const [selectedTemplateSection, setSelectedTemplateSection] = useState<string>('');
   const [forceReloadSection, setForceReloadSection] = useState(false);
@@ -320,109 +182,215 @@ export default function EditPage() {
   const sectionRef = useRef<ManageableSectionHandle>(null);
   
   // New states for section creation
-  const [showCreateSectionDialog, setShowCreateSectionDialog] = useState(false);
-  const [newSectionName, setNewSectionName] = useState('');
-  const [newSectionDescription, setNewSectionDescription] = useState('');
   const [isCreatingSection, setIsCreatingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [isSavingSection, setIsSavingSection] = useState(false);
 
-  // Fetch page data by slug
+  // Load page data
   useEffect(() => {
-    const fetchPageData = async () => {
-      if (!slug) return;
-      
-      console.log(`Fetching page data for slug: ${slug}`);
-      setIsLoading(true);
-      
+    const loadPageData = async () => {
       try {
-        const pageResult = await cmsOperations.getPageBySlug(slug as string);
+        setIsLoading(true);
+        const response = await cmsOperations.getPageBySlug(slug as string) as PageResponse;
         
-        if (!pageResult) {
-          console.error(`No page found with slug: ${slug}`);
+        console.log('Raw response:', response);
+        
+        if (!response) {
+          console.error('No se encontró la página');
           setNotification({
             type: 'error',
-            message: `No se encontró ninguna página con slug: ${slug}`
+            message: 'No se encontró la página'
           });
           return;
         }
+
+        console.log('Page data received:', response);
         
-        console.log('Page data loaded:', pageResult);
+        // First set the page data
+        setPageData({
+          id: response.id,
+          title: response.title,
+          slug: response.slug,
+          description: response.description || '',
+          template: response.template || 'default',
+          isPublished: response.isPublished,
+          pageType: response.pageType,
+          locale: response.locale || locale,
+          sections: [],
+          metaTitle: response.metaTitle || '',
+          metaDescription: response.metaDescription || '',
+          featuredImage: response.featuredImage || ''
+        });
         
-        // Set the page data
-        setPageData(pageResult);
-        
-        // Process sections data
-        const sections = Array.isArray(pageResult.sections) 
-          ? pageResult.sections.map((section: string | { id: string; title?: string; order?: number }, index: number) => {
-              // Handle different section data structures
-              if (typeof section === 'string') {
-                // Simple string ID format
-                return {
-                  id: `section-${index}`,
-                  sectionId: section,
-                  name: `Sección ${index + 1}`,
-                  order: index
-                };
-              } else if (typeof section === 'object' && section !== null) {
-                // Object format with ID and other properties
-                return {
-                  id: `section-${index}`,
-                  sectionId: section.id || '',
-                  name: section.title || `Sección ${index + 1}`,
-                  description: '',
-                  order: section.order !== undefined ? section.order : index
-                };
+        // Then load components for each section
+        if (response.sections && response.sections.length > 0) {
+          console.log('Sections from response:', JSON.stringify(response.sections, null, 2));
+          
+          // First get all CMS sections
+          const allCMSSections = await cmsOperations.getAllCMSSections();
+          console.log('All CMS sections:', JSON.stringify(allCMSSections.map(s => ({ 
+            id: s.id,
+            sectionId: s.sectionId,
+            name: s.name
+          })), null, 2));
+          
+          // Create a map of sectionId to corresponding CMS section for faster lookup
+          const cmsSectionMap = new Map();
+          allCMSSections.forEach(section => {
+            cmsSectionMap.set(section.id, section);
+            cmsSectionMap.set(section.sectionId, section);
+          });
+          
+          const sectionsWithComponents = await Promise.all(
+            response.sections.map(async (section, index) => {
+              console.log(`Processing section ${index}:`, JSON.stringify(section, null, 2));
+              
+              // Check if section has an ID at minimum
+              if (!section.id) {
+                console.error('Section missing ID:', JSON.stringify(section, null, 2));
+                return null;
               }
-              return null;
-            }).filter(Boolean) as Section[]
-          : [];
-        
-        console.log(`Processed ${sections.length} sections`);
-        setPageSections(sections);
+              
+              try {
+                // First try: look for section in the data.sectionId or data.cmsSection
+                let cmsSectionId = null;
+                if (section.data) {
+                  // Verify data fields exist using safer approach
+                  const sectionData = section.data as Record<string, unknown>;
+                  cmsSectionId = sectionData.sectionId as string || sectionData.cmsSection as string;
+                }
+                console.log(`Looking for CMS section with data.sectionId/cmsSection: ${cmsSectionId || 'None'}`);
+                
+                // Try to find CMS section using different strategies
+                let cmsSection = null;
+                
+                // Strategy 1: Use sectionId from section.data if available
+                if (cmsSectionId) {
+                  cmsSection = cmsSectionMap.get(cmsSectionId) || 
+                               allCMSSections.find(s => s.sectionId === cmsSectionId);
+                  if (cmsSection) {
+                    console.log(`Found section via data.sectionId: ${cmsSection.name}`);
+                  }
+                }
+                
+                // Strategy 2: Use section.sectionId if available
+                if (!cmsSection && section.sectionId) {
+                  cmsSection = cmsSectionMap.get(section.sectionId) || 
+                               allCMSSections.find(s => s.sectionId === section.sectionId);
+                  if (cmsSection) {
+                    console.log(`Found section via section.sectionId: ${cmsSection.name}`);
+                  }
+                }
+                
+                // Strategy 3: Direct match by page section's ID
+                if (!cmsSection) {
+                  cmsSection = cmsSectionMap.get(section.id) || 
+                               allCMSSections.find(s => s.id === section.id);
+                  if (cmsSection) {
+                    console.log(`Found section via direct ID match: ${cmsSection.name}`);
+                  }
+                }
+                
+                // Final fallback: use first available section
+                if (!cmsSection && allCMSSections.length > 0) {
+                  cmsSection = allCMSSections[0];
+                  console.log(`Using first available section as fallback: ${cmsSection.name}`);
+                }
+                
+                console.log(`Section lookup result:`, cmsSection ? 
+                  { id: cmsSection.id, sectionId: cmsSection.sectionId, name: cmsSection.name } : 
+                  'Not found');
+                
+                if (!cmsSection) {
+                  console.error(`No CMSSection found in system for section ${section.id}`);
+                  return null;
+                }
+                
+                // Create section data with the found CMS section
+                const sectionData: Section = {
+                  id: section.id, // Keep original section ID from page
+                  sectionId: cmsSection.sectionId, // IMPORTANT: Use CMS section's sectionId
+                  name: cmsSection.name || 'Unknown Section',
+                  type: 'default',
+                  data: [], // Start with empty data that will be populated later
+                  order: section.order || index,
+                  description: cmsSection.description || ''
+                };
+                
+                console.log('Created section data:', JSON.stringify({
+                  id: sectionData.id,
+                  sectionId: sectionData.sectionId,
+                  name: sectionData.name,
+                  order: sectionData.order
+                }, null, 2));
+                
+                return sectionData;
+              } catch (error) {
+                console.error(`Error processing section with ID ${section.id}:`, error);
+                return null;
+              }
+            })
+          );
+          
+          // Filter out any null sections
+          const validSections = sectionsWithComponents.filter((section): section is Section => section !== null);
+          
+          // Sort by order
+          validSections.sort((a, b) => a.order - b.order);
+          
+          console.log(`Final processed sections (${validSections.length}):`, JSON.stringify(
+            validSections.map(s => ({ 
+              id: s.id, 
+              sectionId: s.sectionId,
+              name: s.name,
+              order: s.order 
+            })), null, 2));
+          
+          setPageSections(validSections);
+          setPageData(prev => ({
+            ...prev,
+            sections: validSections
+          }));
+        }
       } catch (error) {
-        console.error('Error loading page data:', error);
+        console.error('Error al cargar la página:', error);
         setNotification({
           type: 'error',
-          message: 'Error al cargar los datos de la página'
+          message: 'Error al cargar la página'
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPageData();
-  }, [slug]);
+    if (slug) {
+      loadPageData();
+    }
+  }, [slug, locale]);
 
   // Load available sections
   useEffect(() => {
-    const fetchSections = async () => {
+    const loadSections = async () => {
       try {
-        setIsLoadingSections(true);
-        const sectionsData = await cmsOperations.getAllCMSSections();
-        
-        if (Array.isArray(sectionsData)) {
-          console.log(`Fetched ${sectionsData.length} available sections`);
-          const formattedSections = sectionsData.map(section => ({
-            sectionId: section.id,
-            name: section.name || section.id,
-            description: section.description || '',
-            components: Array.isArray(section.components) ? section.components : []
-          }));
-          setAvailableSections(formattedSections);
-        } else {
-          console.error('Invalid response format for sections:', sectionsData);
-        }
+        const response = await cmsOperations.getAllCMSSections();
+        const formattedSections: AvailableSection[] = response.map((section) => ({
+          id: section.id,
+          sectionId: section.id,
+          name: section.name,
+          type: 'default',
+          description: section.description
+        }));
+        setAvailableSections(formattedSections);
       } catch (error) {
         console.error('Error loading sections:', error);
         setNotification({
           type: 'error',
-          message: 'No se pudieron cargar las secciones disponibles'
+          message: 'Error al cargar las secciones disponibles'
         });
-      } finally {
-        setIsLoadingSections(false);
       }
     };
 
-    fetchSections();
+    loadSections();
   }, []);
   
   // Exit confirmation
@@ -440,7 +408,7 @@ export default function EditPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges]);
-
+  
   // Generate slug from title
   const generateSlug = (title: string) => {
     return title
@@ -456,8 +424,6 @@ export default function EditPage() {
     const newTitle = e.target.value;
     const currentSlug = pageData.slug;
     
-    // If the current slug matches the original slug from the database, 
-    // then update it with the new title
     const shouldUpdateSlug = 
       !currentSlug || 
       currentSlug === generateSlug(pageData.title || '');
@@ -491,64 +457,31 @@ export default function EditPage() {
   };
   
   // Add section to page
-  const handleAddSection = () => {
-    if (!selectedTemplateSection) return;
-    
-    const selectedSection = availableSections.find(s => s.sectionId === selectedTemplateSection);
-    if (!selectedSection) return;
-    
+  const handleAddSection = (section: AvailableSection) => {
     const newSection: Section = {
-      id: `temp-${Date.now()}`,
-      sectionId: selectedSection.sectionId,
-      name: selectedSection.name,
-      description: selectedSection.description,
-      order: pageSections.length
+      id: section.id,
+      sectionId: section.sectionId,
+      name: section.name,
+      type: section.type,
+      data: [],
+      order: pageSections.length,
+      description: section.description || ''
     };
     
-    setPageSections(prev => [...prev, newSection]);
+    setPageSections([...pageSections, newSection]);
     setHasUnsavedChanges(true);
-    setShowAddSectionDialog(false);
-    setSelectedTemplateSection('');
-    
-    console.log(`Añadida sección: ${newSection.name} (${newSection.sectionId})`);
   };
-  
-  // Move a section up or down
-  const moveSection = (index: number, direction: 'up' | 'down') => {
-    if (
-      (direction === 'up' && index === 0) || 
-      (direction === 'down' && index === pageSections.length - 1)
-    ) {
-      return;
-    }
-    
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    const updatedSections = [...pageSections];
-    
-    // Swap the sections
-    [updatedSections[index], updatedSections[newIndex]] = 
-      [updatedSections[newIndex], updatedSections[index]];
-    
-    // Update order property
-    updatedSections.forEach((section, idx) => {
-      section.order = idx;
-    });
-    
-    setPageSections(updatedSections);
-    setHasUnsavedChanges(true);
-    
-    console.log(`Sección ${pageSections[index].name} movida ${direction === 'up' ? 'arriba' : 'abajo'}`);
-  };
-  
-  // Remove section from page
-  const handleRemoveSection = (sectionId: string) => {
-    const sectionToRemove = pageSections.find(s => s.sectionId === sectionId);
-    if (sectionToRemove) {
-      setSectionToDelete(sectionToRemove);
-      setIsDeleteConfirmOpen(true);
+
+  const handleAddSectionClick = () => {
+    const selectedSection = availableSections.find(s => s.sectionId === selectedTemplateSection);
+    if (selectedSection) {
+      handleAddSection(selectedSection);
+      setShowAddSectionDialog(false);
+      setSelectedTemplateSection('');
     }
   };
-  
+
+
   // Confirm section removal
   const confirmDeleteSection = () => {
     if (!sectionToDelete) return;
@@ -570,62 +503,8 @@ export default function EditPage() {
     setIsDeleteConfirmOpen(false);
     setSectionToDelete(null);
   };
-  
-  // Edit a section
-  const handleEditSection = (sectionId: string) => {
-    console.log(`📝 Editando sección: ${sectionId}`);
-    
-    // Check if section exists in our loaded sections
-    const sectionExists = pageSections.some(s => s.sectionId === sectionId);
-    if (!sectionExists) {
-      console.warn(`⚠️ La sección con ID ${sectionId} no existe en la página actual. Esto puede ser un error.`);
-    }
-    
-    // Navigate to the section editor tab
-    setEditingSectionId(sectionId);
-    setActiveTab('editor');
-    
-    // Scroll to the section editor
-    setTimeout(() => {
-      document.getElementById('section-editor')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-  
-  // Save section changes
-  const handleSaveSectionChanges = async () => {
-    if (!sectionRef.current) return;
-    
-    try {
-      console.log(`Guardando cambios en sección: ${editingSectionId}`);
-      setIsSaving(true);
-      
-      await sectionRef.current.saveChanges();
-      
-      setEditingSectionId(null);
-      setActiveTab('sections');
-      setForceReloadSection(!forceReloadSection);
-      
-      setNotification({
-        type: 'success',
-        message: 'Cambios en la sección guardados correctamente'
-      });
-      
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
-    } catch (error) {
-      console.error('Error al guardar cambios en la sección:', error);
-      
-      setNotification({
-        type: 'error',
-        message: 'No se pudieron guardar los cambios en la sección'
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  // Save the entire page (update instead of create)
+
+  // Save the entire page
   const handleSavePage = async () => {
     if (!pageData.title) {
       setNotification({
@@ -638,21 +517,40 @@ export default function EditPage() {
     setIsSaving(true);
     
     try {
-      console.log('Preparando datos para actualizar página...');
+      // First save the section components if they exist
+      if (sectionRef.current && pageSections.length > 0) {
+        console.log(`Guardando componentes para la sección: ${pageSections[0]?.sectionId}`);
+        await sectionRef.current.saveChanges();
+      }
       
-      // Map sections to the format expected by the API
-      const formattedSections = pageSections.map((section, index) => ({
-        id: section.id && !section.id.startsWith('temp-') ? section.id : undefined,
+      console.log('Preparando datos para actualizar página...');
+      console.log('Secciones a guardar:', JSON.stringify(pageSections.map(s => ({
+        id: s.id,
+        sectionId: s.sectionId,
+        name: s.name,
+        order: s.order
+      })), null, 2));
+      
+      // Prepare sections for API format - matching expected PageSectionInput type
+      const sections = pageSections.map((section, index) => ({
+        // Don't include id in update operation for new sections
+        ...(section.id && !section.id.startsWith('temp-') ? { id: section.id } : {}),
         order: index,
-        title: section.name || `Sección ${index + 1}`,
-        componentType: 'CUSTOM',
-        isVisible: true,
-        data: { sectionId: section.sectionId } // Store the sectionId in the data field
+        title: section.name,
+        // Use a valid ComponentType enum value from Prisma schema (instead of 'default' or 'CUSTOM')
+        componentType: 'CUSTOM', // Valid enum value from ComponentType
+        data: { 
+          components: section.data,
+          // Include a reference to the CMS section ID in the data
+          sectionId: section.sectionId, // Store sectionId consistently
+          cmsSection: section.sectionId // For backward compatibility
+        },
+        isVisible: true
       }));
       
-      console.log(`Actualizando página con ${formattedSections.length} secciones`);
+      console.log(`Actualizando página con ${sections.length} secciones:`, JSON.stringify(sections, null, 2));
       
-      // Create the page input with the correctly formatted sections
+      // Create the input WITHOUT including the 'id' field in the main input
       const pageInput = {
         title: pageData.title,
         slug: pageData.slug,
@@ -664,33 +562,31 @@ export default function EditPage() {
         metaTitle: pageData.metaTitle || undefined,
         metaDescription: pageData.metaDescription || undefined,
         featuredImage: pageData.featuredImage || undefined,
-        sections: formattedSections // This matches the expected format
+        sections
       };
       
-      console.log('Datos de la página a actualizar:', pageInput);
+      console.log('Datos de la página a actualizar:', JSON.stringify(pageInput, null, 2));
       
       const result = await cmsOperations.updatePage(pageData.id, pageInput);
       
       if (result && result.success) {
         console.log('Página actualizada exitosamente:', result);
-        
         setNotification({
           type: 'success',
           message: 'Página actualizada exitosamente'
         });
-        
         setHasUnsavedChanges(false);
-        
-        // Navigate to the pages list after a short delay
+        // Refresh section view to show updated components
+        setForceReloadSection(!forceReloadSection);
+        // Briefly pause to ensure the update is processed before redirecting
         setTimeout(() => {
           router.push(`/${locale}/cms/pages`);
-        }, 2000);
+        }, 500);
       } else {
-        throw new Error(result?.message || 'Error al actualizar la página');
+        throw new Error('Error al actualizar la página');
       }
     } catch (error) {
       console.error('Error al actualizar la página:', error);
-      
       setNotification({
         type: 'error',
         message: error instanceof Error ? error.message : 'Error al actualizar la página'
@@ -724,7 +620,7 @@ export default function EditPage() {
     setIsExitConfirmationOpen(false);
     setRedirectTarget('');
   };
-  
+
   // Create a new section
   const handleCreateSection = async () => {
     if (!newSectionName.trim()) {
@@ -735,50 +631,47 @@ export default function EditPage() {
       return;
     }
     
-    // Generate a section ID from the name
     const sectionId = `section-${newSectionName
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')}-${Date.now()}`;
       
-    setIsCreatingSection(true);
+    setIsSavingSection(true);
     
     try {
       console.log(`Creando nueva sección "${newSectionName}" con ID: ${sectionId}`);
       
-      // Create empty section in the CMS
       const result = await cmsOperations.saveSectionComponents(sectionId, []);
       
       if (result && result.success) {
         console.log('Sección creada exitosamente:', sectionId);
         
-        // Add the new section to the available sections list
         const newSection: AvailableSection = {
           sectionId: sectionId,
           name: newSectionName,
-          description: newSectionDescription
+          description: '',
+          type: 'default',
+          id: sectionId
         };
         
         setAvailableSections(prev => [...prev, newSection]);
         
-        // Directly add this section to the page
         const newPageSection: Section = {
           id: `temp-${Date.now()}`, 
           sectionId: sectionId,
           name: newSectionName,
-          description: newSectionDescription,
-          order: pageSections.length
+          type: 'default',
+          data: [],
+          order: pageSections.length,
+          description: ''
         };
         
         setPageSections(prev => [...prev, newPageSection]);
         setHasUnsavedChanges(true);
         
-        // Clear form and close dialog
         setNewSectionName('');
-        setNewSectionDescription('');
-        setShowCreateSectionDialog(false);
+        setIsCreatingSection(false);
         
-        // Show success notification
         setNotification({
           type: 'success',
           message: `Sección "${newSectionName}" creada y añadida a la página`
@@ -787,10 +680,6 @@ export default function EditPage() {
         setTimeout(() => {
           setNotification(null);
         }, 3000);
-        
-        // Open section editor
-        setEditingSectionId(sectionId);
-        setActiveTab('editor');
       } else {
         throw new Error(result?.message || 'Error al crear la sección');
       }
@@ -801,122 +690,81 @@ export default function EditPage() {
         message: error instanceof Error ? error.message : 'Error al crear la sección'
       });
     } finally {
-      setIsCreatingSection(false);
+      setIsSavingSection(false);
     }
   };
-  
-  // Render a section preview
-  const renderSectionPreview = (section: Section, index: number) => {
-    return (
-      <div 
-        key={`${section.id}-${forceReloadSection}`} 
-        className="relative border rounded-lg overflow-hidden group mb-8"
-      >
-        {/* Section identifier */}
-        <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-2 py-1 rounded-br z-10">
-          {index + 1}. {section.name}
-        </div>
-        
-        {/* Section controls */}
-        <div className="absolute top-2 right-2 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEditSection(section.sectionId)}
-            className="h-8 w-8 p-0"
-            title="Editar sección"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </Button>
-          
-          {index > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => moveSection(index, 'up')}
-              className="h-8 w-8 p-0"
-              title="Mover arriba"
-            >
-              <MoveIcon className="h-4 w-4 transform rotate-180" />
-            </Button>
-          )}
-          
-          {index < pageSections.length - 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => moveSection(index, 'down')}
-              className="h-8 w-8 p-0"
-              title="Mover abajo"
-            >
-              <MoveIcon className="h-4 w-4" />
-            </Button>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleRemoveSection(section.sectionId)}
-            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-            title="Eliminar sección"
-          >
-            <MinusIcon className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        {/* Section content */}
-        <div className="p-6 pt-10">
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <SectionPreview 
-              sectionId={section.sectionId} 
-              refreshKey={forceReloadSection ? 'refresh' : 'initial'} 
+
+  // Render the new section creation UI
+  const renderNewSectionUI = () => {
+    if (isCreatingSection) {
+      return (
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center space-x-4">
+            <Input
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              placeholder="Nombre para los componentes"
+              className="flex-1 border-blue-300 focus:ring-blue-500"
+              autoFocus
+              disabled={isSavingSection}
             />
+            <Button
+              onClick={handleCreateSection}
+              disabled={!newSectionName.trim() || isSavingSection}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              {isSavingSection ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full"></span>
+                  <span>Creando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckIcon className="h-4 w-4" />
+                  <span>Crear</span>
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreatingSection(false);
+                setNewSectionName('');
+              }}
+              className="h-10 w-10 p-0 border-blue-300 text-blue-600"
+              disabled={isSavingSection}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="max-w-xs mx-auto">
+        <Button 
+          className="w-full bg-blue-600 hover:bg-blue-700"
+          onClick={() => setIsCreatingSection(true)}
+        >
+          <PlusIcon className="h-5 w-5 mr-2" />
+          <span>Añadir componentes</span>
+        </Button>
       </div>
     );
   };
-
-  // Set up the editSection global function
-  useEffect(() => {
-    // Define a function to handle editing sections directly from previews
-    const handleEditSection = (sectionId: string) => {
-      console.log(`📝 Editando sección: ${sectionId}`);
-      
-      // Check if section exists in our loaded sections
-      const sectionExists = pageSections.some(s => s.sectionId === sectionId);
-      if (!sectionExists) {
-        console.warn(`⚠️ La sección con ID ${sectionId} no existe en la página actual. Esto puede ser un error.`);
-      }
-      
-      // Navigate to the section editor tab
-      setEditingSectionId(sectionId);
-      setActiveTab('editor');
-      
-      // Scroll to the section editor
-      setTimeout(() => {
-        document.getElementById('section-editor')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    };
-    
-    // Make it available globally for the section previews
-    (window as ExtendedWindow).editSection = handleEditSection;
-    
-    // Clean up on unmount
-    return () => {
-      delete (window as ExtendedWindow).editSection;
-    };
-  }, []);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <Loader2Icon className="h-12 w-12 animate-spin text-blue-500 mb-4" />
-        <p className="text-gray-500">Cargando datos de la página...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2Icon className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-600">Cargando página...</p>
+        </div>
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -943,6 +791,17 @@ export default function EditPage() {
               <span>Cambios sin guardar</span>
             </div>
           )}
+          
+          <div className="flex items-center gap-2 border border-gray-200 rounded-md px-3 py-1 bg-white">
+            <Switch
+              id="header-isPublished"
+              checked={pageData.isPublished}
+              onCheckedChange={(checked) => handleCheckboxChange('isPublished', checked)}
+            />
+            <Label htmlFor="header-isPublished" className="text-sm font-medium text-gray-700">
+              {pageData.isPublished ? 'Publicada' : 'Borrador'}
+            </Label>
+          </div>
           
           <Button
             variant="outline"
@@ -992,22 +851,18 @@ export default function EditPage() {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-3 mb-6">
           <TabsTrigger value="details" className="flex items-center">
             <FileTextIcon className="h-4 w-4 mr-2" />
             <span>Detalles</span>
-          </TabsTrigger>
-          <TabsTrigger value="sections" className="flex items-center">
-            <LayoutIcon className="h-4 w-4 mr-2" />
-            <span>Secciones</span>
           </TabsTrigger>
           <TabsTrigger value="seo" className="flex items-center">
             <SearchIcon className="h-4 w-4 mr-2" />
             <span>SEO</span>
           </TabsTrigger>
-          <TabsTrigger value="editor" disabled={!editingSectionId} className="flex items-center">
-            <PencilIcon className="h-4 w-4 mr-2" />
-            <span>Editor de sección</span>
+          <TabsTrigger value="sections" className="flex items-center">
+            <LayoutIcon className="h-4 w-4 mr-2" />
+            <span>Secciones</span>
           </TabsTrigger>
         </TabsList>
         
@@ -1099,15 +954,6 @@ export default function EditPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isPublished"
-                    checked={pageData.isPublished}
-                    onCheckedChange={(checked) => handleCheckboxChange('isPublished', checked)}
-                  />
-                  <Label htmlFor="isPublished">Publicada</Label>
-                </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
@@ -1121,66 +967,7 @@ export default function EditPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
-        {/* Sections Tab */}
-        <TabsContent value="sections" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Secciones de la página</CardTitle>
-              <CardDescription>
-                Añade, edita y organiza las secciones de la página.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pageSections.length > 0 ? (
-                <div className="space-y-4">
-                  {pageSections.map((section, index) => 
-                    renderSectionPreview(section, index)
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
-                  <LayoutIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No hay secciones todavía</h3>
-                  <p className="text-gray-500 mb-4">Añade secciones para construir el contenido de tu página</p>
-                </div>
-              )}
-              
-              <div className="flex gap-2 mt-6">
-                <Button 
-                  onClick={() => setShowAddSectionDialog(true)}
-                  className="flex-1"
-                  variant="outline"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Añadir sección existente
-                </Button>
-                
-                <Button 
-                  onClick={() => setShowCreateSectionDialog(true)}
-                  className="flex-1"
-                  variant="default"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Crear nueva sección
-                </Button>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setActiveTab('details')}>
-                Volver a Detalles
-              </Button>
-              <Button 
-                variant="default" 
-                onClick={handleSavePage}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Guardando...' : 'Guardar cambios'}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
+
         {/* SEO Tab */}
         <TabsContent value="seo" className="space-y-6">
           <Card>
@@ -1273,74 +1060,77 @@ export default function EditPage() {
           </Card>
         </TabsContent>
         
-        {/* Section Editor Tab */}
-        <TabsContent value="editor" className="space-y-6">
-          {activeTab === 'editor' && (
-            <div id="section-editor" className="mb-6 space-y-4">
-              <div className="bg-blue-50 text-blue-800 text-sm p-3 rounded-md mb-4">
-                <h3 className="font-medium mb-1">Editor de sección</h3>
-                <p className="text-xs">ID: {editingSectionId}</p>
+        {/* Sections Tab */}
+        <TabsContent value="sections" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Editor de componentes</CardTitle>
+                  <CardDescription>
+                    Arrastra y suelta componentes para construir el contenido de tu página
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setForceReloadSection(!forceReloadSection)}
+                  className="flex items-center gap-2"
+                >
+                  <EyeIcon className="h-4 w-4" />
+                  <span>Refrescar vista</span>
+                </Button>
               </div>
-              
-              {editingSectionId ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Editar sección</CardTitle>
-                    <CardDescription>
-                      {pageSections.find(s => s.sectionId === editingSectionId)?.name || editingSectionId}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-lg">
-                      <div className="text-center text-gray-500 mb-4 text-sm">
-                        🖋️ Modo de edición - Edita los componentes de la sección
-                      </div>
-                      
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <ManageableSection
-                          ref={sectionRef}
-                          sectionId={editingSectionId}
-                          isEditing={true}
-                          autoSave={false}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditingSectionId(null);
-                        setActiveTab('sections');
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      variant="default"
-                      onClick={handleSaveSectionChanges}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
-                          <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
-                          <span>Guardando...</span>
-                        </>
-                      ) : (
-                        'Guardar cambios'
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
+            </CardHeader>
+            <CardContent>
+              {pageSections.length > 0 ? (
+                <div className="bg-blue-50 border-2 border-dashed border-blue-200 p-6 rounded-lg">
+                  <div className="text-center text-blue-700 font-medium mb-4">
+                    <LayoutIcon className="h-5 w-5 inline-block mr-2" />
+                    Editor de componentes
+                  </div>
+                  
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <ManageableSection
+                      ref={sectionRef}
+                      sectionId={pageSections[0]?.sectionId || ''}
+                      isEditing={true}
+                      autoSave={false}
+                    />
+                  </div>
+                </div>
               ) : (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
-                  <LayoutIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No hay sección seleccionada</h3>
-                  <p className="text-gray-500 mb-4">Selecciona una sección para editar</p>
+                <div className="text-center py-12 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50">
+                  <LayoutIcon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-blue-700 mb-1">No hay componentes en la página</h3>
+                  <p className="text-blue-600 mb-6">Añade componentes para comenzar a construir tu página</p>
+                  
+                  {renderNewSectionUI()}
                 </div>
               )}
-            </div>
-          )}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setActiveTab('details')}>
+                Volver a Detalles
+              </Button>
+              <Button 
+                variant="default" 
+                onClick={handleSavePage}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon className="h-4 w-4 mr-1" />
+                    <span>Guardar cambios</span>
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
       </Tabs>
       
@@ -1355,27 +1145,21 @@ export default function EditPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {isLoadingSections ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2Icon className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : (
-              <Select 
-                value={selectedTemplateSection} 
-                onValueChange={setSelectedTemplateSection}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona una plantilla de sección" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSections.map(section => (
-                    <SelectItem key={section.sectionId} value={section.sectionId}>
-                      {section.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select 
+              value={selectedTemplateSection} 
+              onValueChange={setSelectedTemplateSection}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona una plantilla de sección" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSections.map(section => (
+                  <SelectItem key={section.sectionId} value={section.sectionId}>
+                    {section.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <DialogFooter>
@@ -1389,7 +1173,7 @@ export default function EditPage() {
               Cancelar
             </Button>
             <Button 
-              onClick={handleAddSection}
+              onClick={handleAddSectionClick}
               disabled={!selectedTemplateSection}
             >
               Añadir sección
@@ -1446,65 +1230,6 @@ export default function EditPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Create Section Dialog */}
-      <Dialog open={showCreateSectionDialog} onOpenChange={setShowCreateSectionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear nueva sección</DialogTitle>
-            <DialogDescription>
-              Crea una nueva sección vacía que podrás editar después
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="newSectionName">Nombre de la sección</Label>
-              <Input
-                id="newSectionName"
-                value={newSectionName}
-                onChange={(e) => setNewSectionName(e.target.value)}
-                placeholder="Ej: Banner Principal"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="newSectionDescription">Descripción (opcional)</Label>
-              <Textarea
-                id="newSectionDescription"
-                value={newSectionDescription}
-                onChange={(e) => setNewSectionDescription(e.target.value)}
-                placeholder="Breve descripción de la sección"
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowCreateSectionDialog(false);
-                setNewSectionName('');
-                setNewSectionDescription('');
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleCreateSection}
-              disabled={isCreatingSection || !newSectionName.trim()}
-            >
-              {isCreatingSection ? (
-                <>
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
-                  <span>Creando...</span>
-                </>
-              ) : 'Crear sección'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -18,7 +18,9 @@ import {
   SearchIcon,
   InfoIcon,
   AlignLeftIcon,
-  GlobeIcon
+  GlobeIcon,
+  XIcon,
+  EyeIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -313,10 +315,9 @@ export default function CreatePageWithSections() {
   const sectionRef = useRef<ManageableSectionHandle>(null);
   
   // New states for section creation
-  const [showCreateSectionDialog, setShowCreateSectionDialog] = useState(false);
-  const [newSectionName, setNewSectionName] = useState('');
-  const [newSectionDescription, setNewSectionDescription] = useState('');
   const [isCreatingSection, setIsCreatingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [isSavingSection, setIsSavingSection] = useState(false);
 
   // Load available sections
   useEffect(() => {
@@ -501,7 +502,6 @@ export default function CreatePageWithSections() {
   const handleEditSection = (sectionId: string) => {
     console.log(`Editando sección: ${sectionId}`);
     setEditingSectionId(sectionId);
-    setActiveTab('editor');
   };
   
   // Save section changes
@@ -515,7 +515,6 @@ export default function CreatePageWithSections() {
       await sectionRef.current.saveChanges();
       
       setEditingSectionId(null);
-      setActiveTab('sections');
       setForceReloadSection(!forceReloadSection);
       
       setNotification({
@@ -634,7 +633,7 @@ export default function CreatePageWithSections() {
     setIsExitConfirmationOpen(false);
     setRedirectTarget('');
   };
-  
+
   // Create a new section
   const handleCreateSection = async () => {
     if (!newSectionName.trim()) {
@@ -651,7 +650,7 @@ export default function CreatePageWithSections() {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')}-${Date.now()}`;
       
-    setIsCreatingSection(true);
+    setIsSavingSection(true);
     
     try {
       console.log(`Creando nueva sección "${newSectionName}" con ID: ${sectionId}`);
@@ -666,7 +665,7 @@ export default function CreatePageWithSections() {
         const newSection: AvailableSection = {
           sectionId: sectionId,
           name: newSectionName,
-          description: newSectionDescription
+          description: ''
         };
         
         setAvailableSections(prev => [...prev, newSection]);
@@ -676,17 +675,16 @@ export default function CreatePageWithSections() {
           id: `temp-${Date.now()}`, 
           sectionId: sectionId,
           name: newSectionName,
-          description: newSectionDescription,
+          description: '',
           order: pageSections.length
         };
         
         setPageSections(prev => [...prev, newPageSection]);
         setHasUnsavedChanges(true);
         
-        // Clear form and close dialog
+        // Clear form and reset state
         setNewSectionName('');
-        setNewSectionDescription('');
-        setShowCreateSectionDialog(false);
+        setIsCreatingSection(false);
         
         // Show success notification
         setNotification({
@@ -700,7 +698,6 @@ export default function CreatePageWithSections() {
         
         // Open section editor
         setEditingSectionId(sectionId);
-        setActiveTab('editor');
       } else {
         throw new Error(result?.message || 'Error al crear la sección');
       }
@@ -711,7 +708,7 @@ export default function CreatePageWithSections() {
         message: error instanceof Error ? error.message : 'Error al crear la sección'
       });
     } finally {
-      setIsCreatingSection(false);
+      setIsSavingSection(false);
     }
   };
   
@@ -782,6 +779,66 @@ export default function CreatePageWithSections() {
               refreshKey={forceReloadSection ? 'refresh' : 'initial'} 
             />
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render the new section creation UI
+  const renderNewSectionUI = () => {
+    if (isCreatingSection) {
+      return (
+        <div className="relative border-2 border-dashed border-blue-200 rounded-lg p-6 mb-8 bg-blue-50">
+          <div className="flex items-center space-x-4">
+            <Input
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              placeholder="Nombre de la nueva sección"
+              className="flex-1"
+              autoFocus
+              disabled={isSavingSection}
+            />
+            <Button
+              onClick={handleCreateSection}
+              disabled={!newSectionName.trim() || isSavingSection}
+              className="flex items-center gap-2"
+            >
+              {isSavingSection ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full"></span>
+                  <span>Creando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckIcon className="h-4 w-4" />
+                  <span>Crear</span>
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsCreatingSection(false);
+                setNewSectionName('');
+              }}
+              className="h-10 w-10 p-0"
+              disabled={isSavingSection}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div 
+        className="relative border-2 border-dashed border-gray-200 rounded-lg p-6 mb-8 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+        onClick={() => setIsCreatingSection(true)}
+      >
+        <div className="flex items-center justify-center text-gray-500">
+          <PlusIcon className="h-6 w-6 mr-2" />
+          <span>Añadir nueva sección</span>
         </div>
       </div>
     );
@@ -862,22 +919,18 @@ export default function CreatePageWithSections() {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-3 mb-6">
           <TabsTrigger value="details" className="flex items-center">
             <FileTextIcon className="h-4 w-4 mr-2" />
             <span>Detalles</span>
-          </TabsTrigger>
-          <TabsTrigger value="sections" className="flex items-center">
-            <LayoutIcon className="h-4 w-4 mr-2" />
-            <span>Secciones</span>
           </TabsTrigger>
           <TabsTrigger value="seo" className="flex items-center">
             <SearchIcon className="h-4 w-4 mr-2" />
             <span>SEO</span>
           </TabsTrigger>
-          <TabsTrigger value="editor" disabled={!editingSectionId} className="flex items-center">
-            <PencilIcon className="h-4 w-4 mr-2" />
-            <span>Editor de sección</span>
+          <TabsTrigger value="sections" className="flex items-center">
+            <LayoutIcon className="h-4 w-4 mr-2" />
+            <span>Secciones</span>
           </TabsTrigger>
         </TabsList>
         
@@ -991,66 +1044,7 @@ export default function CreatePageWithSections() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
-        {/* Sections Tab */}
-        <TabsContent value="sections" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Secciones de la página</CardTitle>
-              <CardDescription>
-                Añade y organiza secciones para construir tu página.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pageSections.length > 0 ? (
-                <div className="space-y-4">
-                  {pageSections.map((section, index) => 
-                    renderSectionPreview(section, index)
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
-                  <LayoutIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No hay secciones todavía</h3>
-                  <p className="text-gray-500 mb-4">Añade secciones para construir el contenido de tu página</p>
-                </div>
-              )}
-              
-              <div className="flex gap-2 mt-6">
-                <Button 
-                  onClick={() => setShowAddSectionDialog(true)}
-                  className="flex-1"
-                  variant="outline"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Añadir sección existente
-                </Button>
-                
-                <Button 
-                  onClick={() => setShowCreateSectionDialog(true)}
-                  className="flex-1"
-                  variant="default"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Crear nueva sección
-                </Button>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setActiveTab('details')}>
-                Volver a Detalles
-              </Button>
-              <Button 
-                variant="default" 
-                onClick={handleSavePage}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Guardando...' : 'Guardar página'}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
+
         {/* SEO Tab */}
         <TabsContent value="seo" className="space-y-6">
           <Card>
@@ -1143,20 +1137,50 @@ export default function CreatePageWithSections() {
           </Card>
         </TabsContent>
         
-        {/* Section Editor Tab */}
-        <TabsContent value="editor" className="space-y-6">
-          {editingSectionId && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Editar sección</CardTitle>
-                <CardDescription>
-                  {pageSections.find(s => s.sectionId === editingSectionId)?.name || editingSectionId}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* Sections Tab */}
+        <TabsContent value="sections" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Secciones de la página</CardTitle>
+                  <CardDescription>
+                    {editingSectionId ? 'Edita los componentes de la sección' : 'Añade y organiza secciones para construir tu página.'}
+                  </CardDescription>
+                </div>
+                {editingSectionId ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingSectionId(null);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                    <span>Vista previa</span>
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      if (pageSections.length > 0) {
+                        setEditingSectionId(pageSections[0].sectionId);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                    disabled={pageSections.length === 0}
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                    <span>Editar sección</span>
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {editingSectionId ? (
                 <div className="bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-lg">
                   <div className="text-center text-gray-500 mb-4 text-sm">
-                    🖋️ Modo de edición - Edita los componentes de la sección
+                    🖋️ Modo de edición - {pageSections.find(s => s.sectionId === editingSectionId)?.name || editingSectionId}
                   </div>
                   
                   <div className="bg-white rounded-lg shadow-sm p-6">
@@ -1167,35 +1191,68 @@ export default function CreatePageWithSections() {
                       autoSave={false}
                     />
                   </div>
+                  
+                  <div className="mt-6 flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingSectionId(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      variant="default"
+                      onClick={handleSaveSectionChanges}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        'Guardar cambios'
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
+              ) : (
+                <>
+                  {pageSections.length > 0 ? (
+                    <div className="space-y-4">
+                      {pageSections.map((section, index) => 
+                        renderSectionPreview(section, index)
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                      <LayoutIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">No hay secciones todavía</h3>
+                      <p className="text-gray-500 mb-4">Añade secciones para construir el contenido de tu página</p>
+                    </div>
+                  )}
+                  
+                  {/* New section creation UI */}
+                  {renderNewSectionUI()}
+                </>
+              )}
+            </CardContent>
+            {!editingSectionId && (
               <CardFooter className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setEditingSectionId(null);
-                    setActiveTab('sections');
-                  }}
-                >
-                  Cancelar
+                <Button variant="outline" onClick={() => setActiveTab('details')}>
+                  Volver a Detalles
                 </Button>
                 <Button 
-                  variant="default"
-                  onClick={handleSaveSectionChanges}
+                  variant="default" 
+                  onClick={handleSavePage}
                   disabled={isSaving}
                 >
-                  {isSaving ? (
-                    <>
-                      <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
-                      <span>Guardando...</span>
-                    </>
-                  ) : (
-                    'Guardar cambios'
-                  )}
+                  {isSaving ? 'Guardando...' : 'Guardar página'}
                 </Button>
               </CardFooter>
-            </Card>
-          )}
+            )}
+          </Card>
         </TabsContent>
       </Tabs>
       
@@ -1301,65 +1358,6 @@ export default function CreatePageWithSections() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Create Section Dialog */}
-      <Dialog open={showCreateSectionDialog} onOpenChange={setShowCreateSectionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear nueva sección</DialogTitle>
-            <DialogDescription>
-              Crea una nueva sección vacía que podrás editar después
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="newSectionName">Nombre de la sección</Label>
-              <Input
-                id="newSectionName"
-                value={newSectionName}
-                onChange={(e) => setNewSectionName(e.target.value)}
-                placeholder="Ej: Banner Principal"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="newSectionDescription">Descripción (opcional)</Label>
-              <Textarea
-                id="newSectionDescription"
-                value={newSectionDescription}
-                onChange={(e) => setNewSectionDescription(e.target.value)}
-                placeholder="Breve descripción de la sección"
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowCreateSectionDialog(false);
-                setNewSectionName('');
-                setNewSectionDescription('');
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleCreateSection}
-              disabled={isCreatingSection || !newSectionName.trim()}
-            >
-              {isCreatingSection ? (
-                <>
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
-                  <span>Creando...</span>
-                </>
-              ) : 'Crear sección'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 
