@@ -511,108 +511,119 @@ export default function UserManagementPage() {
                   <span className="text-sm text-gray-500">
                     Showing {filteredUsers.length} of {users.length} users
                   </span>
-                  <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        <UserPlusIcon className="h-4 w-4" />
-                        Add User
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New User</DialogTitle>
-                        <DialogDescription>
-                          Create a new user account in the system.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleAddUser}>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={() => router.push(`/${params.locale}/admin/roles`)}
+                    >
+                      <ShieldIcon className="h-4 w-4" />
+                      Manage Roles
+                    </Button>
+                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                          <UserPlusIcon className="h-4 w-4" />
+                          Add User
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New User</DialogTitle>
+                          <DialogDescription>
+                            Create a new user account in the system.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleAddUser}>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="firstName">First Name</Label>
+                                <Input
+                                  id="firstName"
+                                  name="firstName"
+                                  value={formData.firstName}
+                                  onChange={handleInputChange}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="lastName">Last Name</Label>
+                                <Input
+                                  id="lastName"
+                                  name="lastName"
+                                  value={formData.lastName}
+                                  onChange={handleInputChange}
+                                  required
+                                />
+                              </div>
+                            </div>
                             <div className="space-y-2">
-                              <Label htmlFor="firstName">First Name</Label>
+                              <Label htmlFor="email">Email</Label>
                               <Input
-                                id="firstName"
-                                name="firstName"
-                                value={formData.firstName}
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email}
                                 onChange={handleInputChange}
                                 required
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="lastName">Last Name</Label>
+                              <Label htmlFor="password">Password</Label>
                               <Input
-                                id="lastName"
-                                name="lastName"
-                                value={formData.lastName}
+                                id="password"
+                                name="password"
+                                type="password"
+                                value={formData.password}
                                 onChange={handleInputChange}
                                 required
                               />
                             </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="phoneNumber">Phone Number</Label>
+                              <Input
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleInputChange}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="role">Role</Label>
+                              <Select 
+                                value={formData.role} 
+                                onValueChange={handleRoleChange}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="USER">User</SelectItem>
+                                  <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                                  <SelectItem value="MANAGER">Manager</SelectItem>
+                                  <SelectItem value="ADMIN">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                              id="password"
-                              name="password"
-                              type="password"
-                              value={formData.password}
-                              onChange={handleInputChange}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phoneNumber">Phone Number</Label>
-                            <Input
-                              id="phoneNumber"
-                              name="phoneNumber"
-                              value={formData.phoneNumber}
-                              onChange={handleInputChange}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Select 
-                              value={formData.role} 
-                              onValueChange={handleRoleChange}
+                          <DialogFooter>
+                            <Button 
+                              variant="outline" 
+                              type="button" 
+                              onClick={handleCancelAdd}
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="USER">User</SelectItem>
-                                <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                                <SelectItem value="MANAGER">Manager</SelectItem>
-                                <SelectItem value="ADMIN">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button 
-                            variant="outline" 
-                            type="button" 
-                            onClick={handleCancelAdd}
-                          >
-                            Cancel
-                          </Button>
-                          <Button type="submit" disabled={createLoading}>
-                            {createLoading ? "Creating..." : "Create User"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                              Cancel
+                            </Button>
+                            <Button type="submit" disabled={createLoading}>
+                              {createLoading ? "Creating..." : "Create User"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             </CardContent>

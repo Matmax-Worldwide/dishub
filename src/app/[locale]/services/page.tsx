@@ -1,5 +1,5 @@
 import { getDictionary, Locale, locales, Dictionary } from '../../i18n';
-import Navbar from '../../../components/Navbar';
+import Navbar from '../../../components/Navigation/Navbar';
 import Footer from '../../../components/Footer';
 import { 
   BeakerIcon, 

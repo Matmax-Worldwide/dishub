@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Navbar from '../../components/Navbar';
+import Navbar from '../../components/Navigation/Navbar';
 import Benefits from '../../components/Benefits';
 import Footer from '../../components/Footer';
 import CopyrightFooter from '../../components/CopyrightFooter';

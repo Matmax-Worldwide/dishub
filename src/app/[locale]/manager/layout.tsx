@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { DashboardSidebar } from '@/components/Navigation/DashboardSidebar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ShieldIcon, ArrowLeftIcon } from 'lucide-react';

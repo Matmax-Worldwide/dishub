@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Navbar from './Navbar';
+import Navbar from './Navigation/Navbar';
 import Hero from './Hero';
 import Benefits from './Benefits';
 import Contact from './Contact';

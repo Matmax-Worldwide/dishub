@@ -18,7 +18,6 @@ import {
   MessageSquareIcon,
   ClipboardListIcon,
   BarChartIcon,
-  ShieldIcon,
   UserPlusIcon,
   LineChartIcon,
   LockIcon,
@@ -322,10 +321,10 @@ export function DashboardSidebar() {
       permissions: ['users:read']
     },
     {
-      name: t('sidebar.roleManagement'),
-      href: `/${params.locale}/admin/roles`,
-      icon: ShieldIcon,
-      permissions: ['roles:read']
+      name: t('sidebar.externalLinks'),
+      href: `/${params.locale}/admin/external-links`,
+      icon: LinkIcon,
+      permissions: ['admin:view']
     },
     { 
       name: t('sidebar.bookNow'), 
@@ -333,12 +332,6 @@ export function DashboardSidebar() {
       icon: CalendarIcon,
       disabled: true,
       locked: true
-    },
-    {
-      name: t('sidebar.externalLinks'),
-      href: `/${params.locale}/admin/external-links`,
-      icon: LinkIcon,
-      permissions: ['admin:view']
     },
   ];
 
@@ -356,13 +349,6 @@ export function DashboardSidebar() {
       icon: UsersIcon,
       permissions: ['staff:view', 'staff:manage']
     },
-    // {
-    //   name: t('sidebar.approveRequests'),
-    //   href: `/${params.locale}/manager/approvals`,
-    //   icon: ClipboardListIcon,
-    //   permissions: ['approvals:manage']
-    // },
-    
   ];
 
   const designNavigationItems: NavItem[] = [
@@ -419,7 +405,6 @@ export function DashboardSidebar() {
       MessageSquareIcon,
       ClipboardListIcon,
       BarChartIcon,
-      ShieldIcon,
       UserPlusIcon,
       LineChartIcon,
       LockIcon,
@@ -685,79 +670,10 @@ export function DashboardSidebar() {
     
     return (
       <>
-        {/* Admin items */}
-        {showAsAdmin && (
-          <>
-            <div className="mb-2">
-              <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.administration')}
-              </h3>
-            </div>
-            {adminNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
-            
-            {/* Manager items for admins too */}
-            <div className="mt-4 border-t pt-4 mb-2">
-              <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.management')}
-              </h3>
-            </div>
-            {managerNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
 
-            {/* Design section for admins */}
-            <div className="mt-4 border-t pt-4 mb-2">
-              <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.design')}
-              </h3>
-            </div>
-            {designNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
             
             {/* User section for admins */}
-            <div className="mt-4 border-t pt-4">
+            <div className="pb-4">
               <button 
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -794,6 +710,78 @@ export function DashboardSidebar() {
                 </div>
               )}
             </div>
+        {/* Admin items */}
+        {showAsAdmin && (
+          <>
+
+            {/* Manager items for admins too */}
+            <div className="mt-4 border-t pt-4 mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.management')}
+              </h3>
+            </div>
+            {managerNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+
+
+<div className="mb-2 mt-4">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.administration')}
+              </h3>
+            </div>
+            {adminNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+            
+            {/* Design section for admins */}
+            <div className="mt-4 border-t pt-4 mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.design')}
+              </h3>
+            </div>
+            {designNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
           </>
         )}
         
