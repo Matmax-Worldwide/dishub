@@ -60,56 +60,118 @@ export default function CMSPage() {
     // Reset scroll position when the page loads
     window.scrollTo(0, 0);
     
-    const handleResize = () => {
-      // Adjust any height-based calculations if needed
-      const vh = window.innerHeight;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    // Initialize component index tracking
+    let activeComponentIndex = 0;
+    
+    // Create a map of all component elements for navigation
+    const componentElementsMap = new Map();
+    
+    // Collect all TikTok-style scrollable components (Hero, Benefit)
+    const updateComponentsMap = () => {
+      // Clear the map first
+      componentElementsMap.clear();
+      
+      // Find all component elements and map them
+      let index = 0;
+      
+      // For each section, find its components
+      sections.forEach((section, sectionIndex) => {
+        const sectionElement = document.getElementById(`section-${sectionIndex}`);
+        if (!sectionElement) return;
+        
+        // Get all components in this section
+        const componentElements = Array.from(sectionElement.querySelectorAll('[data-component-type]'));
+        
+        // Filter and keep only full-height components (Hero and Benefit)
+        const scrollableComponents = componentElements.filter(comp => {
+          const type = comp.getAttribute('data-component-type')?.toLowerCase();
+          return type === 'hero' || type === 'benefit';
+        });
+        
+        // Add them to our map
+        scrollableComponents.forEach(comp => {
+          componentElementsMap.set(index, comp);
+          index++;
+        });
+      });
+      
+      return index; // Return total count
     };
     
-    // Call once on mount
+    // Set up the initial component map
+    const totalComponents = updateComponentsMap();
+    
+    // Handle wheel event to precisely control scrolling component by component
+    const handleWheel = (e: WheelEvent) => {
+      // Don't interrupt an ongoing scroll
+      if (isScrolling.current) {
+        e.preventDefault();
+        return;
+      }
+      
+      // Determine scroll direction
+      const isScrollingDown = e.deltaY > 0;
+      
+      // Only respond to significant scroll movements
+      // This prevents accidental scrolling with trackpads
+      if (Math.abs(e.deltaY) < 10) return;
+      
+      // Calculate the target component
+      const targetComponentIndex = isScrollingDown
+        ? Math.min(activeComponentIndex + 1, totalComponents - 1)
+        : Math.max(activeComponentIndex - 1, 0);
+      
+      // Only do something if we're actually moving to a different component
+      if (targetComponentIndex !== activeComponentIndex) {
+        // Prevent default scrolling
+        e.preventDefault();
+        
+        // Mark that we're in a scrolling transition
+        isScrolling.current = true;
+        
+        // Get the target component element
+        const targetElement = componentElementsMap.get(targetComponentIndex);
+        
+        if (targetElement) {
+          // Scroll to the component with smooth behavior
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          // Update active component index
+          activeComponentIndex = targetComponentIndex;
+        }
+        
+        // Reset scrolling flag after animation completes
+        setTimeout(() => {
+          isScrolling.current = false;
+        }, 1000);
+      }
+    };
+    
+    // Add wheel event listener with passive: false to allow preventDefault
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    // Add resize handler to update the component map if the layout changes
+    const handleResize = () => {
+      // Adjust any height-based calculations
+      const vh = window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      
+      // Rebuild the component map in case anything changed
+      updateComponentsMap();
+    };
+    
+    // Initial call
     handleResize();
     
     // Add resize listener
     window.addEventListener('resize', handleResize);
     
-    // Add indicators based on scroll position
-    const handleScroll = () => {
-      // Get all section elements
-      const sectionElements = Array.from(document.querySelectorAll('section[data-section-id]'));
-      
-      // Calculate the viewport height
-      const viewportHeight = window.innerHeight;
-      
-      // Determine which section is most visible in the viewport
-      let currentSection = 0;
-      let maxVisibility = 0;
-      
-      sectionElements.forEach((section, index) => {
-        const rect = section.getBoundingClientRect();
-        
-        // Calculate how much of the section is visible in the viewport
-        const visibleHeight = Math.min(
-          rect.bottom, 
-          viewportHeight
-        ) - Math.max(rect.top, 0);
-        
-        // If this section has more visible area than previous max, select it
-        if (visibleHeight > maxVisibility) {
-          maxVisibility = visibleHeight;
-          currentSection = index;
-        }
-      });
-      
-      if (!isScrolling.current) {
-        setActiveSection(currentSection);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
     return () => {
       document.body.style.overflow = '';
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('resize', handleResize);
     };
   }, [pageData, sections.length]);
@@ -121,14 +183,12 @@ export default function CMSPage() {
       if (isScrolling.current) return;
       isScrolling.current = true;
       
-      // Find components rather than sections
-      const componentElements = document.querySelectorAll('[data-component-type]');
+      // Find the section by ID
+      const sectionElement = document.getElementById(`section-${activeSection}`);
       
-      if (componentElements && componentElements.length > activeSection) {
-        const component = componentElements[activeSection];
-        
-        // Scroll to the component with smooth behavior
-        component.scrollIntoView({
+      if (sectionElement) {
+        // Scroll to the section with smooth behavior
+        sectionElement.scrollIntoView({
           behavior: 'smooth',
           block: 'start'
         });
@@ -152,19 +212,35 @@ export default function CMSPage() {
       
       if ((e.key === 'ArrowDown' || e.key === 'PageDown') && activeSection < sections.length - 1) {
         isScrolling.current = true;
-        setActiveSection(prev => Math.min(prev + 1, sections.length - 1));
+        const nextSection = document.getElementById(`section-${activeSection + 1}`);
+        if (nextSection) {
+          nextSection.scrollIntoView({ behavior: 'smooth' });
+          setActiveSection(prev => Math.min(prev + 1, sections.length - 1));
+        }
         setTimeout(() => { isScrolling.current = false; }, 800);
       } else if ((e.key === 'ArrowUp' || e.key === 'PageUp') && activeSection > 0) {
         isScrolling.current = true;
-        setActiveSection(prev => Math.max(prev - 1, 0));
+        const prevSection = document.getElementById(`section-${activeSection - 1}`);
+        if (prevSection) {
+          prevSection.scrollIntoView({ behavior: 'smooth' });
+          setActiveSection(prev => Math.max(prev - 1, 0));
+        }
         setTimeout(() => { isScrolling.current = false; }, 800);
       } else if (e.key === 'Home') {
         isScrolling.current = true;
-        setActiveSection(0);
+        const firstSection = document.getElementById('section-0');
+        if (firstSection) {
+          firstSection.scrollIntoView({ behavior: 'smooth' });
+          setActiveSection(0);
+        }
         setTimeout(() => { isScrolling.current = false; }, 800);
       } else if (e.key === 'End') {
         isScrolling.current = true;
-        setActiveSection(sections.length - 1);
+        const lastSection = document.getElementById(`section-${sections.length - 1}`);
+        if (lastSection) {
+          lastSection.scrollIntoView({ behavior: 'smooth' });
+          setActiveSection(sections.length - 1);
+        }
         setTimeout(() => { isScrolling.current = false; }, 800);
       }
     };
@@ -485,14 +561,14 @@ export default function CMSPage() {
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
   
-  // Apply section styles
+  // Apply section styles - for LANDING, make the section a container for scroll snapping
   const sectionClassName = pageData?.pageType === 'LANDING' 
-    ? "w-full snap-start" // La sección tendrá el ancho completo pero no altura fija
+    ? "w-full h-auto flex flex-col items-center justify-start overflow-hidden" // Allow height to accommodate all components
     : "cms-section w-full";
     
   // Apply container style for smooth scroll
   const containerClassName = pageData?.pageType === 'LANDING'
-    ? "w-full overflow-x-hidden scroll-smooth"
+    ? "w-full h-screen overflow-x-hidden overflow-y-auto scroll-smooth snap-y snap-mandatory"
     : "flex-1 flex flex-col";
     
   // Return the component
@@ -509,6 +585,32 @@ export default function CMSPage() {
       <main className={containerClassName}>
         {sections.length > 0 ? (
           <>
+            {/* Section Navigation Indicators for LANDING pages */}
+            {pageData.pageType === 'LANDING' && sections.length > 1 && (
+              <div className="fixed right-5 top-1/2 transform -translate-y-1/2 z-50 flex flex-col gap-2">
+                {sections.map((section, index) => (
+                  <button
+                    key={`nav-${section.id}`}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      activeSection === index 
+                        ? 'bg-primary w-4 h-4' 
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Navigate to section ${index + 1}`}
+                    onClick={() => {
+                      isScrolling.current = true;
+                      const targetSection = document.getElementById(`section-${index}`);
+                      if (targetSection) {
+                        targetSection.scrollIntoView({ behavior: 'smooth' });
+                        setActiveSection(index);
+                      }
+                      setTimeout(() => { isScrolling.current = false; }, 800);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
             {sections.map((section, index) => (
               <div 
                 key={section.id} 
@@ -520,16 +622,31 @@ export default function CMSPage() {
                   if (el) sectionRefs.current[index] = el;
                 }}
               >
+                {/* Add gradient transitions for LANDING pages */}
+                {pageData.pageType === 'LANDING' && (
+                  <>
+                    {/* Reduced or eliminated transitional elements for cleaner TikTok-style scrolling */}
+                  </>
+                )}
                 {section.components.length > 0 ? (
-                  <SectionManager 
-                    initialComponents={section.components.map(comp => ({
-                      id: comp.id,
-                      // Convert component types like 'hero' to 'Hero' for SectionManager
-                      type: formatComponentType(comp.type),
-                      data: comp.data || {}
-                    }))}
-                    isEditing={false}
-                  />
+                  <div className={pageData.pageType === 'LANDING' ? 'w-full flex flex-col snap-y snap-mandatory' : 'w-full'}>
+                    <SectionManager 
+                      initialComponents={section.components.map(comp => ({
+                        id: comp.id,
+                        // Convert component types like 'hero' to 'Hero' for SectionManager
+                        type: formatComponentType(comp.type),
+                        data: comp.data || {}
+                      }))}
+                      isEditing={false}
+                      componentClassName={(type: string) => {
+                        const isHeroOrBenefit = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit';
+                        
+                        return pageData.pageType === 'LANDING' && isHeroOrBenefit
+                          ? 'min-h-screen h-screen snap-center flex items-center justify-center relative w-full'
+                          : `w-full component-${type.toLowerCase()}`;
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
                     <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
