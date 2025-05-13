@@ -167,7 +167,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       setTimeout(async () => {
         try {
           console.log('[SectionsTab] 💾 Guardando componente sin recargar...');
-          await sectionRef.current?.saveChanges();
+          await sectionRef.current?.saveChanges(true);
           console.log('[SectionsTab] ✅ Componente guardado exitosamente');
           // No llamamos a onRefreshView() para evitar la recarga completa
         } catch (error) {

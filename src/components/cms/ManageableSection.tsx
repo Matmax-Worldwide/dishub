@@ -33,7 +33,7 @@ interface ManageableSectionProps {
 
 // Definir la interfaz para el handle del ref
 interface ManageableSectionHandle {
-  saveChanges: () => Promise<void>;
+  saveChanges: (skipLoadingState?: boolean) => Promise<void>;
 }
 
 const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionProps>(({
@@ -54,6 +54,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('split');
   // Track if there are unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // Track device preview mode (desktop or mobile)
+  const [devicePreview, setDevicePreview] = useState<'desktop' | 'mobile'>('desktop');
   // Reference to track component change debounce timeout
   const componentChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Reference to track when we're editing to prevent focus loss
@@ -87,9 +89,9 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
   // Expose saveChanges method to parent component
   useImperativeHandle(ref, () => ({
-    saveChanges: async () => {
+    saveChanges: async (skipLoadingState = false) => {
       // Devolver la promesa para que el componente padre pueda manejar el resultado
-      return handleSave(pendingComponents);
+      return handleSave(pendingComponents, skipLoadingState);
     }
   }), [pendingComponents]);
 
@@ -262,10 +264,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   }, []);
 
   // Save components to the server - memoizado para evitar recreaciones
-  const handleSave = useCallback(async (componentsToSave: Component[]): Promise<void> => {
+  const handleSave = useCallback(async (componentsToSave: Component[], skipLoadingState = false): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        setIsLoading(true);
+        // Only show loading state if not skipped
+        if (!skipLoadingState) {
+          setIsLoading(true);
+        }
         setIsSaving(true);
         
         // Log de diagnóstico
@@ -629,24 +634,77 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 
                 {/* Browser-like container for preview */}
                 <div className={`${viewMode === 'split' ? 'pl-1' : ''}`}>
-                  <div className="bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden">
+                  <div className={`bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden transition-all duration-300 ${devicePreview === 'mobile' ? 'max-w-[375px] mx-auto' : 'w-full'}`}>
                     {/* Browser header */}
-                    <div className="bg-muted/20 border-b border-muted/30 px-3 py-2 flex items-center">
-                      <div className="flex space-x-1.5 mr-3">
-                        <div className="w-3 h-3 rounded-full bg-red-400/60"></div>
-                        <div className="w-3 h-3 rounded-full bg-amber-400/60"></div>
-                        <div className="w-3 h-3 rounded-full bg-green-400/60"></div>
-                      </div>
-                      <div className="flex-1 bg-background/80 text-xs text-center py-1 px-3 rounded-full truncate text-muted-foreground">
-                        Vista previa de página
+                    <div className="bg-muted/20 border-b border-muted/30 px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="flex space-x-1.5 mr-3">
+                            <div className="w-3 h-3 rounded-full bg-red-400/60"></div>
+                            <div className="w-3 h-3 rounded-full bg-amber-400/60"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-400/60"></div>
+                          </div>
+                          <div className="flex-1 bg-background/80 text-xs py-1 px-3 rounded-full truncate text-muted-foreground">
+                            Vista previa de página
+                          </div>
+                        </div>
+                        
+                        {/* Device preview switcher */}
+                        <div className="flex items-center bg-background/80 p-0.5 rounded-full">
+                          <button 
+                            onClick={() => setDevicePreview('desktop')}
+                            className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
+                              devicePreview === 'desktop' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            title="Vista de escritorio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                              <line x1="8" y1="21" x2="16" y2="21"></line>
+                              <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <span className="ml-1">Escritorio</span>
+                          </button>
+                          <button 
+                            onClick={() => setDevicePreview('mobile')}
+                            className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
+                              devicePreview === 'mobile' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            title="Vista móvil"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                              <line x1="12" y1="18" x2="12" y2="18.01"></line>
+                            </svg>
+                            <span className="ml-1">Móvil</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Page preview content */}
-                    <div className="p-4 bg-white">
-                      <MemoizedPreviewSectionManager 
-                        components={pendingComponents}
-                      />
+                    {/* Page preview content with device simulation frame */}
+                    <div className={`bg-white ${devicePreview === 'mobile' ? 'p-2' : 'p-4'}`}>
+                      <div className={devicePreview === 'mobile' ? 'overflow-hidden rounded-md border border-muted/30' : ''}>
+                        {devicePreview === 'mobile' && (
+                          <div className="h-4 bg-muted/20 border-b border-muted/30 flex justify-center items-center">
+                            <div className="w-16 h-1 rounded-full bg-muted-foreground/20"></div>
+                          </div>
+                        )}
+                        <div className={devicePreview === 'mobile' ? 'scale-[0.85] transform-gpu origin-top p-2' : ''}>
+                          <MemoizedPreviewSectionManager 
+                            components={pendingComponents}
+                          />
+                        </div>
+                        {devicePreview === 'mobile' && (
+                          <div className="h-6 bg-muted/20 border-t border-muted/30 flex justify-center items-center">
+                            <div className="w-8 h-1 rounded-full bg-muted-foreground/20"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

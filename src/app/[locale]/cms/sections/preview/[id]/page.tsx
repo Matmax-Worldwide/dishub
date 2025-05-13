@@ -313,7 +313,6 @@ export default function PreviewSectionPage() {
             ref={sectionRef}
             sectionId={sectionId}
             isEditing={isEditing}
-            autoSave={false}
             onComponentsChange={handleComponentsChange}
           />
         </div>

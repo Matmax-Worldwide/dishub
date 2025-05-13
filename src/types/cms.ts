@@ -69,5 +69,5 @@ export interface NotificationType {
 }
 
 export interface ManageableSectionHandle {
-  saveChanges: () => Promise<void>;
+  saveChanges: (skipLoadingState?: boolean) => Promise<void>;
 } 

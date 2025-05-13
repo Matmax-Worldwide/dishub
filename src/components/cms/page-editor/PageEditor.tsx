@@ -438,7 +438,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       if (sectionRef.current && pageSections.length > 0) {
         console.log(`Guardando componentes para la sección: ${pageSections[0]?.sectionId}`);
         try {
-          await sectionRef.current.saveChanges();
+          await sectionRef.current.saveChanges(false);
           console.log('Componentes guardados exitosamente');
         } catch (error) {
           console.error('Error al guardar componentes de la sección:', error);
@@ -446,15 +446,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         }
       }
       
-      console.log('Preparando datos para actualizar página...');
-      console.log('Secciones a guardar:', JSON.stringify(pageSections.map(s => ({
-        id: s.id,
-        sectionId: s.sectionId,
-        name: s.name,
-        order: s.order
-      })), null, 2));
-      
-      // MODIFIED: Skip actual page update
       console.log('La página no será actualizada según lo solicitado');
       
       // Simulate success after a short delay
