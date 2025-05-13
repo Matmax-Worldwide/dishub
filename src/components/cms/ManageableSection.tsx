@@ -148,17 +148,21 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             // Restore component title if it exists in data
             const componentTitle = comp.data?.componentTitle as string || null;
             
+            // Store this in the component data if it exists
+            if (componentTitle) {
+              comp.data = { ...comp.data, componentTitle };
+            }
+            
             const mappedComponent = {
               id: comp.id,
               type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit', // Tipo específico
               data: comp.data || {},
-              title: componentTitle || undefined
             } as Component;
             
             console.log(`✅ [${loadId}] Componente mapeado:`, {
               id: mappedComponent.id,
               type: mappedComponent.type,
-              title: mappedComponent.title || componentTitle
+              title: mappedComponent.data.componentTitle
             });
             
             return mappedComponent;
@@ -209,17 +213,17 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         }
         
         componentChangeTimeoutRef.current = setTimeout(() => {
-          cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
-            .then(result => {
-              if (result.success) {
-                console.log('Section name updated in database successfully');
-              } else {
-                console.error('Failed to update section name in database:', result.message);
-              }
-            })
-            .catch(error => {
-              console.error('Error updating section name in database:', error);
-            });
+        cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
+          .then(result => {
+            if (result.success) {
+              console.log('Section name updated in database successfully');
+            } else {
+              console.error('Failed to update section name in database:', result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating section name in database:', error);
+          });
         }, 500);
       }
     }
@@ -278,7 +282,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           if (!document.activeElement || 
               !document.activeElement.tagName || 
               !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
-            isEditingComponentRef.current = false;
+          isEditingComponentRef.current = false;
           }
         }, 500);
       }, 800); // Increased from 500ms to 800ms to reduce interruptions
@@ -321,11 +325,9 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           }
           
           // Make sure the component title is in the data
-          if (processedComponent.title) {
-            processedComponent.data.componentTitle = processedComponent.title;
-          } else if (processedComponent.data.componentTitle) {
-            // If no title exists but data.componentTitle does, use that
-            processedComponent.title = processedComponent.data.componentTitle as string;
+          if (processedComponent.data.componentTitle) {
+            // If componentTitle already exists, keep it
+            processedComponent.data.componentTitle = processedComponent.data.componentTitle;
           }
           
           return processedComponent;
@@ -388,8 +390,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         
         // Desactivar estado de carga
         setIsLoading(false);
-        
-        resolve();
+          
+          resolve();
       } catch (error) {
         console.error('Error al guardar sección:', error);
         setIsLoading(false);

@@ -978,15 +978,19 @@ export const cmsOperations = {
     lastUpdated: string | null 
   }> => {
     try {
-      // Ensure all components have an ID
+      // Ensure all components have an ID and remove any 'title' properties
+      // since the GraphQL schema doesn't accept 'title' in ComponentInput
       const validComponents = components.map(comp => {
-        if (!comp.id) {
-          return {
-            ...comp,
-            id: crypto.randomUUID() // Generate a UUID for components without ID
-          };
-        }
-        return comp;
+        // Ensure component has an ID
+        const componentWithId = !comp.id 
+          ? { ...comp, id: crypto.randomUUID() } 
+          : comp;
+        
+        // Remove 'title' property if it exists
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { title, ...componentWithoutTitle } = componentWithId as { title?: string } & CMSComponent;
+        
+        return componentWithoutTitle;
       });
       
       const mutation = `

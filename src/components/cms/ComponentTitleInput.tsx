@@ -1,16 +1,11 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { cmsOperations } from '@/lib/graphql-client';
-
-// Type definition for component types
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
 
 interface ComponentTitleInputProps {
   componentId: string;
   initialTitle: string | undefined;
   componentType: string;
-  onRemove: (id: string) => void;
 }
 
 export default function ComponentTitleInput({
@@ -35,7 +30,7 @@ export default function ComponentTitleInput({
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation();
     if (e.key === 'Enter') {
-      handleTitleSave();
+      handleSaveTitle();
     } else if (e.key === 'Escape') {
       cancelEdit();
     }
@@ -48,78 +43,32 @@ export default function ComponentTitleInput({
   };
 
   // Save the updated title with confirmation if needed
-  const handleTitleSave = () => {
-    setIsEditing(false);
-    
-    // Only show confirmation dialog if the title is actually changing from a previous value
-    if (title !== originalTitle && originalTitle && originalTitle !== componentType) {
-      setShowConfirmDialog(true);
-    } else {
-      // Apply the change without confirmation if it's a new component or minor change
-      applyTitleChange();
+  const handleSaveTitle = () => {
+    if (title.trim() === '') {
+      // Si el título está vacío, revertir al título original
+      setTitle(originalTitle);
+      setIsEditing(false);
+      return;
     }
-  };
 
-  // Apply the title change after confirmation
-  const applyTitleChange = () => {
-    // Find the section ID - look for it in the parent context or ID
-    const sectionId = document.querySelector('[data-section-id]')?.getAttribute('data-section-id');
-    
-    if (sectionId && componentId) {
-      console.log(`Updating component title in database: ${originalTitle} → ${title}`);
+    if (title !== originalTitle) {
+      // Set original title to new title
+      setOriginalTitle(title);
       
-      cmsOperations.updateComponentTitle(sectionId, componentId, title)
-        .then(result => {
-          if (result.success) {
-            console.log('Component title updated in database successfully');
-          } else {
-            console.error('Failed to update component title in database:', result.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error updating component title in database:', error);
-        });
-    } else {
-      console.warn('Could not find section ID to update component title');
+      // Dispatch event to notify SectionManager
+      const updateEvent = new CustomEvent('component:update-title', {
+        bubbles: true,
+        detail: {
+          componentId,
+          newTitle: title
+        }
+      });
+      
+      // First dispatch the event to update the component in SectionManager
+      document.dispatchEvent(updateEvent);
     }
     
-    // Use CustomEvent to update the component title without removing it
-    if (componentId) {
-      // Get the component from the DOM
-      const componentElement = document.querySelector(`[data-component-id="${componentId}"]`);
-      
-      if (componentElement) {
-        // Get all component data attributes
-        const componentData = componentElement.getAttributeNames()
-          .filter(attr => attr.startsWith('data-'))
-          .reduce((acc, attr) => {
-            acc[attr.replace('data-', '')] = componentElement.getAttribute(attr);
-            return acc;
-          }, {} as Record<string, string | null>);
-          
-        // Create a component object
-        const component = {
-          id: componentId,
-          type: componentType as ComponentType,
-          data: {
-            ...componentData,
-            componentTitle: title
-          },
-          title: title
-        };
-        
-        // Instead of removing and re-adding, just update the component in place
-        document.dispatchEvent(new CustomEvent('component:update-title', { 
-          detail: { 
-            componentId,
-            newTitle: title,
-            component
-          }
-        }));
-      }
-    }
-    
-    // Close confirmation dialog if open
+    setIsEditing(false);
     setShowConfirmDialog(false);
   };
 
@@ -141,7 +90,7 @@ export default function ComponentTitleInput({
           className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 px-3 py-1"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={handleTitleSave}
+          onBlur={handleSaveTitle}
           onKeyDown={handleTitleKeyDown}
           autoFocus
         />
@@ -186,7 +135,7 @@ export default function ComponentTitleInput({
                 Cancel
               </div>
               <div
-                onClick={applyTitleChange}
+                onClick={handleSaveTitle}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer"
               >
                 Confirm

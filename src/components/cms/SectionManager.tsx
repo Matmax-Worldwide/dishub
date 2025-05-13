@@ -15,7 +15,6 @@ export interface Component {
   id: string;
   type: ComponentType;
   data: Record<string, unknown>;
-  title?: string;
   subtitle?: string;
 }
 
@@ -173,9 +172,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
               <div className="flex items-center">
                 <ComponentTitleInput
                   componentId={component.id}
-                  initialTitle={component.title}
+                  initialTitle={component.data.componentTitle as string}
                   componentType={component.type}
-                  onRemove={onRemove}
                 />
               </div>
             </div>
@@ -238,26 +236,19 @@ function SectionManagerBase({
   const activeElementRef = useRef<Element | null>(null);
   // Estado para controlar las actualizaciones debounced de los componentes
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
-  // Reference to track component change debounce timeout
-  const componentChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
   
-  // Cache component data stringified to prevent unnecessary re-renders
+  // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
 
   // Efecto para inicializar componentes iniciales
   useEffect(() => {
-    // Solo actualizar los componentes si es una primera carga o una actualización importante
-    // pero no si solo estamos reordenando o colapsando/expandiendo
-    if (initialComponents.length > 0 && components.length === 0) {
+    if (initialComponents.length > 0) {
       setComponents(initialComponents);
-      // Always start with all components expanded
-      setCollapsedComponents(new Set());
-      setAllCollapsed(false);
     }
-  }, [initialComponents, components.length]);
-
+  }, [initialComponents]);
+  
   // Efecto para aplicar las actualizaciones debounced
   useEffect(() => {
     if (debouncedPendingUpdate) {
@@ -273,8 +264,8 @@ function SectionManagerBase({
       };
       
       // Preserve title if it exists
-      if (component.title) {
-        updatedComponent.title = component.title;
+      if (component.data.componentTitle) {
+        updatedComponent.data.componentTitle = component.data.componentTitle;
       }
       
       // Capture current collapse state to preserve it
@@ -307,6 +298,122 @@ function SectionManagerBase({
     }
   }, [debouncedPendingUpdate, collapsedComponents]);
   
+  // Crear función para añadir componente que puede ser llamada directamente o a través del evento
+  const addNewComponent = useCallback((type: ComponentType = 'Text') => {
+    // Generate unique ID
+    const newId = crypto.randomUUID();
+    
+    // Create new component with default data
+    const newComponent = {
+      id: newId,
+      type,
+      data: {
+        componentTitle: `${type} Component`
+      }
+    };
+    
+    console.log(`[SectionManager] ✨ Creando nuevo componente de tipo ${type} con ID ${newId}`);
+    
+    // Add component to state
+    setComponents(prevComponents => [...prevComponents, newComponent]);
+    
+    // Mark new component as collapsed by default
+    setCollapsedComponents(prev => {
+      const newSet = new Set(prev);
+      newSet.add(newId);
+      return newSet;
+    });
+    
+    // Notify parent of changes
+    if (onComponentsChange) {
+      setTimeout(() => {
+        // Usamos una función para obtener el estado más actualizado
+        setComponents(currentComponents => {
+          onComponentsChange(currentComponents);
+          return currentComponents;
+        });
+      }, 100);
+    }
+    
+    return newId;
+  }, [onComponentsChange]);
+  
+  // Estado para controlar la visibilidad del selector de componentes
+  const [showComponentSelector, setShowComponentSelector] = useState(false);
+  
+  // Función para cerrar el selector de componentes
+  const closeComponentSelector = useCallback(() => {
+    setShowComponentSelector(false);
+  }, []);
+  
+  // Función para abrir el selector de componentes
+  const openComponentSelector = useCallback(() => {
+    setShowComponentSelector(true);
+  }, []);
+  
+  // Función para manejar la selección de un tipo de componente
+  const handleSelectComponentType = useCallback((type: ComponentType) => {
+    addNewComponent(type);
+    closeComponentSelector();
+  }, [addNewComponent, closeComponentSelector]);
+  
+  // Escuchar el evento section:add-component-type
+  useEffect(() => {
+    const handleAddComponentType = (e: Event) => {
+      const customEvent = e as CustomEvent<{type: ComponentType}>;
+      if (customEvent.detail?.type) {
+        const componentType = customEvent.detail.type as ComponentType;
+        console.log(`[SectionManager] 🎯 Recibido evento para añadir componente tipo: ${componentType}`);
+        addNewComponent(componentType);
+      }
+    };
+    
+    document.addEventListener('section:add-component-type', handleAddComponentType);
+    return () => {
+      document.removeEventListener('section:add-component-type', handleAddComponentType);
+    };
+  }, [addNewComponent]);
+  
+  // Modificar handleClickAddComponent para mostrar el selector de componentes
+  const handleClickAddComponent = useCallback(() => {
+    console.log('[SectionManager] Solicitando diálogo para agregar componente');
+    openComponentSelector();
+  }, [openComponentSelector]);
+  
+  // Componente selector de tipo de componente
+  const ComponentSelector = () => {
+    if (!showComponentSelector) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+          <h2 className="text-lg font-semibold mb-4">Selecciona un tipo de componente</h2>
+          
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].map((type) => (
+              <button
+                key={type}
+                onClick={() => handleSelectComponentType(type as ComponentType)}
+                className="flex items-center justify-center p-3 border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors"
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          
+          <div className="flex justify-end">
+            <button
+              onClick={closeComponentSelector}
+              className="px-4 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Efecto para restaurar el foco después de actualizar componentes
   useEffect(() => {
     // Si teníamos un elemento activo, restaurar el foco después de la actualización
@@ -355,163 +462,39 @@ function SectionManagerBase({
     }
   }, [components, onComponentsChange, initialComponents]);
 
-  // Listen for component:add events to handle component re-addition
+  // Initialize components as collapsed by default
   useEffect(() => {
-    const handleComponentAdd = (e: Event) => {
-      const customEvent = e as CustomEvent<Component>;
-      if (customEvent.detail) {
-        console.log('[SectionManager] 📥 Recibido evento component:add:', customEvent.detail);
-        
-        // Verificar que el tipo de componente sea válido
-        const component = customEvent.detail;
-        if (!component.type || !['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].includes(component.type)) {
-          console.error(`[SectionManager] ❌ Tipo de componente no válido: ${component.type}`);
-          return;
-        }
-        
-        console.log(`[SectionManager] ✅ Agregando componente: ${component.id} (${component.type})`);
-        
-        // Do NOT automatically collapse components - leave them expanded
-        // setCollapsedComponents stays the same
-        
-        // Asegurar que los datos del componente tengan la estructura correcta
-        try {
-          // Attempt to deep clone the component to prevent reference issues
-          const safeComponent = JSON.parse(JSON.stringify(component));
-          
-          // Ensure the component has all required properties
-          if (!safeComponent.id) {
-            safeComponent.id = crypto.randomUUID();
-          }
-          
-          if (!safeComponent.data) {
-            safeComponent.data = {};
-          }
-          
-          // Ensure the title is preserved
-          const componentTitle = safeComponent.title || safeComponent.data?.componentTitle || `${safeComponent.type} Component`;
-          safeComponent.title = componentTitle;
-          safeComponent.data.componentTitle = componentTitle;
-          
-          setComponents(prev => {
-            // Create a shallow copy to preserve component references where possible
-            // This is important to prevent unnecessary re-renders
-            const newComponents = [...prev];
-            
-            // If component already exists with same ID, preserve its reference
-            const existingIndex = newComponents.findIndex(c => c.id === safeComponent.id);
-            if (existingIndex >= 0) {
-              // Update existing component without changing its reference
-              newComponents[existingIndex] = {
-                ...newComponents[existingIndex],
-                ...safeComponent,
-                data: { ...newComponents[existingIndex].data, ...safeComponent.data }
-              };
-            } else {
-              // Add new component
-              newComponents.push(safeComponent);
-            }
-            
-            console.log(`[SectionManager] 📊 Componentes actualizados: ${newComponents.length}`);
-            
-            // Use a timeout to prevent React batching issues and ensure
-            // the UI is updated before notifying the parent
-            if (onComponentsChange) {
-              if (componentChangeTimeoutRef.current) {
-                clearTimeout(componentChangeTimeoutRef.current);
-              }
-              
-              componentChangeTimeoutRef.current = setTimeout(() => {
-                console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
-                onComponentsChange(newComponents);
-              }, 800); // Incrementar a 800ms para evitar problemas de autoguardado demasiado rápido
-            }
-            
-            return newComponents;
-          });
-        } catch (processingError) {
-          console.error('[SectionManager] ❌ Error processing component:', processingError);
-        }
-      } else {
-        console.error('[SectionManager] ❌ Evento component:add recibido sin datos');
-      }
-    };
+    // When components are loaded initially, they should start collapsed
+    if (components.length > 0 && collapsedComponents.size === 0) {
+      // Start with all components collapsed by default
+      const allComponentIds = new Set(components.map(c => c.id));
+      setCollapsedComponents(allComponentIds);
+      setAllCollapsed(true);
+      console.log('Starting with all components collapsed');
+    }
+  }, [componentsDataString]); // Only run when component data actually changes
 
-    // Add new event listener for updating component titles
-    const handleComponentTitleUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<{
-        componentId: string;
-        newTitle: string;
-        component: Component;
-      }>;
+  // Function to collapse or expand all components
+  const handleCollapseAll = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
+    setAllCollapsed(prev => {
+      const newAllCollapsed = !prev;
       
-      if (customEvent.detail) {
-        const { componentId, newTitle } = customEvent.detail;
-        console.log(`[SectionManager] 📝 Updating title for component ${componentId}: ${newTitle}`);
-        
-        setComponents(prev => {
-          // Create a shallow copy to preserve component references
-          const newComponents = [...prev];
-          
-          // Find the component to update
-          const existingIndex = newComponents.findIndex(c => c.id === componentId);
-          if (existingIndex >= 0) {
-            // Update existing component's title without changing its reference
-            newComponents[existingIndex] = {
-              ...newComponents[existingIndex],
-              title: newTitle,
-              data: { 
-                ...newComponents[existingIndex].data, 
-                componentTitle: newTitle 
-              }
-            };
-            
-            console.log(`[SectionManager] ✅ Component title updated successfully`);
-          } else {
-            console.warn(`[SectionManager] ⚠️ Component with ID ${componentId} not found`);
-          }
-          
-          // Notify parent component of changes
-          if (onComponentsChange) {
-            if (componentChangeTimeoutRef.current) {
-              clearTimeout(componentChangeTimeoutRef.current);
-            }
-            
-            componentChangeTimeoutRef.current = setTimeout(() => {
-              console.log('[SectionManager] 🔄 Notifying parent of title change');
-              onComponentsChange(newComponents);
-            }, 500);
-          }
-          
-          return newComponents;
-        });
+      // Update collapsed components set based on new state
+      if (newAllCollapsed) {
+        // Collapse all components
+        const allComponentIds = new Set(components.map(c => c.id));
+        setCollapsedComponents(allComponentIds);
+        console.log('Collapsing all components:', [...allComponentIds]);
       } else {
-        console.error('[SectionManager] ❌ component:update-title event received without data');
+        // Expand all components
+        setCollapsedComponents(new Set());
+        console.log('Expanding all components');
       }
-    };
-
-    document.addEventListener('component:add', handleComponentAdd);
-    document.addEventListener('component:update-title', handleComponentTitleUpdate);
-    
-    return () => {
-      document.removeEventListener('component:add', handleComponentAdd);
-      document.removeEventListener('component:update-title', handleComponentTitleUpdate);
-    };
-  }, [onComponentsChange]); // Eliminar components de las dependencias para evitar re-renderizados innecesarios
-
-  // Remove a component without triggering a full re-render of the section
-  const removeComponent = useCallback((id: string) => {
-    setComponents(prevComponents => {
-      const newComponents = prevComponents.filter(comp => comp.id !== id);
-      return newComponents;
+      
+      return newAllCollapsed;
     });
-  }, []);
-
-  // Creamos una función memoizada para actualizar los componentes de forma eficiente
-  const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
-    // En lugar de actualizar inmediatamente, establecer un pendingUpdate
-    setPendingUpdate({ component, data: updatedData });
-  }, []);
+  }, [components]);
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
@@ -529,6 +512,78 @@ function SectionManagerBase({
       }
       return newSet;
     });
+    
+    // Don't update allCollapsed state when toggling individual components
+    // This keeps the behavior of each button independent
+  }, []);
+
+  // Agregar de vuelta el event listener para component:update-title
+  useEffect(() => {
+    const handleComponentTitleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        componentId: string;
+        newTitle: string;
+      }>;
+      
+      if (customEvent.detail) {
+        const { componentId, newTitle } = customEvent.detail;
+        console.log(`[SectionManager] 📝 Updating title for component ${componentId}: ${newTitle}`);
+        
+        setComponents(prev => {
+          // Create a shallow copy to preserve component references
+          const newComponents = [...prev];
+          
+          // Find the component to update
+          const existingIndex = newComponents.findIndex(c => c.id === componentId);
+          if (existingIndex !== -1) {
+            // Create a new component object to avoid reference issues
+            newComponents[existingIndex] = {
+              ...newComponents[existingIndex],
+              // Store title in data.componentTitle instead of in title property
+              data: {
+                ...newComponents[existingIndex].data,
+                componentTitle: newTitle
+              }
+            };
+            
+            console.log(`[SectionManager] ✅ Component title updated successfully`);
+          } else {
+            console.warn(`[SectionManager] ⚠️ Component with ID ${componentId} not found`);
+          }
+          
+          // Notify parent component of changes
+          if (onComponentsChange) {
+            setTimeout(() => {
+              onComponentsChange(newComponents);
+            }, 100);
+          }
+          
+          return newComponents;
+        });
+      } else {
+        console.error('[SectionManager] ❌ component:update-title event received without data');
+      }
+    };
+
+    document.addEventListener('component:update-title', handleComponentTitleUpdate);
+    
+    return () => {
+      document.removeEventListener('component:update-title', handleComponentTitleUpdate);
+    };
+  }, [onComponentsChange]);
+
+  // Remove a component without triggering a full re-render of the section
+  const removeComponent = useCallback((id: string) => {
+    setComponents(prevComponents => {
+      const newComponents = prevComponents.filter(comp => comp.id !== id);
+      return newComponents;
+    });
+  }, []);
+
+  // Creamos una función memoizada para actualizar los componentes de forma eficiente
+  const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
+    // En lugar de actualizar inmediatamente, establecer un pendingUpdate
+    setPendingUpdate({ component, data: updatedData });
   }, []);
 
   // Manejar el movimiento de componentes hacia arriba
@@ -578,38 +633,6 @@ function SectionManagerBase({
       return new Set(prev);
     });
   }, []);
-
-  // Function to collapse or expand all components
-  const handleCollapseAll = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event bubbling
-    setAllCollapsed(prev => {
-      const newAllCollapsed = !prev;
-      
-      // Update collapsed components set based on new state
-      if (newAllCollapsed) {
-        // Collapse all components
-        const allComponentIds = new Set(components.map(c => c.id));
-        setCollapsedComponents(allComponentIds);
-        console.log('Collapsing all components:', [...allComponentIds]);
-      } else {
-        // Expand all components
-        setCollapsedComponents(new Set());
-        console.log('Expanding all components');
-      }
-      
-      return newAllCollapsed;
-    });
-  }, [components]);
-
-  // Initialize components as expanded by default
-  useEffect(() => {
-    // When components change (like when loading initially or adding new ones)
-    // Components should be expanded by default, not collapsed
-    if (components.length > 0 && collapsedComponents.size === 0) {
-      // Keep components expanded
-      setAllCollapsed(false);
-    }
-  }, [components, collapsedComponents.size]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -770,8 +793,16 @@ function SectionManagerBase({
         default: {
           return (
             <div {...containerProps} className={containerClass}>
-            <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
-              <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
+              <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
+                <div className="flex-1">
+                  <span className="text-sm opacity-80">
+                    {component.type}
+                  </span>
+                  <h4 className="text-base opacity-80 font-medium line-clamp-1 mb-1">
+                    {(component.data.componentTitle as string) || `${component.type} Component`}
+                  </h4>
+                  <p className="text-warning-foreground text-sm">Componente desconocido</p>
+                </div>
               </div>
             </div>
           );
@@ -811,13 +842,6 @@ function SectionManagerBase({
   const renderedComponents = useMemo(() => {
     return components.map(component => renderComponent(component));
   }, [components, renderComponent, componentsDataString]);
-
-  // Función para activar el diálogo de agregar componente
-  const handleClickAddComponent = useCallback(() => {
-    console.log('[SectionManager] Solicitando diálogo para agregar componente');
-    // Dispatch event to notify SectionsTab to open the component dialog
-    document.dispatchEvent(new CustomEvent('section:request-add-component'));
-  }, []);
 
   return (
     <div 
@@ -882,6 +906,9 @@ function SectionManagerBase({
           </div>
         </div>
       )}
+
+      {/* Componente selector de tipo de componente */}
+      <ComponentSelector />
     </div>
   );
 }
