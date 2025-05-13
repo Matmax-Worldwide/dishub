@@ -5,14 +5,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
 import IconSelector from '@/components/cms/IconSelector';
-
-import { 
-  ShieldCheckIcon, 
-  CogIcon,
-  BoltIcon,
-  CheckBadgeIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+import * as LucideIcons from 'lucide-react';
 
 interface BenefitSectionProps {
   title: string;
@@ -26,30 +19,25 @@ interface BenefitSectionProps {
   onUpdate?: (data: Partial<BenefitSectionProps>) => void;
 }
 
-// Icon mapping helper function
+// Enhanced icon mapping function to support all Lucide icons
 const getIconByType = (iconType: string, color: string) => {
   const iconClassName = `h-16 w-16 text-[${color}]`;
   
-  switch (iconType.toLowerCase()) {
-    case 'shield':
-      return <ShieldCheckIcon className={iconClassName} />;
-    case 'cog':
-      return <CogIcon className={iconClassName} />;
-    case 'bolt':
-      return <BoltIcon className={iconClassName} />;
-    case 'check':
-      return <CheckBadgeIcon className={iconClassName} />;
-    case 'clock':
-      return <ClockIcon className={iconClassName} />;
-    default:
-      return <CheckBadgeIcon className={iconClassName} />;
+  // Check if the icon exists in LucideIcons
+  const IconComponent = LucideIcons[iconType as keyof typeof LucideIcons] as React.ElementType;
+  
+  if (IconComponent) {
+    return <IconComponent className={iconClassName} />;
   }
+  
+  // Fallback to CheckBadgeIcon if the iconType is not valid
+  return <LucideIcons.CheckCircle className={iconClassName} />;
 };
 
 const BenefitSection = React.memo(function BenefitSection({
   title,
   description,
-  iconType = 'check',
+  iconType = 'CheckCircle',
   accentColor = '#01319c',
   backgroundColor = 'from-[#ffffff] to-[#f0f9ff]',
   showGrid = true,
@@ -126,29 +114,59 @@ const BenefitSection = React.memo(function BenefitSection({
   }, [handleUpdateField]);
 
   const handleIconTypeChange = useCallback((newValue: string) => {
+    console.log(`Changing icon type from '${localIconType}' to '${newValue}'`);
     setLocalIconType(newValue);
-    handleUpdateField('iconType', newValue);
-  }, [handleUpdateField]);
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('iconType', newValue);
+    }, 50);
+  }, [handleUpdateField, localIconType]);
 
   const handleAccentColorChange = useCallback((newValue: string) => {
-    setLocalAccentColor(newValue);
-    handleUpdateField('accentColor', newValue);
-  }, [handleUpdateField]);
+    // Ensure we have a valid color format
+    let color = newValue;
+    if (!color.startsWith('#') && !/^rgb/.test(color)) {
+      color = `#${color}`;
+    }
+    
+    console.log(`Changing accent color from '${localAccentColor}' to '${color}'`);
+    setLocalAccentColor(color);
+    
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('accentColor', color);
+    }, 50);
+  }, [handleUpdateField, localAccentColor]);
 
   const handleBackgroundColorChange = useCallback((newValue: string) => {
+    console.log(`Changing background color from '${localBackgroundColor}' to '${newValue}'`);
     setLocalBackgroundColor(newValue);
-    handleUpdateField('backgroundColor', newValue);
-  }, [handleUpdateField]);
+    
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('backgroundColor', newValue);
+    }, 50);
+  }, [handleUpdateField, localBackgroundColor]);
   
   const handleShowGridChange = useCallback((newValue: boolean) => {
+    console.log(`Changing showGrid from '${localShowGrid}' to '${newValue}'`);
     setLocalShowGrid(newValue);
-    handleUpdateField('showGrid', newValue);
-  }, [handleUpdateField]);
+    
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('showGrid', newValue);
+    }, 50);
+  }, [handleUpdateField, localShowGrid]);
   
   const handleShowDotsChange = useCallback((newValue: boolean) => {
+    console.log(`Changing showDots from '${localShowDots}' to '${newValue}'`);
     setLocalShowDots(newValue);
-    handleUpdateField('showDots', newValue);
-  }, [handleUpdateField]);
+    
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('showDots', newValue);
+    }, 50);
+  }, [handleUpdateField, localShowDots]);
   
   // Clean up timeouts on unmount
   useEffect(() => {
@@ -270,7 +288,7 @@ const BenefitSection = React.memo(function BenefitSection({
                   onSelectIcon={handleIconTypeChange}
                   className="w-full"
                 />
-                <p className="text-xs text-gray-500">Select an icon for the benefit section</p>
+                <p className="text-xs text-gray-500">Select any icon from the available Lucide icons library</p>
               </div>
             </div>
             
@@ -301,6 +319,7 @@ const BenefitSection = React.memo(function BenefitSection({
                   value={localAccentColor}
                   onChange={(e) => handleAccentColorChange(e.target.value)}
                   className="h-10 w-10 rounded"
+                  id="accent-color-picker"
                 />
                 <input
                   type="text"
@@ -308,6 +327,7 @@ const BenefitSection = React.memo(function BenefitSection({
                   onChange={(e) => handleAccentColorChange(e.target.value)}
                   className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
                   placeholder="#01319c"
+                  aria-labelledby="accent-color-picker"
                 />
               </div>
             </div>

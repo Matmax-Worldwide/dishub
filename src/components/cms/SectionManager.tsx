@@ -130,54 +130,62 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     setIsEditingTitle(false);
     // Update component title on parent component if changed
     if (component.title !== componentTitle) {
-      // Store the old title for comparison
-      const oldTitle = component.title;
+      // First confirm the change with the user to prevent accidental data loss
+      const confirmMessage = `Are you sure you want to change the component title from "${component.title}" to "${componentTitle}"? This action might require refreshing components.`;
       
-      // We'll no longer update the title directly, just through data
-      // This avoids issues with the GraphQL API schema
-      
-      // Directly update the title in the database
-      if (component.id) {
-        console.log(`Updating component title in database: ${oldTitle} → ${componentTitle}`);
+      if (window.confirm(confirmMessage)) {
+        // Store the old title for comparison
+        const oldTitle = component.title;
         
-        // Find the section ID - look for it in the parent context or ID
-        const sectionId = document.querySelector('[data-section-id]')?.getAttribute('data-section-id');
+        // We'll no longer update the title directly, just through data
+        // This avoids issues with the GraphQL API schema
         
-        if (sectionId) {
-          cmsOperations.updateComponentTitle(sectionId, component.id, componentTitle)
-            .then(result => {
-              if (result.success) {
-                console.log('Component title updated in database successfully');
-              } else {
-                console.error('Failed to update component title in database:', result.message);
-              }
-            })
-            .catch(error => {
-              console.error('Error updating component title in database:', error);
-            });
-        } else {
-          console.warn('Could not find section ID to update component title');
+        // Directly update the title in the database
+        if (component.id) {
+          console.log(`Updating component title in database: ${oldTitle} → ${componentTitle}`);
+          
+          // Find the section ID - look for it in the parent context or ID
+          const sectionId = document.querySelector('[data-section-id]')?.getAttribute('data-section-id');
+          
+          if (sectionId) {
+            cmsOperations.updateComponentTitle(sectionId, component.id, componentTitle)
+              .then(result => {
+                if (result.success) {
+                  console.log('Component title updated in database successfully');
+                } else {
+                  console.error('Failed to update component title in database:', result.message);
+                }
+              })
+              .catch(error => {
+                console.error('Error updating component title in database:', error);
+              });
+          } else {
+            console.warn('Could not find section ID to update component title');
+          }
         }
+        
+        // Force an update to the component data
+        const componentCopy = { ...component };
+        onRemove(component.id);
+        
+        // Small delay to avoid React rendering issues
+        setTimeout(() => {
+          // Add the updated component back with the new title in data
+          if (!componentCopy.data) {
+            componentCopy.data = {};
+          }
+          componentCopy.data.componentTitle = componentTitle;
+          
+          // Update the title property for UI display (it won't be sent to API)
+          componentCopy.title = componentTitle;
+          
+          // This re-adding will trigger the parent's onComponentsChange
+          document.dispatchEvent(new CustomEvent('component:add', { detail: componentCopy }));
+        }, 10);
+      } else {
+        // If the user cancels, revert to the original title
+        setComponentTitle(component.title || component.type || 'Component');
       }
-      
-      // Force an update to the component data
-      const componentCopy = { ...component };
-      onRemove(component.id);
-      
-      // Small delay to avoid React rendering issues
-      setTimeout(() => {
-        // Add the updated component back with the new title in data
-        if (!componentCopy.data) {
-          componentCopy.data = {};
-        }
-        componentCopy.data.componentTitle = componentTitle;
-        
-        // Update the title property for UI display (it won't be sent to API)
-        componentCopy.title = componentTitle;
-        
-        // This re-adding will trigger the parent's onComponentsChange
-        document.dispatchEvent(new CustomEvent('component:add', { detail: componentCopy }));
-      }, 10);
     }
   };
 
@@ -319,8 +327,6 @@ function SectionManagerBase({
   componentClassName
 }: SectionManagerProps) {
   const [components, setComponents] = useState<Component[]>(initialComponents);
-  // Track if the insert hint should be shown
-  const [showInsertHint, setShowInsertHint] = useState(false);
   // Track collapsed components by ID - initialize with empty set (all expanded)
   const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
   // Add a flag to track if all components are collapsed - start with false (all expanded)
@@ -329,6 +335,8 @@ function SectionManagerBase({
   const activeElementRef = useRef<Element | null>(null);
   // Estado para controlar las actualizaciones debounced de los componentes
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
+  // Reference to track component change debounce timeout
+  const componentChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
   
@@ -405,17 +413,28 @@ function SectionManagerBase({
       // Esperar a que el DOM se actualice
       setTimeout(() => {
         if (activeElement instanceof HTMLElement) {
-          activeElement.focus();
-          
-          // Si es un input o textarea, establecer la posición del cursor al final
-          if (
-            (activeElement instanceof HTMLInputElement || 
-             activeElement instanceof HTMLTextAreaElement) && 
-            'selectionStart' in activeElement
-          ) {
-            const len = activeElement.value.length;
-            activeElement.selectionStart = len;
-            activeElement.selectionEnd = len;
+          try {
+            activeElement.focus();
+            
+            // Solo establecer la posición del cursor para inputs y textareas de texto
+            if (
+              (activeElement instanceof HTMLInputElement || 
+               activeElement instanceof HTMLTextAreaElement) && 
+              'selectionStart' in activeElement
+            ) {
+              // Verificar que el tipo de input soporte selección
+              const inputElement = activeElement as HTMLInputElement;
+              const nonSelectableTypes = ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'];
+              
+              // Solo establecer selección para tipos que lo soporten
+              if (!(inputElement.tagName === 'INPUT' && nonSelectableTypes.includes(inputElement.type))) {
+                const len = activeElement.value.length;
+                activeElement.selectionStart = len;
+                activeElement.selectionEnd = len;
+              }
+            }
+          } catch (err) {
+            console.warn('[SectionManager] Error al restaurar el foco:', err);
           }
         }
         
@@ -453,38 +472,63 @@ function SectionManagerBase({
         // setCollapsedComponents stays the same
         
         // Asegurar que los datos del componente tengan la estructura correcta
-        setComponents(prev => {
-          // Create a shallow copy to preserve component references where possible
-          // This is important to prevent unnecessary re-renders
-          const newComponents = [...prev];
+        try {
+          // Attempt to deep clone the component to prevent reference issues
+          const safeComponent = JSON.parse(JSON.stringify(component));
           
-          // If component already exists with same ID, preserve its reference
-          const existingIndex = newComponents.findIndex(c => c.id === component.id);
-          if (existingIndex >= 0) {
-            // Update existing component without changing its reference
-            newComponents[existingIndex] = {
-              ...newComponents[existingIndex],
-              ...component,
-              data: { ...newComponents[existingIndex].data, ...component.data }
-            };
-          } else {
-            // Add new component
-            newComponents.push(component);
+          // Ensure the component has all required properties
+          if (!safeComponent.id) {
+            safeComponent.id = crypto.randomUUID();
           }
           
-          console.log(`[SectionManager] 📊 Componentes actualizados: ${newComponents.length}`);
-          
-          // Use a timeout to prevent React batching issues and ensure
-          // the UI is updated before notifying the parent
-          if (onComponentsChange) {
-            window.setTimeout(() => {
-              console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
-              onComponentsChange(newComponents);
-            }, 4500); // Incrementar a 500ms para evitar problemas de autoguardado demasiado rápido
+          if (!safeComponent.data) {
+            safeComponent.data = {};
           }
           
-          return newComponents;
-        });
+          // Ensure the title is preserved
+          const componentTitle = safeComponent.title || safeComponent.data?.componentTitle || `${safeComponent.type} Component`;
+          safeComponent.title = componentTitle;
+          safeComponent.data.componentTitle = componentTitle;
+          
+          setComponents(prev => {
+            // Create a shallow copy to preserve component references where possible
+            // This is important to prevent unnecessary re-renders
+            const newComponents = [...prev];
+            
+            // If component already exists with same ID, preserve its reference
+            const existingIndex = newComponents.findIndex(c => c.id === safeComponent.id);
+            if (existingIndex >= 0) {
+              // Update existing component without changing its reference
+              newComponents[existingIndex] = {
+                ...newComponents[existingIndex],
+                ...safeComponent,
+                data: { ...newComponents[existingIndex].data, ...safeComponent.data }
+              };
+            } else {
+              // Add new component
+              newComponents.push(safeComponent);
+            }
+            
+            console.log(`[SectionManager] 📊 Componentes actualizados: ${newComponents.length}`);
+            
+            // Use a timeout to prevent React batching issues and ensure
+            // the UI is updated before notifying the parent
+            if (onComponentsChange) {
+              if (componentChangeTimeoutRef.current) {
+                clearTimeout(componentChangeTimeoutRef.current);
+              }
+              
+              componentChangeTimeoutRef.current = setTimeout(() => {
+                console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
+                onComponentsChange(newComponents);
+              }, 800); // Incrementar a 800ms para evitar problemas de autoguardado demasiado rápido
+            }
+            
+            return newComponents;
+          });
+        } catch (processingError) {
+          console.error('[SectionManager] ❌ Error processing component:', processingError);
+        }
       } else {
         console.error('[SectionManager] ❌ Evento component:add recibido sin datos');
       }
@@ -824,8 +868,6 @@ function SectionManagerBase({
         // Remove any spacing between components when not in editing mode
         !isEditing && "flex flex-col"
       )}
-      onMouseEnter={() => setShowInsertHint(true)}
-      onMouseLeave={() => setShowInsertHint(false)}
       data-section-manager="true"
     >
       {isEditing && (
@@ -869,16 +911,13 @@ function SectionManagerBase({
         {renderedComponents}
       </div>
 
-      {/* Indicador para agregar nuevo componente */}
+      {/* Indicador para agregar nuevo componente - siempre visible en modo edición */}
       {isEditing && components.length > 0 && (
         <div 
-          className={cn(
-            "flex justify-center items-center py-3 mt-2 transition-all duration-300 cursor-pointer",
-            showInsertHint ? "opacity-100" : "opacity-0"
-          )}
+          className="flex justify-center items-center py-3 mt-4 border-t border-border/30 pt-4"
           onClick={handleClickAddComponent}
         >
-          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-accent/5 transition-all">
+          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-primary/30 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary hover:bg-accent/5 transition-all cursor-pointer">
             <PlusCircle className="h-3 w-3" />
             <span>Agregar nuevo componente</span>
           </div>

@@ -62,7 +62,15 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
   // Configure DnD sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      // Adding activation constraints to prevent accidental drags
+      activationConstraint: {
+        // Only activate after a delay (helps prevent accidental drags during editing)
+        delay: 250,
+        // Require a minimum distance to start dragging (helps prevent accidental drags during clicks)
+        tolerance: 5,
+      }
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -193,24 +201,36 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       // Also update the section name in the database
       if (normalizedSectionId) {
         console.log(`Updating section name in database to: ${editedTitle}`);
-        cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
-          .then(result => {
-            if (result.success) {
-              console.log('Section name updated in database successfully');
-            } else {
-              console.error('Failed to update section name in database:', result.message);
-            }
-          })
-          .catch(error => {
-            console.error('Error updating section name in database:', error);
-          });
+        // Use a debounce here to prevent immediate API calls during typing
+        if (componentChangeTimeoutRef.current) {
+          clearTimeout(componentChangeTimeoutRef.current);
+        }
+        
+        componentChangeTimeoutRef.current = setTimeout(() => {
+          cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
+            .then(result => {
+              if (result.success) {
+                console.log('Section name updated in database successfully');
+              } else {
+                console.error('Failed to update section name in database:', result.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error updating section name in database:', error);
+            });
+        }, 500);
       }
     }
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent default to avoid form submission
       handleTitleSave();
+    } else if (e.key === 'Escape') {
+      // Cancel editing and revert to previous title
+      setIsEditingTitle(false);
+      setEditedTitle(sectionName || '');
     }
   };
 
@@ -227,10 +247,15 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         return prevComponents;
       }
       
-      // Mark that we have unsaved changes
-      if (hasUnsavedChanges === false) {
-        setTimeout(() => setHasUnsavedChanges(true), 0);
+      // Only mark that we have unsaved changes when debounced changes happen
+      // This prevents marking changes during active typing
+      if (componentChangeTimeoutRef.current) {
+        clearTimeout(componentChangeTimeoutRef.current);
       }
+      
+      componentChangeTimeoutRef.current = setTimeout(() => {
+        setHasUnsavedChanges(true);
+      }, 1000); // Longer debounce for unsaved changes flag
       
       // Return new components
       return newComponents;
@@ -245,13 +270,18 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       
       componentChangeTimeoutRef.current = setTimeout(() => {
         onComponentsChange();
-        // Reset editing flag after updating parent
+        // Don't reset editing flag immediately after updating parent
+        // This preserves focus during typing
         setTimeout(() => {
-          isEditingComponentRef.current = false;
-        }, 300);
-      }, 500); // Retraso importante para evitar actualizaciones frecuentes mientras se edita
+          if (!document.activeElement || 
+              !document.activeElement.tagName || 
+              !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+            isEditingComponentRef.current = false;
+          }
+        }, 500);
+      }, 800); // Increased from 500ms to 800ms to reduce interruptions
     }
-  }, [onComponentsChange, hasUnsavedChanges]);
+  }, [onComponentsChange]);
   
   // Clean up timeouts when component unmounts
   useEffect(() => {
@@ -266,6 +296,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const handleSave = useCallback(async (componentsToSave: Component[], skipLoadingState = false): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       try {
+        // Store current active element to restore focus after save
+        const activeElement = document.activeElement as HTMLElement;
+        const activeElementId = activeElement?.id || '';
+        const activeElementSelector = activeElement?.tagName && activeElement.tagName.toLowerCase() !== 'body' 
+          ? `${activeElement.tagName.toLowerCase()}${activeElement.id ? `#${activeElement.id}` : ''}`
+          : '';
+        
         // Only show loading state if not skipped
         if (!skipLoadingState) {
           setIsLoading(true);
@@ -353,6 +390,32 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             console.log(`[ManageableSection] Actualizando nombre de sección de "${sectionName}" a "${editedTitle}"`);
             onSectionNameChange(editedTitle);
           }
+          
+          // Restore focus to the element that had it before saving
+          setTimeout(() => {
+            if (activeElementSelector) {
+              try {
+                const elementToFocus = activeElementId
+                  ? document.getElementById(activeElementId)
+                  : document.querySelector(activeElementSelector);
+                  
+                if (elementToFocus && 'focus' in elementToFocus) {
+                  // Check input type before focusing to avoid selection issues with color inputs
+                  const inputElement = elementToFocus as HTMLInputElement;
+                  if (inputElement.tagName === 'INPUT' && 
+                      ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'].includes(inputElement.type)) {
+                    // For inputs that don't support selection, just focus without selection
+                    inputElement.focus();
+                  } else {
+                    // For text-like inputs that support selection, use the regular focus method
+                    (elementToFocus as HTMLElement).focus();
+                  }
+                }
+              } catch (e) {
+                console.warn('[ManageableSection] No se pudo restaurar el foco después de guardar:', e);
+              }
+            }
+          }, 50);
           
           resolve();
         } else {
