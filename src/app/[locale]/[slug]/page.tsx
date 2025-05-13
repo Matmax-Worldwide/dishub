@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager from '@/components/cms/SectionManager';
+import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 
 // Add the ComponentType type import
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
@@ -303,11 +304,11 @@ export default function CMSPage() {
   
   if (isLoading) {
     return (
-      <div className="container mx-auto py-16 px-4 text-center">
-        <div className="animate-pulse">
-          <div className="h-8 w-64 bg-gray-200 rounded mx-auto mb-6"></div>
-          <div className="h-4 w-full max-w-lg bg-gray-200 rounded mx-auto mb-4"></div>
-          <div className="h-4 w-full max-w-md bg-gray-200 rounded mx-auto"></div>
+      <div className="container mx-auto py-16 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center">
+          <Loader2Icon className="h-12 w-12 text-muted-foreground/60 animate-spin mb-4" />
+          <h2 className="text-xl font-medium text-foreground">Cargando página</h2>
+          <p className="text-muted-foreground mt-2">Por favor espere mientras cargamos el contenido</p>
         </div>
       </div>
     );
@@ -316,9 +317,12 @@ export default function CMSPage() {
   if (error || !pageData) {
     return (
       <div className="container mx-auto py-16 px-4">
-        <div className="bg-red-50 border-2 border-red-200 p-6 rounded-lg text-center">
-          <h1 className="text-2xl font-bold text-red-700 mb-4">Error</h1>
-          <p className="text-red-600">{error || 'Hubo un error al cargar esta página. Por favor, inténtelo de nuevo más tarde.'}</p>
+        <div className="bg-destructive/5 border border-destructive/20 p-6 rounded-lg text-center max-w-2xl mx-auto">
+          <div className="flex justify-center mb-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-semibold text-destructive mb-3">Error</h1>
+          <p className="text-destructive-foreground">{error || 'Hubo un error al cargar esta página. Por favor, inténtelo de nuevo más tarde.'}</p>
         </div>
       </div>
     );
@@ -328,20 +332,30 @@ export default function CMSPage() {
   if (!pageData.isPublished) {
     return (
       <div className="container mx-auto py-16 px-4">
-        <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-lg text-center">
-          <h1 className="text-2xl font-bold text-amber-700 mb-4">Vista previa</h1>
-          <p className="text-amber-600 mb-2">Esta página no está publicada y solo es visible en modo vista previa.</p>
-          <p className="text-amber-600">Para publicarla, vaya al CMS y cambie el estado de la página.</p>
+        <div className="bg-warning/5 border border-warning/20 p-6 rounded-lg text-center max-w-2xl mx-auto">
+          <div className="flex justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-warning" />
+          </div>
+          <h1 className="text-2xl font-semibold text-warning-foreground mb-3">Vista previa</h1>
+          <p className="text-warning-foreground/90 mb-2">Esta página no está publicada y solo es visible en modo vista previa.</p>
+          <p className="text-warning-foreground/90">Para publicarla, vaya al CMS y cambie el estado de la página.</p>
         </div>
       </div>
     );
   }
   
+  // Function to convert component type to proper case for SectionManager
+  const formatComponentType = (type: string): ComponentType => {
+    // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.
+    const lowercaseType = type.toLowerCase();
+    return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
+  };
+  
   return (
     <div className="cms-page flex flex-col min-h-screen">
       {/* Banner for unpublished pages in preview mode */}
       {!pageData.isPublished && (
-        <div className="bg-amber-500 text-white py-2 px-4 text-center">
+        <div className="bg-warning text-white py-2 px-4 text-center">
           Vista previa - Esta página no está publicada
         </div>
       )}
@@ -349,30 +363,36 @@ export default function CMSPage() {
       {/* Page content with sections */}
       <main className="flex-1 flex flex-col">
         {sections.length > 0 ? (
-          <>
+          <div className="w-full">
             {sections.map((section) => (
-              <div key={section.id} className="cms-section w-full" data-section-id={section.id} data-section-title={section.title}>
+              <div 
+                key={section.id} 
+                className="cms-section w-full" 
+                data-section-id={section.id} 
+                data-section-title={section.title}
+              >
                 {section.components.length > 0 ? (
                   <SectionManager 
                     initialComponents={section.components.map(comp => ({
                       id: comp.id,
-                      type: comp.type as ComponentType, // Cast string to ComponentType
+                      // Convert component types like 'hero' to 'Hero' for SectionManager
+                      type: formatComponentType(comp.type),
                       data: comp.data || {}
                     }))}
                     isEditing={false}
                   />
                 ) : (
-                  <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300 my-4">
-                    <p className="text-gray-600">Esta sección no tiene componentes disponibles.</p>
+                  <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
+                    <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
                   </div>
                 )}
               </div>
             ))}
-          </>
+          </div>
         ) : (
           <div className="container mx-auto py-16 px-4 text-center">
             <h1 className="text-3xl font-bold mb-4">{pageData.title}</h1>
-            <p className="text-gray-500">Esta página no tiene secciones.</p>
+            <p className="text-muted-foreground">Esta página no tiene secciones.</p>
           </div>
         )}
       </main>
