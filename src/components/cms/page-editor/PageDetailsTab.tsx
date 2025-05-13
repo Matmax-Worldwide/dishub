@@ -126,6 +126,9 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
                 <SelectItem value="CUSTOM">Página personalizada</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-sm text-gray-500 mt-1">
+              Las páginas de tipo &ldquo;Landing Page&rdquo; utilizan un desplazamiento suave estilo TikTok para navegar entre secciones.
+            </p>
           </div>
         </div>
       </CardContent>

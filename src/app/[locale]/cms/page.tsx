@@ -9,8 +9,6 @@ import {
   MenuIcon,
   SettingsIcon,
   ArrowRightIcon,
-  LayoutIcon,
-  PackageIcon,
   AlertCircleIcon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
@@ -30,8 +28,6 @@ export default function CMSDashboard() {
   const [pageCount, setPageCount] = useState(0);
   const [mediaCount, setMediaCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
-  const [sectionsCount, setSectionsCount] = useState(0);
-  const [componentsCount, setComponentsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,16 +35,6 @@ export default function CMSDashboard() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
-        // Obtener secciones desde GraphQL
-        const sectionsData = await cmsOperations.getAllCMSSections();
-        console.log('Secciones obtenidas:', sectionsData);
-        setSectionsCount(Array.isArray(sectionsData) ? sectionsData.length : 0);
-        
-        // Obtener componentes desde GraphQL
-        const componentsData = await cmsOperations.getAllComponents();
-        console.log('Componentes obtenidos:', componentsData);
-        setComponentsCount(Array.isArray(componentsData) ? componentsData.length : 0);
         
         // Obtener páginas desde GraphQL
         const pagesData = await cmsOperations.getAllPages();
@@ -76,24 +62,6 @@ export default function CMSDashboard() {
       href: `/${locale}/cms/pages`,
       count: pageCount,
       color: 'bg-blue-500',
-      disabled: false
-    },
-    {
-      title: 'Secciones',
-      description: 'Crear y gestionar secciones modulares reutilizables para las páginas',
-      icon: LayoutIcon,
-      href: `/${locale}/cms/sections`,
-      count: sectionsCount,
-      color: 'bg-indigo-500',
-      disabled: false
-    },
-    {
-      title: 'Componentes',
-      description: 'Gestionar componentes reusables para las secciones de contenido',
-      icon: PackageIcon,
-      href: `/${locale}/cms/components`,
-      count: componentsCount,
-      color: 'bg-cyan-500',
       disabled: false
     },
     {

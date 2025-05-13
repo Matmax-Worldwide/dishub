@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager from '@/components/cms/SectionManager';
 import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 
 // Add the ComponentType type import
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
 
 // Match the PageData type to what comes from the GraphQL client
 interface PageData {
@@ -45,6 +45,139 @@ export default function CMSPage() {
   const [sections, setSections] = useState<SectionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState(0);
+  const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+  const isScrolling = useRef<boolean>(false);
+  
+  // Set up smooth scroll effect if needed
+  useEffect(() => {
+    if (!pageData || pageData.pageType !== 'LANDING' || sections.length === 0) {
+      // Reset any scroll behavior if not using smooth scroll
+      document.body.style.overflow = '';
+      return;
+    }
+    
+    // For LANDING pages, set overflow hidden on body to prevent default scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Reset scroll position when the page loads
+    window.scrollTo(0, 0);
+    
+    const handleResize = () => {
+      // Adjust any height-based calculations if needed
+      const vh = window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    // Call once on mount
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+    
+    // Add indicators based on scroll position
+    const handleScroll = () => {
+      // Get all section elements
+      const sectionElements = Array.from(document.querySelectorAll('section[data-section-id]'));
+      
+      // Calculate the viewport height
+      const viewportHeight = window.innerHeight;
+      
+      // Determine which section is most visible in the viewport
+      let currentSection = 0;
+      let maxVisibility = 0;
+      
+      sectionElements.forEach((section, index) => {
+        const rect = section.getBoundingClientRect();
+        
+        // Calculate how much of the section is visible in the viewport
+        const visibleHeight = Math.min(
+          rect.bottom, 
+          viewportHeight
+        ) - Math.max(rect.top, 0);
+        
+        // If this section has more visible area than previous max, select it
+        if (visibleHeight > maxVisibility) {
+          maxVisibility = visibleHeight;
+          currentSection = index;
+        }
+      });
+      
+      if (!isScrolling.current) {
+        setActiveSection(currentSection);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [pageData, sections.length]);
+  
+  // Scroll to active section when it changes
+  useEffect(() => {
+    if (pageData?.pageType === 'LANDING') {
+      // Make sure we're not already scrolling
+      if (isScrolling.current) return;
+      isScrolling.current = true;
+      
+      // Find components rather than sections
+      const componentElements = document.querySelectorAll('[data-component-type]');
+      
+      if (componentElements && componentElements.length > activeSection) {
+        const component = componentElements[activeSection];
+        
+        // Scroll to the component with smooth behavior
+        component.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+      
+      // Reset the scrolling flag after animation completes
+      setTimeout(() => {
+        isScrolling.current = false;
+      }, 1000);
+    }
+  }, [activeSection, pageData?.pageType]);
+  
+  // Add keyboard navigation
+  useEffect(() => {
+    if (!pageData || pageData.pageType !== 'LANDING' || sections.length === 0) {
+      return;
+    }
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isScrolling.current) return;
+      
+      if ((e.key === 'ArrowDown' || e.key === 'PageDown') && activeSection < sections.length - 1) {
+        isScrolling.current = true;
+        setActiveSection(prev => Math.min(prev + 1, sections.length - 1));
+        setTimeout(() => { isScrolling.current = false; }, 800);
+      } else if ((e.key === 'ArrowUp' || e.key === 'PageUp') && activeSection > 0) {
+        isScrolling.current = true;
+        setActiveSection(prev => Math.max(prev - 1, 0));
+        setTimeout(() => { isScrolling.current = false; }, 800);
+      } else if (e.key === 'Home') {
+        isScrolling.current = true;
+        setActiveSection(0);
+        setTimeout(() => { isScrolling.current = false; }, 800);
+      } else if (e.key === 'End') {
+        isScrolling.current = true;
+        setActiveSection(sections.length - 1);
+        setTimeout(() => { isScrolling.current = false; }, 800);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pageData, sections.length, activeSection]);
   
   useEffect(() => {
     async function loadPage() {
@@ -348,11 +481,29 @@ export default function CMSPage() {
   const formatComponentType = (type: string): ComponentType => {
     // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.
     const lowercaseType = type.toLowerCase();
+    // Handle special cases for our custom types
+    if (lowercaseType === 'benefit' || lowercaseType === 'benefits') {
+      return 'Benefit' as ComponentType;
+    }
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
   
+  // Function to format component class names based on type
+  const getComponentClassName = (componentType: string): string => {
+    // We don't need to check the page type since the container styles are handled by CSS
+    // Just return the component type for potential component-specific styling
+    return `w-full component-${componentType.toLowerCase()}`;
+  };
+  
+  // Apply section styles - simple now because CSS handles most styling
+  const sectionClassName = "cms-section w-full";
+    
+  // Apply container style for smooth scroll - CSS handles most styling
+  const containerClassName = "cms-container";
+    
+  // Return the component
   return (
-    <div className="cms-page flex flex-col min-h-screen">
+    <div className="cms-page min-h-screen" data-page-type={pageData.pageType}>
       {/* Banner for unpublished pages in preview mode */}
       {!pageData.isPublished && (
         <div className="bg-warning text-white py-2 px-4 text-center">
@@ -361,15 +512,19 @@ export default function CMSPage() {
       )}
       
       {/* Page content with sections */}
-      <main className="flex-1 flex flex-col">
+      <main className={containerClassName}>
         {sections.length > 0 ? (
-          <div className="w-full">
-            {sections.map((section) => (
-              <div 
+          <>
+            {sections.map((section, index) => (
+              <section 
                 key={section.id} 
-                className="cms-section w-full" 
+                className={sectionClassName}
                 data-section-id={section.id} 
                 data-section-title={section.title}
+                id={`section-${index}`}
+                ref={(el: HTMLElement | null) => {
+                  if (el) sectionRefs.current[index] = el;
+                }}
               >
                 {section.components.length > 0 ? (
                   <SectionManager 
@@ -380,15 +535,16 @@ export default function CMSPage() {
                       data: comp.data || {}
                     }))}
                     isEditing={false}
+                    componentClassName={getComponentClassName}
                   />
                 ) : (
                   <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
                     <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
                   </div>
                 )}
-              </div>
+              </section>
             ))}
-          </div>
+          </>
         ) : (
           <div className="container mx-auto py-16 px-4 text-center">
             <h1 className="text-3xl font-bold mb-4">{pageData.title}</h1>

@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { SaveIcon, ArrowUpIcon, ArrowDownIcon, Eye } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Eye } from 'lucide-react';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -49,7 +49,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [error, setError] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(sectionName || '');
-  const [isSaving, setIsSaving] = useState(false);
   // Estado para manejar modo de visualización
   const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('split');
   // Track if there are unsaved changes
@@ -271,8 +270,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         if (!skipLoadingState) {
           setIsLoading(true);
         }
-        setIsSaving(true);
-        
         // Log de diagnóstico
         console.log(`[ManageableSection] Iniciando guardado de ${componentsToSave.length} componentes para sección: ${normalizedSectionId}`);
         console.log(`[ManageableSection] Tipos de componentes:`, componentsToSave.map(c => c.type));
@@ -352,7 +349,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         reject(error);
       } finally {
         setIsLoading(false);
-        setIsSaving(false);
       }
     });
   }, [normalizedSectionId, editedTitle, sectionName, onSectionNameChange]);
@@ -570,25 +566,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           <div className="h-px bg-border w-full mt-2 mb-4"></div>
         </div>
       )}
-      
-      {isEditing && (
-        <div className="flex items-center justify-between mb-4">
-          {/* Removed AdminControls which had redundant save functionality */}
-          {/* Save button directly in the component */}
-          <button
-            onClick={() => handleSave(pendingComponents)}
-            disabled={isLoading || isSaving}
-            className={`flex items-center space-x-1 px-3 py-1 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 text-xs ml-auto ${
-              hasUnsavedChanges 
-                ? 'bg-amber-500 text-amber-950' 
-                : 'bg-primary text-primary-foreground'
-            }`}
-          >
-            <SaveIcon className="h-3 w-3" />
-            <span>{isSaving ? 'Guardando...' : hasUnsavedChanges ? 'Guardar*' : 'Guardar'}</span>
-          </button>
-        </div>
-      )}
+    
       
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">

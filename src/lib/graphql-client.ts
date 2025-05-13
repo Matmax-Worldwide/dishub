@@ -223,6 +223,7 @@ export interface PageData {
   order?: number;
   pageType: string;
   locale?: string;
+  scrollType?: 'normal' | 'smooth';
   createdAt?: string;
   updatedAt?: string;
   sections?: PageSectionData[]; // Allow for different structure
@@ -266,6 +267,7 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
           order
           pageType
           locale
+          scrollType
           createdAt
           updatedAt
           sections {

@@ -609,6 +609,7 @@ export const typeDefs = gql`
     order: Int
     pageType: String
     locale: String
+    scrollType: String
     createdAt: DateTime
     updatedAt: DateTime
     sections: [PageSection]
@@ -629,6 +630,7 @@ export const typeDefs = gql`
     order: Int
     pageType: String
     locale: String
+    scrollType: String
     sections: [String!]
   }
   
@@ -713,6 +715,7 @@ export const typeDefs = gql`
     order: Int
     pageType: String
     locale: String
+    scrollType: String
     sections: [PageSectionInput!]
   }
 

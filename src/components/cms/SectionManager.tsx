@@ -9,7 +9,7 @@ import { cmsOperations } from '@/lib/graphql-client';
 import { cn } from '@/lib/utils';
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
 
 export interface Component {
   id: string;
@@ -42,12 +42,16 @@ const componentMap = {
   Card: dynamic(() => import('./sections/CardSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Card...</div>
   }),
+  Benefit: dynamic(() => import('./sections/BenefitSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Benefit...</div>
+  }),
 };
 
 interface SectionManagerProps {
   initialComponents?: Component[];
   isEditing?: boolean;
   onComponentsChange?: (components: Component[]) => void;
+  componentClassName?: (type: string) => string;
 }
 
 // Crear un componente memoizado para el wrapper de cada componente
@@ -169,8 +173,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     <div 
       key={component.id} 
       className={cn(
-        "relative mb-6 group transition-all duration-200",
-        isEditing && "pt-2 rounded-lg",
+        "relative transition-all duration-200",
+        isEditing && "pt-2 rounded-lg mb-6",
         isHovered && isEditing && "bg-accent/5"
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -277,7 +281,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
 function SectionManagerBase({ 
   initialComponents = [], 
   isEditing = false,
-  onComponentsChange
+  onComponentsChange,
+  componentClassName
 }: SectionManagerProps) {
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track if the insert hint should be shown
@@ -321,7 +326,7 @@ function SectionManagerBase({
         
         // Verificar que el tipo de componente sea válido
         const component = customEvent.detail;
-        if (!component.type || !['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'].includes(component.type)) {
+        if (!component.type || !['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].includes(component.type)) {
           console.error(`[SectionManager] ❌ Tipo de componente no válido: ${component.type}`);
           return;
         }
@@ -522,104 +527,152 @@ function SectionManagerBase({
         return null;
       }
 
+      // Obtener las clases específicas para este tipo de componente
+      const customClassName = componentClassName ? componentClassName(component.type) : '';
+      
+      // Aplicamos la clase personalizada al elemento contenedor
+      const containerClass = customClassName || '';
+
+      // Añadir atributos especiales para componentes en páginas LANDING
+      const containerProps = {
+        className: containerClass,
+        'data-component-type': component.type.toLowerCase(),
+        'data-component-id': component.id
+      };
+
       switch(component.type) {
         case 'Hero': {
           const HeroComponent = componentMap.Hero;
           return (
-            <HeroComponent 
-              title={component.data.title as string || "Default Title"} 
-              subtitle={component.data.subtitle as string || "Default Subtitle"}
-              image={component.data.image as string}
-              cta={component.data.cta as { text: string; url: string }}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <HeroComponent 
+                title={component.data.title as string || "Default Title"} 
+                subtitle={component.data.subtitle as string || "Default Subtitle"}
+                image={component.data.image as string}
+                cta={component.data.cta as { text: string; url: string }}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Text': {
           const TextComponent = componentMap.Text;
           return (
-            <TextComponent 
-              title={component.data.title as string} 
-              content={component.data.content as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <TextComponent 
+                title={component.data.title as string} 
+                content={component.data.content as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Image': {
           const ImageComponent = componentMap.Image;
           return (
-            <ImageComponent 
-              src={component.data.src as string} 
-              alt={component.data.alt as string}
-              caption={component.data.caption as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <ImageComponent 
+                src={component.data.src as string} 
+                alt={component.data.alt as string}
+                caption={component.data.caption as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Feature': {
           const FeatureComponent = componentMap.Feature;
           return (
-            <FeatureComponent 
-              title={component.data.title as string} 
-              description={component.data.description as string}
-              icon={component.data.icon as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <FeatureComponent 
+                title={component.data.title as string} 
+                description={component.data.description as string}
+                icon={component.data.icon as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Testimonial': {
           const TestimonialComponent = componentMap.Testimonial;
           return (
-            <TestimonialComponent 
-              quote={component.data.quote as string} 
-              author={component.data.author as string}
-              role={component.data.role as string}
-              avatar={component.data.avatar as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <TestimonialComponent 
+                quote={component.data.quote as string} 
+                author={component.data.author as string}
+                role={component.data.role as string}
+                avatar={component.data.avatar as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Card': {
           const CardComponent = componentMap.Card;
           return (
-            <CardComponent 
-              title={component.data.title as string} 
-              description={component.data.description as string}
-              image={component.data.image as string}
-              link={component.data.link as string}
-              buttonText={component.data.buttonText as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <CardComponent 
+                title={component.data.title as string} 
+                description={component.data.description as string}
+                image={component.data.image as string}
+                link={component.data.link as string}
+                buttonText={component.data.buttonText as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         case 'Header': {
           const HeaderComponent = componentMap.Header;
           return (
-            <HeaderComponent 
-              title={component.data.title as string} 
-              subtitle={component.data.subtitle as string}
-              isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
-            />
+            <div {...containerProps}>
+              <HeaderComponent 
+                title={component.data.title as string} 
+                subtitle={component.data.subtitle as string}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
+          );
+        }
+        
+        case 'Benefit': {
+          const BenefitComponent = componentMap.Benefit;
+          return (
+            <div {...containerProps}>
+              <BenefitComponent 
+                title={component.data.title as string} 
+                description={component.data.description as string}
+                iconType={component.data.iconType as string || 'check'}
+                accentColor={component.data.accentColor as string || '#01319c'}
+                backgroundColor={component.data.backgroundColor as string || 'from-[#ffffff] to-[#f0f9ff]'}
+                showGrid={component.data.showGrid as boolean || true}
+                showDots={component.data.showDots as boolean || true}
+                isEditing={isEditing}
+                onUpdate={(data) => handleUpdate(component, data)}
+              />
+            </div>
           );
         }
         
         default: {
           return (
-            <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
-              <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
+            <div {...containerProps} className={containerClass}>
+              <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
+                <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
+              </div>
             </div>
           );
         }
@@ -650,7 +703,8 @@ function SectionManagerBase({
     handleMoveComponentDown, 
     components, 
     collapsedComponents, 
-    handleToggleCollapse
+    handleToggleCollapse,
+    componentClassName
   ]);
 
   // Memorizamos la lista de componentes renderizados
@@ -669,10 +723,13 @@ function SectionManagerBase({
     <div 
       className={cn(
         "w-full transition-all duration-200",
-        isEditing && "relative min-h-[200px] border border-border/40 rounded-lg p-4 mb-8 hover:border-border"
+        isEditing && "relative min-h-[200px] border border-border/40 rounded-lg p-4 mb-8 hover:border-border",
+        // Remove any spacing between components when not in editing mode
+        !isEditing && "flex flex-col"
       )}
       onMouseEnter={() => setShowInsertHint(true)}
       onMouseLeave={() => setShowInsertHint(false)}
+      data-section-manager="true"
     >
       {isEditing && (
         <div className="flex justify-end mb-4">

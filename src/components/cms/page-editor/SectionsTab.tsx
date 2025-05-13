@@ -39,13 +39,14 @@ interface SectionsTabProps {
 
 // Tipos de componentes disponibles
 const AVAILABLE_COMPONENTS = [
+  { type: 'hero', displayType: 'Hero', name: 'Banner Hero', description: 'Banner principal con imagen' },
+  { type: 'benefit', displayType: 'Benefit', name: 'Beneficio', description: 'Sección de beneficio con icono y animaciones' },
   { type: 'header', displayType: 'Header', name: 'Encabezado', description: 'Título y subtítulo' },
   { type: 'text', displayType: 'Text', name: 'Texto', description: 'Bloque de contenido textual' },
   { type: 'image', displayType: 'Image', name: 'Imagen', description: 'Imagen con descripción' },
   { type: 'card', displayType: 'Card', name: 'Tarjeta', description: 'Tarjeta con título e imagen' },
   { type: 'feature', displayType: 'Feature', name: 'Característica', description: 'Destacar una característica' },
   { type: 'testimonial', displayType: 'Testimonial', name: 'Testimonio', description: 'Cita con autor' },
-  { type: 'hero', displayType: 'Hero', name: 'Banner Hero', description: 'Banner principal con imagen' }
 ];
 
 export const SectionsTab: React.FC<SectionsTabProps> = ({
@@ -136,6 +137,17 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
               subtitle: 'Subtítulo del Hero',
               image: '',
               cta: { text: 'Botón de acción', url: '#' }
+            };
+          case 'benefit':
+            return {
+              componentTitle: 'Sección Beneficio',
+              title: 'Título del Beneficio',
+              description: 'Descripción detallada del beneficio que ofrece tu servicio.',
+              iconType: 'check',
+              accentColor: '#01319c',
+              backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
+              showGrid: true,
+              showDots: true
             };
           default:
             return {

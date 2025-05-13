@@ -19,7 +19,7 @@ export default function TextSection({
 }: TextSectionProps) {
   // Local state to maintain during typing
   const [localTitle, setLocalTitle] = useState(title || '');
-  const [localContent, setLocalContent] = useState(content);
+  const [localContent, setLocalContent] = useState(content || '');
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -31,7 +31,7 @@ export default function TextSection({
   useEffect(() => {
     if (!isEditingRef.current) {
       if (title !== localTitle) setLocalTitle(title || '');
-      if (content !== localContent) setLocalContent(content);
+      if (content !== localContent) setLocalContent(content || '');
     }
   }, [title, content, localTitle, localContent]);
   
@@ -119,7 +119,7 @@ export default function TextSection({
               <h3 className="text-xl font-medium mb-4">{localTitle}</h3>
             )}
             <div className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
-              {localContent.split('\n').map((paragraph, index) => (
+              {(localContent || '').split('\n').map((paragraph, index) => (
                 <p key={index} className="mb-4">
                   {paragraph}
                 </p>

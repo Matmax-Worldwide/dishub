@@ -68,6 +68,49 @@ body > div {
   top: 0;
 }
 
+/* CMS landing page TikTok-style scrolling */
+.cms-page[data-page-type="LANDING"] {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.cms-page[data-page-type="LANDING"] .cms-container {
+  height: 100vh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.cms-page[data-page-type="LANDING"] .cms-section {
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Regular page styles */
+.cms-page:not([data-page-type="LANDING"]) .cms-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cms-page:not([data-page-type="LANDING"]) .cms-section {
+  width: 100%;
+  min-height: auto;
+  padding: 2rem 0;
+}
+
+/* Component types */
+.component-hero, .component-benefit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
 .benefits-container section,
 .full-page-flow section {
   height: 100vh;
