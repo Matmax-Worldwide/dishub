@@ -545,14 +545,14 @@ function SectionManagerBase({
           const HeroComponent = componentMap.Hero;
           return (
             <div {...containerProps}>
-              <HeroComponent 
-                title={component.data.title as string || "Default Title"} 
-                subtitle={component.data.subtitle as string || "Default Subtitle"}
-                image={component.data.image as string}
-                cta={component.data.cta as { text: string; url: string }}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <HeroComponent 
+              title={component.data.title as string || "Default Title"} 
+              subtitle={component.data.subtitle as string || "Default Subtitle"}
+              image={component.data.image as string}
+              cta={component.data.cta as { text: string; url: string }}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -561,12 +561,12 @@ function SectionManagerBase({
           const TextComponent = componentMap.Text;
           return (
             <div {...containerProps}>
-              <TextComponent 
-                title={component.data.title as string} 
-                content={component.data.content as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <TextComponent 
+              title={component.data.title as string} 
+              content={component.data.content as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -575,13 +575,13 @@ function SectionManagerBase({
           const ImageComponent = componentMap.Image;
           return (
             <div {...containerProps}>
-              <ImageComponent 
-                src={component.data.src as string} 
-                alt={component.data.alt as string}
-                caption={component.data.caption as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <ImageComponent 
+              src={component.data.src as string} 
+              alt={component.data.alt as string}
+              caption={component.data.caption as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -590,13 +590,13 @@ function SectionManagerBase({
           const FeatureComponent = componentMap.Feature;
           return (
             <div {...containerProps}>
-              <FeatureComponent 
-                title={component.data.title as string} 
-                description={component.data.description as string}
-                icon={component.data.icon as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <FeatureComponent 
+              title={component.data.title as string} 
+              description={component.data.description as string}
+              icon={component.data.icon as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -605,14 +605,14 @@ function SectionManagerBase({
           const TestimonialComponent = componentMap.Testimonial;
           return (
             <div {...containerProps}>
-              <TestimonialComponent 
-                quote={component.data.quote as string} 
-                author={component.data.author as string}
-                role={component.data.role as string}
-                avatar={component.data.avatar as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <TestimonialComponent 
+              quote={component.data.quote as string} 
+              author={component.data.author as string}
+              role={component.data.role as string}
+              avatar={component.data.avatar as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -621,15 +621,15 @@ function SectionManagerBase({
           const CardComponent = componentMap.Card;
           return (
             <div {...containerProps}>
-              <CardComponent 
-                title={component.data.title as string} 
-                description={component.data.description as string}
-                image={component.data.image as string}
-                link={component.data.link as string}
-                buttonText={component.data.buttonText as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <CardComponent 
+              title={component.data.title as string} 
+              description={component.data.description as string}
+              image={component.data.image as string}
+              link={component.data.link as string}
+              buttonText={component.data.buttonText as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -638,12 +638,12 @@ function SectionManagerBase({
           const HeaderComponent = componentMap.Header;
           return (
             <div {...containerProps}>
-              <HeaderComponent 
-                title={component.data.title as string} 
-                subtitle={component.data.subtitle as string}
-                isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
-              />
+            <HeaderComponent 
+              title={component.data.title as string} 
+              subtitle={component.data.subtitle as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
+            />
             </div>
           );
         }
@@ -670,8 +670,8 @@ function SectionManagerBase({
         default: {
           return (
             <div {...containerProps} className={containerClass}>
-              <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
-                <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
+            <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
+              <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
               </div>
             </div>
           );

@@ -225,7 +225,7 @@ const HeroSection = React.memo(function HeroSection({
   return (
     <section className={cn(
       "relative w-full bg-gradient-to-b from-white to-blue-50 overflow-hidden flex items-center",
-      isEditing ? "min-h-[400px] h-auto py-12" : "h-screen"
+      isEditing ? "min-h-[400px] h-auto py-12" : ""
     )}>
       {/* Animated background elements */}
       {localShowAnimatedDots && !isEditing && (

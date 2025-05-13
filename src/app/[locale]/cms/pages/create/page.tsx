@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import crypto from 'crypto';
 import {
   SaveIcon,
   ArrowLeftIcon,
@@ -183,10 +184,161 @@ export default function CreatePageWithSections() {
       
       console.log('Datos de la página a guardar:', pageInput);
       
+      // Step 1: Create the page
       const result = await cmsOperations.createPage(pageInput);
       
-      if (result && result.success) {
+      // Safely check if we have a valid page result
+      if (result && result.success && result.page && result.page.id) {
         console.log('Página creada exitosamente:', result);
+        
+        // Destructure for type safety
+        const pageId = result.page.id;
+        
+        // Step 2: Create default sections for the page based on pageType
+        try {
+          // Default section types based on page type
+          const sectionTypes = pageData.pageType === 'LANDING' 
+            ? ['Hero', 'Benefit'] // Landing pages get Hero and Benefit sections
+            : ['Header', 'Text']; // Regular pages get Header and Text sections
+            
+          console.log(`Creando ${sectionTypes.length} secciones por defecto para la página...`);
+          
+          // Create page sections one by one
+          for (let i = 0; i < sectionTypes.length; i++) {
+            const sectionType = sectionTypes[i].toLowerCase();
+            const sectionName = `${pageData.title} ${sectionTypes[i]}`;
+            const sectionId = `${pageData.slug}-${sectionType}-${i}`;
+            
+            console.log(`Creando sección: ${sectionName} (${sectionId})`);
+            
+            // Step 2.1: Create a CMS Section for this page section with retry logic
+            let cmsSectionResult;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+              try {
+                cmsSectionResult = await cmsOperations.createCMSSection({
+                  sectionId: sectionId,
+                  name: sectionName,
+                  description: `Section for ${pageData.title}`
+                });
+                
+                if (cmsSectionResult.success && cmsSectionResult.section) {
+                  console.log(`CMSSection creada: ${cmsSectionResult.section.name} (${cmsSectionResult.section.id})`);
+                  break;
+                } else {
+                  console.error('Error al crear CMSSection:', cmsSectionResult.message);
+                  retryCount++;
+                  if (retryCount < maxRetries) {
+                    console.log(`Reintentando (${retryCount}/${maxRetries})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+                  }
+                }
+              } catch (error) {
+                console.error('Error al crear CMSSection:', error);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                  console.log(`Reintentando (${retryCount}/${maxRetries})...`);
+                  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+                }
+              }
+            }
+            
+            // If we couldn't create the CMS section after retries, continue to the next one
+            if (!cmsSectionResult?.success || !cmsSectionResult?.section) {
+              console.error(`No se pudo crear la sección CMS después de ${maxRetries} intentos. Continuando...`);
+              continue;
+            }
+            
+            // Step 2.2: Create a Page Section that links the page to the CMS Section
+            const pageSectionResult = await cmsOperations.createPageSection({
+              pageId: pageId,
+              title: sectionName,
+              componentType: 'CUSTOM', // Using CUSTOM because we're connecting to a CMSSection
+              order: i,
+              isVisible: true,
+              data: { sectionId: cmsSectionResult.section.sectionId }
+            });
+            
+            if (!pageSectionResult.success || !pageSectionResult.section) {
+              console.error('Error al crear PageSection:', pageSectionResult.message);
+              continue;
+            }
+            
+            console.log(`PageSection creada: ${pageSectionResult.section.title} (${pageSectionResult.section.id})`);
+            
+            // Step 3: Create default component for this section
+            // Get the appropriate component type
+            const componentType = sectionType === 'hero' ? 'hero' : 
+                                  sectionType === 'benefit' ? 'benefit' : 
+                                  sectionType === 'header' ? 'header' : 'text';
+            
+            // Default data for the component
+            const componentData = {
+              title: componentType === 'hero' ? `Welcome to ${pageData.title}` : 
+                     componentType === 'benefit' ? 'Our Benefits' :
+                     componentType === 'header' ? 'Header' : `About ${pageData.title}`,
+              componentTitle: `${sectionTypes[i]} Component`,
+              description: componentType === 'text' ? 'Add your content here' : undefined,
+              subtitle: componentType === 'hero' ? 'Your awesome page description' : undefined,
+              badgeText: componentType === 'hero' ? 'New Page' : undefined
+            };
+            
+            // Create the component in the section with retry logic
+            let componentResult;
+            retryCount = 0;
+            
+            while (retryCount < maxRetries) {
+              try {
+                componentResult = await cmsOperations.saveSectionComponents(
+                  cmsSectionResult.section.sectionId,
+                  [
+                    {
+                      id: crypto.randomUUID(),
+                      type: componentType,
+                      data: componentData
+                    }
+                  ]
+                );
+                
+                if (componentResult.success) {
+                  console.log(`Componente creado para sección ${sectionName}`);
+                  break;
+                } else {
+                  console.error('Error al crear componente:', componentResult.message);
+                  retryCount++;
+                  if (retryCount < maxRetries) {
+                    console.log(`Reintentando (${retryCount}/${maxRetries})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+                  }
+                }
+              } catch (error) {
+                console.error('Error al crear componente:', error);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                  console.log(`Reintentando (${retryCount}/${maxRetries})...`);
+                  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+                }
+              }
+            }
+            
+            if (!componentResult?.success) {
+              console.error(`No se pudo crear el componente después de ${maxRetries} intentos.`);
+            }
+          }
+          
+          console.log('Secciones y componentes creados exitosamente');
+        } catch (sectionsError) {
+          console.error('Error al crear secciones:', sectionsError);
+          setNotification({
+            type: 'error',
+            message: `Error al crear secciones: ${sectionsError instanceof Error ? sectionsError.message : 'Error desconocido'}`
+          });
+          
+          // Continue with the redirect even if sections creation failed
+          // At least the page itself was created
+        }
         
         setNotification({
           type: 'success',

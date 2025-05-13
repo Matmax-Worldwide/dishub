@@ -82,113 +82,131 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
   
   // Función para agregar un componente
   const handleAddComponent = (componentType: string, displayType: string) => {
-    // Verificar que la sección existe y el ref está disponible
-    if (pageSections.length > 0 && sectionRef.current) {
-      console.log(`[SectionsTab] 🛠️ Intentando crear componente: ${componentType}/${displayType}`);
-      
-      // Definimos mapeos para datos iniciales específicos por tipo
-      const getInitialData = (type: string) => {
-        switch (type) {
-          case 'header':
-            return {
-              componentTitle: 'Encabezado',
-              title: 'Título principal', 
-              subtitle: 'Subtítulo opcional'
-            };
-          case 'text':
-            return {
-              componentTitle: 'Bloque de texto',
-              title: 'Título del contenido',
-              content: 'Edite este contenido para personalizarlo según sus necesidades.'
-            };
-          case 'image':
-            return {
-              componentTitle: 'Imagen',
-              alt: 'Descripción de la imagen',
-              caption: 'Pie de foto',
-              src: '' // URL de la imagen
-            };
-          case 'card':
-            return {
-              componentTitle: 'Tarjeta',
-              title: 'Título de la tarjeta',
-              description: 'Descripción de la tarjeta',
-              buttonText: 'Leer más',
-              link: '#'
-            };
-          case 'feature':
-            return {
-              componentTitle: 'Característica',
-              title: 'Título de la característica',
-              description: 'Descripción de la característica',
-              icon: 'star'
-            };
-          case 'testimonial':
-            return {
-              componentTitle: 'Testimonio',
-              quote: 'Este es un testimonio de ejemplo.',
-              author: 'Nombre del autor',
-              role: 'Cargo o empresa'
-            };
-          case 'hero':
-            return {
-              componentTitle: 'Banner Hero',
-              title: 'Título del Hero', 
-              subtitle: 'Subtítulo del Hero',
-              image: '',
-              cta: { text: 'Botón de acción', url: '#' }
-            };
-          case 'benefit':
-            return {
-              componentTitle: 'Sección Beneficio',
-              title: 'Título del Beneficio',
-              description: 'Descripción detallada del beneficio que ofrece tu servicio.',
-              iconType: 'check',
-              accentColor: '#01319c',
-              backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
-              showGrid: true,
-              showDots: true
-            };
-          default:
-            return {
-              componentTitle: `Nuevo ${componentType}`,
-              title: 'Título del componente'
-            };
-        }
-      };
-      
-      // Crear un evento personalizado para agregar el componente
-      // Para SectionManager necesitamos usar el displayType (con mayúscula)
-      const initialData = getInitialData(componentType);
-      const newComponent = {
-        id: `component-${componentType}-${Date.now()}`,
-        type: displayType, // Usar el tipo con formato correcto para SectionManager
-        data: initialData,
-        // No incluir title como propiedad directa, solo en data
-        // El titulo para UI se mostrará desde data.componentTitle
-      };
-      
-      // Disparar el evento para que SectionManager lo capte
-      console.log('[SectionsTab] 🚀 Agregando nuevo componente:', newComponent);
-      document.dispatchEvent(new CustomEvent('component:add', { detail: newComponent }));
-      
-      // Cerrar el diálogo
-      setIsAddComponentOpen(false);
-      
-      // Guardar el componente sin forzar una recarga completa
-      setTimeout(async () => {
-        try {
-          console.log('[SectionsTab] 💾 Guardando componente sin recargar...');
-          await sectionRef.current?.saveChanges(true);
-          console.log('[SectionsTab] ✅ Componente guardado exitosamente');
-          // No llamamos a onRefreshView() para evitar la recarga completa
-        } catch (error) {
-          console.error('[SectionsTab] ❌ Error al guardar componente:', error);
-        }
-      }, 500);
-    } else {
+    // Only proceed if we have a section reference
+    if (!sectionRef.current) {
       console.error('[SectionsTab] ❌ No hay sección activa o el ref no está disponible');
+      return;
     }
+    
+    console.log(`[SectionsTab] 🛠️ Intentando crear componente: ${componentType}/${displayType}`);
+    
+    // Generate a truly unique ID using crypto if available
+    const generateUniqueId = () => {
+      try {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+      } catch (error) {
+        console.error('[SectionsTab] ❌ Error generando UUID:', error);
+      }
+      return `component-${componentType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    };
+    
+    // Generate the unique ID
+    const componentId = generateUniqueId();
+    console.log(`[SectionsTab] 🔑 ID de componente generado: ${componentId}`);
+    
+    // Get initial data for the component type
+    const getInitialData = (type: string) => {
+      switch (type) {
+        case 'header':
+          return {
+            componentTitle: 'Encabezado',
+            title: 'Título principal', 
+            subtitle: 'Subtítulo opcional'
+          };
+        case 'text':
+          return {
+            componentTitle: 'Bloque de texto',
+            title: 'Título del contenido',
+            content: 'Edite este contenido para personalizarlo según sus necesidades.'
+          };
+        case 'image':
+          return {
+            componentTitle: 'Imagen',
+            alt: 'Descripción de la imagen',
+            caption: 'Pie de foto',
+            src: '' // URL de la imagen
+          };
+        case 'card':
+          return {
+            componentTitle: 'Tarjeta',
+            title: 'Título de la tarjeta',
+            description: 'Descripción de la tarjeta',
+            buttonText: 'Leer más',
+            link: '#'
+          };
+        case 'feature':
+          return {
+            componentTitle: 'Característica',
+            title: 'Título de la característica',
+            description: 'Descripción de la característica',
+            icon: 'star'
+          };
+        case 'testimonial':
+          return {
+            componentTitle: 'Testimonio',
+            quote: 'Este es un testimonio de ejemplo.',
+            author: 'Nombre del autor',
+            role: 'Cargo o empresa'
+          };
+        case 'hero':
+          return {
+            componentTitle: 'Banner Hero',
+            title: 'Título del Hero', 
+            subtitle: 'Subtítulo del Hero',
+            image: '',
+            cta: { text: 'Botón de acción', url: '#' }
+          };
+        case 'benefit':
+          return {
+            componentTitle: 'Sección Beneficio',
+            title: 'Título del Beneficio',
+            description: 'Descripción detallada del beneficio que ofrece tu servicio.',
+            iconType: 'check',
+            accentColor: '#01319c',
+            backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
+            showGrid: true,
+            showDots: true
+          };
+        default:
+          return {
+            componentTitle: `Nuevo ${type}`,
+            title: 'Título del componente'
+          };
+      }
+    };
+    
+    // Get the initial data for the component
+    const initialData = getInitialData(componentType);
+    
+    // Create the new component object
+    const newComponent = {
+      id: componentId,
+      type: displayType, // Use the correct type for SectionManager
+      data: initialData,
+      // Do not include title directly, only in data
+      // The title for UI will be displayed from data.componentTitle
+    };
+    
+    // Dispatch the event for SectionManager to catch
+    console.log('[SectionsTab] 🚀 Adding new component:', newComponent);
+    document.dispatchEvent(new CustomEvent('component:add', { detail: newComponent }));
+    
+    // Close the dialog
+    setIsAddComponentOpen(false);
+    
+    // Save the component without forcing a full reload
+    setTimeout(async () => {
+      try {
+        console.log('[SectionsTab] 💾 Saving component without reloading...');
+        await sectionRef.current?.saveChanges(true);
+        console.log('[SectionsTab] ✅ Component saved successfully');
+        // We don't call onRefreshView() to avoid full reload
+      } catch (error) {
+        console.error('[SectionsTab] ❌ Error saving component:', error);
+      }
+    }, 500);
   };
 
   return (

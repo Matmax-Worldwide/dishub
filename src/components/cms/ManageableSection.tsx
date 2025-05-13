@@ -128,7 +128,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             // Ensure the component type is one of the allowed types in the ComponentType
             // Primero convertimos a formato de título (primera letra mayúscula)
             let componentType = comp.type.charAt(0).toUpperCase() + comp.type.slice(1);
-            if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'].includes(componentType)) {
+            if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].includes(componentType)) {
               console.warn(`⚠️ [${loadId}] Tipo de componente no reconocido: ${comp.type}, usando 'Text' como valor predeterminado`);
               componentType = 'Text';
             } else {
@@ -140,7 +140,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             
             const mappedComponent = {
               id: comp.id,
-              type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card', // Tipo específico
+              type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit', // Tipo específico
               data: comp.data || {},
               title: componentTitle || undefined
             } as Component;
@@ -274,8 +274,21 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         console.log(`[ManageableSection] Iniciando guardado de ${componentsToSave.length} componentes para sección: ${normalizedSectionId}`);
         console.log(`[ManageableSection] Tipos de componentes:`, componentsToSave.map(c => c.type));
         
+        // Ensure all components have valid IDs
+        const validatedComponents = componentsToSave.map(comp => {
+          if (!comp.id || comp.id.startsWith('temp-')) {
+            const newId = crypto.randomUUID();
+            console.log(`[ManageableSection] Creando nuevo ID para componente: ${newId}`);
+            return {
+              ...comp,
+              id: newId
+            };
+          }
+          return comp;
+        });
+        
         // Ensure component titles are preserved in the saved data
-        const componentsWithTitles = componentsToSave.map(comp => {
+        const componentsWithTitles = validatedComponents.map(comp => {
           // Preparamos los datos para guardar pero sin modificar el tipo original
           // que debe mantenerse como ComponentType
           return {
@@ -308,8 +321,12 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         const componentsForAPI = componentsWithTitles.map(comp => {
           // Pick only the fields that the API expects
           const { id, type, data } = comp;
+          
+          // Ensure component has a valid ID - generate one if missing
+          const componentId = id || crypto.randomUUID();
+          
           return {
-            id,
+            id: componentId,
             type: type.toLowerCase(), // Convertir a minúsculas solo para la API
             data
           };

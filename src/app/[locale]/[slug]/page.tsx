@@ -57,9 +57,6 @@ export default function CMSPage() {
       return;
     }
     
-    // For LANDING pages, set overflow hidden on body to prevent default scrolling
-    document.body.style.overflow = 'hidden';
-    
     // Reset scroll position when the page loads
     window.scrollTo(0, 0);
     
@@ -488,22 +485,19 @@ export default function CMSPage() {
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
   
-  // Function to format component class names based on type
-  const getComponentClassName = (componentType: string): string => {
-    // We don't need to check the page type since the container styles are handled by CSS
-    // Just return the component type for potential component-specific styling
-    return `w-full component-${componentType.toLowerCase()}`;
-  };
-  
-  // Apply section styles - simple now because CSS handles most styling
-  const sectionClassName = "cms-section w-full";
+  // Apply section styles
+  const sectionClassName = pageData?.pageType === 'LANDING' 
+    ? "w-full snap-start" // La sección tendrá el ancho completo pero no altura fija
+    : "cms-section w-full";
     
-  // Apply container style for smooth scroll - CSS handles most styling
-  const containerClassName = "cms-container";
+  // Apply container style for smooth scroll
+  const containerClassName = pageData?.pageType === 'LANDING'
+    ? "w-full overflow-x-hidden scroll-smooth"
+    : "flex-1 flex flex-col";
     
   // Return the component
   return (
-    <div className="cms-page min-h-screen" data-page-type={pageData.pageType}>
+    <div className="cms-page">
       {/* Banner for unpublished pages in preview mode */}
       {!pageData.isPublished && (
         <div className="bg-warning text-white py-2 px-4 text-center">
@@ -516,7 +510,7 @@ export default function CMSPage() {
         {sections.length > 0 ? (
           <>
             {sections.map((section, index) => (
-              <section 
+              <div 
                 key={section.id} 
                 className={sectionClassName}
                 data-section-id={section.id} 
@@ -535,14 +529,13 @@ export default function CMSPage() {
                       data: comp.data || {}
                     }))}
                     isEditing={false}
-                    componentClassName={getComponentClassName}
                   />
                 ) : (
                   <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
                     <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
                   </div>
                 )}
-              </section>
+              </div>
             ))}
           </>
         ) : (

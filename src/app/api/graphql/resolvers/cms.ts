@@ -182,16 +182,26 @@ export const cmsResolvers = {
         
         // Eliminar parámetros de consulta si existen (para evitar problemas con cache busting)
         let { sectionId } = args;
+        if (!sectionId) {
+          console.error('Error: sectionId is missing or undefined');
+          return { components: [], lastUpdated: null };
+        }
+        
         if (sectionId && sectionId.includes('?')) {
           sectionId = sectionId.split('?')[0];
           console.log('Limpiando sectionId de parámetros de consulta:', sectionId);
+        }
+        
+        if (sectionId && sectionId.includes('#')) {
+          sectionId = sectionId.split('#')[0];
+          console.log('Limpiando sectionId de hash:', sectionId);
         }
         
         console.log('CMS RESOLVER: Getting section components for section ID:', sectionId);
         
         // Obtener los datos de la base de datos
         try {
-          console.log('Executing database query...');
+          console.log('Executing database query with sectionId:', sectionId);
           
           // Buscar la sección con sus componentes
           const sectionFromDB = await prisma.cMSSection.findUnique({
@@ -260,12 +270,12 @@ export const cmsResolvers = {
             console.log('Section not found by exact ID, trying to match by prefix...');
             
             const allSections = await prisma.cMSSection.findMany({
-              select: { sectionId: true }
+              select: { sectionId: true, name: true, id: true }
             });
             
             console.log('All available section IDs:', allSections.map(s => s.sectionId).join(', '));
             
-            // Check if any of the existing IDs start with our sectionId
+            // Check if any of the existing IDs start with our sectionId or vice versa
             const matchingSection = allSections.find(s => 
               sectionId.startsWith(s.sectionId) || s.sectionId.startsWith(sectionId)
             );
@@ -306,10 +316,33 @@ export const cmsResolvers = {
               }
             }
             
-            // If we get here, we either couldn't find a matching section or the matched section had no components
-            console.log('Section not found in database or no matching section found:', sectionId);
-            console.log('Returning empty components array');
-            return { components: [], lastUpdated: null };
+            // Check if we need to create a new section with this ID
+            console.log('Creating new empty section for ID:', sectionId);
+            try {
+              const timestamp = new Date();
+              
+              // Create a new section with the provided ID
+              const newSection = await prisma.cMSSection.create({
+                data: {
+                  sectionId,
+                  name: `Sección ${sectionId}`,
+                  description: `Sección creada automáticamente`,
+                  lastUpdated: timestamp,
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              });
+              
+              console.log('Created new section with ID:', newSection.id);
+              
+              // Return empty components but with the new section's timestamp
+              return { 
+                components: [], 
+                lastUpdated: newSection.lastUpdated.toISOString() 
+              };
+            } catch (createError) {
+              console.error('Error creating new section:', createError);
+            }
           }
         } catch (dbError) {
           console.error('Error querying database:', dbError);
@@ -516,10 +549,37 @@ export const cmsResolvers = {
         
         console.log(`CMS RESOLVER: Saving ${components?.length || 0} components for section ${sectionId}`);
         
+        // Check if components array is valid
+        if (!components || !Array.isArray(components)) {
+          console.error('No valid components array provided');
+          return {
+            success: false,
+            message: 'No valid components array provided',
+            lastUpdated: null
+          };
+        }
+        
+        // Validate component data
+        const validComponents = components.filter(c => {
+          if (!c.id) {
+            console.error('Component without ID found, skipping');
+            return false;
+          }
+          if (!c.type) {
+            console.error(`Component ${c.id} has no type, skipping`);
+            return false;
+          }
+          return true;
+        });
+        
+        if (validComponents.length !== components.length) {
+          console.warn(`Found ${components.length - validComponents.length} invalid components, will only save valid ones`);
+        }
+        
         // Check if components array is not empty before trying to log the first component
-        if (components && components.length > 0) {
-          console.log('First component:', JSON.stringify(components[0]).substring(0, 100) + '...');
-          console.log('Components to save:', components.map(c => `${c.id} (${c.type})`).join(', '));
+        if (validComponents.length > 0) {
+          console.log('First component:', JSON.stringify(validComponents[0]).substring(0, 100) + '...');
+          console.log('Components to save:', validComponents.map(c => `${c.id} (${c.type})`).join(', '));
         } else {
           console.log('No components to save');
         }
@@ -552,10 +612,10 @@ export const cmsResolvers = {
             });
             
             // 3. Crear nuevas relaciones con componentes
-            if (components && components.length > 0) {
+            if (validComponents.length > 0) {
               // Por cada componente, buscar si existe o crearlo
-              for (let i = 0; i < components.length; i++) {
-                const component = components[i];
+              for (let i = 0; i < validComponents.length; i++) {
+                const component = validComponents[i];
                 
                 // Buscar el componente por tipo o crearlo si no existe
                 let cmsComponent = await prisma.cMSComponent.findFirst({
@@ -577,19 +637,30 @@ export const cmsResolvers = {
                   });
                 }
                 
+                console.log(`Creating relationship for component ${component.id || 'new'} (type: ${component.type})`);
+                
+                // Use provided component ID if it exists, otherwise generate a new one
+                const componentId = component.id || crypto.randomUUID();
+                
                 // Crear la relación entre sección y componente
                 await prisma.$executeRaw(
-                  Prisma.sql`INSERT INTO "SectionComponent" 
+                  Prisma.sql`
+                  INSERT INTO "SectionComponent" 
                   ("id", "sectionId", "componentId", "order", "data", "createdAt", "updatedAt") 
                   VALUES (
-                    ${crypto.randomUUID()}, 
+                    ${componentId}, 
                     ${updatedSection.id}, 
                     ${cmsComponent.id}, 
                     ${i}, 
                     ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`}, 
                     ${timestamp}, 
                     ${timestamp}
-                  )`
+                  )
+                  ON CONFLICT ("sectionId", "componentId", "order") 
+                  DO UPDATE SET 
+                    "data" = ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`},
+                    "updatedAt" = ${timestamp}
+                  `
                 );
               }
             }
@@ -612,10 +683,10 @@ export const cmsResolvers = {
             });
             
             // 2. Crear relaciones con componentes
-            if (components && components.length > 0) {
+            if (validComponents.length > 0) {
               // Por cada componente, buscar si existe o crearlo
-              for (let i = 0; i < components.length; i++) {
-                const component = components[i];
+              for (let i = 0; i < validComponents.length; i++) {
+                const component = validComponents[i];
                 
                 // Buscar el componente por tipo o crearlo si no existe
                 let cmsComponent = await prisma.cMSComponent.findFirst({
@@ -637,19 +708,30 @@ export const cmsResolvers = {
                   });
                 }
                 
+                console.log(`Creating relationship for component ${component.id || 'new'} (type: ${component.type})`);
+                
+                // Use provided component ID if it exists, otherwise generate a new one
+                const componentId = component.id || crypto.randomUUID();
+                
                 // Crear la relación entre sección y componente
                 await prisma.$executeRaw(
-                  Prisma.sql`INSERT INTO "SectionComponent" 
+                  Prisma.sql`
+                  INSERT INTO "SectionComponent" 
                   ("id", "sectionId", "componentId", "order", "data", "createdAt", "updatedAt") 
                   VALUES (
-                    ${crypto.randomUUID()}, 
+                    ${componentId}, 
                     ${newSection.id}, 
                     ${cmsComponent.id}, 
                     ${i}, 
                     ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`}, 
                     ${timestamp}, 
                     ${timestamp}
-                  )`
+                  )
+                  ON CONFLICT ("sectionId", "componentId", "order") 
+                  DO UPDATE SET 
+                    "data" = ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`},
+                    "updatedAt" = ${timestamp}
+                  `
                 );
               }
             }
@@ -1325,6 +1407,137 @@ export const cmsResolvers = {
         return {
           success: false,
           message: `Error al eliminar página: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        };
+      }
+    },
+
+    // Create CMS Section mutation - needed for automatic page setup
+    createCMSSection: async (_parent: unknown, args: { 
+      input: { 
+        sectionId: string;
+        name: string;
+        description?: string;
+      } 
+    }) => {
+      console.log('======== START createCMSSection resolver ========');
+      try {
+        const { input } = args;
+        console.log(`Creando nueva sección CMS: ${input.name} (${input.sectionId})`);
+        
+        // Validar campos obligatorios
+        if (!input.sectionId || !input.name) {
+          throw new Error('El ID de sección y el nombre son campos requeridos');
+        }
+        
+        // Verificar si ya existe una sección con el mismo ID
+        const existingSection = await prisma.cMSSection.findFirst({
+          where: { sectionId: input.sectionId }
+        });
+        
+        if (existingSection) {
+          console.log(`Ya existe una sección con el ID: ${input.sectionId}`);
+          return {
+            success: true, // Returning success=true because we can use the existing section
+            message: `Ya existe una sección con el ID: ${input.sectionId}`,
+            section: existingSection
+          };
+        }
+        
+        const timestamp = new Date();
+        
+        // Crear la sección CMS en la base de datos
+        const newSection = await prisma.cMSSection.create({
+          data: {
+            sectionId: input.sectionId,
+            name: input.name,
+            description: input.description || `Sección ${input.name}`,
+            lastUpdated: timestamp,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            createdBy: "system"
+          }
+        });
+        
+        console.log(`Sección CMS creada correctamente: ${newSection.id}`);
+        
+        return {
+          success: true,
+          message: `Sección "${input.name}" creada correctamente`,
+          section: newSection
+        };
+      } catch (error) {
+        console.error('Error al crear sección CMS:', error);
+        return {
+          success: false,
+          message: `Error al crear sección: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          section: null
+        };
+      }
+    },
+
+    // Create Page Section mutation - needed for automatic page setup
+    createPageSection: async (_parent: unknown, args: { 
+      input: { 
+        pageId: string;
+        title: string;
+        componentType: string;
+        order: number;
+        isVisible?: boolean;
+        data?: Record<string, unknown>;
+      } 
+    }) => {
+      console.log('======== START createPageSection resolver ========');
+      try {
+        const { input } = args;
+        console.log(`Creando nueva sección de página: ${input.title} para página: ${input.pageId}`);
+        
+        // Validar campos obligatorios
+        if (!input.pageId || !input.title) {
+          throw new Error('El ID de página y el título son campos requeridos');
+        }
+        
+        // Verificar si la página existe
+        const existingPage = await prisma.page.findUnique({
+          where: { id: input.pageId }
+        });
+        
+        if (!existingPage) {
+          return {
+            success: false,
+            message: `No se encontró ninguna página con ID: ${input.pageId}`,
+            section: null
+          };
+        }
+        
+        const timestamp = new Date();
+        
+        // Crear la sección de página en la base de datos
+        const newSection = await prisma.pageSection.create({
+          data: {
+            pageId: input.pageId,
+            title: input.title,
+            componentType: input.componentType as ComponentType,
+            order: input.order,
+            isVisible: input.isVisible !== false, // default to true if undefined
+            data: input.data ? input.data as Prisma.InputJsonValue : Prisma.JsonNull,
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        });
+        
+        console.log(`Sección de página creada correctamente: ${newSection.id}`);
+        
+        return {
+          success: true,
+          message: `Sección "${input.title}" creada correctamente`,
+          section: newSection
+        };
+      } catch (error) {
+        console.error('Error al crear sección de página:', error);
+        return {
+          success: false,
+          message: `Error al crear sección: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          section: null
         };
       }
     },

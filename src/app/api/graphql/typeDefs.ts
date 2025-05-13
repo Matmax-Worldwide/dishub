@@ -700,6 +700,37 @@ export const typeDefs = gql`
     description: String
   }
 
+  # Input for creating a CMS section
+  input CreateCMSSectionInput {
+    sectionId: String!
+    name: String!
+    description: String
+  }
+
+  # Result type for CMS section operations
+  type CMSSectionResult {
+    success: Boolean!
+    message: String!
+    section: CMSSection
+  }
+
+  # Input for creating a page section
+  input CreatePageSectionInput {
+    pageId: String!
+    title: String!
+    componentType: String!
+    order: Int!
+    isVisible: Boolean
+    data: JSON
+  }
+
+  # Result type for page section operations
+  type PageSectionResult {
+    success: Boolean!
+    message: String!
+    section: PageSection
+  }
+
   # Input for updating pages
   input UpdatePageInput {
     title: String
@@ -919,5 +950,9 @@ export const typeDefs = gql`
     createPage(input: CreatePageInput!): PageResult
     updatePage(id: ID!, input: UpdatePageInput!): PageResult
     deletePage(id: ID!): PageResult
+    
+    # Section mutations
+    createCMSSection(input: CreateCMSSectionInput!): CMSSectionResult
+    createPageSection(input: CreatePageSectionInput!): PageSectionResult
   }
 `; 

@@ -4,6 +4,7 @@ import { updateCMSSection } from './cms-update';
 export async function gqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
+  timeout: number = 10000 // Default 10 second timeout
 ): Promise<T> {
   // Generar un ID único para esta solicitud para facilitar el seguimiento en logs
   const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
@@ -17,117 +18,74 @@ export async function gqlRequest<T>(
     const requestTime = new Date().toISOString();
     console.log(`🔍 gqlRequest [${requestId}] [${requestTime}] - Enviando solicitud a /api/graphql`);
     
-    const response = await fetch('/api/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Request-ID': requestId // Añadir ID de seguimiento en cabeceras
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-      // Asegurar que no utiliza caché
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
-
-    // Log de la respuesta
-    console.log(`🔍 gqlRequest [${requestId}] - Respuesta recibida, status:`, response.status);
+    // Create an AbortController to handle request timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     
-    // Si hay un error, intentemos recuperar el mensaje detallado
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ gqlRequest [${requestId}] - Error HTTP ${response.status}: ${errorText.substring(0, 500)}`);
-      
-      try {
-        // Intentar parsear como JSON por si contiene detalles
-        const errorJson = JSON.parse(errorText);
-        throw new Error(`GraphQL error (${response.status}): ${JSON.stringify(errorJson)}`);
-      } catch {
-        // Si no es JSON, usar el texto completo
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText.substring(0, 200)}`);
-      }
-    }
-
-    const responseText = await response.text();
-    
-    // Tamaño de la respuesta para diagnóstico
-    const responseSize = responseText.length;
-    console.log(`🔍 gqlRequest [${requestId}] - Respuesta recibida, tamaño: ${responseSize} bytes`);
-    console.log(`🔍 gqlRequest [${requestId}] - Respuesta cruda (primeros 500 caracteres):`, 
-      responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
-    
-    // Si la respuesta está vacía, lanzar un error
-    if (!responseText.trim()) {
-      console.error(`❌ gqlRequest [${requestId}] - Respuesta vacía del servidor`);
-      throw new Error('La respuesta del servidor está vacía');
-    }
-    
-    let responseData;
     try {
-      responseData = JSON.parse(responseText);
-      console.log(`🔍 gqlRequest [${requestId}] - JSON parseado correctamente`);
-    } catch (e) {
-      console.error(`❌ gqlRequest [${requestId}] - Error al parsear respuesta JSON:`, e);
-      console.error(`❌ gqlRequest [${requestId}] - Texto de respuesta problemático:`, responseText.substring(0, 500));
-      throw new Error(`Error al parsear la respuesta del servidor: ${responseText.substring(0, 200)}`);
-    }
-    
-    console.log(`🔍 gqlRequest [${requestId}] - Estructura de la respuesta:`, 
-      Object.keys(responseData).join(', '));
-    
-    // Verificar que la respuesta tiene la estructura esperada
-    if (!responseData || typeof responseData !== 'object') {
-      console.error(`❌ gqlRequest [${requestId}] - Respuesta con formato inválido:`, responseData);
-      throw new Error('La respuesta GraphQL no tiene un formato válido');
-    }
-    
-    const { data, errors } = responseData as { 
-      data?: T; 
-      errors?: Array<{ message: string; path?: string[]; locations?: Array<{line: number; column: number}> }> 
-    };
-
-    if (errors && errors.length > 0) {
-      console.error(`❌ gqlRequest [${requestId}] - Errores GraphQL:`, JSON.stringify(errors, null, 2));
-      
-      // Información más detallada sobre cada error
-      errors.forEach((error, index) => {
-        console.error(`❌ Error ${index + 1}: ${error.message}`);
-        if (error.path) console.error(`  Path: ${error.path.join('.')}`);
-        if (error.locations) {
-          error.locations.forEach(loc => {
-            console.error(`  Location: línea ${loc.line}, columna ${loc.column}`);
-          });
-        }
+      const response = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+        signal: controller.signal,
       });
       
-      throw new Error(errors.map(e => e.message).join('\n'));
-    }
-    
-    // Verificar que data no es null o undefined
-    if (data === undefined || data === null) {
-      console.error(`❌ gqlRequest [${requestId}] - La respuesta no contiene datos:`, responseData);
+      // Clear the timeout as the request completed
+      clearTimeout(timeoutId);
       
-      // Intentar otra estrategia: si responseData parece ser válido, devolverlo
-      if (responseData && Object.keys(responseData).length > 0) {
-        console.log(`🔧 gqlRequest [${requestId}] - Intentando usar responseData directamente como alternativa`);
-        return responseData as T;
+      const responseTime = new Date().toISOString();
+      console.log(`🔍 gqlRequest [${requestId}] [${responseTime}] - Respuesta recibida con status: ${response.status}`);
+      
+      // Handle non-ok responses
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ gqlRequest [${requestId}] - Error HTTP ${response.status}: ${errorText}`);
+        throw new Error(`HTTP error ${response.status}: ${errorText}`);
       }
       
-      // Si llegamos aquí, la respuesta está vacía, devolver un objeto vacío
-      console.log(`🔧 gqlRequest [${requestId}] - Devolviendo objeto vacío como valor por defecto`);
-      return {} as T;
+      const responseData = await response.json();
+      
+      // Check for GraphQL errors
+      if (responseData.errors && responseData.errors.length > 0) {
+        const errorMessages = responseData.errors.map((e: { message: string }) => e.message).join(', ');
+        console.error(`❌ gqlRequest [${requestId}] - Errores GraphQL: ${errorMessages}`);
+        throw new Error(`GraphQL errors: ${errorMessages}`);
+      }
+      
+      // Verificar que se obtuvo una respuesta válida
+      if (!responseData) {
+        console.error(`❌ gqlRequest [${requestId}] - Respuesta vacía o inválida`);
+        throw new Error('No se recibió una respuesta válida del servidor');
+      }
+      
+      console.log(`✅ gqlRequest [${requestId}] - Solicitud completada exitosamente`);
+      
+      // Return the data property or the entire response if data is not present
+      return responseData.data || responseData as T;
+    } catch (error) {
+      // Clear the timeout to prevent memory leaks
+      clearTimeout(timeoutId);
+      
+      // Special handling for abort errors (timeouts)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.error(`❌ gqlRequest [${requestId}] - La solicitud excedió el tiempo límite de ${timeout}ms`);
+        throw new Error(`La solicitud GraphQL excedió el tiempo límite de ${timeout}ms`);
+      }
+      
+      throw error;
     }
-
-    console.log(`✅ gqlRequest [${requestId}] - Solicitud exitosa, devolviendo datos`);
-    return data;
   } catch (error) {
-    console.error(`❌ gqlRequest [${requestId}] - Fallo en solicitud GraphQL:`, error);
-    throw error;
+    // Format the error for better debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`❌ gqlRequest [${requestId}] - Error: ${errorMessage}`);
+    
+    // Rethrow with more context
+    throw new Error(`Error en solicitud GraphQL: ${errorMessage}`);
   }
 }
 
@@ -879,6 +837,17 @@ export const cmsOperations = {
         return { components: [], lastUpdated: null };
       }
       
+      // Clean the sectionId by removing any query parameters or hashes
+      let cleanedSectionId = sectionId;
+      if (cleanedSectionId.includes('?')) {
+        cleanedSectionId = cleanedSectionId.split('?')[0];
+        console.log(`🔍 [${requestId}] Limpiando sectionId de parámetros: ${sectionId} -> ${cleanedSectionId}`);
+      }
+      if (cleanedSectionId.includes('#')) {
+        cleanedSectionId = cleanedSectionId.split('#')[0];
+        console.log(`🔍 [${requestId}] Limpiando sectionId de hash: ${sectionId} -> ${cleanedSectionId}`);
+      }
+      
       // Definir la consulta GraphQL
       const query = `
         query GetSectionComponents($sectionId: ID!) {
@@ -894,7 +863,7 @@ export const cmsOperations = {
       `;
 
       console.log(`🔍 [${requestId}] Query completa:`, query.replace(/\s+/g, ' '));
-      console.log(`🔍 [${requestId}] Variables:`, { sectionId });
+      console.log(`🔍 [${requestId}] Variables:`, { sectionId: cleanedSectionId });
 
       try {
         // Agregar un timestamp para evitar caching
@@ -903,7 +872,7 @@ export const cmsOperations = {
         
         // Ejecutar la consulta GraphQL con el timestamp para evitar cachés
         const queryWithCache = `${query}#${timestamp}`;
-        const result = await gqlRequest<SectionComponentsResponse>(queryWithCache, { sectionId });
+        const result = await gqlRequest<SectionComponentsResponse>(queryWithCache, { sectionId: cleanedSectionId });
         
         console.log(`🔍 [${requestId}] Respuesta recibida después de ${Date.now() - startTime}ms`);
         
@@ -1000,10 +969,26 @@ export const cmsOperations = {
   },
 
   // Guardar componentes de una sección
-  saveSectionComponents: async (sectionId: string, components: CMSComponent[]) => {
-    console.log('Enviando componentes a guardar:', components.length);
-    
+  saveSectionComponents: async (
+    sectionId: string, 
+    components: CMSComponent[]
+  ): Promise<{ 
+    success: boolean; 
+    message: string; 
+    lastUpdated: string | null 
+  }> => {
     try {
+      // Ensure all components have an ID
+      const validComponents = components.map(comp => {
+        if (!comp.id) {
+          return {
+            ...comp,
+            id: crypto.randomUUID() // Generate a UUID for components without ID
+          };
+        }
+        return comp;
+      });
+      
       const mutation = `
         mutation SaveSectionComponents($input: SaveSectionInput!) {
           saveSectionComponents(input: $input) {
@@ -1014,50 +999,32 @@ export const cmsOperations = {
         }
       `;
       
-      const variables = {
-        input: {
-          sectionId,
-          components
-        }
+      const input = {
+        sectionId,
+        components: validComponents
       };
       
-      console.log('Mutation para guardar componentes:', mutation);
-      console.log('Variables de la mutation:', JSON.stringify({
-        sectionId,
-        componentsCount: components.length
-      }));
+      console.log(`Saving ${validComponents.length} components for section ${sectionId}`);
       
-      const result = await gqlRequest<{
-        saveSectionComponents: {
-          success: boolean;
-          message: string;
+      // Use a longer timeout for saving components
+      const result = await gqlRequest<{ 
+        saveSectionComponents: { 
+          success: boolean; 
+          message: string; 
           lastUpdated: string | null;
         }
-      }>(mutation, variables);
+      }>(mutation, { input }, 15000);
       
-      console.log('Resultado de guardar componentes:', result);
-      
-      // Almacenar en localStorage para uso offline
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(
-            `cms-data-${sectionId}`, 
-            JSON.stringify({
-              components,
-              lastUpdated: new Date().toISOString()
-            })
-          );
-        } catch (e) {
-          console.error('Error al guardar en localStorage:', e);
-        }
+      if (!result || !result.saveSectionComponents) {
+        throw new Error('No response received from server when saving section components');
       }
       
       return result.saveSectionComponents;
     } catch (error) {
-      console.error('Error al guardar componentes:', error);
+      console.error('Error saving section components:', error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Error desconocido al guardar',
+        message: `Error al guardar componentes: "${error instanceof Error ? error.message : 'Error desconocido'}"`,
         lastUpdated: null
       };
     }
@@ -1343,24 +1310,31 @@ export const cmsOperations = {
     }
   },
 
-  // Create a new page
+  // Create a new CMS page
   createPage: async (pageInput: {
     title: string;
     slug: string;
-    description?: string | null;
+    description?: string;
     template?: string;
     isPublished?: boolean;
-    publishDate?: string | null;
-    featuredImage?: string | null;
-    metaTitle?: string | null;
-    metaDescription?: string | null;
-    parentId?: string | null;
-    order?: number;
     pageType?: string;
     locale?: string;
+    metaTitle?: string;
+    metaDescription?: string;
+    featuredImage?: string;
     sections?: string[];
-  }) => {
-    const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    page: {
+      id: string;
+      title: string;
+      slug: string;
+    } | null;
+  }> => {
+    // Generate a unique request ID for logging
+    const requestId = `createPage-${Math.random().toString(36).substring(2, 9)}`;
+    
     console.log(`🔍 [${requestId}] GraphQL CLIENT - createPage - Starting request`);
     
     try {
@@ -1398,7 +1372,7 @@ export const cmsOperations = {
       
       if (!result || !result.createPage) {
         console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error: No valid response`);
-        return { success: false, message: 'Failed to create page' };
+        return { success: false, message: 'Failed to create page', page: null };
       }
       
       return result.createPage;
@@ -1556,6 +1530,124 @@ export const cmsOperations = {
     }>(query, { id });
     
     return response?.getCMSSection || null;
+  },
+
+  // Create CMS Section
+  createCMSSection: async (input: { 
+    sectionId: string; 
+    name: string; 
+    description?: string; 
+  }): Promise<{ 
+    success: boolean; 
+    message: string; 
+    section: { id: string; sectionId: string; name: string } | null;
+  }> => {
+    try {
+      const mutation = `
+        mutation CreateCMSSection($input: CreateCMSSectionInput!) {
+          createCMSSection(input: $input) {
+            success
+            message
+            section {
+              id
+              sectionId
+              name
+            }
+          }
+        }
+      `;
+      
+      console.log(`Creating CMS Section with ID: ${input.sectionId}`);
+      console.log(`Input data: ${JSON.stringify(input)}`);
+      
+      // Use a longer timeout for section creation
+      const result = await gqlRequest<{ 
+        createCMSSection: { 
+          success: boolean; 
+          message: string; 
+          section: { id: string; sectionId: string; name: string } | null;
+        }
+      }>(mutation, { input }, 15000);
+      
+      if (!result || !result.createCMSSection) {
+        throw new Error('No response received from server when creating CMS section');
+      }
+      
+      return result.createCMSSection;
+    } catch (error) {
+      console.error('Error creating CMS section:', error);
+      return {
+        success: false,
+        message: `Error al crear CMSSection: "${error instanceof Error ? error.message : 'Error desconocido'}"`,
+        section: null
+      };
+    }
+  },
+
+  // Create a Page section - used in automatic page creation
+  createPageSection: async (input: {
+    pageId: string;
+    title: string;
+    componentType: string;
+    order: number;
+    isVisible?: boolean;
+    data?: Record<string, unknown>;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    section: {
+      id: string;
+      title: string;
+      order: number;
+    } | null;
+  }> => {
+    try {
+      const mutation = `
+        mutation CreatePageSection($input: CreatePageSectionInput!) {
+          createPageSection(input: $input) {
+            success
+            message
+            section {
+              id
+              title
+              order
+            }
+          }
+        }
+      `;
+      
+      console.log(`Creating Page Section: ${input.title} for page: ${input.pageId}`);
+      
+      const variables = { input };
+      const result = await gqlRequest<{ 
+        createPageSection: { 
+          success: boolean; 
+          message: string;
+          section: {
+            id: string;
+            title: string;
+            order: number;
+          } | null;
+        } 
+      }>(mutation, variables);
+      
+      if (!result.createPageSection) {
+        return {
+          success: false,
+          message: 'Error: No response from server',
+          section: null
+        };
+      }
+      
+      return result.createPageSection;
+    } catch (error) {
+      console.error('Error creating Page section:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error creating Page section',
+        section: null
+      };
+    }
   },
 
   updateComponentTitle,

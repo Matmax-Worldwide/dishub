@@ -446,24 +446,50 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         }
       }
       
-      console.log('La página no será actualizada según lo solicitado');
-      
-      // Simulate success after a short delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return a simulated success result
-      const simulatedResult = {
-        success: true
+      // Prepare page data for update
+      const updateInput = {
+        title: pageData.title,
+        slug: pageData.slug,
+        description: pageData.description,
+        template: pageData.template,
+        isPublished: pageData.isPublished,
+        featuredImage: pageData.featuredImage,
+        metaTitle: pageData.metaTitle,
+        metaDescription: pageData.metaDescription,
+        pageType: pageData.pageType,
+        locale: pageData.locale,
+        // Map sections to the format expected by the API
+        sections: pageSections.map(section => ({
+          id: section.id,
+          order: section.order,
+          title: section.name,
+          componentType: 'CUSTOM',
+          data: { sectionId: section.sectionId },
+          isVisible: true
+        }))
       };
       
-      console.log('Simulando actualización exitosa:', simulatedResult);
-      setNotification({
-        type: 'success',
-        message: 'Página actualizada exitosamente'
-      });
-      setHasUnsavedChanges(false);
-      // Refresh section view to show updated components
-      setForceReloadSection(!forceReloadSection);
+      console.log('Actualizando página con datos:', updateInput);
+      
+      // Actually update the page in the database
+      const result = await cmsOperations.updatePage(pageData.id, updateInput);
+      
+      if (result.success) {
+        console.log('Página actualizada exitosamente:', result);
+        setNotification({
+          type: 'success',
+          message: 'Página actualizada exitosamente'
+        });
+        setHasUnsavedChanges(false);
+        // Refresh section view to show updated components
+        setForceReloadSection(!forceReloadSection);
+      } else {
+        console.error('Error al actualizar la página:', result.message);
+        setNotification({
+          type: 'error',
+          message: result.message || 'Error al actualizar la página'
+        });
+      }
       
       // Clear notification after 3 seconds
       setTimeout(() => {

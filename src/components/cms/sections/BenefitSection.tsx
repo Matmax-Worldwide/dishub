@@ -165,7 +165,7 @@ const BenefitSection = React.memo(function BenefitSection({
     <section 
       className={cn(
         "relative overflow-hidden flex flex-col justify-center w-full",
-        isEditing ? "min-h-[400px] h-auto py-12" : "h-screen"
+        isEditing ? "min-h-[400px] h-auto py-12" : ""
       )}
     >
       {/* Fondo principal */}

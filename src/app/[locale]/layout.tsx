@@ -18,7 +18,7 @@ export default async function LocaleLayout({
   
   return (
     <Providers locale={locale} messages={messages}>
-      <main className={inter.className + " min-h-screen"}>
+      <main className={inter.className + " "}>
         {children}
       </main>
     </Providers>
