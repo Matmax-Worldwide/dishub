@@ -158,7 +158,11 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   };
 
   const handleToggleCollapse = useCallback(() => {
-    if (onToggleCollapse) onToggleCollapse(component.id, !isCollapsed);
+    console.log(`Component ${component.id} toggling collapse. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+    if (onToggleCollapse) {
+      // Si está colapsado, lo expandimos, y viceversa
+      onToggleCollapse(component.id, isCollapsed);
+    }
   }, [component.id, isCollapsed, onToggleCollapse]);
 
   return (
@@ -179,75 +183,81 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
             <div className="flex items-center gap-2">
               {/* Reorder controls */}
               <div className="flex items-center">
-                <button
+                <div
                   onClick={handleMoveUp}
-                  disabled={isFirst}
-                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                  className={cn(
+                    "p-1 text-muted-foreground hover:text-foreground cursor-pointer",
+                    isFirst && "opacity-30 cursor-not-allowed hover:text-muted-foreground"
+                  )}
                   title="Mover componente arriba"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 15l-6-6-6 6"/>
                   </svg>
-                </button>
-                <button
+                </div>
+                <div
                   onClick={handleMoveDown}
-                  disabled={isLast}
-                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                  className={cn(
+                    "p-1 text-muted-foreground hover:text-foreground cursor-pointer",
+                    isLast && "opacity-30 cursor-not-allowed hover:text-muted-foreground"
+                  )}
                   title="Mover componente abajo"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 9l6 6 6-6"/>
                   </svg>
-                </button>
+                </div>
               </div>
               
               {isEditingTitle ? (
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    value={componentTitle}
-                    onChange={(e) => setComponentTitle(e.target.value)}
-                    onBlur={handleTitleSave}
-                    onKeyDown={handleTitleKeyDown}
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  value={componentTitle}
+                  onChange={(e) => setComponentTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={handleTitleKeyDown}
                     className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
-                    autoFocus
-                  />
-                </div>
-              ) : (
-                <div 
-                  onClick={handleTitleClick} 
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div 
+                onClick={handleTitleClick} 
                   className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  {componentTitle}
-                </div>
-              )}
+              >
+                {componentTitle}
+              </div>
+            )}
             </div>
             <div className="flex items-center space-x-1">
               {/* Collapse button */}
-              <button
+              <div
                 onClick={handleToggleCollapse}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full"
+                className="opacity-30 hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full cursor-pointer"
                 aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
                 title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
               >
                 {isCollapsed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
                   </svg>
                 )}
-              </button>
-              <button 
-                onClick={handleRemove}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full"
+              </div>
+            <div 
+              onClick={handleRemove}
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full cursor-pointer"
                 aria-label="Eliminar componente"
-              >
+            >
                 <XMarkIcon className="h-3 w-3 text-destructive" />
-              </button>
+            </div>
             </div>
           </div>
           <div className="h-px bg-border w-full mb-3 opacity-60"></div>
@@ -258,17 +268,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
           {children}
         </div>
       )}
-      {isEditing && isCollapsed && (
-        <div className="px-3 py-2 text-center border border-dashed border-muted rounded-md mx-1 my-2 cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleToggleCollapse}>
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="7 13 12 18 17 13"></polyline>
-              <polyline points="7 6 12 11 17 6"></polyline>
-            </svg>
-            <span>Expandir {component.type}</span>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 });
@@ -282,26 +282,22 @@ function SectionManagerBase({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track if the insert hint should be shown
   const [showInsertHint, setShowInsertHint] = useState(false);
-  // Track the last selected component to prevent full reloads
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
-  // Track if this is a preview-only instance
-  const isPreviewOnly = !isEditing && onComponentsChange === undefined;
   // Track collapsed components by ID
   const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
+  // Add a flag to track if all components are collapsed
+  const [allCollapsed, setAllCollapsed] = useState(false);
   
   // Cache component data stringified to prevent unnecessary re-renders
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
 
   // Efecto para inicializar componentes iniciales
   useEffect(() => {
-    // Only update components if this is not a rerender due to component selection
-    // For preview mode, we'll always update to show the latest changes
-    if (initialComponents.length > 0 && (isPreviewOnly || !selectedComponentId)) {
-        setComponents(initialComponents);
-      // Reset selected component when full component list is updated
-      setSelectedComponentId(null);
+    // Solo actualizar los componentes si es una primera carga o una actualización importante
+    // pero no si solo estamos reordenando o colapsando/expandiendo
+    if (initialComponents.length > 0 && components.length === 0) {
+      setComponents(initialComponents);
     }
-  }, [initialComponents, isPreviewOnly, selectedComponentId]);
+  }, [initialComponents, components.length]);
 
   // Efecto para enviar cambios al padre
   useEffect(() => {
@@ -381,9 +377,6 @@ function SectionManagerBase({
 
   // Creamos una función memoizada para actualizar los componentes de forma eficiente
   const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
-    // Set this component as selected to prevent full reloads
-    setSelectedComponentId(component.id);
-    
     // Create a new component object with updated data
     const updatedComponent = {
       ...component,
@@ -411,6 +404,8 @@ function SectionManagerBase({
 
   // Manejar el movimiento de componentes hacia arriba
   const handleMoveComponentUp = useCallback((componentId: string) => {
+    // No actualizamos selectedComponentId para evitar que afecte el estado de colapso
+    
     setComponents(prevComponents => {
       const index = prevComponents.findIndex(component => component.id === componentId);
       if (index <= 0) return prevComponents;
@@ -427,6 +422,8 @@ function SectionManagerBase({
 
   // Manejar el movimiento de componentes hacia abajo
   const handleMoveComponentDown = useCallback((componentId: string) => {
+    // No actualizamos selectedComponentId para evitar que afecte el estado de colapso
+    
     setComponents(prevComponents => {
       const index = prevComponents.findIndex(component => component.id === componentId);
       if (index < 0 || index >= prevComponents.length - 1) return prevComponents;
@@ -443,16 +440,42 @@ function SectionManagerBase({
 
   // Handle collapsing/expanding components
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
+    console.log(`Toggling collapse for component ${componentId}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
     setCollapsedComponents(prev => {
       const newSet = new Set(prev);
-      if (!isCollapsed) {
-        newSet.add(componentId);
-      } else {
+      // Si isCollapsed es true, significa que está colapsado y queremos expandirlo
+      // Si isCollapsed es false, significa que está expandido y queremos colapsarlo
+      if (isCollapsed) {
+        console.log(`Expanding component ${componentId}`);
         newSet.delete(componentId);
+      } else {
+        console.log(`Collapsing component ${componentId}`);
+        newSet.add(componentId);
       }
       return newSet;
     });
   }, []);
+
+  // Function to collapse or expand all components
+  const handleCollapseAll = useCallback(() => {
+    setAllCollapsed(prev => {
+      const newAllCollapsed = !prev;
+      
+      // Update collapsed components set based on new state
+      if (newAllCollapsed) {
+        // Collapse all components
+        const allComponentIds = new Set(components.map(c => c.id));
+        setCollapsedComponents(allComponentIds);
+        console.log('Collapsing all components:', [...allComponentIds]);
+      } else {
+        // Expand all components
+        setCollapsedComponents(new Set());
+        console.log('Expanding all components');
+      }
+      
+      return newAllCollapsed;
+    });
+  }, [components]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -463,21 +486,13 @@ function SectionManagerBase({
     // Check if component is collapsed
     const isComponentCollapsed = collapsedComponents.has(component.id);
 
-    // Only optimize non-selected components in preview mode
-    // We always want to render selected components and components in edit mode
-    const shouldOptimizeRender = 
-      !isEditing && // Only in preview mode
-      isPreviewOnly && // Only when it's a dedicated preview instance
-      selectedComponentId && // Only when we have a selected component
-      selectedComponentId !== component.id; // Only for non-selected components
-    
-    if (shouldOptimizeRender) {
-      // This will maintain the previously rendered component for better performance
-      // but doesn't log to avoid console noise
-    }
-
     // Componente específico según el tipo
     const renderComponentContent = () => {
+      // Only render content if the component is not collapsed in edit mode
+      if (isEditing && isComponentCollapsed) {
+        return null;
+      }
+
       switch(component.type) {
         case 'Hero': {
           const HeroComponent = componentMap.Hero;
@@ -598,7 +613,16 @@ function SectionManagerBase({
         {renderComponentContent()}
       </ComponentWrapperMemo>
     );
-  }, [isEditing, handleUpdate, removeComponent, selectedComponentId, isPreviewOnly, handleMoveComponentUp, handleMoveComponentDown, components, collapsedComponents, handleToggleCollapse]);
+  }, [
+    isEditing, 
+    handleUpdate, 
+    removeComponent,
+    handleMoveComponentUp, 
+    handleMoveComponentDown, 
+    components, 
+    collapsedComponents, 
+    handleToggleCollapse
+  ]);
 
   // Memorizamos la lista de componentes renderizados
   const renderedComponents = useMemo(() => {
@@ -621,6 +645,32 @@ function SectionManagerBase({
       onMouseEnter={() => setShowInsertHint(true)}
       onMouseLeave={() => setShowInsertHint(false)}
     >
+      {isEditing && (
+        <div className="flex justify-end mb-4">
+          <div
+            onClick={handleCollapseAll}
+            className="flex items-center space-x-1 px-2 py-1 text-xs rounded-md bg-muted/50 hover:bg-muted text-muted-foreground transition-colors cursor-pointer"
+            aria-label={allCollapsed ? "Expandir todos" : "Colapsar todos"}
+            title={allCollapsed ? "Expandir todos" : "Colapsar todos"}
+          >
+            <span>{allCollapsed ? "Expandir todos" : "Colapsar todos"}</span>
+            {allCollapsed ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <polyline points="8 5 3 12 8 19"></polyline>
+                <polyline points="16 5 21 12 16 19"></polyline>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <polyline points="16 19 21 12 16 5"></polyline>
+                <polyline points="8 19 3 12 8 5"></polyline>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+      
       {isEditing && components.length === 0 && (
         <div 
           onClick={handleClickAddComponent}

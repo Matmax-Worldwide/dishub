@@ -338,7 +338,6 @@ export default function SectionPage() {
           ref={sectionRef}
           sectionId={effectiveSectionId}
           isEditing={isEditing}
-          autoSave={false}
           onComponentsChange={handleComponentsChange}
         />
         

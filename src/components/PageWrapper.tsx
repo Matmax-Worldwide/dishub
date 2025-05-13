@@ -291,7 +291,6 @@ export default function PageWrapper({ pageSections = [], pageSlug, children }: P
                   key={section.sectionId}
                   sectionId={section.sectionId}
                   isEditing={true}
-                  autoSave={false}
                   onComponentsChange={() => handleSectionChange(section.sectionId)}
                 />
               </div>
