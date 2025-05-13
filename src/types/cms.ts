@@ -50,17 +50,30 @@ export interface PageResponse {
   isPublished: boolean;
   pageType: string;
   locale?: string;
-  sections: Array<{
+  sections?: Array<{
     id: string;
-    sectionId: string;
-    data: {
-      sectionId: string;
-    };
-    order?: number;
+    order: number;
+    title?: string;
+    componentType?: string;
+    sectionId?: string;
+    data?: Record<string, unknown>;
+    isVisible?: boolean;
   }>;
   metaTitle?: string;
   metaDescription?: string;
   featuredImage?: string;
+  publishDate?: string;
+  seo?: {
+    keywords?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
+  };
 }
 
 export interface NotificationType {

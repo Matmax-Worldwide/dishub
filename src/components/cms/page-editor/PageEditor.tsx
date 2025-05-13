@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { FileTextIcon, SearchIcon, LayoutIcon } from 'lucide-react';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import {
-  PageData,
+  PageData as BasePageData,
   AvailableSection,
   Section,
   PageResponse,
@@ -29,6 +29,22 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 
+// Extend PageData to include SEO properties
+interface PageData extends BasePageData {
+  publishDate?: string;
+  seo?: {
+    keywords?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
+  };
+}
+
 interface PageEditorProps {
   slug: string;
   locale: string;
@@ -48,7 +64,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     sections: [],
     metaTitle: '',
     metaDescription: '',
-    featuredImage: ''
+    featuredImage: '',
+    publishDate: '',
+    seo: {}
   });
   
   // UI states
@@ -114,7 +132,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           sections: [],
           metaTitle: response.metaTitle || '',
           metaDescription: response.metaDescription || '',
-          featuredImage: response.featuredImage || ''
+          featuredImage: response.featuredImage || '',
+          publishDate: response.publishDate || '',
+          seo: response.seo || {}
         });
         
         // Then load components for each section
@@ -374,6 +394,18 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     setHasUnsavedChanges(true);
   };
   
+  // Handle nested SEO property changes
+  const handleSEOChange = (path: string, value: string) => {
+    setPageData(prev => ({
+      ...prev,
+      seo: {
+        ...prev.seo,
+        [path]: value
+      }
+    }));
+    setHasUnsavedChanges(true);
+  };
+  
   // Add section to page
   const handleAddSection = (section: AvailableSection) => {
     const newSection: Section = {
@@ -458,6 +490,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         metaDescription: pageData.metaDescription,
         pageType: pageData.pageType,
         locale: pageData.locale,
+        publishDate: pageData.publishDate,
+        seo: pageData.seo,
         // Map sections to the format expected by the API
         sections: pageSections.map(section => ({
           id: section.id,
@@ -724,6 +758,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
             onInputChange={handleInputChange}
             onBackClick={() => setActiveTab('details')}
             onContinue={() => setActiveTab('sections')}
+            onSEOChange={handleSEOChange}
           />
         </TabsContent>
         

@@ -230,8 +230,6 @@ function SectionManagerBase({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track collapsed components by ID - initialize with empty set (all expanded)
   const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
-  // Add a flag to track if all components are collapsed - start with false (all expanded)
-  const [allCollapsed, setAllCollapsed] = useState(false);
   // Referencia para guardar el elemento activo antes del autoguardado
   const activeElementRef = useRef<Element | null>(null);
   // Estado para controlar las actualizaciones debounced de los componentes
@@ -298,115 +296,394 @@ function SectionManagerBase({
     }
   }, [debouncedPendingUpdate, collapsedComponents]);
   
-  // Crear función para añadir componente que puede ser llamada directamente o a través del evento
-  const addNewComponent = useCallback((type: ComponentType = 'Text') => {
-    // Generate unique ID
-    const newId = crypto.randomUUID();
+
+  // State for component selector
+  const [isComponentSelectorOpen, setIsComponentSelectorOpen] = useState(false);
+  const [activeComponent, setActiveComponent] = useState<ComponentType>('Text');
+  const [sliderPosition, setSliderPosition] = useState(0);
+
+  // Handler for showing component selector
+  const handleAddButtonClick = () => {
+    setIsComponentSelectorOpen(true);
+  };
+
+  // Handler for adding components
+  const handleClickAddComponent = (type: ComponentType = 'Text') => {
+    // Generate a unique ID with crypto.randomUUID or a fallback
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto 
+      ? crypto.randomUUID()
+      : `temp-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Create new component with default data
-    const newComponent = {
-      id: newId,
+    // Create the new component
+    const newComponent: Component = {
+      id,
       type,
       data: {
+        ...(type === 'Benefit' ? {
+          title: 'Feature Title',
+          description: 'Description of this feature',
+          iconType: 'CheckCircle',
+          accentColor: '#01319c',
+          backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
+          showGrid: true,
+          showDots: true,
+        } : {}),
         componentTitle: `${type} Component`
       }
     };
     
-    console.log(`[SectionManager] ✨ Creando nuevo componente de tipo ${type} con ID ${newId}`);
-    
-    // Add component to state
-    setComponents(prevComponents => [...prevComponents, newComponent]);
-    
-    // Mark new component as collapsed by default
-    setCollapsedComponents(prev => {
-      const newSet = new Set(prev);
-      newSet.add(newId);
-      return newSet;
-    });
-    
-    // Notify parent of changes
-    if (onComponentsChange) {
-      setTimeout(() => {
-        // Usamos una función para obtener el estado más actualizado
-        setComponents(currentComponents => {
-          onComponentsChange(currentComponents);
-          return currentComponents;
-        });
-      }, 100);
-    }
-    
-    return newId;
-  }, [onComponentsChange]);
-  
-  // Estado para controlar la visibilidad del selector de componentes
-  const [showComponentSelector, setShowComponentSelector] = useState(false);
-  
-  // Función para cerrar el selector de componentes
-  const closeComponentSelector = useCallback(() => {
-    setShowComponentSelector(false);
-  }, []);
-  
-  // Función para abrir el selector de componentes
-  const openComponentSelector = useCallback(() => {
-    setShowComponentSelector(true);
-  }, []);
-  
-  // Función para manejar la selección de un tipo de componente
-  const handleSelectComponentType = useCallback((type: ComponentType) => {
-    addNewComponent(type);
-    closeComponentSelector();
-  }, [addNewComponent, closeComponentSelector]);
-  
-  // Escuchar el evento section:add-component-type
-  useEffect(() => {
-    const handleAddComponentType = (e: Event) => {
-      const customEvent = e as CustomEvent<{type: ComponentType}>;
-      if (customEvent.detail?.type) {
-        const componentType = customEvent.detail.type as ComponentType;
-        console.log(`[SectionManager] 🎯 Recibido evento para añadir componente tipo: ${componentType}`);
-        addNewComponent(componentType);
+    // Update components array
+    setComponents(prevComponents => {
+      // Add the new component to the array
+      const updatedComponents = [...prevComponents, newComponent];
+      
+      // Notify parent of changes if callback exists
+      if (onComponentsChange) {
+        onComponentsChange(updatedComponents);
       }
-    };
-    
-    document.addEventListener('section:add-component-type', handleAddComponentType);
-    return () => {
-      document.removeEventListener('section:add-component-type', handleAddComponentType);
-    };
-  }, [addNewComponent]);
-  
-  // Modificar handleClickAddComponent para mostrar el selector de componentes
-  const handleClickAddComponent = useCallback(() => {
-    console.log('[SectionManager] Solicitando diálogo para agregar componente');
-    openComponentSelector();
-  }, [openComponentSelector]);
-  
-  // Componente selector de tipo de componente
+      
+      return updatedComponents;
+    });
+  };
+
   const ComponentSelector = () => {
-    if (!showComponentSelector) return null;
-    
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-          <h2 className="text-lg font-semibold mb-4">Selecciona un tipo de componente</h2>
-          
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].map((type) => (
-              <button
-                key={type}
-                onClick={() => handleSelectComponentType(type as ComponentType)}
-                className="flex items-center justify-center p-3 border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors"
-              >
-                {type}
-              </button>
-            ))}
+    // Definición de los componentes disponibles con sus metadatos
+    const availableComponents: Array<{
+      type: ComponentType;
+      title: string;
+      description: string;
+      icon: React.ReactNode;
+      color: string;
+      preview: React.ReactNode;
+    }> = [
+      {
+        type: 'Text',
+        title: 'Text Component',
+        description: 'For paragraphs, articles and general text content',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7V5H20V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M8 19H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-blue-500 bg-blue-100 border-blue-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-md">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">Text Component</h3>
+            <div className="space-y-2">
+              <div className="h-2 bg-blue-200 rounded w-3/4"></div>
+              <div className="h-2 bg-blue-200 rounded"></div>
+              <div className="h-2 bg-blue-200 rounded"></div>
+              <div className="h-2 bg-blue-200 rounded w-5/6"></div>
+              <div className="h-2 bg-blue-200 rounded w-4/6"></div>
+            </div>
           </div>
-          
-          <div className="flex justify-end">
+        )
+      },
+      {
+        type: 'Hero',
+        title: 'Hero Component',
+        description: 'Large banner sections for page headers',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M8 21H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 17V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-indigo-500 bg-indigo-100 border-indigo-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-md">
+            <div className="bg-indigo-200 w-full h-16 rounded-md mb-2 flex items-center justify-center">
+              <div className="w-1/2 h-8 flex flex-col justify-center items-center">
+                <div className="h-2 bg-indigo-300 rounded w-full mb-2"></div>
+                <div className="h-1.5 bg-indigo-300 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="h-4 w-16 bg-indigo-300 rounded-full"></div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Image',
+        title: 'Image Component',
+        description: 'For displaying images and visual content',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+            <path d="M21 15L16 10L9 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-emerald-500 bg-emerald-100 border-emerald-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-md">
+            <div className="bg-emerald-200 w-full h-20 rounded-md flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-emerald-400">
+                <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <path d="M21 15L16 10L9 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="h-2 bg-emerald-200 rounded w-1/2 mt-2 mx-auto"></div>
+          </div>
+        )
+      },
+      {
+        type: 'Feature',
+        title: 'Feature Component',
+        description: 'Highlight key features with icons and text',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2"/>
+            <path d="M16 12L10 8V16L16 12Z" fill="currentColor"/>
+          </svg>
+        ),
+        color: 'text-amber-500 bg-amber-100 border-amber-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-amber-50 to-amber-100 rounded-md">
+            <div className="flex mb-2">
+              <div className="w-6 h-6 rounded-full bg-amber-300 mr-2 flex-shrink-0"></div>
+              <div>
+                <div className="h-2 bg-amber-200 rounded w-20 mb-1"></div>
+                <div className="h-1.5 bg-amber-200 rounded w-24"></div>
+              </div>
+            </div>
+            <div className="flex mb-2">
+              <div className="w-6 h-6 rounded-full bg-amber-300 mr-2 flex-shrink-0"></div>
+              <div>
+                <div className="h-2 bg-amber-200 rounded w-24 mb-1"></div>
+                <div className="h-1.5 bg-amber-200 rounded w-20"></div>
+              </div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Testimonial',
+        title: 'Testimonial Component',
+        description: 'Display customer testimonials and reviews',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15C21 16.6569 19.6569 18 18 18H8L4 22V8C4 6.34315 5.34315 5 7 5H18C19.6569 5 21 6.34315 21 8V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-fuchsia-500 bg-fuchsia-100 border-fuchsia-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-md">
+            <div className="text-fuchsia-700 mb-1 text-lg">&ldquo;</div>
+            <p className="text-xs text-fuchsia-900 italic">This product has completely transformed our business processes.</p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-fuchsia-200"></div>
+              <div className="h-2 bg-fuchsia-200 rounded w-20"></div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Header',
+        title: 'Header Component',
+        description: 'Navigation headers for the website',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 19H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-slate-500 bg-slate-100 border-slate-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-md">
+            <div className="flex justify-between items-center">
+              <div className="w-8 h-3 bg-slate-300 rounded"></div>
+              <div className="flex space-x-2">
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-6 h-2 bg-slate-400 rounded"></div>
+              </div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Card',
+        title: 'Card Component',
+        description: 'Display information in card format',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M7 8H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M7 12H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M7 16H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-rose-500 bg-rose-100 border-rose-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-rose-50 to-rose-100 rounded-md">
+            <div className="bg-rose-200 w-full h-10 rounded-t-md"></div>
+            <div className="p-2 border border-t-0 border-rose-200 rounded-b-md bg-white">
+              <div className="h-2 bg-rose-200 rounded w-3/4 mb-2"></div>
+              <div className="h-1.5 bg-rose-200 rounded w-full mb-1"></div>
+              <div className="h-1.5 bg-rose-200 rounded w-4/5"></div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Benefit',
+        title: 'Benefit Component',
+        description: 'Showcase the benefits of your product or service',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-teal-500 bg-teal-100 border-teal-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-teal-50 to-teal-100 rounded-md">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" className="text-teal-500">
+                  <path d="M9 11L12 14L22 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <div className="h-2 bg-teal-200 rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-1.5 bg-teal-200 rounded w-5/6 mx-auto"></div>
+          </div>
+        )
+      }
+    ];
+
+    // Ensure sliderPosition is in bounds
+    useEffect(() => {
+      if (sliderPosition < 0) {
+        setSliderPosition(0);
+      } else if (sliderPosition >= availableComponents.length) {
+        setSliderPosition(availableComponents.length - 1);
+      }
+    }, [sliderPosition, availableComponents.length]);
+
+    // Update active component based on slider position
+    useEffect(() => {
+      setActiveComponent(availableComponents[sliderPosition].type);
+    }, [sliderPosition, availableComponents]);
+
+    const handleSliderChange = (newPosition: number) => {
+      setSliderPosition(newPosition);
+    };
+
+    const handleSelectComponent = () => {
+      handleClickAddComponent(activeComponent);
+      setIsComponentSelectorOpen(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setIsComponentSelectorOpen(false)}>
+        <div 
+          className="bg-white rounded-xl p-4 shadow-2xl w-full max-w-2xl transform transition-all"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Select Component Type</h3>
             <button
-              onClick={closeComponentSelector}
-              className="px-4 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors"
+              onClick={() => setIsComponentSelectorOpen(false)}
+              className="text-gray-500 hover:text-gray-700"
             >
-              Cancelar
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Slider View */}
+          <div className="mb-6">
+            <div className="relative rounded-xl border border-gray-200 p-4 bg-gray-50">
+              {/* Preview of Current Component */}
+              <div className="mb-4">
+                {availableComponents[sliderPosition].preview}
+              </div>
+              
+              {/* Component Info */}
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <div className={`mr-3 p-2 rounded-lg ${availableComponents[sliderPosition].color}`}>
+                    {availableComponents[sliderPosition].icon}
+                  </div>
+                  <div>
+                    <h4 className="font-medium">{availableComponents[sliderPosition].title}</h4>
+                    <p className="text-sm text-gray-500">{availableComponents[sliderPosition].description}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="flex justify-between items-center">
+                <button 
+                  onClick={() => handleSliderChange(sliderPosition - 1)}
+                  disabled={sliderPosition === 0}
+                  className="p-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 19L8 12L15 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                
+                <div className="text-sm text-gray-500">
+                  {sliderPosition + 1} of {availableComponents.length}
+                </div>
+                
+                <button 
+                  onClick={() => handleSliderChange(sliderPosition + 1)}
+                  disabled={sliderPosition === availableComponents.length - 1}
+                  className="p-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5L16 12L9 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Thumbnail Navigation */}
+          <div className="mb-6 overflow-x-auto">
+            <div className="flex space-x-2">
+              {availableComponents.map((component, index) => (
+                <button
+                  key={component.type}
+                  onClick={() => handleSliderChange(index)}
+                  className={cn(
+                    "flex-shrink-0 p-2 rounded-lg border-2 transition-all",
+                    sliderPosition === index 
+                      ? "border-primary bg-primary/10" 
+                      : "border-transparent hover:bg-gray-100"
+                  )}
+                >
+                  <div className={`w-10 h-10 rounded-md flex items-center justify-center ${component.color}`}>
+                    {component.icon}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setIsComponentSelectorOpen(false)}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSelectComponent}
+              className="px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90"
+            >
+              Add {availableComponents[sliderPosition].title}
             </button>
           </div>
         </div>
@@ -469,32 +746,10 @@ function SectionManagerBase({
       // Start with all components collapsed by default
       const allComponentIds = new Set(components.map(c => c.id));
       setCollapsedComponents(allComponentIds);
-      setAllCollapsed(true);
       console.log('Starting with all components collapsed');
     }
   }, [componentsDataString]); // Only run when component data actually changes
 
-  // Function to collapse or expand all components
-  const handleCollapseAll = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event bubbling
-    setAllCollapsed(prev => {
-      const newAllCollapsed = !prev;
-      
-      // Update collapsed components set based on new state
-      if (newAllCollapsed) {
-        // Collapse all components
-        const allComponentIds = new Set(components.map(c => c.id));
-        setCollapsedComponents(allComponentIds);
-        console.log('Collapsing all components:', [...allComponentIds]);
-      } else {
-        // Expand all components
-        setCollapsedComponents(new Set());
-        console.log('Expanding all components');
-      }
-      
-      return newAllCollapsed;
-    });
-  }, [components]);
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
@@ -838,77 +1093,37 @@ function SectionManagerBase({
     componentClassName
   ]);
 
-  // Memorizamos la lista de componentes renderizados
-  const renderedComponents = useMemo(() => {
-    return components.map(component => renderComponent(component));
-  }, [components, renderComponent, componentsDataString]);
 
+  // If we're editing, render the add component button and component list
   return (
-    <div 
-      className={cn(
-        "w-full transition-all duration-200",
-        isEditing && "relative min-h-[200px] border border-border/40 rounded-lg p-4 mb-8 hover:border-border",
-        // Remove any spacing between components when not in editing mode
-        !isEditing && "flex flex-col"
-      )}
-      data-section-manager="true"
-    >
+    <div className="relative pb-6">
       {isEditing && (
-        <div className="flex justify-end mb-4">
-          <div
-            onClick={handleCollapseAll}
-            className="flex items-center space-x-1 px-2 py-1 text-xs rounded-md bg-muted/50 hover:bg-muted text-muted-foreground transition-colors cursor-pointer"
-            aria-label={allCollapsed ? "Expandir todos" : "Colapsar todos"}
-            title={allCollapsed ? "Expandir todos" : "Colapsar todos"}
-          >
-            <span>{allCollapsed ? "Expandir todos los componentes" : "Colapsar todos los componentes"}</span>
-            {allCollapsed ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <polyline points="8 5 3 12 8 19"></polyline>
-                <polyline points="16 5 21 12 16 19"></polyline>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <polyline points="16 19 21 12 16 5"></polyline>
-                <polyline points="8 19 3 12 8 5"></polyline>
-              </svg>
+        <div className="mb-6 mt-2">
+          <button
+            onClick={handleAddButtonClick}
+            className={cn(
+              "flex items-center justify-center w-full py-2 px-4 rounded-md border-2 border-dashed",
+              "transition-colors hover:border-primary/60 hover:bg-primary/5 group",
+              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
             )}
-          </div>
+          >
+            <PlusCircle className="h-5 w-5 mr-2 text-muted-foreground group-hover:text-primary" />
+            <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">
+              Add Component
+            </span>
+          </button>
         </div>
       )}
       
-      {isEditing && components.length === 0 && (
-        <div 
-          onClick={handleClickAddComponent}
-          className="flex flex-col items-center justify-center h-[200px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-        >
-          <PlusCircle className="h-8 w-8 mb-2 text-muted-foreground/60" />
-          <p className="text-sm">Haz clic para agregar componentes</p>
-        </div>
-      )}
-
-      {/* Renderizar componentes memorizados */}
-      <div className="section-components">
-        {renderedComponents}
+      {/* Components */}
+      <div className="space-y-4 mt-4">
+        {components.map((component) => 
+          renderComponent(component)
+        )}
       </div>
 
-      {/* Indicador para agregar nuevo componente - siempre visible en modo edición */}
-      {isEditing && components.length > 0 && (
-        <div 
-          className="flex justify-center items-center py-3 mt-4 border-t border-border/30 pt-4"
-          onClick={handleClickAddComponent}
-        >
-          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-primary/30 rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary hover:bg-accent/5 transition-all cursor-pointer">
-            <PlusCircle className="h-3 w-3" />
-            <span>Agregar nuevo componente</span>
-          </div>
-        </div>
-      )}
-
-      {/* Componente selector de tipo de componente */}
-      <ComponentSelector />
+      {/* Component Type Selector Modal */}
+      {isComponentSelectorOpen && <ComponentSelector />}
     </div>
   );
 }

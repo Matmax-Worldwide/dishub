@@ -334,7 +334,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         });
         
         console.log(`Saving ${componentsWithTitles.length} components for section ${sectionId}`);
-        
+          
         // Guardar los componentes en la API
         const result = await cmsOperations.saveSectionComponents(
           sectionId, 
