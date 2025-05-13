@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { PlusCircle } from 'lucide-react';
 import React from 'react';
-import { cmsOperations } from '@/lib/graphql-client';
 import { cn } from '@/lib/utils';
+import ComponentTitleInput from './ComponentTitleInput';
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
@@ -95,10 +95,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isCollapsed?: boolean;
   onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
 }) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [componentTitle, setComponentTitle] = useState(component.title || component.type || 'Component');
   const [isHovered, setIsHovered] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   
   const handleRemove = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -117,84 +114,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     e.stopPropagation();
     if (onMoveDown) onMoveDown(component.id);
   }, [component.id, onMoveDown]);
-
-  const handleTitleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isEditing) {
-      setIsEditingTitle(true);
-    }
-  };
-
-  const handleTitleSave = () => {
-    setIsEditingTitle(false);
-    // Update component title on parent component if changed
-    if (component.title !== componentTitle) {
-      // First confirm the change with the user to prevent accidental data loss
-      const confirmMessage = `Are you sure you want to change the component title from "${component.title}" to "${componentTitle}"? This action might require refreshing components.`;
-      
-      if (window.confirm(confirmMessage)) {
-        // Store the old title for comparison
-        const oldTitle = component.title;
-        
-        // We'll no longer update the title directly, just through data
-        // This avoids issues with the GraphQL API schema
-        
-        // Directly update the title in the database
-        if (component.id) {
-          console.log(`Updating component title in database: ${oldTitle} → ${componentTitle}`);
-          
-          // Find the section ID - look for it in the parent context or ID
-          const sectionId = document.querySelector('[data-section-id]')?.getAttribute('data-section-id');
-          
-          if (sectionId) {
-            cmsOperations.updateComponentTitle(sectionId, component.id, componentTitle)
-              .then(result => {
-                if (result.success) {
-                  console.log('Component title updated in database successfully');
-                } else {
-                  console.error('Failed to update component title in database:', result.message);
-                }
-              })
-              .catch(error => {
-                console.error('Error updating component title in database:', error);
-              });
-          } else {
-            console.warn('Could not find section ID to update component title');
-          }
-        }
-        
-        // Force an update to the component data
-        const componentCopy = { ...component };
-        onRemove(component.id);
-        
-        // Small delay to avoid React rendering issues
-        setTimeout(() => {
-          // Add the updated component back with the new title in data
-          if (!componentCopy.data) {
-            componentCopy.data = {};
-          }
-          componentCopy.data.componentTitle = componentTitle;
-          
-          // Update the title property for UI display (it won't be sent to API)
-          componentCopy.title = componentTitle;
-          
-          // This re-adding will trigger the parent's onComponentsChange
-          document.dispatchEvent(new CustomEvent('component:add', { detail: componentCopy }));
-        }, 10);
-      } else {
-        // If the user cancels, revert to the original title
-        setComponentTitle(component.title || component.type || 'Component');
-      }
-    }
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation();
-    if (e.key === 'Enter') {
-      handleTitleSave();
-    }
-  };
 
   const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -250,31 +169,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
                 </div>
               </div>
               
-              {isEditingTitle ? (
-              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={componentTitle}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setComponentTitle(e.target.value);
-                  }}
-                  onBlur={handleTitleSave}
-                  onKeyDown={handleTitleKeyDown}
-                  className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
+              {/* Use the ComponentTitleInput component */}
+              <div className="flex items-center">
+                <ComponentTitleInput
+                  componentId={component.id}
+                  initialTitle={component.title}
+                  componentType={component.type}
+                  onRemove={onRemove}
                 />
               </div>
-            ) : (
-              <div 
-                onClick={handleTitleClick} 
-                className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                {componentTitle}
-              </div>
-            )}
             </div>
             <div className="flex items-center space-x-1">
               {/* Collapse button - only visible control that can collapse */}
@@ -534,9 +437,65 @@ function SectionManagerBase({
       }
     };
 
+    // Add new event listener for updating component titles
+    const handleComponentTitleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        componentId: string;
+        newTitle: string;
+        component: Component;
+      }>;
+      
+      if (customEvent.detail) {
+        const { componentId, newTitle } = customEvent.detail;
+        console.log(`[SectionManager] 📝 Updating title for component ${componentId}: ${newTitle}`);
+        
+        setComponents(prev => {
+          // Create a shallow copy to preserve component references
+          const newComponents = [...prev];
+          
+          // Find the component to update
+          const existingIndex = newComponents.findIndex(c => c.id === componentId);
+          if (existingIndex >= 0) {
+            // Update existing component's title without changing its reference
+            newComponents[existingIndex] = {
+              ...newComponents[existingIndex],
+              title: newTitle,
+              data: { 
+                ...newComponents[existingIndex].data, 
+                componentTitle: newTitle 
+              }
+            };
+            
+            console.log(`[SectionManager] ✅ Component title updated successfully`);
+          } else {
+            console.warn(`[SectionManager] ⚠️ Component with ID ${componentId} not found`);
+          }
+          
+          // Notify parent component of changes
+          if (onComponentsChange) {
+            if (componentChangeTimeoutRef.current) {
+              clearTimeout(componentChangeTimeoutRef.current);
+            }
+            
+            componentChangeTimeoutRef.current = setTimeout(() => {
+              console.log('[SectionManager] 🔄 Notifying parent of title change');
+              onComponentsChange(newComponents);
+            }, 500);
+          }
+          
+          return newComponents;
+        });
+      } else {
+        console.error('[SectionManager] ❌ component:update-title event received without data');
+      }
+    };
+
     document.addEventListener('component:add', handleComponentAdd);
+    document.addEventListener('component:update-title', handleComponentTitleUpdate);
+    
     return () => {
       document.removeEventListener('component:add', handleComponentAdd);
+      document.removeEventListener('component:update-title', handleComponentTitleUpdate);
     };
   }, [onComponentsChange]); // Eliminar components de las dependencias para evitar re-renderizados innecesarios
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo, useRef } from 'react';
-import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
+import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';
 import {
   DndContext,
@@ -59,6 +59,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const componentChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Reference to track when we're editing to prevent focus loss
   const isEditingComponentRef = useRef(false);
+  // Track error message
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -307,131 +309,96 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         if (!skipLoadingState) {
           setIsLoading(true);
         }
-        // Log de diagnóstico
-        console.log(`[ManageableSection] Iniciando guardado de ${componentsToSave.length} componentes para sección: ${normalizedSectionId}`);
-        console.log(`[ManageableSection] Tipos de componentes:`, componentsToSave.map(c => c.type));
         
-        // Ensure all components have valid IDs
-        const validatedComponents = componentsToSave.map(comp => {
-          if (!comp.id || comp.id.startsWith('temp-')) {
-            const newId = crypto.randomUUID();
-            console.log(`[ManageableSection] Creando nuevo ID para componente: ${newId}`);
-            return {
-              ...comp,
-              id: newId
-            };
+        // Before saving, ensure all component titles are preserved in their data
+        const componentsWithTitles = componentsToSave.map(comp => {
+          // Create a new object to avoid reference issues
+          const processedComponent = { ...comp };
+          
+          // Create/update the data field if it doesn't exist
+          if (!processedComponent.data) {
+            processedComponent.data = {};
           }
-          return comp;
-        });
-        
-        // Ensure component titles are preserved in the saved data
-        const componentsWithTitles = validatedComponents.map(comp => {
-          // Preparamos los datos para guardar pero sin modificar el tipo original
-          // que debe mantenerse como ComponentType
-          return {
-            ...comp,
-            data: {
-              ...comp.data,
-              componentTitle: comp.title || comp.data?.componentTitle || 'Componente sin título' // Store title in data for persistence
-            }
-          };
-        });
-        
-        // Log de los componentes preparados
-        componentsWithTitles.forEach(comp => {
-          console.log(`[ManageableSection] Componente preparado:`, {
-            id: comp.id,
-            type: comp.type,
-            title: comp.data.componentTitle
-          });
-        });
-        
-        // Verificación de componentes antes de enviar
-        if (componentsWithTitles.length === 0) {
-          console.warn('[ManageableSection] Advertencia: Intentando guardar 0 componentes');
-        }
-        
-        console.log('[ManageableSection] Enviando componentes al servidor...');
-        
-        // Para el API, convertimos los tipos a minúsculas según sea necesario
-        // y eliminamos el campo title directo, ya que está dentro de data
-        const componentsForAPI = componentsWithTitles.map(comp => {
-          // Pick only the fields that the API expects
-          const { id, type, data } = comp;
           
-          // Ensure component has a valid ID - generate one if missing
-          const componentId = id || crypto.randomUUID();
+          // Make sure the component title is in the data
+          if (processedComponent.title) {
+            processedComponent.data.componentTitle = processedComponent.title;
+          } else if (processedComponent.data.componentTitle) {
+            // If no title exists but data.componentTitle does, use that
+            processedComponent.title = processedComponent.data.componentTitle as string;
+          }
           
-          return {
-            id: componentId,
-            type: type.toLowerCase(), // Convertir a minúsculas solo para la API
-            data
-          };
+          return processedComponent;
         });
         
-        // Llamada a la API para guardar
+        console.log(`Saving ${componentsWithTitles.length} components for section ${sectionId}`);
+        
+        // Guardar los componentes en la API
         const result = await cmsOperations.saveSectionComponents(
-          normalizedSectionId, 
-          componentsForAPI as unknown as CMSComponent[]
+          sectionId, 
+          componentsWithTitles
         );
         
-        console.log('[ManageableSection] Resultado del guardado:', result);
+        console.log('Save result:', result);
         
+        // Actualizar el estado solo si la operación fue exitosa
         if (result.success) {
-          console.log('[ManageableSection] Guardado exitoso. Última actualización:', result.lastUpdated);
-          // Update the pending components to reflect what was saved - preservando el tipo ComponentType
-          setPendingComponents(componentsWithTitles);
-          
-          // Reset unsaved changes flag
+          // Marcar como que ya no hay cambios sin guardar
           setHasUnsavedChanges(false);
-          
-          // If section name has changed, notify parent
-          if (onSectionNameChange && editedTitle !== sectionName) {
-            console.log(`[ManageableSection] Actualizando nombre de sección de "${sectionName}" a "${editedTitle}"`);
-            onSectionNameChange(editedTitle);
-          }
-          
-          // Restore focus to the element that had it before saving
-          setTimeout(() => {
-            if (activeElementSelector) {
-              try {
-                const elementToFocus = activeElementId
-                  ? document.getElementById(activeElementId)
-                  : document.querySelector(activeElementSelector);
-                  
-                if (elementToFocus && 'focus' in elementToFocus) {
-                  // Check input type before focusing to avoid selection issues with color inputs
-                  const inputElement = elementToFocus as HTMLInputElement;
-                  if (inputElement.tagName === 'INPUT' && 
-                      ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'].includes(inputElement.type)) {
-                    // For inputs that don't support selection, just focus without selection
-                    inputElement.focus();
-                  } else {
-                    // For text-like inputs that support selection, use the regular focus method
-                    (elementToFocus as HTMLElement).focus();
+        }
+        
+        // Restaurar focus al elemento que lo tenía antes de guardar
+        setTimeout(() => {
+          try {
+            const elementToFocus = activeElementId
+              ? document.getElementById(activeElementId)
+              : document.querySelector(activeElementSelector);
+              
+            if (elementToFocus && 'focus' in elementToFocus) {
+              // Check input type before focusing to avoid selection issues with color inputs
+              const inputElement = elementToFocus as HTMLInputElement;
+              if (inputElement.tagName === 'INPUT' && 
+                  ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'].includes(inputElement.type)) {
+                // For inputs that don't support selection, just focus
+                inputElement.focus();
+              } else if (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA') {
+                // For text-like inputs, restore cursor position if it was stored
+                inputElement.focus();
+                
+                // Try to restore selection if the element supports it
+                const selectionStart = inputElement.getAttribute('data-selection-start');
+                const selectionEnd = inputElement.getAttribute('data-selection-end');
+                
+                if (selectionStart && selectionEnd && 'setSelectionRange' in inputElement) {
+                  try {
+                    inputElement.setSelectionRange(parseInt(selectionStart), parseInt(selectionEnd));
+                  } catch (selectionError) {
+                    console.warn('Could not restore selection:', selectionError);
                   }
                 }
-              } catch (e) {
-                console.warn('[ManageableSection] No se pudo restaurar el foco después de guardar:', e);
+              } else {
+                // Other focusable elements
+                (elementToFocus as HTMLElement).focus();
               }
             }
-          }, 50);
-          
-          resolve();
-        } else {
-          console.error('[ManageableSection] Error de servidor al guardar:', result.message);
-          setError(result.message || 'Failed to save components');
-          reject(new Error(result.message || 'Failed to save components'));
-        }
-      } catch (error) {
-        console.error('[ManageableSection] Error de excepción al guardar:', error);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
-        reject(error);
-      } finally {
+          } catch (focusError) {
+            console.warn('Error restoring focus:', focusError);
+          }
+        }, 0);
+        
+        // Desactivar estado de carga
         setIsLoading(false);
+        
+        resolve();
+      } catch (error) {
+        console.error('Error al guardar sección:', error);
+        setIsLoading(false);
+        setErrorMessage('Error al guardar la sección. Por favor intenta de nuevo.');
+        setTimeout(() => setErrorMessage(''), 5000);
+        reject(error);
       }
     });
-  }, [normalizedSectionId, editedTitle, sectionName, onSectionNameChange]);
+  }, [sectionId]);
 
   // Move component down in the list
   const moveComponentDown = useCallback((componentId: string) => {
@@ -813,6 +780,11 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             )}
           </div>
         </>
+      )}
+      {errorMessage && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50">
+          {errorMessage}
+        </div>
       )}
     </div>
   );
