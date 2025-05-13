@@ -9,8 +9,6 @@ interface CMSSidebarProps {
     cms?: {
       dashboard: string;
       pages: string;
-      sections: string;
-      components: string;
       media: string;
       menus: string;
       settings: string;
@@ -36,8 +34,6 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   const navigationItems = [
     { name: nav.dashboard, href: `/${locale}/cms/` },
     { name: nav.pages, href: `/${locale}/cms/pages` },
-    { name: nav.sections, href: `/${locale}/cms/sections` },
-    { name: nav.components, href: `/${locale}/cms/components` },
     { name: nav.media, href: `/${locale}/cms/media` },
     { name: nav.menus, href: `/${locale}/cms/menus` },
     { name: nav.settings, href: `/${locale}/cms/settings` },

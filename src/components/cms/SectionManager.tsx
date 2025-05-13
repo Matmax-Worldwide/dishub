@@ -282,10 +282,12 @@ function SectionManagerBase({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track if the insert hint should be shown
   const [showInsertHint, setShowInsertHint] = useState(false);
-  // Track collapsed components by ID
-  const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
-  // Add a flag to track if all components are collapsed
-  const [allCollapsed, setAllCollapsed] = useState(false);
+  // Track collapsed components by ID - initialize with all components collapsed
+  const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(() => 
+    new Set(initialComponents.map(comp => comp.id))
+  );
+  // Add a flag to track if all components are collapsed - start with true if there are components
+  const [allCollapsed, setAllCollapsed] = useState(initialComponents.length > 0);
   
   // Cache component data stringified to prevent unnecessary re-renders
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -296,6 +298,9 @@ function SectionManagerBase({
     // pero no si solo estamos reordenando o colapsando/expandiendo
     if (initialComponents.length > 0 && components.length === 0) {
       setComponents(initialComponents);
+      // Ensure all initial components are collapsed by default
+      setCollapsedComponents(new Set(initialComponents.map(comp => comp.id)));
+      setAllCollapsed(true);
     }
   }, [initialComponents, components.length]);
 
@@ -322,6 +327,13 @@ function SectionManagerBase({
         }
         
         console.log(`[SectionManager] ✅ Agregando componente: ${component.id} (${component.type})`);
+        
+        // Make sure new component is collapsed by default
+        setCollapsedComponents(prev => {
+          const newSet = new Set(prev);
+          newSet.add(component.id);
+          return newSet;
+        });
         
         // Asegurar que los datos del componente tengan la estructura correcta
         setComponents(prev => {
@@ -476,6 +488,23 @@ function SectionManagerBase({
       return newAllCollapsed;
     });
   }, [components]);
+
+  // Initialize components as collapsed by default
+  useEffect(() => {
+    // When components change (like when loading initially or adding new ones)
+    // make sure all new components are collapsed by default
+    const newComponentIds = components
+      .filter(comp => !initialComponents.some(ic => ic.id === comp.id))
+      .map(comp => comp.id);
+    
+    if (newComponentIds.length > 0) {
+      setCollapsedComponents(prev => {
+        const newSet = new Set(prev);
+        newComponentIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  }, [components, initialComponents]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -653,7 +682,7 @@ function SectionManagerBase({
             aria-label={allCollapsed ? "Expandir todos" : "Colapsar todos"}
             title={allCollapsed ? "Expandir todos" : "Colapsar todos"}
           >
-            <span>{allCollapsed ? "Expandir todos" : "Colapsar todos"}</span>
+            <span>{allCollapsed ? "Expandir todos los componentes" : "Colapsar todos los componentes"}</span>
             {allCollapsed ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
