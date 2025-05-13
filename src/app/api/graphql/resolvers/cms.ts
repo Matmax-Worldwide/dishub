@@ -15,6 +15,21 @@ type SectionComponentWithRelation = {
   };
 };
 
+// Type for SEO input data - add this to fix linter errors
+type PageSEOInput = {
+  title?: string | null;
+  description?: string | null;
+  keywords?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  canonicalUrl?: string;
+  structuredData?: Record<string, unknown>;
+};
+
 // Logs para depuración al inicio
 console.log('CMS resolver loaded');
 
@@ -53,124 +68,46 @@ export const cmsResolvers = {
       console.log('======== START getPageBySlug resolver ========');
       try {
         const { slug } = args;
-        console.log(`Buscando página con slug: "${slug}" (type: ${typeof slug})`);
         
         if (!slug) {
-          console.log('Error: Se intentó buscar una página sin proporcionar un slug');
+          console.log('Error: Slug is missing');
           return null;
         }
         
-        // Clean the slug - normalize to lowercase, trim spaces, replace accents
-        const normalizedSlug = slug.trim().toLowerCase();
+        console.log(`Looking for page with slug: ${slug}`);
         
-        // Create additional slug variants for more flexible matching
-        const dashedSlug = normalizedSlug.replace(/\s+/g, '-');
-        const undashSlug = normalizedSlug.replace(/-/g, ' ');
+        // Normalize the slug
+        const normalizedSlug = slug.replace(/\s+/g, '-').toLowerCase();
         
-        // Add additional logging for debugging
-        console.log('Executing query with parameters:', JSON.stringify({
-          originalSlug: slug,
-          normalizedSlug,
-          dashedSlug,
-          undashSlug
-        }));
-        
-        // Try to find the page with any of our slug variants
-        console.log('Attempting to find page with multiple slug variants...');
-        let page = await prisma.page.findFirst({
+        // Find page by slug
+        const page = await prisma.page.findFirst({
           where: { 
-            OR: [
-              { slug: normalizedSlug },
-              { slug: dashedSlug },
-              { slug: undashSlug }
-            ]
+            slug: {
+              equals: normalizedSlug,
+              mode: 'insensitive'
+            }
           },
           include: {
             sections: {
               orderBy: {
                 order: 'asc'
               }
-            }
+            },
+            seo: true // Include SEO data
           }
         });
         
-        // If not found with direct variants, try more flexible matching
         if (!page) {
-          console.log(`No se encontró ninguna página con slug exacto, intentando alternativas más flexibles...`);
-          
-          // Try with case-insensitive search
-          page = await prisma.page.findFirst({
-            where: { 
-              OR: [
-                { slug: { contains: normalizedSlug, mode: 'insensitive' } },
-                { slug: { contains: dashedSlug, mode: 'insensitive' } },
-                { slug: { contains: undashSlug, mode: 'insensitive' } }
-              ]
-            },
-            include: {
-              sections: {
-                orderBy: {
-                  order: 'asc'
-                }
-              }
-            }
-          });
-          
-          // If still not found, check if it's substring of a page or vice versa
-          if (!page) {
-            console.log(`Intentando búsqueda parcial...`);
-            
-            const allPages = await prisma.page.findMany({
-              select: { id: true, slug: true, title: true },
-            });
-            
-            console.log(`Buscando entre ${allPages.length} páginas disponibles...`);
-            
-            // List all pages for debugging
-            console.log(`Páginas disponibles: ${JSON.stringify(allPages.map(p => ({ 
-              id: p.id, 
-              slug: p.slug,
-              title: p.title
-            })))}`);
-            
-            // Find best partial match
-            const partialMatches = allPages.filter(p => 
-              p.slug.includes(normalizedSlug) || 
-              normalizedSlug.includes(p.slug) ||
-              p.slug.includes(dashedSlug) || 
-              dashedSlug.includes(p.slug)
-            );
-            
-            if (partialMatches.length > 0) {
-              console.log(`Encontradas ${partialMatches.length} coincidencias parciales:`, 
-                JSON.stringify(partialMatches.map(p => `${p.title} (${p.slug})`)));
-              
-              // Get the full page data for the first match
-              page = await prisma.page.findUnique({
-                where: { id: partialMatches[0].id },
-                include: {
-                  sections: {
-                    orderBy: {
-                      order: 'asc'
-                    }
-                  }
-                }
-              });
-            } else {
-              return null;
-            }
-          }
+          console.log(`No page found with slug: ${normalizedSlug}`);
+          return null;
         }
         
-        if (page) {
-          console.log(`Página encontrada: "${page.title}" (ID: ${page.id}, slug: ${page.slug})`);
-          return page;
-        }
+        // Log SEO data for debugging
+        console.log('Page SEO data:', page.seo);
         
-        console.log('No se encontró ninguna página con el slug proporcionado');
-        return null;
+        return page;
       } catch (error) {
-        console.error('Error al obtener página por slug:', error);
+        console.error('Error en getPageBySlug:', error);
         return null;
       }
     },
@@ -1197,6 +1134,7 @@ export const cmsResolvers = {
         order?: number;
         pageType?: string;
         locale?: string;
+        seo?: PageSEOInput;
         sections?: Array<{
           id?: string;
           order: number;
@@ -1216,7 +1154,8 @@ export const cmsResolvers = {
         const existingPage = await prisma.page.findUnique({
           where: { id },
           include: {
-            sections: true
+            sections: true,
+            seo: true
           }
         });
         
@@ -1226,6 +1165,22 @@ export const cmsResolvers = {
             message: `No se encontró ninguna página con ID: ${id}`,
             page: null
           };
+        }
+
+        // Synchronize metaTitle/metaDescription with SEO fields if needed
+        const seoData = input.seo || {};
+        
+        // If metaTitle/metaDescription are provided, use them to update SEO title/description
+        if (input.metaTitle !== undefined && seoData.title === undefined) {
+          seoData.title = input.metaTitle;
+        } else if (seoData.title !== undefined && input.metaTitle === undefined) {
+          input.metaTitle = seoData.title;
+        }
+        
+        if (input.metaDescription !== undefined && seoData.description === undefined) {
+          seoData.description = input.metaDescription;
+        } else if (seoData.description !== undefined && input.metaDescription === undefined) {
+          input.metaDescription = seoData.description;
         }
         
         // Actualizar la página básica
@@ -1237,7 +1192,13 @@ export const cmsResolvers = {
             ...(input.description !== undefined && { description: input.description }),
             ...(input.template !== undefined && { template: input.template }),
             ...(input.isPublished !== undefined && { isPublished: input.isPublished }),
-            ...(input.publishDate !== undefined && { publishDate: input.publishDate ? new Date(input.publishDate) : null }),
+            ...(input.publishDate !== undefined && { 
+              publishDate: input.publishDate && input.publishDate.trim && input.publishDate.trim() !== '' 
+                ? (new Date(input.publishDate)).toString() !== 'Invalid Date' 
+                  ? new Date(input.publishDate) 
+                  : null
+                : null 
+            }),
             ...(input.featuredImage !== undefined && { featuredImage: input.featuredImage }),
             ...(input.metaTitle !== undefined && { metaTitle: input.metaTitle }),
             ...(input.metaDescription !== undefined && { metaDescription: input.metaDescription }),
@@ -1248,9 +1209,55 @@ export const cmsResolvers = {
             updatedAt: new Date()
           },
           include: {
-            sections: true
+            sections: true,
+            seo: true
           }
         });
+        
+        // Handle SEO data if provided or synchronized from meta fields
+        if (input.seo || input.metaTitle !== undefined || input.metaDescription !== undefined) {
+          try {
+            // Prepare SEO data with synchronized fields
+            const seoUpdateData = {
+              ...(seoData.keywords !== undefined && { keywords: seoData.keywords }),
+              ...(seoData.title !== undefined && { title: seoData.title }),
+              ...(seoData.description !== undefined && { description: seoData.description }),
+              ...(seoData.ogTitle !== undefined && { ogTitle: seoData.ogTitle }),
+              ...(seoData.ogDescription !== undefined && { ogDescription: seoData.ogDescription }),
+              ...(seoData.ogImage !== undefined && { ogImage: seoData.ogImage }),
+              ...(seoData.twitterTitle !== undefined && { twitterTitle: seoData.twitterTitle }),
+              ...(seoData.twitterDescription !== undefined && { twitterDescription: seoData.twitterDescription }),
+              ...(seoData.twitterImage !== undefined && { twitterImage: seoData.twitterImage }),
+              ...(seoData.canonicalUrl !== undefined && { canonicalUrl: seoData.canonicalUrl }),
+              ...(seoData.structuredData !== undefined && { 
+                structuredData: seoData.structuredData as Prisma.InputJsonValue 
+              }),
+              updatedAt: new Date()
+            };
+            
+            // Check if page already has SEO data
+            if (existingPage.seo) {
+              // Update existing SEO record
+              await prisma.pageSEO.update({
+                where: { pageId: id },
+                data: seoUpdateData
+              });
+              console.log(`Updated existing SEO data for page ${id}`);
+            } else {
+              // Create new SEO record
+              await prisma.pageSEO.create({
+                data: {
+                  pageId: id,
+                  ...seoUpdateData
+                }
+              });
+              console.log(`Created new SEO data for page ${id}`);
+            }
+          } catch (seoError) {
+            console.error('Error updating SEO data:', seoError);
+            // Continue with the rest of the update even if SEO fails
+          }
+        }
         
         // Si hay secciones nuevas o modificadas, actualizarlas
         if (input.sections && Array.isArray(input.sections)) {

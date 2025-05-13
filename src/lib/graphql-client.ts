@@ -185,6 +185,19 @@ export interface PageData {
   createdAt?: string;
   updatedAt?: string;
   sections?: PageSectionData[]; // Allow for different structure
+  seo?: {
+    title?: string; // Add title (same as metaTitle)
+    description?: string; // Add description (same as metaDescription)
+    keywords?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
+  };
 }
 
 // Generic GraphQL response type
@@ -235,6 +248,19 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
             componentType
             data
             isVisible
+          }
+          seo {
+            title
+            description
+            keywords
+            ogTitle
+            ogDescription
+            ogImage
+            twitterTitle
+            twitterDescription
+            twitterImage
+            canonicalUrl
+            structuredData
           }
         }
       }
@@ -382,6 +408,19 @@ async function updatePage(id: string, input: {
   order?: number;
   pageType?: string;
   locale?: string;
+  seo?: {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
+  };
   sections?: Array<{
     id?: string;
     order: number;
@@ -432,12 +471,29 @@ async function updatePage(id: string, input: {
             isPublished
             pageType
             locale
+            metaTitle
+            metaDescription
+            featuredImage
+            publishDate
             updatedAt
             sections {
               id
               order
               title
               data
+            }
+            seo {
+              title
+              description
+              keywords
+              ogTitle
+              ogDescription
+              ogImage
+              twitterTitle
+              twitterDescription
+              twitterImage
+              canonicalUrl
+              structuredData
             }
           }
         }
@@ -509,7 +565,7 @@ export async function getPagePreview(pageData: PageData): Promise<{
 }> {
   console.log(`Generating preview for page: "${pageData.title}"`);
   
-  const sections: Array<{
+    const sections: Array<{
     id: string;
     title?: string;
     order: number;

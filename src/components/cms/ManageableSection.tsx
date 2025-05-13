@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowUpIcon, ArrowDownIcon, Eye } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Eye, PinIcon, PinOffIcon } from 'lucide-react';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -55,10 +55,16 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // Track device preview mode (desktop or mobile)
   const [devicePreview, setDevicePreview] = useState<'desktop' | 'mobile'>('desktop');
+  // Track if editor is pinned
+  const [isPinned, setIsPinned] = useState(true);
+  // Track active component in viewport
+  const [activeComponentId, setActiveComponentId] = useState<string | null>(null);
   // Reference to track component change debounce timeout
   const componentChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Reference to track when we're editing to prevent focus loss
   const isEditingComponentRef = useRef(false);
+  // Reference to the preview container
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -439,15 +445,135 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     });
   }, []);
 
+  // Add scroll observer to detect which component is in view
+  useEffect(() => {
+    if (viewMode !== 'split' || !previewContainerRef.current || pendingComponents.length === 0) {
+      return;
+    }
+
+    const previewContainer = previewContainerRef.current;
+    
+    // Create IntersectionObserver to detect which component is in view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find entries that are intersecting and get the one with highest ratio
+        const visibleEntries = entries.filter(entry => entry.isIntersecting);
+        
+        if (visibleEntries.length > 0) {
+          // Sort by intersection ratio to find the most visible element
+          visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+          const mostVisibleEntry = visibleEntries[0];
+          
+          const componentId = mostVisibleEntry.target.getAttribute('data-component-id');
+          if (componentId) {
+            setActiveComponentId(componentId);
+            
+            // Scroll the editor to keep the active component in view if needed
+            if (isPinned) {
+              const editorComponent = document.querySelector(`.component-wrapper[data-component-id="${componentId}"]`);
+              if (editorComponent) {
+                const editorContainer = editorComponent.closest('.sticky');
+                if (editorContainer && editorContainer instanceof HTMLElement) {
+                  const containerRect = editorContainer.getBoundingClientRect();
+                  const elementRect = editorComponent.getBoundingClientRect();
+                  
+                  // Check if the element is outside the container's visible area
+                  if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {
+                    editorComponent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        root: previewContainer,
+        rootMargin: '0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1], // Check multiple thresholds for better accuracy
+      }
+    );
+    
+    // Get all component elements in the preview container
+    const componentElements = previewContainer.querySelectorAll('[data-component-id]');
+    
+    // Observe each component element
+    componentElements.forEach(element => {
+      observer.observe(element);
+    });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [viewMode, pendingComponents, isPinned]);
+
+  // Handler for clicking on component in editor to scroll preview
+  const handleScrollToComponent = useCallback((componentId: string) => {
+    if (viewMode === 'split' && previewContainerRef.current) {
+      setActiveComponentId(componentId);
+
+      // Find the corresponding component in preview
+      const previewComponent = previewContainerRef.current.querySelector(`[data-component-id="${componentId}"]`);
+      if (previewComponent) {
+        previewComponent.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }
+  }, [viewMode, previewContainerRef]);
+
+  // Memoizamos el SectionManager para optimizar el rendimiento en modo de vista previa
+  const MemoizedPreviewSectionManager = memo(function PreviewSectionManager({
+    components
+  }: {
+    components: Component[];
+  }) {
+    return (
+      <div className="space-y-6">
+        {components.map(component => (
+          <div 
+            key={component.id} 
+            data-component-id={component.id}
+            data-component-type={component.type.toLowerCase()}
+            className="relative component-preview-item"
+          >
+            {/* Type label for reference */}
+            <div className="absolute -right-1 -top-1 z-10 text-xs bg-primary/10 border border-primary/30 px-1 py-0.5 rounded text-primary/70 font-medium">
+              {component.type}
+            </div>
+            
+            {/* Render actual component using SectionManager */}
+            <SectionManager
+              initialComponents={[component]}
+              isEditing={false}
+              componentClassName={(type) => `component-${type.toLowerCase()}`}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }, (prevProps, nextProps) => {
+    // Realizar comparación superficial que evite re-renderizados innecesarios
+    // Retornar true previene el re-renderizado
+    const currentJson = JSON.stringify(prevProps.components);
+    const nextJson = JSON.stringify(nextProps.components);
+    
+    // Solo re-renderizar si realmente cambian los componentes
+    return currentJson === nextJson;
+  });
+
   // Override SectionManager to add drag handles and positioning buttons
   const SectionManagerWithDrag = useCallback(({ 
     initialComponents, 
     isEditing, 
-    onComponentsChange 
+    onComponentsChange,
+    activeComponentId 
   }: { 
     initialComponents: Component[],
     isEditing: boolean,
-    onComponentsChange?: (components: Component[]) => void
+    onComponentsChange?: (components: Component[]) => void,
+    activeComponentId?: string | null
   }) => {
     // Enhance SectionManager with draggable components
     const componentIds = initialComponents.map(c => c.id);
@@ -479,6 +605,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             initialComponents={initialComponents}
             isEditing={isEditing}
             onComponentsChange={onComponentsChange}
+            activeComponentId={activeComponentId}
+            onClickComponent={handleScrollToComponent}
           />
           
           {/* Floatable controls for reordering when in edit mode */}
@@ -518,30 +646,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         </SortableContext>
       </DndContext>
     );
-  }, [sensors, moveComponentUp, moveComponentDown]);
-
-  // Memoizamos el SectionManager para optimizar el rendimiento en modo de vista previa
-  const MemoizedPreviewSectionManager = memo(function PreviewSectionManager({
-    components
-  }: {
-    components: Component[];
-  }) {
-    return (
-      <SectionManager
-        initialComponents={components}
-        isEditing={false}
-        onComponentsChange={undefined}
-      />
-    );
-  }, (prevProps, nextProps) => {
-    // Realizar comparación superficial que evite re-renderizados innecesarios
-    // Retornar true previene el re-renderizado
-    const currentJson = JSON.stringify(prevProps.components);
-    const nextJson = JSON.stringify(nextProps.components);
-    
-    // Solo re-renderizar si realmente cambian los componentes
-    return currentJson === nextJson;
-  });
+  }, [sensors, moveComponentUp, moveComponentDown, handleScrollToComponent]);
 
   return (
     <div className="my-6" data-section-id={normalizedSectionId}>
@@ -629,26 +734,43 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       ) : (
         <>
           {/* Split view or single view based on mode */}
-          <div className={`${viewMode === 'split' ? 'grid grid-cols-2 gap-6' : 'block'}`}>
+          <div className={`${viewMode === 'split' ? 'grid grid-cols-2 gap-6 relative h-full' : 'block'}`}>
             {/* Edit Panel - Show in edit or split mode */}
             {(viewMode === 'edit' || viewMode === 'split') && (
-              <div className={`${viewMode === 'split' ? 'border-r pr-5 border-border/50' : ''}`}>
+              <div className={`${viewMode === 'split' ? 'border-r pr-4 border-border/50 ' : ''} ${
+                viewMode === 'split' && isPinned 
+                  ? 'sticky top-4 self-start max-h-[calc(100vh-8rem)] overflow-y-auto pb-4' 
+                  : ''
+              }`}>
                 {viewMode === 'split' && (
-                  <div className="mb-4 text-sm font-medium text-muted-foreground pb-2 border-b border-border/50">Editor</div>
+                  <div className="mb-4 flex items-center justify-between text-sm font-medium text-muted-foreground pb-2 border-b border-border/50 sticky top-0 bg-background z-10">
+                    <span>Editor</span>
+                    <button 
+                      onClick={() => setIsPinned(!isPinned)} 
+                      className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground"
+                      title={isPinned ? "Desfijar editor" : "Fijar editor"}
+                    >
+                      {isPinned ? <PinIcon className="h-4 w-4" /> : <PinOffIcon className="h-4 w-4" />}
+                    </button>
+                  </div>
                 )}
                 <SectionManagerWithDrag
                   initialComponents={pendingComponents}
                   isEditing={true}
                   onComponentsChange={handleComponentsChange}
+                  activeComponentId={activeComponentId}
                 />
               </div>
             )}
             
             {/* Preview Panel - Show in preview or split mode */}
             {(viewMode === 'preview' || viewMode === 'split') && (
-              <div>
+              <div 
+                ref={previewContainerRef}
+                className={`${viewMode === 'split' ? 'overflow-y-auto max-h-[calc(100vh-8rem)]' : ''}`}
+              >
                 {viewMode === 'split' && (
-                  <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border">
+                  <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
                     <div className="flex items-center">
                       <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
                       Vista Previa
@@ -713,7 +835,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                         </div>
                       </div>
                       {/* Desktop content */}
-                      <div className="p-4 bg-white">
+                      <div className="p-4 bg-white min-h-[300px] overflow-auto">
                         <MemoizedPreviewSectionManager 
                           components={pendingComponents}
                         />
@@ -757,7 +879,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                         {/* Content area */}
                         <div className="bg-white h-[600px] overflow-hidden">
                           <div className="h-full overflow-y-auto">
-                            <div className="py-4 px-3 transform scale-[0.9] origin-top">
+                            <div className="py-4 px-3">
                               <MemoizedPreviewSectionManager 
                                 components={pendingComponents}
                               />

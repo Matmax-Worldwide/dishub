@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { InfoIcon, AlignLeftIcon, GlobeIcon, ChevronRightIcon, Link2Icon, HashIcon, TwitterIcon } from 'lucide-react';
 import {
   Card,
@@ -19,6 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Extend PageData with the seo property
 interface PageDataWithSEO extends PageData {
   seo?: {
+    title?: string;
+    description?: string;
     keywords?: string;
     ogTitle?: string;
     ogDescription?: string;
@@ -27,6 +29,7 @@ interface PageDataWithSEO extends PageData {
     twitterDescription?: string;
     twitterImage?: string;
     canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
   };
 }
 
@@ -50,17 +53,29 @@ export const SEOTab: React.FC<SEOTabProps> = ({
   // Extract SEO data from the pageData
   const seo = pageData.seo || {};
 
+  // Log SEO data for debugging
+  useEffect(() => {
+    console.log('=== DEBUG SEOTab ===');
+    console.log('PageData in SEOTab:', pageData);
+    console.log('metaTitle:', pageData.metaTitle);
+    console.log('metaDescription:', pageData.metaDescription);
+    console.log('seo object:', pageData.seo);
+    console.log('typeof seo:', typeof pageData.seo);
+    console.log('Has seo property:', pageData.hasOwnProperty('seo'));
+    console.log('seo.title:', pageData.seo?.title);
+    console.log('seo.description:', pageData.seo?.description);
+    console.log('=== END DEBUG SEOTab ===');
+  }, [pageData]);
+
   // Handle SEO field changes
   const handleSEOChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
     // Check if this is a nested SEO property
     if (name.startsWith('seo.')) {
-      const seoProperty = name.replace('seo.', '');
-      
       // If parent component provided a handler, use it
       if (onSEOChange) {
-        onSEOChange(seoProperty, value);
+        onSEOChange(name, value);
       } else {
         // Otherwise fallback to default input handler
         onInputChange(e);
@@ -98,11 +113,29 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 id="metaTitle"
                 name="metaTitle"
                 value={pageData.metaTitle || ''}
-                onChange={handleSEOChange}
+                onChange={onInputChange}
                 placeholder="Title for search engines"
               />
               <p className="text-sm text-muted-foreground">
                 {!pageData.metaTitle && "If left empty, the page title will be used"}
+              </p>
+            </div>
+            
+            {/* SEO Title (from PageSEO) */}
+            <div className="space-y-2">
+              <Label htmlFor="seoTitle" className="flex items-center">
+                <InfoIcon className="h-4 w-4 mr-2" />
+                <span>SEO Title</span>
+              </Label>
+              <Input
+                id="seoTitle"
+                name="seo.title"
+                value={seo.title || ''}
+                onChange={handleSEOChange}
+                placeholder="SEO Title (stored in PageSEO)"
+              />
+              <p className="text-sm text-muted-foreground">
+                This will be synchronized with Meta Title
               </p>
             </div>
             
@@ -116,12 +149,31 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 id="metaDescription"
                 name="metaDescription"
                 value={pageData.metaDescription || ''}
-                onChange={handleSEOChange}
+                onChange={onInputChange}
                 placeholder="Description for search engines"
                 rows={3}
               />
               <p className="text-sm text-muted-foreground">
                 {!pageData.metaDescription && "If left empty, the page description will be used"}
+              </p>
+            </div>
+            
+            {/* SEO Description (from PageSEO) */}
+            <div className="space-y-2">
+              <Label htmlFor="seoDescription" className="flex items-center">
+                <AlignLeftIcon className="h-4 w-4 mr-2" />
+                <span>SEO Description</span>
+              </Label>
+              <Textarea
+                id="seoDescription"
+                name="seo.description"
+                value={seo.description || ''}
+                onChange={handleSEOChange}
+                placeholder="SEO Description (stored in PageSEO)"
+                rows={3}
+              />
+              <p className="text-sm text-muted-foreground">
+                This will be synchronized with Meta Description
               </p>
             </div>
 
@@ -153,7 +205,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 id="featuredImage"
                 name="featuredImage"
                 value={pageData.featuredImage || ''}
-                onChange={handleSEOChange}
+                onChange={onInputChange}
                 placeholder="https://example.com/image.jpg"
               />
               <p className="text-sm text-muted-foreground">
@@ -275,13 +327,13 @@ export const SEOTab: React.FC<SEOTabProps> = ({
           <h3 className="text-sm font-medium text-foreground mb-2">Search Result Preview</h3>
           <div className="p-4 border border-border rounded bg-background">
             <div className="text-blue-600 text-lg font-medium line-clamp-1">
-              {pageData.metaTitle || pageData.title || 'Page Title'}
+              {pageData.metaTitle || seo.title || pageData.title || 'Page Title'}
             </div>
             <div className="text-green-600 text-sm line-clamp-1">
               {`/${locale}/${pageData.slug || 'page-url'}`}
             </div>
             <div className="text-muted-foreground text-sm mt-1 line-clamp-2">
-              {pageData.metaDescription || pageData.description || 'Page description...'}
+              {pageData.metaDescription || seo.description || pageData.description || 'Page description...'}
             </div>
           </div>
         </div>

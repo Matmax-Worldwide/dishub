@@ -33,6 +33,8 @@ import {
 interface PageData extends BasePageData {
   publishDate?: string;
   seo?: {
+    title?: string;
+    description?: string;
     keywords?: string;
     ogTitle?: string;
     ogDescription?: string;
@@ -99,6 +101,21 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
   const router = useRouter();
 
+  // Save section components function
+  const saveSectionEdits = async () => {
+    // First save the section components if they exist
+    if (sectionRef.current && pageSections.length > 0) {
+      console.log(`Saving components for section: ${pageSections[0]?.sectionId}`);
+      try {
+        await sectionRef.current.saveChanges(false);
+        console.log('Section components saved successfully');
+      } catch (error) {
+        console.error('Error saving section components:', error);
+        // Continue with page saving even if component saving fails
+      }
+    }
+  };
+
   // Load page data
   useEffect(() => {
     const loadPageData = async () => {
@@ -106,7 +123,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         setIsLoading(true);
         const response = await cmsOperations.getPageBySlug(slug as string) as PageResponse;
         
-        console.log('Raw response:', response);
+        console.log('=== DEBUG: Raw API response ===');
+        console.log(JSON.stringify(response, null, 2));
+        console.log('==============================');
         
         if (!response) {
           console.error('No se encontró la página');
@@ -118,6 +137,47 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         }
 
         console.log('Page data received:', response);
+        console.log('Type of response:', typeof response);
+        console.log('Response has seo property:', response.hasOwnProperty('seo'));
+        console.log('Direct seo value:', response.seo);
+        
+        // Ensure SEO data is properly extracted and synchronized
+        // Initialize seoData with default values if it doesn't exist
+        const seoData = response.seo || {
+          title: '',
+          description: '',
+          keywords: '',
+          ogTitle: '',
+          ogDescription: '',
+          ogImage: '',
+          twitterTitle: '',
+          twitterDescription: '',
+          twitterImage: '',
+          canonicalUrl: '',
+          structuredData: {}
+        };
+        
+        console.log('SEO data extracted:', seoData);
+        
+        // Use metaTitle/metaDescription as the primary source of truth if they exist
+        // Otherwise, fall back to seo.title/seo.description
+        const metaTitle = response.metaTitle || '';
+        const metaDescription = response.metaDescription || '';
+        
+        // Ensure the SEO title/description always has a value
+        // If not present in the SEO object, use the metaTitle/metaDescription
+        seoData.title = seoData.title || metaTitle;
+        seoData.description = seoData.description || metaDescription;
+        
+        // Log the SEO data being loaded
+        console.log('SEO data from API:', {
+          responseMetaTitle: response.metaTitle,
+          responseMetaDescription: response.metaDescription,
+          responseSEO: response.seo,
+          computedMetaTitle: metaTitle,
+          computedMetaDescription: metaDescription,
+          finalSeoData: seoData
+        });
         
         // First set the page data
         setPageData({
@@ -130,11 +190,11 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           pageType: response.pageType,
           locale: response.locale || locale,
           sections: [],
-          metaTitle: response.metaTitle || '',
-          metaDescription: response.metaDescription || '',
+          metaTitle: metaTitle,
+          metaDescription: metaDescription,
           featuredImage: response.featuredImage || '',
           publishDate: response.publishDate || '',
-          seo: response.seo || {}
+          seo: seoData
         });
         
         // Then load components for each section
@@ -378,7 +438,38 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   // Handle general input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setPageData(prev => ({ ...prev, [name]: value }));
+    
+    console.log(`Input change: ${name} = ${value}`);
+    
+    // Special handling for meta fields to sync with SEO fields
+    if (name === 'metaTitle') {
+      console.log('Syncing metaTitle with seo.title');
+      setPageData(prevState => ({
+        ...prevState,
+        metaTitle: value,
+        seo: {
+          ...prevState.seo,
+          title: value
+        }
+      }));
+    } else if (name === 'metaDescription') {
+      console.log('Syncing metaDescription with seo.description');
+      setPageData(prevState => ({
+        ...prevState,
+        metaDescription: value,
+        seo: {
+          ...prevState.seo,
+          description: value
+        }
+      }));
+    } else {
+      // Handle other fields normally
+      setPageData(prevState => ({
+        ...prevState,
+        [name]: value
+      }));
+    }
+    
     setHasUnsavedChanges(true);
   };
   
@@ -396,13 +487,50 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   
   // Handle nested SEO property changes
   const handleSEOChange = (path: string, value: string) => {
-    setPageData(prev => ({
-      ...prev,
-      seo: {
-        ...prev.seo,
-        [path]: value
+    console.log(`SEO change: ${path} = ${value}`);
+    
+    setPageData(prevState => {
+      // Deep clone the SEO object to avoid nested reference issues
+      const newSeo = JSON.parse(JSON.stringify(prevState.seo || {}));
+      
+      // Update the specific field in the SEO object
+      const setNestedField = (obj: Record<string, unknown>, path: string, value: string | unknown) => {
+        const parts = path.split('.');
+        let current = obj as Record<string, unknown>;
+        
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!current[parts[i]]) {
+            current[parts[i]] = {};
+          }
+          current = current[parts[i]] as Record<string, unknown>;
+        }
+        
+        current[parts[parts.length - 1]] = value;
+      };
+      
+      setNestedField(newSeo, path.replace('seo.', ''), value);
+      
+      // Also update metaTitle/metaDescription if the SEO title/description is changed
+      const updatedState = {
+        ...prevState,
+        seo: newSeo
+      };
+      
+      // Sync SEO title with metaTitle when SEO title changes
+      if (path === 'seo.title') {
+        console.log('Syncing seo.title with metaTitle');
+        updatedState.metaTitle = value as string;
       }
-    }));
+      
+      // Sync SEO description with metaDescription when SEO description changes
+      if (path === 'seo.description') {
+        console.log('Syncing seo.description with metaDescription');
+        updatedState.metaDescription = value as string;
+      }
+      
+      return updatedState;
+    });
+    
     setHasUnsavedChanges(true);
   };
   
@@ -455,73 +583,118 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
   // Save the entire page
   const handleSavePage = async () => {
-    if (!pageData.title) {
-      setNotification({
-        type: 'error',
-        message: 'Por favor, ingresa un título para la página'
-      });
-      return;
-    }
-    
-    setIsSaving(true);
-    
     try {
-      // First save the section components if they exist
-      if (sectionRef.current && pageSections.length > 0) {
-        console.log(`Guardando componentes para la sección: ${pageSections[0]?.sectionId}`);
-        try {
-          await sectionRef.current.saveChanges(false);
-          console.log('Componentes guardados exitosamente');
-        } catch (error) {
-          console.error('Error al guardar componentes de la sección:', error);
-          // Continuamos con el guardado de la página aunque falle el guardado de los componentes
-        }
-      }
+      setIsSaving(true);
       
-      // Prepare page data for update
-      const updateInput = {
+      // Ensure we have up-to-date components from each section editor
+      await saveSectionEdits();
+      
+      console.log('Saving page with data:', pageData);
+      
+      // Prepare update input
+      const updateInput: {
+        title: string;
+        slug: string;
+        description: string;
+        template: string;
+        isPublished: boolean;
+        pageType: string;
+        locale: string;
+        metaTitle: string;
+        metaDescription: string;
+        featuredImage: string;
+        publishDate: string;
+        seo: {
+          title: string;
+          description: string;
+          keywords: string;
+          ogTitle: string;
+          ogDescription: string;
+          ogImage: string;
+          twitterTitle: string;
+          twitterDescription: string;
+          twitterImage: string;
+          canonicalUrl: string;
+          structuredData: Record<string, unknown>;
+        };
+        sections?: Array<{
+          id: string;
+          order: number;
+          title: string;
+          componentType: string;
+          isVisible: boolean;
+          data: Record<string, unknown>;
+        }>;
+      } = {
         title: pageData.title,
         slug: pageData.slug,
         description: pageData.description,
         template: pageData.template,
         isPublished: pageData.isPublished,
-        featuredImage: pageData.featuredImage,
-        metaTitle: pageData.metaTitle,
-        metaDescription: pageData.metaDescription,
         pageType: pageData.pageType,
         locale: pageData.locale,
-        publishDate: pageData.publishDate,
-        seo: pageData.seo,
-        // Map sections to the format expected by the API
-        sections: pageSections.map(section => ({
-          id: section.id,
-          order: section.order,
-          title: section.name,
-          componentType: 'CUSTOM',
-          data: { sectionId: section.sectionId },
-          isVisible: true
-        }))
+        metaTitle: pageData.metaTitle || '',
+        metaDescription: pageData.metaDescription || '',
+        featuredImage: pageData.featuredImage || '',
+        publishDate: pageData.publishDate || '',
+        // Ensure SEO data is properly formatted and includes all fields
+        seo: {
+          title: pageData.seo?.title || pageData.metaTitle || '',
+          description: pageData.seo?.description || pageData.metaDescription || '',
+          keywords: pageData.seo?.keywords || '',
+          ogTitle: pageData.seo?.ogTitle || '',
+          ogDescription: pageData.seo?.ogDescription || '',
+          ogImage: pageData.seo?.ogImage || '',
+          twitterTitle: pageData.seo?.twitterTitle || '',
+          twitterDescription: pageData.seo?.twitterDescription || '',
+          twitterImage: pageData.seo?.twitterImage || '',
+          canonicalUrl: pageData.seo?.canonicalUrl || '',
+          structuredData: pageData.seo?.structuredData || {}
+        }
       };
       
-      console.log('Actualizando página con datos:', updateInput);
+      // Log the SEO data being sent
+      console.log('Saving SEO data:', {
+        metaTitle: updateInput.metaTitle,
+        metaDescription: updateInput.metaDescription,
+        seo: updateInput.seo
+      });
       
-      // Actually update the page in the database
+      // Add back sections if they exist
+      if (pageSections.length > 0) {
+        updateInput.sections = pageSections.map((section, index) => ({
+          id: section.id,
+          order: index,
+          title: section.name || `Section ${index + 1}`,
+          componentType: 'CUSTOM',
+          isVisible: true,
+          data: {
+            sectionId: section.sectionId,
+            name: section.name
+          }
+        }));
+      }
+      
+      console.log('Updating page with:', updateInput);
+      
+      // Update the page through GraphQL
       const result = await cmsOperations.updatePage(pageData.id, updateInput);
       
+      console.log('Page update result:', result);
+      
       if (result.success) {
-        console.log('Página actualizada exitosamente:', result);
         setNotification({
           type: 'success',
-          message: 'Página actualizada exitosamente'
+          message: 'Page updated successfully'
         });
+        
         setHasUnsavedChanges(false);
         // Refresh section view to show updated components
         setForceReloadSection(!forceReloadSection);
       } else {
-        console.error('Error al actualizar la página:', result.message);
         setNotification({
           type: 'error',
-          message: result.message || 'Error al actualizar la página'
+          message: result.message || 'Error updating page'
         });
       }
       
@@ -529,13 +702,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       setTimeout(() => {
         setNotification(null);
       }, 3000);
+      
+      setIsSaving(false);
     } catch (error) {
-      console.error('Error al actualizar la página:', error);
+      console.error('Error saving page:', error);
       setNotification({
         type: 'error',
-        message: error instanceof Error ? error.message : 'Error al actualizar la página'
+        message: error instanceof Error ? error.message : 'Unknown error saving page'
       });
-    } finally {
       setIsSaving(false);
     }
   };
@@ -677,6 +851,53 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       setIsSavingSection(false);
     }
   };
+
+  // Add a test function to directly query the database
+  const testDatabaseQuery = async () => {
+    try {
+      // Try to fetch the page directly
+      const query = `
+        query {
+          getPageBySlug(slug: "${pageData.slug}") {
+            id
+            title
+            metaTitle
+            metaDescription
+            seo {
+              title
+              description
+              keywords
+            }
+          }
+        }
+      `;
+      
+      // Make a direct API call to verify data
+      const response = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+        }),
+      });
+      
+      const result = await response.json();
+      console.log('Direct GraphQL query result:', result);
+      
+    } catch (error) {
+      console.error('Error testing database query:', error);
+    }
+  };
+  
+  // This will run the test query when the component mounts
+  useEffect(() => {
+    if (pageData.id) {
+      console.log('Running test database query...');
+      testDatabaseQuery();
+    }
+  }, [pageData.id]);
 
   if (isLoading) {
     return <LoadingSpinner size="lg" text="Cargando página..." className="min-h-screen" />;

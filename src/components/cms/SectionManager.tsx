@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle } from 'lucide-react';
-import React from 'react';
+import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
@@ -46,11 +54,14 @@ const componentMap = {
   }),
 };
 
+// Props for the SectionManager component
 interface SectionManagerProps {
   initialComponents?: Component[];
   isEditing?: boolean;
   onComponentsChange?: (components: Component[]) => void;
   componentClassName?: (type: string) => string;
+  activeComponentId?: string | null;
+  onClickComponent?: (componentId: string) => void;
 }
 
 // Utilidad para debounce
@@ -81,7 +92,9 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isFirst = false,
   isLast = false,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  isActive = false,
+  onComponentClick
 }: { 
   component: Component; 
   isEditing: boolean; 
@@ -93,14 +106,27 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isLast?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
+  isActive?: boolean;
+  onComponentClick?: (componentId: string) => void;
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
-  const handleRemove = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Get component title from component data if it exists
+  const title = (component.data.componentTitle as string) || `${component.type} Component`;
+  
+  const handleRemoveClick = () => {
+    setConfirmOpen(true);
+  };
+  
+  const handleConfirmRemove = () => {
     onRemove(component.id);
-  }, [component.id, onRemove]);
+    setConfirmOpen(false);
+  };
+  
+  const handleCancelRemove = () => {
+    setConfirmOpen(false);
+  };
 
   const handleMoveUp = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -114,108 +140,131 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     if (onMoveDown) onMoveDown(component.id);
   }, [component.id, onMoveDown]);
 
-  const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log(`Component ${component.id} toggling collapse. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+  const handleToggle = useCallback(() => {
     if (onToggleCollapse) {
-      // Si está colapsado, lo expandimos, y viceversa
-      onToggleCollapse(component.id, isCollapsed);
+      onToggleCollapse(component.id, !isCollapsed);
     }
   }, [component.id, isCollapsed, onToggleCollapse]);
 
+  const handleClick = useCallback(() => {
+    if (onComponentClick) {
+      onComponentClick(component.id);
+    }
+  }, [component.id, onComponentClick]);
+
   return (
     <div 
-      key={component.id} 
       className={cn(
-        "relative transition-all duration-200",
-        isEditing && "pt-2 rounded-lg mb-6",
-        isHovered && isEditing && "bg-accent/5"
+        "component-wrapper relative group border rounded-md transition-all mb-5",
+        isEditing ? "border-border bg-card/50 hover:border-foreground/20 shadow-sm" : "",
+        isActive && isEditing ? "border-primary border-2 shadow-md shadow-primary/10 bg-primary/5" : "",
+        !isEditing && "border-transparent",
+        isHovered && isEditing && "bg-accent/5",
+        isEditing && "cursor-pointer"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       data-component-id={component.id}
+      onClick={handleClick}
     >
+      {isActive && isEditing && (
+        <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-1.5 h-8 bg-primary rounded-full"></div>
+      )}
+
+      {/* Confirmation dialog for component removal */}
       {isEditing && (
-        <>
-          <div className="flex items-center justify-between mb-2 px-3 py-1">
-            <div className="flex items-center gap-2">
-              {/* Reorder controls */}
-              <div className="flex items-center">
-                <div
-                  onClick={handleMoveUp}
-                  className={cn(
-                    "p-1 text-muted-foreground hover:text-foreground cursor-pointer",
-                    isFirst && "opacity-30 cursor-not-allowed hover:text-muted-foreground"
-                  )}
-                  title="Mover componente arriba"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 15l-6-6-6 6"/>
-                  </svg>
-                </div>
-                <div
-                  onClick={handleMoveDown}
-                  className={cn(
-                    "p-1 text-muted-foreground hover:text-foreground cursor-pointer",
-                    isLast && "opacity-30 cursor-not-allowed hover:text-muted-foreground"
-                  )}
-                  title="Mover componente abajo"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </div>
-              </div>
-              
-              {/* Use the ComponentTitleInput component */}
-              <div className="flex items-center">
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Eliminar componente?</DialogTitle>
+              <DialogDescription>
+                Esta acción eliminará el componente &quot;{title}&quot; y no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancelRemove}>Cancelar</Button>
+              <Button variant="destructive" onClick={handleConfirmRemove}>Eliminar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {isEditing && (
+        <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 rounded-t-md">
+          <div className="flex items-center space-x-2">
+            <div 
+              className="cursor-ns-resize touch-none p-1 rounded hover:bg-muted/50"
+              title="Arrastrar para reordenar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+            </div>
+            
+            <button
+              onClick={handleToggle}
+              className="p-1 rounded hover:bg-muted/50"
+              title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+            
+            <div className="text-sm font-medium text-foreground flex-1 min-w-0">
+              {isEditing ? (
                 <ComponentTitleInput
                   componentId={component.id}
-                  initialTitle={component.data.componentTitle as string}
+                  initialTitle={title}
                   componentType={component.type}
                 />
-              </div>
-            </div>
-            <div className="flex items-center space-x-1">
-              {/* Collapse button - only visible control that can collapse */}
-              <div
-                onClick={handleToggleCollapse}
-                className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full cursor-pointer"
-                aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
-                title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
-              >
-                {isCollapsed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="16"></line>
-                    <line x1="8" y1="12" x2="16" y2="12"></line>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="8" y1="12" x2="16" y2="12"></line>
-                  </svg>
-                )}
-              </div>
-            <div 
-              onClick={handleRemove}
-              className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive hover:bg-destructive/90 rounded-full cursor-pointer"
-              aria-label="Eliminar componente"
-            >
-                <XMarkIcon className="h-3 w-3 text-destructive-foreground" />
-            </div>
+              ) : (
+                <span className="truncate">{title}</span>
+              )}
             </div>
           </div>
-          <div className="h-px bg-border w-full mb-3 opacity-60"></div>
-        </>
-      )}
-      {(!isCollapsed || !isEditing) && (
-        <div className={cn(isEditing && "px-3 py-1")}
-             onClick={(e) => e.stopPropagation()}>
-          {children}
+          
+          {isEditing && (
+            <div className="flex items-center space-x-1">
+              {onMoveUp && !isFirst && (
+                <div 
+                  onClick={handleMoveUp}
+                  className="cursor-pointer p-1 rounded hover:bg-muted/50"
+                  title="Mover arriba"
+                >
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+              
+              {onMoveDown && !isLast && (
+                <div 
+                  onClick={handleMoveDown}
+                  className="cursor-pointer p-1 rounded hover:bg-muted/50"
+                  title="Mover abajo"
+                >
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+              
+              <div 
+                onClick={handleRemoveClick}
+                className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive hover:bg-destructive/90 rounded-full cursor-pointer"
+                aria-label="Eliminar componente"
+                title="Eliminar componente"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-white" />
+              </div>
+            </div>
+          )}
         </div>
       )}
+      
+      <div className={cn(
+        isEditing ? (!isCollapsed ? 'block p-4' : 'hidden') : 'block'
+      )}>
+        {children}
+      </div>
     </div>
   );
 });
@@ -225,7 +274,9 @@ function SectionManagerBase({
   initialComponents = [], 
   isEditing = false,
   onComponentsChange,
-  componentClassName
+  componentClassName,
+  activeComponentId,
+  onClickComponent
 }: SectionManagerProps) {
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track collapsed components by ID - initialize with empty set (all expanded)
@@ -695,38 +746,27 @@ function SectionManagerBase({
   useEffect(() => {
     // Si teníamos un elemento activo, restaurar el foco después de la actualización
     if (activeElementRef.current && activeElementRef.current instanceof HTMLElement) {
-      const activeElement = activeElementRef.current;
+      const activeEl = activeElementRef.current;
       
       // Esperar a que el DOM se actualice
       setTimeout(() => {
-        if (activeElement instanceof HTMLElement) {
-          try {
-            activeElement.focus();
-            
-            // Solo establecer la posición del cursor para inputs y textareas de texto
-            if (
-              (activeElement instanceof HTMLInputElement || 
-               activeElement instanceof HTMLTextAreaElement) && 
-              'selectionStart' in activeElement
-            ) {
-              // Verificar que el tipo de input soporte selección
-              const inputElement = activeElement as HTMLInputElement;
-              const nonSelectableTypes = ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'];
-              
-              // Solo establecer selección para tipos que lo soporten
-              if (!(inputElement.tagName === 'INPUT' && nonSelectableTypes.includes(inputElement.type))) {
-                const len = activeElement.value.length;
-                activeElement.selectionStart = len;
-                activeElement.selectionEnd = len;
-              }
-            }
-          } catch (err) {
-            console.warn('[SectionManager] Error al restaurar el foco:', err);
+        try {
+          activeEl.focus();
+          // Si es un elemento de entrada de texto, mover el cursor al final
+          if (
+            activeEl instanceof HTMLInputElement || 
+            activeEl instanceof HTMLTextAreaElement
+          ) {
+            const length = activeEl.value.length;
+            activeEl.selectionStart = length;
+            activeEl.selectionEnd = length;
           }
+          
+          // Limpiar la referencia
+          activeElementRef.current = null;
+        } catch (e) {
+          console.error("Error restoring focus:", e);
         }
-        
-        // Limpiar la referencia
-        activeElementRef.current = null;
       }, 10);
     }
   }, [components]);
@@ -750,6 +790,17 @@ function SectionManagerBase({
     }
   }, [componentsDataString]); // Only run when component data actually changes
 
+  // Auto-expand active component
+  useEffect(() => {
+    if (activeComponentId && collapsedComponents.has(activeComponentId)) {
+      // Expand the active component if it's collapsed
+      setCollapsedComponents(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(activeComponentId);
+        return newSet;
+      });
+    }
+  }, [activeComponentId, collapsedComponents]);
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
@@ -928,8 +979,12 @@ function SectionManagerBase({
               subtitle={component.data.subtitle as string || "Default Subtitle"}
               image={component.data.image as string}
               cta={component.data.cta as { text: string; url: string }}
+              secondaryCta={component.data.secondaryCta as { text: string; url: string }}
+              badgeText={component.data.badgeText as string}
+              showAnimatedDots={component.data.showAnimatedDots as boolean}
+              showIcon={component.data.showIcon as boolean}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -940,10 +995,10 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <TextComponent 
-              title={component.data.title as string} 
-              content={component.data.content as string}
+              title={component.data.title as string || "Default Title"} 
+              content={component.data.content as string || "Default Content"}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -954,11 +1009,11 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <ImageComponent 
-              src={component.data.src as string} 
-              alt={component.data.alt as string}
-              caption={component.data.caption as string}
+              src={component.data.src as string || ""} 
+              alt={component.data.alt as string || ""}
+              caption={component.data.caption as string || ""}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -969,11 +1024,11 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <FeatureComponent 
-              title={component.data.title as string} 
-              description={component.data.description as string}
-              icon={component.data.icon as string}
+              title={component.data.title as string || "Feature Title"} 
+              description={component.data.description as string || "Feature Description"}
+              icon={component.data.icon as string || "star"}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -984,12 +1039,12 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <TestimonialComponent 
-              quote={component.data.quote as string} 
-              author={component.data.author as string}
-              role={component.data.role as string}
-              avatar={component.data.avatar as string}
+              quote={component.data.quote as string || "Testimonial Quote"} 
+              author={component.data.author as string || "Author Name"}
+              role={component.data.role as string || ""}
+              avatar={component.data.avatar as string || ""}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -1000,13 +1055,13 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <CardComponent 
-              title={component.data.title as string} 
-              description={component.data.description as string}
-              image={component.data.image as string}
-              link={component.data.link as string}
-              buttonText={component.data.buttonText as string}
+              title={component.data.title as string || "Card Title"} 
+              description={component.data.description as string || "Card Description"}
+              image={component.data.image as string || ""}
+              link={component.data.link as string || ""}
+              buttonText={component.data.buttonText as string || ""}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -1017,10 +1072,10 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <HeaderComponent 
-              title={component.data.title as string} 
-              subtitle={component.data.subtitle as string}
+              title={component.data.title as string || "Header Title"} 
+              subtitle={component.data.subtitle as string || "Header Subtitle"}
               isEditing={isEditing}
-              onUpdate={(data) => handleUpdate(component, data)}
+              onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
           );
@@ -1031,15 +1086,15 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
               <BenefitComponent 
-                title={component.data.title as string} 
-                description={component.data.description as string}
-                iconType={component.data.iconType as string || 'check'}
+                title={component.data.title as string || "Benefit Title"} 
+                description={component.data.description as string || "Benefit Description"}
+                iconType={component.data.iconType as string || 'CheckCircle'}
                 accentColor={component.data.accentColor as string || '#01319c'}
                 backgroundColor={component.data.backgroundColor as string || 'from-[#ffffff] to-[#f0f9ff]'}
-                showGrid={component.data.showGrid as boolean || true}
-                showDots={component.data.showDots as boolean || true}
+                showGrid={component.data.showGrid as boolean ?? true}
+                showDots={component.data.showDots as boolean ?? true}
                 isEditing={isEditing}
-                onUpdate={(data) => handleUpdate(component, data)}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
             </div>
           );
@@ -1077,6 +1132,8 @@ function SectionManagerBase({
         isLast={components.indexOf(component) === components.length - 1}
         isCollapsed={isComponentCollapsed}
         onToggleCollapse={handleToggleCollapse}
+        isActive={activeComponentId === component.id}
+        onComponentClick={onClickComponent}
       >
         {renderComponentContent()}
       </ComponentWrapperMemo>
@@ -1090,7 +1147,9 @@ function SectionManagerBase({
     components, 
     collapsedComponents, 
     handleToggleCollapse,
-    componentClassName
+    componentClassName,
+    activeComponentId,
+    onClickComponent
   ]);
 
 

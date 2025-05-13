@@ -33,6 +33,19 @@ export interface PageData {
   metaTitle: string;
   metaDescription: string;
   featuredImage: string;
+  seo?: {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    twitterTitle?: string;
+    twitterDescription?: string;
+    twitterImage?: string;
+    canonicalUrl?: string;
+    structuredData?: Record<string, unknown>;
+  };
 }
 
 export interface PageParams {
@@ -64,6 +77,8 @@ export interface PageResponse {
   featuredImage?: string;
   publishDate?: string;
   seo?: {
+    title?: string;
+    description?: string;
     keywords?: string;
     ogTitle?: string;
     ogDescription?: string;

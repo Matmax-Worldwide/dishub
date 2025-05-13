@@ -598,21 +598,39 @@ export const typeDefs = gql`
     slug: String!
     description: String
     template: String
-    isPublished: Boolean
+    isPublished: Boolean!
     publishDate: DateTime
     featuredImage: String
     metaTitle: String
     metaDescription: String
-    createdById: String
-    updatedById: String
-    parentId: String
+    parentId: ID
     order: Int
-    pageType: String
+    pageType: PageType!
     locale: String
-    scrollType: String
+    scrollType: ScrollType
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    sections: [PageSection]
+    seo: PageSEO
+  }
+
+  # PageSEO type 
+  type PageSEO {
+    id: ID!
+    pageId: ID!
+    title: String
+    description: String
+    keywords: String
+    ogTitle: String
+    ogDescription: String
+    ogImage: String
+    twitterTitle: String
+    twitterDescription: String
+    twitterImage: String
+    canonicalUrl: String
+    structuredData: JSON
     createdAt: DateTime
     updatedAt: DateTime
-    sections: [PageSection]
   }
 
   # Input types for page operations
@@ -747,6 +765,7 @@ export const typeDefs = gql`
     pageType: String
     locale: String
     scrollType: String
+    seo: PageSEOInput
     sections: [PageSectionInput!]
   }
 
@@ -757,6 +776,20 @@ export const typeDefs = gql`
     componentType: String
     data: JSON
     isVisible: Boolean
+  }
+
+  input PageSEOInput {
+    title: String
+    description: String
+    keywords: String
+    ogTitle: String
+    ogDescription: String
+    ogImage: String
+    twitterTitle: String
+    twitterDescription: String
+    twitterImage: String
+    canonicalUrl: String
+    structuredData: JSON
   }
 
   type PageMutationResponse {
