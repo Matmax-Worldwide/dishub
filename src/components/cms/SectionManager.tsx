@@ -55,12 +55,24 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   component, 
   isEditing, 
   children, 
-  onRemove 
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst = false,
+  isLast = false,
+  isCollapsed = false,
+  onToggleCollapse
 }: { 
   component: Component; 
   isEditing: boolean; 
   children: React.ReactNode; 
-  onRemove: (id: string) => void 
+  onRemove: (id: string) => void;
+  onMoveUp?: (id: string) => void;
+  onMoveDown?: (id: string) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [componentTitle, setComponentTitle] = useState(component.title || component.type || 'Component');
@@ -69,6 +81,14 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   const handleRemove = useCallback(() => {
     onRemove(component.id);
   }, [component.id, onRemove]);
+
+  const handleMoveUp = useCallback(() => {
+    if (onMoveUp) onMoveUp(component.id);
+  }, [component.id, onMoveUp]);
+
+  const handleMoveDown = useCallback(() => {
+    if (onMoveDown) onMoveDown(component.id);
+  }, [component.id, onMoveDown]);
 
   const handleTitleClick = () => {
     if (isEditing) {
@@ -137,6 +157,10 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     }
   };
 
+  const handleToggleCollapse = useCallback(() => {
+    if (onToggleCollapse) onToggleCollapse(component.id, !isCollapsed);
+  }, [component.id, isCollapsed, onToggleCollapse]);
+
   return (
     <div 
       key={component.id} 
@@ -152,27 +176,71 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       {isEditing && (
         <>
           <div className="flex items-center justify-between mb-2 px-3 py-1">
-            {isEditingTitle ? (
+            <div className="flex items-center gap-2">
+              {/* Reorder controls */}
               <div className="flex items-center">
-                <input
-                  type="text"
-                  value={componentTitle}
-                  onChange={(e) => setComponentTitle(e.target.value)}
-                  onBlur={handleTitleSave}
-                  onKeyDown={handleTitleKeyDown}
-                  className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
-                  autoFocus
-                />
+                <button
+                  onClick={handleMoveUp}
+                  disabled={isFirst}
+                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                  title="Mover componente arriba"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 15l-6-6-6 6"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={handleMoveDown}
+                  disabled={isLast}
+                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                  title="Mover componente abajo"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
               </div>
-            ) : (
-              <div 
-                onClick={handleTitleClick} 
-                className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                {componentTitle}
-              </div>
-            )}
+              
+              {isEditingTitle ? (
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    value={componentTitle}
+                    onChange={(e) => setComponentTitle(e.target.value)}
+                    onBlur={handleTitleSave}
+                    onKeyDown={handleTitleKeyDown}
+                    className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <div 
+                  onClick={handleTitleClick} 
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {componentTitle}
+                </div>
+              )}
+            </div>
             <div className="flex items-center space-x-1">
+              {/* Collapse button */}
+              <button
+                onClick={handleToggleCollapse}
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full"
+                aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
+                title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
+              >
+                {isCollapsed ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                )}
+              </button>
               <button 
                 onClick={handleRemove}
                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full"
@@ -185,9 +253,22 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
           <div className="h-px bg-border w-full mb-3 opacity-60"></div>
         </>
       )}
-      <div className={cn(isEditing && "px-3 py-1")}>
-        {children}
-      </div>
+      {(!isEditing || !isCollapsed) && (
+        <div className={cn(isEditing && "px-3 py-1")}>
+          {children}
+        </div>
+      )}
+      {isEditing && isCollapsed && (
+        <div className="px-3 py-2 text-center border border-dashed border-muted rounded-md mx-1 my-2 cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleToggleCollapse}>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="7 13 12 18 17 13"></polyline>
+              <polyline points="7 6 12 11 17 6"></polyline>
+            </svg>
+            <span>Expandir {component.type}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
@@ -205,6 +286,8 @@ function SectionManagerBase({
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   // Track if this is a preview-only instance
   const isPreviewOnly = !isEditing && onComponentsChange === undefined;
+  // Track collapsed components by ID
+  const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
   
   // Cache component data stringified to prevent unnecessary re-renders
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -214,7 +297,7 @@ function SectionManagerBase({
     // Only update components if this is not a rerender due to component selection
     // For preview mode, we'll always update to show the latest changes
     if (initialComponents.length > 0 && (isPreviewOnly || !selectedComponentId)) {
-      setComponents(initialComponents);
+        setComponents(initialComponents);
       // Reset selected component when full component list is updated
       setSelectedComponentId(null);
     }
@@ -326,11 +409,59 @@ function SectionManagerBase({
     });
   }, []);
 
+  // Manejar el movimiento de componentes hacia arriba
+  const handleMoveComponentUp = useCallback((componentId: string) => {
+    setComponents(prevComponents => {
+      const index = prevComponents.findIndex(component => component.id === componentId);
+      if (index <= 0) return prevComponents;
+      
+      // Crear un nuevo array con el componente movido una posición hacia arriba
+      const newComponents = [...prevComponents];
+      const temp = newComponents[index];
+      newComponents[index] = newComponents[index - 1];
+      newComponents[index - 1] = temp;
+      
+      return newComponents;
+    });
+  }, []);
+
+  // Manejar el movimiento de componentes hacia abajo
+  const handleMoveComponentDown = useCallback((componentId: string) => {
+    setComponents(prevComponents => {
+      const index = prevComponents.findIndex(component => component.id === componentId);
+      if (index < 0 || index >= prevComponents.length - 1) return prevComponents;
+      
+      // Crear un nuevo array con el componente movido una posición hacia abajo
+      const newComponents = [...prevComponents];
+      const temp = newComponents[index];
+      newComponents[index] = newComponents[index + 1];
+      newComponents[index + 1] = temp;
+      
+      return newComponents;
+    });
+  }, []);
+
+  // Handle collapsing/expanding components
+  const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
+    setCollapsedComponents(prev => {
+      const newSet = new Set(prev);
+      if (!isCollapsed) {
+        newSet.add(componentId);
+      } else {
+        newSet.delete(componentId);
+      }
+      return newSet;
+    });
+  }, []);
+
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
     if (!component || !component.type || !componentMap[component.type]) {
       return null;
     }
+
+    // Check if component is collapsed
+    const isComponentCollapsed = collapsedComponents.has(component.id);
 
     // Only optimize non-selected components in preview mode
     // We always want to render selected components and components in edit mode
@@ -457,11 +588,17 @@ function SectionManagerBase({
         component={component}
         isEditing={isEditing}
         onRemove={removeComponent}
+        onMoveUp={handleMoveComponentUp}
+        onMoveDown={handleMoveComponentDown}
+        isFirst={components.indexOf(component) === 0}
+        isLast={components.indexOf(component) === components.length - 1}
+        isCollapsed={isComponentCollapsed}
+        onToggleCollapse={handleToggleCollapse}
       >
         {renderComponentContent()}
       </ComponentWrapperMemo>
     );
-  }, [isEditing, handleUpdate, removeComponent, selectedComponentId, isPreviewOnly]);
+  }, [isEditing, handleUpdate, removeComponent, selectedComponentId, isPreviewOnly, handleMoveComponentUp, handleMoveComponentDown, components, collapsedComponents, handleToggleCollapse]);
 
   // Memorizamos la lista de componentes renderizados
   const renderedComponents = useMemo(() => {
