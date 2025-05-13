@@ -67,31 +67,57 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       try {
         // Add a timestamp to avoid caching
         const timestamp = Date.now();
+        
+        // Log más detallado antes de la carga
+        console.log(`⏳ [${loadId}] Solicitando componentes para sección: ${normalizedSectionId}?t=${timestamp}`);
+        
         const result = await cmsOperations.getSectionComponents(`${normalizedSectionId}?t=${timestamp}`);
         
+        console.log(`✅ [${loadId}] Respuesta recibida:`, result);
+        
         if (result && Array.isArray(result.components)) {
+          if (result.components.length === 0) {
+            console.warn(`⚠️ [${loadId}] La sección existe pero no tiene componentes. Verificar si se guardaron correctamente.`);
+          } else {
+            console.log(`✅ [${loadId}] Se encontraron ${result.components.length} componentes.`);
+          }
+          
           // Map the components to SectionManager format, ensuring type compatibility
           const mappedComponents = result.components.map((comp) => {
             // Ensure the component type is one of the allowed types in the ComponentType
-            let componentType = comp.type;
+            // Primero convertimos a formato de título (primera letra mayúscula)
+            let componentType = comp.type.charAt(0).toUpperCase() + comp.type.slice(1);
             if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'].includes(componentType)) {
+              console.warn(`⚠️ [${loadId}] Tipo de componente no reconocido: ${comp.type}, usando 'Text' como valor predeterminado`);
               componentType = 'Text';
+            } else {
+              console.log(`✅ [${loadId}] Tipo de componente reconocido: ${comp.type} -> ${componentType}`);
             }
             
             // Restore component title if it exists in data
             const componentTitle = comp.data?.componentTitle as string || null;
             
-            return {
+            const mappedComponent = {
               id: comp.id,
-              type: componentType,
-              data: comp.data,
+              type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card', // Tipo específico
+              data: comp.data || {},
               title: componentTitle || undefined
             } as Component;
+            
+            console.log(`✅ [${loadId}] Componente mapeado:`, {
+              id: mappedComponent.id,
+              type: mappedComponent.type,
+              title: mappedComponent.title || componentTitle
+            });
+            
+            return mappedComponent;
           });
           
+          console.log(`✅ [${loadId}] Componentes mapeados:`, mappedComponents.length);
           setPendingComponents(mappedComponents);
         } else {
           // Initialize with empty array to avoid undefined issues
+          console.warn(`⚠️ [${loadId}] No se recibieron componentes válidos. Inicializando con array vacío.`);
           setPendingComponents([]);
         }
       } catch (error) {
@@ -99,6 +125,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         setError(error instanceof Error ? error.message : 'Unknown error occurred');
       } finally {
         setIsLoading(false);
+        console.log(`⏳ [${loadId}] FINALIZADA CARGA de componentes para sección '${normalizedSectionId}'`);
       }
     };
 
@@ -183,44 +210,73 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       try {
         setIsLoading(true);
         
+        // Log de diagnóstico
+        console.log(`[ManageableSection] Iniciando guardado de ${componentsToSave.length} componentes para sección: ${normalizedSectionId}`);
+        console.log(`[ManageableSection] Tipos de componentes:`, componentsToSave.map(c => c.type));
+        
         // Ensure component titles are preserved in the saved data
         const componentsWithTitles = componentsToSave.map(comp => {
-          if (comp.title) {
-            // If the component has a title, store it in the data
-            return {
-              ...comp,
-              data: {
-                ...comp.data,
-                componentTitle: comp.title // Store title in data for persistence
-              }
-            };
-          }
-          return comp;
+          // Preparamos los datos para guardar pero sin modificar el tipo original
+          // que debe mantenerse como ComponentType
+          return {
+            ...comp,
+            data: {
+              ...comp.data,
+              componentTitle: comp.title || comp.data?.componentTitle || 'Componente sin título' // Store title in data for persistence
+            }
+          };
         });
         
-        console.log('Saving components with titles:', componentsWithTitles);
+        // Log de los componentes preparados
+        componentsWithTitles.forEach(comp => {
+          console.log(`[ManageableSection] Componente preparado:`, {
+            id: comp.id,
+            type: comp.type,
+            title: comp.data.componentTitle
+          });
+        });
         
+        // Verificación de componentes antes de enviar
+        if (componentsWithTitles.length === 0) {
+          console.warn('[ManageableSection] Advertencia: Intentando guardar 0 componentes');
+        }
+        
+        console.log('[ManageableSection] Enviando componentes al servidor...');
+        
+        // Para el API, convertimos los tipos a minúsculas según sea necesario
+        const componentsForAPI = componentsWithTitles.map(comp => ({
+          ...comp,
+          type: comp.type.toLowerCase() // Convertir a minúsculas solo para la API
+        }));
+        
+        // Llamada a la API para guardar
         const result = await cmsOperations.saveSectionComponents(
           normalizedSectionId, 
-          componentsWithTitles as unknown as CMSComponent[]
+          componentsForAPI as unknown as CMSComponent[]
         );
         
+        console.log('[ManageableSection] Resultado del guardado:', result);
+        
         if (result.success) {
+          console.log('[ManageableSection] Guardado exitoso. Última actualización:', result.lastUpdated);
           setLastSaved(result.lastUpdated || new Date().toISOString());
-          // Update the pending components to reflect what was saved
+          // Update the pending components to reflect what was saved - preservando el tipo ComponentType
           setPendingComponents(componentsWithTitles);
           
           // If section name has changed, notify parent
           if (onSectionNameChange && editedTitle !== sectionName) {
+            console.log(`[ManageableSection] Actualizando nombre de sección de "${sectionName}" a "${editedTitle}"`);
             onSectionNameChange(editedTitle);
           }
           
           resolve();
         } else {
+          console.error('[ManageableSection] Error de servidor al guardar:', result.message);
           setError(result.message || 'Failed to save components');
           reject(new Error(result.message || 'Failed to save components'));
         }
       } catch (error) {
+        console.error('[ManageableSection] Error de excepción al guardar:', error);
         setError(error instanceof Error ? error.message : 'Unknown error occurred');
         reject(error);
       } finally {

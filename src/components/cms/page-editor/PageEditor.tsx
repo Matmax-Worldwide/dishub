@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileTextIcon, SearchIcon, LayoutIcon } from 'lucide-react';
-import { cmsOperations } from '@/lib/graphql-client';
+import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import {
   PageData,
   AvailableSection,
@@ -195,9 +195,17 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   { id: cmsSection.id, sectionId: cmsSection.sectionId, name: cmsSection.name } : 
                   'Not found');
                 
+                // Create a fallback section if no CMS section is found
                 if (!cmsSection) {
-                  console.error(`No CMSSection found in system for section ${section.id}`);
-                  return null;
+                  console.warn(`No CMSSection found in system for section ${section.id}. Creating fallback.`);
+                  
+                  // Create a fallback section with the ID as the name
+                  cmsSection = {
+                    id: section.id,
+                    sectionId: section.id,
+                    name: `Section ${section.id.substring(0, 8)}...`,
+                    description: 'Fallback section created for compatibility'
+                  };
                 }
                 
                 // Check if the section has a stored name in its data
@@ -209,6 +217,11 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                     console.log(`Using stored section name from data: ${sectionName}`);
                   }
                 }
+
+                // Log the original data structure for debugging
+                if (section.data) {
+                  console.log('Original section data:', JSON.stringify(section.data, null, 2));
+                }
                 
                 // Create section data with the found CMS section
                 const sectionData: Section = {
@@ -216,7 +229,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   sectionId: cmsSection.sectionId, // IMPORTANT: Use CMS section's sectionId
                   name: sectionName,
                   type: 'default',
-                  data: [], // Start with empty data that will be populated later
+                  data: [], // Keep empty data array 
                   order: section.order || index,
                   description: cmsSection.description || ''
                 };
@@ -423,7 +436,13 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       // First save the section components if they exist
       if (sectionRef.current && pageSections.length > 0) {
         console.log(`Guardando componentes para la sección: ${pageSections[0]?.sectionId}`);
-        await sectionRef.current.saveChanges();
+        try {
+          await sectionRef.current.saveChanges();
+          console.log('Componentes guardados exitosamente');
+        } catch (error) {
+          console.error('Error al guardar componentes de la sección:', error);
+          // Continuamos con el guardado de la página aunque falle el guardado de los componentes
+        }
       }
       
       console.log('Preparando datos para actualizar página...');
@@ -443,7 +462,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         // Use a valid ComponentType enum value from Prisma schema (instead of 'default' or 'CUSTOM')
         componentType: 'CUSTOM', // Valid enum value from ComponentType
         data: { 
-          components: section.data,
+          components: section.data || [],
           // Include a reference to the CMS section ID in the data
           sectionId: section.sectionId, // Store sectionId consistently
           cmsSection: section.sectionId, // For backward compatibility
@@ -546,21 +565,59 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     try {
       console.log(`Creando nueva sección "${newSectionName}" con ID: ${sectionId}`);
       
-      const result = await cmsOperations.saveSectionComponents(sectionId, []);
+      // Crear componentes con tipos en minúsculas para coincidir con los slugs en la BD
+      // Estos son los tipos exactos que serán buscados en la base de datos
+      const sectionComponents: CMSComponent[] = [
+        {
+          id: `header-${Date.now()}`,
+          type: 'header', // Minúsculas para coincidir con los slugs en la BD
+          data: {
+            componentTitle: 'Encabezado',
+            title: newSectionName,
+            subtitle: 'Nueva sección personalizada'
+          }
+        },
+        {
+          id: `text-${Date.now() + 1}`,
+          type: 'text', // Minúsculas para coincidir con los slugs en la BD
+          data: {
+            componentTitle: 'Contenido principal',
+            content: 'Edite este contenido para personalizar su sección.'
+          }
+        }
+      ];
+      
+      console.log('Componentes a guardar:', JSON.stringify(sectionComponents, null, 2));
+      
+      // Comprobar si los componentes existen en el sistema
+      try {
+        const availableComponents = await cmsOperations.getAllComponents();
+        console.log('Tipos de componentes disponibles en el sistema:', 
+          availableComponents.map((c: { name: string; slug: string }) => ({ name: c.name, slug: c.slug }))
+        );
+      } catch (err) {
+        console.warn('No se pudieron obtener los componentes disponibles:', err);
+      }
+      
+      // Guardar la sección en el sistema
+      const result = await cmsOperations.saveSectionComponents(sectionId, sectionComponents);
+      console.log('Resultado al guardar sección:', JSON.stringify(result, null, 2));
       
       if (result && result.success) {
         console.log('Sección creada exitosamente:', sectionId);
         
+        // Agregar a la lista de secciones disponibles
         const newSection: AvailableSection = {
           sectionId: sectionId,
           name: newSectionName,
-          description: '',
+          description: 'Sección personalizada',
           type: 'default',
           id: sectionId
         };
         
         setAvailableSections(prev => [...prev, newSection]);
         
+        // Agregar a las secciones de la página
         const newPageSection: Section = {
           id: `temp-${Date.now()}`, 
           sectionId: sectionId,
@@ -568,7 +625,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           type: 'default',
           data: [],
           order: pageSections.length,
-          description: ''
+          description: 'Sección personalizada'
         };
         
         setPageSections(prev => [...prev, newPageSection]);
@@ -579,8 +636,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         
         setNotification({
           type: 'success',
-          message: `Sección "${newSectionName}" creada y añadida a la página`
+          message: `Sección "${newSectionName}" creada exitosamente`
         });
+        
+        // Ahora el usuario podrá editar los componentes dentro de esta sección
         
         setTimeout(() => {
           setNotification(null);

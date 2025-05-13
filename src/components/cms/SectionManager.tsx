@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusCircle } from 'lucide-react';
 import React from 'react';
 import { cmsOperations } from '@/lib/graphql-client';
+import { cn } from '@/lib/utils';
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
@@ -20,25 +22,25 @@ export interface Component {
 // Dynamic imports for components - fallback to a loading state
 const componentMap = {
   Hero: dynamic(() => import('./sections/HeroSection'), {
-    loading: () => <div className="p-12 text-center">Loading Hero component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Hero...</div>
   }),
   Text: dynamic(() => import('./sections/TextSection'), {
-    loading: () => <div className="p-12 text-center">Loading Text component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Text...</div>
   }),
   Image: dynamic(() => import('./sections/ImageSection'), {
-    loading: () => <div className="p-12 text-center">Loading Image component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Image...</div>
   }),
   Feature: dynamic(() => import('./sections/FeatureSection'), {
-    loading: () => <div className="p-12 text-center">Loading Feature component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Feature...</div>
   }),
   Testimonial: dynamic(() => import('./sections/TestimonialSection'), {
-    loading: () => <div className="p-12 text-center">Loading Testimonial component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Testimonial...</div>
   }),
   Header: dynamic(() => import('./sections/HeaderSection'), {
-    loading: () => <div className="p-12 text-center">Loading Header component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Header...</div>
   }),
   Card: dynamic(() => import('./sections/CardSection'), {
-    loading: () => <div className="p-12 text-center">Loading Card component...</div>
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Card...</div>
   }),
 };
 
@@ -62,6 +64,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [componentTitle, setComponentTitle] = useState(component.title || component.type || 'Component');
+  const [isHovered, setIsHovered] = useState(false);
   
   const handleRemove = useCallback(() => {
     onRemove(component.id);
@@ -130,10 +133,19 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   };
 
   return (
-    <div key={component.id} className={isEditing ? "relative mb-8 pt-4" : ""}>
+    <div 
+      key={component.id} 
+      className={cn(
+        "relative mb-6 group transition-all duration-200",
+        isEditing && "pt-2 rounded-lg",
+        isHovered && isEditing && "bg-accent/5"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {isEditing && (
         <>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 px-3 py-1">
             {isEditingTitle ? (
               <div className="flex items-center">
                 <input
@@ -142,72 +154,33 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
                   onChange={(e) => setComponentTitle(e.target.value)}
                   onBlur={handleTitleSave}
                   onKeyDown={handleTitleKeyDown}
-                  className="border border-gray-300 rounded px-2 py-1 mr-2 text-xs"
+                  className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
                   autoFocus
                 />
               </div>
             ) : (
               <div 
                 onClick={handleTitleClick} 
-                className="text-xs font-medium text-gray-500 hover:text-blue-600 cursor-pointer"
+                className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {componentTitle}
               </div>
             )}
             <button 
               onClick={handleRemove}
-              className="p-1 bg-red-100 hover:bg-red-200 rounded-full"
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full"
+              aria-label="Eliminar componente"
             >
-              <XMarkIcon className="h-4 w-4 text-red-500" />
+              <XMarkIcon className="h-3 w-3 text-destructive" />
             </button>
           </div>
-          <div className="h-px bg-gray-200 w-full mb-3"></div>
+          <div className="h-px bg-border w-full mb-3 opacity-60"></div>
         </>
       )}
-      {children}
-    </div>
-  );
-});
-
-// Componente memoizado para el selector de componentes
-const ComponentPickerMemo = memo(function ComponentPicker({ 
-  availableComponents, 
-  onAddComponent 
-}: { 
-  availableComponents: ComponentType[]; 
-  onAddComponent: (type: ComponentType) => void 
-}) {
-  return (
-    <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl p-4 z-50">
-      <div className="grid grid-cols-2 gap-2 w-64">
-        {availableComponents.map(type => (
-          <button
-            key={type}
-            onClick={() => onAddComponent(type)}
-            className="p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-          >
-            {type}
-          </button>
-        ))}
+      <div className={cn(isEditing && "px-3 py-1")}>
+        {children}
       </div>
     </div>
-  );
-});
-
-// Componente memoizado para el botón de agregar componentes
-const AddComponentButton = memo(function AddComponentButton({
-  onClick
-}: {
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-    >
-      <PlusIcon className="h-4 w-4 mr-2" />
-      Add Component
-    </button>
   );
 });
 
@@ -219,13 +192,8 @@ function SectionManagerBase({
 }: SectionManagerProps) {
   // Create a ref to track if initialComponents have been set
   const [components, setComponents] = useState<Component[]>(initialComponents);
-  const [showComponentPicker, setShowComponentPicker] = useState(false);
   const initialComponentsRef = React.useRef(false);
-
-  // Creamos un objeto memoizado para los componentes disponibles
-  const availableComponents = useMemo<ComponentType[]>(() => {
-    return ['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'];
-  }, []);
+  const [showInsertHint, setShowInsertHint] = useState(false);
 
   // Update components when initialComponents change (from parent)
   // But only if they've not been initialized yet or have actually changed
@@ -249,7 +217,35 @@ function SectionManagerBase({
     const handleComponentAdd = (e: Event) => {
       const customEvent = e as CustomEvent<Component>;
       if (customEvent.detail) {
-        setComponents(prev => [...prev, customEvent.detail]);
+        console.log('[SectionManager] 📥 Recibido evento component:add:', customEvent.detail);
+        
+        // Verificar que el tipo de componente sea válido
+        const component = customEvent.detail;
+        if (!component.type || !['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card'].includes(component.type)) {
+          console.error(`[SectionManager] ❌ Tipo de componente no válido: ${component.type}`);
+          return;
+        }
+        
+        console.log(`[SectionManager] ✅ Agregando componente: ${component.id} (${component.type})`);
+        
+        // Asegurar que los datos del componente tengan la estructura correcta
+        setComponents(prev => {
+          const newComponents = [...prev, component];
+          console.log(`[SectionManager] 📊 Componentes actualizados: ${newComponents.length}`);
+          
+          // Notificar inmediatamente el cambio dentro de la función setComponents 
+          // para asegurar tener el valor más actualizado
+          if (onComponentsChange) {
+            setTimeout(() => {
+              console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
+              onComponentsChange(newComponents);
+            }, 50);
+          }
+          
+          return newComponents;
+        });
+      } else {
+        console.error('[SectionManager] ❌ Evento component:add recibido sin datos');
       }
     };
 
@@ -257,7 +253,7 @@ function SectionManagerBase({
     return () => {
       document.removeEventListener('component:add', handleComponentAdd);
     };
-  }, []);
+  }, [onComponentsChange]); // Eliminar components de las dependencias para evitar re-renderizados innecesarios
 
   // Update parent component when components change, but only after initial render
   useEffect(() => {
@@ -272,49 +268,9 @@ function SectionManagerBase({
     }
   }, [components, onComponentsChange]);
 
-  // Memorizamos las funciones para evitar recreaciones en cada renderizado
-  // Add a new component
-  const addComponent = useCallback((type: ComponentType) => {
-    const newComponent: Component = {
-      id: `component-${Date.now()}`,
-      type,
-      data: getDefaultData(type),
-    };
-    
-    setComponents(prevComponents => [...prevComponents, newComponent]);
-    setShowComponentPicker(false);
-  }, []);
-
-  // Get default data based on component type
-  const getDefaultData = useCallback((type: ComponentType): Record<string, unknown> => {
-    switch (type) {
-      case 'Hero':
-        return { title: 'New Hero Section', subtitle: 'Add your subtitle here', image: '' };
-      case 'Text':
-        return { title: 'Text Section', content: 'Add your content here' };
-      case 'Image':
-        return { src: '', alt: 'Image description', caption: '' };
-      case 'Feature':
-        return { title: 'Feature', description: 'Feature description', icon: 'star' };
-      case 'Testimonial':
-        return { quote: 'Testimonial quote', author: 'Author name', role: 'Author role' };
-      case 'Header':
-        return { title: 'Header Section', subtitle: 'Add your subtitle here' };
-      case 'Card':
-        return { title: 'Card Title', description: 'Card description', image: '', link: '', buttonText: 'Leer más' };
-      default:
-        return {};
-    }
-  }, []);
-
   // Remove a component
   const removeComponent = useCallback((id: string) => {
     setComponents(prevComponents => prevComponents.filter(comp => comp.id !== id));
-  }, []);
-
-  // Memoize the toggle function
-  const toggleComponentPicker = useCallback(() => {
-    setShowComponentPicker(prev => !prev);
   }, []);
 
   // Creamos una función memoizada para actualizar los componentes
@@ -435,8 +391,8 @@ function SectionManagerBase({
         
         default: {
           return (
-            <div className="p-4 bg-yellow-50 rounded border border-yellow-200 mb-4">
-              <p className="text-yellow-700">Componente desconocido: {component.type}</p>
+            <div className="p-4 bg-warning/10 rounded-md border border-warning/20 mb-4">
+              <p className="text-warning-foreground text-sm">Componente desconocido: {component.type}</p>
             </div>
           );
         }
@@ -460,11 +416,27 @@ function SectionManagerBase({
     return components.map(component => renderComponent(component));
   }, [components, renderComponent]);
 
+  // Función para activar el diálogo de agregar componente
+  const handleClickAddComponent = useCallback(() => {
+    document.dispatchEvent(new CustomEvent('section:request-add-component'));
+  }, []);
+
   return (
-    <div className={isEditing ? "relative min-h-[200px] border-dashed border-2 border-blue-200 rounded-lg p-4 mb-8" : "w-full"}>
-      {isEditing && components.length === 0 && !showComponentPicker && (
-        <div className="flex items-center justify-center h-[200px] text-gray-400">
-          Add components to this section
+    <div 
+      className={cn(
+        "w-full transition-all duration-200",
+        isEditing && "relative min-h-[200px] border border-border/40 rounded-lg p-4 mb-8 hover:border-border"
+      )}
+      onMouseEnter={() => setShowInsertHint(true)}
+      onMouseLeave={() => setShowInsertHint(false)}
+    >
+      {isEditing && components.length === 0 && (
+        <div 
+          onClick={handleClickAddComponent}
+          className="flex flex-col items-center justify-center h-[200px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+        >
+          <PlusCircle className="h-8 w-8 mb-2 text-muted-foreground/60" />
+          <p className="text-sm">Haz clic para agregar componentes</p>
         </div>
       )}
 
@@ -473,16 +445,19 @@ function SectionManagerBase({
         {renderedComponents}
       </div>
 
-      {/* Show component picker button only in editing mode */}
-      {isEditing && (
-        <div className="mt-4 flex justify-center">
-          <AddComponentButton onClick={toggleComponentPicker} />
-          {showComponentPicker && (
-            <ComponentPickerMemo 
-              availableComponents={availableComponents}
-              onAddComponent={addComponent}
-            />
+      {/* Indicador para agregar nuevo componente */}
+      {isEditing && components.length > 0 && (
+        <div 
+          className={cn(
+            "flex justify-center items-center py-3 mt-2 transition-all duration-300 cursor-pointer",
+            showInsertHint ? "opacity-100" : "opacity-0"
           )}
+          onClick={handleClickAddComponent}
+        >
+          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-full text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-accent/5 transition-all">
+            <PlusCircle className="h-3 w-3" />
+            <span>Agregar nuevo componente</span>
+          </div>
         </div>
       )}
     </div>

@@ -29,7 +29,7 @@ export const CreateSectionForm: React.FC<CreateSectionFormProps> = ({
           <Input
             value={newSectionName}
             onChange={(e) => onNameChange(e.target.value)}
-            placeholder="Nombre para los componentes"
+            placeholder="Nombre para la sección"
             className="flex-1 border-blue-300 focus:ring-blue-500"
             autoFocus
             disabled={isSavingSection}
@@ -71,7 +71,7 @@ export const CreateSectionForm: React.FC<CreateSectionFormProps> = ({
         onClick={onStartCreating}
       >
         <PlusIcon className="h-5 w-5 mr-2" />
-        <span>Añadir componentes</span>
+        <span>Añadir sección</span>
       </Button>
     </div>
   );
