@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React from 'react';
+import { cmsOperations } from '@/lib/graphql-client';
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card';
@@ -59,19 +60,109 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   children: React.ReactNode; 
   onRemove: (id: string) => void 
 }) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [componentTitle, setComponentTitle] = useState(component.title || component.type || 'Component');
+  
   const handleRemove = useCallback(() => {
     onRemove(component.id);
   }, [component.id, onRemove]);
 
+  const handleTitleClick = () => {
+    if (isEditing) {
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleTitleSave = () => {
+    setIsEditingTitle(false);
+    // Update component title on parent component if changed
+    if (component.title !== componentTitle) {
+      // Store the old title for comparison
+      const oldTitle = component.title;
+      
+      // Update the local component title
+      component.title = componentTitle;
+      
+      // Directly update the title in the database
+      if (component.id) {
+        console.log(`Updating component title in database: ${oldTitle} → ${componentTitle}`);
+        
+        // Find the section ID - look for it in the parent context or ID
+        const sectionId = document.querySelector('[data-section-id]')?.getAttribute('data-section-id');
+        
+        if (sectionId) {
+          cmsOperations.updateComponentTitle(sectionId, component.id, componentTitle)
+            .then(result => {
+              if (result.success) {
+                console.log('Component title updated in database successfully');
+              } else {
+                console.error('Failed to update component title in database:', result.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error updating component title in database:', error);
+            });
+        } else {
+          console.warn('Could not find section ID to update component title');
+        }
+      }
+      
+      // Force an update to the component data
+      const componentCopy = { ...component };
+      onRemove(component.id);
+      
+      // Small delay to avoid React rendering issues
+      setTimeout(() => {
+        // Add the updated component back with the new title
+        if (componentCopy.data) {
+          componentCopy.data.componentTitle = componentTitle;
+        }
+        // This re-adding will trigger the parent's onComponentsChange
+        document.dispatchEvent(new CustomEvent('component:add', { detail: componentCopy }));
+      }, 10);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    }
+  };
+
   return (
-    <div key={component.id} className={isEditing ? "relative mb-4" : ""}>
+    <div key={component.id} className={isEditing ? "relative mb-8 pt-4" : ""}>
       {isEditing && (
-        <button 
-          onClick={handleRemove}
-          className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 rounded-full z-10"
-        >
-          <XMarkIcon className="h-4 w-4 text-red-500" />
-        </button>
+        <>
+          <div className="flex items-center justify-between mb-2">
+            {isEditingTitle ? (
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  value={componentTitle}
+                  onChange={(e) => setComponentTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={handleTitleKeyDown}
+                  className="border border-gray-300 rounded px-2 py-1 mr-2 text-xs"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div 
+                onClick={handleTitleClick} 
+                className="text-xs font-medium text-gray-500 hover:text-blue-600 cursor-pointer"
+              >
+                {componentTitle}
+              </div>
+            )}
+            <button 
+              onClick={handleRemove}
+              className="p-1 bg-red-100 hover:bg-red-200 rounded-full"
+            >
+              <XMarkIcon className="h-4 w-4 text-red-500" />
+            </button>
+          </div>
+          <div className="h-px bg-gray-200 w-full mb-3"></div>
+        </>
       )}
       {children}
     </div>
@@ -153,6 +244,21 @@ function SectionManagerBase({
     }
   }, [initialComponents]);
 
+  // Listen for component:add events to handle component re-addition
+  useEffect(() => {
+    const handleComponentAdd = (e: Event) => {
+      const customEvent = e as CustomEvent<Component>;
+      if (customEvent.detail) {
+        setComponents(prev => [...prev, customEvent.detail]);
+      }
+    };
+
+    document.addEventListener('component:add', handleComponentAdd);
+    return () => {
+      document.removeEventListener('component:add', handleComponentAdd);
+    };
+  }, []);
+
   // Update parent component when components change, but only after initial render
   useEffect(() => {
     if (initialComponentsRef.current && onComponentsChange) {
@@ -217,6 +323,11 @@ function SectionManagerBase({
       ...component,
       data: { ...component.data, ...updatedData }
     };
+    
+    // Preserve title if it exists
+    if (component.title) {
+      updatedComponent.title = component.title;
+    }
     
     setComponents(prevComponents => 
       prevComponents.map(c => 

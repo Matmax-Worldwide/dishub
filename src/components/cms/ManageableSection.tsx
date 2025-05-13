@@ -14,6 +14,8 @@ interface ManageableSectionProps {
   isEditing?: boolean;
   autoSave?: boolean;
   onComponentsChange?: () => void;
+  sectionName?: string;
+  onSectionNameChange?: (newName: string) => void;
 }
 
 // Definir la interfaz para el handle del ref
@@ -28,13 +30,17 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   sectionId,
   isEditing = false,
   autoSave = true,
-  onComponentsChange
+  onComponentsChange,
+  sectionName,
+  onSectionNameChange
 }, ref) => {
   // Estado local para manejar los componentes
   const [pendingComponents, setPendingComponents] = useState<Component[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(sectionName || '');
 
   // Validate and normalize the section ID
   const normalizedSectionId = sectionId;
@@ -72,10 +78,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
               componentType = 'Text';
             }
             
+            // Restore component title if it exists in data
+            const componentTitle = comp.data?.componentTitle as string || null;
+            
             return {
               id: comp.id,
               type: componentType,
-              data: comp.data
+              data: comp.data,
+              title: componentTitle || undefined
             } as Component;
           });
           
@@ -94,6 +104,47 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
     loadComponents();
   }, [sectionId]);
+
+  useEffect(() => {
+    if (sectionName) {
+      setEditedTitle(sectionName);
+    }
+  }, [sectionName]);
+
+  const handleTitleClick = () => {
+    if (isEditing) {
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleTitleSave = () => {
+    setIsEditingTitle(false);
+    if (onSectionNameChange && editedTitle !== sectionName) {
+      onSectionNameChange(editedTitle);
+      
+      // Also update the section name in the database
+      if (normalizedSectionId) {
+        console.log(`Updating section name in database to: ${editedTitle}`);
+        cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
+          .then(result => {
+            if (result.success) {
+              console.log('Section name updated in database successfully');
+            } else {
+              console.error('Failed to update section name in database:', result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating section name in database:', error);
+          });
+      }
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    }
+  };
 
   // Memoizar la función handleComponentsChange para evitar recreaciones
   const handleComponentsChange = useCallback((newComponents: Component[]) => {
@@ -131,15 +182,39 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     return new Promise<void>(async (resolve, reject) => {
       try {
         setIsLoading(true);
+        
+        // Ensure component titles are preserved in the saved data
+        const componentsWithTitles = componentsToSave.map(comp => {
+          if (comp.title) {
+            // If the component has a title, store it in the data
+            return {
+              ...comp,
+              data: {
+                ...comp.data,
+                componentTitle: comp.title // Store title in data for persistence
+              }
+            };
+          }
+          return comp;
+        });
+        
+        console.log('Saving components with titles:', componentsWithTitles);
+        
         const result = await cmsOperations.saveSectionComponents(
           normalizedSectionId, 
-          componentsToSave as unknown as CMSComponent[]
+          componentsWithTitles as unknown as CMSComponent[]
         );
         
         if (result.success) {
           setLastSaved(result.lastUpdated || new Date().toISOString());
           // Update the pending components to reflect what was saved
-          setPendingComponents(componentsToSave);
+          setPendingComponents(componentsWithTitles);
+          
+          // If section name has changed, notify parent
+          if (onSectionNameChange && editedTitle !== sectionName) {
+            onSectionNameChange(editedTitle);
+          }
+          
           resolve();
         } else {
           setError(result.message || 'Failed to save components');
@@ -152,7 +227,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         setIsLoading(false);
       }
     });
-  }, [normalizedSectionId]);
+  }, [normalizedSectionId, editedTitle, sectionName, onSectionNameChange]);
 
   // Load components - memoizado para evitar recreaciones
   const handleLoad = useCallback((loadedComponents: Component[]) => {
@@ -160,7 +235,40 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   }, []);
 
   return (
-    <div className={isEditing ? "my-6" : ""}>
+    <div className={isEditing ? "my-6" : ""} data-section-id={normalizedSectionId}>
+      {isEditing && (
+        <div className="mb-4">
+          {isEditingTitle ? (
+            <div className="flex items-center mb-2">
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyDown}
+                className="border border-gray-300 rounded px-2 py-1 mr-2 text-sm font-medium"
+                autoFocus
+              />
+              <button 
+                onClick={handleTitleSave}
+                className="px-2 py-1 bg-blue-500 text-white text-sm rounded"
+              >
+                Save
+              </button>
+            </div>
+          ) : (
+            <div 
+              onClick={handleTitleClick} 
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 cursor-pointer mb-2 inline-flex items-center"
+            >
+              {editedTitle || "Untitled Section"}
+              <span className="ml-2 text-xs text-gray-400">(click to edit)</span>
+            </div>
+          )}
+          <div className="h-px bg-gray-200 w-full mb-4"></div>
+        </div>
+      )}
+      
       {isEditing && autoSave && (
         <MemoizedAdminControls
           components={pendingComponents}

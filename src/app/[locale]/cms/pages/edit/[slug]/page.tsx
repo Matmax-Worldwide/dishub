@@ -306,11 +306,21 @@ export default function EditPageWithSections() {
                   return null;
                 }
                 
+                // Check if the section has a stored name in its data
+                let sectionName = cmsSection.name || 'Unknown Section';
+                if (section.data) {
+                  const sectionData = section.data as Record<string, unknown>;
+                  if (sectionData.sectionName && typeof sectionData.sectionName === 'string') {
+                    sectionName = sectionData.sectionName;
+                    console.log(`Using stored section name from data: ${sectionName}`);
+                  }
+                }
+                
                 // Create section data with the found CMS section
                 const sectionData: Section = {
                   id: section.id, // Keep original section ID from page
                   sectionId: cmsSection.sectionId, // IMPORTANT: Use CMS section's sectionId
-                  name: cmsSection.name || 'Unknown Section',
+                  name: sectionName,
                   type: 'default',
                   data: [], // Start with empty data that will be populated later
                   order: section.order || index,
@@ -543,7 +553,8 @@ export default function EditPageWithSections() {
           components: section.data,
           // Include a reference to the CMS section ID in the data
           sectionId: section.sectionId, // Store sectionId consistently
-          cmsSection: section.sectionId // For backward compatibility
+          cmsSection: section.sectionId, // For backward compatibility
+          sectionName: section.name, // Store section name in data for persistence
         },
         isVisible: true
       }));
@@ -578,10 +589,11 @@ export default function EditPageWithSections() {
         setHasUnsavedChanges(false);
         // Refresh section view to show updated components
         setForceReloadSection(!forceReloadSection);
-        // Briefly pause to ensure the update is processed before redirecting
+        
+        // Clear notification after 3 seconds
         setTimeout(() => {
-          router.push(`/${locale}/cms/pages`);
-        }, 500);
+          setNotification(null);
+        }, 3000);
       } else {
         throw new Error('Error al actualizar la página');
       }
@@ -1062,13 +1074,13 @@ export default function EditPageWithSections() {
         
         {/* Sections Tab */}
         <TabsContent value="sections" className="space-y-6">
-          <Card>
-            <CardHeader>
+          <Card className="border-none shadow-none pb-4">
+            <CardHeader className="px-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Editor de componentes</CardTitle>
+                  <CardTitle>Componentes de la página</CardTitle>
                   <CardDescription>
-                    Arrastra y suelta componentes para construir el contenido de tu página
+                    Edita los componentes de tu página
                   </CardDescription>
                 </div>
                 <Button 
@@ -1081,34 +1093,34 @@ export default function EditPageWithSections() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0">
               {pageSections.length > 0 ? (
-                <div className="bg-blue-50 border-2 border-dashed border-blue-200 p-6 rounded-lg">
-                  <div className="text-center text-blue-700 font-medium mb-4">
-                    <LayoutIcon className="h-5 w-5 inline-block mr-2" />
-                    Editor de componentes
-                  </div>
-                  
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <ManageableSection
-                      ref={sectionRef}
-                      sectionId={pageSections[0]?.sectionId || ''}
-                      isEditing={true}
-                      autoSave={false}
-                    />
-                  </div>
+                <div className="rounded-lg">
+                  <ManageableSection
+                    ref={sectionRef}
+                    sectionId={pageSections[0]?.sectionId || ''}
+                    sectionName={pageSections[0]?.name}
+                    onSectionNameChange={(newName) => {
+                      setPageSections(prev => prev.map((section, idx) => 
+                        idx === 0 ? { ...section, name: newName } : section
+                      ));
+                      setHasUnsavedChanges(true);
+                    }}
+                    isEditing={true}
+                    autoSave={false}
+                  />
                 </div>
               ) : (
-                <div className="text-center py-12 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50">
-                  <LayoutIcon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-blue-700 mb-1">No hay componentes en la página</h3>
-                  <p className="text-blue-600 mb-6">Añade componentes para comenzar a construir tu página</p>
+                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                  <LayoutIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-1">No hay componentes en la página</h3>
+                  <p className="text-gray-600 mb-6">Añade componentes para comenzar a construir tu página</p>
                   
                   {renderNewSectionUI()}
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="px-0 flex justify-between">
               <Button variant="outline" onClick={() => setActiveTab('details')}>
                 Volver a Detalles
               </Button>

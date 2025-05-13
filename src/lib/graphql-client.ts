@@ -1,3 +1,5 @@
+import { updateCMSSection } from './cms-update';
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,
@@ -434,6 +436,28 @@ async function updatePage(id: string, input: {
   page: PageData | null;
 }> {
   try {
+    // Preprocess sections data to ensure component titles and section names are preserved
+    if (input.sections && input.sections.length > 0) {
+      input.sections = input.sections.map(section => {
+        // Make sure section data includes section name if available
+        if (section.title) {
+          if (!section.data) {
+            section.data = {};
+          }
+          section.data.sectionName = section.title;
+        }
+
+        // Make sure data field exists
+        if (!section.data) {
+          section.data = {};
+        }
+
+        return section;
+      });
+    }
+
+    console.log('Processed input for updatePage:', JSON.stringify(input, null, 2));
+
     const mutation = `
       mutation UpdatePage($id: ID!, $input: UpdatePageInput!) {
         updatePage(id: $id, input: $input) {
@@ -452,6 +476,8 @@ async function updatePage(id: string, input: {
             sections {
               id
               order
+              title
+              data
             }
           }
         }
@@ -701,6 +727,79 @@ export async function applyComponentEdit(
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error updating component',
       lastUpdated: null
+    };
+  }
+}
+
+// Update a component title in a section
+async function updateComponentTitle(sectionId: string, componentId: string, title: string): Promise<{
+  success: boolean;
+  message: string;
+  lastUpdated?: string | null;
+}> {
+  try {
+    // First get current section components
+    const sectionData = await cmsOperations.getSectionComponents(sectionId);
+    
+    if (!sectionData || !sectionData.components || !Array.isArray(sectionData.components)) {
+      return {
+        success: false,
+        message: 'Failed to get section components'
+      };
+    }
+    
+    // Find the component by ID and update its title
+    const updatedComponents = sectionData.components.map(component => {
+      if (component.id === componentId) {
+        // Preserve the original data and add title
+        return {
+          ...component,
+          data: {
+            ...component.data,
+            componentTitle: title
+          }
+        };
+      }
+      return component;
+    });
+    
+    // Save the updated components
+    const saveResult = await cmsOperations.saveSectionComponents(sectionId, updatedComponents);
+    
+    return {
+      success: saveResult.success,
+      message: saveResult.message || `Component title ${saveResult.success ? 'updated' : 'update failed'}`,
+      lastUpdated: saveResult.lastUpdated
+    };
+  } catch (error) {
+    console.error('Error updating component title:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error updating component title'
+    };
+  }
+}
+
+// Update a section name
+async function updateSectionName(sectionId: string, name: string): Promise<{
+  success: boolean;
+  message: string;
+  lastUpdated?: string | null;
+}> {
+  try {
+    // Use the updateCMSSection function from cms-update.ts
+    const result = await updateCMSSection(sectionId, { name });
+    
+    return {
+      success: result.success,
+      message: result.message,
+      lastUpdated: result.lastUpdated
+    };
+  } catch (error) {
+    console.error('Error updating section name:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error updating section name'
     };
   }
 }
@@ -1456,4 +1555,7 @@ export const cmsOperations = {
     
     return response?.getCMSSection || null;
   },
+
+  updateComponentTitle,
+  updateSectionName
 }; 
