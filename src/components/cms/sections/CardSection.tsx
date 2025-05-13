@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import StableInput from './StableInput';
+import { cn } from '@/lib/utils';
 
 interface CardSectionProps {
   title: string;
@@ -29,126 +30,181 @@ const CardSection = React.memo(function CardSection({
   const [localLink, setLocalLink] = useState(link || '');
   const [localButtonText, setLocalButtonText] = useState(buttonText);
   
-  // Update local state when props change but only if values are different
-  useEffect(() => {
-    if (title !== localTitle) setLocalTitle(title);
-    if (description !== localDescription) setLocalDescription(description);
-    if ((image || '') !== localImage) setLocalImage(image || '');
-    if ((link || '') !== localLink) setLocalLink(link || '');
-    if (buttonText !== localButtonText) setLocalButtonText(buttonText);
-  }, [title, description, image, link, buttonText]);
+  // Track if we're actively editing to prevent props from overriding local state
+  const isEditingRef = useRef(false);
   
-  // Optimize update handler with useCallback
+  // Optimize debounce updates
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Update local state when props change but only if not currently editing
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      if (title !== localTitle) setLocalTitle(title);
+      if (description !== localDescription) setLocalDescription(description);
+      if ((image || '') !== localImage) setLocalImage(image || '');
+      if ((link || '') !== localLink) setLocalLink(link || '');
+      if (buttonText !== localButtonText) setLocalButtonText(buttonText);
+    }
+  }, [title, description, image, link, buttonText, localTitle, localDescription, localImage, localLink, localButtonText]);
+  
+  // Optimize update handler with useCallback and debouncing
   const handleUpdateField = useCallback((field: string, value: string) => {
     if (onUpdate) {
-      onUpdate({ [field]: value });
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      // Set timeout to update parent
+      debounceRef.current = setTimeout(() => {
+        onUpdate({ [field]: value });
+        
+        // Reset editing flag after a short delay
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 500);
+      }, 200);
     }
   }, [onUpdate]);
   
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
   // Individual change handlers to maintain state locally
-  const handleTitleChange = (newValue: string) => {
+  const handleTitleChange = useCallback((newValue: string) => {
     setLocalTitle(newValue);
     handleUpdateField('title', newValue);
-  };
+  }, [handleUpdateField]);
   
-  const handleDescriptionChange = (newValue: string) => {
+  const handleDescriptionChange = useCallback((newValue: string) => {
     setLocalDescription(newValue);
     handleUpdateField('description', newValue);
-  };
+  }, [handleUpdateField]);
   
-  const handleImageChange = (newValue: string) => {
+  const handleImageChange = useCallback((newValue: string) => {
     setLocalImage(newValue);
     handleUpdateField('image', newValue);
-  };
+  }, [handleUpdateField]);
   
-  const handleLinkChange = (newValue: string) => {
+  const handleLinkChange = useCallback((newValue: string) => {
     setLocalLink(newValue);
     handleUpdateField('link', newValue);
-  };
+  }, [handleUpdateField]);
   
-  const handleButtonTextChange = (newValue: string) => {
+  const handleButtonTextChange = useCallback((newValue: string) => {
     setLocalButtonText(newValue);
     handleUpdateField('buttonText', newValue);
-  };
+  }, [handleUpdateField]);
 
   return (
-    <div className="py-8 px-4">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-        {isEditing ? (
-          <div className="p-6 space-y-4">
-            <StableInput
-              value={localTitle}
-              onChange={handleTitleChange}
-              placeholder="Título de la tarjeta..."
-              className="font-bold"
-              label="Título"
-            />
-            
-            <StableInput
-              value={localDescription}
-              onChange={handleDescriptionChange}
-              placeholder="Descripción de la tarjeta..."
-              isTextArea={true}
-              rows={3}
-              label="Descripción"
-            />
-            
-            <StableInput
-              value={localImage}
-              onChange={handleImageChange}
-              placeholder="URL de la imagen..."
-              label="URL de la imagen (opcional)"
-            />
-            
-            <StableInput
-              value={localLink}
-              onChange={handleLinkChange}
-              placeholder="URL del enlace..."
-              label="URL del enlace (opcional)"
-            />
-            
-            <StableInput
-              value={localButtonText}
-              onChange={handleButtonTextChange}
-              placeholder="Texto del botón..."
-              label="Texto del botón"
-            />
-          </div>
-        ) : (
-          <>
-            {image && (
-              <div className="md:flex-shrink-0">
-                <div className="h-48 w-full relative">
-                  <Image
-                    src={image}
-                    alt={title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+    <div className={cn(
+      "max-w-md mx-auto rounded-lg",
+      isEditing ? "" : "bg-card shadow-sm overflow-hidden"
+    )}>
+      {isEditing ? (
+        <div className="space-y-4">
+          <StableInput
+            value={localTitle}
+            onChange={handleTitleChange}
+            placeholder="Título de la tarjeta..."
+            className="font-medium text-card-foreground"
+            label="Título"
+            debounceTime={300}
+          />
+          
+          <StableInput
+            value={localDescription}
+            onChange={handleDescriptionChange}
+            placeholder="Descripción de la tarjeta..."
+            isTextArea={true}
+            rows={3}
+            className="text-muted-foreground text-sm"
+            label="Descripción"
+            debounceTime={300}
+          />
+          
+          <StableInput
+            value={localImage}
+            onChange={handleImageChange}
+            placeholder="URL de la imagen..."
+            label="URL de la imagen (opcional)"
+            debounceTime={300}
+          />
+          
+          <StableInput
+            value={localLink}
+            onChange={handleLinkChange}
+            placeholder="URL del enlace..."
+            label="URL del enlace (opcional)"
+            debounceTime={300}
+          />
+          
+          <StableInput
+            value={localButtonText}
+            onChange={handleButtonTextChange}
+            placeholder="Texto del botón..."
+            label="Texto del botón"
+            debounceTime={300}
+          />
+          
+          {/* Preview */}
+          {localImage && (
+            <div className="mt-4">
+              <div className="text-xs font-medium text-muted-foreground mb-2">Vista previa de imagen:</div>
+              <div className="h-40 w-full relative rounded-md overflow-hidden">
+                <Image
+                  src={localImage}
+                  alt={localTitle}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {image && (
+            <div className="relative">
+              <div className="h-48 w-full relative">
+                <Image
+                  src={image}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-card-foreground mb-2">
+              {title}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {description}
+            </p>
+            {link && (
+              <div className="mt-4">
+                <Link
+                  href={link}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
+                >
+                  {buttonText}
+                </Link>
               </div>
             )}
-            <div className="p-8">
-              <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold">
-                {title}
-              </div>
-              <p className="mt-2 text-gray-500">
-                {description}
-              </p>
-              {link && (
-                <div className="mt-4">
-                  <Link
-                    href={link}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    {buttonText}
-                  </Link>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 });

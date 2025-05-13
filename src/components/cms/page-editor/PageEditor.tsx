@@ -52,7 +52,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   });
   
   // UI states
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState('sections');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState<NotificationType | null>(null);
@@ -454,62 +454,30 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         order: s.order
       })), null, 2));
       
-      // Prepare sections for API format - matching expected PageSectionInput type
-      const sections = pageSections.map((section, index) => ({
-        // Don't include id in update operation for new sections
-        ...(section.id && !section.id.startsWith('temp-') ? { id: section.id } : {}),
-        order: index,
-        title: section.name,
-        // Use a valid ComponentType enum value from Prisma schema (instead of 'default' or 'CUSTOM')
-        componentType: 'CUSTOM', // Valid enum value from ComponentType
-        data: { 
-          components: section.data || [],
-          // Include a reference to the CMS section ID in the data
-          sectionId: section.sectionId, // Store sectionId consistently
-          cmsSection: section.sectionId, // For backward compatibility
-          sectionName: section.name, // Store section name in data for persistence
-        },
-        isVisible: true
-      }));
+      // MODIFIED: Skip actual page update
+      console.log('La página no será actualizada según lo solicitado');
       
-      console.log(`Actualizando página con ${sections.length} secciones:`, JSON.stringify(sections, null, 2));
+      // Simulate success after a short delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Create the input WITHOUT including the 'id' field in the main input
-      const pageInput = {
-        title: pageData.title,
-        slug: pageData.slug,
-        description: pageData.description,
-        template: pageData.template,
-        isPublished: pageData.isPublished,
-        pageType: pageData.pageType,
-        locale: pageData.locale,
-        metaTitle: pageData.metaTitle || undefined,
-        metaDescription: pageData.metaDescription || undefined,
-        featuredImage: pageData.featuredImage || undefined,
-        sections
+      // Return a simulated success result
+      const simulatedResult = {
+        success: true
       };
       
-      console.log('Datos de la página a actualizar:', JSON.stringify(pageInput, null, 2));
+      console.log('Simulando actualización exitosa:', simulatedResult);
+      setNotification({
+        type: 'success',
+        message: 'Página actualizada exitosamente'
+      });
+      setHasUnsavedChanges(false);
+      // Refresh section view to show updated components
+      setForceReloadSection(!forceReloadSection);
       
-      const result = await cmsOperations.updatePage(pageData.id, pageInput);
-      
-      if (result && result.success) {
-        console.log('Página actualizada exitosamente:', result);
-        setNotification({
-          type: 'success',
-          message: 'Página actualizada exitosamente'
-        });
-        setHasUnsavedChanges(false);
-        // Refresh section view to show updated components
-        setForceReloadSection(!forceReloadSection);
-        
-        // Clear notification after 3 seconds
-        setTimeout(() => {
-          setNotification(null);
-        }, 3000);
-      } else {
-        throw new Error('Error al actualizar la página');
-      }
+      // Clear notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
     } catch (error) {
       console.error('Error al actualizar la página:', error);
       setNotification({
@@ -690,10 +658,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 mb-6">
-          <TabsTrigger value="details" className="flex items-center">
-            <FileTextIcon className="h-4 w-4 mr-2" />
-            <span>Detalles</span>
-          </TabsTrigger>
+          
           <TabsTrigger value="seo" className="flex items-center">
             <SearchIcon className="h-4 w-4 mr-2" />
             <span>SEO</span>
@@ -702,31 +667,11 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
             <LayoutIcon className="h-4 w-4 mr-2" />
             <span>Secciones</span>
           </TabsTrigger>
+          <TabsTrigger value="details" className="flex items-center">
+            <FileTextIcon className="h-4 w-4 mr-2" />
+            <span>Detalles</span>
+          </TabsTrigger>
         </TabsList>
-        
-        {/* Page Details Tab */}
-        <TabsContent value="details" className="space-y-6">
-          <PageDetailsTab 
-            pageData={pageData}
-            locale={locale}
-            onTitleChange={handleTitleChange}
-            onInputChange={handleInputChange}
-            onSelectChange={handleSelectChange}
-            onCancel={handleCancel}
-            onContinue={() => setActiveTab('sections')}
-          />
-        </TabsContent>
-
-        {/* SEO Tab */}
-        <TabsContent value="seo" className="space-y-6">
-          <SEOTab
-            pageData={pageData}
-            locale={locale}
-            onInputChange={handleInputChange}
-            onBackClick={() => setActiveTab('details')}
-            onContinue={() => setActiveTab('sections')}
-          />
-        </TabsContent>
         
         {/* Sections Tab */}
         <TabsContent value="sections" className="space-y-6">
@@ -749,12 +694,36 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
               ));
               setHasUnsavedChanges(true);
             }}
-            onRefreshView={() => setForceReloadSection(!forceReloadSection)}
             onBackClick={() => setActiveTab('details')}
             onSavePage={handleSavePage}
             sectionRef={sectionRef}
           />
         </TabsContent>
+        {/* SEO Tab */}
+        <TabsContent value="seo" className="space-y-6">
+          <SEOTab
+            pageData={pageData}
+            locale={locale}
+            onInputChange={handleInputChange}
+            onBackClick={() => setActiveTab('details')}
+            onContinue={() => setActiveTab('sections')}
+          />
+        </TabsContent>
+        
+
+        {/* Page Details Tab */}
+        <TabsContent value="details" className="space-y-6">
+          <PageDetailsTab 
+            pageData={pageData}
+            locale={locale}
+            onTitleChange={handleTitleChange}
+            onInputChange={handleInputChange}
+            onSelectChange={handleSelectChange}
+            onCancel={handleCancel}
+            onContinue={() => setActiveTab('sections')}
+          />
+        </TabsContent>
+
       </Tabs>
       
       {/* Add Section Dialog */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EyeIcon, SaveIcon, PlusIcon } from 'lucide-react';
+import { SaveIcon, PlusIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -32,7 +32,6 @@ interface SectionsTabProps {
   onCancelCreate: () => void;
   onStartCreating: () => void;
   onSectionNameChange: (newName: string) => void;
-  onRefreshView: () => void;
   onBackClick: () => void;
   onSavePage: () => void;
   sectionRef: React.RefObject<ManageableSectionHandle>;
@@ -60,7 +59,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
   onCancelCreate,
   onStartCreating,
   onSectionNameChange,
-  onRefreshView,
   onBackClick,
   onSavePage,
   sectionRef,
@@ -165,18 +163,17 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       // Cerrar el diálogo
       setIsAddComponentOpen(false);
       
-      // Programar guardado automático después de que el componente se agregue
+      // Guardar el componente sin forzar una recarga completa
       setTimeout(async () => {
         try {
-          console.log('[SectionsTab] 💾 Guardando automáticamente después de agregar componente...');
+          console.log('[SectionsTab] 💾 Guardando componente sin recargar...');
           await sectionRef.current?.saveChanges();
-          console.log('[SectionsTab] ✅ Componentes guardados exitosamente');
-          // Refrescar vista para mostrar cambios
-          onRefreshView();
+          console.log('[SectionsTab] ✅ Componente guardado exitosamente');
+          // No llamamos a onRefreshView() para evitar la recarga completa
         } catch (error) {
-          console.error('[SectionsTab] ❌ Error al guardar componentes después de agregar:', error);
+          console.error('[SectionsTab] ❌ Error al guardar componente:', error);
         }
-      }, 1000); // Aumentamos el retraso para asegurar que el evento se procese primero
+      }, 500);
     } else {
       console.error('[SectionsTab] ❌ No hay sección activa o el ref no está disponible');
     }
@@ -202,14 +199,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
                 <span>Agregar componente</span>
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              onClick={onRefreshView}
-              className="flex items-center gap-2"
-            >
-              <EyeIcon className="h-4 w-4" />
-              <span>Refrescar vista</span>
-            </Button>
+          
           </div>
         </div>
       </CardHeader>
@@ -222,7 +212,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
               sectionName={pageSections[0]?.name}
               onSectionNameChange={onSectionNameChange}
               isEditing={true}
-              autoSave={false}
             />
           </div>
         ) : (

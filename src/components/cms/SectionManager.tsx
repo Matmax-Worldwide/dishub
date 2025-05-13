@@ -198,27 +198,35 @@ function SectionManagerBase({
   isEditing = false,
   onComponentsChange
 }: SectionManagerProps) {
-  // Create a ref to track if initialComponents have been set
   const [components, setComponents] = useState<Component[]>(initialComponents);
-  const initialComponentsRef = React.useRef(false);
+  // Track if the insert hint should be shown
   const [showInsertHint, setShowInsertHint] = useState(false);
+  // Track the last selected component to prevent full reloads
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+  // Track if this is a preview-only instance
+  const isPreviewOnly = !isEditing && onComponentsChange === undefined;
+  
+  // Cache component data stringified to prevent unnecessary re-renders
+  const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
 
-  // Update components when initialComponents change (from parent)
-  // But only if they've not been initialized yet or have actually changed
+  // Efecto para inicializar componentes iniciales
   useEffect(() => {
-    if (initialComponents && initialComponents.length > 0) {
-      // Only set components from initialComponents on first render or
-      // if they've actually changed and haven't been edited locally
-      const initialString = JSON.stringify(initialComponents);
-      const currentString = JSON.stringify(components);
-      
-      if (!initialComponentsRef.current || (initialString !== currentString && components.length === 0)) {
-        console.log('Setting components from initialComponents:', initialComponents.length);
-        setComponents(initialComponents);
-        initialComponentsRef.current = true;
-      }
+    // Only update components if this is not a rerender due to component selection
+    // For preview mode, we'll always update to show the latest changes
+    if (initialComponents.length > 0 && (isPreviewOnly || !selectedComponentId)) {
+      setComponents(initialComponents);
+      // Reset selected component when full component list is updated
+      setSelectedComponentId(null);
     }
-  }, [initialComponents]);
+  }, [initialComponents, isPreviewOnly, selectedComponentId]);
+
+  // Efecto para enviar cambios al padre
+  useEffect(() => {
+    // Notificar al padre cuando los componentes cambian, si hay un callback
+    if (onComponentsChange && components !== initialComponents) {
+      onComponentsChange(components);
+    }
+  }, [components, onComponentsChange, initialComponents]);
 
   // Listen for component:add events to handle component re-addition
   useEffect(() => {
@@ -238,16 +246,33 @@ function SectionManagerBase({
         
         // Asegurar que los datos del componente tengan la estructura correcta
         setComponents(prev => {
-          const newComponents = [...prev, component];
+          // Create a shallow copy to preserve component references where possible
+          // This is important to prevent unnecessary re-renders
+          const newComponents = [...prev];
+          
+          // If component already exists with same ID, preserve its reference
+          const existingIndex = newComponents.findIndex(c => c.id === component.id);
+          if (existingIndex >= 0) {
+            // Update existing component without changing its reference
+            newComponents[existingIndex] = {
+              ...newComponents[existingIndex],
+              ...component,
+              data: { ...newComponents[existingIndex].data, ...component.data }
+            };
+          } else {
+            // Add new component
+            newComponents.push(component);
+          }
+          
           console.log(`[SectionManager] 📊 Componentes actualizados: ${newComponents.length}`);
           
-          // Notificar inmediatamente el cambio dentro de la función setComponents 
-          // para asegurar tener el valor más actualizado
+          // Use a timeout to prevent React batching issues and ensure
+          // the UI is updated before notifying the parent
           if (onComponentsChange) {
-            setTimeout(() => {
+            window.setTimeout(() => {
               console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
               onComponentsChange(newComponents);
-            }, 50);
+            }, 0);
           }
           
           return newComponents;
@@ -263,26 +288,20 @@ function SectionManagerBase({
     };
   }, [onComponentsChange]); // Eliminar components de las dependencias para evitar re-renderizados innecesarios
 
-  // Update parent component when components change, but only after initial render
-  useEffect(() => {
-    if (initialComponentsRef.current && onComponentsChange) {
-      // Agregamos un pequeño delay para evitar múltiples actualizaciones
-      const timer = setTimeout(() => {
-        console.log('Notifying parent of component changes:', components.length);
-        onComponentsChange(components);
-      }, 10);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [components, onComponentsChange]);
-
-  // Remove a component
+  // Remove a component without triggering a full re-render of the section
   const removeComponent = useCallback((id: string) => {
-    setComponents(prevComponents => prevComponents.filter(comp => comp.id !== id));
+    setComponents(prevComponents => {
+      const newComponents = prevComponents.filter(comp => comp.id !== id);
+      return newComponents;
+    });
   }, []);
 
-  // Creamos una función memoizada para actualizar los componentes
+  // Creamos una función memoizada para actualizar los componentes de forma eficiente
   const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
+    // Set this component as selected to prevent full reloads
+    setSelectedComponentId(component.id);
+    
+    // Create a new component object with updated data
     const updatedComponent = {
       ...component,
       data: { ...component.data, ...updatedData }
@@ -293,17 +312,37 @@ function SectionManagerBase({
       updatedComponent.title = component.title;
     }
     
-    setComponents(prevComponents => 
-      prevComponents.map(c => 
+    // Update components using functional update to avoid stale closures
+    setComponents(prevComponents => {
+      // For better performance, only update if the component data actually changed
+      if (JSON.stringify(component.data) === JSON.stringify(updatedComponent.data)) {
+        return prevComponents;
+      }
+      
+      // Create a new array to trigger re-render
+      return prevComponents.map(c => 
         c.id === component.id ? updatedComponent : c
-      )
-    );
+      );
+    });
   }, []);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
     if (!component || !component.type || !componentMap[component.type]) {
       return null;
+    }
+
+    // Only optimize non-selected components in preview mode
+    // We always want to render selected components and components in edit mode
+    const shouldOptimizeRender = 
+      !isEditing && // Only in preview mode
+      isPreviewOnly && // Only when it's a dedicated preview instance
+      selectedComponentId && // Only when we have a selected component
+      selectedComponentId !== component.id; // Only for non-selected components
+    
+    if (shouldOptimizeRender) {
+      // This will maintain the previously rendered component for better performance
+      // but doesn't log to avoid console noise
     }
 
     // Componente específico según el tipo
@@ -355,6 +394,8 @@ function SectionManagerBase({
               title={component.data.title as string} 
               description={component.data.description as string}
               icon={component.data.icon as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
             />
           );
         }
@@ -366,6 +407,9 @@ function SectionManagerBase({
               quote={component.data.quote as string} 
               author={component.data.author as string}
               role={component.data.role as string}
+              avatar={component.data.avatar as string}
+              isEditing={isEditing}
+              onUpdate={(data) => handleUpdate(component, data)}
             />
           );
         }
@@ -417,12 +461,12 @@ function SectionManagerBase({
         {renderComponentContent()}
       </ComponentWrapperMemo>
     );
-  }, [isEditing, handleUpdate, removeComponent]);
+  }, [isEditing, handleUpdate, removeComponent, selectedComponentId, isPreviewOnly]);
 
   // Memorizamos la lista de componentes renderizados
   const renderedComponents = useMemo(() => {
     return components.map(component => renderComponent(component));
-  }, [components, renderComponent]);
+  }, [components, renderComponent, componentsDataString]);
 
   // Función para activar el diálogo de agregar componente
   const handleClickAddComponent = useCallback(() => {

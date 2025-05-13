@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import Image from 'next/image';
 import StableInput from './StableInput';
+import { cn } from '@/lib/utils';
 
 interface HeroSectionProps {
   title: string;
@@ -29,79 +30,120 @@ const HeroSection = React.memo(function HeroSection({
   const [localSubtitle, setLocalSubtitle] = useState(subtitle);
   const [localImage, setLocalImage] = useState(image || '');
   const [localCta, setLocalCta] = useState(cta || { text: '', url: '' });
+  
+  // Track if we're actively editing to prevent props from overriding local state
+  const isEditingRef = useRef(false);
 
   // Update local state when props change but only if not currently editing
   useEffect(() => {
-    if (title !== localTitle) setLocalTitle(title);
-    if (subtitle !== localSubtitle) setLocalSubtitle(subtitle);
-    if ((image || '') !== localImage) setLocalImage(image || '');
-    if (cta !== localCta) setLocalCta(cta || { text: '', url: '' });
-  }, [title, subtitle, image, cta]);
+    if (!isEditingRef.current) {
+      if (title !== localTitle) setLocalTitle(title);
+      if (subtitle !== localSubtitle) setLocalSubtitle(subtitle);
+      if ((image || '') !== localImage) setLocalImage(image || '');
+      if (cta && JSON.stringify(cta) !== JSON.stringify(localCta)) {
+        setLocalCta(cta || { text: '', url: '' });
+      }
+    }
+  }, [title, subtitle, image, cta, localTitle, localSubtitle, localImage, localCta]);
 
-  // Optimized update function
+  // Optimized update function with debouncing
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
   const handleUpdateField = useCallback((field: string, value: string) => {
     if (onUpdate) {
-      const updateData: Partial<HeroSectionProps> = {};
+      // Mark that we're in editing mode to prevent useEffect override
+      isEditingRef.current = true;
       
-      // Handle nested fields like 'cta.text'
-      if (field.includes('.')) {
-        const [parent, child] = field.split('.');
-        if (parent === 'cta') {
-          updateData.cta = {
-            ...(cta || { text: '', url: '' }),
-            [child]: value
-          };
-        }
-      } else {
-        // @ts-expect-error: Dynamic field assignment
-        updateData[field] = value;
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
       
-      onUpdate(updateData);
+      // Set timeout to update parent
+      debounceRef.current = setTimeout(() => {
+        const updateData: Partial<HeroSectionProps> = {};
+        
+        // Handle nested fields like 'cta.text'
+        if (field.includes('.')) {
+          const [parent, child] = field.split('.');
+          if (parent === 'cta') {
+            updateData.cta = {
+              ...(cta || { text: '', url: '' }),
+              [child]: value
+            };
+          }
+        } else {
+          // @ts-expect-error: Dynamic field assignment
+          updateData[field] = value;
+        }
+        
+        onUpdate(updateData);
+        
+        // Reset editing flag after a short delay to prevent immediate override
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 500);
+      }, 200);
     }
   }, [onUpdate, cta]);
 
   // Individual change handlers to avoid focus loss
-  const handleTitleChange = (newValue: string) => {
+  const handleTitleChange = useCallback((newValue: string) => {
     setLocalTitle(newValue);
     handleUpdateField('title', newValue);
-  };
+  }, [handleUpdateField]);
 
-  const handleSubtitleChange = (newValue: string) => {
+  const handleSubtitleChange = useCallback((newValue: string) => {
     setLocalSubtitle(newValue);
     handleUpdateField('subtitle', newValue);
-  };
+  }, [handleUpdateField]);
 
-  const handleImageChange = (newValue: string) => {
+  const handleImageChange = useCallback((newValue: string) => {
     setLocalImage(newValue);
     handleUpdateField('image', newValue);
-  };
+  }, [handleUpdateField]);
 
-  const handleCtaTextChange = (newValue: string) => {
-    setLocalCta({ ...localCta, text: newValue });
+  const handleCtaTextChange = useCallback((newValue: string) => {
+    setLocalCta(prev => ({ ...prev, text: newValue }));
     handleUpdateField('cta.text', newValue);
-  };
+  }, [handleUpdateField]);
 
-  const handleCtaUrlChange = (newValue: string) => {
-    setLocalCta({ ...localCta, url: newValue });
+  const handleCtaUrlChange = useCallback((newValue: string) => {
+    setLocalCta(prev => ({ ...prev, url: newValue }));
     handleUpdateField('cta.url', newValue);
-  };
+  }, [handleUpdateField]);
+  
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className="relative py-16 md:py-24 overflow-hidden">
-      {/* Background image or gradient */}
-      {image ? (
-        <div className="absolute inset-0 z-0">
-          <Image
-            src={image}
-            alt={title}
-            fill
-            className="object-cover opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent"></div>
-        </div>
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-white"></div>
+    <div className={cn(
+      "relative overflow-hidden",
+      isEditing ? "rounded-lg border-none" : ""
+    )}>
+      {/* Background image or gradient - only show when not editing */}
+      {!isEditing && (
+        <>
+          {image ? (
+            <div className="absolute inset-0 z-0">
+              <Image
+                src={image}
+                alt={title}
+                fill
+                className="object-cover opacity-30"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/80 to-background/30"></div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-muted/50 to-background"></div>
+          )}
+        </>
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -111,17 +153,19 @@ const HeroSection = React.memo(function HeroSection({
               value={localTitle}
               onChange={handleTitleChange}
               placeholder="Título principal..."
-              className="text-3xl font-bold"
+              className="text-foreground font-bold text-xl"
               label="Título"
+              debounceTime={300}
             />
             
             <StableInput
               value={localSubtitle}
               onChange={handleSubtitleChange}
               placeholder="Subtítulo..."
-              className="text-xl"
+              className="text-muted-foreground"
               multiline={true}
               label="Subtítulo"
+              debounceTime={300}
             />
             
             <StableInput
@@ -129,6 +173,7 @@ const HeroSection = React.memo(function HeroSection({
               onChange={handleImageChange}
               placeholder="URL de la imagen de fondo..."
               label="URL de imagen"
+              debounceTime={300}
             />
             
             {localCta && (
@@ -138,6 +183,7 @@ const HeroSection = React.memo(function HeroSection({
                   onChange={handleCtaTextChange}
                   placeholder="Texto del botón..."
                   label="Texto del botón CTA"
+                  debounceTime={300}
                 />
                 
                 <StableInput
@@ -145,21 +191,22 @@ const HeroSection = React.memo(function HeroSection({
                   onChange={handleCtaUrlChange}
                   placeholder="URL del botón..."
                   label="URL del botón CTA"
+                  debounceTime={300}
                 />
               </>
             )}
           </div>
         ) : (
           <>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-foreground">
               {title}
             </h1>
-            <p className="text-xl md:text-2xl mx-auto max-w-3xl mb-10 text-gray-600">
+            <p className="text-xl md:text-2xl mx-auto max-w-3xl mb-10 text-muted-foreground">
               {subtitle}
             </p>
             
-            {cta && (
-              <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+            {cta && cta.text && (
+              <button className="inline-flex items-center px-6 py-3 rounded-md font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-colors">
                 {cta.text}
               </button>
             )}

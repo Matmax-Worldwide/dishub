@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 
 interface StableInputProps {
   value: string;
@@ -12,12 +13,13 @@ interface StableInputProps {
   multiline?: boolean;
   label?: string;
   debounceTime?: number;
+  disabled?: boolean;
 }
 
 /**
- * Un componente de input que mantiene su propio estado local y solo notifica
- * al componente padre cuando es necesario, evitando así pérdidas de foco
- * durante la edición en componentes CMS.
+ * A input component that maintains its own local state and only notifies
+ * the parent component when necessary, avoiding focus loss
+ * during editing in CMS components.
  */
 export default function StableInput({
   value,
@@ -28,43 +30,99 @@ export default function StableInput({
   rows = 3,
   multiline = false,
   label,
-  debounceTime = 500
+  debounceTime = 500,
+  disabled = false
 }: StableInputProps) {
-  // Estado local para mantener el valor durante la edición
+  // Local state to maintain value during editing
   const [localValue, setLocalValue] = useState(value);
   
-  // Referencia para mantener el timeout de debounce
+  // Reference to maintain debounce timeout
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Referencia al elemento input/textarea
+  // Reference to input/textarea element
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   
-  // Actualizar el estado local cuando cambie el prop value (solo si es diferente)
+  // Reference to track if we're currently editing
+  const isEditingRef = useRef(false);
+  
+  // Flag to know if the component has mounted
+  const hasMountedRef = useRef(false);
+  
+  // Update local state when prop value changes (only if different and not editing)
   useEffect(() => {
-    if (value !== localValue && !inputRef.current?.matches(':focus')) {
+    // Skip the first update to avoid unexpected behavior
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    
+    // Only update if we're not actively editing AND the value actually changed
+    if (!isEditingRef.current && value !== localValue) {
       setLocalValue(value);
     }
-  }, [value]);
+  }, [value, localValue]);
   
-  // Manejar cambios en el input con debounce para notificar al padre
+  // Handle input changes with debounce to notify parent
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     
-    // Actualizar el estado local inmediatamente para mantener el input responsive
+    // Mark that we're editing
+    isEditingRef.current = true;
+    
+    // Update local state immediately to keep input responsive
     setLocalValue(newValue);
     
-    // Limpiar timeout anterior si existe
+    // Clear previous timeout if exists
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     
-    // Establecer nuevo timeout para notificar al padre solo después del tiempo de debounce
+    // Set new timeout to notify parent only after debounce time
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
+      // Leave editing mode active briefly to prevent immediate prop updates
+      setTimeout(() => {
+        isEditingRef.current = false;
+      }, 300);
     }, debounceTime);
   }, [onChange, debounceTime]);
   
-  // Limpiar el timeout al desmontar el componente
+  // Handle focus events
+  const handleFocus = useCallback(() => {
+    isEditingRef.current = true;
+    
+    // Ensure input is selected on focus
+    if (inputRef.current) {
+      // Use requestAnimationFrame to ensure the selection happens after focus
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          // Select all text for easier editing
+          // inputRef.current.select(); // For inputs
+          // For textareas, position cursor at end
+          if (isTextArea && inputRef.current instanceof HTMLTextAreaElement) {
+            const length = inputRef.current.value.length;
+            inputRef.current.setSelectionRange(length, length);
+          }
+        }
+      });
+    }
+  }, [isTextArea]);
+  
+  const handleBlur = useCallback(() => {
+    // Small delay before considering editing complete
+    // This prevents immediate state updates when clicking within the field
+    setTimeout(() => {
+      isEditingRef.current = false;
+    }, 200);
+  }, []);
+  
+  // Stop propagation of clicks to prevent parent components from rerendering
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    isEditingRef.current = true; // Mark as editing on click
+  }, []);
+  
+  // Clear timeout when component unmounts
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -73,13 +131,23 @@ export default function StableInput({
     };
   }, []);
   
-  // Renderizar un textarea o un input según la configuración
+  // Render textarea or input based on configuration
   const renderInput = () => {
     const commonProps = {
       value: localValue,
       onChange: handleChange,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onClick: handleClick,
       placeholder,
-      className: `w-full p-2 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`,
+      disabled,
+      className: cn(
+        "w-full px-3 py-2 bg-background border border-input rounded-md",
+        "focus:outline-none focus:ring-2 focus:ring-ring focus:border-input",
+        "placeholder:text-muted-foreground text-foreground",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      ),
     };
     
     if (isTextArea || multiline) {
@@ -102,9 +170,9 @@ export default function StableInput({
   };
   
   return (
-    <div className="w-full">
+    <div className="w-full" onClick={handleClick}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-2 text-foreground">
           {label}
         </label>
       )}

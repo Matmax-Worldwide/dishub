@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import StableInput from './StableInput';
 
 interface HeaderSectionProps {
   title: string;
@@ -16,113 +17,112 @@ export default function HeaderSection({
   isEditing = false, 
   onUpdate 
 }: HeaderSectionProps) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(title);
-  const [subtitleValue, setSubtitleValue] = useState(subtitle || '');
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setTitleValue(e.target.value);
-  };
-
-  const handleSubtitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setSubtitleValue(e.target.value);
-  };
-
-  const handleTitleBlur = () => {
-    setIsEditingTitle(false);
+  // Local state to maintain during typing
+  const [localTitle, setLocalTitle] = useState(title);
+  const [localSubtitle, setLocalSubtitle] = useState(subtitle || '');
+  
+  // Track if we're actively editing to prevent props from overriding local state
+  const isEditingRef = useRef(false);
+  
+  // Optimize debounce updates
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Update local state when props change but only if not currently editing
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      if (title !== localTitle) setLocalTitle(title);
+      if ((subtitle || '') !== localSubtitle) setLocalSubtitle(subtitle || '');
+    }
+  }, [title, subtitle, localTitle, localSubtitle]);
+  
+  // Optimize update handler with debouncing
+  const handleUpdateField = useCallback((field: string, value: string) => {
     if (onUpdate) {
-      onUpdate({ title: titleValue, subtitle: subtitleValue });
-    }
-  };
-
-  const handleSubtitleBlur = () => {
-    setIsEditingSubtitle(false);
-    if (onUpdate) {
-      onUpdate({ title: titleValue, subtitle: subtitleValue });
-    }
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      setIsEditingTitle(false);
-      if (onUpdate) {
-        onUpdate({ title: titleValue, subtitle: subtitleValue });
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
+      
+      // Prepare data to update
+      const updateData = {
+        title: localTitle,
+        subtitle: localSubtitle,
+        [field]: value
+      };
+      
+      // Set timeout to update parent
+      debounceRef.current = setTimeout(() => {
+        onUpdate(updateData);
+        
+        // Reset editing flag after a short delay
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 500);
+      }, 200);
     }
-  };
-
-  const handleSubtitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      setIsEditingSubtitle(false);
-      if (onUpdate) {
-        onUpdate({ title: titleValue, subtitle: subtitleValue });
+  }, [onUpdate, localTitle, localSubtitle]);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
-    }
-  };
+    };
+  }, []);
+  
+  // Individual change handlers
+  const handleTitleChange = useCallback((newValue: string) => {
+    setLocalTitle(newValue);
+    handleUpdateField('title', newValue);
+  }, [handleUpdateField]);
+  
+  const handleSubtitleChange = useCallback((newValue: string) => {
+    setLocalSubtitle(newValue);
+    handleUpdateField('subtitle', newValue);
+  }, [handleUpdateField]);
 
   return (
     <div className={cn(
       "w-full",
-      isEditing ? "p-4" : "p-8 bg-background border border-border/20 rounded-lg shadow-sm"
+      isEditing ? "rounded-lg" : "p-6 bg-card text-card-foreground rounded-lg shadow-sm"
     )}>
       <div className="max-w-4xl mx-auto">
-        {isEditing && isEditingTitle ? (
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Title
-            </label>
-            <textarea
-              value={titleValue}
+        {isEditing ? (
+          <div className="space-y-4">
+            <StableInput
+              value={localTitle}
               onChange={handleTitleChange}
-              onBlur={handleTitleBlur}
-              onKeyDown={handleTitleKeyDown}
-              className="w-full text-xl font-semibold border border-input rounded-md p-2 min-h-[60px] focus:ring-1 focus:ring-ring focus:outline-none resize-y bg-background"
-              autoFocus
+              placeholder="Enter title..."
+              className="font-medium text-xl"
+              label="Title"
+              debounceTime={300}
             />
-          </div>
-        ) : (
-          <h2 
-            className={cn(
-              "text-3xl font-bold pb-2 mb-4",
-              isEditing && "cursor-pointer hover:bg-muted transition-colors rounded-md p-1"
-            )}
-            onClick={() => isEditing && setIsEditingTitle(true)}
-          >
-            {titleValue}
-          </h2>
-        )}
-
-        {isEditing && isEditingSubtitle ? (
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Subtitle
-            </label>
-            <textarea
-              value={subtitleValue}
+            
+            <StableInput
+              value={localSubtitle}
               onChange={handleSubtitleChange}
-              onBlur={handleSubtitleBlur}
-              onKeyDown={handleSubtitleKeyDown}
-              className="w-full text-base text-foreground/80 border border-input rounded-md p-2 min-h-[60px] focus:ring-1 focus:ring-ring focus:outline-none resize-y bg-background"
-              autoFocus
-              placeholder="Enter subtitle..."
+              placeholder="Enter subtitle (optional)..."
+              className="text-muted-foreground"
+              label="Subtitle (optional)"
+              debounceTime={300}
             />
           </div>
         ) : (
-          subtitle || isEditing ? (
-            <p 
-              className={cn(
-                "text-lg text-muted-foreground",
-                isEditing && !subtitleValue && "text-muted-foreground/50 italic",
-                isEditing && "cursor-pointer hover:bg-muted transition-colors rounded-md p-1"
-              )}
-              onClick={() => isEditing && setIsEditingSubtitle(true)}
-            >
-              {subtitleValue || (isEditing ? "Click to add subtitle..." : "")}
-            </p>
-          ) : null
+          <>
+            <h2 className="text-2xl font-medium pb-2 mb-3 text-foreground">
+              {localTitle}
+            </h2>
+            
+            {localSubtitle && (
+              <p className="text-base text-muted-foreground">
+                {localSubtitle}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

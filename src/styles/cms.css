@@ -31,6 +31,21 @@
   border: 1px dashed var(--border);
 }
 
+/* Active drag overlay style */
+[data-dnd-draggable-dragging="true"] {
+  opacity: 0.8;
+  z-index: 999;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background-color: var(--background);
+  outline: 2px solid var(--primary);
+}
+
+/* Drop target highlight */
+[data-dnd-droppable-is-over="true"] {
+  background-color: var(--accent);
+  border-radius: 4px;
+}
+
 /* Component drop indicator */
 .component-drop-indicator {
   height: 2px;
@@ -56,4 +71,19 @@
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   z-index: 10;
+}
+
+/* Active editing indicator */
+.component-active-edit {
+  position: relative;
+}
+
+.component-active-edit::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--primary);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
 } 
