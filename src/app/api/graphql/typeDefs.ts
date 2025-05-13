@@ -5,6 +5,25 @@ export const typeDefs = gql`
   scalar DateTime
   scalar JSON
 
+  # Enum types for Page
+  enum PageType {
+    CONTENT
+    LANDING
+    BLOG
+    PRODUCT
+    CATEGORY
+    TAG
+    HOME
+    CONTACT
+    ABOUT
+    CUSTOM
+  }
+
+  enum ScrollType {
+    NORMAL
+    SMOOTH
+  }
+
   # User related types
   type User {
     id: ID!

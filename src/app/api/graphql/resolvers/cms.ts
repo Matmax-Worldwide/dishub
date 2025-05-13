@@ -102,8 +102,102 @@ export const cmsResolvers = {
           return null;
         }
         
-        // Log SEO data for debugging
-        console.log('Page SEO data:', page.seo);
+        // Enhanced logging for SEO data debugging
+        console.log(`Page found: ID=${page.id}, Title=${page.title}`);
+        console.log(`Direct Meta Data: Title=${page.metaTitle}, Description=${page.metaDescription}`);
+        console.log(`Page has SEO relationship: ${page.seo ? 'Yes' : 'No'}`);
+        
+        // If page doesn't have a SEO record, try to find it explicitly
+        if (!page.seo) {
+          console.log(`No SEO data found in relationship. Looking up separately by pageId=${page.id}`);
+          
+          try {
+            const seoRecord = await prisma.pageSEO.findUnique({
+              where: { pageId: page.id }
+            });
+            
+            if (seoRecord) {
+              console.log('Found SEO record separately:', seoRecord);
+              // Attach the SEO record to the page
+              page.seo = seoRecord;
+            } else {
+              console.log(`No SEO record found for pageId=${page.id}. Creating a new one.`);
+              
+              // Create a new SEO record for this page
+              // Initialize with values from the page's metaTitle and metaDescription
+              const newSeoRecord = await prisma.pageSEO.create({
+                data: {
+                  pageId: page.id,
+                  title: page.metaTitle || '',
+                  description: page.metaDescription || '',
+                  keywords: '',
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                }
+              });
+              
+              console.log('Created new SEO record:', newSeoRecord);
+              page.seo = newSeoRecord;
+            }
+          } catch (seoError) {
+            console.error('Error finding/creating SEO record:', seoError);
+            // Instead of creating an empty SEO object, use a metadata structure
+            // that's compatible with the GraphQL schema but not attempting to be a Prisma model
+            console.log('Creating a metadata SEO object for client use');
+          }
+        } else {
+          console.log('SEO data found in relationship:', page.seo);
+        }
+        
+        // Make sure the fields in SEO are synced with metaTitle/metaDescription
+        if (page.seo) {
+          // If seo.title is missing but metaTitle exists, use metaTitle
+          if (!page.seo.title && page.metaTitle) {
+            page.seo.title = page.metaTitle;
+          }
+          // If metaTitle is missing but seo.title exists, use seo.title
+          else if (!page.metaTitle && page.seo.title) {
+            page.metaTitle = page.seo.title;
+          }
+          
+          // Same for description
+          if (!page.seo.description && page.metaDescription) {
+            page.seo.description = page.metaDescription;
+          }
+          else if (!page.metaDescription && page.seo.description) {
+            page.metaDescription = page.seo.description;
+          }
+        } else {
+          // If there's no SEO object at all, create one based on page meta fields
+          console.log('No SEO data found for page, creating a placeholder object');
+          page.seo = {
+            id: '',
+            pageId: '',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            title: page.metaTitle || '',
+            description: page.metaDescription || '',
+            keywords: '',
+            ogTitle: '',
+            ogDescription: '',
+            ogImage: '',
+            twitterTitle: '',
+            twitterDescription: '',
+            twitterImage: '',
+            canonicalUrl: '',
+            structuredData: {}
+          };
+        }
+        
+        // Final log of the data being returned
+        console.log('Returning page with SEO data:', {
+          pageId: page.id,
+          metaTitle: page.metaTitle,
+          metaDescription: page.metaDescription,
+          seoPresent: !!page.seo,
+          seoTitle: page.seo?.title || 'none',
+          seoDescription: page.seo?.description || 'none'
+        });
         
         return page;
       } catch (error) {

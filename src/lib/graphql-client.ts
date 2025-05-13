@@ -301,6 +301,21 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
     
     // Found a page
     if (page && page.id) {
+      // Enhanced logging for SEO data
+      console.log(`Found page: ${page.title} (${page.id})`);
+      console.log(`SEO data present: ${Boolean(page.seo)}`);
+      if (page.seo) {
+        console.log('SEO data:', JSON.stringify(page.seo, null, 2));
+      } else {
+        console.log('No SEO data in response, initializing empty object');
+        page.seo = {};
+      }
+      
+      // Ensure there's always at least an empty SEO object
+      if (!page.seo) {
+        page.seo = {};
+      }
+      
       // Log section info if page has sections
       if (page.sections && Array.isArray(page.sections)) {
         console.log(`Page "${page.title}" has ${page.sections.length} sections`);

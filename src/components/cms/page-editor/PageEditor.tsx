@@ -68,7 +68,19 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     metaDescription: '',
     featuredImage: '',
     publishDate: '',
-    seo: {}
+    seo: {
+      title: '',
+      description: '',
+      keywords: '',
+      ogTitle: '',
+      ogDescription: '',
+      ogImage: '',
+      twitterTitle: '',
+      twitterDescription: '',
+      twitterImage: '',
+      canonicalUrl: '',
+      structuredData: {}
+    }
   });
   
   // UI states
@@ -490,7 +502,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     console.log(`SEO change: ${path} = ${value}`);
     
     setPageData(prevState => {
-      // Deep clone the SEO object to avoid nested reference issues
+      // Ensure SEO object exists
       const newSeo = JSON.parse(JSON.stringify(prevState.seo || {}));
       
       // Update the specific field in the SEO object
@@ -508,6 +520,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         current[parts[parts.length - 1]] = value;
       };
       
+      // The path should be like 'seo.title', so we remove the prefix
       setNestedField(newSeo, path.replace('seo.', ''), value);
       
       // Also update metaTitle/metaDescription if the SEO title/description is changed
@@ -591,6 +604,30 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       
       console.log('Saving page with data:', pageData);
       
+      // Synchronize metaTitle/metaDescription with seo.title/seo.description
+      // This ensures both sets of fields have the same values
+      const metaTitle = pageData.metaTitle || '';
+      const metaDescription = pageData.metaDescription || '';
+      const seoTitle = pageData.seo?.title || '';
+      const seoDescription = pageData.seo?.description || '';
+      
+      // If either field is empty, use the other one's value
+      const finalMetaTitle = metaTitle || seoTitle;
+      const finalMetaDescription = metaDescription || seoDescription;
+      const finalSeoTitle = seoTitle || metaTitle;
+      const finalSeoDescription = seoDescription || metaDescription;
+      
+      console.log('SEO data synchronization:', {
+        originalMetaTitle: metaTitle,
+        originalMetaDescription: metaDescription,
+        originalSeoTitle: seoTitle,
+        originalSeoDescription: seoDescription,
+        finalMetaTitle,
+        finalMetaDescription,
+        finalSeoTitle,
+        finalSeoDescription
+      });
+      
       // Prepare update input
       const updateInput: {
         title: string;
@@ -633,14 +670,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         isPublished: pageData.isPublished,
         pageType: pageData.pageType,
         locale: pageData.locale,
-        metaTitle: pageData.metaTitle || '',
-        metaDescription: pageData.metaDescription || '',
+        metaTitle: finalMetaTitle,
+        metaDescription: finalMetaDescription,
         featuredImage: pageData.featuredImage || '',
         publishDate: pageData.publishDate || '',
         // Ensure SEO data is properly formatted and includes all fields
         seo: {
-          title: pageData.seo?.title || pageData.metaTitle || '',
-          description: pageData.seo?.description || pageData.metaDescription || '',
+          title: finalSeoTitle,
+          description: finalSeoDescription,
           keywords: pageData.seo?.keywords || '',
           ogTitle: pageData.seo?.ogTitle || '',
           ogDescription: pageData.seo?.ogDescription || '',

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { InfoIcon, AlignLeftIcon, GlobeIcon, ChevronRightIcon, Link2Icon, HashIcon, TwitterIcon } from 'lucide-react';
 import {
   Card,
@@ -50,8 +50,22 @@ export const SEOTab: React.FC<SEOTabProps> = ({
   onBackClick,
   onContinue,
 }) => {
-  // Extract SEO data from the pageData
-  const seo = pageData.seo || {};
+  // Add extra safety - ensure seo is an object even if it's null or undefined
+  const seo = pageData?.seo || {};
+  
+  // State to track field changes for better feedback
+  const [fieldChanged, setFieldChanged] = useState<{
+    field: string;
+    time: number;
+  } | null>(null);
+
+  // Add debug state
+  const [showDebug, setShowDebug] = useState(true);
+  
+  // Toggle debug mode
+  const toggleDebug = () => {
+    setShowDebug(!showDebug);
+  };
 
   // Log SEO data for debugging
   useEffect(() => {
@@ -71,6 +85,17 @@ export const SEOTab: React.FC<SEOTabProps> = ({
   const handleSEOChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
+    // Set the field that changed to show the sync message
+    setFieldChanged({
+      field: name,
+      time: Date.now()
+    });
+    
+    // Clear the change notification after 2 seconds
+    setTimeout(() => {
+      setFieldChanged(null);
+    }, 2000);
+    
     // Check if this is a nested SEO property
     if (name.startsWith('seo.')) {
       // If parent component provided a handler, use it
@@ -86,15 +111,50 @@ export const SEOTab: React.FC<SEOTabProps> = ({
     }
   };
 
+  // Determine if fields are synced for visual feedback - with safety checks
+  const isMetaTitleSynced = pageData.metaTitle === seo?.title && pageData.metaTitle !== '';
+  const isMetaDescriptionSynced = pageData.metaDescription === seo?.description && pageData.metaDescription !== '';
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>SEO Information</CardTitle>
-        <CardDescription>
-          Configure how your page will appear in search results and on social media.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>SEO Information</CardTitle>
+          <CardDescription>
+            Configure how your page will appear in search results and on social media.
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleDebug}
+          className="text-xs"
+        >
+          {showDebug ? "Hide Debug" : "Show Debug"}
+        </Button>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Debug information */}
+        {showDebug && (
+          <div className="mb-4 p-3 bg-slate-100 rounded-md border border-slate-300 overflow-auto max-h-60">
+            <h4 className="text-sm font-semibold mb-2">Debug Information:</h4>
+            <pre className="text-xs">
+              {JSON.stringify({
+                pageData_metaTitle: pageData.metaTitle,
+                pageData_metaDescription: pageData.metaDescription,
+                seo_exists: Boolean(pageData.seo),
+                seo_title: pageData.seo?.title,
+                seo_description: pageData.seo?.description,
+                isMetaTitleSynced,
+                isMetaDescriptionSynced,
+                typeof_seo: typeof pageData.seo,
+                pageData_id: pageData.id,
+                pageData_hasOwnSeo: pageData.hasOwnProperty('seo'),
+              }, null, 2)}
+            </pre>
+          </div>
+        )}
+
         <Tabs defaultValue="general">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general">General SEO</TabsTrigger>
@@ -103,17 +163,34 @@ export const SEOTab: React.FC<SEOTabProps> = ({
           </TabsList>
           
           <TabsContent value="general" className="space-y-4 pt-4">
+            {/* Synchronization notice */}
+            <div className="bg-muted/30 border border-muted/50 rounded-md p-3 mb-4">
+              <p className="text-sm text-muted-foreground">
+                Both sets of SEO fields are synchronized with each other. Changes to meta fields will update SEO fields and vice versa.
+              </p>
+            </div>
+          
             {/* Meta Title */}
             <div className="space-y-2">
               <Label htmlFor="metaTitle" className="flex items-center">
                 <InfoIcon className="h-4 w-4 mr-2" />
                 <span>Meta Title</span>
+                {isMetaTitleSynced && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                    Synced with SEO Title
+                  </span>
+                )}
+                {fieldChanged?.field === 'metaTitle' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">
+                    Updating SEO Title...
+                  </span>
+                )}
               </Label>
               <Input
                 id="metaTitle"
                 name="metaTitle"
                 value={pageData.metaTitle || ''}
-                onChange={onInputChange}
+                onChange={handleSEOChange}
                 placeholder="Title for search engines"
               />
               <p className="text-sm text-muted-foreground">
@@ -126,11 +203,21 @@ export const SEOTab: React.FC<SEOTabProps> = ({
               <Label htmlFor="seoTitle" className="flex items-center">
                 <InfoIcon className="h-4 w-4 mr-2" />
                 <span>SEO Title</span>
+                {isMetaTitleSynced && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                    Synced with Meta Title
+                  </span>
+                )}
+                {fieldChanged?.field === 'seo.title' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">
+                    Updating Meta Title...
+                  </span>
+                )}
               </Label>
               <Input
                 id="seoTitle"
                 name="seo.title"
-                value={seo.title || ''}
+                value={seo?.title || ''}
                 onChange={handleSEOChange}
                 placeholder="SEO Title (stored in PageSEO)"
               />
@@ -144,12 +231,22 @@ export const SEOTab: React.FC<SEOTabProps> = ({
               <Label htmlFor="metaDescription" className="flex items-center">
                 <AlignLeftIcon className="h-4 w-4 mr-2" />
                 <span>Meta Description</span>
+                {isMetaDescriptionSynced && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                    Synced with SEO Description
+                  </span>
+                )}
+                {fieldChanged?.field === 'metaDescription' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">
+                    Updating SEO Description...
+                  </span>
+                )}
               </Label>
               <Textarea
                 id="metaDescription"
                 name="metaDescription"
                 value={pageData.metaDescription || ''}
-                onChange={onInputChange}
+                onChange={handleSEOChange}
                 placeholder="Description for search engines"
                 rows={3}
               />
@@ -163,11 +260,21 @@ export const SEOTab: React.FC<SEOTabProps> = ({
               <Label htmlFor="seoDescription" className="flex items-center">
                 <AlignLeftIcon className="h-4 w-4 mr-2" />
                 <span>SEO Description</span>
+                {isMetaDescriptionSynced && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                    Synced with Meta Description
+                  </span>
+                )}
+                {fieldChanged?.field === 'seo.description' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">
+                    Updating Meta Description...
+                  </span>
+                )}
               </Label>
               <Textarea
                 id="seoDescription"
                 name="seo.description"
-                value={seo.description || ''}
+                value={seo?.description || ''}
                 onChange={handleSEOChange}
                 placeholder="SEO Description (stored in PageSEO)"
                 rows={3}
@@ -186,7 +293,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
               <Input
                 id="keywords"
                 name="seo.keywords"
-                value={seo.keywords || ''}
+                value={seo?.keywords || ''}
                 onChange={handleSEOChange}
                 placeholder="keyword1, keyword2, keyword3"
               />
@@ -222,7 +329,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Input
                   id="ogTitle"
                   name="seo.ogTitle"
-                  value={seo.ogTitle || ''}
+                  value={seo?.ogTitle || ''}
                   onChange={handleSEOChange}
                   placeholder="Title for Facebook/LinkedIn sharing"
                 />
@@ -233,7 +340,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Textarea
                   id="ogDescription"
                   name="seo.ogDescription"
-                  value={seo.ogDescription || ''}
+                  value={seo?.ogDescription || ''}
                   onChange={handleSEOChange}
                   placeholder="Description for Facebook/LinkedIn sharing"
                   rows={2}
@@ -245,7 +352,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Input
                   id="ogImage"
                   name="seo.ogImage"
-                  value={seo.ogImage || ''}
+                  value={seo?.ogImage || ''}
                   onChange={handleSEOChange}
                   placeholder="https://example.com/og-image.jpg"
                 />
@@ -267,7 +374,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Input
                   id="twitterTitle"
                   name="seo.twitterTitle"
-                  value={seo.twitterTitle || ''}
+                  value={seo?.twitterTitle || ''}
                   onChange={handleSEOChange}
                   placeholder="Title for Twitter sharing"
                 />
@@ -278,7 +385,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Textarea
                   id="twitterDescription"
                   name="seo.twitterDescription"
-                  value={seo.twitterDescription || ''}
+                  value={seo?.twitterDescription || ''}
                   onChange={handleSEOChange}
                   placeholder="Description for Twitter sharing"
                   rows={2}
@@ -290,7 +397,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
                 <Input
                   id="twitterImage"
                   name="seo.twitterImage"
-                  value={seo.twitterImage || ''}
+                  value={seo?.twitterImage || ''}
                   onChange={handleSEOChange}
                   placeholder="https://example.com/twitter-image.jpg"
                 />
@@ -311,7 +418,7 @@ export const SEOTab: React.FC<SEOTabProps> = ({
               <Input
                 id="canonicalUrl"
                 name="seo.canonicalUrl"
-                value={seo.canonicalUrl || ''}
+                value={seo?.canonicalUrl || ''}
                 onChange={handleSEOChange}
                 placeholder="https://example.com/canonical-page"
               />
@@ -327,13 +434,13 @@ export const SEOTab: React.FC<SEOTabProps> = ({
           <h3 className="text-sm font-medium text-foreground mb-2">Search Result Preview</h3>
           <div className="p-4 border border-border rounded bg-background">
             <div className="text-blue-600 text-lg font-medium line-clamp-1">
-              {pageData.metaTitle || seo.title || pageData.title || 'Page Title'}
+              {pageData.metaTitle || seo?.title || pageData.title || 'Page Title'}
             </div>
             <div className="text-green-600 text-sm line-clamp-1">
               {`/${locale}/${pageData.slug || 'page-url'}`}
             </div>
             <div className="text-muted-foreground text-sm mt-1 line-clamp-2">
-              {pageData.metaDescription || seo.description || pageData.description || 'Page description...'}
+              {pageData.metaDescription || seo?.description || pageData.description || 'Page description...'}
             </div>
           </div>
         </div>
