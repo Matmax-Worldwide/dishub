@@ -4,6 +4,7 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
+import IconSelector from '@/components/cms/IconSelector';
 
 import { 
   ShieldCheckIcon, 
@@ -263,17 +264,14 @@ const BenefitSection = React.memo(function BenefitSection({
           <div className="flex flex-col space-y-6">
             <div className="flex flex-col space-y-2">
               <label className="text-sm font-medium text-gray-700">Icon Type</label>
-              <select
-                value={localIconType}
-                onChange={(e) => handleIconTypeChange(e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-              >
-                <option value="shield">Shield</option>
-                <option value="cog">Cog/Gear</option>
-                <option value="bolt">Lightning Bolt</option>
-                <option value="check">Check Badge</option>
-                <option value="clock">Clock</option>
-              </select>
+              <div className="flex flex-col space-y-1">
+                <IconSelector 
+                  selectedIcon={localIconType}
+                  onSelectIcon={handleIconTypeChange}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500">Select an icon for the benefit section</p>
+              </div>
             </div>
             
             <StableInput

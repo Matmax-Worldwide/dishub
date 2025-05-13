@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { PlusCircle } from 'lucide-react';
@@ -54,6 +54,23 @@ interface SectionManagerProps {
   componentClassName?: (type: string) => string;
 }
 
+// Utilidad para debounce
+const useDebounce = <T,>(value: T, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
+
 // Crear un componente memoizado para el wrapper de cada componente
 const ComponentWrapperMemo = memo(function ComponentWrapper({ 
   component, 
@@ -81,20 +98,29 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [componentTitle, setComponentTitle] = useState(component.title || component.type || 'Component');
   const [isHovered, setIsHovered] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   
-  const handleRemove = useCallback(() => {
+  const handleRemove = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onRemove(component.id);
   }, [component.id, onRemove]);
 
-  const handleMoveUp = useCallback(() => {
+  const handleMoveUp = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (onMoveUp) onMoveUp(component.id);
   }, [component.id, onMoveUp]);
 
-  const handleMoveDown = useCallback(() => {
+  const handleMoveDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (onMoveDown) onMoveDown(component.id);
   }, [component.id, onMoveDown]);
 
-  const handleTitleClick = () => {
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (isEditing) {
       setIsEditingTitle(true);
     }
@@ -156,12 +182,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === 'Enter') {
       handleTitleSave();
     }
   };
 
-  const handleToggleCollapse = useCallback(() => {
+  const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log(`Component ${component.id} toggling collapse. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
     if (onToggleCollapse) {
       // Si está colapsado, lo expandimos, y viceversa
@@ -214,31 +243,36 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
               </div>
               
               {isEditingTitle ? (
-              <div className="flex items-center">
+              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                 <input
+                  ref={inputRef}
                   type="text"
                   value={componentTitle}
-                  onChange={(e) => setComponentTitle(e.target.value)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setComponentTitle(e.target.value);
+                  }}
                   onBlur={handleTitleSave}
                   onKeyDown={handleTitleKeyDown}
-                    className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
+                  className="border border-input rounded-md px-2 py-1 mr-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
                   autoFocus
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             ) : (
               <div 
                 onClick={handleTitleClick} 
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                className="text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {componentTitle}
               </div>
             )}
             </div>
             <div className="flex items-center space-x-1">
-              {/* Collapse button */}
+              {/* Collapse button - only visible control that can collapse */}
               <div
                 onClick={handleToggleCollapse}
-                className="opacity-30 hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full cursor-pointer"
+                className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-accent/10 rounded-full cursor-pointer"
                 aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
                 title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
               >
@@ -257,22 +291,22 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
               </div>
             <div 
               onClick={handleRemove}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full cursor-pointer"
-                aria-label="Eliminar componente"
+              className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive hover:bg-destructive/90 rounded-full cursor-pointer"
+              aria-label="Eliminar componente"
             >
-                <XMarkIcon className="h-3 w-3 text-destructive" />
+                <XMarkIcon className="h-3 w-3 text-destructive-foreground" />
             </div>
             </div>
           </div>
           <div className="h-px bg-border w-full mb-3 opacity-60"></div>
         </>
       )}
-      {(!isEditing || !isCollapsed) && (
-        <div className={cn(isEditing && "px-3 py-1")}>
+      {(!isCollapsed || !isEditing) && (
+        <div className={cn(isEditing && "px-3 py-1")}
+             onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
       )}
-
     </div>
   );
 });
@@ -287,12 +321,16 @@ function SectionManagerBase({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track if the insert hint should be shown
   const [showInsertHint, setShowInsertHint] = useState(false);
-  // Track collapsed components by ID - initialize with all components collapsed
-  const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(() => 
-    new Set(initialComponents.map(comp => comp.id))
-  );
-  // Add a flag to track if all components are collapsed - start with true if there are components
-  const [allCollapsed, setAllCollapsed] = useState(initialComponents.length > 0);
+  // Track collapsed components by ID - initialize with empty set (all expanded)
+  const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
+  // Add a flag to track if all components are collapsed - start with false (all expanded)
+  const [allCollapsed, setAllCollapsed] = useState(false);
+  // Referencia para guardar el elemento activo antes del autoguardado
+  const activeElementRef = useRef<Element | null>(null);
+  // Estado para controlar las actualizaciones debounced de los componentes
+  const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
+  // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
+  const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
   
   // Cache component data stringified to prevent unnecessary re-renders
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -303,11 +341,89 @@ function SectionManagerBase({
     // pero no si solo estamos reordenando o colapsando/expandiendo
     if (initialComponents.length > 0 && components.length === 0) {
       setComponents(initialComponents);
-      // Ensure all initial components are collapsed by default
-      setCollapsedComponents(new Set(initialComponents.map(comp => comp.id)));
-      setAllCollapsed(true);
+      // Always start with all components expanded
+      setCollapsedComponents(new Set());
+      setAllCollapsed(false);
     }
   }, [initialComponents, components.length]);
+
+  // Efecto para aplicar las actualizaciones debounced
+  useEffect(() => {
+    if (debouncedPendingUpdate) {
+      const { component, data } = debouncedPendingUpdate;
+      
+      // Guardar referencia al elemento activo
+      activeElementRef.current = document.activeElement;
+      
+      // Crear componente actualizado
+      const updatedComponent = {
+        ...component,
+        data: { ...component.data, ...data }
+      };
+      
+      // Preserve title if it exists
+      if (component.title) {
+        updatedComponent.title = component.title;
+      }
+      
+      // Capture current collapse state to preserve it
+      const currentlyCollapsed = collapsedComponents.has(component.id);
+      
+      // Actualizar componentes
+      setComponents(prevComponents => {
+        // For better performance, only update if the component data actually changed
+        if (JSON.stringify(component.data) === JSON.stringify(updatedComponent.data)) {
+          return prevComponents;
+        }
+        
+        // Create a new array to trigger re-render
+        return prevComponents.map(c => 
+          c.id === component.id ? updatedComponent : c
+        );
+      });
+      
+      // Maintain the collapse state after the update
+      if (!currentlyCollapsed) {
+        setCollapsedComponents(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(component.id);
+          return newSet;
+        });
+      }
+      
+      // Limpiar el pendingUpdate
+      setPendingUpdate(null);
+    }
+  }, [debouncedPendingUpdate, collapsedComponents]);
+  
+  // Efecto para restaurar el foco después de actualizar componentes
+  useEffect(() => {
+    // Si teníamos un elemento activo, restaurar el foco después de la actualización
+    if (activeElementRef.current && activeElementRef.current instanceof HTMLElement) {
+      const activeElement = activeElementRef.current;
+      
+      // Esperar a que el DOM se actualice
+      setTimeout(() => {
+        if (activeElement instanceof HTMLElement) {
+          activeElement.focus();
+          
+          // Si es un input o textarea, establecer la posición del cursor al final
+          if (
+            (activeElement instanceof HTMLInputElement || 
+             activeElement instanceof HTMLTextAreaElement) && 
+            'selectionStart' in activeElement
+          ) {
+            const len = activeElement.value.length;
+            activeElement.selectionStart = len;
+            activeElement.selectionEnd = len;
+          }
+        }
+        
+        // Limpiar la referencia
+        activeElementRef.current = null;
+      }, 10);
+    }
+  }, [components]);
 
   // Efecto para enviar cambios al padre
   useEffect(() => {
@@ -333,12 +449,8 @@ function SectionManagerBase({
         
         console.log(`[SectionManager] ✅ Agregando componente: ${component.id} (${component.type})`);
         
-        // Make sure new component is collapsed by default
-        setCollapsedComponents(prev => {
-          const newSet = new Set(prev);
-          newSet.add(component.id);
-          return newSet;
-        });
+        // Do NOT automatically collapse components - leave them expanded
+        // setCollapsedComponents stays the same
         
         // Asegurar que los datos del componente tengan la estructura correcta
         setComponents(prev => {
@@ -368,7 +480,7 @@ function SectionManagerBase({
             window.setTimeout(() => {
               console.log('[SectionManager] 🔄 Notificando cambio de componentes con', newComponents.length, 'componentes');
               onComponentsChange(newComponents);
-            }, 0);
+            }, 4500); // Incrementar a 500ms para evitar problemas de autoguardado demasiado rápido
           }
           
           return newComponents;
@@ -394,28 +506,25 @@ function SectionManagerBase({
 
   // Creamos una función memoizada para actualizar los componentes de forma eficiente
   const handleUpdate = useCallback((component: Component, updatedData: Record<string, unknown>) => {
-    // Create a new component object with updated data
-    const updatedComponent = {
-      ...component,
-      data: { ...component.data, ...updatedData }
-    };
-    
-    // Preserve title if it exists
-    if (component.title) {
-      updatedComponent.title = component.title;
-    }
-    
-    // Update components using functional update to avoid stale closures
-    setComponents(prevComponents => {
-      // For better performance, only update if the component data actually changed
-      if (JSON.stringify(component.data) === JSON.stringify(updatedComponent.data)) {
-        return prevComponents;
+    // En lugar de actualizar inmediatamente, establecer un pendingUpdate
+    setPendingUpdate({ component, data: updatedData });
+  }, []);
+
+  // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
+  const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
+    console.log(`Explicitly toggling collapse for component ${componentId}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+    setCollapsedComponents(prev => {
+      const newSet = new Set(prev);
+      // Si isCollapsed es true, significa que está colapsado y queremos expandirlo
+      // Si isCollapsed es false, significa que está expandido y queremos colapsarlo
+      if (isCollapsed) {
+        console.log(`Expanding component ${componentId}`);
+        newSet.delete(componentId);
+      } else {
+        console.log(`Collapsing component ${componentId}`);
+        newSet.add(componentId);
       }
-      
-      // Create a new array to trigger re-render
-      return prevComponents.map(c => 
-        c.id === component.id ? updatedComponent : c
-      );
+      return newSet;
     });
   }, []);
 
@@ -435,6 +544,12 @@ function SectionManagerBase({
       
       return newComponents;
     });
+    
+    // Preserve expanded state during reordering
+    setCollapsedComponents(prev => {
+      // Just return the same set - no changes to collapsed state during reordering
+      return new Set(prev);
+    });
   }, []);
 
   // Manejar el movimiento de componentes hacia abajo
@@ -453,28 +568,17 @@ function SectionManagerBase({
       
       return newComponents;
     });
-  }, []);
-
-  // Handle collapsing/expanding components
-  const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
-    console.log(`Toggling collapse for component ${componentId}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+    
+    // Preserve expanded state during reordering
     setCollapsedComponents(prev => {
-      const newSet = new Set(prev);
-      // Si isCollapsed es true, significa que está colapsado y queremos expandirlo
-      // Si isCollapsed es false, significa que está expandido y queremos colapsarlo
-      if (isCollapsed) {
-        console.log(`Expanding component ${componentId}`);
-        newSet.delete(componentId);
-      } else {
-        console.log(`Collapsing component ${componentId}`);
-        newSet.add(componentId);
-      }
-      return newSet;
+      // Just return the same set - no changes to collapsed state during reordering
+      return new Set(prev);
     });
   }, []);
 
   // Function to collapse or expand all components
-  const handleCollapseAll = useCallback(() => {
+  const handleCollapseAll = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
     setAllCollapsed(prev => {
       const newAllCollapsed = !prev;
       
@@ -494,22 +598,15 @@ function SectionManagerBase({
     });
   }, [components]);
 
-  // Initialize components as collapsed by default
+  // Initialize components as expanded by default
   useEffect(() => {
     // When components change (like when loading initially or adding new ones)
-    // make sure all new components are collapsed by default
-    const newComponentIds = components
-      .filter(comp => !initialComponents.some(ic => ic.id === comp.id))
-      .map(comp => comp.id);
-    
-    if (newComponentIds.length > 0) {
-      setCollapsedComponents(prev => {
-        const newSet = new Set(prev);
-        newComponentIds.forEach(id => newSet.add(id));
-        return newSet;
-      });
+    // Components should be expanded by default, not collapsed
+    if (components.length > 0 && collapsedComponents.size === 0) {
+      // Keep components expanded
+      setAllCollapsed(false);
     }
-  }, [components, initialComponents]);
+  }, [components, collapsedComponents.size]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -517,7 +614,7 @@ function SectionManagerBase({
       return null;
     }
 
-    // Check if component is collapsed
+    // Allow component to be collapsed in edit mode
     const isComponentCollapsed = collapsedComponents.has(component.id);
 
     // Componente específico según el tipo
