@@ -1,117 +1,127 @@
 'use client';
 
-import React, { useEffect, useCallback, useState } from 'react';
-import StableInput from './StableInput';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface TextSectionProps {
   title?: string;
-  subtitle?: string;
-  content?: string;
+  content: string;
   isEditing?: boolean;
-  onUpdate?: (data: { title?: string; subtitle?: string; content?: string }) => void;
+  onUpdate?: (data: { title?: string; content: string }) => void;
 }
 
-const TextSection = React.memo(function TextSection({ 
+export default function TextSection({ 
   title, 
-  subtitle, 
-  content,
-  isEditing = false,
-  onUpdate
+  content, 
+  isEditing = false, 
+  onUpdate 
 }: TextSectionProps) {
-  // Local state to maintain during typing
-  const [localTitle, setLocalTitle] = useState(title || '');
-  const [localSubtitle, setLocalSubtitle] = useState(subtitle || '');
-  const [localContent, setLocalContent] = useState(content || '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [titleValue, setTitleValue] = useState(title || '');
+  const [contentValue, setContentValue] = useState(content);
 
-  // Update local state when props change
-  useEffect(() => {
-    if (title !== localTitle) setLocalTitle(title || '');
-    if (subtitle !== localSubtitle) setLocalSubtitle(subtitle || '');
-    if (content !== localContent) setLocalContent(content || '');
-  }, [title, subtitle, content]);
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setTitleValue(e.target.value);
+  };
 
-  // Optimized update function
-  const handleUpdateField = useCallback((field: string, value: string) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContentValue(e.target.value);
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
     if (onUpdate) {
-      onUpdate({ [field]: value });
+      onUpdate({ title: titleValue, content: contentValue });
     }
-  }, [onUpdate]);
-
-  // Individual change handlers
-  const handleTitleChange = (newValue: string) => {
-    setLocalTitle(newValue);
-    handleUpdateField('title', newValue);
   };
 
-  const handleSubtitleChange = (newValue: string) => {
-    setLocalSubtitle(newValue);
-    handleUpdateField('subtitle', newValue);
+  const handleContentBlur = () => {
+    setIsEditingContent(false);
+    if (onUpdate) {
+      onUpdate({ title: titleValue, content: contentValue });
+    }
   };
 
-  const handleContentChange = (newValue: string) => {
-    setLocalContent(newValue);
-    handleUpdateField('content', newValue);
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      setIsEditingTitle(false);
+      if (onUpdate) {
+        onUpdate({ title: titleValue, content: contentValue });
+      }
+    }
   };
 
   return (
-    <div className="py-12 px-4">
+    <div className={cn(
+      "w-full",
+      isEditing ? "p-4" : "p-8 bg-white rounded-lg shadow-sm"
+    )}>
       <div className="max-w-4xl mx-auto">
-        {isEditing ? (
-          <div className="space-y-6">
-            <StableInput
-              value={localTitle}
-              onChange={handleTitleChange}
-              placeholder="Título de la sección..."
-              className="text-3xl font-bold"
-              label="Título"
-            />
-            
-            <StableInput
-              value={localSubtitle}
-              onChange={handleSubtitleChange}
-              placeholder="Subtítulo..."
-              className="text-xl"
-              label="Subtítulo"
-            />
-            
-            <StableInput
-              value={localContent}
-              onChange={handleContentChange}
-              placeholder="Contenido principal..."
-              isTextArea={true}
-              rows={6}
-              label="Contenido"
-            />
-          </div>
-        ) : (
+        {title && !isEditing ? (
+          <h3 className="text-2xl font-semibold mb-4">{titleValue}</h3>
+        ) : isEditing && (
           <>
-            {title && (
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                {title}
-              </h2>
-            )}
-            
-            {subtitle && (
-              <h3 className="text-xl md:text-2xl text-gray-600 mb-6">
-                {subtitle}
-              </h3>
-            )}
-            
-            {content && (
-              <div className="prose prose-lg max-w-none">
-                {content.split('\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4">
-                    {paragraph}
-                  </p>
-                ))}
+            {isEditingTitle ? (
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Section Title (optional)
+                </label>
+                <input
+                  type="text"
+                  value={titleValue}
+                  onChange={handleTitleChange}
+                  onBlur={handleTitleBlur}
+                  onKeyDown={handleTitleKeyDown}
+                  className="w-full text-xl font-semibold border border-input rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                  autoFocus
+                  placeholder="Enter section title..."
+                />
+              </div>
+            ) : (
+              <div 
+                className={cn(
+                  "text-xl font-semibold mb-4 cursor-pointer hover:bg-accent/20 hover:px-2 transition-all rounded-md p-1",
+                  !titleValue && "text-muted-foreground/60 italic"
+                )}
+                onClick={() => setIsEditingTitle(true)}
+              >
+                {titleValue || "Click to add title..."}
               </div>
             )}
           </>
         )}
+
+        {isEditing && isEditingContent ? (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Content
+            </label>
+            <textarea
+              value={contentValue}
+              onChange={handleContentChange}
+              onBlur={handleContentBlur}
+              className="w-full min-h-[200px] text-base border border-input rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none resize-y"
+              autoFocus
+            />
+          </div>
+        ) : (
+          <div 
+            className={cn(
+              "text-base leading-relaxed whitespace-pre-wrap",
+              isEditing && "cursor-pointer hover:bg-accent/20 hover:px-2 transition-all rounded-md p-1"
+            )}
+            onClick={() => isEditing && setIsEditingContent(true)}
+          >
+            {contentValue.split('\n').map((paragraph, index) => (
+              <p key={index} className="mb-4">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
-});
-
-// Use simple React.memo to prevent unnecessary re-renders
-export default TextSection; 
+} 

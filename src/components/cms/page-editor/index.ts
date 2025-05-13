@@ -9,4 +9,5 @@ export { default as ExitConfirmationDialog } from './ExitConfirmationDialog';
 export { default as PageDetailsTab } from './PageDetailsTab';
 export { default as SEOTab } from './SEOTab';
 export { default as SectionsTab } from './SectionsTab';
-export { default as PageEditor } from './PageEditor'; 
+export { default as PageEditor } from './PageEditor';
+export { default as CSSInjector } from './CSSInjector'; 

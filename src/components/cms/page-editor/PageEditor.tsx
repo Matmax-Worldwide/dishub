@@ -19,7 +19,8 @@ import {
   SectionsTab,
   AddSectionDialog,
   DeleteSectionDialog,
-  ExitConfirmationDialog
+  ExitConfirmationDialog,
+  CSSInjector
 } from '@/components/cms/page-editor';
 import {
   Tabs,
@@ -664,6 +665,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
   return (
     <div className="space-y-6">
+      {/* CSS Injector for drag-and-drop functionality */}
+      <CSSInjector />
+      
       {/* Header */}
       <PageHeader
         title={pageData.title}

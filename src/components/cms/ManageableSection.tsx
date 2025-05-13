@@ -4,6 +4,22 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallbac
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';
 import AdminControls from './AdminControls';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SaveIcon, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -41,6 +57,17 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(sectionName || '');
+  const [isSaving, setIsSaving] = useState(false);
+  // Estado para manejar modo de visualización
+  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('split');
+
+  // Configure DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Validate and normalize the section ID
   const normalizedSectionId = sectionId;
@@ -209,6 +236,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     return new Promise<void>(async (resolve, reject) => {
       try {
         setIsLoading(true);
+        setIsSaving(true);
         
         // Log de diagnóstico
         console.log(`[ManageableSection] Iniciando guardado de ${componentsToSave.length} componentes para sección: ${normalizedSectionId}`);
@@ -244,10 +272,16 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         console.log('[ManageableSection] Enviando componentes al servidor...');
         
         // Para el API, convertimos los tipos a minúsculas según sea necesario
-        const componentsForAPI = componentsWithTitles.map(comp => ({
-          ...comp,
-          type: comp.type.toLowerCase() // Convertir a minúsculas solo para la API
-        }));
+        // y eliminamos el campo title directo, ya que está dentro de data
+        const componentsForAPI = componentsWithTitles.map(comp => {
+          // Pick only the fields that the API expects
+          const { id, type, data } = comp;
+          return {
+            id,
+            type: type.toLowerCase(), // Convertir a minúsculas solo para la API
+            data
+          };
+        });
         
         // Llamada a la API para guardar
         const result = await cmsOperations.saveSectionComponents(
@@ -281,6 +315,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         reject(error);
       } finally {
         setIsLoading(false);
+        setIsSaving(false);
       }
     });
   }, [normalizedSectionId, editedTitle, sectionName, onSectionNameChange]);
@@ -290,69 +325,254 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     setPendingComponents(loadedComponents);
   }, []);
 
-  return (
-    <div className={isEditing ? "my-6" : ""} data-section-id={normalizedSectionId}>
-      {isEditing && (
-        <div className="mb-4">
-          {isEditingTitle ? (
-            <div className="flex items-center mb-2">
-              <input
-                type="text"
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                onBlur={handleTitleSave}
-                onKeyDown={handleTitleKeyDown}
-                className="border border-gray-300 rounded px-2 py-1 mr-2 text-sm font-medium"
-                autoFocus
-              />
-              <button 
-                onClick={handleTitleSave}
-                className="px-2 py-1 bg-blue-500 text-white text-sm rounded"
-              >
-                Save
-              </button>
-            </div>
-          ) : (
-            <div 
-              onClick={handleTitleClick} 
-              className="text-sm font-medium text-gray-700 hover:text-blue-600 cursor-pointer mb-2 inline-flex items-center"
-            >
-              {editedTitle || "Untitled Section"}
-              <span className="ml-2 text-xs text-gray-400">(click to edit)</span>
+  // Function to toggle view mode
+  const toggleViewMode = useCallback((mode: 'split' | 'edit' | 'preview') => {
+    setViewMode(mode);
+  }, []);
+
+  // Handle component reordering with drag and drop
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setPendingComponents((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }, []);
+
+  // Move component up in the list
+  const moveComponentUp = useCallback((componentId: string) => {
+    setPendingComponents((items) => {
+      const index = items.findIndex((item) => item.id === componentId);
+      if (index <= 0) return items;
+      return arrayMove(items, index, index - 1);
+    });
+  }, []);
+
+  // Move component down in the list
+  const moveComponentDown = useCallback((componentId: string) => {
+    setPendingComponents((items) => {
+      const index = items.findIndex((item) => item.id === componentId);
+      if (index < 0 || index >= items.length - 1) return items;
+      return arrayMove(items, index, index + 1);
+    });
+  }, []);
+
+  // Override SectionManager to add drag handles and positioning buttons
+  const SectionManagerWithDrag = useCallback(({ 
+    initialComponents, 
+    isEditing, 
+    onComponentsChange 
+  }: { 
+    initialComponents: Component[],
+    isEditing: boolean,
+    onComponentsChange?: (components: Component[]) => void
+  }) => {
+    // Enhance SectionManager with draggable components
+    const componentIds = initialComponents.map(c => c.id);
+
+    // In real implementation, this would require modifying SectionManager
+    // This is a simplified approach to demonstrate the concept
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={componentIds}
+          strategy={verticalListSortingStrategy}
+        >
+          <SectionManager
+            initialComponents={initialComponents}
+            isEditing={isEditing}
+            onComponentsChange={onComponentsChange}
+          />
+          
+          {/* Floatable controls for reordering when in edit mode */}
+          {isEditing && (
+            <div className="component-reorder-controls">
+              {initialComponents.map((component, index) => (
+                <div 
+                  key={component.id}
+                  className="flex items-center justify-end space-x-1 p-1 -mt-7 mb-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  data-component-id={component.id}
+                >
+                  <button
+                    onClick={() => moveComponentUp(component.id)}
+                    disabled={index === 0}
+                    className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background"
+                    title="Move component up"
+                  >
+                    <ArrowUpIcon className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => moveComponentDown(component.id)}
+                    disabled={index === initialComponents.length - 1}
+                    className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background"
+                    title="Move component down"
+                  >
+                    <ArrowDownIcon className="h-3 w-3" />
+                  </button>
+                  <div className="cursor-move p-1 bg-background border border-border rounded-sm hover:bg-accent/10 ml-1">
+                    <svg viewBox="0 0 20 20" width="12" height="12" className="text-muted-foreground">
+                      <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
+                    </svg>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-          <div className="h-px bg-gray-200 w-full mb-4"></div>
+        </SortableContext>
+      </DndContext>
+    );
+  }, [handleDragEnd, sensors, moveComponentUp, moveComponentDown]);
+
+  return (
+    <div className="my-6" data-section-id={normalizedSectionId}>
+      {isEditing && (
+        <div className="mb-4">
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              {isEditingTitle ? (
+                <div className="flex items-center mb-2">
+                  <input
+                    type="text"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onBlur={handleTitleSave}
+                    onKeyDown={handleTitleKeyDown}
+                    className="border border-input rounded-md px-3 py-1 mr-2 text-sm font-medium w-full focus:outline-none focus:ring-1 focus:ring-ring"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={handleTitleSave}
+                    className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-md hover:bg-muted/80 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  onClick={handleTitleClick} 
+                  className="text-lg font-medium text-foreground hover:text-accent-foreground cursor-pointer mb-2 inline-flex items-center"
+                >
+                  {editedTitle || "Untitled Section"}
+                  <span className="ml-2 text-xs text-muted-foreground">(click to edit)</span>
+                </div>
+              )}
+            </div>
+            
+            {/* View mode toggle buttons */}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => toggleViewMode('edit')}
+                className={`px-3 py-1 text-xs rounded-l-md border ${
+                  viewMode === 'edit' 
+                    ? 'bg-accent text-accent-foreground border-accent' 
+                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                }`}
+              >
+                Editor
+              </button>
+              <button
+                onClick={() => toggleViewMode('split')}
+                className={`px-3 py-1 text-xs border-t border-b ${
+                  viewMode === 'split' 
+                    ? 'bg-accent text-accent-foreground border-accent' 
+                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                }`}
+              >
+                Split
+              </button>
+              <button
+                onClick={() => toggleViewMode('preview')}
+                className={`px-3 py-1 text-xs rounded-r-md border ${
+                  viewMode === 'preview' 
+                    ? 'bg-accent text-accent-foreground border-accent' 
+                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+          <div className="h-px bg-border w-full mt-2 mb-4"></div>
         </div>
       )}
       
-      {isEditing && autoSave && (
-        <MemoizedAdminControls
-          components={pendingComponents}
-          onSave={handleSave}
-          onLoad={handleLoad}
-          sectionId={normalizedSectionId}
-          isLoading={isLoading}
-          lastSaved={lastSaved}
-          error={error}
-        />
-      )}
-      
-      <SectionManager
-        initialComponents={pendingComponents}
-        isEditing={isEditing}
-        onComponentsChange={handleComponentsChange}
-      />
-      
-      {isLoading && (
-        <div className="text-center py-8 text-gray-500">
-          Loading section content...
+      {isEditing && (
+        <div className="flex items-center justify-between mb-4">
+          <MemoizedAdminControls
+            components={pendingComponents}
+            onSave={handleSave}
+            onLoad={handleLoad}
+            sectionId={normalizedSectionId}
+            isLoading={isLoading}
+            lastSaved={lastSaved}
+            error={error}
+          />
+          
+          {/* Save button directly in the component */}
+          <button
+            onClick={() => handleSave(pendingComponents)}
+            disabled={isLoading || isSaving}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            <SaveIcon className="h-4 w-4" />
+            <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
+          </button>
         </div>
       )}
       
-      {error && !isLoading && (
-        <div className="text-center py-4 text-red-500 bg-red-50 rounded">
+      {isLoading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <div className="animate-spin h-8 w-8 border-4 border-muted border-t-foreground/30 rounded-full mx-auto mb-3"></div>
+          <p>Loading section content...</p>
+        </div>
+      ) : error && !isLoading ? (
+        <div className="text-center py-4 text-muted-foreground bg-muted/20 rounded-md border border-border">
           Error: {error}
         </div>
+      ) : (
+        <>
+          {/* Split view or single view based on mode */}
+          <div className={`${viewMode === 'split' ? 'grid grid-cols-2 gap-6' : 'block'}`}>
+            {/* Edit Panel - Show in edit or split mode */}
+            {(viewMode === 'edit' || viewMode === 'split') && (
+              <div className={`${viewMode === 'split' ? 'border-r pr-5 border-border/50' : ''}`}>
+                {viewMode === 'split' && (
+                  <div className="mb-4 text-sm font-medium text-muted-foreground pb-2 border-b border-border/50">Editor</div>
+                )}
+                <SectionManagerWithDrag
+                  initialComponents={pendingComponents}
+                  isEditing={true}
+                  onComponentsChange={handleComponentsChange}
+                />
+              </div>
+            )}
+            
+            {/* Preview Panel - Show in preview or split mode */}
+            {(viewMode === 'preview' || viewMode === 'split') && (
+              <div>
+                {viewMode === 'split' && (
+                  <div className="mb-4 text-sm font-medium text-muted-foreground pb-2 border-b border-border/50">Preview</div>
+                )}
+                <div className={`${viewMode === 'split' ? 'pl-1' : ''} bg-background rounded-md`}>
+                  <SectionManager
+                    initialComponents={pendingComponents}
+                    isEditing={false}
+                    onComponentsChange={undefined}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

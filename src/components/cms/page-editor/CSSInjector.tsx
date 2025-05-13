@@ -1,0 +1,84 @@
+'use client';
+
+import React, { useEffect } from 'react';
+
+/**
+ * This component injects the necessary CSS for draggable components
+ * Used as a fallback in case the global CSS import doesn't work
+ */
+const CSSInjector: React.FC = () => {
+  useEffect(() => {
+    // Add a style tag with the necessary CSS
+    const styleTag = document.createElement('style');
+    styleTag.textContent = `
+      /* CSS for CMS Editor components */
+      /* Drag handle styles */
+      .component-drag-handle {
+        cursor: grab;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+      }
+      
+      .component-drag-handle:active {
+        cursor: grabbing;
+      }
+      
+      /* Show drag handle and controls when hovering over the component */
+      .section-components .group:hover .component-drag-handle,
+      .section-components .group:hover .component-controls {
+        opacity: 1;
+      }
+      
+      /* Position component reordering controls */
+      .component-reorder-controls {
+        position: relative;
+        z-index: 20;
+      }
+      
+      /* Component being dragged */
+      .component-dragging {
+        opacity: 0.7;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+        background-color: var(--background);
+        border: 1px dashed var(--border);
+      }
+      
+      /* Component drop indicator */
+      .component-drop-indicator {
+        height: 2px;
+        margin: 8px 0;
+        background-color: var(--primary);
+        border-radius: 1px;
+        box-shadow: 0 0 0 1px var(--primary);
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+      }
+      
+      .component-drop-indicator.active {
+        opacity: 1;
+      }
+      
+      /* Component controls positioned correctly in editor */
+      .component-controls {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+        z-index: 10;
+      }
+    `;
+    document.head.appendChild(styleTag);
+    
+    // Clean up function removes the style element when component unmounts
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+  
+  return null;
+};
+
+export default CSSInjector; 

@@ -149,10 +149,13 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       
       // Crear un evento personalizado para agregar el componente
       // Para SectionManager necesitamos usar el displayType (con mayúscula)
+      const initialData = getInitialData(componentType);
       const newComponent = {
         id: `component-${componentType}-${Date.now()}`,
         type: displayType, // Usar el tipo con formato correcto para SectionManager
-        data: getInitialData(componentType)
+        data: initialData,
+        // No incluir title como propiedad directa, solo en data
+        // El titulo para UI se mostrará desde data.componentTitle
       };
       
       // Disparar el evento para que SectionManager lo capte

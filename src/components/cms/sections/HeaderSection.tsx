@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface HeaderSectionProps {
   title: string;
@@ -20,11 +21,11 @@ export default function HeaderSection({
   const [titleValue, setTitleValue] = useState(title);
   const [subtitleValue, setSubtitleValue] = useState(subtitle || '');
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setTitleValue(e.target.value);
   };
 
-  const handleSubtitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSubtitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setSubtitleValue(e.target.value);
   };
 
@@ -42,21 +43,52 @@ export default function HeaderSection({
     }
   };
 
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      setIsEditingTitle(false);
+      if (onUpdate) {
+        onUpdate({ title: titleValue, subtitle: subtitleValue });
+      }
+    }
+  };
+
+  const handleSubtitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      setIsEditingSubtitle(false);
+      if (onUpdate) {
+        onUpdate({ title: titleValue, subtitle: subtitleValue });
+      }
+    }
+  };
+
   return (
-    <div className="bg-white p-8 rounded-lg shadow-md w-full">
+    <div className={cn(
+      "w-full",
+      isEditing ? "p-4" : "p-8 bg-background border border-border/20 rounded-lg shadow-sm"
+    )}>
       <div className="max-w-4xl mx-auto">
         {isEditing && isEditingTitle ? (
-          <input
-            type="text"
-            value={titleValue}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            className="w-full text-3xl font-bold border-b-2 border-blue-500 pb-2 mb-4 focus:outline-none"
-            autoFocus
-          />
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Title
+            </label>
+            <textarea
+              value={titleValue}
+              onChange={handleTitleChange}
+              onBlur={handleTitleBlur}
+              onKeyDown={handleTitleKeyDown}
+              className="w-full text-xl font-semibold border border-input rounded-md p-2 min-h-[60px] focus:ring-1 focus:ring-ring focus:outline-none resize-y bg-background"
+              autoFocus
+            />
+          </div>
         ) : (
           <h2 
-            className={`text-3xl font-bold pb-2 mb-4 ${isEditing ? 'cursor-pointer hover:bg-blue-50 hover:px-2 transition-all' : ''}`}
+            className={cn(
+              "text-3xl font-bold pb-2 mb-4",
+              isEditing && "cursor-pointer hover:bg-muted transition-colors rounded-md p-1"
+            )}
             onClick={() => isEditing && setIsEditingTitle(true)}
           >
             {titleValue}
@@ -64,23 +96,33 @@ export default function HeaderSection({
         )}
 
         {isEditing && isEditingSubtitle ? (
-          <input
-            type="text"
-            value={subtitleValue}
-            onChange={handleSubtitleChange}
-            onBlur={handleSubtitleBlur}
-            className="w-full text-lg text-gray-600 border-b-2 border-blue-500 pb-2 focus:outline-none"
-            autoFocus
-          />
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Subtitle
+            </label>
+            <textarea
+              value={subtitleValue}
+              onChange={handleSubtitleChange}
+              onBlur={handleSubtitleBlur}
+              onKeyDown={handleSubtitleKeyDown}
+              className="w-full text-base text-foreground/80 border border-input rounded-md p-2 min-h-[60px] focus:ring-1 focus:ring-ring focus:outline-none resize-y bg-background"
+              autoFocus
+              placeholder="Enter subtitle..."
+            />
+          </div>
         ) : (
-          subtitle && (
+          subtitle || isEditing ? (
             <p 
-              className={`text-lg text-gray-600 ${isEditing ? 'cursor-pointer hover:bg-blue-50 hover:px-2 transition-all' : ''}`}
+              className={cn(
+                "text-lg text-muted-foreground",
+                isEditing && !subtitleValue && "text-muted-foreground/50 italic",
+                isEditing && "cursor-pointer hover:bg-muted transition-colors rounded-md p-1"
+              )}
               onClick={() => isEditing && setIsEditingSubtitle(true)}
             >
-              {subtitleValue}
+              {subtitleValue || (isEditing ? "Click to add subtitle..." : "")}
             </p>
-          )
+          ) : null
         )}
       </div>
     </div>

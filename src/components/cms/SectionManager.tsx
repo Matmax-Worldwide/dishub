@@ -83,8 +83,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       // Store the old title for comparison
       const oldTitle = component.title;
       
-      // Update the local component title
-      component.title = componentTitle;
+      // We'll no longer update the title directly, just through data
+      // This avoids issues with the GraphQL API schema
       
       // Directly update the title in the database
       if (component.id) {
@@ -116,10 +116,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       
       // Small delay to avoid React rendering issues
       setTimeout(() => {
-        // Add the updated component back with the new title
-        if (componentCopy.data) {
-          componentCopy.data.componentTitle = componentTitle;
+        // Add the updated component back with the new title in data
+        if (!componentCopy.data) {
+          componentCopy.data = {};
         }
+        componentCopy.data.componentTitle = componentTitle;
+        
+        // Update the title property for UI display (it won't be sent to API)
+        componentCopy.title = componentTitle;
+        
         // This re-adding will trigger the parent's onComponentsChange
         document.dispatchEvent(new CustomEvent('component:add', { detail: componentCopy }));
       }, 10);
@@ -142,6 +147,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      data-component-id={component.id}
     >
       {isEditing && (
         <>
@@ -166,13 +172,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
                 {componentTitle}
               </div>
             )}
-            <button 
-              onClick={handleRemove}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full"
-              aria-label="Eliminar componente"
-            >
-              <XMarkIcon className="h-3 w-3 text-destructive" />
-            </button>
+            <div className="flex items-center space-x-1">
+              <button 
+                onClick={handleRemove}
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive/10 hover:bg-destructive/20 rounded-full"
+                aria-label="Eliminar componente"
+              >
+                <XMarkIcon className="h-3 w-3 text-destructive" />
+              </button>
+            </div>
           </div>
           <div className="h-px bg-border w-full mb-3 opacity-60"></div>
         </>
@@ -418,6 +426,8 @@ function SectionManagerBase({
 
   // Función para activar el diálogo de agregar componente
   const handleClickAddComponent = useCallback(() => {
+    console.log('[SectionManager] Solicitando diálogo para agregar componente');
+    // Dispatch event to notify SectionsTab to open the component dialog
     document.dispatchEvent(new CustomEvent('section:request-add-component'));
   }, []);
 
