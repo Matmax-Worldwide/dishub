@@ -8,4 +8,5 @@ export { default as DeleteSectionDialog } from './DeleteSectionDialog';
 export { default as ExitConfirmationDialog } from './ExitConfirmationDialog';
 export { default as PageDetailsTab } from './PageDetailsTab';
 export { default as SEOTab } from './SEOTab';
-export { default as SectionsTab } from './SectionsTab'; 
+export { default as SectionsTab } from './SectionsTab';
+export { default as PageEditor } from './PageEditor'; 
