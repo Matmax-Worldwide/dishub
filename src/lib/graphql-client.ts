@@ -1726,5 +1726,92 @@ export const cmsOperations = {
   },
 
   updateComponentTitle,
-  updateSectionName
+  updateSectionName,
+  
+  // Get all menus with their items
+  getMenus: async () => {
+    try {
+      const query = `
+        query GetMenus {
+          menus {
+            id
+            name
+            location
+            locationType
+            isFixed
+            backgroundColor
+            textColor
+            items {
+              id
+              title
+              url
+              pageId
+              target
+              icon
+              order
+              children {
+                id
+                title
+                url
+                pageId
+                target
+                icon
+                order
+              }
+              page {
+                id
+                title
+                slug
+              }
+            }
+          }
+        }
+      `;
+
+      console.log('GraphQL query for getMenus');
+
+      const result = await gqlRequest<{ menus: Array<{
+        id: string;
+        name: string;
+        location: string | null;
+        locationType: string | null;
+        isFixed: boolean | null;
+        backgroundColor: string | null;
+        textColor: string | null;
+        items: Array<{
+          id: string;
+          title: string;
+          url: string | null;
+          pageId: string | null;
+          target: string | null;
+          icon: string | null;
+          order: number;
+          children?: Array<{
+            id: string;
+            title: string;
+            url: string | null;
+            pageId: string | null;
+            target: string | null;
+            icon: string | null;
+            order: number;
+          }>;
+          page?: {
+            id: string;
+            title: string;
+            slug: string;
+          };
+        }>;
+      }> }>(query);
+      
+      if (!result || !result.menus) {
+        console.log("No menus found or unexpected structure");
+        return [];
+      }
+      
+      return result.menus;
+    } catch (error) {
+      console.error('Error in getMenus GraphQL query:', error);
+      return [];
+    }
+  }
 }; 

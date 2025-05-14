@@ -5,6 +5,9 @@ import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager from '@/components/cms/SectionManager';
 import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
+import NavigationHeader from '@/components/Navigation/NavigationHeader';
+import Sidebar from '@/components/Navigation/Sidebar';
+import Footer from '@/components/Navigation/Footer';
 
 // Add the ComponentType type import
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
@@ -19,12 +22,14 @@ interface PageData {
   isPublished: boolean;
   pageType: string;
   locale?: string;
+  scrollType?: 'normal' | 'smooth';
   metaTitle?: string | null;
   metaDescription?: string | null;
   featuredImage?: string | null;
   sections?: Array<{id: string; order?: number; data?: Record<string, unknown>}>;
 }
 
+// Define section data type
 interface SectionData {
   id: string;
   title?: string;
@@ -34,6 +39,30 @@ interface SectionData {
     type: string;
     data: Record<string, unknown>;
   }>;
+}
+
+// Update Menu and MenuItem interfaces to match the API response
+interface MenuItem {
+  id: string;
+  title: string;
+  url: string | null;
+  pageId: string | null;
+  target: string | null;
+  icon: string | null;
+  order: number;
+  children?: MenuItem[];
+  page?: { id: string; title: string; slug: string };
+}
+
+interface Menu {
+  id: string;
+  name: string;
+  location: string | null;
+  locationType: string | null;
+  isFixed: boolean | null;
+  backgroundColor: string | null;
+  textColor: string | null;
+  items: MenuItem[];
 }
 
 export default function CMSPage() {
@@ -46,8 +75,25 @@ export default function CMSPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState(0);
+  const [menus, setMenus] = useState<Menu[]>([]);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const isScrolling = useRef<boolean>(false);
+  
+  // Load menus for the page
+  useEffect(() => {
+    async function loadMenus() {
+      try {
+        const menusData = await cmsOperations.getMenus();
+        if (Array.isArray(menusData)) {
+          setMenus(menusData);
+        }
+      } catch (error) {
+        console.error('Error loading menus:', error);
+      }
+    }
+    
+    loadMenus();
+  }, []);
   
   // Set up smooth scroll effect if needed
   useEffect(() => {
@@ -574,8 +620,63 @@ export default function CMSPage() {
   // Return the component
   return (
     <div className="cms-page">
+      {/* Header Menu + Section Header components */}
+      {/* First check if we have a Header section in the sections array that should handle the menu */}
+      {sections.some(section => 
+        section.components.some(comp => comp.type.toLowerCase() === 'header')
+      ) ? (
+        // If we have Header components in sections, they will be rendered by SectionManager
+        // We still need a spacer if any Header is fixed
+        sections.some(section => 
+          section.components.some(comp => 
+            comp.type.toLowerCase() === 'header' && 
+            (comp.data?.isFixed === true || comp.data?.isFixed === 'true')
+          )
+        ) && <div className="h-16"></div>
+      ) : (
+        // Otherwise, use the menu directly for navigation
+        <>
+          {menus.filter(menu => menu.locationType === 'HEADER').map((menu) => (
+            <NavigationHeader 
+              key={menu.id}
+              menu={menu}
+              // Find sections with Header components to extract logo and subtitle if available
+              logoUrl={sections.flatMap(section => 
+                section.components.filter(comp => 
+                  comp.type.toLowerCase() === 'header' && comp.data?.logoUrl
+                ).map(comp => comp.data.logoUrl as string)
+              )[0] || ''}
+              subtitle={sections.flatMap(section => 
+                section.components.filter(comp => 
+                  comp.type.toLowerCase() === 'header' && comp.data?.subtitle
+                ).map(comp => comp.data.subtitle as string)
+              )[0] || ''}
+            />
+          ))}
+
+          {/* Spacer for fixed headers from menus */}
+          {menus.some(menu => menu.locationType === 'HEADER' && menu.isFixed) && (
+            <div className="h-16"></div>
+          )}
+        </>
+      )}
+
+      {/* Sidebar Menu */}
+      {menus.filter(menu => menu.locationType === 'SIDEBAR').map((menu) => (
+        <Sidebar
+          key={menu.id}
+          menu={menu}
+          // Find sections with Header components to extract logo and subtitle if available
+          logoUrl={sections.flatMap(section => 
+            section.components.filter(comp => 
+              comp.type.toLowerCase() === 'header' && comp.data?.logoUrl
+            ).map(comp => comp.data.logoUrl as string)
+          )[0] || ''}
+        />
+      ))}
+
       {/* Banner for unpublished pages in preview mode */}
-      {!pageData.isPublished && (
+      {!pageData?.isPublished && (
         <div className="bg-warning text-white py-2 px-4 text-center">
           Vista previa - Esta página no está publicada
         </div>
@@ -611,49 +712,90 @@ export default function CMSPage() {
               </div>
             )}
 
-            {sections.map((section, index) => (
-              <div 
-                key={section.id} 
-                className={sectionClassName}
-                data-section-id={section.id} 
-                data-section-title={section.title}
-                id={`section-${index}`}
-                ref={(el: HTMLElement | null) => {
-                  if (el) sectionRefs.current[index] = el;
-                }}
-              >
-                {/* Add gradient transitions for LANDING pages */}
-                {pageData.pageType === 'LANDING' && (
-                  <>
-                    {/* Reduced or eliminated transitional elements for cleaner TikTok-style scrolling */}
-                  </>
-                )}
-                {section.components.length > 0 ? (
-                  <div className={pageData.pageType === 'LANDING' ? 'w-full flex flex-col snap-y snap-mandatory' : 'w-full'}>
-                    <SectionManager 
-                      initialComponents={section.components.map(comp => ({
-                        id: comp.id,
-                        // Convert component types like 'hero' to 'Hero' for SectionManager
-                        type: formatComponentType(comp.type),
-                        data: comp.data || {}
-                      }))}
-                      isEditing={false}
-                      componentClassName={(type: string) => {
-                        const isHeroOrBenefit = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit';
-                        
-                        return pageData.pageType === 'LANDING' && isHeroOrBenefit
-                          ? 'min-h-screen h-screen snap-center flex items-center justify-center relative w-full'
-                          : `w-full component-${type.toLowerCase()}`;
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
-                    <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
-                  </div>
-                )}
-              </div>
-            ))}
+            {sections.map((section, index) => {
+              // Check if this section contains a fixed Header component
+              const hasFixedHeader = section.components.some(comp => 
+                comp.type.toLowerCase() === 'header' && 
+                (comp.data?.isFixed === true || comp.data?.isFixed === 'true')
+              );
+              
+              // Find Header components in this section
+              const headerComponents = section.components.filter(comp => 
+                comp.type.toLowerCase() === 'header'
+              );
+              
+              // For Header components, make sure they have the menu information
+              if (headerComponents.length > 0) {
+                headerComponents.forEach(header => {
+                  // If the header has a menuId but no menu items, we can find a matching menu
+                  const menuId = header.data?.menuId as string | undefined;
+                  const hasMenu = typeof header.data?.menu === 'object' && header.data.menu !== null;
+                  const hasMenuItems = hasMenu && Array.isArray((header.data.menu as Menu)?.items);
+                  
+                  if (menuId && (!hasMenu || !hasMenuItems)) {
+                    const matchingMenu = menus.find(m => m.id === menuId);
+                    if (matchingMenu) {
+                      console.log(`Found matching menu for header: ${matchingMenu.name}`);
+                      // Update the header data with the full menu (this won't mutate the actual data)
+                      header.data.menu = matchingMenu;
+                    }
+                  }
+                });
+              }
+              
+              return (
+                <div 
+                  key={section.id} 
+                  className={`${sectionClassName} ${hasFixedHeader ? 'has-fixed-header' : ''}`}
+                  data-section-id={section.id} 
+                  data-section-title={section.title}
+                  id={`section-${index}`}
+                  ref={(el: HTMLElement | null) => {
+                    if (el) sectionRefs.current[index] = el;
+                  }}
+                >
+                  {section.components.length > 0 ? (
+                    <div className={pageData.pageType === 'LANDING' ? 'w-full flex flex-col snap-y snap-mandatory' : 'w-full'}>
+                      <SectionManager 
+                        initialComponents={section.components.map(comp => ({
+                          id: comp.id,
+                          // Convert component types like 'hero' to 'Hero' for SectionManager
+                          type: formatComponentType(comp.type),
+                          data: comp.data || {}
+                        }))}
+                        isEditing={false}
+                        componentClassName={(type: string) => {
+                          const isHeroOrBenefit = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit';
+                          const isFixedHeader = type.toLowerCase() === 'header' && 
+                            section.components.some(c => 
+                              c.type.toLowerCase() === 'header' && 
+                              (c.data?.isFixed === true || c.data?.isFixed === 'true')
+                            );
+                          
+                          let classNames = '';
+                          
+                          if (pageData.pageType === 'LANDING' && isHeroOrBenefit) {
+                            classNames = 'min-h-screen h-screen snap-center flex items-center justify-center relative w-full';
+                          } else {
+                            classNames = `w-full component-${type.toLowerCase()}`;
+                          }
+                          
+                          if (isFixedHeader) {
+                            classNames += ' fixed-header z-50';
+                          }
+                          
+                          return classNames;
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center bg-accent/5 rounded-lg border border-dashed border-muted my-4 max-w-5xl mx-auto">
+                      <p className="text-muted-foreground">Esta sección no tiene componentes disponibles.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </>
         ) : (
           <div className="container mx-auto py-16 px-4 text-center">
@@ -662,6 +804,26 @@ export default function CMSPage() {
           </div>
         )}
       </main>
+
+      {/* Footer Menu */}
+      {menus.filter(menu => menu.locationType === 'FOOTER').map((menu) => (
+        <Footer
+          key={menu.id}
+          menu={menu}
+          // Find sections with Header components to extract logo info if available
+          logoUrl={sections.flatMap(section => 
+            section.components.filter(comp => 
+              comp.type.toLowerCase() === 'header' && comp.data?.logoUrl
+            ).map(comp => comp.data.logoUrl as string)
+          )[0] || ''}
+          subtitle={sections.flatMap(section => 
+            section.components.filter(comp => 
+              comp.type.toLowerCase() === 'header' && comp.data?.subtitle
+            ).map(comp => comp.data.subtitle as string)
+          )[0] || ''}
+          copyright={pageData.title}
+        />
+      ))}
     </div>
   );
 }

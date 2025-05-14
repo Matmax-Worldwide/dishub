@@ -11,6 +11,7 @@ interface CMSSidebarProps {
       pages: string;
       media: string;
       menus: string;
+      forms: string;
       settings: string;
     };
   };
@@ -24,18 +25,18 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   const nav = dictionary?.cms || {
     dashboard: 'Dashboard',
     pages: 'Pages',
-    sections: 'Sections',
-    components: 'Components',
-    media: 'Media',
     menus: 'Menus',
+    media: 'Media',
+    forms: 'Forms',
     settings: 'Settings'
   };
 
   const navigationItems = [
     { name: nav.dashboard, href: `/${locale}/cms/` },
     { name: nav.pages, href: `/${locale}/cms/pages` },
-    { name: nav.media, href: `/${locale}/cms/media` },
     { name: nav.menus, href: `/${locale}/cms/menus` },
+    { name: nav.media, href: `/${locale}/cms/media` },
+    { name: nav.forms, href: `/${locale}/cms/forms` },
     { name: nav.settings, href: `/${locale}/cms/settings` },
   ];
 

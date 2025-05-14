@@ -23,6 +23,7 @@ import { roleResolvers } from './resolvers/roles';
 import { permissionResolvers } from './resolvers/permissions';
 import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
+import { menuResolvers } from './resolvers/menus';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -621,6 +622,12 @@ const resolvers = {
     ...((permissionResolvers.Query as object) || {}),
     ...((userPermissionResolvers.Query as object) || {}),
     
+    // Add menu queries
+    menus: menuResolvers.Query.menus,
+    menu: menuResolvers.Query.menu,
+    menuByLocation: menuResolvers.Query.menuByLocation,
+    pages: menuResolvers.Query.pages,
+    
     // Add explicit fallback for projects query to ensure it exists
     projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
       try {
@@ -1066,7 +1073,19 @@ const resolvers = {
     createPage: cmsResolvers.Mutation.createPage,
     updatePage: cmsResolvers.Mutation.updatePage,
     deletePage: cmsResolvers.Mutation.deletePage,
+
+    // Add menu mutations
+    createMenu: menuResolvers.Mutation.createMenu,
+    updateMenu: menuResolvers.Mutation.updateMenu,
+    deleteMenu: menuResolvers.Mutation.deleteMenu,
+    createMenuItem: menuResolvers.Mutation.createMenuItem,
+    updateMenuItem: menuResolvers.Mutation.updateMenuItem,
+    deleteMenuItem: menuResolvers.Mutation.deleteMenuItem,
+    updateMenuItemOrder: menuResolvers.Mutation.updateMenuItemOrder,
   },
+
+  // Add the MenuItem resolver for nested children
+  MenuItem: menuResolvers.MenuItem,
 };
 
 // Verificar resolvers CMS al iniciar

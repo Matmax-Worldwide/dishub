@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { MenuLocationType, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -14,6 +14,10 @@ interface MenuLocationArgs {
 interface MenuInput {
   name: string;
   location: string | null;
+  locationType?: string | null;
+  isFixed?: boolean | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
 }
 
 interface MenuItemInput {
@@ -69,6 +73,28 @@ export const menuResolvers = {
         },
       });
     },
+
+    // Add a query to get all pages for the menu item selection
+    pages: async () => {
+      try {
+        const pages = await prisma.page.findMany({
+          where: { isPublished: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+          orderBy: {
+            title: 'asc',
+          },
+        });
+        
+        return pages; // Return the pages array
+      } catch (error) {
+        console.error('Error fetching pages for menu:', error);
+        return []; // Return empty array on error instead of null
+      }
+    },
   },
   
   Mutation: {
@@ -77,6 +103,10 @@ export const menuResolvers = {
         data: {
           name: input.name,
           location: input.location,
+          locationType: input.locationType as MenuLocationType, // Cast to the enum type
+          isFixed: input.isFixed,
+          backgroundColor: input.backgroundColor,
+          textColor: input.textColor,
         },
       });
     },
@@ -87,6 +117,10 @@ export const menuResolvers = {
         data: {
           name: input.name,
           location: input.location,
+          locationType: input.locationType as MenuLocationType, // Cast to the enum type
+          isFixed: input.isFixed,
+          backgroundColor: input.backgroundColor,
+          textColor: input.textColor,
         },
       });
     },
@@ -117,12 +151,28 @@ export const menuResolvers = {
       
       const newOrder = maxOrderItem ? maxOrderItem.order + 1 : 1;
       
+      // If pageId is provided, ensure url is null to avoid conflicts
+      // If pageId is not provided, use the url
+      const url = input.pageId ? null : input.url;
+
+      // If pageId is provided, try to get the page to verify it exists
+      if (input.pageId) {
+        const page = await prisma.page.findUnique({
+          where: { id: input.pageId },
+          select: { id: true, title: true, slug: true }
+        });
+        
+        if (!page) {
+          throw new Error('Selected page not found');
+        }
+      }
+      
       return prisma.menuItem.create({
         data: {
           menuId: input.menuId,
           parentId: input.parentId,
           title: input.title,
-          url: input.url,
+          url: url,
           pageId: input.pageId,
           target: input.target,
           icon: input.icon,
@@ -132,11 +182,27 @@ export const menuResolvers = {
     },
     
     updateMenuItem: async (_: unknown, { id, input }: { id: string; input: MenuItemInput }) => {
+      // If pageId is provided, ensure url is null to avoid conflicts
+      // If pageId is not provided, use the url
+      const url = input.pageId ? null : input.url;
+
+      // If pageId is provided, try to get the page to verify it exists
+      if (input.pageId) {
+        const page = await prisma.page.findUnique({
+          where: { id: input.pageId },
+          select: { id: true, title: true, slug: true }
+        });
+        
+        if (!page) {
+          throw new Error('Selected page not found');
+        }
+      }
+      
       return prisma.menuItem.update({
         where: { id },
         data: {
           title: input.title,
-          url: input.url,
+          url: url,
           pageId: input.pageId,
           target: input.target,
           icon: input.icon,
@@ -190,6 +256,20 @@ export const menuResolvers = {
       return prisma.menuItem.findMany({
         where: { parentId: parent.id },
         orderBy: { order: 'asc' },
+      });
+    },
+    
+    // Add a resolver to get the related page if pageId is set
+    page: async (parent: MenuItem) => {
+      if (!parent.pageId) return null;
+      
+      return prisma.page.findUnique({
+        where: { id: parent.pageId },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
       });
     },
   },

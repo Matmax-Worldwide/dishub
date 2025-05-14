@@ -693,6 +693,75 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
   
+  # Menu types
+  type Menu {
+    id: ID!
+    name: String!
+    location: String
+    locationType: MenuLocationType
+    isFixed: Boolean
+    backgroundColor: String
+    textColor: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    items: [MenuItem!]
+  }
+
+  enum MenuLocationType {
+    HEADER
+    FOOTER
+    SIDEBAR
+    CUSTOM
+  }
+
+  type MenuItem {
+    id: ID!
+    menuId: String!
+    parentId: String
+    title: String!
+    url: String
+    pageId: String
+    target: String
+    icon: String
+    order: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    children: [MenuItem!]
+    parent: MenuItem
+    menu: Menu
+    page: PageBasic
+  }
+
+  # Basic page type for use in menu items
+  type PageBasic {
+    id: ID!
+    title: String!
+    slug: String!
+  }
+
+  input MenuInput {
+    name: String!
+    location: String
+    locationType: MenuLocationType
+    isFixed: Boolean
+    backgroundColor: String
+    textColor: String
+  }
+
+  input MenuItemInput {
+    menuId: String!
+    parentId: String
+    title: String!
+    url: String
+    pageId: String
+    target: String
+    icon: String
+  }
+
+  input MenuItemOrderInput {
+    newOrder: Int!
+  }
+  
   # Resultado de operaciones con componentes
   type CMSComponentResult {
     success: Boolean!
@@ -909,6 +978,12 @@ export const typeDefs = gql`
     getAllCMSPages: [Page!]!
     getPageBySlug(slug: String!): Page
     getPagesUsingSectionId(sectionId: ID!): [Page!]!
+
+    # Menu queries
+    menus: [Menu!]!
+    menu(id: ID!): Menu
+    menuByLocation(location: String!): Menu
+    pages: [PageBasic!]! # New query to get pages for menu items
   }
 
   # Root Mutation
@@ -1006,5 +1081,16 @@ export const typeDefs = gql`
     # Section mutations
     createCMSSection(input: CreateCMSSectionInput!): CMSSectionResult
     createPageSection(input: CreatePageSectionInput!): PageSectionResult
+
+    # Menu mutations
+    createMenu(input: MenuInput!): Menu
+    updateMenu(id: ID!, input: MenuInput!): Menu
+    deleteMenu(id: ID!): Boolean
+    
+    # MenuItem mutations
+    createMenuItem(input: MenuItemInput!): MenuItem
+    updateMenuItem(id: ID!, input: MenuItemInput!): MenuItem
+    deleteMenuItem(id: ID!): Boolean
+    updateMenuItemOrder(id: ID!, input: MenuItemOrderInput!): MenuItem
   }
 `; 
