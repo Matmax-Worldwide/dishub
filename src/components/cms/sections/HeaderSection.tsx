@@ -8,49 +8,12 @@ import { cmsOperations } from '@/lib/graphql-client';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
-
-// Define the MenuItem interface to match what comes from the API
-interface MenuItem {
-  id: string;
-  title: string;
-  url: string | null;
-  pageId: string | null;
-  target: string | null;
-  icon: string | null;
-  order: number;
-  children?: MenuItem[];
-  page?: { id: string; title: string; slug: string };
-}
-
-// Define the Menu interface to match what comes from the API
-interface Menu {
-  id: string;
-  name: string;
-  location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
-  items: MenuItem[];
-  headerStyle?: {
-    id: string;
-    transparency: number;
-    headerSize: string;
-    menuAlignment: string;
-    menuButtonStyle: string;
-    mobileMenuStyle: string;
-    mobileMenuPosition: string;
-    transparentHeader: boolean;
-    borderBottom: boolean;
-    advancedOptions?: Record<string, unknown>;
-  } | null;
-}
+import { Menu, MenuItem } from '@/app/api/graphql/types';
 
 interface HeaderSectionProps {
   title: string;
   subtitle?: string;
   menuId?: string;
-  isFixed?: boolean;
   backgroundColor?: string;
   textColor?: string;
   logoUrl?: string;
@@ -68,7 +31,6 @@ interface HeaderSectionProps {
     title: string; 
     subtitle?: string; 
     menuId?: string;
-    isFixed?: boolean;
     backgroundColor?: string;
     textColor?: string;
     logoUrl?: string;
@@ -88,7 +50,6 @@ export default function HeaderSection({
   title, 
   subtitle, 
   menuId,
-  isFixed: initialIsFixed = false,
   backgroundColor: initialBackgroundColor = '#ffffff',
   textColor: initialTextColor = '#000000',
   logoUrl: initialLogoUrl = '',
@@ -112,7 +73,6 @@ export default function HeaderSection({
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
   const [loadingMenus, setLoadingMenus] = useState(false);
-  const [isFixed, setIsFixed] = useState(initialIsFixed);
   const [backgroundColor, setBackgroundColor] = useState(initialBackgroundColor);
   const [textColor, setTextColor] = useState(initialTextColor);
   const [scrolled, setScrolled] = useState(false);
@@ -151,7 +111,7 @@ export default function HeaderSection({
       try {
         const menusData = await cmsOperations.getMenus();
         if (Array.isArray(menusData)) {
-          setMenus(menusData);
+          setMenus(menusData as Menu[]);
           
           // If we have a menuId, find and set the selected menu
           if (localMenuId) {
@@ -160,12 +120,7 @@ export default function HeaderSection({
             
             if (menuWithStyle) {
               console.log(`Found menu with ID ${localMenuId} with header style:`, menuWithStyle);
-              setSelectedMenu(menuWithStyle);
-              
-              // Set styling preferences from the menu if they exist
-              if (menuWithStyle.isFixed !== null) setIsFixed(menuWithStyle.isFixed);
-              if (menuWithStyle.backgroundColor) setBackgroundColor(menuWithStyle.backgroundColor);
-              if (menuWithStyle.textColor) setTextColor(menuWithStyle.textColor);
+              setSelectedMenu(menuWithStyle as Menu);
               
               // If header style exists, set all the style properties
               if (menuWithStyle.headerStyle) {
@@ -258,7 +213,7 @@ export default function HeaderSection({
   }, [isEditing]);
   
   // Optimize update handler with debouncing
-  const handleUpdateField = useCallback((field: string, value: string | boolean) => {
+  const handleUpdateField = useCallback((field: string, value: string | number | boolean) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
@@ -273,9 +228,6 @@ export default function HeaderSection({
         title: localTitle,
         subtitle: localSubtitle,
         menuId: localMenuId,
-        isFixed,
-        backgroundColor,
-        textColor,
         logoUrl,
         transparency,
         headerSize,
@@ -285,23 +237,37 @@ export default function HeaderSection({
         mobileMenuPosition,
         transparentHeader,
         borderBottom,
-        advancedOptions,
-        [field]: value
+        advancedOptions
       };
       
-      // Set timeout to update parent
+      // Update the specific field with the new value
+      (updateData as Record<string, string | number | boolean | HeaderAdvancedOptions>)[field] = value;
+      
+      // Set up a debounced update
       debounceRef.current = setTimeout(() => {
         onUpdate(updateData);
-        
-        // Reset editing flag after a short delay
+        // Reset the editing ref after a short delay
         setTimeout(() => {
           isEditingRef.current = false;
-        }, 500);
-      }, 200);
+        }, 300);
+      }, 500);
     }
-  }, [onUpdate, localTitle, localSubtitle, localMenuId, isFixed, backgroundColor, textColor, logoUrl, 
-      transparency, headerSize, menuAlignment, menuButtonStyle, mobileMenuStyle, mobileMenuPosition, 
-      transparentHeader, borderBottom, advancedOptions]);
+  }, [
+    localTitle, 
+    localSubtitle, 
+    localMenuId, 
+    logoUrl,
+    transparency,
+    headerSize,
+    menuAlignment,
+    menuButtonStyle,
+    mobileMenuStyle,
+    mobileMenuPosition,
+    transparentHeader,
+    borderBottom,
+    advancedOptions,
+    onUpdate
+  ]);
   
   // Clean up on unmount
   useEffect(() => {
@@ -323,80 +289,33 @@ export default function HeaderSection({
     handleUpdateField('subtitle', newValue);
   }, [handleUpdateField]);
   
-  const handleMenuChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newMenuId = e.target.value;
-    setLocalMenuId(newMenuId);
+  const handleMenuChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const menuId = e.target.value;
+    setLocalMenuId(menuId);
     
-    // Update the selected menu
-    if (newMenuId) {
-      // Use the getMenuWithHeaderStyle function
-      cmsOperations.getMenuWithHeaderStyle(newMenuId).then(menu => {
-        if (menu) {
-          setSelectedMenu(menu);
-          
-          // Also update styling preferences if they exist in the menu
-          if (menu.isFixed !== null) {
-            setIsFixed(menu.isFixed);
-            handleUpdateField('isFixed', menu.isFixed);
-          }
-          if (menu.backgroundColor) {
-            setBackgroundColor(menu.backgroundColor);
-            handleUpdateField('backgroundColor', menu.backgroundColor);
-          }
-          if (menu.textColor) {
-            setTextColor(menu.textColor);
-            handleUpdateField('textColor', menu.textColor);
-          }
-          
-          // Update all header style properties if they exist
-          if (menu.headerStyle) {
-            const style = menu.headerStyle;
-            
-            setTransparency(style.transparency || 0);
-            handleUpdateField('transparency', style.transparency.toString());
-            
-            setHeaderSize(style.headerSize as HeaderSize || 'md');
-            handleUpdateField('headerSize', style.headerSize);
-            
-            setMenuAlignment(style.menuAlignment as MenuAlignment || 'right');
-            handleUpdateField('menuAlignment', style.menuAlignment);
-            
-            setMenuButtonStyle(style.menuButtonStyle as MenuButtonStyle || 'default');
-            handleUpdateField('menuButtonStyle', style.menuButtonStyle);
-            
-            setMobileMenuStyle(style.mobileMenuStyle as MobileMenuStyle || 'dropdown');
-            handleUpdateField('mobileMenuStyle', style.mobileMenuStyle);
-            
-            setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
-            handleUpdateField('mobileMenuPosition', style.mobileMenuPosition);
-            
-            setTransparentHeader(style.transparentHeader || false);
-            handleUpdateField('transparentHeader', style.transparentHeader);
-            
-            setBorderBottom(style.borderBottom || false);
-            handleUpdateField('borderBottom', style.borderBottom);
-            
-            if (style.advancedOptions) {
-              setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
-              handleUpdateField('advancedOptions', JSON.stringify(style.advancedOptions));
-            }
-          }
-        } else {
-          setSelectedMenu(null);
-        }
-      });
-    } else {
-      setSelectedMenu(null);
+    // Find selected menu
+    const selectedMenu = menus.find(m => m.id === menuId);
+    setSelectedMenu(selectedMenu || null);
+    
+    // If the menu has a headerStyle, update our style settings
+    if (selectedMenu?.headerStyle) {
+      const style = selectedMenu.headerStyle;
+      setTransparency(style.transparency || 0);
+      setHeaderSize(style.headerSize as HeaderSize || 'md');
+      setMenuAlignment(style.menuAlignment as MenuAlignment || 'right');
+      setMenuButtonStyle(style.menuButtonStyle as MenuButtonStyle || 'default');
+      setMobileMenuStyle(style.mobileMenuStyle as MobileMenuStyle || 'dropdown');
+      setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
+      setTransparentHeader(style.transparentHeader || false);
+      setBorderBottom(style.borderBottom || false);
+      
+      if (style.advancedOptions) {
+        setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
+      }
     }
     
-    handleUpdateField('menuId', newMenuId);
-  }, [menus, handleUpdateField]);
-
-  const handleIsFixedChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    setIsFixed(newValue);
-    handleUpdateField('isFixed', newValue);
-  }, [handleUpdateField]);
+    handleUpdateField('menuId', menuId);
+  };
 
   const handleBackgroundColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -483,6 +402,12 @@ export default function HeaderSection({
               target={item.target || "_self"}
               className={`text-sm font-medium block ${linkStyles}`}
               style={{ color: textColor }}
+              onClick={() => {
+                // Close mobile menu when clicking on a link
+                if (isDropdownOpen.mobileMenu) {
+                  setIsDropdownOpen(prev => ({...prev, mobileMenu: false}));
+                }
+              }}
             >
               {item.title}
             </Link>
@@ -826,19 +751,6 @@ export default function HeaderSection({
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="isFixed"
-                  checked={isFixed}
-                  onChange={handleIsFixedChange}
-                  className="rounded border-gray-300 text-blue-600"
-                />
-                <label htmlFor="isFixed" className="text-sm">
-                  Fixed position (stays at top when scrolling)
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
                   id="transparentHeader"
                   checked={transparentHeader}
                   onChange={handleTransparentHeaderChange}
@@ -867,42 +779,26 @@ export default function HeaderSection({
                   <label htmlFor="backgroundColor" className="text-sm block mb-1">
                     Background Color
                   </label>
-                  <div className="flex items-center">
-                    <input
-                      type="color"
-                      id="backgroundColor"
-                      value={backgroundColor}
-                      onChange={handleBackgroundColorChange}
-                      className="rounded border border-gray-300 h-8 w-8 mr-2"
-                    />
-                    <input
-                      type="text"
-                      value={backgroundColor}
-                      onChange={handleBackgroundColorChange}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm flex-1"
-                    />
-                  </div>
+                  <input
+                    type="color"
+                    id="backgroundColor"
+                    value={backgroundColor}
+                    onChange={handleBackgroundColorChange}
+                    className="rounded border border-gray-300 h-8 w-full"
+                  />
                 </div>
                 
                 <div>
                   <label htmlFor="textColor" className="text-sm block mb-1">
                     Text Color
                   </label>
-                  <div className="flex items-center">
-                    <input
-                      type="color"
-                      id="textColor"
-                      value={textColor}
-                      onChange={handleTextColorChange}
-                      className="rounded border border-gray-300 h-8 w-8 mr-2"
-                    />
-                    <input
-                      type="text"
-                      value={textColor}
-                      onChange={handleTextColorChange}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm flex-1"
-                    />
-                  </div>
+                  <input
+                    type="color"
+                    id="textColor"
+                    value={textColor}
+                    onChange={handleTextColorChange}
+                    className="rounded border border-gray-300 h-8 w-full"
+                  />
                 </div>
               </div>
               
@@ -1386,6 +1282,14 @@ export default function HeaderSection({
                                         className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
                                           mobileMenuStyle === 'fullscreen' ? 'text-lg' : 'text-sm'
                                         }`}
+                                        onClick={() => {
+                                          // Close dropdown and mobile menu when clicking a link
+                                          setIsDropdownOpen(prev => ({
+                                            ...prev,
+                                            [item.id]: false,
+                                            mobileMenu: false
+                                          }));
+                                        }}
                                       >
                                         {child.title}
                                       </Link>
@@ -1401,6 +1305,10 @@ export default function HeaderSection({
                               className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
                                 mobileMenuStyle === 'fullscreen' ? 'text-xl font-medium' : 'text-base'
                               }`}
+                              onClick={() => {
+                                // Close mobile menu when clicking a link
+                                setIsDropdownOpen(prev => ({...prev, mobileMenu: false}));
+                              }}
                             >
                               {item.title}
                             </Link>

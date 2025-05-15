@@ -698,28 +698,15 @@ export const typeDefs = gql`
     id: ID!
     name: String!
     location: String
-    isFixed: Boolean
-    backgroundColor: String
-    textColor: String
     createdAt: DateTime!
     updatedAt: DateTime!
     items: [MenuItem!]
     headerStyle: HeaderStyle
   }
 
-  enum MenuLocationType {
-    HEADER
-    FOOTER
-    SIDEBAR
-    CUSTOM
-  }
-
   input MenuInput {
     name: String!
     location: String
-    isFixed: Boolean
-    backgroundColor: String
-    textColor: String
     headerStyle: HeaderStyleInput
   }
 
@@ -996,7 +983,7 @@ export const typeDefs = gql`
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
     # User mutations
-    createUser(email: String!, password: String!, firstName: String, lastName: String, roleId: ID): User
+    createUser(input: CreateUserInput!): User
     updateUser(id: ID!, input: UpdateUserInput!): User
     deleteUser(id: ID!): Boolean
     updateUserProfile(input: UpdateUserProfileInput!): User

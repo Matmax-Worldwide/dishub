@@ -13,18 +13,43 @@ export async function gqlRequest<T>(
     // Only log in development mode
     if (process.env.NODE_ENV === 'development') {
       console.log(`🔍 gqlRequest [${requestId}] - Query: ${query.substring(0, 50).replace(/\s+/g, ' ')}...`);
+      console.log(`🔍 gqlRequest [${requestId}] - Variables: ${JSON.stringify(variables).substring(0, 100)}...`);
+      console.log(`🔍 gqlRequest [${requestId}] - Timeout: ${timeout}ms`);
     }
     
     // Create an AbortController to handle request timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(() => {
+      console.error(`⏱️ Request timeout: ${timeout}ms exceeded for [${requestId}]`);
+      controller.abort();
+    }, timeout);
+
+    // Get session token from cookies if available
+    const getToken = () => {
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('session-token='));
+        if (tokenCookie) {
+          return tokenCookie.split('=')[1].trim();
+        }
+      }
+      return null;
+    };
+    
+    const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     
     try {
+      console.log(`🔄 Starting GraphQL request [${requestId}]`);
       const response = await fetch('/api/graphql', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           query,
           variables,
@@ -40,16 +65,17 @@ export async function gqlRequest<T>(
       // Handle non-ok responses
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`GraphQL HTTP error ${response.status}`);
+        console.error(`GraphQL HTTP error ${response.status} for [${requestId}]:`, errorText);
         throw new Error(`HTTP error ${response.status}: ${errorText}`);
       }
       
+      console.log(`✅ GraphQL request completed [${requestId}]`);
       const responseData = await response.json();
       
       // Check for GraphQL errors
       if (responseData.errors && responseData.errors.length > 0) {
         const errorMessages = responseData.errors.map((e: { message: string }) => e.message).join(', ');
-        console.error(`GraphQL errors: ${errorMessages}`);
+        console.error(`GraphQL errors for [${requestId}]:`, errorMessages);
         throw new Error(`GraphQL errors: ${errorMessages}`);
       }
       
@@ -61,6 +87,7 @@ export async function gqlRequest<T>(
       
       // Special handling for abort errors (timeouts)
       if (error instanceof DOMException && error.name === 'AbortError') {
+        console.error(`⚠️ Request timed out after ${timeout}ms [${requestId}]`);
         throw new Error(`La solicitud GraphQL excedió el tiempo límite de ${timeout}ms`);
       }
       
@@ -69,7 +96,7 @@ export async function gqlRequest<T>(
   } catch (error) {
     // Format the error for better debugging
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`GraphQL error: ${errorMessage}`);
+    console.error(`GraphQL error [${requestId}]:`, errorMessage);
     
     // Rethrow with more context
     throw new Error(`Error en solicitud GraphQL: ${errorMessage}`);
@@ -1025,17 +1052,25 @@ export const cmsOperations = {
         components: validComponents
       };
       
-      // Use a longer timeout for saving components
+      console.log(`Starting saveSectionComponents mutation for section ${sectionId} with ${components.length} components`);
+      
+      // Use a longer timeout for saving components - increase from 15s to 30s
       const result = await gqlRequest<{ 
         saveSectionComponents: { 
           success: boolean; 
           message: string; 
           lastUpdated: string | null;
         }
-      }>(mutation, { input }, 15000);
+      }>(mutation, { input }, 30000);
       
-      if (!result || !result.saveSectionComponents) {
-        throw new Error('No response received from server when saving section components');
+      if (!result) {
+        console.error('No result from GraphQL request in saveSectionComponents');
+        throw new Error('No result received from server');
+      }
+      
+      if (!result.saveSectionComponents) {
+        console.error('Missing saveSectionComponents in result:', result);
+        throw new Error('Invalid response format: missing saveSectionComponents field');
       }
       
       // Clear cache for this section
@@ -1604,17 +1639,25 @@ export const cmsOperations = {
         }
       `;
       
-      // Use a longer timeout for section creation
+      console.log('Starting createCMSSection mutation with:', input);
+      
+      // Use a longer timeout for section creation - increase from 15s to 30s
       const result = await gqlRequest<{ 
         createCMSSection: { 
           success: boolean; 
           message: string; 
           section: { id: string; sectionId: string; name: string } | null;
         }
-      }>(mutation, { input }, 15000);
+      }>(mutation, { input }, 30000);
       
-      if (!result || !result.createCMSSection) {
-        throw new Error('No response received from server when creating CMS section');
+      if (!result) {
+        console.error('No result from GraphQL request in createCMSSection');
+        throw new Error('No result received from server');
+      }
+      
+      if (!result.createCMSSection) {
+        console.error('Missing createCMSSection in result:', result);
+        throw new Error('Invalid response format: missing createCMSSection field');
       }
       
       // Clear cache for related data
@@ -1663,6 +1706,8 @@ export const cmsOperations = {
         }
       `;
       
+      console.log(`Starting createPageSection mutation for page ${input.pageId}: ${input.title}`);
+      
       const variables = { input };
       const result = await gqlRequest<{ 
         createPageSection: { 
@@ -1674,14 +1719,16 @@ export const cmsOperations = {
             order: number;
           } | null;
         } 
-      }>(mutation, variables);
+      }>(mutation, variables, 30000);
+      
+      if (!result) {
+        console.error('No result from GraphQL request in createPageSection');
+        throw new Error('No result received from server');
+      }
       
       if (!result.createPageSection) {
-        return {
-          success: false,
-          message: 'Error: No response from server',
-          section: null
-        };
+        console.error('Missing createPageSection in result:', result);
+        throw new Error('Invalid response format: missing createPageSection field');
       }
       
       // Clear cache for related data
@@ -1709,10 +1756,6 @@ export const cmsOperations = {
       id: string;
       name: string;
       location: string | null;
-      locationType: string | null;
-      isFixed: boolean | null;
-      backgroundColor: string | null;
-      textColor: string | null;
       items: Array<{
         id: string;
         title: string;
@@ -1749,10 +1792,6 @@ export const cmsOperations = {
             id
             name
             location
-            locationType
-            isFixed
-            backgroundColor
-            textColor
             items {
               id
               title
@@ -1784,10 +1823,6 @@ export const cmsOperations = {
         id: string;
         name: string;
         location: string | null;
-        locationType: string | null;
-        isFixed: boolean | null;
-        backgroundColor: string | null;
-        textColor: string | null;
         items: Array<{
           id: string;
           title: string;
@@ -1919,10 +1954,6 @@ export const cmsOperations = {
             id
             name
             location
-            locationType
-            isFixed
-            backgroundColor
-            textColor
             items {
               id
               title
@@ -1954,10 +1985,6 @@ export const cmsOperations = {
           id: string;
           name: string;
           location: string | null;
-          locationType: string | null;
-          isFixed: boolean | null;
-          backgroundColor: string | null;
-          textColor: string | null;
           items: Array<{
             id: string;
             title: string;

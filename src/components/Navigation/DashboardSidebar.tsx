@@ -714,6 +714,30 @@ export function DashboardSidebar() {
         {showAsAdmin && (
           <>
 
+           
+            {/* Design section for admins */}
+            <div className="mt-4 border-t pt-4 mb-2">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                {t('sidebar.design')}
+              </h3>
+            </div>
+            {designNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === item.href 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
+
             {/* Manager items for admins too */}
             <div className="mt-4 border-t pt-4 mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
@@ -759,29 +783,7 @@ export function DashboardSidebar() {
                 {renderBadge(item)}
               </Link>
             ))}
-            
-            {/* Design section for admins */}
-            <div className="mt-4 border-t pt-4 mb-2">
-              <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.design')}
-              </h3>
-            </div>
-            {designNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
+           
           </>
         )}
         

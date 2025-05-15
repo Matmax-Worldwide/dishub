@@ -195,9 +195,6 @@ async function ensureSystemPermissions() {
 interface MenuInput {
   name: string;
   location?: string | null;
-  isFixed?: boolean | null;
-  backgroundColor?: string | null;
-  textColor?: string | null;
   headerStyle?: HeaderStyleInput;
 }
 
@@ -649,8 +646,13 @@ const resolvers = {
     menus: async () => {
       try {
         const menus = await prisma.menu.findMany({
-          include: {
-            items: true,
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
+            items: true
           },
         });
         return menus;
@@ -663,8 +665,13 @@ const resolvers = {
       try {
         return prisma.menu.findUnique({
           where: { id },
-          include: {
-            items: true,
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
+            items: true
           },
         });
       } catch (error) {
@@ -676,8 +683,13 @@ const resolvers = {
       try {
         return prisma.menu.findFirst({
           where: { location },
-          include: {
-            items: true,
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
+            items: true
           },
         });
       } catch (error) {
@@ -1139,10 +1151,15 @@ const resolvers = {
         // Extract headerStyle from input if provided
         const { headerStyle, ...menuData } = input;
         
-        // Create the menu first
+        // Create the menu first with explicit select
         const menu = await prisma.menu.create({
           data: menuData,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true
           }
         });
@@ -1157,10 +1174,15 @@ const resolvers = {
           });
         }
         
-        // Return the full menu with relationships
+        // Return the full menu with relationships using explicit select
         return await prisma.menu.findUnique({
           where: { id: menu.id },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true,
             headerStyle: true
           }
@@ -1175,11 +1197,16 @@ const resolvers = {
         // Extract headerStyle from input if provided
         const { headerStyle, ...menuData } = input;
         
-        // Update the menu
+        // Update the menu with explicit select
         const menu = await prisma.menu.update({
           where: { id },
           data: menuData,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true
           }
         });
@@ -1196,10 +1223,15 @@ const resolvers = {
           });
         }
         
-        // Return the updated menu with all relationships
+        // Return the updated menu with all relationships using explicit select
         return await prisma.menu.findUnique({
           where: { id: menu.id },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true,
             headerStyle: true
           }

@@ -23,11 +23,19 @@ interface Menu {
   id: string;
   name: string;
   location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
   items: MenuItem[];
+  headerStyle?: {
+    id: string;
+    transparency?: number;
+    headerSize?: string;
+    menuAlignment?: string;
+    menuButtonStyle?: string;
+    mobileMenuStyle?: string;
+    mobileMenuPosition?: string;
+    transparentHeader?: boolean;
+    borderBottom?: boolean;
+    advancedOptions?: Record<string, unknown>;
+  } | null;
 }
 
 interface FooterProps {
@@ -52,6 +60,10 @@ const Footer: React.FC<FooterProps> = ({
   const params = useParams();
   const locale = propLocale || params.locale as string || 'en';
   const currentYear = new Date().getFullYear();
+
+  // Get styled colors from headerStyle.advancedOptions or use defaults
+  const backgroundColor = menu.headerStyle?.advancedOptions?.backgroundColor as string || '#f8fafc';
+  const textColor = menu.headerStyle?.advancedOptions?.textColor as string || '#1e293b';
 
   // Group menu items for responsive display
   const groupMenuItems = () => {
@@ -86,7 +98,7 @@ const Footer: React.FC<FooterProps> = ({
     
     return (
       <div key={item.id} className="mb-8 md:mb-0">
-        <h3 className="text-base font-bold mb-4" style={{ color: menu.textColor || 'inherit' }}>
+        <h3 className="text-base font-bold mb-4" style={{ color: textColor || 'inherit' }}>
           {item.title}
         </h3>
         <ul className="space-y-3">
@@ -100,7 +112,7 @@ const Footer: React.FC<FooterProps> = ({
                   href={childUrl}
                   target={child.target || '_self'}
                   className="text-sm transition-colors hover:opacity-80"
-                  style={{ color: menu.textColor ? `${menu.textColor}99` : 'inherit' }}
+                  style={{ color: textColor ? `${textColor}99` : 'inherit' }}
                 >
                   {child.title}
                 </Link>
@@ -116,8 +128,8 @@ const Footer: React.FC<FooterProps> = ({
     <footer 
       className={`py-12 ${className}`}
       style={{ 
-        backgroundColor: menu.backgroundColor || '#f8fafc',
-        color: menu.textColor || '#1e293b'
+        backgroundColor: backgroundColor,
+        color: textColor
       }}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -138,11 +150,11 @@ const Footer: React.FC<FooterProps> = ({
                 </div>
               )}
             </Link>
-            <h2 className="mt-4 text-lg font-bold" style={{ color: menu.textColor || 'inherit' }}>
+            <h2 className="mt-4 text-lg font-bold" style={{ color: textColor || 'inherit' }}>
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-2 text-sm" style={{ color: menu.textColor ? `${menu.textColor}99` : 'inherit' }}>
+              <p className="mt-2 text-sm" style={{ color: textColor ? `${textColor}99` : 'inherit' }}>
                 {subtitle}
               </p>
             )}
@@ -157,7 +169,7 @@ const Footer: React.FC<FooterProps> = ({
         {/* Footer bottom with copyright */}
         <div className="mt-12 pt-8 border-t border-gray-200/30">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm mb-4 md:mb-0" style={{ color: menu.textColor ? `${menu.textColor}99` : 'inherit' }}>
+            <p className="text-sm mb-4 md:mb-0" style={{ color: textColor ? `${textColor}99` : 'inherit' }}>
               © {currentYear} {copyright || title}. All rights reserved.
             </p>
             <div className="flex space-x-6">
@@ -165,14 +177,14 @@ const Footer: React.FC<FooterProps> = ({
               <a 
                 href="#" 
                 className="text-sm hover:opacity-80"
-                style={{ color: menu.textColor ? `${menu.textColor}99` : 'inherit' }}
+                style={{ color: textColor ? `${textColor}99` : 'inherit' }}
               >
                 Privacy Policy
               </a>
               <a 
                 href="#" 
                 className="text-sm hover:opacity-80"
-                style={{ color: menu.textColor ? `${menu.textColor}99` : 'inherit' }}
+                style={{ color: textColor ? `${textColor}99` : 'inherit' }}
               >
                 Terms of Service
               </a>

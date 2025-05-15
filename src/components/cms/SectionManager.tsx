@@ -1081,7 +1081,6 @@ function SectionManagerBase({
               title={component.data.title as string || "Header Title"} 
               subtitle={component.data.subtitle as string || "Header Subtitle"}
               menuId={component.data.menuId as string || ""} 
-              isFixed={component.data.isFixed as boolean || false}
               backgroundColor={component.data.backgroundColor as string || "#ffffff"}
               textColor={component.data.textColor as string || "#000000"}
               logoUrl={component.data.logoUrl as string || ""}

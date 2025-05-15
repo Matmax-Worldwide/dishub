@@ -8,6 +8,7 @@ import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 import NavigationHeader from '@/components/Navigation/NavigationHeader';
 import Sidebar from '@/components/Navigation/Sidebar';
 import Footer from '@/components/Navigation/Footer';
+import { Menu } from '@/app/api/graphql/types';
 
 // Add the ComponentType type import
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
@@ -41,30 +42,6 @@ interface SectionData {
   }>;
 }
 
-// Update Menu and MenuItem interfaces to match the API response
-interface MenuItem {
-  id: string;
-  title: string;
-  url: string | null;
-  pageId: string | null;
-  target: string | null;
-  icon: string | null;
-  order: number;
-  children?: MenuItem[];
-  page?: { id: string; title: string; slug: string };
-}
-
-interface Menu {
-  id: string;
-  name: string;
-  location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
-  items: MenuItem[];
-}
-
 export default function CMSPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -85,7 +62,7 @@ export default function CMSPage() {
       try {
         const menusData = await cmsOperations.getMenus();
         if (Array.isArray(menusData)) {
-          setMenus(menusData);
+          setMenus(menusData as Menu[]);
         }
       } catch (error) {
         console.error('Error loading menus:', error);
@@ -630,16 +607,16 @@ export default function CMSPage() {
         sections.some(section => 
           section.components.some(comp => 
             comp.type.toLowerCase() === 'header' && 
-            (comp.data?.isFixed === true || comp.data?.isFixed === 'true')
+            (comp.data?.transparentHeader === true || comp.data?.transparentHeader === 'true')
           )
         ) && <div className="h-16"></div>
       ) : (
         // Otherwise, use the menu directly for navigation
         <>
-          {menus.filter(menu => menu.locationType === 'HEADER').map((menu) => (
+          {menus.filter(menu => menu.location === 'HEADER').map((menu) => (
             <NavigationHeader 
               key={menu.id}
-              menu={menu}
+              menu={menu as Menu}
               // Find sections with Header components to extract logo and subtitle if available
               logoUrl={sections.flatMap(section => 
                 section.components.filter(comp => 
@@ -655,17 +632,20 @@ export default function CMSPage() {
           ))}
 
           {/* Spacer for fixed headers from menus */}
-          {menus.some(menu => menu.locationType === 'HEADER' && menu.isFixed) && (
+          {menus.some(menu => 
+            menu.location === 'HEADER' && 
+            (menu.headerStyle?.transparentHeader)
+          ) && (
             <div className="h-16"></div>
           )}
         </>
       )}
 
       {/* Sidebar Menu */}
-      {menus.filter(menu => menu.locationType === 'SIDEBAR').map((menu) => (
+      {menus.filter(menu => menu.location === 'SIDEBAR').map((menu) => (
         <Sidebar
           key={menu.id}
-          menu={menu}
+          menu={menu as Menu}
           // Find sections with Header components to extract logo and subtitle if available
           logoUrl={sections.flatMap(section => 
             section.components.filter(comp => 
@@ -716,7 +696,7 @@ export default function CMSPage() {
               // Check if this section contains a fixed Header component
               const hasFixedHeader = section.components.some(comp => 
                 comp.type.toLowerCase() === 'header' && 
-                (comp.data?.isFixed === true || comp.data?.isFixed === 'true')
+                (comp.data?.transparentHeader === true || comp.data?.transparentHeader === 'true')
               );
               
               // Find Header components in this section
@@ -769,7 +749,7 @@ export default function CMSPage() {
                           const isFixedHeader = type.toLowerCase() === 'header' && 
                             section.components.some(c => 
                               c.type.toLowerCase() === 'header' && 
-                              (c.data?.isFixed === true || c.data?.isFixed === 'true')
+                              (c.data?.transparentHeader === true || c.data?.transparentHeader === 'true')
                             );
                           
                           let classNames = '';
@@ -806,10 +786,10 @@ export default function CMSPage() {
       </main>
 
       {/* Footer Menu */}
-      {menus.filter(menu => menu.locationType === 'FOOTER').map((menu) => (
+      {menus.filter(menu => menu.location === 'FOOTER').map((menu) => (
         <Footer
           key={menu.id}
-          menu={menu}
+          menu={menu as Menu}
           // Find sections with Header components to extract logo info if available
           logoUrl={sections.flatMap(section => 
             section.components.filter(comp => 

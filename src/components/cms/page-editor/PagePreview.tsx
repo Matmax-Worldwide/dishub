@@ -7,55 +7,26 @@ import { useParams } from 'next/navigation';
 import NavigationHeader from '@/components/Navigation/NavigationHeader';
 import Sidebar from '@/components/Navigation/Sidebar';
 import Footer from '@/components/Navigation/Footer';
+import { 
+  Menu, 
+  SectionData, 
+  PageType
+} from '@/app/api/graphql/types';
 
-// Define the necessary interface types
-interface MenuItem {
-  id: string;
-  title: string;
-  url: string | null;
-  pageId: string | null;
-  target: string | null;
-  icon: string | null;
-  order: number;
-  children?: MenuItem[];
-  page?: { id: string; title: string; slug: string };
-}
-
-interface Menu {
-  id: string;
-  name: string;
-  location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
-  items: MenuItem[];
-}
-
-interface ComponentData {
-  id: string;
-  type: string;
-  data: Record<string, unknown>;
-}
-
-interface SectionData {
-  id: string;
-  title?: string;
-  order: number;
-  components: ComponentData[];
-}
+// Type for SectionManager's component type
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
 
 interface PagePreviewProps {
   sections: SectionData[];
   pageTitle: string;
-  pageType?: string;
+  pageType?: PageType | string;
 }
 
 const PagePreview: React.FC<PagePreviewProps> = ({ 
   sections,
   pageTitle,
-  pageType = 'CONTENT'
-}) => {
+  pageType = PageType.CONTENT
+}): React.ReactElement => {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const params = useParams();
@@ -68,7 +39,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
         setIsLoading(true);
         const menusData = await cmsOperations.getMenus();
         if (Array.isArray(menusData)) {
-          setMenus(menusData);
+          setMenus(menusData as Menu[]);
         }
       } catch (error) {
         console.error('Error loading menus:', error);
@@ -81,16 +52,25 @@ const PagePreview: React.FC<PagePreviewProps> = ({
   }, []);
 
   // Format component type to match what SectionManager expects
-  const formatComponentType = (type: string): 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' => {
+  const formatComponentType = (type: string): ComponentType => {
     const lowercaseType = type.toLowerCase();
     if (lowercaseType === 'benefit' || lowercaseType === 'benefits') {
       return 'Benefit';
     }
-    return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
+    if (lowercaseType === 'hero') return 'Hero';
+    if (lowercaseType === 'text') return 'Text';
+    if (lowercaseType === 'image') return 'Image';
+    if (lowercaseType === 'feature') return 'Feature';
+    if (lowercaseType === 'testimonial') return 'Testimonial';
+    if (lowercaseType === 'header') return 'Header';
+    if (lowercaseType === 'card') return 'Card';
+    
+    // Default fallback
+    return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
 
   // Determine container style based on page type
-  const containerClassName = pageType === 'LANDING'
+  const containerClassName = pageType === PageType.LANDING
     ? "w-full h-screen overflow-x-hidden overflow-y-auto scroll-smooth snap-y snap-mandatory"
     : "flex-1 flex flex-col";
 
@@ -99,16 +79,19 @@ const PagePreview: React.FC<PagePreviewProps> = ({
     section.components.some(comp => comp.type.toLowerCase() === 'header')
   );
 
-  // Check if we need a fixed header spacer
+  // Update the needsHeaderSpacer check
   const needsHeaderSpacer = 
     hasHeaderComponent ? 
       sections.some(section => 
         section.components.some(comp => 
           comp.type.toLowerCase() === 'header' && 
-          (comp.data?.isFixed === true || comp.data?.isFixed === 'true')
+          (comp.data?.transparentHeader === true || comp.data?.transparentHeader === 'true')
         )
       ) :
-      menus.some(menu => menu.locationType === 'HEADER' && menu.isFixed);
+      menus.some(menu => 
+        menu.location === 'HEADER' && 
+        menu.headerStyle?.transparentHeader === true
+      );
 
   return (
     <div className="cms-page-preview">
@@ -120,7 +103,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
       ) : (
         <>
           {/* Header Menu - only if no HeaderSection component exists */}
-          {!hasHeaderComponent && menus.filter(menu => menu.locationType === 'HEADER').map((menu) => (
+          {!hasHeaderComponent && menus.filter(menu => menu.location === 'HEADER').map((menu) => (
             <NavigationHeader 
               key={menu.id}
               menu={menu}
@@ -141,7 +124,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
           ))}
 
           {/* Sidebar Menu */}
-          {menus.filter(menu => menu.locationType === 'SIDEBAR').map((menu) => (
+          {menus.filter(menu => menu.location === 'SIDEBAR').map((menu) => (
             <Sidebar
               key={menu.id}
               menu={menu}
@@ -178,7 +161,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
                     <SectionManager 
                       initialComponents={section.components.map(comp => ({
                         id: comp.id,
-                        type: formatComponentType(comp.type),
+                        type: formatComponentType(comp.type as string),
                         data: comp.data || {}
                       }))}
                       isEditing={false}
@@ -186,7 +169,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
                         const isFixedHeader = type.toLowerCase() === 'header' && 
                           section.components.some(c => 
                             c.type.toLowerCase() === 'header' && 
-                            (c.data?.isFixed === true || c.data?.isFixed === 'true')
+                            (c.data?.transparentHeader === true || c.data?.transparentHeader === 'true')
                           );
                         
                         let classNames = `w-full component-${type.toLowerCase()}`;
@@ -217,7 +200,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
           </main>
 
           {/* Footer Menu */}
-          {menus.filter(menu => menu.locationType === 'FOOTER').map((menu) => (
+          {menus.filter(menu => menu.location === 'FOOTER').map((menu) => (
             <Footer
               key={menu.id}
               menu={menu}

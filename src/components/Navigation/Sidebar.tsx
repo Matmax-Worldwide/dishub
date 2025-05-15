@@ -5,31 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import { useParams, usePathname } from 'next/navigation';
-
-// Define the MenuItem interface
-interface MenuItem {
-  id: string;
-  title: string;
-  url: string | null;
-  pageId: string | null;
-  target: string | null;
-  icon: string | null;
-  order: number;
-  children?: MenuItem[];
-  page?: { id: string; title: string; slug: string };
-}
-
-// Define the Menu interface
-interface Menu {
-  id: string;
-  name: string;
-  location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
-  items: MenuItem[];
-}
+import { Menu, MenuItem } from '@/app/api/graphql/types';
 
 interface SidebarProps {
   menu: Menu;
@@ -105,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`flex items-center justify-between w-full p-2 rounded-md transition-colors
                   ${isItemActive || isExpanded ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-gray-100'}`}
                 style={{ 
-                  color: isItemActive ? (menu.textColor || 'inherit') : 'inherit',
+                  color: isItemActive ? ( 'inherit') : 'inherit',
                   paddingLeft: `${level * 4 + 8}px` 
                 }}
               >
@@ -134,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 isItemActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-gray-100'
               }`}
               style={{ 
-                color: isItemActive ? (menu.textColor || 'inherit') : 'inherit',
+                color: isItemActive ? ('inherit') : 'inherit',
                 paddingLeft: `${level * 4 + 8}px` 
               }}
             >
@@ -155,8 +131,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     <aside 
       className={`h-screen ${collapsed ? 'w-16' : 'w-64'} transition-all duration-300 border-r border-gray-200 ${className}`}
       style={{ 
-        backgroundColor: menu.backgroundColor || '#ffffff',
-        color: menu.textColor || 'inherit'
+        backgroundColor: '#ffffff',
+        color: 'inherit'
       }}
     >
       <div className="flex flex-col h-full">

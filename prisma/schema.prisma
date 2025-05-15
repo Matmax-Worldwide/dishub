@@ -487,6 +487,7 @@ model Page {
   children        Page[]        @relation("PageToPage")
   seo             PageSEO?
   sections        PageSection[]
+  menuItems       MenuItem[]
 }
 
 model PageSection {
@@ -544,22 +545,10 @@ model Menu {
   id              String          @id @default(cuid())
   name            String          @unique
   location        String?
-  locationType    MenuLocationType? 
-  isFixed         Boolean?
-  backgroundColor String?
-  textColor       String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   items           MenuItem[]
   headerStyle     HeaderStyle?
-}
-
-// Menu position/location type
-enum MenuLocationType {
-  HEADER
-  FOOTER
-  SIDEBAR
-  CUSTOM
 }
 
 model MenuItem {
@@ -577,6 +566,7 @@ model MenuItem {
   menu      Menu           @relation(fields: [menuId], references: [id], onDelete: Cascade)
   parent    MenuItem?      @relation("MenuItemToMenuItem", fields: [parentId], references: [id])
   children  MenuItem[]     @relation("MenuItemToMenuItem")
+  page      Page?          @relation(fields: [pageId], references: [id])
 }
 
 model SiteSettings {

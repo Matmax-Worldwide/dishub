@@ -5,31 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronDownIcon, MenuIcon, XIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { Menu, MenuItem } from '@/app/api/graphql/types';
 
-// Define the MenuItem interface to match what comes from the API
-interface MenuItem {
-  id: string;
-  title: string;
-  url: string | null;
-  pageId: string | null;
-  target: string | null;
-  icon: string | null;
-  order: number;
-  children?: MenuItem[];
-  page?: { id: string; title: string; slug: string };
-}
-
-// Define the Menu interface to match what comes from the API
-interface Menu {
-  id: string;
-  name: string;
-  location: string | null;
-  locationType: string | null;
-  isFixed: boolean | null;
-  backgroundColor: string | null;
-  textColor: string | null;
-  items: MenuItem[];
-}
 
 interface NavigationHeaderProps {
   menu: Menu;
@@ -95,22 +72,6 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
     setOpenDropdowns({});
   };
 
-  // Get background color with opacity based on scroll state
-  const getBackgroundColor = () => {
-    if (!menu.backgroundColor) return isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'transparent';
-    
-    const color = menu.backgroundColor;
-    if (color.startsWith('#') && color.length === 7) {
-      // Convert hex to rgba
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
-      return isScrolled ? `rgba(${r}, ${g}, ${b}, 0.85)` : `rgba(${r}, ${g}, ${b}, 0)`;
-    }
-    
-    return isScrolled ? `${color}d9` : 'transparent'; // d9 = 85% opacity in hex
-  };
-
   // Render a single menu item (can be recursive for children)
   const renderMenuItem = (item: MenuItem, isDropdown = false, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;
@@ -126,7 +87,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                 ? 'hover:bg-black/5 w-full text-left' 
                 : 'hover:text-primary'
             }`}
-            style={{ color: menu.textColor || 'inherit' }}
+            style={{ color: 'inherit' }}
           >
             {item.title}
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${openDropdowns[item.id] ? 'rotate-180' : ''}`} />
@@ -161,7 +122,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               ? 'hover:bg-black/5 w-full' 
               : 'hover:text-primary'
           }`}
-          style={{ color: menu.textColor || 'inherit' }}
+          style={{ color: 'inherit' }}
           onClick={() => closeAllDropdowns()}
         >
           {item.title}
@@ -173,12 +134,12 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   return (
     <header 
       ref={headerRef}
-      className={`w-full ${menu.isFixed ? 'fixed top-0 left-0' : 'relative'} z-50 transition-all duration-300 ${
+      className={`w-full ${'relative'} z-50 transition-all duration-300 ${
         isScrolled ? 'py-2 backdrop-blur-md shadow-md' : 'py-5'
       } ${className}`}
       style={{ 
-        backgroundColor: getBackgroundColor(),
-        color: menu.textColor || 'inherit'
+        backgroundColor: 'inherit',
+        color: 'inherit'
       }}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -197,9 +158,9 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               </div>
             )}
             <div>
-              <h1 className="text-lg md:text-xl font-bold" style={{ color: menu.textColor || 'inherit' }}>{title}</h1>
+              <h1 className="text-lg md:text-xl font-bold" style={{ color: 'inherit' }}>{title}</h1>
               {subtitle && (
-                <p className="text-xs md:text-sm opacity-80" style={{ color: menu.textColor || 'inherit' }}>{subtitle}</p>
+                <p className="text-xs md:text-sm opacity-80" style={{ color: 'inherit' }}>{subtitle}</p>
               )}
             </div>
           </Link>
@@ -218,9 +179,9 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMobileMenuOpen ? (
-              <XIcon className="h-6 w-6" style={{ color: menu.textColor || 'inherit' }} />
+              <XIcon className="h-6 w-6" style={{ color: 'inherit' }} />
             ) : (
-              <MenuIcon className="h-6 w-6" style={{ color: menu.textColor || 'inherit' }} />
+              <MenuIcon className="h-6 w-6" style={{ color: 'inherit' }} />
             )}
           </button>
         </div>

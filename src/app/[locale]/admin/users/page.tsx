@@ -168,16 +168,9 @@ export default function UserManagementPage() {
     client,
     fetchPolicy: 'network-only',
     onCompleted: (data: { users: User[] }) => {
-      setUsers(data?.users || []);
-      setFilteredUsers(data?.users || []);
-      // Extract role names with proper type checking
-      const roleNames: string[] = [];
-      data?.users?.forEach((user: User) => {
-        if (user?.role?.name) {
-          roleNames.push(user.role.name);
-        }
-      });
-      setRoles([...new Set(roleNames)]);
+      if (data?.users) {
+        applyFiltersAndUpdateState(data.users);
+      }
       setLoading(false);
     },
     onError: (error) => {
@@ -187,13 +180,57 @@ export default function UserManagementPage() {
     }
   });
   
+  // Apply filters to users data and update state
+  const applyFiltersAndUpdateState = (users: User[]) => {
+    // Update main users array
+    setUsers(users);
+    
+    // Apply any active filters
+    if (selectedRole) {
+      const filtered = users.filter((user: User) => 
+        user.role.name === selectedRole
+      );
+      setFilteredUsers(filtered);
+    } else if (searchTerm) {
+      const filtered = users.filter((user: User) => 
+        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+    
+    // Extract and update role options
+    const roleNames: string[] = [];
+    users.forEach((user: User) => {
+      if (user?.role?.name) {
+        roleNames.push(user.role.name);
+      }
+    });
+    setRoles([...new Set(roleNames)]);
+    
+    // If the selected role no longer exists, reset the filter
+    if (selectedRole && !roleNames.includes(selectedRole)) {
+      setSelectedRole(null);
+    }
+  };
+
   // Mutations
   const [createUser, { loading: createLoading }] = useMutation(CREATE_USER, {
     client,
     onCompleted: () => {
       setIsAddUserOpen(false);
       resetForm();
-      refetch();
+      
+      // Fetch the latest data
+      refetch().then((response) => {
+        if (response.data?.users) {
+          applyFiltersAndUpdateState(response.data.users);
+        }
+      });
+      
       toast.success("User created successfully");
     },
     onError: (error) => {
@@ -207,7 +244,14 @@ export default function UserManagementPage() {
       setIsEditUserOpen(false);
       setCurrentUser(null);
       resetForm();
-      refetch();
+      
+      // Fetch the latest data
+      refetch().then((response) => {
+        if (response.data?.users) {
+          applyFiltersAndUpdateState(response.data.users);
+        }
+      });
+      
       toast.success("User updated successfully");
     },
     onError: (error) => {
@@ -220,7 +264,14 @@ export default function UserManagementPage() {
     onCompleted: () => {
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
-      refetch();
+      
+      // Fetch the latest data
+      refetch().then((response) => {
+        if (response.data?.users) {
+          applyFiltersAndUpdateState(response.data.users);
+        }
+      });
+      
       toast.success("User deleted successfully");
     },
     onError: (error) => {
@@ -320,7 +371,7 @@ export default function UserManagementPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber || null,
-        role: formData.role
+        role: formData.role  // Using role name as roleId - server will handle lookup if needed
       } 
     });
   };

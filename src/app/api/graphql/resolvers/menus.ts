@@ -17,9 +17,6 @@ interface MenuLocationArgs {
 interface MenuInput {
   name: string;
   location: string | null;
-  isFixed?: boolean | null;
-  backgroundColor?: string | null;
-  textColor?: string | null;
   headerStyle?: HeaderStyleInput;
 }
 
@@ -65,7 +62,12 @@ export const menuResolvers = {
   Query: {
     menus: async () => {
       return prisma.menu.findMany({
-        include: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          createdAt: true,
+          updatedAt: true,
           items: true,
         },
       });
@@ -74,7 +76,12 @@ export const menuResolvers = {
     menu: async (_: unknown, { id }: MenuArgs) => {
       return prisma.menu.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          createdAt: true,
+          updatedAt: true,
           items: true,
         },
       });
@@ -83,7 +90,12 @@ export const menuResolvers = {
     menuByLocation: async (_: unknown, { location }: MenuLocationArgs) => {
       return prisma.menu.findFirst({
         where: { location },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          createdAt: true,
+          updatedAt: true,
           items: true,
         },
       });
@@ -121,7 +133,12 @@ export const menuResolvers = {
         // Create the menu first
         const menu = await prisma.menu.create({
           data: menuData,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true
           }
         });
@@ -139,7 +156,12 @@ export const menuResolvers = {
         // Return the full menu with relationships
         return await prisma.menu.findUnique({
           where: { id: menu.id },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true,
             headerStyle: true
           }
@@ -159,7 +181,12 @@ export const menuResolvers = {
         const menu = await prisma.menu.update({
           where: { id },
           data: menuData,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true
           }
         });
@@ -179,7 +206,12 @@ export const menuResolvers = {
         // Return the updated menu with all relationships
         return await prisma.menu.findUnique({
           where: { id: menu.id },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            createdAt: true,
+            updatedAt: true,
             items: true,
             headerStyle: true
           }
@@ -191,15 +223,42 @@ export const menuResolvers = {
     },
     
     deleteMenu: async (_: unknown, { id }: MenuArgs) => {
-      await prisma.menuItem.deleteMany({
-        where: { menuId: id },
-      });
-      
-      await prisma.menu.delete({
-        where: { id },
-      });
-      
-      return true;
+      try {
+        console.log(`Starting deletion of menu ID: ${id}`);
+        
+        // First, delete any header style associated with this menu
+        try {
+          await prisma.headerStyle.deleteMany({
+            where: { menuId: id },
+          });
+          console.log(`Deleted associated HeaderStyle for menu ${id}`);
+        } catch (headerStyleError) {
+          console.error(`Error deleting HeaderStyle for menu ${id}:`, headerStyleError);
+          // Continue with deletion even if this fails
+        }
+        
+        // Next, delete all menu items
+        try {
+          const deletedItems = await prisma.menuItem.deleteMany({
+            where: { menuId: id },
+          });
+          console.log(`Deleted ${deletedItems.count} MenuItems for menu ${id}`);
+        } catch (menuItemError) {
+          console.error(`Error deleting MenuItems for menu ${id}:`, menuItemError);
+          throw new Error(`Failed to delete menu items: ${menuItemError instanceof Error ? menuItemError.message : 'Unknown error'}`);
+        }
+        
+        // Finally, delete the menu itself
+        await prisma.menu.delete({
+          where: { id },
+        });
+        
+        console.log(`Successfully deleted menu ${id}`);
+        return true;
+      } catch (error) {
+        console.error(`Error deleting menu ${id}:`, error);
+        throw new Error(`Failed to delete menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
     
     createMenuItem: async (_: unknown, { input }: { input: MenuItemInput }) => {

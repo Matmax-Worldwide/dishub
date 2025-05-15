@@ -1,17 +1,104 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { gqlRequest } from '@/lib/graphql-client';
-import { ArrowLeftIcon, Loader2Icon } from 'lucide-react';
+import { ArrowLeftIcon, Loader2Icon, PlusIcon, TrashIcon } from 'lucide-react';
+import { MenuItem } from '@/app/api/graphql/types';
+import AuthenticationGuard from '@/components/AuthenticationGuard';
 
-export default function CreateMenuPage() {
+interface PageBasic {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+export default function CreateMenuPageWrapper() {
+  return (
+    <AuthenticationGuard>
+      <CreateMenuPage />
+    </AuthenticationGuard>
+  );
+}
+
+function CreateMenuPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
+  const [menuItems, setMenuItems] = useState<Omit<MenuItem, 'id' | 'children' | 'page'>[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pages, setPages] = useState<PageBasic[]>([]);
+  const [isLoadingPages, setIsLoadingPages] = useState(false);
+
+  // Fetch available pages for menu items
+  useEffect(() => {
+    const fetchPages = async () => {
+      setIsLoadingPages(true);
+      try {
+        const query = `
+          query GetPages {
+            pages {
+              id
+              title
+              slug
+            }
+          }
+        `;
+
+        const response = await gqlRequest<{ pages: PageBasic[] }>(query);
+        if (response && response.pages) {
+          setPages(response.pages);
+        }
+      } catch (err) {
+        console.error('Error fetching pages:', err);
+      } finally {
+        setIsLoadingPages(false);
+      }
+    };
+
+    fetchPages();
+  }, []);
+
+  const handleAddMenuItem = () => {
+    setMenuItems([...menuItems, { 
+      title: '', 
+      url: null, 
+      pageId: null, 
+      target: '_self', 
+      icon: null,
+      order: menuItems.length + 1,
+      parentId: null,
+      menuId: ''
+    }]);
+  };
+
+  const handleRemoveMenuItem = (index: number) => {
+    const updatedItems = [...menuItems];
+    updatedItems.splice(index, 1);
+    // Update order for remaining items
+    updatedItems.forEach((item, idx) => {
+      item.order = idx + 1;
+    });
+    setMenuItems(updatedItems);
+  };
+
+  const handleMenuItemChange = (index: number, field: keyof Omit<MenuItem, 'id' | 'children' | 'page'>, value: string | null) => {
+    const updatedItems = [...menuItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    // If pageId is selected, clear URL
+    if (field === 'pageId' && value) {
+      updatedItems[index].url = null;
+    }
+    // If URL is entered, clear pageId
+    if (field === 'url' && value) {
+      updatedItems[index].pageId = null;
+    }
+    
+    setMenuItems(updatedItems);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,33 +106,65 @@ export default function CreateMenuPage() {
     setError(null);
 
     try {
-      const mutation = `
+      // Step 1: Create the menu
+      const createMenuMutation = `
         mutation CreateMenu($input: MenuInput!) {
           createMenu(input: $input) {
             id
             name
             location
-            createdAt
-            updatedAt
           }
         }
       `;
 
-      const variables = {
+      const menuVariables = {
         input: {
           name,
           location: location || null
         }
       };
 
-      const response = await gqlRequest<{ createMenu: { id: string } }>(mutation, variables);
+      const menuResponse = await gqlRequest<{ createMenu: { id: string } }>(createMenuMutation, menuVariables);
 
-      if (response && response.createMenu) {
-        // Successfully created menu, redirect to edit page
-        router.push(`/cms/menus/edit/${response.createMenu.id}`);
-      } else {
-        setError('Failed to create menu. Please try again.');
+      if (!menuResponse || !menuResponse.createMenu) {
+        throw new Error('Failed to create menu');
       }
+
+      const menuId = menuResponse.createMenu.id;
+
+      // Step 2: Create menu items if any
+      if (menuItems.length > 0) {
+        const validMenuItems = menuItems.filter(item => item.title.trim() !== '');
+        
+        for (const item of validMenuItems) {
+          const createMenuItemMutation = `
+            mutation CreateMenuItem($input: MenuItemInput!) {
+              createMenuItem(input: $input) {
+                id
+                title
+              }
+            }
+          `;
+
+          const menuItemVariables = {
+            input: {
+              menuId,
+              title: item.title,
+              url: item.url,
+              pageId: item.pageId,
+              target: item.target,
+              icon: item.icon,
+              order: item.order,
+              parentId: null
+            }
+          };
+
+          await gqlRequest(createMenuItemMutation, menuItemVariables);
+        }
+      }
+
+      // Navigate to the edit page
+      router.push(`/cms/menus/edit/${menuId}`);
     } catch (err) {
       console.error('Error creating menu:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -91,17 +210,140 @@ export default function CreateMenuPage() {
             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
               Location
             </label>
-            <input
-              type="text"
+            <select
               id="location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., Header, Footer, Sidebar"
-            />
+            >
+              <option value="">Select a location (optional)</option>
+              <option value="HEADER">Header</option>
+              <option value="FOOTER">Footer</option>
+              <option value="SIDEBAR">Sidebar</option>
+              <option value="MOBILE">Mobile</option>
+            </select>
             <p className="mt-1 text-sm text-gray-500">
-              Specify where this menu will be displayed on your site (optional)
+              Specify where this menu will be displayed on your site
             </p>
+          </div>
+          
+          {/* Menu Items Section */}
+          <div className="mt-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Menu Items</h3>
+              <button
+                type="button"
+                onClick={handleAddMenuItem}
+                className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Item
+              </button>
+            </div>
+            
+            {menuItems.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-md border border-dashed border-gray-300">
+                <p className="text-gray-500">No menu items added yet. Click &quot;Add Item&quot; to create your first menu item.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {menuItems.map((item, index) => (
+                  <div key={index} className="p-4 bg-gray-50 rounded-md relative">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMenuItem(index)}
+                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      aria-label="Remove item"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                    
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Title <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => handleMenuItemChange(index, 'title', e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        placeholder="Menu Item Title"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Link Type
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Page Link
+                          </label>
+                          <select
+                            value={item.pageId || ''}
+                            onChange={(e) => handleMenuItemChange(index, 'pageId', e.target.value || null)}
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                            disabled={isLoadingPages || item.url !== null}
+                          >
+                            <option value="">Select a page</option>
+                            {pages.map(page => (
+                              <option key={page.id} value={page.id}>
+                                {page.title}
+                              </option>
+                            ))}
+                          </select>
+                          {isLoadingPages && <p className="text-sm text-gray-500 mt-1">Loading pages...</p>}
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Custom URL
+                          </label>
+                          <input
+                            type="text"
+                            value={item.url || ''}
+                            onChange={(e) => handleMenuItemChange(index, 'url', e.target.value || null)}
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                            placeholder="https://example.com"
+                            disabled={item.pageId !== null}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Choose either a page or enter a custom URL</p>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Open in
+                      </label>
+                      <select
+                        value={item.target || '_self'}
+                        onChange={(e) => handleMenuItemChange(index, 'target', e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="_self">Same window</option>
+                        <option value="_blank">New window</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Icon (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={item.icon || ''}
+                        onChange={(e) => handleMenuItemChange(index, 'icon', e.target.value || null)}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        placeholder="Icon name or class"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

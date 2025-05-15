@@ -34,7 +34,6 @@ html {
 body {
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
-  padding-top: 4rem;
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -307,14 +306,3 @@ body > div {
   will-change: auto; /* Let browser optimize elements that will animate */
   text-rendering: optimizeSpeed; /* Prioritize rendering speed */
 }
-
-/* Fix for top margin with fixed header */
-body {
-  scroll-snap-type: y mandatory;
-  overflow-y: scroll;
-  padding-top: 4rem; /* Add padding for fixed header */
-  margin: 0;
-  /* Add performance improvements */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-} 
