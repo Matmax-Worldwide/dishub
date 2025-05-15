@@ -705,6 +705,7 @@ export const typeDefs = gql`
     createdAt: DateTime!
     updatedAt: DateTime!
     items: [MenuItem!]
+    headerStyle: HeaderStyle
   }
 
   enum MenuLocationType {
@@ -746,6 +747,7 @@ export const typeDefs = gql`
     isFixed: Boolean
     backgroundColor: String
     textColor: String
+    headerStyle: HeaderStyleInput
   }
 
   input MenuItemInput {
@@ -1092,5 +1094,78 @@ export const typeDefs = gql`
     updateMenuItem(id: ID!, input: MenuItemInput!): MenuItem
     deleteMenuItem(id: ID!): Boolean
     updateMenuItemOrder(id: ID!, input: MenuItemOrderInput!): MenuItem
+
+    # HeaderStyle mutations
+    updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyle
+  }
+
+  # HeaderStyle type for storing header configuration
+  type HeaderStyle {
+    id: ID!
+    menuId: String!
+    transparency: Int
+    headerSize: HeaderSize
+    menuAlignment: MenuAlignment
+    menuButtonStyle: MenuButtonStyle
+    mobileMenuStyle: MobileMenuStyle
+    mobileMenuPosition: MobileMenuPosition
+    transparentHeader: Boolean
+    borderBottom: Boolean
+    advancedOptions: JSON
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+
+  # Enum types for header customization
+  enum HeaderSize {
+    sm
+    md
+    lg
+  }
+
+  enum MenuAlignment {
+    left
+    center
+    right
+  }
+
+  enum MenuButtonStyle {
+    default
+    filled
+    outline
+  }
+
+  enum MobileMenuStyle {
+    fullscreen
+    dropdown
+    sidebar
+  }
+
+  enum MobileMenuPosition {
+    left
+    right
+  }
+
+  # Input for header style
+  input HeaderStyleInput {
+    transparency: Int
+    headerSize: HeaderSize
+    menuAlignment: MenuAlignment
+    menuButtonStyle: MenuButtonStyle
+    mobileMenuStyle: MobileMenuStyle
+    mobileMenuPosition: MobileMenuPosition
+    transparentHeader: Boolean
+    borderBottom: Boolean
+    advancedOptions: JSON
+  }
+
+  # Input for header advanced options
+  input HeaderAdvancedOptionsInput {
+    glassmorphism: Boolean
+    blur: Int
+    shadow: String
+    animation: String
+    customClass: String
+    borderRadius: String
   }
 `; 

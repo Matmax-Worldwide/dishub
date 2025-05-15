@@ -6,6 +6,8 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
 import { cmsOperations } from '@/lib/graphql-client';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
+import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
 
 // Define the MenuItem interface to match what comes from the API
 interface MenuItem {
@@ -30,6 +32,18 @@ interface Menu {
   backgroundColor: string | null;
   textColor: string | null;
   items: MenuItem[];
+  headerStyle?: {
+    id: string;
+    transparency: number;
+    headerSize: string;
+    menuAlignment: string;
+    menuButtonStyle: string;
+    mobileMenuStyle: string;
+    mobileMenuPosition: string;
+    transparentHeader: boolean;
+    borderBottom: boolean;
+    advancedOptions?: Record<string, unknown>;
+  } | null;
 }
 
 interface HeaderSectionProps {
@@ -40,6 +54,15 @@ interface HeaderSectionProps {
   backgroundColor?: string;
   textColor?: string;
   logoUrl?: string;
+  transparency?: number;
+  headerSize?: HeaderSize;
+  menuAlignment?: MenuAlignment;
+  menuButtonStyle?: MenuButtonStyle;
+  mobileMenuStyle?: MobileMenuStyle;
+  mobileMenuPosition?: MobileMenuPosition;
+  transparentHeader?: boolean;
+  borderBottom?: boolean;
+  advancedOptions?: HeaderAdvancedOptions;
   isEditing?: boolean;
   onUpdate?: (data: { 
     title: string; 
@@ -49,6 +72,15 @@ interface HeaderSectionProps {
     backgroundColor?: string;
     textColor?: string;
     logoUrl?: string;
+    transparency?: number;
+    headerSize?: HeaderSize;
+    menuAlignment?: MenuAlignment;
+    menuButtonStyle?: MenuButtonStyle;
+    mobileMenuStyle?: MobileMenuStyle;
+    mobileMenuPosition?: MobileMenuPosition;
+    transparentHeader?: boolean;
+    borderBottom?: boolean;
+    advancedOptions?: HeaderAdvancedOptions;
   }) => void;
 }
 
@@ -60,6 +92,15 @@ export default function HeaderSection({
   backgroundColor: initialBackgroundColor = '#ffffff',
   textColor: initialTextColor = '#000000',
   logoUrl: initialLogoUrl = '',
+  transparency: initialTransparency = 0,
+  headerSize: initialHeaderSize = 'md',
+  menuAlignment: initialMenuAlignment = 'right',
+  menuButtonStyle: initialMenuButtonStyle = 'default',
+  mobileMenuStyle: initialMobileMenuStyle = 'dropdown',
+  mobileMenuPosition: initialMobileMenuPosition = 'right',
+  transparentHeader: initialTransparentHeader = false,
+  borderBottom: initialBorderBottom = false,
+  advancedOptions: initialAdvancedOptions = {},
   isEditing = false, 
   onUpdate 
 }: HeaderSectionProps) {
@@ -79,6 +120,20 @@ export default function HeaderSection({
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [availableMedia, setAvailableMedia] = useState<{id: string, title: string, fileUrl: string}[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  
+  // Nuevos estados para las opciones adicionales
+  const [transparency, setTransparency] = useState(initialTransparency);
+  const [headerSize, setHeaderSize] = useState<HeaderSize>(initialHeaderSize);
+  const [menuAlignment, setMenuAlignment] = useState<MenuAlignment>(initialMenuAlignment);
+  const [menuButtonStyle, setMenuButtonStyle] = useState<MenuButtonStyle>(initialMenuButtonStyle);
+  const [mobileMenuStyle, setMobileMenuStyle] = useState<MobileMenuStyle>(initialMobileMenuStyle);
+  const [mobileMenuPosition, setMobileMenuPosition] = useState<MobileMenuPosition>(initialMobileMenuPosition);
+  const [transparentHeader, setTransparentHeader] = useState(initialTransparentHeader);
+  const [borderBottom, setBorderBottom] = useState(initialBorderBottom);
+  const [advancedOptions, setAdvancedOptions] = useState<HeaderAdvancedOptions>(initialAdvancedOptions);
+  
+  // Estado para mostrar/ocultar opciones avanzadas en el panel de edición
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
   const params = useParams();
   const locale = params.locale as string || 'en';
@@ -100,16 +155,39 @@ export default function HeaderSection({
           
           // If we have a menuId, find and set the selected menu
           if (localMenuId) {
-            const menu = menusData.find(m => m.id === localMenuId);
-            if (menu) {
-              console.log(`Found menu with ID ${localMenuId}: ${menu.name}`);
-              setSelectedMenu(menu);
+            // Use the new function to get menu with header style
+            const menuWithStyle = await cmsOperations.getMenuWithHeaderStyle(localMenuId);
+            
+            if (menuWithStyle) {
+              console.log(`Found menu with ID ${localMenuId} with header style:`, menuWithStyle);
+              setSelectedMenu(menuWithStyle);
+              
               // Set styling preferences from the menu if they exist
-              if (menu.isFixed !== null) setIsFixed(menu.isFixed);
-              if (menu.backgroundColor) setBackgroundColor(menu.backgroundColor);
-              if (menu.textColor) setTextColor(menu.textColor);
+              if (menuWithStyle.isFixed !== null) setIsFixed(menuWithStyle.isFixed);
+              if (menuWithStyle.backgroundColor) setBackgroundColor(menuWithStyle.backgroundColor);
+              if (menuWithStyle.textColor) setTextColor(menuWithStyle.textColor);
+              
+              // If header style exists, set all the style properties
+              if (menuWithStyle.headerStyle) {
+                const style = menuWithStyle.headerStyle;
+                
+                // Set all the style properties
+                setTransparency(style.transparency || 0);
+                setHeaderSize(style.headerSize as HeaderSize || 'md');
+                setMenuAlignment(style.menuAlignment as MenuAlignment || 'right');
+                setMenuButtonStyle(style.menuButtonStyle as MenuButtonStyle || 'default');
+                setMobileMenuStyle(style.mobileMenuStyle as MobileMenuStyle || 'dropdown');
+                setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
+                setTransparentHeader(style.transparentHeader || false);
+                setBorderBottom(style.borderBottom || false);
+                
+                // Set advanced options if they exist
+                if (style.advancedOptions) {
+                  setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
+                }
+              }
             } else {
-              console.log(`Menu with ID ${localMenuId} not found`);
+              console.log(`Menu with ID ${localMenuId} not found or has no header style`);
             }
           }
         }
@@ -157,7 +235,7 @@ export default function HeaderSection({
     }
   }, [title, subtitle, menuId, initialLogoUrl, localTitle, localSubtitle, localMenuId, logoUrl]);
   
-  // Add scroll effect when not in editing mode
+  // Watch for scroll events when fixed
   useEffect(() => {
     if (!isEditing) {
       const handleScroll = () => {
@@ -167,9 +245,15 @@ export default function HeaderSection({
           setScrolled(false);
         }
       };
-      
+
       window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
+      
+      // Inicializar estado al cargar
+      handleScroll();
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+      };
     }
   }, [isEditing]);
   
@@ -193,6 +277,15 @@ export default function HeaderSection({
         backgroundColor,
         textColor,
         logoUrl,
+        transparency,
+        headerSize,
+        menuAlignment,
+        menuButtonStyle,
+        mobileMenuStyle,
+        mobileMenuPosition,
+        transparentHeader,
+        borderBottom,
+        advancedOptions,
         [field]: value
       };
       
@@ -206,7 +299,9 @@ export default function HeaderSection({
         }, 500);
       }, 200);
     }
-  }, [onUpdate, localTitle, localSubtitle, localMenuId, isFixed, backgroundColor, textColor, logoUrl]);
+  }, [onUpdate, localTitle, localSubtitle, localMenuId, isFixed, backgroundColor, textColor, logoUrl, 
+      transparency, headerSize, menuAlignment, menuButtonStyle, mobileMenuStyle, mobileMenuPosition, 
+      transparentHeader, borderBottom, advancedOptions]);
   
   // Clean up on unmount
   useEffect(() => {
@@ -234,25 +329,62 @@ export default function HeaderSection({
     
     // Update the selected menu
     if (newMenuId) {
-      const menu = menus.find(m => m.id === newMenuId);
-      if (menu) {
-        setSelectedMenu(menu);
-        // Also update styling preferences if they exist in the menu
-        if (menu.isFixed !== null) {
-          setIsFixed(menu.isFixed);
-          handleUpdateField('isFixed', menu.isFixed);
+      // Use the getMenuWithHeaderStyle function
+      cmsOperations.getMenuWithHeaderStyle(newMenuId).then(menu => {
+        if (menu) {
+          setSelectedMenu(menu);
+          
+          // Also update styling preferences if they exist in the menu
+          if (menu.isFixed !== null) {
+            setIsFixed(menu.isFixed);
+            handleUpdateField('isFixed', menu.isFixed);
+          }
+          if (menu.backgroundColor) {
+            setBackgroundColor(menu.backgroundColor);
+            handleUpdateField('backgroundColor', menu.backgroundColor);
+          }
+          if (menu.textColor) {
+            setTextColor(menu.textColor);
+            handleUpdateField('textColor', menu.textColor);
+          }
+          
+          // Update all header style properties if they exist
+          if (menu.headerStyle) {
+            const style = menu.headerStyle;
+            
+            setTransparency(style.transparency || 0);
+            handleUpdateField('transparency', style.transparency.toString());
+            
+            setHeaderSize(style.headerSize as HeaderSize || 'md');
+            handleUpdateField('headerSize', style.headerSize);
+            
+            setMenuAlignment(style.menuAlignment as MenuAlignment || 'right');
+            handleUpdateField('menuAlignment', style.menuAlignment);
+            
+            setMenuButtonStyle(style.menuButtonStyle as MenuButtonStyle || 'default');
+            handleUpdateField('menuButtonStyle', style.menuButtonStyle);
+            
+            setMobileMenuStyle(style.mobileMenuStyle as MobileMenuStyle || 'dropdown');
+            handleUpdateField('mobileMenuStyle', style.mobileMenuStyle);
+            
+            setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
+            handleUpdateField('mobileMenuPosition', style.mobileMenuPosition);
+            
+            setTransparentHeader(style.transparentHeader || false);
+            handleUpdateField('transparentHeader', style.transparentHeader);
+            
+            setBorderBottom(style.borderBottom || false);
+            handleUpdateField('borderBottom', style.borderBottom);
+            
+            if (style.advancedOptions) {
+              setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
+              handleUpdateField('advancedOptions', JSON.stringify(style.advancedOptions));
+            }
+          }
+        } else {
+          setSelectedMenu(null);
         }
-        if (menu.backgroundColor) {
-          setBackgroundColor(menu.backgroundColor);
-          handleUpdateField('backgroundColor', menu.backgroundColor);
-        }
-        if (menu.textColor) {
-          setTextColor(menu.textColor);
-          handleUpdateField('textColor', menu.textColor);
-        }
-      } else {
-        setSelectedMenu(null);
-      }
+      });
     } else {
       setSelectedMenu(null);
     }
@@ -295,7 +427,7 @@ export default function HeaderSection({
   const renderMenuItems = (items: MenuItem[], level = 0) => {
     if (!items || items.length === 0) return null;
     
-    return items.map(item => {
+    return items.map((item: MenuItem) => {
       // Determine the URL
       let href = '#';
       if (item.url) {
@@ -306,29 +438,41 @@ export default function HeaderSection({
       
       const hasChildren = item.children && item.children.length > 0;
       
+      // Apply different styles based on menuButtonStyle
+      const linkStyles = (() => {
+        const baseStyle = `transition-colors duration-300 ${level === 0 ? 'group' : ''}`;
+        
+        switch (menuButtonStyle) {
+          case 'filled':
+            return `${baseStyle} px-4 py-2 rounded-md ${scrolled || !transparentHeader ? 'hover:bg-gray-100' : 'hover:bg-white/20'}`;
+          case 'outline':
+            return `${baseStyle} px-4 py-2 border border-current rounded-md hover:bg-opacity-10 hover:bg-current`;
+          default:
+            return `${baseStyle} px-3 py-2 hover:opacity-80`;
+        }
+      })();
+      
       return (
         <li key={item.id} className={`relative ${level === 0 ? 'group' : ''}`}>
           {hasChildren ? (
             <div className="relative">
               <button
                 onClick={() => toggleDropdown(item.id)}
-                className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium transition-colors ${
-                  scrolled ? 'hover:text-blue-600' : 'hover:text-blue-300'
-                }`}
+                className={`flex items-center space-x-1 text-sm font-medium ${linkStyles}`}
                 style={{ color: textColor }}
               >
                 <span>{item.title}</span>
-                <ChevronDownIcon className="h-4 w-4" />
+                <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isDropdownOpen[item.id] ? 'rotate-180' : ''}`} />
               </button>
               
               {isDropdownOpen[item.id] || level > 0 ? (
                 // Clicked dropdown for mobile
-                <div className={`absolute ${level === 0 ? 'right-0 top-full' : 'left-full top-0'} mt-1 py-2 w-48 bg-white/90 backdrop-blur-md rounded-md shadow-lg z-10`}>
+                <div className={`absolute ${level === 0 ? 'right-0 top-full' : 'left-full top-0'} mt-1 py-2 w-48 bg-white/90 backdrop-blur-md rounded-md shadow-lg z-10 transition-all duration-300 ease-in-out animate-fadeIn`}>
                   {item.children && renderMenuItems(item.children, level + 1)}
                 </div>
               ) : level === 0 ? (
                 // Hover dropdown for desktop (top level only)
-                <div className="hidden group-hover:block absolute right-0 top-full mt-1 py-2 w-48 bg-white/90 backdrop-blur-md rounded-md shadow-lg z-10">
+                <div className="hidden group-hover:block absolute right-0 top-full mt-1 py-2 w-48 bg-white/90 backdrop-blur-md rounded-md shadow-lg z-10 transition-all duration-300 ease-in-out">
                   {item.children && renderMenuItems(item.children, level + 1)}
                 </div>
               ) : null}
@@ -337,9 +481,7 @@ export default function HeaderSection({
             <Link
               href={href}
               target={item.target || "_self"}
-              className={`px-3 py-2 text-sm font-medium transition-colors block ${
-                scrolled ? 'hover:text-blue-600' : 'hover:text-blue-300'
-              }`}
+              className={`text-sm font-medium block ${linkStyles}`}
               style={{ color: textColor }}
             >
               {item.title}
@@ -350,73 +492,246 @@ export default function HeaderSection({
     });
   };
 
-  // Media selector modal for logo
-  const MediaSelector = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Seleccionar Logo</h3>
-          <button
-            onClick={() => setShowMediaSelector(false)}
-            className="p-1 rounded-full hover:bg-gray-100"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        {loadingMedia ? (
-          <div className="py-8 text-center">Cargando medios...</div>
-        ) : (
-          <>
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              {availableMedia.map((media) => (
-                <div 
-                  key={media.id} 
-                  className={`border rounded-md p-2 cursor-pointer hover:border-blue-500 transition-colors ${
-                    logoUrl === media.fileUrl ? 'border-blue-500 ring-2 ring-blue-200' : ''
-                  }`}
-                  onClick={() => handleLogoUrlChange(media.fileUrl)}
-                >
-                  <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden mb-2">
-                    {media.fileUrl ? (
-                      <img 
+  // Media selector component
+  const MediaSelector = () => {
+    // Cerrar el selector
+    const handleClose = () => {
+      setShowMediaSelector(false);
+    };
+
+    // Cargar medios cuando se abre el selector
+    useEffect(() => {
+      const loadMedia = async () => {
+        try {
+          setLoadingMedia(true);
+          // Simulamos carga de media desde API (esto debería ser reemplazado por llamada real a API)
+          // Como ejemplo, vamos a usar estas imágenes de placeholder
+          setTimeout(() => {
+            setAvailableMedia([
+              { id: 'logo1', title: 'Logo 1', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+1' },
+              { id: 'logo2', title: 'Logo 2', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+2' },
+              { id: 'logo3', title: 'Logo 3', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+3' },
+              { id: 'logo4', title: 'Logo 4', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+4' },
+            ]);
+            setLoadingMedia(false);
+          }, 1000);
+        } catch (error) {
+          console.error('Error loading media', error);
+          setLoadingMedia(false);
+        }
+      };
+
+      loadMedia();
+    }, []);
+
+    // Seleccionar un medio
+    const handleSelectMedia = (fileUrl: string) => {
+      setLogoUrl(fileUrl);
+      handleLogoUrlChange(fileUrl);
+      setShowMediaSelector(false);
+    };
+
+    // URL personalizada
+    const [customUrl, setCustomUrl] = useState('');
+    
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
+        <div className="bg-white rounded-lg p-6 max-w-xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Select Media</h3>
+            <button 
+              onClick={handleClose}
+              className="p-1 rounded-full hover:bg-gray-100"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Custom URL input */}
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-1 block">Enter Image URL</label>
+            <div className="flex">
+              <input
+                type="text"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                placeholder="https://..."
+                className="flex-1 border rounded-l-md p-2 text-sm"
+              />
+              <button
+                onClick={() => handleSelectMedia(customUrl)}
+                disabled={!customUrl.trim()}
+                className="bg-blue-600 text-white px-3 py-2 rounded-r-md disabled:bg-blue-300"
+              >
+                Use URL
+              </button>
+            </div>
+          </div>
+          
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Media Library</h4>
+            
+            {loadingMedia ? (
+              <div className="flex justify-center items-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {availableMedia.map(media => (
+                  <div 
+                    key={media.id}
+                    onClick={() => handleSelectMedia(media.fileUrl)}
+                    className="border rounded-md p-2 cursor-pointer hover:border-blue-500 transition-colors"
+                  >
+                    <div className="h-24 flex items-center justify-center mb-1">
+                      <Image 
                         src={media.fileUrl} 
-                        alt={media.title} 
+                        alt={media.title}
+                        width={80}
+                        height={80}
                         className="max-h-full max-w-full object-contain" 
                       />
-                    ) : (
-                      <div className="text-gray-400">Sin imagen</div>
-                    )}
+                    </div>
+                    <div className="text-xs font-medium truncate text-center">
+                      {media.title}
+                    </div>
                   </div>
-                  <p className="text-xs truncate">{media.title}</p>
-                </div>
-              ))}
-            </div>
-            
-            <div className="border-t pt-4">
-              <p className="text-sm mb-2">O ingresa una URL de imagen:</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  className="flex-1 border rounded px-3 py-2 text-sm"
-                  placeholder="https://ejemplo.com/logo.png"
-                />
-                <button
-                  onClick={() => handleLogoUrlChange(logoUrl)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                >
-                  Aplicar
-                </button>
+                ))}
               </div>
-            </div>
-          </>
-        )}
+            )}
+            
+            {!loadingMedia && availableMedia.length === 0 && (
+              <div className="text-center text-gray-500 p-6">
+                No images found in your media library
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    );
+  };
+
+  // Agregar handlers para las nuevas opciones
+  const handleTransparentHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setTransparentHeader(newValue);
+    handleUpdateField('transparentHeader', newValue);
+  }, [handleUpdateField]);
+
+  const handleBorderBottomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setBorderBottom(newValue);
+    handleUpdateField('borderBottom', newValue);
+  }, [handleUpdateField]);
+
+  const handleMenuAlignmentChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'left' | 'center' | 'right';
+    setMenuAlignment(newValue);
+    handleUpdateField('menuAlignment', newValue);
+  }, [handleUpdateField]);
+
+  const handleMenuButtonStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'default' | 'filled' | 'outline';
+    setMenuButtonStyle(newValue);
+    handleUpdateField('menuButtonStyle', newValue);
+  }, [handleUpdateField]);
+
+  const handleMobileMenuStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'fullscreen' | 'dropdown' | 'sidebar';
+    setMobileMenuStyle(newValue);
+    handleUpdateField('mobileMenuStyle', newValue);
+  }, [handleUpdateField]);
+
+  const handleMobileMenuPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'left' | 'right';
+    setMobileMenuPosition(newValue);
+    handleUpdateField('mobileMenuPosition', newValue);
+  }, [handleUpdateField]);
+
+  // Add handlers for transparency and headerSize
+  const handleTransparencyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value);
+    setTransparency(newValue);
+    handleUpdateField('transparency', newValue.toString());
+  }, [handleUpdateField]);
+  
+  const handleHeaderSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as HeaderSize;
+    setHeaderSize(newValue);
+    handleUpdateField('headerSize', newValue);
+  }, [handleUpdateField]);
+  
+  // Advanced options handlers
+  const handleAdvancedOptionChange = useCallback((key: string, value: string | number | boolean) => {
+    const updatedOptions = {
+      ...advancedOptions,
+      [key]: value
+    };
+    setAdvancedOptions(updatedOptions);
+    // Convert to string for handleUpdateField
+    handleUpdateField('advancedOptions', JSON.stringify(updatedOptions));
+  }, [advancedOptions, handleUpdateField]);
+  
+  // Utility function to convert hex to rgb for transparency
+  const hexToRgb = useCallback((hex: string) => {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Parse the hex values
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    // Check if any values are NaN (invalid hex)
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return { r: 0, g: 0, b: 0 };
+    }
+    
+    return { r, g, b };
+  }, []);
+
+  // Function to save header style to the database
+  const saveHeaderStyle = useCallback(async () => {
+    if (!localMenuId) return;
+    
+    try {
+      // Prepare the header style data
+      const headerStyleData = {
+        transparency,
+        headerSize,
+        menuAlignment,
+        menuButtonStyle,
+        mobileMenuStyle,
+        mobileMenuPosition,
+        transparentHeader,
+        borderBottom,
+        advancedOptions
+      };
+      
+      // Save the header style using the GraphQL client
+      const result = await cmsOperations.updateHeaderStyle(localMenuId, headerStyleData);
+      
+      if (result.success) {
+        console.log('Header style saved successfully:', result.headerStyle);
+      } else {
+        console.error('Failed to save header style:', result.message);
+      }
+    } catch (error) {
+      console.error('Error saving header style:', error);
+    }
+  }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
+      mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, advancedOptions]);
+
+  // Add a save button for the header style
+  const HeaderStyleSaveButton = () => (
+    <button
+      onClick={saveHeaderStyle}
+      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+    >
+      Save Header Style
+    </button>
   );
 
   return (
@@ -449,9 +764,11 @@ export default function HeaderSection({
                 className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
               >
                 {logoUrl ? (
-                  <img 
+                  <Image
                     src={logoUrl} 
                     alt="Logo" 
+                    width={80}
+                    height={80}
                     className="max-h-full max-w-full object-contain" 
                   />
                 ) : (
@@ -519,6 +836,32 @@ export default function HeaderSection({
                 </label>
               </div>
               
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="transparentHeader"
+                  checked={transparentHeader}
+                  onChange={handleTransparentHeaderChange}
+                  className="rounded border-gray-300 text-blue-600"
+                />
+                <label htmlFor="transparentHeader" className="text-sm">
+                  Transparent background (changes on scroll)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="borderBottom"
+                  checked={borderBottom}
+                  onChange={handleBorderBottomChange}
+                  className="rounded border-gray-300 text-blue-600"
+                />
+                <label htmlFor="borderBottom" className="text-sm">
+                  Show border at bottom
+                </label>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="backgroundColor" className="text-sm block mb-1">
@@ -562,6 +905,215 @@ export default function HeaderSection({
                   </div>
                 </div>
               </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label htmlFor="menuAlignment" className="text-sm block mb-1">
+                    Menu Alignment
+                  </label>
+                  <select
+                    id="menuAlignment"
+                    value={menuAlignment}
+                    onChange={handleMenuAlignmentChange}
+                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="menuButtonStyle" className="text-sm block mb-1">
+                    Menu Button Style
+                  </label>
+                  <select
+                    id="menuButtonStyle"
+                    value={menuButtonStyle}
+                    onChange={handleMenuButtonStyleChange}
+                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="default">Default</option>
+                    <option value="filled">Filled</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label htmlFor="mobileMenuStyle" className="text-sm block mb-1">
+                    Mobile Menu Style
+                  </label>
+                  <select
+                    id="mobileMenuStyle"
+                    value={mobileMenuStyle}
+                    onChange={handleMobileMenuStyleChange}
+                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="dropdown">Dropdown</option>
+                    <option value="fullscreen">Fullscreen</option>
+                    <option value="sidebar">Sidebar</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="mobileMenuPosition" className="text-sm block mb-1">
+                    Sidebar Position (mobile)
+                  </label>
+                  <select
+                    id="mobileMenuPosition"
+                    value={mobileMenuPosition}
+                    onChange={handleMobileMenuPositionChange}
+                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Replace with this: */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="headerSize" className="text-sm block mb-1">
+                  Header Size
+                </label>
+                <select
+                  id="headerSize"
+                  value={headerSize}
+                  onChange={handleHeaderSizeChange}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value="sm">Small</option>
+                  <option value="md">Medium</option>
+                  <option value="lg">Large</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="transparency" className="text-sm block mb-1">
+                  Background Transparency
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="range"
+                    id="transparency"
+                    min="0"
+                    max="100"
+                    value={transparency}
+                    onChange={handleTransparencyChange}
+                    className="flex-1 mr-2"
+                  />
+                  <span className="text-sm">{transparency}%</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Advanced Options Toggle */}
+            <div className="mt-4 border-t pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedOptions(prev => !prev)}
+                className="flex items-center text-sm text-gray-600 hover:text-gray-900"
+              >
+                <svg 
+                  className={`h-4 w-4 mr-1 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Advanced Options
+              </button>
+              
+              {showAdvancedOptions && (
+                <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-200">
+                  <div>
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={advancedOptions?.glassmorphism || false}
+                        onChange={(e) => handleAdvancedOptionChange('glassmorphism', e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 mr-2"
+                      />
+                      Enable Glassmorphism
+                    </label>
+                  </div>
+                  
+                  {advancedOptions?.glassmorphism && (
+                    <div>
+                      <label htmlFor="blur" className="text-sm block mb-1">
+                        Blur Amount
+                      </label>
+                      <input
+                        type="range"
+                        id="blur"
+                        min="0"
+                        max="20"
+                        value={advancedOptions?.blur || 5}
+                        onChange={(e) => handleAdvancedOptionChange('blur', parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0px</span>
+                        <span>20px</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label htmlFor="customClass" className="text-sm block mb-1">
+                      Custom CSS Class
+                    </label>
+                    <input
+                      type="text"
+                      id="customClass"
+                      value={advancedOptions?.customClass || ''}
+                      onChange={(e) => handleAdvancedOptionChange('customClass', e.target.value)}
+                      placeholder="e.g. my-header-class"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="shadow" className="text-sm block mb-1">
+                      Shadow Style
+                    </label>
+                    <select
+                      id="shadow"
+                      value={advancedOptions?.shadow || 'none'}
+                      onChange={(e) => handleAdvancedOptionChange('shadow', e.target.value)}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="none">None</option>
+                      <option value="sm">Small</option>
+                      <option value="md">Medium</option>
+                      <option value="lg">Large</option>
+                      <option value="xl">Extra Large</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="animation" className="text-sm block mb-1">
+                      Animation Effect
+                    </label>
+                    <select
+                      id="animation"
+                      value={advancedOptions?.animation || 'none'}
+                      onChange={(e) => handleAdvancedOptionChange('animation', e.target.value)}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="none">None</option>
+                      <option value="fade">Fade In</option>
+                      <option value="slide">Slide Down</option>
+                      <option value="bounce">Bounce</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Preview of selected menu */}
@@ -581,10 +1133,12 @@ export default function HeaderSection({
                         <div className="flex items-center gap-3">
                           {logoUrl && (
                             <div className="h-10 w-10 flex-shrink-0">
-                              <img 
+                              <Image
                                 src={logoUrl} 
                                 alt="Logo" 
                                 className="max-h-full max-w-full object-contain" 
+                                width={80}
+                                height={80}
                               />
                             </div>
                           )}
@@ -605,12 +1159,13 @@ export default function HeaderSection({
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                        {isFixed ? 
-                          "✓ Posición fija - el header se mantendrá al hacer scroll" : 
-                          "Posición normal - el header se desplazará con la página"}
+                        ✓ Posición fija - el header se mantendrá al hacer scroll
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <HeaderStyleSaveButton />
                 </div>
               </div>
             )}
@@ -621,13 +1176,30 @@ export default function HeaderSection({
         </div>
       ) : (
         <nav
-          className={`${isFixed ? 'fixed' : 'relative'} w-full z-50 transition-all duration-300 ${
-            scrolled
-              ? 'bg-white/80 backdrop-blur-md shadow-md py-2'
-              : `py-4`
+          className={`fixed top-0 w-full z-50 transition-all duration-300 py-4 ${
+            transparentHeader && !scrolled ? 'bg-transparent' : ''
+          } ${
+            borderBottom ? 'border-b border-gray-200' : ''
+          } ${
+            headerSize === 'sm' ? 'py-2' : headerSize === 'lg' ? 'py-6' : 'py-4'
+          } ${
+            advancedOptions?.customClass || ''
+          } ${
+            advancedOptions?.glassmorphism ? 'backdrop-filter backdrop-blur' : ''
+          } ${
+            advancedOptions?.shadow ? `shadow-${advancedOptions.shadow}` : ''
+          } ${
+            advancedOptions?.animation === 'fade' ? 'animate-fadeIn' : 
+            advancedOptions?.animation === 'slide' ? 'animate-slideDown' :
+            advancedOptions?.animation === 'bounce' ? 'animate-bounce' : ''
           }`}
           style={{
-            backgroundColor: scrolled ? backgroundColor + '80' : backgroundColor + '00',
+            backgroundColor: transparentHeader && !scrolled 
+              ? 'transparent' 
+              : transparency > 0 
+                ? `rgba(${hexToRgb(backgroundColor || '#ffffff').r}, ${hexToRgb(backgroundColor || '#ffffff').g}, ${hexToRgb(backgroundColor || '#ffffff').b}, ${(100 - transparency) / 100})`
+                : (backgroundColor || '#ffffff'),
+            backdropFilter: advancedOptions?.glassmorphism ? `blur(${advancedOptions?.blur || 5}px)` : undefined,
             color: textColor
           }}
         >
@@ -637,10 +1209,12 @@ export default function HeaderSection({
               <Link href={`/${locale}`} className="flex items-center">
                 {logoUrl && (
                   <div className="mr-3 flex-shrink-0">
-                    <img 
+                    <Image 
                       src={logoUrl} 
                       alt={localTitle} 
                       className="h-10 w-auto object-contain" 
+                      width={100}
+                      height={100}
                     />
                   </div>
                 )}
@@ -657,8 +1231,13 @@ export default function HeaderSection({
               </Link>
 
               {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center space-x-4">
-                <ul className="flex items-center space-x-4">
+              <div className={`hidden md:flex items-center space-x-4 ${
+                menuAlignment === 'left' ? 'justify-start' : 
+                menuAlignment === 'center' ? 'justify-center' : 'justify-end'
+              } flex-1`}>
+                <ul className={`flex items-center space-x-4 ${
+                  menuAlignment === 'center' ? 'mx-auto' : ''
+                }`}>
                   {selectedMenu && selectedMenu.items && selectedMenu.items.length > 0 ? (
                     renderMenuItems(selectedMenu.items)
                   ) : (
@@ -689,7 +1268,10 @@ export default function HeaderSection({
                       mobileMenu: !prev.mobileMenu
                     }));
                   }}
-                  className="p-2 rounded-md focus:outline-none"
+                  className={`p-2 rounded-md focus:outline-none ${
+                    menuButtonStyle === 'filled' ? 'bg-primary text-white' :
+                    menuButtonStyle === 'outline' ? 'border border-current' : ''
+                  }`}
                   style={{ color: textColor }}
                 >
                   {isDropdownOpen.mobileMenu ? (
@@ -708,71 +1290,128 @@ export default function HeaderSection({
 
           {/* Mobile menu */}
           {isDropdownOpen.mobileMenu && selectedMenu && selectedMenu.items && (
-            <div className="md:hidden bg-white/90 backdrop-blur-md shadow-lg mt-2">
-              <div className="px-4 py-3 space-y-1">
-                <ul className="space-y-2">
-                  {selectedMenu.items.map(item => {
-                    // Determine the URL
-                    let href = '#';
-                    if (item.url) {
-                      href = item.url;
-                    } else if (item.page?.slug) {
-                      href = `/${locale}/${item.page.slug}`;
-                    }
-                    
-                    const hasChildren = item.children && item.children.length > 0;
-                    
-                    return (
-                      <li key={item.id} className="relative">
-                        {hasChildren ? (
-                          <div>
-                            <button
-                              onClick={() => toggleDropdown(item.id)}
-                              className="flex items-center justify-between w-full px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+            <>
+              {/* Overlay for fullscreen and sidebar */}
+              {(mobileMenuStyle === 'fullscreen' || mobileMenuStyle === 'sidebar') && (
+                <div 
+                  className="fixed inset-0 bg-black/30 z-30 md:hidden animate-fadeIn"
+                  onClick={() => setIsDropdownOpen(prev => ({ ...prev, mobileMenu: false }))}
+                />
+              )}
+              
+              <div 
+                className={`md:hidden fixed z-40 transition-all duration-300 ease-in-out ${
+                  mobileMenuStyle === 'fullscreen' ? 'inset-0 bg-white animate-fadeIn' :
+                  mobileMenuStyle === 'sidebar' ? `top-0 bottom-0 w-[280px] bg-white shadow-xl ${
+                    mobileMenuPosition === 'left' ? 'left-0 animate-slideInLeft' : 'right-0 animate-slideInRight'
+                  }` :
+                  'top-[4rem] left-0 right-0 bg-white/90 backdrop-blur-md shadow-lg animate-slideInDown'
+                }`}
+              >
+                {mobileMenuStyle === 'fullscreen' && (
+                  <div className="flex justify-end p-4">
+                    <button
+                      onClick={() => setIsDropdownOpen(prev => ({ ...prev, mobileMenu: false }))}
+                      className="p-2"
+                    >
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                <div className={`${
+                  mobileMenuStyle === 'fullscreen' ? 'flex flex-col items-center justify-center h-full' : 'p-4'
+                }`}>
+                  {mobileMenuStyle === 'fullscreen' && logoUrl && (
+                    <div className="mb-8">
+                      <Image
+                        src={logoUrl} 
+                        alt={localTitle} 
+                        className="h-16 w-auto object-contain mx-auto" 
+                        width={80}
+                        height={80}
+                      />
+                    </div>
+                  )}
+                  
+                  <ul className={`${
+                    mobileMenuStyle === 'fullscreen' ? 'space-y-4 text-center' : 'space-y-2'
+                  }`}>
+                    {selectedMenu.items.map(item => {
+                      // Determine the URL
+                      let href = '#';
+                      if (item.url) {
+                        href = item.url;
+                      } else if (item.page?.slug) {
+                        href = `/${locale}/${item.page.slug}`;
+                      }
+                      
+                      const hasChildren = item.children && item.children.length > 0;
+                      
+                      return (
+                        <li key={item.id} className={`relative ${
+                          mobileMenuStyle === 'fullscreen' ? 'text-xl' : ''
+                        }`}>
+                          {hasChildren ? (
+                            <div>
+                              <button
+                                onClick={() => toggleDropdown(item.id)}
+                                className={`flex items-center justify-between w-full px-3 py-2 hover:bg-gray-100 rounded-md ${
+                                  mobileMenuStyle === 'fullscreen' ? 'text-xl font-medium' : 'text-base'
+                                }`}
+                              >
+                                <span>{item.title}</span>
+                                <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isDropdownOpen[item.id] ? 'rotate-180' : ''}`} />
+                              </button>
+                              
+                              {isDropdownOpen[item.id] && item.children && (
+                                <div className={`mt-1 space-y-1 ${
+                                  mobileMenuStyle === 'fullscreen' ? 'text-center' : 'pl-4'
+                                }`}>
+                                  {item.children.map(child => {
+                                    let childHref = '#';
+                                    if (child.url) {
+                                      childHref = child.url;
+                                    } else if (child.page?.slug) {
+                                      childHref = `/${locale}/${child.page.slug}`;
+                                    }
+                                    
+                                    return (
+                                      <Link
+                                        key={child.id}
+                                        href={childHref}
+                                        target={child.target || "_self"}
+                                        className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
+                                          mobileMenuStyle === 'fullscreen' ? 'text-lg' : 'text-sm'
+                                        }`}
+                                      >
+                                        {child.title}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Link
+                              href={href}
+                              target={item.target || "_self"}
+                              className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
+                                mobileMenuStyle === 'fullscreen' ? 'text-xl font-medium' : 'text-base'
+                              }`}
                             >
-                              <span>{item.title}</span>
-                              <ChevronDownIcon className={`h-4 w-4 transition-transform ${isDropdownOpen[item.id] ? 'rotate-180' : ''}`} />
-                            </button>
-                            
-                            {isDropdownOpen[item.id] && item.children && (
-                              <div className="pl-4 mt-1 space-y-1">
-                                {item.children.map(child => {
-                                  let childHref = '#';
-                                  if (child.url) {
-                                    childHref = child.url;
-                                  } else if (child.page?.slug) {
-                                    childHref = `/${locale}/${child.page.slug}`;
-                                  }
-                                  
-                                  return (
-                                    <Link
-                                      key={child.id}
-                                      href={childHref}
-                                      target={child.target || "_self"}
-                                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                                    >
-                                      {child.title}
-                                    </Link>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <Link
-                            href={href}
-                            target={item.target || "_self"}
-                            className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                          >
-                            {item.title}
-                          </Link>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                              {item.title}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </nav>
       )}

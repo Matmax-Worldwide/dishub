@@ -98,4 +98,37 @@ export interface NotificationType {
 
 export interface ManageableSectionHandle {
   saveChanges: (skipLoadingState?: boolean) => Promise<void>;
+}
+
+// Header customization types
+export type HeaderSize = 'sm' | 'md' | 'lg';
+export type MenuAlignment = 'left' | 'center' | 'right';
+export type MenuButtonStyle = 'default' | 'filled' | 'outline';
+export type MobileMenuStyle = 'fullscreen' | 'dropdown' | 'sidebar';
+export type MobileMenuPosition = 'left' | 'right';
+
+export interface HeaderAdvancedOptions {
+  glassmorphism?: boolean;
+  blur?: number;
+  shadow?: string;
+  animation?: string;
+  customClass?: string;
+  borderRadius?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface HeaderStyle {
+  id: string;
+  menuId: string;
+  transparency: number;
+  headerSize: HeaderSize;
+  menuAlignment: MenuAlignment;
+  menuButtonStyle: MenuButtonStyle;
+  mobileMenuStyle: MobileMenuStyle;
+  mobileMenuPosition: MobileMenuPosition;
+  transparentHeader: boolean;
+  borderBottom: boolean;
+  advancedOptions?: HeaderAdvancedOptions;
+  createdAt: string;
+  updatedAt: string;
 } 

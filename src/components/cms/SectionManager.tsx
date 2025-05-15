@@ -757,9 +757,15 @@ function SectionManagerBase({
             activeEl instanceof HTMLInputElement || 
             activeEl instanceof HTMLTextAreaElement
           ) {
-            const length = activeEl.value.length;
-            activeEl.selectionStart = length;
-            activeEl.selectionEnd = length;
+            // Only set selection for text-type inputs that support it
+            const inputType = activeEl.getAttribute('type');
+            const isSelectable = !inputType || ['text', 'textarea', 'email', 'password', 'tel', 'url', 'search', 'number'].includes(inputType);
+            
+            if (isSelectable) {
+              const length = activeEl.value.length;
+              activeEl.selectionStart = length;
+              activeEl.selectionEnd = length;
+            }
           }
           
           // Limpiar la referencia

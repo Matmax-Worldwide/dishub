@@ -10,13 +10,10 @@ export async function gqlRequest<T>(
   const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
   
   try {
-    console.log(`🔍 gqlRequest [${requestId}] - Iniciando solicitud GraphQL`); 
-    console.log(`🔍 gqlRequest [${requestId}] - Query: ${query.substring(0, 100).replace(/\s+/g, ' ')}...`);
-    console.log(`🔍 gqlRequest [${requestId}] - Variables: ${JSON.stringify(variables)}`);
-    
-    // Añadir etiqueta de tiempo para depuración
-    const requestTime = new Date().toISOString();
-    console.log(`🔍 gqlRequest [${requestId}] [${requestTime}] - Enviando solicitud a /api/graphql`);
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 gqlRequest [${requestId}] - Query: ${query.substring(0, 50).replace(/\s+/g, ' ')}...`);
+    }
     
     // Create an AbortController to handle request timeout
     const controller = new AbortController();
@@ -33,18 +30,17 @@ export async function gqlRequest<T>(
           variables,
         }),
         signal: controller.signal,
+        // Add cache control to improve performance for repeated queries
+        cache: 'default',
       });
       
       // Clear the timeout as the request completed
       clearTimeout(timeoutId);
       
-      const responseTime = new Date().toISOString();
-      console.log(`🔍 gqlRequest [${requestId}] [${responseTime}] - Respuesta recibida con status: ${response.status}`);
-      
       // Handle non-ok responses
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ gqlRequest [${requestId}] - Error HTTP ${response.status}: ${errorText}`);
+        console.error(`GraphQL HTTP error ${response.status}`);
         throw new Error(`HTTP error ${response.status}: ${errorText}`);
       }
       
@@ -53,17 +49,9 @@ export async function gqlRequest<T>(
       // Check for GraphQL errors
       if (responseData.errors && responseData.errors.length > 0) {
         const errorMessages = responseData.errors.map((e: { message: string }) => e.message).join(', ');
-        console.error(`❌ gqlRequest [${requestId}] - Errores GraphQL: ${errorMessages}`);
+        console.error(`GraphQL errors: ${errorMessages}`);
         throw new Error(`GraphQL errors: ${errorMessages}`);
       }
-      
-      // Verificar que se obtuvo una respuesta válida
-      if (!responseData) {
-        console.error(`❌ gqlRequest [${requestId}] - Respuesta vacía o inválida`);
-        throw new Error('No se recibió una respuesta válida del servidor');
-      }
-      
-      console.log(`✅ gqlRequest [${requestId}] - Solicitud completada exitosamente`);
       
       // Return the data property or the entire response if data is not present
       return responseData.data || responseData as T;
@@ -73,7 +61,6 @@ export async function gqlRequest<T>(
       
       // Special handling for abort errors (timeouts)
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.error(`❌ gqlRequest [${requestId}] - La solicitud excedió el tiempo límite de ${timeout}ms`);
         throw new Error(`La solicitud GraphQL excedió el tiempo límite de ${timeout}ms`);
       }
       
@@ -82,7 +69,7 @@ export async function gqlRequest<T>(
   } catch (error) {
     // Format the error for better debugging
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`❌ gqlRequest [${requestId}] - Error: ${errorMessage}`);
+    console.error(`GraphQL error: ${errorMessage}`);
     
     // Rethrow with more context
     throw new Error(`Error en solicitud GraphQL: ${errorMessage}`);
@@ -221,6 +208,14 @@ export interface PageSectionData {
 // Get a page by its slug
 async function getPageBySlug(slug: string): Promise<PageData | null> {
   try {
+    // Check cache first
+    const cacheKey = `page_slug_${slug}`;
+    const cachedPage = getCachedResponse<PageData>(cacheKey);
+    
+    if (cachedPage) {
+      return cachedPage;
+    }
+    
     const query = `
       query GetPageBySlug($slug: String!) {
         getPageBySlug(slug: $slug) {
@@ -301,39 +296,18 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
     
     // Found a page
     if (page && page.id) {
-      // Enhanced logging for SEO data
-      console.log(`Found page: ${page.title} (${page.id})`);
-      console.log(`SEO data present: ${Boolean(page.seo)}`);
-      if (page.seo) {
-        console.log('SEO data:', JSON.stringify(page.seo, null, 2));
-      } else {
-        console.log('No SEO data in response, initializing empty object');
-        page.seo = {};
-      }
-      
       // Ensure there's always at least an empty SEO object
       if (!page.seo) {
         page.seo = {};
       }
       
-      // Log section info if page has sections
-      if (page.sections && Array.isArray(page.sections)) {
-        console.log(`Page "${page.title}" has ${page.sections.length} sections`);
-        page.sections.forEach((section, index) => {
-          // Check if section is a PageSectionData type with componentType
-          if ('componentType' in section) {
-            console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order}, Type=${section.componentType || 'unknown'}`);
-          } else {
-            console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order || 0}`);
-          }
-        });
-      } else {
-        console.log(`Page "${page.title}" has no sections defined`);
-      }
+      // Cache the page data
+      setCachedResponse(cacheKey, page);
+      
       return page;
     }
     
-    // For debugging purposes, try to list available pages
+    // Try to find by ID as a fallback (less verbose)
     try {
       const listQuery = `
         query GetAllPages {
@@ -370,40 +344,22 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
         );
         
         if (matchingPage) {
-          console.log(`Found matching page "${matchingPage.title}" but couldn't fetch its sections`);
-          
           // Try to fetch by ID as a fallback
-          try {
-            const foundPage = await getPageById(matchingPage.id);
-            if (foundPage) {
-              // Log section info
-              if (foundPage.sections && Array.isArray(foundPage.sections)) {
-                console.log(`Page "${foundPage.title}" (fetched by ID) has ${foundPage.sections.length} sections`);
-                foundPage.sections.forEach((section, index) => {
-                  // Check if section is a PageSectionData type with componentType
-                  if ('componentType' in section) {
-                    console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order}, Type=${section.componentType || 'unknown'}`);
-                  } else {
-                    console.log(`Section ${index + 1}: ID=${section.id}, Order=${section.order || 0}`);
-                  }
-                });
-              } else {
-                console.log(`Page "${foundPage.title}" (fetched by ID) has no sections defined`);
-              }
-              return foundPage;
-            }
-          } catch (idError) {
-            console.error(`Error fetching page sections by ID:`, idError);
+          const foundPage = await getPageById(matchingPage.id);
+          if (foundPage) {
+            // Cache the page data
+            setCachedResponse(cacheKey, foundPage);
+            return foundPage;
           }
         }
       }
     } catch (listError) {
-      console.error(`Error listing sections:`, listError);
+      console.error(`Error listing pages:`, listError);
     }
     
     return null;
   } catch (error) {
-    console.error(`Error retrieving page sections:`, error);
+    console.error(`Error retrieving page:`, error);
     throw error;
   }
 }
@@ -547,8 +503,13 @@ async function updatePage(id: string, input: {
 
 // Get a page by ID
 async function getPageById(id: string): Promise<PageData | null> {
-  const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
-  console.log(`🔍 [${requestId}] GraphQL CLIENT - getPageById - Starting request for ID: "${id}"`);
+  // Check cache first
+  const cacheKey = `page_id_${id}`;
+  const cachedPage = getCachedResponse<PageData>(cacheKey);
+  
+  if (cachedPage) {
+    return cachedPage;
+  }
   
   try {
     // First try to get all pages and filter by ID
@@ -556,14 +517,14 @@ async function getPageById(id: string): Promise<PageData | null> {
     const page = allPages.find(p => p.id === id);
     
     if (page) {
-      console.log(`✅ [${requestId}] GraphQL CLIENT - getPageById - Found page with title: "${page.title}"`);
+      // Cache the found page
+      setCachedResponse(cacheKey, page as PageData);
       return page as PageData;
     }
     
-    console.log(`❓ [${requestId}] GraphQL CLIENT - getPageById - No page found with ID: ${id}`);
     return null;
   } catch (error) {
-    console.error(`❌ [${requestId}] GraphQL CLIENT - getPageById - Error:`, error);
+    console.error(`Error in getPageById for ID ${id}:`, error);
     return null;
   }
 }
@@ -580,7 +541,7 @@ export async function getPagePreview(pageData: PageData): Promise<{
 }> {
   console.log(`Generating preview for page: "${pageData.title}"`);
   
-    const sections: Array<{
+  const sections: Array<{
     id: string;
     title?: string;
     order: number;
@@ -617,7 +578,8 @@ export async function getPagePreview(pageData: PageData): Promise<{
       const sectionTitle = cmsSection.name || `Section ${section.order || 0}`;
       
       // Fetch the components for this section using the CMSSection's sectionId
-      const { components } = await cmsOperations.getSectionComponents(cmsSection.sectionId);
+      const result = await cmsOperations.getSectionComponents(cmsSection.sectionId);
+      const { components } = result;
       
       console.log(`Fetched ${components.length} components for section "${sectionTitle}"`);
       
@@ -632,7 +594,7 @@ export async function getPagePreview(pageData: PageData): Promise<{
       // Log component types for debugging
       if (components.length > 0) {
         console.log(`Component types in section "${sectionTitle}":`, 
-          components.map(c => c.type).join(', '));
+          components.map((c: CMSComponent) => c.type).join(', '));
       }
     } catch (error) {
       console.error(`Error fetching components for section ${section.id}:`, error);
@@ -668,13 +630,14 @@ export async function loadSectionComponentsForEdit(sectionId: string): Promise<{
     console.log(`Loading components for section ${sectionId} in editor`);
     
     // Fetch the components for this section
-    const { components, lastUpdated } = await cmsOperations.getSectionComponents(sectionId);
+    const result = await cmsOperations.getSectionComponents(sectionId);
+    const { components, lastUpdated } = result;
     
     console.log(`Editor: Loaded ${components.length} components for section ${sectionId}`);
     
     if (components.length > 0) {
       // Log types and data structure to help with editing
-      console.log(`Component types for editing:`, components.map(c => c.type));
+      console.log(`Component types for editing:`, components.map((c: CMSComponent) => c.type));
       console.log(`First component data structure:`, 
         Object.keys(components[0].data || {}).join(', '));
     }
@@ -708,7 +671,8 @@ export async function applyComponentEdit(
     console.log(`Applying edits to component ${componentId} in section ${sectionId}`);
     
     // First fetch the current components
-    const { components } = await cmsOperations.getSectionComponents(sectionId);
+    const result = await cmsOperations.getSectionComponents(sectionId);
+    const { components } = result;
     
     if (!components || components.length === 0) {
       return {
@@ -719,7 +683,7 @@ export async function applyComponentEdit(
     }
     
     // Find the component to update
-    const componentIndex = components.findIndex(c => c.id === componentId);
+    const componentIndex = components.findIndex((c: CMSComponent) => c.id === componentId);
     
     if (componentIndex === -1) {
       console.error(`Component ${componentId} not found in section ${sectionId}`);
@@ -749,9 +713,9 @@ export async function applyComponentEdit(
     })}`);
     
     // Save all components back to the section
-    const result = await cmsOperations.saveSectionComponents(sectionId, updatedComponents);
+    const result2 = await cmsOperations.saveSectionComponents(sectionId, updatedComponents);
     
-    return result;
+    return result2;
   } catch (error) {
     console.error('Error applying component edit:', error);
     return {
@@ -772,7 +736,7 @@ async function updateComponentTitle(sectionId: string, componentId: string, titl
     // First get current section components
     const sectionData = await cmsOperations.getSectionComponents(sectionId);
     
-    if (!sectionData || !sectionData.components || !Array.isArray(sectionData.components)) {
+    if (!sectionData.components || !Array.isArray(sectionData.components)) {
       return {
         success: false,
         message: 'Failed to get section components'
@@ -780,7 +744,7 @@ async function updateComponentTitle(sectionId: string, componentId: string, titl
     }
     
     // Find the component by ID and update its title
-    const updatedComponents = sectionData.components.map(component => {
+    const updatedComponents = sectionData.components.map((component: CMSComponent) => {
       if (component.id === componentId) {
         // Preserve the original data and add title
         return {
@@ -833,6 +797,69 @@ async function updateSectionName(sectionId: string, name: string): Promise<{
       message: error instanceof Error ? error.message : 'Unknown error updating section name'
     };
   }
+}
+
+// Create a simple in-memory cache for API responses
+const apiCache: Record<string, { data: unknown; timestamp: number }> = {};
+const CACHE_TTL = 60000; // 1 minute cache TTL by default
+
+// Get a cached response or undefined if expired or not found
+function getCachedResponse<T>(cacheKey: string): T | undefined {
+  const cachedItem = apiCache[cacheKey];
+  
+  if (!cachedItem) return undefined;
+  
+  const now = Date.now();
+  if (now - cachedItem.timestamp > CACHE_TTL) {
+    // Cache expired, remove it
+    delete apiCache[cacheKey];
+    return undefined;
+  }
+  
+  return cachedItem.data as T;
+}
+
+// Cache an API response
+function setCachedResponse<T>(cacheKey: string, data: T): void {
+  apiCache[cacheKey] = {
+    data,
+    timestamp: Date.now()
+  };
+}
+
+// Clear cache for a specific key or pattern
+function clearCache(keyPattern?: string): void {
+  if (!keyPattern) {
+    // Clear all cache
+    Object.keys(apiCache).forEach(key => delete apiCache[key]);
+    return;
+  }
+  
+  // Clear matching cache entries
+  Object.keys(apiCache).forEach(key => {
+    if (key.includes(keyPattern)) {
+      delete apiCache[key];
+    }
+  });
+}
+
+// Define a type for the section components result
+interface SectionComponentsResult {
+  components: CMSComponent[];
+  lastUpdated: string | null;
+}
+
+// Add this new type for HeaderStyle input
+export interface HeaderStyleInput {
+  transparency?: number;
+  headerSize?: 'sm' | 'md' | 'lg';
+  menuAlignment?: 'left' | 'center' | 'right';
+  menuButtonStyle?: 'default' | 'filled' | 'outline';
+  mobileMenuStyle?: 'fullscreen' | 'dropdown' | 'sidebar';
+  mobileMenuPosition?: 'left' | 'right';
+  transparentHeader?: boolean;
+  borderBottom?: boolean;
+  advancedOptions?: Record<string, unknown>;
 }
 
 // Operaciones CMS
@@ -894,17 +921,10 @@ export const cmsOperations = {
   },
 
   // Obtener componentes de una sección
-  getSectionComponents: async (sectionId: string) => {
+  getSectionComponents: async (sectionId: string): Promise<SectionComponentsResult> => {
     try {
-      // Identificador único para esta solicitud
-      const requestId = `getSections-${Math.random().toString(36).substring(2, 9)}`;
-      const startTime = Date.now();
-      
-      console.log(`🔍 [${requestId}] GraphQL CLIENT - getSectionComponents - INICIO PETICIÓN, sectionId: [${sectionId}]`);
-      
-      // Verificar si el sectionId es válido
+      // Exit early if sectionId is invalid
       if (!sectionId) {
-        console.error(`❌ [${requestId}] sectionId inválido o vacío`);
         return { components: [], lastUpdated: null };
       }
       
@@ -912,14 +932,20 @@ export const cmsOperations = {
       let cleanedSectionId = sectionId;
       if (cleanedSectionId.includes('?')) {
         cleanedSectionId = cleanedSectionId.split('?')[0];
-        console.log(`🔍 [${requestId}] Limpiando sectionId de parámetros: ${sectionId} -> ${cleanedSectionId}`);
       }
       if (cleanedSectionId.includes('#')) {
         cleanedSectionId = cleanedSectionId.split('#')[0];
-        console.log(`🔍 [${requestId}] Limpiando sectionId de hash: ${sectionId} -> ${cleanedSectionId}`);
       }
       
-      // Definir la consulta GraphQL
+      // Check cache first
+      const cacheKey = `section_components_${cleanedSectionId}`;
+      const cachedData = getCachedResponse<SectionComponentsResult>(cacheKey);
+      
+      if (cachedData) {
+        return cachedData;
+      }
+      
+      // Define the GraphQL query
       const query = `
         query GetSectionComponents($sectionId: ID!) {
           getSectionComponents(sectionId: $sectionId) {
@@ -933,109 +959,29 @@ export const cmsOperations = {
         }
       `;
 
-      console.log(`🔍 [${requestId}] Query completa:`, query.replace(/\s+/g, ' '));
-      console.log(`🔍 [${requestId}] Variables:`, { sectionId: cleanedSectionId });
-
       try {
-        // Agregar un timestamp para evitar caching
-        const timestamp = Date.now();
-        console.log(`🔍 [${requestId}] Enviando solicitud con timestamp ${timestamp}, tiempo transcurrido: ${timestamp - startTime}ms`);
+        // Execute the GraphQL query
+        const result = await gqlRequest<SectionComponentsResponse>(query, { sectionId: cleanedSectionId });
         
-        // Ejecutar la consulta GraphQL con el timestamp para evitar cachés
-        const queryWithCache = `${query}#${timestamp}`;
-        const result = await gqlRequest<SectionComponentsResponse>(queryWithCache, { sectionId: cleanedSectionId });
-        
-        console.log(`🔍 [${requestId}] Respuesta recibida después de ${Date.now() - startTime}ms`);
-        
-        // Inspección profunda de la respuesta
-        if (!result) {
-          console.error(`❌ [${requestId}] Respuesta NULA`);
-          return { components: [], lastUpdated: null };
-        } 
-        
-        // Mostrar las claves disponibles en la respuesta
-        console.log(`🔍 [${requestId}] Claves en respuesta:`, Object.keys(result).join(', '));
-        
-        // Verificar si la respuesta contiene getSectionComponents
-        if (!result.hasOwnProperty('getSectionComponents')) {
-          console.error(`❌ [${requestId}] Campo 'getSectionComponents' NO ENCONTRADO en la respuesta`);
-          console.error(`❌ [${requestId}] Contenido de la respuesta:`, JSON.stringify(result, null, 2).substring(0, 1000));
+        if (!result || !result.getSectionComponents) {
           return { components: [], lastUpdated: null };
         }
         
-        // Verificar si getSectionComponents es nulo o indefinido
-        if (result.getSectionComponents === null || result.getSectionComponents === undefined) {
-          console.error(`❌ [${requestId}] 'getSectionComponents' es ${result.getSectionComponents === null ? 'NULL' : 'UNDEFINED'}`);
-          return { components: [], lastUpdated: null };
-        }
+        const { components = [], lastUpdated } = result.getSectionComponents;
         
-        // Verificar que components existe y es un array
-        const { components, lastUpdated } = result.getSectionComponents;
+        const response = { components, lastUpdated };
         
-        if (!components) {
-          console.error(`❌ [${requestId}] El campo 'components' NO EXISTE en getSectionComponents`);
-          console.error(`❌ [${requestId}] Contenido de getSectionComponents:`, result.getSectionComponents);
-          return { components: [], lastUpdated };
-        }
+        // Store in cache
+        setCachedResponse(cacheKey, response);
         
-        if (!Array.isArray(components)) {
-          console.error(`❌ [${requestId}] 'components' NO ES UN ARRAY, es de tipo:`, typeof components);
-          return { components: [], lastUpdated };
-        }
-        
-        // Mostrar información sobre los componentes
-        console.log(`✅ [${requestId}] ÉXITO! Se encontraron ${components.length} componentes`);
-        
-        if (components.length === 0) {
-          console.warn(`⚠️ [${requestId}] Array de componentes VACÍO aunque la respuesta fue correcta`);
-        } else {
-          console.log(`🔍 [${requestId}] Primer componente:`, JSON.stringify(components[0], null, 2));
-          
-          // Verificar la estructura de cada componente
-          components.forEach((comp, idx) => {
-            console.log(`🔍 [${requestId}] Componente #${idx+1}: ID=${comp.id}, Type=${comp.type}`);
-            
-            if (!comp.id || !comp.type) {
-              console.warn(`⚠️ [${requestId}] Componente #${idx+1} tiene estructura INCOMPLETA`);
-            }
-            
-            if (!comp.data) {
-              console.warn(`⚠️ [${requestId}] Componente #${idx+1} NO TIENE datos`);
-            } else {
-              console.log(`🔍 [${requestId}] Componente #${idx+1} data keys:`, Object.keys(comp.data).join(', '));
-            }
-          });
-        }
-        
-        // Mostrar información sobre lastUpdated
-        if (!lastUpdated) {
-          console.warn(`⚠️ [${requestId}] El campo 'lastUpdated' es ${lastUpdated === null ? 'NULL' : 'UNDEFINED'}`);
-        } else {
-          console.log(`🔍 [${requestId}] lastUpdated:`, lastUpdated);
-        }
-        
-        console.log(`✅ [${requestId}] COMPLETADO en ${Date.now() - startTime}ms - Devolviendo respuesta con ${components.length} componentes`);
-        return { 
-          components, 
-          lastUpdated 
-        };
+        return response;
       } catch (error) {
-        console.error(`❌ [${requestId}] ERROR EN CONSULTA:`, error);
-        
-        // Datos por defecto en caso de error
-        return {
-          components: [],
-          lastUpdated: null
-        };
+        console.error('Error fetching section components:', error);
+        return { components: [], lastUpdated: null };
       }
     } catch (error) {
-      console.error(`❌ ERROR GENERAL EN getSectionComponents:`, error);
-      
-      // Datos por defecto en caso de error general
-      return {
-        components: [],
-        lastUpdated: null
-      };
+      console.error('Error in getSectionComponents:', error);
+      return { components: [], lastUpdated: null };
     }
   },
 
@@ -1079,8 +1025,6 @@ export const cmsOperations = {
         components: validComponents
       };
       
-      console.log(`Saving ${validComponents.length} components for section ${sectionId}`);
-      
       // Use a longer timeout for saving components
       const result = await gqlRequest<{ 
         saveSectionComponents: { 
@@ -1093,6 +1037,9 @@ export const cmsOperations = {
       if (!result || !result.saveSectionComponents) {
         throw new Error('No response received from server when saving section components');
       }
+      
+      // Clear cache for this section
+      clearCache(`section_components_${sectionId}`);
       
       return result.saveSectionComponents;
     } catch (error) {
@@ -1554,7 +1501,7 @@ export const cmsOperations = {
         return [];
       }
     } catch (error) {
-      console.error(`Error general en getPagesUsingSectionId:`, error);
+      console.error(`Error in getPagesUsingSectionId:`, error);
       return [];
     }
   },
@@ -1570,6 +1517,24 @@ export const cmsOperations = {
     createdBy: string | null;
     components: unknown;
   } | null> {
+    // Check cache first
+    const cacheKey = `section_${id}`;
+    const cachedSection = getCachedResponse<{
+      id: string;
+      sectionId: string;
+      name: string;
+      description: string;
+      lastUpdated: string;
+      createdAt: string;
+      updatedAt: string;
+      createdBy: string | null;
+      components: unknown;
+    }>(cacheKey);
+    
+    if (cachedSection) {
+      return cachedSection;
+    }
+    
     const query = `
       query GetCMSSection($id: String!) {
         getCMSSection(id: $id) {
@@ -1604,7 +1569,14 @@ export const cmsOperations = {
       } | null;
     }>(query, { id });
     
-    return response?.getCMSSection || null;
+    const result = response?.getCMSSection || null;
+    
+    // Cache the result
+    if (result) {
+      setCachedResponse(cacheKey, result);
+    }
+    
+    return result;
   },
 
   // Create CMS Section
@@ -1632,9 +1604,6 @@ export const cmsOperations = {
         }
       `;
       
-      console.log(`Creating CMS Section with ID: ${input.sectionId}`);
-      console.log(`Input data: ${JSON.stringify(input)}`);
-      
       // Use a longer timeout for section creation
       const result = await gqlRequest<{ 
         createCMSSection: { 
@@ -1647,6 +1616,9 @@ export const cmsOperations = {
       if (!result || !result.createCMSSection) {
         throw new Error('No response received from server when creating CMS section');
       }
+      
+      // Clear cache for related data
+      clearCache(`section_${input.sectionId}`);
       
       return result.createCMSSection;
     } catch (error) {
@@ -1691,8 +1663,6 @@ export const cmsOperations = {
         }
       `;
       
-      console.log(`Creating Page Section: ${input.title} for page: ${input.pageId}`);
-      
       const variables = { input };
       const result = await gqlRequest<{ 
         createPageSection: { 
@@ -1714,6 +1684,9 @@ export const cmsOperations = {
         };
       }
       
+      // Clear cache for related data
+      clearCache(`page_id_${input.pageId}`);
+      
       return result.createPageSection;
     } catch (error) {
       console.error('Error creating Page section:', error);
@@ -1730,6 +1703,45 @@ export const cmsOperations = {
   
   // Get all menus with their items
   getMenus: async () => {
+    // Check cache first
+    const cacheKey = 'all_menus';
+    const cachedMenus = getCachedResponse<Array<{
+      id: string;
+      name: string;
+      location: string | null;
+      locationType: string | null;
+      isFixed: boolean | null;
+      backgroundColor: string | null;
+      textColor: string | null;
+      items: Array<{
+        id: string;
+        title: string;
+        url: string | null;
+        pageId: string | null;
+        target: string | null;
+        icon: string | null;
+        order: number;
+        children?: Array<{
+          id: string;
+          title: string;
+          url: string | null;
+          pageId: string | null;
+          target: string | null;
+          icon: string | null;
+          order: number;
+        }>;
+        page?: {
+          id: string;
+          title: string;
+          slug: string;
+        };
+      }>;
+    }>>(cacheKey);
+    
+    if (cachedMenus) {
+      return cachedMenus;
+    }
+    
     try {
       const query = `
         query GetMenus {
@@ -1768,8 +1780,6 @@ export const cmsOperations = {
         }
       `;
 
-      console.log('GraphQL query for getMenus');
-
       const result = await gqlRequest<{ menus: Array<{
         id: string;
         name: string;
@@ -1804,14 +1814,178 @@ export const cmsOperations = {
       }> }>(query);
       
       if (!result || !result.menus) {
-        console.log("No menus found or unexpected structure");
         return [];
       }
+      
+      // Cache the menus
+      setCachedResponse(cacheKey, result.menus);
       
       return result.menus;
     } catch (error) {
       console.error('Error in getMenus GraphQL query:', error);
       return [];
     }
-  }
-}; 
+  },
+
+  // Update header style for a menu
+  updateHeaderStyle: async (menuId: string, styleInput: HeaderStyleInput): Promise<{
+    success: boolean;
+    message: string;
+    headerStyle?: {
+      id: string;
+      menuId: string;
+      transparency: number;
+      headerSize: string;
+      menuAlignment: string;
+      menuButtonStyle: string;
+      mobileMenuStyle: string;
+      mobileMenuPosition: string;
+      transparentHeader: boolean;
+      borderBottom: boolean;
+      advancedOptions?: Record<string, unknown>;
+    };
+  }> => {
+    try {
+      const mutation = `
+        mutation UpdateHeaderStyle($menuId: ID!, $input: HeaderStyleInput!) {
+          updateHeaderStyle(menuId: $menuId, input: $input) {
+            id
+            menuId
+            transparency
+            headerSize
+            menuAlignment
+            menuButtonStyle
+            mobileMenuStyle
+            mobileMenuPosition
+            transparentHeader
+            borderBottom
+            advancedOptions
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const variables = {
+        menuId,
+        input: styleInput
+      };
+
+      const result = await gqlRequest<{
+        updateHeaderStyle: {
+          id: string;
+          menuId: string;
+          transparency: number;
+          headerSize: string;
+          menuAlignment: string;
+          menuButtonStyle: string;
+          mobileMenuStyle: string;
+          mobileMenuPosition: string;
+          transparentHeader: boolean;
+          borderBottom: boolean;
+          advancedOptions?: Record<string, unknown>;
+          createdAt: string;
+          updatedAt: string;
+        }
+      }>(mutation, variables);
+
+      if (!result || !result.updateHeaderStyle) {
+        return {
+          success: false,
+          message: 'Failed to update header style'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Header style updated successfully',
+        headerStyle: result.updateHeaderStyle
+      };
+    } catch (error) {
+      console.error('Error updating header style:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error updating header style'
+      };
+    }
+  },
+  
+  // Get menu with its header style
+  getMenuWithHeaderStyle: async (menuId: string) => {
+    try {
+      const query = `
+        query GetMenu($id: ID!) {
+          menu(id: $id) {
+            id
+            name
+            location
+            locationType
+            isFixed
+            backgroundColor
+            textColor
+            items {
+              id
+              title
+              url
+              pageId
+              target
+              icon
+              order
+            }
+            headerStyle {
+              id
+              transparency
+              headerSize
+              menuAlignment
+              menuButtonStyle
+              mobileMenuStyle
+              mobileMenuPosition
+              transparentHeader
+              borderBottom
+              advancedOptions
+            }
+          }
+        }
+      `;
+
+      const variables = { id: menuId };
+      const result = await gqlRequest<{
+        menu: {
+          id: string;
+          name: string;
+          location: string | null;
+          locationType: string | null;
+          isFixed: boolean | null;
+          backgroundColor: string | null;
+          textColor: string | null;
+          items: Array<{
+            id: string;
+            title: string;
+            url: string | null;
+            pageId: string | null;
+            target: string | null;
+            icon: string | null;
+            order: number;
+          }>;
+          headerStyle: {
+            id: string;
+            transparency: number;
+            headerSize: string;
+            menuAlignment: string;
+            menuButtonStyle: string;
+            mobileMenuStyle: string;
+            mobileMenuPosition: string;
+            transparentHeader: boolean;
+            borderBottom: boolean;
+            advancedOptions?: Record<string, unknown>;
+          } | null;
+        } | null;
+      }>(query, variables);
+
+      return result?.menu || null;
+    } catch (error) {
+      console.error('Error getting menu with header style:', error);
+      return null;
+    }
+  },
+};

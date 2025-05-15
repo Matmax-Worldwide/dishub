@@ -551,6 +551,7 @@ model Menu {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   items           MenuItem[]
+  headerStyle     HeaderStyle?
 }
 
 // Menu position/location type
@@ -924,4 +925,22 @@ enum AccessControlType {
   ROLES
   USERS
   MIXED
+}
+
+// Header style configuration model
+model HeaderStyle {
+  id                String   @id @default(cuid())
+  menuId            String   @unique
+  transparency      Int      @default(0)
+  headerSize        String   @default("md")
+  menuAlignment     String   @default("right")
+  menuButtonStyle   String   @default("default")
+  mobileMenuStyle   String   @default("dropdown")
+  mobileMenuPosition String  @default("right")
+  transparentHeader Boolean  @default(false)
+  borderBottom      Boolean  @default(false)
+  advancedOptions   Json?    // For glassmorphism, blur, shadow, animation, etc.
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
 }

@@ -96,12 +96,16 @@ export default function StableInput({
       // Use requestAnimationFrame to ensure the selection happens after focus
       requestAnimationFrame(() => {
         if (inputRef.current) {
-          // Select all text for easier editing
-          // inputRef.current.select(); // For inputs
-          // For textareas, position cursor at end
-          if (isTextArea && inputRef.current instanceof HTMLTextAreaElement) {
-            const length = inputRef.current.value.length;
-            inputRef.current.setSelectionRange(length, length);
+          // Only try to set selection for text inputs and textareas
+          const inputType = inputRef.current.getAttribute('type');
+          const isSelectable = !inputType || ['text', 'textarea', 'email', 'password', 'tel', 'url'].includes(inputType);
+          
+          if (isSelectable) {
+            // For textareas, position cursor at end
+            if (isTextArea && inputRef.current instanceof HTMLTextAreaElement) {
+              const length = inputRef.current.value.length;
+              inputRef.current.setSelectionRange(length, length);
+            }
           }
         }
       });

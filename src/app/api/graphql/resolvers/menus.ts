@@ -1,4 +1,7 @@
 import { MenuLocationType, PrismaClient } from '@prisma/client';
+import { NextRequest } from 'next/server';
+import { verifyToken } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -14,10 +17,11 @@ interface MenuLocationArgs {
 interface MenuInput {
   name: string;
   location: string | null;
-  locationType?: string | null;
+  locationType?: MenuLocationType | null;
   isFixed?: boolean | null;
   backgroundColor?: string | null;
   textColor?: string | null;
+  headerStyle?: HeaderStyleInput;
 }
 
 interface MenuItemInput {
@@ -44,6 +48,18 @@ interface MenuItem {
   target: string | null;
   icon: string | null;
   order: number;
+}
+
+interface HeaderStyleInput {
+  transparency?: number;
+  headerSize?: 'sm' | 'md' | 'lg';
+  menuAlignment?: 'left' | 'center' | 'right';
+  menuButtonStyle?: 'default' | 'filled' | 'outline';
+  mobileMenuStyle?: 'fullscreen' | 'dropdown' | 'sidebar';
+  mobileMenuPosition?: 'left' | 'right';
+  transparentHeader?: boolean;
+  borderBottom?: boolean;
+  advancedOptions?: Prisma.InputJsonValue;
 }
 
 export const menuResolvers = {
@@ -98,31 +114,89 @@ export const menuResolvers = {
   },
   
   Mutation: {
-    createMenu: async (_: unknown, { input }: { input: MenuInput }) => {
-      return prisma.menu.create({
-        data: {
-          name: input.name,
-          location: input.location,
-          locationType: input.locationType as MenuLocationType, // Cast to the enum type
-          isFixed: input.isFixed,
-          backgroundColor: input.backgroundColor,
-          textColor: input.textColor,
-        },
-      });
+    createMenu: async (_parent: unknown, { input }: { input: MenuInput }) => {
+      try {
+        // Extract headerStyle from input if provided
+        const { headerStyle, ...menuData } = input;
+        
+        // Create the menu first
+        const menu = await prisma.menu.create({
+          data: {
+            ...menuData,
+            // Cast locationType to the enum type if provided
+            locationType: menuData.locationType as MenuLocationType | null
+          },
+          include: {
+            items: true
+          }
+        });
+        
+        // If headerStyle was provided, create it separately
+        if (headerStyle) {
+          await prisma.headerStyle.create({
+            data: {
+              ...headerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the full menu with relationships
+        return await prisma.menu.findUnique({
+          where: { id: menu.id },
+          include: {
+            items: true,
+            headerStyle: true
+          }
+        });
+      } catch (error) {
+        console.error('Error creating menu:', error);
+        throw new Error(`Failed to create menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
     
-    updateMenu: async (_: unknown, { id, input }: { id: string; input: MenuInput }) => {
-      return prisma.menu.update({
-        where: { id },
-        data: {
-          name: input.name,
-          location: input.location,
-          locationType: input.locationType as MenuLocationType, // Cast to the enum type
-          isFixed: input.isFixed,
-          backgroundColor: input.backgroundColor,
-          textColor: input.textColor,
-        },
-      });
+    updateMenu: async (_parent: unknown, { id, input }: { id: string, input: MenuInput }) => {
+      try {
+        // Extract headerStyle from input if provided
+        const { headerStyle, ...menuData } = input;
+        
+        // Update the menu
+        const menu = await prisma.menu.update({
+          where: { id },
+          data: {
+            ...menuData,
+            // Cast locationType to the enum type if provided
+            locationType: menuData.locationType as MenuLocationType | null
+          },
+          include: {
+            items: true
+          }
+        });
+        
+        // If headerStyle was provided, update or create it
+        if (headerStyle) {
+          await prisma.headerStyle.upsert({
+            where: { menuId: menu.id },
+            update: headerStyle,
+            create: {
+              ...headerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the updated menu with all relationships
+        return await prisma.menu.findUnique({
+          where: { id: menu.id },
+          include: {
+            items: true,
+            headerStyle: true
+          }
+        });
+      } catch (error) {
+        console.error('Error updating menu:', error);
+        throw new Error(`Failed to update menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
     
     deleteMenu: async (_: unknown, { id }: MenuArgs) => {
@@ -248,6 +322,47 @@ export const menuResolvers = {
           order: input.newOrder,
         },
       });
+    },
+
+    // Add new resolver for updating just the headerStyle
+    updateHeaderStyle: async (_parent: unknown, { menuId, input }: { menuId: string, input: HeaderStyleInput }, context: { req: NextRequest }) => {
+      try {
+        // Validate authentication
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        // Verify token and get user info
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Check if the menu exists
+        const menu = await prisma.menu.findUnique({
+          where: { id: menuId }
+        });
+        
+        if (!menu) {
+          throw new Error(`Menu with ID ${menuId} not found`);
+        }
+        
+        // Update or create the header style
+        const headerStyle = await prisma.headerStyle.upsert({
+          where: { menuId },
+          update: input,
+          create: {
+            ...input,
+            menuId
+          }
+        });
+        
+        return headerStyle;
+      } catch (error) {
+        console.error('Error updating header style:', error);
+        throw new Error(`Failed to update header style: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
   },
   

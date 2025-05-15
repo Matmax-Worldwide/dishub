@@ -67,6 +67,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const previewContainerRef = useRef<HTMLDivElement>(null);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
+  // Add state for current page data
+  const [pageInfo, setPageInfo] = useState<{locale: string, slug: string}>({locale: 'en', slug: ''});
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -191,6 +193,27 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     };
 
     loadComponents();
+  }, [sectionId]);
+
+  // Add effect to fetch page data for the section
+  useEffect(() => {
+    const fetchPageData = async () => {
+      try {
+        const pages = await cmsOperations.getPagesUsingSectionId(sectionId);
+        if (pages && pages.length > 0) {
+          // Use the first page that contains this section
+          const page = pages[0];
+          setPageInfo({
+            locale: page.locale || 'en',
+            slug: page.slug || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching page data:', error);
+      }
+    };
+
+    fetchPageData();
   }, [sectionId]);
 
   useEffect(() => {
@@ -379,7 +402,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 
                 if (selectionStart && selectionEnd && 'setSelectionRange' in inputElement) {
                   try {
-                    inputElement.setSelectionRange(parseInt(selectionStart), parseInt(selectionEnd));
+                    // Only apply selection if the input type supports it
+                    const inputType = inputElement.getAttribute('type');
+                    const isSelectable = !inputType || ['text', 'textarea', 'email', 'password', 'tel', 'url', 'search', 'number'].includes(inputType);
+                    
+                    if (isSelectable) {
+                      inputElement.setSelectionRange(parseInt(selectionStart), parseInt(selectionEnd));
+                    }
                   } catch (selectionError) {
                     console.warn('Could not restore selection:', selectionError);
                   }
@@ -772,8 +801,20 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 {viewMode === 'split' && (
                   <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
                     <div className="flex items-center">
-                      <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Vista Previa
+                      <button 
+                        onClick={() => {
+                          if (pageInfo.slug) {
+                            window.open(`/${pageInfo.locale}/${pageInfo.slug}`, '_blank');
+                          } else {
+                            window.open('/preview', '_blank');
+                          }
+                        }}
+                        className="flex items-center hover:text-primary transition-colors"
+                        title="Ver página completa"
+                      >
+                        <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
+                        Vista Previa
+                      </button>
                     </div>
                     <div className="text-xs px-2 py-0.5 bg-muted/30 rounded-full text-muted-foreground">
                       Visualización final

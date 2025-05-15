@@ -34,8 +34,10 @@ html {
 body {
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
-  padding: 0;
+  padding-top: 4rem;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 section {
@@ -233,8 +235,86 @@ body > div {
 @layer base {
   * {
     @apply border-border;
+    backface-visibility: hidden;
+    box-sizing: border-box;
+    will-change: auto;
+    text-rendering: optimizeSpeed;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Animaciones para el header y navegación */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+.animate-slideInDown {
+  animation: slideInDown 0.3s ease-in-out forwards;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-in-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-in-out forwards;
+}
+
+/* Performance optimizations */
+* {
+  backface-visibility: hidden; /* Reduce paint complexity */
+  box-sizing: border-box; /* More predictable sizing */
+  will-change: auto; /* Let browser optimize elements that will animate */
+  text-rendering: optimizeSpeed; /* Prioritize rendering speed */
+}
+
+/* Fix for top margin with fixed header */
+body {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  padding-top: 4rem; /* Add padding for fixed header */
+  margin: 0;
+  /* Add performance improvements */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 } 
