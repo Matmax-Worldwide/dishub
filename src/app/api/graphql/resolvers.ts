@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { GraphQLScalarType, Kind } from 'graphql';
+import { Prisma } from '@prisma/client';
 
 // Import individual resolver modules
 import { appointmentResolvers } from './resolvers/appointments';
@@ -188,6 +189,28 @@ async function ensureSystemPermissions() {
       }
     }
   }
+}
+
+// Interface for menu input types
+interface MenuInput {
+  name: string;
+  location?: string | null;
+  isFixed?: boolean | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
+  headerStyle?: HeaderStyleInput;
+}
+
+interface HeaderStyleInput {
+  transparency?: number;
+  headerSize?: 'sm' | 'md' | 'lg';
+  menuAlignment?: 'left' | 'center' | 'right';
+  menuButtonStyle?: 'default' | 'filled' | 'outline';
+  mobileMenuStyle?: 'fullscreen' | 'dropdown' | 'sidebar';
+  mobileMenuPosition?: 'left' | 'right';
+  transparentHeader?: boolean;
+  borderBottom?: boolean;
+  advancedOptions?: Prisma.InputJsonValue;
 }
 
 // Merge all resolvers
@@ -623,9 +646,45 @@ const resolvers = {
     ...((userPermissionResolvers.Query as object) || {}),
     
     // Add menu queries
-    menus: menuResolvers.Query.menus,
-    menu: menuResolvers.Query.menu,
-    menuByLocation: menuResolvers.Query.menuByLocation,
+    menus: async () => {
+      try {
+        const menus = await prisma.menu.findMany({
+          include: {
+            items: true,
+          },
+        });
+        return menus;
+      } catch (error) {
+        console.error('Error fetching menus:', error);
+        return [];
+      }
+    },
+    menu: async (_: unknown, { id }: { id: string }) => {
+      try {
+        return prisma.menu.findUnique({
+          where: { id },
+          include: {
+            items: true,
+          },
+        });
+      } catch (error) {
+        console.error(`Error fetching menu with id ${id}:`, error);
+        return null;
+      }
+    },
+    menuByLocation: async (_: unknown, { location }: { location: string }) => {
+      try {
+        return prisma.menu.findFirst({
+          where: { location },
+          include: {
+            items: true,
+          },
+        });
+      } catch (error) {
+        console.error(`Error fetching menu by location ${location}:`, error);
+        return null;
+      }
+    },
     pages: menuResolvers.Query.pages,
     
     // Add explicit fallback for projects query to ensure it exists
@@ -1075,8 +1134,81 @@ const resolvers = {
     deletePage: cmsResolvers.Mutation.deletePage,
 
     // Add menu mutations
-    createMenu: menuResolvers.Mutation.createMenu,
-    updateMenu: menuResolvers.Mutation.updateMenu,
+    createMenu: async (_parent: unknown, { input }: { input: MenuInput }) => {
+      try {
+        // Extract headerStyle from input if provided
+        const { headerStyle, ...menuData } = input;
+        
+        // Create the menu first
+        const menu = await prisma.menu.create({
+          data: menuData,
+          include: {
+            items: true
+          }
+        });
+        
+        // If headerStyle was provided, create it separately
+        if (headerStyle) {
+          await prisma.headerStyle.create({
+            data: {
+              ...headerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the full menu with relationships
+        return await prisma.menu.findUnique({
+          where: { id: menu.id },
+          include: {
+            items: true,
+            headerStyle: true
+          }
+        });
+      } catch (error) {
+        console.error('Error creating menu:', error);
+        throw new Error(`Failed to create menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+    updateMenu: async (_parent: unknown, { id, input }: { id: string, input: MenuInput }) => {
+      try {
+        // Extract headerStyle from input if provided
+        const { headerStyle, ...menuData } = input;
+        
+        // Update the menu
+        const menu = await prisma.menu.update({
+          where: { id },
+          data: menuData,
+          include: {
+            items: true
+          }
+        });
+        
+        // If headerStyle was provided, update or create it
+        if (headerStyle) {
+          await prisma.headerStyle.upsert({
+            where: { menuId: menu.id },
+            update: headerStyle,
+            create: {
+              ...headerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the updated menu with all relationships
+        return await prisma.menu.findUnique({
+          where: { id: menu.id },
+          include: {
+            items: true,
+            headerStyle: true
+          }
+        });
+      } catch (error) {
+        console.error('Error updating menu:', error);
+        throw new Error(`Failed to update menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
     deleteMenu: menuResolvers.Mutation.deleteMenu,
     createMenuItem: menuResolvers.Mutation.createMenuItem,
     updateMenuItem: menuResolvers.Mutation.updateMenuItem,

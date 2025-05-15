@@ -698,7 +698,6 @@ export const typeDefs = gql`
     id: ID!
     name: String!
     location: String
-    locationType: MenuLocationType
     isFixed: Boolean
     backgroundColor: String
     textColor: String
@@ -713,6 +712,15 @@ export const typeDefs = gql`
     FOOTER
     SIDEBAR
     CUSTOM
+  }
+
+  input MenuInput {
+    name: String!
+    location: String
+    isFixed: Boolean
+    backgroundColor: String
+    textColor: String
+    headerStyle: HeaderStyleInput
   }
 
   type MenuItem {
@@ -738,16 +746,6 @@ export const typeDefs = gql`
     id: ID!
     title: String!
     slug: String!
-  }
-
-  input MenuInput {
-    name: String!
-    location: String
-    locationType: MenuLocationType
-    isFixed: Boolean
-    backgroundColor: String
-    textColor: String
-    headerStyle: HeaderStyleInput
   }
 
   input MenuItemInput {

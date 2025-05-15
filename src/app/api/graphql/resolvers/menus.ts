@@ -1,4 +1,4 @@
-import { MenuLocationType, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
@@ -17,7 +17,6 @@ interface MenuLocationArgs {
 interface MenuInput {
   name: string;
   location: string | null;
-  locationType?: MenuLocationType | null;
   isFixed?: boolean | null;
   backgroundColor?: string | null;
   textColor?: string | null;
@@ -121,11 +120,7 @@ export const menuResolvers = {
         
         // Create the menu first
         const menu = await prisma.menu.create({
-          data: {
-            ...menuData,
-            // Cast locationType to the enum type if provided
-            locationType: menuData.locationType as MenuLocationType | null
-          },
+          data: menuData,
           include: {
             items: true
           }
@@ -163,11 +158,7 @@ export const menuResolvers = {
         // Update the menu
         const menu = await prisma.menu.update({
           where: { id },
-          data: {
-            ...menuData,
-            // Cast locationType to the enum type if provided
-            locationType: menuData.locationType as MenuLocationType | null
-          },
+          data: menuData,
           include: {
             items: true
           }
