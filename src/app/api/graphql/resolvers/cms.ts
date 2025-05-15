@@ -1512,65 +1512,89 @@ export const cmsResolvers = {
       }
     },
 
-    // Create CMS Section mutation - needed for automatic page setup
+    // Crear una sección CMS
     createCMSSection: async (_parent: unknown, args: { 
       input: { 
         sectionId: string;
         name: string;
         description?: string;
       } 
-    }) => {
-      console.log('======== START createCMSSection resolver ========');
+    }, context: { user?: { id: string } }) => {
+      // Registrar la operación
+      console.log('📝 Starting createCMSSection resolver');
+      console.log('Input data:', JSON.stringify(args.input, null, 2));
+      
       try {
         const { input } = args;
-        console.log(`Creando nueva sección CMS: ${input.name} (${input.sectionId})`);
         
-        // Validar campos obligatorios
+        // Validar que los campos obligatorios estén presentes
         if (!input.sectionId || !input.name) {
-          throw new Error('El ID de sección y el nombre son campos requeridos');
+          console.error('❌ Missing required fields in createCMSSection');
+          return {
+            success: false,
+            message: 'Los campos sectionId y name son requeridos',
+            section: null
+          };
         }
         
-        // Verificar si ya existe una sección con el mismo ID
+        // Verificar si ya existe una sección con el mismo sectionId
         const existingSection = await prisma.cMSSection.findFirst({
           where: { sectionId: input.sectionId }
         });
         
         if (existingSection) {
-          console.log(`Ya existe una sección con el ID: ${input.sectionId}`);
+          console.log(`⚠️ Section with sectionId ${input.sectionId} already exists`);
           return {
-            success: true, // Returning success=true because we can use the existing section
+            success: false,
             message: `Ya existe una sección con el ID: ${input.sectionId}`,
-            section: existingSection
+            section: null
           };
         }
         
+        console.log(`🔍 Creating new CMS section: ${input.name} (${input.sectionId})`);
+        
+        // Crear un nuevo timestamp para createdAt y updatedAt
         const timestamp = new Date();
         
-        // Crear la sección CMS en la base de datos
-        const newSection = await prisma.cMSSection.create({
-          data: {
-            sectionId: input.sectionId,
-            name: input.name,
-            description: input.description || `Sección ${input.name}`,
-            lastUpdated: timestamp,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            createdBy: "system"
-          }
-        });
-        
-        console.log(`Sección CMS creada correctamente: ${newSection.id}`);
-        
-        return {
-          success: true,
-          message: `Sección "${input.name}" creada correctamente`,
-          section: newSection
-        };
+        try {
+          // Crear la sección CMS en la base de datos
+          const newSection = await prisma.cMSSection.create({
+            data: {
+              sectionId: input.sectionId,
+              name: input.name,
+              description: input.description || '',
+              lastUpdated: timestamp.toISOString(),
+              createdAt: timestamp,
+              updatedAt: timestamp,
+              createdBy: context?.user?.id || 'system'
+            }
+          });
+          
+          console.log(`✅ CMS section created successfully: ${newSection.id}`);
+          
+          // Devolver el resultado exitoso
+          return {
+            success: true,
+            message: 'Sección CMS creada correctamente',
+            section: {
+              id: newSection.id,
+              sectionId: newSection.sectionId,
+              name: newSection.name
+            }
+          };
+        } catch (dbError) {
+          console.error('❌ Database error in createCMSSection:', dbError);
+          return {
+            success: false,
+            message: `Error al crear la sección en la base de datos: ${dbError instanceof Error ? dbError.message : 'Error desconocido'}`,
+            section: null
+          };
+        }
       } catch (error) {
-        console.error('Error al crear sección CMS:', error);
+        console.error('❌ Unexpected error in createCMSSection resolver:', error);
         return {
           success: false,
-          message: `Error al crear sección: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          message: error instanceof Error ? error.message : 'Error inesperado al crear la sección CMS',
           section: null
         };
       }
