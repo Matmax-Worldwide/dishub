@@ -28,8 +28,15 @@ export interface Component {
 
 // Dynamic imports for components - fallback to a loading state
 const componentMap = {
+
+  Header: dynamic(() => import('./sections/HeaderSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Header...</div>
+  }),
   Hero: dynamic(() => import('./sections/HeroSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Hero...</div>
+  }),
+  Benefit: dynamic(() => import('./sections/BenefitSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Benefit...</div>
   }),
   Text: dynamic(() => import('./sections/TextSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Text...</div>
@@ -43,14 +50,8 @@ const componentMap = {
   Testimonial: dynamic(() => import('./sections/TestimonialSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Testimonial...</div>
   }),
-  Header: dynamic(() => import('./sections/HeaderSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Header...</div>
-  }),
   Card: dynamic(() => import('./sections/CardSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Card...</div>
-  }),
-  Benefit: dynamic(() => import('./sections/BenefitSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Benefit...</div>
   }),
 };
 
@@ -406,7 +407,87 @@ function SectionManagerBase({
       icon: React.ReactNode;
       color: string;
       preview: React.ReactNode;
+      disabled?: boolean;
     }> = [
+      {
+        type: 'Header',
+        title: 'Header Component',
+        description: 'Navigation headers for the website',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 19H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-slate-500 bg-slate-100 border-slate-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-md opacity-50">
+            <div className="flex justify-between items-center">
+              <div className="w-8 h-3 bg-slate-300 rounded"></div>
+              <div className="flex space-x-2">
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-4 h-2 bg-slate-300 rounded"></div>
+                <div className="w-6 h-2 bg-slate-400 rounded"></div>
+              </div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Hero',
+        title: 'Hero Component',
+        description: 'Large banner sections for page headers',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M8 21H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 17V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-indigo-500 bg-indigo-100 border-indigo-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-md opacity-50">
+            <div className="bg-indigo-200 w-full h-16 rounded-md mb-2 flex items-center justify-center">
+              <div className="w-1/2 h-8 flex flex-col justify-center items-center">
+                <div className="h-2 bg-indigo-300 rounded w-full mb-2"></div>
+                <div className="h-1.5 bg-indigo-300 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="h-4 w-16 bg-indigo-300 rounded-full"></div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Benefit',
+        title: 'Benefit Component',
+        description: 'Showcase the benefits of your product or service',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-teal-500 bg-teal-100 border-teal-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-teal-50 to-teal-100 rounded-md">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" className="text-teal-500">
+                  <path d="M9 11L12 14L22 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <div className="h-2 bg-teal-200 rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-1.5 bg-teal-200 rounded w-5/6 mx-auto"></div>
+          </div>
+        )
+      },
       {
         type: 'Text',
         title: 'Text Component',
@@ -433,35 +514,10 @@ function SectionManagerBase({
         )
       },
       {
-        type: 'Hero',
-        title: 'Hero Component',
-        description: 'Large banner sections for page headers',
-        icon: (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
-            <path d="M8 21H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M12 17V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        ),
-        color: 'text-indigo-500 bg-indigo-100 border-indigo-200',
-        preview: (
-          <div className="flex flex-col p-3 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-md">
-            <div className="bg-indigo-200 w-full h-16 rounded-md mb-2 flex items-center justify-center">
-              <div className="w-1/2 h-8 flex flex-col justify-center items-center">
-                <div className="h-2 bg-indigo-300 rounded w-full mb-2"></div>
-                <div className="h-1.5 bg-indigo-300 rounded w-3/4"></div>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <div className="h-4 w-16 bg-indigo-300 rounded-full"></div>
-            </div>
-          </div>
-        )
-      },
-      {
         type: 'Image',
         title: 'Image Component',
         description: 'For displaying images and visual content',
+        disabled: true,
         icon: (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -487,6 +543,7 @@ function SectionManagerBase({
         type: 'Feature',
         title: 'Feature Component',
         description: 'Highlight key features with icons and text',
+        disabled: true,
         icon: (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2"/>
@@ -523,8 +580,9 @@ function SectionManagerBase({
           </svg>
         ),
         color: 'text-fuchsia-500 bg-fuchsia-100 border-fuchsia-200',
+        disabled: true,
         preview: (
-          <div className="flex flex-col p-3 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-md">
+          <div className="flex flex-col p-3 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-md opacity-50">
             <div className="text-fuchsia-700 mb-1 text-lg">&ldquo;</div>
             <p className="text-xs text-fuchsia-900 italic">This product has completely transformed our business processes.</p>
             <div className="mt-2 flex items-center gap-2">
@@ -535,35 +593,10 @@ function SectionManagerBase({
         )
       },
       {
-        type: 'Header',
-        title: 'Header Component',
-        description: 'Navigation headers for the website',
-        icon: (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M3 19H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        ),
-        color: 'text-slate-500 bg-slate-100 border-slate-200',
-        preview: (
-          <div className="flex flex-col p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-md">
-            <div className="flex justify-between items-center">
-              <div className="w-8 h-3 bg-slate-300 rounded"></div>
-              <div className="flex space-x-2">
-                <div className="w-4 h-2 bg-slate-300 rounded"></div>
-                <div className="w-4 h-2 bg-slate-300 rounded"></div>
-                <div className="w-4 h-2 bg-slate-300 rounded"></div>
-                <div className="w-6 h-2 bg-slate-400 rounded"></div>
-              </div>
-            </div>
-          </div>
-        )
-      },
-      {
         type: 'Card',
         title: 'Card Component',
         description: 'Display information in card format',
+        disabled: true,
         icon: (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -584,31 +617,6 @@ function SectionManagerBase({
           </div>
         )
       },
-      {
-        type: 'Benefit',
-        title: 'Benefit Component',
-        description: 'Showcase the benefits of your product or service',
-        icon: (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        ),
-        color: 'text-teal-500 bg-teal-100 border-teal-200',
-        preview: (
-          <div className="flex flex-col p-3 bg-gradient-to-br from-teal-50 to-teal-100 rounded-md">
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" className="text-teal-500">
-                  <path d="M9 11L12 14L22 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </div>
-            <div className="h-2 bg-teal-200 rounded w-3/4 mx-auto mb-2"></div>
-            <div className="h-1.5 bg-teal-200 rounded w-5/6 mx-auto"></div>
-          </div>
-        )
-      }
     ];
 
     // Ensure sliderPosition is in bounds
@@ -622,7 +630,9 @@ function SectionManagerBase({
 
     // Update active component based on slider position
     useEffect(() => {
-      setActiveComponent(availableComponents[sliderPosition].type);
+      if (!availableComponents[sliderPosition].disabled) {
+        setActiveComponent(availableComponents[sliderPosition].type);
+      }
     }, [sliderPosition, availableComponents]);
 
     const handleSliderChange = (newPosition: number) => {
@@ -630,6 +640,9 @@ function SectionManagerBase({
     };
 
     const handleSelectComponent = () => {
+      // Skip if the component is disabled
+      if (availableComponents[sliderPosition].disabled) return;
+      
       handleClickAddComponent(activeComponent);
       setIsComponentSelectorOpen(false);
     };
@@ -661,12 +674,25 @@ function SectionManagerBase({
               {/* Component Info */}
               <div className="mb-4">
                 <div className="flex items-center mb-2">
-                  <div className={`mr-3 p-2 rounded-lg ${availableComponents[sliderPosition].color}`}>
+                  <div className={`mr-3 p-2 rounded-lg ${
+                    availableComponents[sliderPosition].disabled 
+                      ? 'bg-gray-200 text-gray-400' 
+                      : availableComponents[sliderPosition].color
+                  }`}>
                     {availableComponents[sliderPosition].icon}
                   </div>
                   <div>
-                    <h4 className="font-medium">{availableComponents[sliderPosition].title}</h4>
-                    <p className="text-sm text-gray-500">{availableComponents[sliderPosition].description}</p>
+                    <h4 className={`font-medium ${availableComponents[sliderPosition].disabled ? 'text-gray-400' : ''}`}>
+                      {availableComponents[sliderPosition].title}
+                    </h4>
+                    <p className={`text-sm ${availableComponents[sliderPosition].disabled ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {availableComponents[sliderPosition].description}
+                    </p>
+                    {availableComponents[sliderPosition].disabled && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Este componente estará disponible en próximas actualizaciones
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -706,15 +732,21 @@ function SectionManagerBase({
               {availableComponents.map((component, index) => (
                 <button
                   key={component.type}
-                  onClick={() => handleSliderChange(index)}
+                  onClick={() => !component.disabled && handleSliderChange(index)}
                   className={cn(
                     "flex-shrink-0 p-2 rounded-lg border-2 transition-all",
-                    sliderPosition === index 
-                      ? "border-primary bg-primary/10" 
-                      : "border-transparent hover:bg-gray-100"
+                    component.disabled 
+                      ? "border-gray-200 cursor-not-allowed opacity-60" 
+                      : sliderPosition === index 
+                        ? "border-primary bg-primary/10" 
+                        : "border-transparent hover:bg-gray-100"
                   )}
+                  disabled={component.disabled}
+                  title={component.disabled ? "Disponible próximamente" : component.title}
                 >
-                  <div className={`w-10 h-10 rounded-md flex items-center justify-center ${component.color}`}>
+                  <div className={`w-10 h-10 rounded-md flex items-center justify-center ${
+                    component.disabled ? 'text-gray-400 bg-gray-100 border-gray-200' : component.color
+                  }`}>
                     {component.icon}
                   </div>
                 </button>
@@ -732,9 +764,16 @@ function SectionManagerBase({
             </button>
             <button
               onClick={handleSelectComponent}
-              className="px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90"
+              disabled={availableComponents[sliderPosition].disabled}
+              className={`px-4 py-2 rounded-md ${
+                availableComponents[sliderPosition].disabled
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
             >
-              Add {availableComponents[sliderPosition].title}
+              {availableComponents[sliderPosition].disabled
+                ? 'Próximamente'
+                : `Add ${availableComponents[sliderPosition].title}`}
             </button>
           </div>
         </div>
@@ -1165,7 +1204,7 @@ function SectionManagerBase({
 
   // If we're editing, render the add component button and component list
   return (
-    <div className="relative pb-6">
+    <div className="relative">
       {isEditing && (
         <div className="mb-6 mt-2">
           <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SaveIcon, PlusIcon } from 'lucide-react';
+import { SaveIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -218,18 +218,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
             <CardDescription>
               Edita los componentes de tu página
             </CardDescription>
-          </div>
-          <div className="flex space-x-2">
-            {pageSections.length > 0 && (
-              <Button 
-                onClick={() => setIsAddComponentOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <PlusIcon className="h-4 w-4" />
-                <span>Agregar componente</span>
-              </Button>
-            )}
-          
           </div>
         </div>
       </CardHeader>

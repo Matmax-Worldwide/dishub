@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowUpIcon, ArrowDownIcon, Eye  } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ComponentType type is compatible with SectionManager's ComponentType
@@ -42,7 +42,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   isEditing = false,
   onComponentsChange,
   sectionName,
-  onSectionNameChange
+  onSectionNameChange,
 }, ref) => {
   // Estado local para manejar los componentes
   const [pendingComponents, setPendingComponents] = useState<Component[]>([]);
@@ -68,6 +68,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [errorMessage, setErrorMessage] = useState<string>('');
   // Add state for current page data
   const [pageInfo, setPageInfo] = useState<{locale: string, slug: string}>({locale: 'en', slug: ''});
+  // Estado para gestionar componentes colapsados
+  const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -473,6 +475,100 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     });
   }, []);
 
+   // Function to render badges and indicators for component status
+   const renderComponentBadges = useCallback((component: Component) => {
+    const badges = [];
+    
+    // Add badge for new component
+    if (component.id.includes('temp-')) {
+      badges.push(
+        <span key="new" className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800 rounded-full mr-1">
+          Nuevo
+        </span>
+      );
+    }
+    
+    // Add badge if component has been modified
+    if (hasUnsavedChanges) {
+      badges.push(
+        <span key="modified" className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+          Modificado
+        </span>
+      );
+    }
+    
+    return badges.length > 0 ? <div className="flex ml-2 items-center">{badges}</div> : null;
+  }, [hasUnsavedChanges]);
+
+  // Handle adding a new component
+  const handleAddComponent = useCallback(() => {
+    // Generate a unique id using timestamp
+    const newId = `temp-${Date.now()}`;
+    
+    // Create a new Text component as default
+    const newComponent: Component = {
+      id: newId,
+      type: 'Text',
+      data: {
+        componentTitle: 'Nuevo componente de texto',
+        content: 'Edita este contenido...'
+      }
+    };
+    
+    // Add to pending components
+    setPendingComponents(prev => [...prev, newComponent]);
+    
+    // Scroll to the new component after rendering
+    setTimeout(() => {
+      const newComponentElement = document.querySelector(`[data-component-id="${newId}"]`);
+      if (newComponentElement) {
+        newComponentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Set as active and expanded
+        setActiveComponentId(newId);
+        setCollapsedComponents(prev => ({
+          ...prev,
+          [newId]: false
+        }));
+        
+        // Add pulse animation temporarily
+        newComponentElement.classList.add('pulse-animation');
+        setTimeout(() => {
+          newComponentElement.classList.remove('pulse-animation');
+        }, 3000);
+      }
+    }, 100);
+    
+    // Mark changes
+    setHasUnsavedChanges(true);
+  }, []);
+
+  // Render empty state when no components are available
+  const renderEmptyState = useCallback(() => {
+    return (
+      <div className="border border-dashed border-muted-foreground/30 rounded-md p-6 text-center">
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <div className="bg-muted rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium">No hay componentes</h3>
+          <p className="text-muted-foreground text-sm">
+            Esta sección aún no tiene componentes. Añade uno para empezar.
+          </p>
+          <button
+            onClick={handleAddComponent}
+            className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors mt-2"
+          >
+            Añadir componente
+          </button>
+        </div>
+      </div>
+    );
+  }, [handleAddComponent]);
+
+
   // Add scroll observer to detect which component is in view
   useEffect(() => {
     if (viewMode !== 'split' || !previewContainerRef.current || pendingComponents.length === 0) {
@@ -535,6 +631,28 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     }
   }, [viewMode, previewContainerRef]);
 
+  // Toggle component collapse state
+  const toggleComponentCollapse = useCallback((componentId: string) => {
+    setCollapsedComponents(prevState => ({
+      ...prevState,
+      [componentId]: !prevState[componentId]
+    }));
+  }, []);
+
+  // Collapse all components
+  const collapseAllComponents = useCallback(() => {
+    const allCollapsed: Record<string, boolean> = {};
+    pendingComponents.forEach(component => {
+      allCollapsed[component.id] = true;
+    });
+    setCollapsedComponents(allCollapsed);
+  }, [pendingComponents]);
+
+  // Expand all components
+  const expandAllComponents = useCallback(() => {
+    setCollapsedComponents({});
+  }, []);
+
   // Memoizamos el SectionManager para optimizar el rendimiento en modo de vista previa
   const MemoizedPreviewSectionManager = memo(function PreviewSectionManager({
     components
@@ -588,18 +706,21 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   // Add a ref to track the previous activeComponentId for the memo comparison
   const prevActiveComponentId = useRef<string | null>(null);
 
+  // Add a type definition for SectionManagerWithDrag props
+  interface SectionManagerWithDragProps {
+    initialComponents: Component[];
+    isEditing: boolean;
+    onComponentsChange?: (components: Component[]) => void;
+    activeComponentId?: string | null;
+  }
+
   // Override SectionManager to add drag handles and positioning buttons
   const SectionManagerWithDrag = useCallback(({ 
     initialComponents, 
     isEditing, 
     onComponentsChange,
     activeComponentId 
-  }: { 
-    initialComponents: Component[],
-    isEditing: boolean,
-    onComponentsChange?: (components: Component[]) => void,
-    activeComponentId?: string | null
-  }) => {
+  }: SectionManagerWithDragProps) => {
     // Enhance SectionManager with draggable components
     const componentIds = initialComponents.map(c => c.id);
 
@@ -628,57 +749,170 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         >
           <div className="space-y-2">
             {/* Add instructions about the pinned functionality */}
-            
-            <SectionManager
-              initialComponents={initialComponents}
-              isEditing={isEditing}
-              onComponentsChange={onComponentsChange}
-              activeComponentId={activeComponentId}
-              onClickComponent={handleScrollToComponent}
-            />
-          </div>
-          
-          {/* Floatable controls for reordering when in edit mode */}
-          {isEditing && (
-            <div className="component-reorder-controls">
-              {initialComponents.map((component, index) => (
-                <div 
-                  key={component.id}
-                  className={`flex items-center justify-end space-x-1 p-1 -mt-7 mb-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
-                    activeComponentId === component.id ? 'opacity-100' : ''
-                  }`}
-                  data-component-id={component.id}
-                >
-                  <button
-                    onClick={() => moveComponentUp(component.id)}
-                    disabled={index === 0}
-                    className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background"
-                    title="Move component up"
-                  >
-                    <ArrowUpIcon className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => moveComponentDown(component.id)}
-                    disabled={index === initialComponents.length - 1}
-                    className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background"
-                    title="Move component down"
-                  >
-                    <ArrowDownIcon className="h-3 w-3" />
-                  </button>
-                  <div className="component-drag-handle cursor-move p-1 bg-background border border-border rounded-sm hover:bg-accent/10 ml-1">
-                    <svg viewBox="0 0 20 20" width="12" height="12" className="text-muted-foreground">
-                      <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
-                    </svg>
+            {isEditing && (
+              <div className="bg-muted/20 text-muted-foreground text-xs p-2 rounded-md mb-4">
+                <div className="flex justify-between items-center">
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={collapseAllComponents}
+                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors"
+                      title="Colapsar todos los componentes"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5 inline-block mr-1" />
+                      Colapsar todos
+                    </button>
+                    <button
+                      onClick={expandAllComponents}
+                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors"
+                      title="Expandir todos los componentes"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5 inline-block mr-1" />
+                      Expandir todos
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+            
+            {/* Components with collapse functionality */}
+            {initialComponents.length > 0 ? (
+              <>
+                <div className="mb-4 flex justify-end">
+                  <button
+                    onClick={handleAddComponent}
+                    className="inline-flex items-center px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Añadir componente
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {initialComponents.map((component, index) => (
+                    <div key={component.id} className="relative component-item">
+                      {/* Component header with collapse toggle */}
+                      <div 
+                        className={`component-header flex items-center justify-between p-2 border bg-muted/10 rounded-t-md cursor-pointer transition-all duration-200 ${
+                          activeComponentId === component.id ? 'border-primary bg-primary/5 active-component' : 'border-border'
+                        } ${collapsedComponents[component.id] ? 'component-header-collapsed' : ''}`}
+                        onClick={() => toggleComponentCollapse(component.id)}
+                        data-component-id={component.id}
+                      >
+                        <div className="flex items-center">
+                          <button 
+                            className="mr-2 p-1 rounded-full hover:bg-muted/30 transition-colors text-muted-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleComponentCollapse(component.id);
+                            }}
+                            aria-label={collapsedComponents[component.id] ? "Expandir componente" : "Colapsar componente"}
+                          >
+                            {collapsedComponents[component.id] ? (
+                              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                            ) : (
+                              <ChevronUp className="h-4 w-4 transition-transform duration-200" />
+                            )}
+                          </button>
+                          <div className="flex items-center">
+                            <span className="font-medium text-sm">
+                              {component.data.componentTitle ? 
+                                (component.data.componentTitle as string) : 
+                                `Componente ${component.type}`}
+                            </span>
+                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-muted rounded-full text-muted-foreground">
+                              {component.type}
+                            </span>
+                            {renderComponentBadges(component)}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveComponentUp(component.id);
+                            }}
+                            disabled={index === 0}
+                            className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background transition-colors"
+                            title="Mover componente arriba"
+                            aria-label="Mover componente arriba"
+                          >
+                            <ArrowUpIcon className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveComponentDown(component.id);
+                            }}
+                            disabled={index === initialComponents.length - 1}
+                            className="p-1 bg-background border border-border rounded-sm hover:bg-accent/10 disabled:opacity-30 disabled:hover:bg-background transition-colors"
+                            title="Mover componente abajo"
+                            aria-label="Mover componente abajo"
+                          >
+                            <ArrowDownIcon className="h-3 w-3" />
+                          </button>
+                          <div 
+                            className="component-drag-handle cursor-move p-1 bg-background border border-border rounded-sm hover:bg-accent/10 ml-1 transition-colors"
+                            title="Arrastrar para reordenar"
+                            aria-label="Arrastrar para reordenar"
+                          >
+                            <svg viewBox="0 0 20 20" width="12" height="12" className="text-muted-foreground">
+                              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Component content (collapsible) */}
+                      <div className={`component-content ${!collapsedComponents[component.id] ? 'component-content-expanded' : ''}`}>
+                        {!collapsedComponents[component.id] && (
+                          <div className="border border-t-0 border-border rounded-b-md p-3">
+                            <SectionManager
+                              initialComponents={[component]}
+                              isEditing={isEditing}
+                              onComponentsChange={(updatedComponents) => {
+                                if (onComponentsChange && updatedComponents.length > 0) {
+                                  const updatedAllComponents = [...initialComponents];
+                                  const index = updatedAllComponents.findIndex(c => c.id === component.id);
+                                  if (index !== -1) {
+                                    updatedAllComponents[index] = updatedComponents[0];
+                                    onComponentsChange(updatedAllComponents);
+                                  }
+                                }
+                              }}
+                              activeComponentId={activeComponentId}
+                              onClickComponent={handleScrollToComponent}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              renderEmptyState()
+            )}
+          </div>
         </SortableContext>
       </DndContext>
     );
-  }, [sensors, moveComponentUp, moveComponentDown, handleScrollToComponent]);
+  }, [
+    sensors, 
+    moveComponentUp, 
+    moveComponentDown, 
+    handleScrollToComponent, 
+    collapsedComponents, 
+    toggleComponentCollapse, 
+    collapseAllComponents, 
+    expandAllComponents,
+    renderComponentBadges,
+    renderEmptyState,
+    handleAddComponent
+  ]);
 
+ 
   return (
     <div className="my-6" data-section-id={normalizedSectionId}>
       {isEditing && (

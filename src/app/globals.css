@@ -355,4 +355,88 @@ body > div {
   font-size: 16px;
 }
 
+/* Collapsible component styles */
+.component-header {
+  transition: background-color 0.2s ease, border-color 0.2s ease, border-radius 0.2s ease;
+}
+
+.component-header:hover {
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.component-header-collapsed {
+  border-radius: 0.375rem;
+}
+
+.component-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out, transform 0.3s ease;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.component-content-expanded {
+  max-height: 2000px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Improve component item styling */
+.component-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.component-item:hover {
+  z-index: 10;
+}
+
+.component-item:focus-within {
+  z-index: 20;
+}
+
+/* Enhanced drag handle styling */
+.component-drag-handle {
+  cursor: grab;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.component-drag-handle:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+  background-color: hsl(var(--accent));
+}
+
+/* Add subtle hover effects to component items */
+.component-item:hover .component-header {
+  border-color: hsl(var(--border) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Active component highlighting */
+.component-header[data-component-id].active-component {
+  background-color: hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
+}
+
+/* Additional animations */
+@keyframes pulse {
+  0% { 
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  70% { 
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite;
+}
+
 /* Additional style to ensure proper layering */

@@ -1249,6 +1249,7 @@ const resolvers = {
     updateMenuItem: menuResolvers.Mutation.updateMenuItem,
     deleteMenuItem: menuResolvers.Mutation.deleteMenuItem,
     updateMenuItemOrder: menuResolvers.Mutation.updateMenuItemOrder,
+    updateMenuItemsOrder: menuResolvers.Mutation.updateMenuItemsOrder,
   },
 
   // Add the MenuItem resolver for nested children

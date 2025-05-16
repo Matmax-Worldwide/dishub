@@ -58,6 +58,13 @@ interface HeaderStyleInput {
   advancedOptions?: Prisma.InputJsonValue;
 }
 
+// Update the interface for menu item order updates
+interface MenuItemOrderUpdate {
+  id: string;
+  order: number;
+  parentId?: string | null;
+}
+
 export const menuResolvers = {
   Query: {
     menus: async () => {
@@ -278,11 +285,10 @@ export const menuResolvers = {
       
       const newOrder = maxOrderItem ? maxOrderItem.order + 1 : 1;
       
-      // If pageId is provided, ensure url is null to avoid conflicts
-      // If pageId is not provided, use the url
-      const url = input.pageId ? null : input.url;
+      // Set URL based on page or custom URL
+      let url = input.url;
 
-      // If pageId is provided, try to get the page to verify it exists
+      // If pageId is provided, try to get the page
       if (input.pageId) {
         const page = await prisma.page.findUnique({
           where: { id: input.pageId },
@@ -292,6 +298,14 @@ export const menuResolvers = {
         if (!page) {
           throw new Error('Selected page not found');
         }
+        
+        // Construct URL from page slug
+        url = `/${page.slug}`;
+      }
+      
+      // Ensure we have either a page-based URL or custom URL
+      if (!url && !input.pageId) {
+        throw new Error('Either a page or custom URL must be provided');
       }
       
       return prisma.menuItem.create({
@@ -309,11 +323,10 @@ export const menuResolvers = {
     },
     
     updateMenuItem: async (_: unknown, { id, input }: { id: string; input: MenuItemInput }) => {
-      // If pageId is provided, ensure url is null to avoid conflicts
-      // If pageId is not provided, use the url
-      const url = input.pageId ? null : input.url;
+      // Set URL based on page or custom URL
+      let url = input.url;
 
-      // If pageId is provided, try to get the page to verify it exists
+      // If pageId is provided, try to get the page
       if (input.pageId) {
         const page = await prisma.page.findUnique({
           where: { id: input.pageId },
@@ -323,6 +336,14 @@ export const menuResolvers = {
         if (!page) {
           throw new Error('Selected page not found');
         }
+        
+        // Construct URL from page slug
+        url = `/${page.slug}`;
+      }
+      
+      // Ensure we have either a page-based URL or custom URL
+      if (!url && !input.pageId) {
+        throw new Error('Either a page or custom URL must be provided');
       }
       
       return prisma.menuItem.update({
@@ -375,6 +396,31 @@ export const menuResolvers = {
           order: input.newOrder,
         },
       });
+    },
+
+    // Update the resolver to handle parentId changes
+    updateMenuItemsOrder: async (_: unknown, { items }: { items: MenuItemOrderUpdate[] }) => {
+      try {
+        // Use a transaction to ensure all updates succeed or fail together
+        await prisma.$transaction(async (tx) => {
+          for (const item of items) {
+            // Update both order and parentId if provided
+            await tx.menuItem.update({
+              where: { id: item.id },
+              data: { 
+                order: item.order,
+                // Only update parentId if it's explicitly provided in the update
+                ...(item.parentId !== undefined && { parentId: item.parentId })
+              }
+            });
+          }
+        });
+        
+        return true;
+      } catch (error) {
+        console.error('Error updating menu item orders:', error);
+        throw new Error(`Failed to update menu item orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
 
     // Add new resolver for updating just the headerStyle

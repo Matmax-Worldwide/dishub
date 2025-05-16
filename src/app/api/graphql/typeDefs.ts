@@ -748,7 +748,13 @@ export const typeDefs = gql`
   input MenuItemOrderInput {
     newOrder: Int!
   }
-  
+
+  input MenuItemOrderUpdate {
+    id: ID!
+    order: Int!
+    parentId: String
+  }
+
   # Resultado de operaciones con componentes
   type CMSComponentResult {
     success: Boolean!
@@ -1079,6 +1085,7 @@ export const typeDefs = gql`
     updateMenuItem(id: ID!, input: MenuItemInput!): MenuItem
     deleteMenuItem(id: ID!): Boolean
     updateMenuItemOrder(id: ID!, input: MenuItemOrderInput!): MenuItem
+    updateMenuItemsOrder(items: [MenuItemOrderUpdate!]!): Boolean
 
     # HeaderStyle mutations
     updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyle

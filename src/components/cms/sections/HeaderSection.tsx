@@ -349,10 +349,13 @@ export default function HeaderSection({
     return items.map((item: MenuItem) => {
       // Determine the URL
       let href = '#';
-      if (item.url) {
-        href = item.url;
-      } else if (item.page?.slug) {
+      
+      if (item.pageId && item.page?.slug) {
+        // If the item has a pageId and the page object with slug, use that
         href = `/${locale}/${item.page.slug}`;
+      } else if (item.url) {
+        // Otherwise use the direct URL if available
+        href = item.url;
       }
       
       const hasChildren = item.children && item.children.length > 0;
