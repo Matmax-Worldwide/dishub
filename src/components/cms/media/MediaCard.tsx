@@ -1,5 +1,4 @@
 import { MediaItem } from './types';
-import { MediaItemIcon } from './MediaItemIcon';
 import { MediaActions } from './MediaActions';
 import { formatFileSize } from './utils';
 import S3FilePreview from '@/components/shared/S3FilePreview';
@@ -38,19 +37,16 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
       onClick={handleSelect}
     >
       <div className="relative aspect-square bg-gray-50">
-        {fileType.startsWith('image/') ? (
-          <S3FilePreview
-            src={fileUrl}
-            alt={altText || title}
-            className="object-cover w-full h-full"
-            width={300}
-            height={300}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <MediaItemIcon fileType={fileType} />
-          </div>
-        )}
+        <S3FilePreview
+          src={fileUrl}
+          alt={altText || title}
+          className="w-full h-full object-contain flex items-center justify-center"
+          width={300}
+          height={300}
+          fileType={fileType}
+          fileName={fileName}
+          showDownload={true}
+        />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
           <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={handleDelete} />
         </div>

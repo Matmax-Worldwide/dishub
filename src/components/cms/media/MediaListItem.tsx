@@ -1,5 +1,4 @@
 import { MediaItem } from './types';
-import { MediaItemIcon } from './MediaItemIcon';
 import { MediaActions } from './MediaActions';
 import { formatFileSize } from './utils';
 import S3FilePreview from '@/components/shared/S3FilePreview';
@@ -44,20 +43,16 @@ export function MediaListItem({ item, isSelected, onSelect, onDelete }: MediaLis
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-10 w-10 mr-3">
-            {fileType.startsWith('image/') ? (
-              <S3FilePreview
-                src={fileUrl}
-                alt={altText || title}
-                width={40}
-                height={40}
-                className="object-cover rounded"
-                fileType={fileType}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <MediaItemIcon fileType={fileType} className="h-6 w-6" />
-              </div>
-            )}
+            <S3FilePreview
+              src={fileUrl}
+              alt={altText || title}
+              width={40}
+              height={40}
+              className="object-contain rounded w-full h-full flex items-center justify-center"
+              fileType={fileType}
+              fileName={fileName}
+              showDownload={true}
+            />
           </div>
           <div>
             <div className="font-medium">{title}</div>

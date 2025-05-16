@@ -52,7 +52,7 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
   };
 
   return horizontal ? (
-    <div className="flex justify-end space-x-2">
+    <div className="flex justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={copyToClipboard}
         className="text-gray-600 hover:text-gray-900"
@@ -87,7 +87,7 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
       </button>
     </div>
   ) : (
-    <div className="flex space-x-2">
+    <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={copyToClipboard}
         className="p-2 bg-white rounded-full hover:bg-gray-100"
