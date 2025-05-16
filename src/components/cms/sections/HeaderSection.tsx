@@ -9,6 +9,8 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
 import { Menu, MenuItem } from '@/app/api/graphql/types';
+import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
+import { MediaItem } from '@/components/cms/media/types';
 
 interface HeaderSectionProps {
   title: string;
@@ -78,8 +80,6 @@ export default function HeaderSection({
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState<{ [key: string]: boolean }>({});
   const [showMediaSelector, setShowMediaSelector] = useState(false);
-  const [availableMedia, setAvailableMedia] = useState<{id: string, title: string, fileUrl: string}[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
   
   // Nuevos estados para las opciones adicionales
   const [transparency, setTransparency] = useState(initialTransparency);
@@ -156,28 +156,8 @@ export default function HeaderSection({
     // Always fetch menus whether in editing mode or view mode
     fetchMenus();
     
-    // If in editing mode, also load media for logo selection
-    if (isEditing) {
-      const fetchMedia = async () => {
-        setLoadingMedia(true);
-        try {
-          // This is a placeholder - implement the actual media fetching functionality
-          // when your media library is available
-          const mockMedia = [
-            { id: 'logo1', title: 'Logo 1', fileUrl: '/images/logo1.png' },
-            { id: 'logo2', title: 'Company Logo', fileUrl: '/images/logo2.png' },
-            { id: 'logo3', title: 'Brand Image', fileUrl: '/images/logo3.png' },
-          ];
-          setAvailableMedia(mockMedia);
-        } catch (error) {
-          console.error('Error loading media:', error);
-        } finally {
-          setLoadingMedia(false);
-        }
-      };
-      
-      fetchMedia();
-    }
+    // Media fetching is now handled by the MediaLibrary component
+    
   }, [isEditing, localMenuId]);
   
   // Update local state when props change but only if not currently editing
@@ -427,46 +407,28 @@ export default function HeaderSection({
       setShowMediaSelector(false);
     };
 
-    // Cargar medios cuando se abre el selector
-    useEffect(() => {
-      const loadMedia = async () => {
-        try {
-          setLoadingMedia(true);
-          // Simulamos carga de media desde API (esto debería ser reemplazado por llamada real a API)
-          // Como ejemplo, vamos a usar estas imágenes de placeholder
-          setTimeout(() => {
-            setAvailableMedia([
-              { id: 'logo1', title: 'Logo 1', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+1' },
-              { id: 'logo2', title: 'Logo 2', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+2' },
-              { id: 'logo3', title: 'Logo 3', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+3' },
-              { id: 'logo4', title: 'Logo 4', fileUrl: 'https://via.placeholder.com/150x50?text=Logo+4' },
-            ]);
-            setLoadingMedia(false);
-          }, 1000);
-        } catch (error) {
-          console.error('Error loading media', error);
-          setLoadingMedia(false);
-        }
-      };
-
-      loadMedia();
-    }, []);
-
-    // Seleccionar un medio
-    const handleSelectMedia = (fileUrl: string) => {
-      setLogoUrl(fileUrl);
-      handleLogoUrlChange(fileUrl);
+    // Handle media item selection from MediaLibrary
+    const handleMediaSelection = (mediaItem: MediaItem) => {
+      setLogoUrl(mediaItem.fileUrl);
+      handleLogoUrlChange(mediaItem.fileUrl);
       setShowMediaSelector(false);
     };
 
     // URL personalizada
     const [customUrl, setCustomUrl] = useState('');
     
+    // Handle custom URL selection
+    const handleCustomUrlSelection = (url: string) => {
+      setLogoUrl(url);
+      handleLogoUrlChange(url);
+      setShowMediaSelector(false);
+    };
+
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
-        <div className="bg-white rounded-lg p-6 max-w-xl w-full max-h-[80vh] overflow-y-auto">
+      <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/30">
+        <div className="bg-white rounded-lg p-6 max-w-5xl w-full max-h-[80vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">Select Media</h3>
+            <h3 className="text-lg font-medium">Select Logo</h3>
             <button 
               onClick={handleClose}
               className="p-1 rounded-full hover:bg-gray-100"
@@ -489,7 +451,7 @@ export default function HeaderSection({
                 className="flex-1 border rounded-l-md p-2 text-sm"
               />
               <button
-                onClick={() => handleSelectMedia(customUrl)}
+                onClick={() => handleCustomUrlSelection(customUrl)}
                 disabled={!customUrl.trim()}
                 className="bg-blue-600 text-white px-3 py-2 rounded-r-md disabled:bg-blue-300"
               >
@@ -499,42 +461,11 @@ export default function HeaderSection({
           </div>
           
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">Media Library</h4>
-            
-            {loadingMedia ? (
-              <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {availableMedia.map(media => (
-                  <div 
-                    key={media.id}
-                    onClick={() => handleSelectMedia(media.fileUrl)}
-                    className="border rounded-md p-2 cursor-pointer hover:border-blue-500 transition-colors"
-                  >
-                    <div className="h-24 flex items-center justify-center mb-1">
-                      <Image 
-                        src={media.fileUrl} 
-                        alt={media.title}
-                        width={80}
-                        height={80}
-                        className="max-h-full max-w-full object-contain" 
-                      />
-                    </div>
-                    <div className="text-xs font-medium truncate text-center">
-                      {media.title}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {!loadingMedia && availableMedia.length === 0 && (
-              <div className="text-center text-gray-500 p-6">
-                No images found in your media library
-              </div>
-            )}
+            <MediaLibrary 
+              onSelect={handleMediaSelection}
+              isSelectionMode={true}
+              showHeader={true}
+            />
           </div>
         </div>
       </div>
