@@ -285,8 +285,11 @@ export default function FooterSection({
                   value={companyName}
                   onChange={handleCompanyNameChange}
                   placeholder="Enter company name..."
-                  className="w-full"
+                  className="font-medium text-xl"
+                  label="Company Name"
                   debounceTime={300}
+                  data-field-id="companyName"
+                  data-component-type="Footer"
                 />
               </div>
               
@@ -296,8 +299,10 @@ export default function FooterSection({
                   value={logoUrl}
                   onChange={handleLogoUrlChange}
                   placeholder="Enter logo URL..."
-                  className="w-full"
+                  label="Logo URL (optional)"
                   debounceTime={300}
+                  data-field-id="logoUrl"
+                  data-component-type="Footer"
                 />
               </div>
               
@@ -307,8 +312,11 @@ export default function FooterSection({
                   value={copyright}
                   onChange={handleCopyrightChange}
                   placeholder="Enter copyright text..."
-                  className="w-full"
+                  className="text-muted-foreground"
+                  label="Copyright Text"
                   debounceTime={300}
+                  data-field-id="copyright"
+                  data-component-type="Footer"
                 />
               </div>
               
@@ -518,13 +526,25 @@ export default function FooterSection({
                 style={{ backgroundColor, color: textColor }}
               >
                 <div className="text-sm">
-                  <p className="flex items-center">
-                    {logoUrl && <Image src={logoUrl} alt={companyName} width={24} height={24} className="mr-2" />}
-                    <span>{companyName}</span>
-                  </p>
-                  <p className="mt-1">
-                    © {showYear ? new Date().getFullYear() : ''} {copyright}
-                  </p>
+                  <div className="flex items-center space-x-3" data-field-type="companyName" data-component-type="Footer">
+                    {logoUrl && (
+                      <div className="h-8 w-8" data-field-type="logoUrl" data-component-type="Footer">
+                        <Image 
+                          src={logoUrl}
+                          alt={companyName}
+                          width={32}
+                          height={32}
+                          className="h-full w-auto"
+                        />
+                      </div>
+                    )}
+                    <span className="text-lg font-semibold">
+                      {companyName}
+                    </span>
+                  </div>
+                  <div className="text-sm opacity-80" data-field-type="copyright" data-component-type="Footer">
+                    © {showYear ? new Date().getFullYear() : ''} {companyName}. {copyright}
+                  </div>
                   {socialLinks.length > 0 && (
                     <div className="flex mt-2 space-x-2">
                       {socialLinks.map((link, i) => (
@@ -545,20 +565,22 @@ export default function FooterSection({
             {/* Company info */}
             <div className="md:col-span-1">
               <div className="flex flex-col space-y-4">
-                {logoUrl && (
-                  <div className="mb-4">
-                    <Image 
-                      src={logoUrl} 
-                      alt={companyName} 
-                      width={120} 
-                      height={40} 
-                      className="h-10 w-auto" 
-                      style={{ objectFit: 'contain' }}
-                    />
-                  </div>
-                )}
-                
-                <h3 className="text-lg font-medium">{companyName}</h3>
+                <div className="flex items-center space-x-3" data-field-type="companyName" data-component-type="Footer">
+                  {logoUrl && (
+                    <div className="h-8 w-8" data-field-type="logoUrl" data-component-type="Footer">
+                      <Image 
+                        src={logoUrl}
+                        alt={companyName}
+                        width={32}
+                        height={32}
+                        className="h-full w-auto"
+                      />
+                    </div>
+                  )}
+                  <span className="text-lg font-semibold">
+                    {companyName}
+                  </span>
+                </div>
                 
                 {/* Social Links */}
                 {socialLinks.length > 0 && (
@@ -604,7 +626,9 @@ export default function FooterSection({
           
           {/* Copyright */}
           <div className="mt-12 pt-6 border-t border-gray-700 text-sm">
-            <p>© {showYear ? new Date().getFullYear() : ''} {copyright}</p>
+            <div className="text-sm opacity-80" data-field-type="copyright" data-component-type="Footer">
+              © {showYear ? new Date().getFullYear() : ''} {companyName}. {copyright}
+            </div>
           </div>
         </div>
       )}

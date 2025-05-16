@@ -103,6 +103,8 @@ export default function ImageSection({
               className="text-base"
               label="Image URL"
               debounceTime={300}
+              data-field-id="src"
+              data-component-type="Image"
             />
             
             <StableInput
@@ -112,6 +114,8 @@ export default function ImageSection({
               className="text-base"
               label="Alt Text"
               debounceTime={300}
+              data-field-id="alt"
+              data-component-type="Image"
             />
             
             <StableInput
@@ -121,6 +125,8 @@ export default function ImageSection({
               className="text-base"
               label="Caption (optional)"
               debounceTime={300}
+              data-field-id="caption"
+              data-component-type="Image"
             />
             
             {/* Preview */}
@@ -150,7 +156,7 @@ export default function ImageSection({
         ) : (
           <figure className="relative">
             {localSrc ? (
-              <div className="relative w-full h-[400px] rounded-md overflow-hidden">
+              <div className="relative w-full h-[400px] rounded-md overflow-hidden" data-field-type="src" data-component-type="Image">
                 <Image 
                   src={localSrc} 
                   alt={localAlt || 'Image'} 
@@ -159,12 +165,12 @@ export default function ImageSection({
                 />
               </div>
             ) : (
-              <div className="w-full h-[400px] bg-muted flex items-center justify-center rounded-md">
+              <div className="w-full h-[400px] bg-muted flex items-center justify-center rounded-md" data-field-type="src" data-component-type="Image">
                 <p className="text-muted-foreground">Image placeholder</p>
               </div>
             )}
             {localCaption && (
-              <figcaption className="text-center text-sm text-muted-foreground mt-2">
+              <figcaption className="text-center text-sm text-muted-foreground mt-2" data-field-type="caption" data-component-type="Image">
                 {localCaption}
               </figcaption>
             )}

@@ -119,6 +119,8 @@ const CardSection = React.memo(function CardSection({
             className="font-medium text-card-foreground"
             label="Título"
             debounceTime={300}
+            data-field-id="title"
+            data-component-type="Card"
           />
           
           <StableInput
@@ -130,6 +132,8 @@ const CardSection = React.memo(function CardSection({
             className="text-muted-foreground text-sm"
             label="Descripción"
             debounceTime={300}
+            data-field-id="description"
+            data-component-type="Card"
           />
           
           <StableInput
@@ -138,6 +142,8 @@ const CardSection = React.memo(function CardSection({
             placeholder="URL de la imagen..."
             label="URL de la imagen (opcional)"
             debounceTime={300}
+            data-field-id="image"
+            data-component-type="Card"
           />
           
           <StableInput
@@ -146,6 +152,8 @@ const CardSection = React.memo(function CardSection({
             placeholder="URL del enlace..."
             label="URL del enlace (opcional)"
             debounceTime={300}
+            data-field-id="link"
+            data-component-type="Card"
           />
           
           <StableInput
@@ -154,6 +162,8 @@ const CardSection = React.memo(function CardSection({
             placeholder="Texto del botón..."
             label="Texto del botón"
             debounceTime={300}
+            data-field-id="buttonText"
+            data-component-type="Card"
           />
           
           {/* Preview */}
@@ -174,7 +184,7 @@ const CardSection = React.memo(function CardSection({
       ) : (
         <>
           {image && (
-            <div className="relative">
+            <div className="relative" data-field-type="image" data-component-type="Card">
               <div className="h-48 w-full relative">
                 <Image
                   src={image}
@@ -186,10 +196,10 @@ const CardSection = React.memo(function CardSection({
             </div>
           )}
           <div className="p-6">
-            <h3 className="text-lg font-medium text-card-foreground mb-2">
+            <h3 className="text-lg font-medium text-card-foreground mb-2" data-field-type="title" data-component-type="Card">
               {title}
             </h3>
-            <p className="text-muted-foreground text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4" data-field-type="description" data-component-type="Card">
               {description}
             </p>
             {link && (
@@ -197,6 +207,8 @@ const CardSection = React.memo(function CardSection({
                 <Link
                   href={link}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
+                  data-field-type="buttonText"
+                  data-component-type="Card"
                 >
                   {buttonText}
                 </Link>

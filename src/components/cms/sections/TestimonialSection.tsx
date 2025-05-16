@@ -111,6 +111,8 @@ const TestimonialSection = React.memo(function TestimonialSection({
             className="font-medium text-foreground italic"
             label="Quote"
             debounceTime={300}
+            data-field-id="quote"
+            data-component-type="Testimonial"
           />
           
           <StableInput
@@ -120,6 +122,8 @@ const TestimonialSection = React.memo(function TestimonialSection({
             className="font-medium text-foreground"
             label="Author"
             debounceTime={300}
+            data-field-id="author"
+            data-component-type="Testimonial"
           />
           
           <StableInput
@@ -129,6 +133,8 @@ const TestimonialSection = React.memo(function TestimonialSection({
             className="text-muted-foreground text-sm"
             label="Role (optional)"
             debounceTime={300}
+            data-field-id="role"
+            data-component-type="Testimonial"
           />
           
           <StableInput
@@ -137,6 +143,8 @@ const TestimonialSection = React.memo(function TestimonialSection({
             placeholder="Enter avatar image URL (optional)..."
             label="Avatar URL (optional)"
             debounceTime={300}
+            data-field-id="avatar"
+            data-component-type="Testimonial"
           />
           
           {/* Preview */}
@@ -188,13 +196,13 @@ const TestimonialSection = React.memo(function TestimonialSection({
         </div>
       ) : (
         <blockquote className="text-center">
-          <div className="text-2xl font-medium italic text-foreground mb-6">
+          <div className="text-2xl font-medium italic text-foreground mb-6" data-field-type="quote" data-component-type="Testimonial">
             &ldquo;{localQuote}&rdquo;
           </div>
           
           <div className="flex items-center justify-center">
             {localAvatar && (
-              <div className="mr-4">
+              <div className="mr-4" data-field-type="avatar" data-component-type="Testimonial">
                 <Image 
                   src={localAvatar} 
                   alt={localAuthor}
@@ -205,9 +213,13 @@ const TestimonialSection = React.memo(function TestimonialSection({
               </div>
             )}
             <div>
-              <div className="text-lg font-medium text-foreground">{localAuthor}</div>
+              <div className="text-lg font-medium text-foreground" data-field-type="author" data-component-type="Testimonial">
+                {localAuthor}
+              </div>
               {localRole && (
-                <div className="text-sm text-muted-foreground">{localRole}</div>
+                <div className="text-sm text-muted-foreground" data-field-type="role" data-component-type="Testimonial">
+                  {localRole}
+                </div>
               )}
             </div>
           </div>
