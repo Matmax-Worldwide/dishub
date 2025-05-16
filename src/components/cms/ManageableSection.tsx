@@ -637,7 +637,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     components: Component[];
   }) {
     return (
-      <div className="space-y-6">
+      <div className="">
         {components.map(component => (
           <div 
             key={component.id} 
@@ -971,7 +971,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         <>
           {/* Split View (edit + preview) */}
           {viewMode === 'split' && (
-            <div className="w-full flex flex-row mt-4">
+            <div className="w-full flex flex-row">
               {/* Editor section */}
               <div className="w-1/2 pr-4 border-r">
                 <SectionManager
@@ -989,20 +989,17 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   <div 
                     className={cn(
                       "preview-container w-full overflow-x-hidden transition-all duration-300 border rounded-md shadow-sm",
-                      devicePreview === 'desktop' ? 'h-auto min-h-[400px]' : 'h-[667px] mx-auto',
+                      devicePreview === 'desktop' ? 'h-auto min-h-[400px]' : 'mx-auto',
                       devicePreview === 'mobile' ? 'w-[375px]' : 'w-full'
                     )}
                     style={{ position: 'relative', zIndex: 1 }}
                     ref={previewContainerRef}
                   >
-                    <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
-                      
-                    </div>
                     
                     {/* Browser-like container for preview */}
                     <div className="pl-1">
                       {/* Device preview switcher */}
-                      <div className="flex justify-end mb-2">
+                      <div className="flex justify-end mb-2 p-2">
                         <div className="flex items-center bg-background/80 p-0.5 rounded-full border border-muted">
                           <button 
                             onClick={() => setDevicePreview('desktop')}
@@ -1041,17 +1038,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                       {devicePreview === 'desktop' ? (
                         // Desktop view with browser frame
                         <div className="bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden">
-                          {/* Browser header */}
-                          <div className="bg-muted/20 border-b border-muted/30 px-3 py-2 flex items-center">
-                            <div className="flex space-x-1.5 mr-3">
-                              <div className="w-3 h-3 rounded-full bg-red-400/60"></div>
-                              <div className="w-3 h-3 rounded-full bg-amber-400/60"></div>
-                              <div className="w-3 h-3 rounded-full bg-green-400/60"></div>
-                            </div>
-                            <div className="flex-1 bg-background/80 text-xs text-center py-1 px-3 rounded-full truncate text-muted-foreground">
-                              Vista previa de página
-                            </div>
-                          </div>
+                          
                           {/* Desktop content */}
                           <div className="p-4 bg-white min-h-[300px] overflow-auto">
                             <MemoizedPreviewSectionManager 
@@ -1097,11 +1084,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                             {/* Content area */}
                             <div className="bg-white h-[600px] overflow-hidden">
                               <div className="h-full overflow-y-auto">
-                                <div className="py-4 px-3">
+                                
                                   <MemoizedPreviewSectionManager 
                                     components={pendingComponents}
                                   />
-                                </div>
                               </div>
                             </div>
                             
@@ -1158,7 +1144,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       )}
       
       {errorMessage && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50">
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 rounded shadow-lg z-50">
           {errorMessage}
         </div>
       )}

@@ -14,6 +14,8 @@ interface StableInputProps {
   label?: string;
   debounceTime?: number;
   disabled?: boolean;
+  'data-field-id'?: string;
+  'data-component-type'?: string;
 }
 
 /**
@@ -31,7 +33,9 @@ export default function StableInput({
   multiline = false,
   label,
   debounceTime = 500,
-  disabled = false
+  disabled = false,
+  'data-field-id': fieldId,
+  'data-component-type': componentType
 }: StableInputProps) {
   // Local state to maintain value during editing
   const [localValue, setLocalValue] = useState(value);
@@ -145,6 +149,8 @@ export default function StableInput({
       onClick: handleClick,
       placeholder,
       disabled,
+      'data-field-id': fieldId,
+      'data-component-type': componentType,
       className: cn(
         "w-full px-3 py-2 bg-background border border-input rounded-md",
         "focus:outline-none focus:ring-2 focus:ring-ring focus:border-input",

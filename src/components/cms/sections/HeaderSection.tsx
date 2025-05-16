@@ -673,6 +673,8 @@ export default function HeaderSection({
             className="font-medium text-xl"
             label="Title"
             debounceTime={300}
+            data-field-id="title"
+            data-component-type="Header"
           />
           
           <StableInput
@@ -682,6 +684,8 @@ export default function HeaderSection({
             className="text-muted-foreground"
             label="Subtitle (optional)"
             debounceTime={300}
+            data-field-id="subtitle"
+            data-component-type="Header"
           />
           
           {/* Logo selector */}
@@ -692,13 +696,15 @@ export default function HeaderSection({
                 className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
               >
                 {logoUrl ? (
-                  <Image
-                    src={logoUrl} 
-                    alt="Logo" 
-                    width={80}
-                    height={80}
-                    className="max-h-full max-w-full object-contain" 
-                  />
+                  <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
+                    <Image
+                      src={logoUrl} 
+                      alt="Logo" 
+                      width={80}
+                      height={80}
+                      className="max-h-full max-w-full object-contain" 
+                    />
+                  </div>
                 ) : (
                   <div className="text-gray-400 text-sm text-center">
                     No logo<br/>selected
@@ -1031,7 +1037,7 @@ export default function HeaderSection({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           {logoUrl && (
-                            <div className="h-10 w-10 flex-shrink-0">
+                            <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
                               <Image
                                 src={logoUrl} 
                                 alt="Logo" 
@@ -1107,7 +1113,7 @@ export default function HeaderSection({
               {/* Logo/Title */}
               <Link href={`/${locale}`} className="flex items-center">
                 {logoUrl && (
-                  <div className="mr-3 flex-shrink-0">
+                  <div className="mr-3 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
                     <Image 
                       src={logoUrl} 
                       alt={localTitle} 
@@ -1118,11 +1124,11 @@ export default function HeaderSection({
                   </div>
                 )}
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight" style={{ color: textColor }}>
+                  <h2 className="text-xl font-bold tracking-tight" style={{ color: textColor }} data-field-type="title" data-component-type="Header">
                     {localTitle}
                   </h2>
                   {localSubtitle && (
-                    <p className="text-sm opacity-80" style={{ color: textColor }}>
+                    <p className="text-sm opacity-80" style={{ color: textColor }} data-field-type="subtitle" data-component-type="Header">
                       {localSubtitle}
                     </p>
                   )}

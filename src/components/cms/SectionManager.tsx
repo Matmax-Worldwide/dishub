@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2 } from 'lucide-react';
+import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2, Crosshair } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
 import { 
@@ -173,9 +173,9 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   return (
     <div 
       className={cn(
-        "component-wrapper relative group border rounded-md transition-all mb-5",
-        isEditing ? "border-border bg-card/50 hover:border-foreground/20 shadow-sm" : "",
-        isActive && isEditing ? "border-primary border-2 shadow-md shadow-primary/10 bg-primary/5" : "",
+        "component-wrapper relative group border rounded-md transition-all",
+        isEditing ? "border-border bg-card/50 hover:border-foreground/20" : "",
+        isActive && isEditing ? "border-primary border-2 ring-0 outline-none bg-primary/5" : "",
         !isEditing && "border-transparent",
         isHovered && isEditing && "bg-accent/5",
         isEditing && "cursor-pointer"
@@ -185,9 +185,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       data-component-id={component.id}
       onClick={handleClick}
     >
-      {isActive && isEditing && (
-        <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-1.5 h-8 bg-primary rounded-full"></div>
-      )}
 
       {/* Confirmation dialog for component removal */}
       {isEditing && (
@@ -320,6 +317,10 @@ function SectionManagerBase({
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
+  // State for inspection mode
+  const [inspectionMode, setInspectionMode] = useState(false);
+  // Track the field to focus after inspection
+  const [fieldToFocus, setFieldToFocus] = useState<string | null>(null);
   
   // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -1164,6 +1165,131 @@ function SectionManagerBase({
     });
   }, [components]);
 
+  // Toggle inspection mode
+  const toggleInspectionMode = useCallback(() => {
+    setInspectionMode(prev => !prev);
+  }, []);
+
+  // Handle element inspection
+  const handleInspectElement = useCallback((e: MouseEvent) => {
+    if (!inspectionMode) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Find the nearest data attribute that would tell us what to edit
+    let target = e.target as HTMLElement;
+    let componentId = null;
+    let fieldType = null;
+    
+    // Move up the DOM tree to find relevant attributes
+    while (target && !componentId) {
+      componentId = target.dataset.componentId;
+      fieldType = target.dataset.fieldType;
+      
+      if (!componentId) {
+        target = target.parentElement as HTMLElement;
+      }
+    }
+    
+    if (componentId) {
+      console.log(`Inspected element: Component ID ${componentId}, Field type: ${fieldType}`);
+      
+      // Activate the component
+      if (onClickComponent) {
+        onClickComponent(componentId);
+        
+        // Make sure component is expanded
+        setCollapsedComponents(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(componentId as string);
+          return newSet;
+        });
+        
+        // Set the field to focus
+        if (fieldType) {
+          setFieldToFocus(fieldType);
+        }
+      }
+      
+      // Exit inspection mode
+      setInspectionMode(false);
+    }
+  }, [inspectionMode, onClickComponent]);
+
+  // Set up and clean up inspection mode listener
+  useEffect(() => {
+    if (inspectionMode) {
+      // Add hover highlights to elements that can be inspected
+      document.body.classList.add('inspection-mode');
+      
+      // Listen for click events to inspect elements
+      document.addEventListener('click', handleInspectElement);
+      
+      return () => {
+        document.body.classList.remove('inspection-mode');
+        document.removeEventListener('click', handleInspectElement);
+      };
+    }
+  }, [inspectionMode, handleInspectElement]);
+
+  // Add these styles to the document head
+  useEffect(() => {
+    if (isEditing) {
+      // Create a style element
+      const styleEl = document.createElement('style');
+      styleEl.id = 'inspection-mode-styles';
+      styleEl.innerHTML = `
+        .inspection-mode [data-component-id]:hover {
+          outline: 2px dashed #3b82f6 !important;
+          cursor: crosshair !important;
+          position: relative;
+        }
+        .inspection-mode [data-field-type]:hover {
+          outline: 2px solid #ec4899 !important;
+          cursor: crosshair !important;
+          position: relative;
+        }
+      `;
+      
+      // Add it to the document
+      document.head.appendChild(styleEl);
+      
+      return () => {
+        // Clean up
+        const existingStyle = document.getElementById('inspection-mode-styles');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+      };
+    }
+  }, [isEditing]);
+
+  // Additional effect to focus the appropriate field after inspection
+  useEffect(() => {
+    if (fieldToFocus && activeComponentId) {
+      // Wait for the DOM to update
+      setTimeout(() => {
+        try {
+          // Try to find an input with a matching data attribute
+          const input = document.querySelector(`[data-field-id="${fieldToFocus}"]`) as HTMLInputElement;
+          
+          if (input) {
+            input.focus();
+            console.log(`Focused input field: ${fieldToFocus}`);
+          } else {
+            console.log(`Could not find input field: ${fieldToFocus}`);
+          }
+          
+          // Clear the field to focus
+          setFieldToFocus(null);
+        } catch (error) {
+          console.error("Error focusing field:", error);
+        }
+      }, 300);
+    }
+  }, [fieldToFocus, activeComponentId]);
+
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
     if (!component || !component.type || !componentMap[component.type]) {
@@ -1391,10 +1517,33 @@ function SectionManagerBase({
   // If we're editing, render the add component button and component list
   return (
     <div className="relative">
-      
+      {isEditing && (
+        <div className="flex justify-between items-center mb-2 sticky top-0 z-50 bg-white border-b pb-2">
+          <h2 className="text-lg font-medium text-gray-900">Page Components</h2>
+          <button
+            onClick={toggleInspectionMode}
+            className={cn(
+              "flex items-center space-x-1 px-3 py-1.5 rounded text-sm",
+              inspectionMode 
+                ? "bg-primary text-white hover:bg-primary/90" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            )}
+            title="Select elements on page to edit"
+          >
+            <Crosshair className="h-4 w-4 mr-1" />
+            <span>{inspectionMode ? "Exit Inspection" : "Inspect Page"}</span>
+          </button>
+        </div>
+      )}
+
+      {inspectionMode && isEditing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3 text-sm text-blue-700">
+          Click on any element on the page to select it for editing. The component containing that element will be activated.
+        </div>
+      )}
       
       {/* Components */}
-      <div className="space-y-4 mt-4">
+      <div className="flex flex-col gap-1">
         {components.map((component) => 
           renderComponent(component)
         )}

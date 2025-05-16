@@ -300,6 +300,8 @@ const BenefitSection = React.memo(function BenefitSection({
               className="text-foreground font-bold text-xl"
               label="Title"
               debounceTime={300}
+              data-field-id="title"
+              data-component-type="Benefit"
             />
             
             <StableInput
@@ -310,6 +312,8 @@ const BenefitSection = React.memo(function BenefitSection({
               multiline={true}
               label="Description"
               debounceTime={300}
+              data-field-id="description"
+              data-component-type="Benefit"
             />
             
             <div className="flex flex-col space-y-2">
@@ -386,6 +390,8 @@ const BenefitSection = React.memo(function BenefitSection({
               style={{ borderColor: `${localAccentColor}50` }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
+              data-field-type="iconType"
+              data-component-type="Benefit"
             >
               <motion.div
                 animate={isHovered ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
@@ -401,6 +407,8 @@ const BenefitSection = React.memo(function BenefitSection({
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-4xl md:text-5xl font-bold mb-6 text-center"
               style={{ color: localAccentColor }}
+              data-field-type="title"
+              data-component-type="Benefit"
             >
               {localTitle}
             </motion.h3>
@@ -410,6 +418,8 @@ const BenefitSection = React.memo(function BenefitSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-xl md:text-2xl text-center max-w-3xl text-gray-700"
+              data-field-type="description"
+              data-component-type="Benefit"
             >
               {localDescription}
             </motion.p>

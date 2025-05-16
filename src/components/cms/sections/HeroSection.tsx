@@ -279,6 +279,8 @@ const HeroSection = React.memo(function HeroSection({
                 placeholder="Badge text..."
                 label="Badge Text"
                 debounceTime={300}
+                data-field-id="badgeText"
+                data-component-type="Hero"
               />
               
               <StableInput
@@ -288,6 +290,8 @@ const HeroSection = React.memo(function HeroSection({
                 className="text-foreground font-bold text-xl"
                 label="Title"
                 debounceTime={300}
+                data-field-id="title"
+                data-component-type="Hero"
               />
               
               <StableInput
@@ -298,6 +302,8 @@ const HeroSection = React.memo(function HeroSection({
                 multiline={true}
                 label="Subtitle"
                 debounceTime={300}
+                data-field-id="subtitle"
+                data-component-type="Hero"
               />
               
               <StableInput
@@ -306,6 +312,8 @@ const HeroSection = React.memo(function HeroSection({
                 placeholder="Background image URL..."
                 label="Image URL"
                 debounceTime={300}
+                data-field-id="image"
+                data-component-type="Hero"
               />
               
               {/* CTA Buttons */}
@@ -317,6 +325,8 @@ const HeroSection = React.memo(function HeroSection({
                     onChange={handleCtaTextChange}
                     placeholder="Button text..."
                     debounceTime={300}
+                    data-field-id="cta.text"
+                    data-component-type="Hero"
                   />
                   
                   <StableInput
@@ -324,6 +334,8 @@ const HeroSection = React.memo(function HeroSection({
                     onChange={handleCtaUrlChange}
                     placeholder="Button URL..."
                     debounceTime={300}
+                    data-field-id="cta.url"
+                    data-component-type="Hero"
                   />
                 </div>
               </div>
@@ -336,6 +348,8 @@ const HeroSection = React.memo(function HeroSection({
                     onChange={handleSecondaryCtaTextChange}
                     placeholder="Button text..."
                     debounceTime={300}
+                    data-field-id="secondaryCta.text"
+                    data-component-type="Hero"
                   />
                   
                   <StableInput
@@ -343,6 +357,8 @@ const HeroSection = React.memo(function HeroSection({
                     onChange={handleSecondaryCtaUrlChange}
                     placeholder="Button URL..."
                     debounceTime={300}
+                    data-field-id="secondaryCta.url"
+                    data-component-type="Hero"
                   />
                 </div>
               </div>
@@ -391,14 +407,16 @@ const HeroSection = React.memo(function HeroSection({
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.8 }}
                   className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+                  data-field-type="badgeText"
+                  data-component-type="Hero"
                 >
                   {localBadgeText}
                 </motion.div>
               )}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight" data-field-type="title" data-component-type="Hero">
                 {localTitle}
               </h1>
-              <p className="mt-6 text-xl text-gray-600">
+              <p className="mt-6 text-xl text-gray-600" data-field-type="subtitle" data-component-type="Hero">
                 {localSubtitle}
               </p>
               
@@ -412,6 +430,8 @@ const HeroSection = React.memo(function HeroSection({
                   <Link
                     href={localCta.url || '#'}
                     className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
+                    data-field-type="cta.text"
+                    data-component-type="Hero"
                   >
                     {localCta.text}
                   </Link>
@@ -421,6 +441,8 @@ const HeroSection = React.memo(function HeroSection({
                   <Link
                     href={localSecondaryCta.url || '#'}
                     className="border-2 border-gray-300 text-gray-700 text-lg px-6 py-3 rounded-lg hover:bg-gray-50 transform transition-all duration-300 hover:-translate-y-1"
+                    data-field-type="secondaryCta.text"
+                    data-component-type="Hero"
                   >
                     {localSecondaryCta.text}
                   </Link>
@@ -436,6 +458,8 @@ const HeroSection = React.memo(function HeroSection({
                 className="relative"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
+                data-field-type="showIcon"
+                data-component-type="Hero"
               >
                 <motion.div 
                   className="relative z-10 flex justify-center"

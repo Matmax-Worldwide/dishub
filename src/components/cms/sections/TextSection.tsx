@@ -100,6 +100,8 @@ export default function TextSection({
               className="font-medium text-lg"
               label="Section Title (optional)"
               debounceTime={300}
+              data-field-id="title"
+              data-component-type="Text"
             />
             
             <StableInput
@@ -111,14 +113,18 @@ export default function TextSection({
               className="text-base"
               label="Content"
               debounceTime={300}
+              data-field-id="content"
+              data-component-type="Text"
             />
           </div>
         ) : (
           <>
             {localTitle && (
-              <h3 className="text-xl font-medium mb-4">{localTitle}</h3>
+              <h3 className="text-xl font-medium mb-4" data-field-type="title" data-component-type="Text">
+                {localTitle}
+              </h3>
             )}
-            <div className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
+            <div className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground" data-field-type="content" data-component-type="Text">
               {(localContent || '').split('\n').map((paragraph, index) => (
                 <p key={index} className="mb-4">
                   {paragraph}
