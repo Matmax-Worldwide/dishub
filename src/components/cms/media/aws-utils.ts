@@ -59,8 +59,8 @@ export const getS3Config = (): S3Config => {
   return {
     bucketName: process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'vercelvendure',
     region: process.env.NEXT_PUBLIC_S3_REGION || 'us-east-1',
-    accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID || 'REMOVED_KEY',
-    secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY || 'REMOVED_SECRET',
+    accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY || '',
     publicUrlPrefix: process.env.NEXT_PUBLIC_S3_URL_PREFIX || 'https://vercelvendure.s3.amazonaws.com',
   };
 };

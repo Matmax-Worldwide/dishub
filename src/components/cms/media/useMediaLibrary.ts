@@ -66,7 +66,9 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         try {
           const errorData = await response.json();
           errorDetail = errorData.error || '';
-        } catch (_unused) {
+        } 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        catch (_) {
           // Ignore JSON parsing errors
         }
         
@@ -200,8 +202,12 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
       const itemToDelete = mediaItems.find(item => item.id === id);
       
       if (itemToDelete && itemToDelete.s3Key) {
+        console.log(`Attempting to delete item with key: ${itemToDelete.s3Key}`);
+        setError(null);
+        
         try {
           // Send to delete API route
+          console.log(`Sending DELETE request to /api/media/delete for key: ${itemToDelete.s3Key}`);
           const response = await fetch('/api/media/delete', {
             method: 'POST',
             headers: {
@@ -210,16 +216,33 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
             body: JSON.stringify({ key: itemToDelete.s3Key })
           });
           
+          console.log(`Delete response status: ${response.status} ${response.statusText}`);
+          
           if (!response.ok) {
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Delete response error:', errorText);
+            
+            let errorDetail = '';
+            try {
+              const errorData = JSON.parse(errorText);
+              errorDetail = errorData.error || errorData.details || '';
+            } 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            catch (_) {
+              // Ignore JSON parsing errors
+            }
+            
+            throw new Error(`API Error: ${response.status} ${response.statusText}${errorDetail ? ` - ${errorDetail}` : ''}`);
           }
           
           const data = await response.json();
+          console.log('Delete response data:', data);
           
           if (data.error) {
             throw new Error(data.error);
           }
           
+          console.log('Delete operation successful, updating UI');
           // Remove from local state
           setMediaItems(mediaItems.filter(item => item.id !== id));
           setSelectedItems(prev => prev.filter(itemId => itemId !== id));
@@ -229,8 +252,18 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
           
           const errorMessage = error instanceof Error ? error.message : String(error);
           setError(`Failed to delete file: ${errorMessage}`);
+          
+          // Log details to console to help with debugging
+          if (process.env.NODE_ENV === 'development') {
+            console.group('Delete Error Details');
+            console.error('Error:', error);
+            console.error('Item ID:', id);
+            console.error('S3 Key:', itemToDelete.s3Key);
+            console.groupEnd();
+          }
         }
       } else {
+        console.log(`Deleting item with ID ${id} (no S3 key found)`);
         // Handle case when s3Key is missing (older items)
         setMediaItems(mediaItems.filter(item => item.id !== id));
         setSelectedItems(prev => prev.filter(itemId => itemId !== id));
