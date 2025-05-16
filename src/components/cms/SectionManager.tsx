@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal } from 'lucide-react';
+import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
 import { 
@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer';
 
 export interface Component {
   id: string;
@@ -28,7 +28,6 @@ export interface Component {
 
 // Dynamic imports for components - fallback to a loading state
 const componentMap = {
-
   Header: dynamic(() => import('./sections/HeaderSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Header...</div>
   }),
@@ -52,6 +51,9 @@ const componentMap = {
   }),
   Card: dynamic(() => import('./sections/CardSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Card...</div>
+  }),
+  Footer: dynamic(() => import('./sections/FooterSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Footer...</div>
   }),
 };
 
@@ -141,15 +143,30 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     if (onMoveDown) onMoveDown(component.id);
   }, [component.id, onMoveDown]);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = useCallback((e?: React.MouseEvent) => {
+    // Always stop propagation to prevent conflict with component click
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    console.log(`Toggle button clicked for component ${component.id}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+    
     if (onToggleCollapse) {
-      onToggleCollapse(component.id, !isCollapsed);
+      // We're passing the *current* state for the component
+      // The parent will invert it (expand if collapsed, collapse if expanded)
+      onToggleCollapse(component.id, isCollapsed);
     }
   }, [component.id, isCollapsed, onToggleCollapse]);
 
   const handleClick = useCallback(() => {
+    console.log(`Component ${component.id} clicked`);
+    
     if (onComponentClick) {
       onComponentClick(component.id);
+      
+      // We're no longer auto-expanding the component when clicked
+      // This will allow our toggle button to work independently
     }
   }, [component.id, onComponentClick]);
 
@@ -202,14 +219,27 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
             </div>
             
             <button
-              onClick={handleToggle}
-              className="p-1 rounded hover:bg-muted/50"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggle(e);
+              }}
+              className={cn(
+                "p-1.5 rounded transition-all",
+                isCollapsed 
+                  ? "bg-primary/10 hover:bg-primary/20 text-primary" 
+                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+              )}
               title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
+              aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
+              data-collapsed={isCollapsed}
+              data-component-id={component.id}
+              type="button"
             >
               {isCollapsed ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <Maximize2 className="h-4 w-4" />
               ) : (
-                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                <Minimize2 className="h-4 w-4" />
               )}
             </button>
             
@@ -282,6 +312,8 @@ function SectionManagerBase({
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track collapsed components by ID - initialize with empty set (all expanded)
   const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
+  // Track components that were explicitly collapsed by user clicks
+  const [userCollapsedComponents, setUserCollapsedComponents] = useState<Set<string>>(new Set());
   // Referencia para guardar el elemento activo antes del autoguardado
   const activeElementRef = useRef<Element | null>(null);
   // Estado para controlar las actualizaciones debounced de los componentes
@@ -383,8 +415,47 @@ function SectionManagerBase({
       }
     };
     
-    // Create the updated components array
-    const updatedComponents = [...components, newComponent];
+    let updatedComponents: Component[];
+    
+    // Determine where to place the component based on its type
+    if (type === 'Header') {
+      // Place Header at the beginning
+      updatedComponents = [newComponent, ...components];
+    } else if (type === 'Footer') {
+      // Place Footer at the end
+      updatedComponents = [...components, newComponent];
+    } else {
+      // If there's a Header, place after Header
+      // If there's a Footer, place before Footer
+      const headerIndex = components.findIndex(c => c.type === 'Header');
+      const footerIndex = components.findIndex(c => c.type === 'Footer');
+      
+      if (headerIndex !== -1 && footerIndex !== -1) {
+        // If both Header and Footer exist, place in the middle
+        updatedComponents = [
+          ...components.slice(0, footerIndex),
+          newComponent,
+          ...components.slice(footerIndex)
+        ];
+      } else if (headerIndex !== -1) {
+        // If only Header exists, place after Header
+        updatedComponents = [
+          ...components.slice(0, headerIndex + 1),
+          newComponent,
+          ...components.slice(headerIndex + 1)
+        ];
+      } else if (footerIndex !== -1) {
+        // If only Footer exists, place before Footer
+        updatedComponents = [
+          ...components.slice(0, footerIndex),
+          newComponent,
+          ...components.slice(footerIndex)
+        ];
+      } else {
+        // Default case: just append at the end
+        updatedComponents = [...components, newComponent];
+      }
+    }
     
     // Update components array
     setComponents(updatedComponents);
@@ -617,6 +688,35 @@ function SectionManagerBase({
           </div>
         )
       },
+      {
+        type: 'Footer',
+        title: 'Footer Component',
+        description: 'Page footer with links and copyright information',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 19H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M4 15H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M10 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-gray-500 bg-gray-100 border-gray-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-md opacity-50">
+            <div className="mt-auto">
+              <div className="h-px w-full bg-gray-200 mb-2"></div>
+              <div className="flex justify-between items-center">
+                <div className="w-20 h-2 bg-gray-300 rounded"></div>
+                <div className="flex space-x-1">
+                  <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      },
     ];
 
     // Ensure sliderPosition is in bounds
@@ -835,37 +935,62 @@ function SectionManagerBase({
     }
   }, [componentsDataString]); // Only run when component data actually changes
 
-  // Auto-expand active component
+  // Auto-expand active component (but respect user's explicit collapse actions)
   useEffect(() => {
     if (activeComponentId && collapsedComponents.has(activeComponentId)) {
-      // Expand the active component if it's collapsed
-      setCollapsedComponents(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(activeComponentId);
-        return newSet;
-      });
+      // Only auto-expand if the user didn't explicitly collapse it
+      if (!userCollapsedComponents.has(activeComponentId)) {
+        // Expand the active component if it's collapsed
+        setCollapsedComponents(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(activeComponentId);
+          return newSet;
+        });
+      }
     }
-  }, [activeComponentId, collapsedComponents]);
+  }, [activeComponentId, collapsedComponents, userCollapsedComponents]);
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
     console.log(`Explicitly toggling collapse for component ${componentId}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
+    
+    // Note: isCollapsed parameter now represents the CURRENT state, not the target state
+    // So if isCollapsed is true, we need to expand it, and vice versa
+    
+    const wasCollapsed = isCollapsed;
+    const willBeCollapsed = !wasCollapsed;
+    
+    console.log(`Component ${componentId} WAS ${wasCollapsed ? 'collapsed' : 'expanded'}, WILL BE ${willBeCollapsed ? 'collapsed' : 'expanded'}`);
+    
     setCollapsedComponents(prev => {
       const newSet = new Set(prev);
-      // Si isCollapsed es true, significa que está colapsado y queremos expandirlo
-      // Si isCollapsed es false, significa que está expandido y queremos colapsarlo
-      if (isCollapsed) {
+      
+      // If currently collapsed, expand it (remove from set)
+      // If currently expanded, collapse it (add to set)
+      if (wasCollapsed) {
         console.log(`Expanding component ${componentId}`);
         newSet.delete(componentId);
+        
+        // Remove from user collapsed components when explicitly expanded
+        setUserCollapsedComponents(prevUserCollapsed => {
+          const newUserCollapsed = new Set(prevUserCollapsed);
+          newUserCollapsed.delete(componentId);
+          return newUserCollapsed;
+        });
       } else {
         console.log(`Collapsing component ${componentId}`);
         newSet.add(componentId);
+        
+        // Add to user collapsed components when explicitly collapsed
+        setUserCollapsedComponents(prevUserCollapsed => {
+          const newUserCollapsed = new Set(prevUserCollapsed);
+          newUserCollapsed.add(componentId);
+          return newUserCollapsed;
+        });
       }
+      
       return newSet;
     });
-    
-    // Don't update allCollapsed state when toggling individual components
-    // This keeps the behavior of each button independent
   }, []);
 
   // Agregar de vuelta el event listener para component:update-title
@@ -937,15 +1062,54 @@ function SectionManagerBase({
     setPendingUpdate({ component, data: updatedData });
   }, []);
 
+  // Handle when a component is clicked to collapse others
+  const handleComponentClick = useCallback((componentId: string) => {
+    // Set as active component
+    if (onClickComponent) {
+      onClickComponent(componentId);
+    }
+    
+    // We're no longer toggling components when clicked
+    // Instead, we only collapse other components
+    setCollapsedComponents(prev => {
+      const newSet = new Set<string>();
+      
+      // Add all component IDs to the set (all collapsed) except the active one
+      components.forEach(component => {
+        if (component.id !== componentId) {
+          newSet.add(component.id);
+        } else {
+          // For the active component, preserve its current state
+          if (prev.has(componentId)) {
+            newSet.add(componentId);
+          }
+        }
+      });
+      
+      return newSet;
+    });
+  }, [components, onClickComponent]);
+
   // Manejar el movimiento de componentes hacia arriba
   const handleMoveComponentUp = useCallback((componentId: string) => {
-    // No actualizamos selectedComponentId para evitar que afecte el estado de colapso
+    const component = components.find(c => c.id === componentId);
+    if (!component) return;
+    
+    // No mover si es Header o si es el primer componente
+    if (component.type === 'Header' || components.indexOf(component) === 0) {
+      return;
+    }
+    
+    // No mover si justo arriba hay un Header
+    const index = components.indexOf(component);
+    if (index <= 0) return;
+    
+    const prevComponent = components[index - 1];
+    if (prevComponent.type === 'Header') {
+      return;
+    }
     
     setComponents(prevComponents => {
-      const index = prevComponents.findIndex(component => component.id === componentId);
-      if (index <= 0) return prevComponents;
-      
-      // Crear un nuevo array con el componente movido una posición hacia arriba
       const newComponents = [...prevComponents];
       const temp = newComponents[index];
       newComponents[index] = newComponents[index - 1];
@@ -959,11 +1123,26 @@ function SectionManagerBase({
       // Just return the same set - no changes to collapsed state during reordering
       return new Set(prev);
     });
-  }, []);
+  }, [components]);
 
   // Manejar el movimiento de componentes hacia abajo
   const handleMoveComponentDown = useCallback((componentId: string) => {
-    // No actualizamos selectedComponentId para evitar que afecte el estado de colapso
+    const component = components.find(c => c.id === componentId);
+    if (!component) return;
+    
+    // No mover si es Footer o si es el último componente
+    if (component.type === 'Footer' || components.indexOf(component) === components.length - 1) {
+      return;
+    }
+    
+    // No mover si justo abajo hay un Footer
+    const index = components.indexOf(component);
+    if (index >= components.length - 1) return;
+    
+    const nextComponent = components[index + 1];
+    if (nextComponent.type === 'Footer') {
+      return;
+    }
     
     setComponents(prevComponents => {
       const index = prevComponents.findIndex(component => component.id === componentId);
@@ -983,7 +1162,7 @@ function SectionManagerBase({
       // Just return the same set - no changes to collapsed state during reordering
       return new Set(prev);
     });
-  }, []);
+  }, [components]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -993,6 +1172,13 @@ function SectionManagerBase({
 
     // Allow component to be collapsed in edit mode
     const isComponentCollapsed = collapsedComponents.has(component.id);
+    
+    // Determine if this is Header, Footer, first or last component
+    const isHeader = component.type === 'Header';
+    const isFooter = component.type === 'Footer';
+    const componentIndex = components.indexOf(component);
+    const isFirst = componentIndex === 0;
+    const isLast = componentIndex === components.length - 1;
 
     // Componente específico según el tipo
     const renderComponentContent = () => {
@@ -1175,14 +1361,14 @@ function SectionManagerBase({
         component={component}
         isEditing={isEditing}
         onRemove={removeComponent}
-        onMoveUp={handleMoveComponentUp}
-        onMoveDown={handleMoveComponentDown}
-        isFirst={components.indexOf(component) === 0}
-        isLast={components.indexOf(component) === components.length - 1}
+        onMoveUp={!(isHeader || isFirst) ? handleMoveComponentUp : undefined}
+        onMoveDown={!(isFooter || isLast) ? handleMoveComponentDown : undefined}
+        isFirst={isFirst || isHeader}
+        isLast={isLast || isFooter}
         isCollapsed={isComponentCollapsed}
         onToggleCollapse={handleToggleCollapse}
         isActive={activeComponentId === component.id}
-        onComponentClick={onClickComponent}
+        onComponentClick={handleComponentClick}
       >
         {renderComponentContent()}
       </ComponentWrapperMemo>
@@ -1198,13 +1384,25 @@ function SectionManagerBase({
     handleToggleCollapse,
     componentClassName,
     activeComponentId,
-    onClickComponent
+    handleComponentClick
   ]);
 
 
   // If we're editing, render the add component button and component list
   return (
     <div className="relative">
+      
+      
+      {/* Components */}
+      <div className="space-y-4 mt-4">
+        {components.map((component) => 
+          renderComponent(component)
+        )}
+      </div>
+
+      {/* Component Type Selector Modal */}
+      {isComponentSelectorOpen && <ComponentSelector />}
+
       {isEditing && (
         <div className="mb-6 mt-2">
           <button
@@ -1222,16 +1420,6 @@ function SectionManagerBase({
           </button>
         </div>
       )}
-      
-      {/* Components */}
-      <div className="space-y-4 mt-4">
-        {components.map((component) => 
-          renderComponent(component)
-        )}
-      </div>
-
-      {/* Component Type Selector Modal */}
-      {isComponentSelectorOpen && <ComponentSelector />}
     </div>
   );
 }

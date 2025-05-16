@@ -647,11 +647,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
               activeComponentId === component.id ? 'active-preview' : ''
             }`}
           >
-            {/* Type label for reference */}
-            <div className="absolute -right-1 -top-1 z-10 text-xs bg-primary/10 px-1 py-0.5 rounded text-primary/70 font-medium">
-              {component.type}
-            </div>
-            
             {/* Render actual component using SectionManager */}
             <SectionManager
               initialComponents={[component]}
