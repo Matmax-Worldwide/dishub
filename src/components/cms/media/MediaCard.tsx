@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import { MediaItem } from './types';
 import { MediaItemIcon } from './MediaItemIcon';
 import { MediaActions } from './MediaActions';
 import { formatFileSize } from './utils';
+import S3FilePreview from '@/components/shared/S3FilePreview';
 
 interface MediaCardProps {
   item: MediaItem;
@@ -19,8 +19,7 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
     fileName,
     fileSize,
     fileType,
-    altText,
-    s3Key
+    altText
   } = item;
 
   const handleSelect = () => {
@@ -40,12 +39,12 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
     >
       <div className="relative aspect-square bg-gray-50">
         {fileType.startsWith('image/') ? (
-          <Image
+          <S3FilePreview
             src={fileUrl}
             alt={altText || title}
-            fill
-            sizes="(max-width: 768px) 100vw, 20vw"
-            className="object-cover"
+            className="object-cover w-full h-full"
+            width={300}
+            height={300}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -53,7 +52,7 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
           </div>
         )}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <MediaActions fileUrl={fileUrl} s3Key={s3Key} onDelete={handleDelete} />
+          <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={handleDelete} />
         </div>
         <div className="absolute top-2 left-2">
           <input

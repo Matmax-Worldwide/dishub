@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import { MediaItem } from './types';
 import { MediaItemIcon } from './MediaItemIcon';
 import { MediaActions } from './MediaActions';
 import { formatFileSize } from './utils';
+import S3FilePreview from '@/components/shared/S3FilePreview';
 
 interface MediaListItemProps {
   item: MediaItem;
@@ -45,12 +45,13 @@ export function MediaListItem({ item, isSelected, onSelect, onDelete }: MediaLis
         <div className="flex items-center">
           <div className="flex-shrink-0 h-10 w-10 mr-3">
             {fileType.startsWith('image/') ? (
-              <Image
+              <S3FilePreview
                 src={fileUrl}
                 alt={altText || title}
                 width={40}
                 height={40}
                 className="object-cover rounded"
+                fileType={fileType}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -74,7 +75,7 @@ export function MediaListItem({ item, isSelected, onSelect, onDelete }: MediaLis
         {uploadedAt}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <MediaActions fileUrl={fileUrl} onDelete={handleDelete} horizontal />
+        <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={handleDelete} horizontal />
       </td>
     </tr>
   );
