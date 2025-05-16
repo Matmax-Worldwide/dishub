@@ -48,6 +48,70 @@ interface HeaderSectionProps {
   }) => void;
 }
 
+// Componente para mostrar imágenes de S3 a través de nuestra API
+const S3ImagePreview = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+  const [isS3Url, setIsS3Url] = useState(false);
+  const [s3Key, setS3Key] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Detectar si es una URL de S3
+    if (src && (
+        src.includes('s3.amazonaws.com') || 
+        src.includes('vercelvendure') ||
+        src.startsWith(process.env.NEXT_PUBLIC_S3_URL_PREFIX || '')
+      )) {
+      // Es una URL de S3, extraer la clave
+      setIsS3Url(true);
+      
+      try {
+        // Intentar extraer la clave de S3 de la URL
+        const url = new URL(src);
+        const pathParts = url.pathname.split('/');
+        // Eliminar la primera parte vacía del pathname que comienza con /
+        pathParts.shift();
+        
+        // La clave es el resto del path
+        const key = pathParts.join('/');
+        setS3Key(key);
+      } catch (error) {
+        console.error('Error parsing S3 URL:', error);
+        setS3Key(null);
+      }
+    } else {
+      setIsS3Url(false);
+      setS3Key(null);
+    }
+  }, [src]);
+  
+  if (!src) {
+    return null;
+  }
+  
+  // Si es una URL de S3 y tenemos la clave, usar nuestra API
+  if (isS3Url && s3Key) {
+    return (
+      <Image
+        src={`/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`}
+        alt={alt}
+        width={100}
+        height={100}
+        className={className || "max-h-full max-w-full object-contain"}
+      />
+    );
+  }
+  
+  // Para otras URLs, usar la URL directamente
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={100}
+      height={100}
+      className={className || "max-h-full max-w-full object-contain"}
+    />
+  );
+};
+
 export default function HeaderSection({ 
   title, 
   subtitle, 
@@ -628,11 +692,9 @@ export default function HeaderSection({
               >
                 {logoUrl ? (
                   <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
-                    <Image
+                    <S3ImagePreview
                       src={logoUrl} 
-                      alt="Logo" 
-                      width={80}
-                      height={80}
+                      alt="Logo"
                       className="max-h-full max-w-full object-contain" 
                     />
                   </div>
@@ -969,12 +1031,10 @@ export default function HeaderSection({
                         <div className="flex items-center gap-3">
                           {logoUrl && (
                             <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
-                              <Image
+                              <S3ImagePreview
                                 src={logoUrl} 
-                                alt="Logo" 
+                                alt="Logo"
                                 className="max-h-full max-w-full object-contain" 
-                                width={80}
-                                height={80}
                               />
                             </div>
                           )}
@@ -1045,12 +1105,10 @@ export default function HeaderSection({
               <Link href={`/${locale}`} className="flex items-center">
                 {logoUrl && (
                   <div className="mr-3 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
-                    <Image 
+                    <S3ImagePreview
                       src={logoUrl} 
-                      alt={localTitle} 
+                      alt={localTitle}
                       className="h-10 w-auto object-contain" 
-                      width={100}
-                      height={100}
                     />
                   </div>
                 )}
@@ -1162,12 +1220,10 @@ export default function HeaderSection({
                 }`}>
                   {mobileMenuStyle === 'fullscreen' && logoUrl && (
                     <div className="mb-8">
-                      <Image
+                      <S3ImagePreview
                         src={logoUrl} 
-                        alt={localTitle} 
+                        alt={localTitle}
                         className="h-16 w-auto object-contain mx-auto" 
-                        width={80}
-                        height={80}
                       />
                     </div>
                   )}
