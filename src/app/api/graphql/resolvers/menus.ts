@@ -69,6 +69,7 @@ export const menuResolvers = {
           createdAt: true,
           updatedAt: true,
           items: true,
+          headerStyle: true
         },
       });
     },
@@ -83,6 +84,7 @@ export const menuResolvers = {
           createdAt: true,
           updatedAt: true,
           items: true,
+          headerStyle: true
         },
       });
     },
@@ -97,6 +99,7 @@ export const menuResolvers = {
           createdAt: true,
           updatedAt: true,
           items: true,
+          headerStyle: true
         },
       });
     },

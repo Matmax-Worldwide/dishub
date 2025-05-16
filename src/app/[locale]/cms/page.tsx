@@ -40,10 +40,14 @@ export default function CMSDashboard() {
         const pagesData = await cmsOperations.getAllPages();
         console.log('Páginas obtenidas:', pagesData);
         setPageCount(Array.isArray(pagesData) ? pagesData.length : 0);
+
+        // Obtener menús desde GraphQL
+        const menusData = await cmsOperations.getMenus();
+        console.log('Menus obtenidos:', menusData);
+        setMenuCount(Array.isArray(menusData) ? menusData.length : 0);
         
         // Mock data para otros conteos (hasta que implementemos esas APIs)
         setMediaCount(0);
-        setMenuCount(0);
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {

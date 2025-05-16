@@ -1779,6 +1779,18 @@ export const cmsOperations = {
           slug: string;
         };
       }>;
+      headerStyle?: {
+        id: string;
+        transparency: number;
+        headerSize: string;
+        menuAlignment: string;
+        menuButtonStyle: string;
+        mobileMenuStyle: string;
+        mobileMenuPosition: string;
+        transparentHeader: boolean;
+        borderBottom: boolean;
+        advancedOptions?: Record<string, unknown>;
+      };
     }>>(cacheKey);
     
     if (cachedMenus) {
@@ -1815,6 +1827,18 @@ export const cmsOperations = {
                 slug
               }
             }
+            headerStyle {
+              id
+              transparency
+              headerSize
+              menuAlignment
+              menuButtonStyle
+              mobileMenuStyle
+              mobileMenuPosition
+              transparentHeader
+              borderBottom
+              advancedOptions
+            }
           }
         }
       `;
@@ -1846,6 +1870,18 @@ export const cmsOperations = {
             slug: string;
           };
         }>;
+        headerStyle?: {
+          id: string;
+          transparency: number;
+          headerSize: string;
+          menuAlignment: string;
+          menuButtonStyle: string;
+          mobileMenuStyle: string;
+          mobileMenuPosition: string;
+          transparentHeader: boolean;
+          borderBottom: boolean;
+          advancedOptions?: Record<string, unknown>;
+        };
       }> }>(query);
       
       if (!result || !result.menus) {

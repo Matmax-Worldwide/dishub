@@ -652,7 +652,8 @@ const resolvers = {
             location: true,
             createdAt: true,
             updatedAt: true,
-            items: true
+            items: true,
+            headerStyle: true
           },
         });
         return menus;
@@ -671,7 +672,8 @@ const resolvers = {
             location: true,
             createdAt: true,
             updatedAt: true,
-            items: true
+            items: true,
+            headerStyle: true
           },
         });
       } catch (error) {
@@ -689,7 +691,8 @@ const resolvers = {
             location: true,
             createdAt: true,
             updatedAt: true,
-            items: true
+            items: true,
+            headerStyle: true
           },
         });
       } catch (error) {

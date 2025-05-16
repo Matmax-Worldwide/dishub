@@ -29,6 +29,17 @@ interface Menu {
   createdAt: string;
   updatedAt: string;
   items: MenuItem[];
+  headerStyle?: {
+    id: string;
+    transparency: number;
+    headerSize: string;
+    menuAlignment: string;
+    menuButtonStyle: string;
+    mobileMenuStyle: string;
+    mobileMenuPosition: string;
+    transparentHeader: boolean;
+    borderBottom: boolean;
+  } | null;
 }
 
 export default function MenusPage() {
@@ -57,6 +68,17 @@ export default function MenusPage() {
                 order
                 target
                 parentId
+              }
+              headerStyle {
+                id
+                transparency
+                headerSize
+                menuAlignment
+                menuButtonStyle
+                mobileMenuStyle
+                mobileMenuPosition
+                transparentHeader
+                borderBottom
               }
             }
           }
