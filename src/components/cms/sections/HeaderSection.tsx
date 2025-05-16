@@ -1072,7 +1072,7 @@ export default function HeaderSection({
         </div>
       ) : (
         <nav
-          className={`fixed top-0 w-full z-50 transition-all duration-300 py-4 ${
+          className={`w-full z-50 transition-all duration-300 py-4 ${
             transparentHeader && !scrolled ? 'bg-transparent' : ''
           } ${
             borderBottom ? 'border-b border-gray-200' : ''

@@ -17,7 +17,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowUpIcon, ArrowDownIcon, Eye, PinIcon, PinOffIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Eye  } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -55,8 +56,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // Track device preview mode (desktop or mobile)
   const [devicePreview, setDevicePreview] = useState<'desktop' | 'mobile'>('desktop');
-  // Track if editor is pinned
-  const [isPinned, setIsPinned] = useState(true);
   // Track active component in viewport
   const [activeComponentId, setActiveComponentId] = useState<string | null>(null);
   // Reference to track component change debounce timeout
@@ -497,22 +496,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           if (componentId) {
             setActiveComponentId(componentId);
             
-            // Scroll the editor to keep the active component in view if needed
-            if (isPinned) {
-              const editorComponent = document.querySelector(`.component-wrapper[data-component-id="${componentId}"]`);
-              if (editorComponent) {
-                const editorContainer = editorComponent.closest('.sticky');
-                if (editorContainer && editorContainer instanceof HTMLElement) {
-                  const containerRect = editorContainer.getBoundingClientRect();
-                  const elementRect = editorComponent.getBoundingClientRect();
-                  
-                  // Check if the element is outside the container's visible area
-                  if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {
-                    editorComponent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                  }
-                }
-              }
-            }
           }
         }
       },
@@ -534,13 +517,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     return () => {
       observer.disconnect();
     };
-  }, [viewMode, pendingComponents, isPinned]);
+  }, [viewMode, pendingComponents]);
 
   // Handler for clicking on component in editor to scroll preview
   const handleScrollToComponent = useCallback((componentId: string) => {
-    if (viewMode === 'split' && previewContainerRef.current) {
-      setActiveComponentId(componentId);
+    setActiveComponentId(componentId);
 
+    if (viewMode === 'split' && previewContainerRef.current) {
       // Find the corresponding component in preview
       const previewComponent = previewContainerRef.current.querySelector(`[data-component-id="${componentId}"]`);
       if (previewComponent) {
@@ -565,10 +548,12 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             key={component.id} 
             data-component-id={component.id}
             data-component-type={component.type.toLowerCase()}
-            className="relative component-preview-item"
+            className={`relative component-preview-item ${
+              activeComponentId === component.id ? 'active-preview' : ''
+            }`}
           >
             {/* Type label for reference */}
-            <div className="absolute -right-1 -top-1 z-10 text-xs bg-primary/10 border border-primary/30 px-1 py-0.5 rounded text-primary/70 font-medium">
+            <div className="absolute -right-1 -top-1 z-10 text-xs bg-primary/10 px-1 py-0.5 rounded text-primary/70 font-medium">
               {component.type}
             </div>
             
@@ -583,14 +568,25 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       </div>
     );
   }, (prevProps, nextProps) => {
-    // Realizar comparación superficial que evite re-renderizados innecesarios
-    // Retornar true previene el re-renderizado
+    // Don't rerender if the components didn't change, unless the active component changed
+    if (prevProps.components === nextProps.components && 
+        prevActiveComponentId.current === activeComponentId) {
+      return true;
+    }
+    
+    // Update the ref to cache the current activeComponentId for the next comparison
+    prevActiveComponentId.current = activeComponentId;
+    
+    // Also perform the JSON comparison for components
     const currentJson = JSON.stringify(prevProps.components);
     const nextJson = JSON.stringify(nextProps.components);
     
-    // Solo re-renderizar si realmente cambian los componentes
+    // Only re-render if components changed
     return currentJson === nextJson;
   });
+
+  // Add a ref to track the previous activeComponentId for the memo comparison
+  const prevActiveComponentId = useRef<string | null>(null);
 
   // Override SectionManager to add drag handles and positioning buttons
   const SectionManagerWithDrag = useCallback(({ 
@@ -630,13 +626,17 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           items={componentIds}
           strategy={verticalListSortingStrategy}
         >
-          <SectionManager
-            initialComponents={initialComponents}
-            isEditing={isEditing}
-            onComponentsChange={onComponentsChange}
-            activeComponentId={activeComponentId}
-            onClickComponent={handleScrollToComponent}
-          />
+          <div className="space-y-2">
+            {/* Add instructions about the pinned functionality */}
+            
+            <SectionManager
+              initialComponents={initialComponents}
+              isEditing={isEditing}
+              onComponentsChange={onComponentsChange}
+              activeComponentId={activeComponentId}
+              onClickComponent={handleScrollToComponent}
+            />
+          </div>
           
           {/* Floatable controls for reordering when in edit mode */}
           {isEditing && (
@@ -644,7 +644,9 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
               {initialComponents.map((component, index) => (
                 <div 
                   key={component.id}
-                  className="flex items-center justify-end space-x-1 p-1 -mt-7 mb-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  className={`flex items-center justify-end space-x-1 p-1 -mt-7 mb-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                    activeComponentId === component.id ? 'opacity-100' : ''
+                  }`}
                   data-component-id={component.id}
                 >
                   <button
@@ -750,202 +752,220 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         </div>
       )}
     
-      
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">
           <div className="animate-spin h-8 w-8 border-4 border-muted border-t-foreground/30 rounded-full mx-auto mb-3"></div>
           <p>Loading section content...</p>
         </div>
-      ) : error && !isLoading ? (
+      ) : error ? (
         <div className="text-center py-4 text-muted-foreground bg-muted/20 rounded-md border border-border">
           Error: {error}
         </div>
       ) : (
         <>
-          {/* Split view or single view based on mode */}
-          <div className={`${viewMode === 'split' ? 'grid grid-cols-2 gap-6 relative h-full' : 'block'}`}>
-            {/* Edit Panel - Show in edit or split mode */}
-            {(viewMode === 'edit' || viewMode === 'split') && (
-              <div className={`${viewMode === 'split' ? 'border-r pr-4 border-border/50 ' : ''} ${
-                viewMode === 'split' && isPinned 
-                  ? 'sticky top-4 self-start max-h-[calc(100vh-8rem)] overflow-y-auto pb-4' 
-                  : ''
-              }`}>
-                {viewMode === 'split' && (
-                  <div className="mb-4 flex items-center justify-between text-sm font-medium text-muted-foreground pb-2 border-b border-border/50 sticky top-0 bg-background z-10">
-                    <span>Editor</span>
-                    <button 
-                      onClick={() => setIsPinned(!isPinned)} 
-                      className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground"
-                      title={isPinned ? "Desfijar editor" : "Fijar editor"}
-                    >
-                      {isPinned ? <PinIcon className="h-4 w-4" /> : <PinOffIcon className="h-4 w-4" />}
-                    </button>
-                  </div>
-                )}
-                <SectionManagerWithDrag
+          {/* Split View (edit + preview) */}
+          {viewMode === 'split' && (
+            <div className="w-full flex flex-row mt-4">
+              {/* Editor section */}
+              <div className="w-1/2 pr-4 border-r">
+                <SectionManager
                   initialComponents={pendingComponents}
                   isEditing={true}
                   onComponentsChange={handleComponentsChange}
                   activeComponentId={activeComponentId}
+                  onClickComponent={setActiveComponentId}
                 />
               </div>
-            )}
-            
-            {/* Preview Panel - Show in preview or split mode */}
-            {(viewMode === 'preview' || viewMode === 'split') && (
-              <div 
-                ref={previewContainerRef}
-                className={`${viewMode === 'split' ? 'overflow-y-auto max-h-[calc(100vh-8rem)]' : ''}`}
-              >
-                {viewMode === 'split' && (
-                  <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
-                    <div className="flex items-center">
-                      <button 
-                        onClick={() => {
-                          if (pageInfo.slug) {
-                            window.open(`/${pageInfo.locale}/${pageInfo.slug}`, '_blank');
-                          } else {
-                            window.open('/preview', '_blank');
-                          }
-                        }}
-                        className="flex items-center hover:text-primary transition-colors"
-                        title="Ver página completa"
-                      >
-                        <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                        Vista Previa
-                      </button>
+              
+              {/* Preview section */}
+              <div className="w-1/2 pl-4 bg-background">
+                <div className="relative">
+                  <div 
+                    className={cn(
+                      "preview-container w-full overflow-x-hidden transition-all duration-300 border rounded-md shadow-sm",
+                      devicePreview === 'desktop' ? 'h-auto min-h-[400px]' : 'h-[667px] mx-auto',
+                      devicePreview === 'mobile' ? 'w-[375px]' : 'w-full'
+                    )}
+                    style={{ position: 'relative', zIndex: 1 }}
+                    ref={previewContainerRef}
+                  >
+                    <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
+                      <div className="flex items-center">
+                        <button 
+                          onClick={() => {
+                            if (pageInfo.slug) {
+                              window.open(`/${pageInfo.locale}/${pageInfo.slug}`, '_blank');
+                            } else {
+                              window.open('/preview', '_blank');
+                            }
+                          }}
+                          className="flex items-center hover:text-primary transition-colors"
+                          title="Ver página completa"
+                        >
+                          <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
+                          Vista Previa
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-xs px-2 py-0.5 bg-muted/30 rounded-full text-muted-foreground">
-                      Visualización final
-                    </div>
-                  </div>
-                )}
-                
-                {/* Browser-like container for preview */}
-                <div className={`${viewMode === 'split' ? 'pl-1' : ''}`}>
-                  {/* Device preview switcher */}
-                  <div className="flex justify-end mb-2">
-                    <div className="flex items-center bg-background/80 p-0.5 rounded-full border border-muted">
-                      <button 
-                        onClick={() => setDevicePreview('desktop')}
-                        className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
-                          devicePreview === 'desktop' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        title="Vista de escritorio"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                          <line x1="8" y1="21" x2="16" y2="21"></line>
-                          <line x1="12" y1="17" x2="12" y2="21"></line>
-                        </svg>
-                        <span className="ml-1">Escritorio</span>
-                      </button>
-                      <button 
-                        onClick={() => setDevicePreview('mobile')}
-                        className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
-                          devicePreview === 'mobile' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        title="Vista móvil"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                          <line x1="12" y1="18" x2="12" y2="18.01"></line>
-                        </svg>
-                        <span className="ml-1">Móvil</span>
-                      </button>
-                    </div>
-                  </div>
+                    
+                    {/* Browser-like container for preview */}
+                    <div className="pl-1">
+                      {/* Device preview switcher */}
+                      <div className="flex justify-end mb-2">
+                        <div className="flex items-center bg-background/80 p-0.5 rounded-full border border-muted">
+                          <button 
+                            onClick={() => setDevicePreview('desktop')}
+                            className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
+                              devicePreview === 'desktop' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            title="Vista de escritorio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                              <line x1="8" y1="21" x2="16" y2="21"></line>
+                              <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <span className="ml-1">Escritorio</span>
+                          </button>
+                          <button 
+                            onClick={() => setDevicePreview('mobile')}
+                            className={`flex items-center justify-center h-6 px-2 rounded-full text-xs transition-colors ${
+                              devicePreview === 'mobile' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            title="Vista móvil"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                              <line x1="12" y1="18" x2="12" y2="18.01"></line>
+                            </svg>
+                            <span className="ml-1">Móvil</span>
+                          </button>
+                        </div>
+                      </div>
 
-                  {devicePreview === 'desktop' ? (
-                    // Desktop view with browser frame
-                    <div className="bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden">
-                      {/* Browser header */}
-                      <div className="bg-muted/20 border-b border-muted/30 px-3 py-2 flex items-center">
-                        <div className="flex space-x-1.5 mr-3">
-                          <div className="w-3 h-3 rounded-full bg-red-400/60"></div>
-                          <div className="w-3 h-3 rounded-full bg-amber-400/60"></div>
-                          <div className="w-3 h-3 rounded-full bg-green-400/60"></div>
-                        </div>
-                        <div className="flex-1 bg-background/80 text-xs text-center py-1 px-3 rounded-full truncate text-muted-foreground">
-                          Vista previa de página
-                        </div>
-                      </div>
-                      {/* Desktop content */}
-                      <div className="p-4 bg-white min-h-[300px] overflow-auto">
-                        <MemoizedPreviewSectionManager 
-                          components={pendingComponents}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    // Mobile view - iPhone style frame
-                    <div className="max-w-[375px] mx-auto">
-                      <div className="overflow-hidden rounded-[36px] border-[8px] border-black shadow-lg bg-black">
-                        {/* Status bar */}
-                        <div className="bg-black text-white relative h-8">
-                          {/* Dynamic Island */}
-                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[35%] h-[22px] bg-black rounded-b-[18px] flex justify-center items-end pb-1">
-                            <div className="h-2 w-2 rounded-full bg-zinc-700 mx-0.5"></div>
-                            <div className="h-1 w-5 rounded-full bg-zinc-800 mx-0.5"></div>
-                            <div className="h-2 w-2 rounded-full bg-zinc-700 mx-0.5"></div>
-                          </div>
-                          {/* Status icons */}
-                          <div className="flex justify-between px-5 pt-1.5 text-[10px] font-medium">
-                            <div>9:41</div>
-                            <div className="flex items-center space-x-1.5">
-                              <div className="w-3.5 h-3">
-                                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M17 5.33C17.58 5.33 18.04 5.79 18.04 6.37V11.11C18.04 11.69 17.58 12.15 17 12.15C16.42 12.15 15.96 11.69 15.96 11.11V6.37C15.96 5.79 16.42 5.33 17 5.33ZM10.5 8.37C11.08 8.37 11.54 8.83 11.54 9.41V11.11C11.54 11.69 11.08 12.15 10.5 12.15C9.92 12.15 9.46 11.69 9.46 11.11V9.41C9.46 8.83 9.92 8.37 10.5 8.37ZM7.25 10.26C7.83 10.26 8.29 10.72 8.29 11.3V11.11C8.29 11.69 7.83 12.15 7.25 12.15C6.67 12.15 6.21 11.69 6.21 11.11V11.3C6.21 10.72 6.67 10.26 7.25 10.26ZM13.75 7.04C14.33 7.04 14.79 7.5 14.79 8.08V11.11C14.79 11.69 14.33 12.15 13.75 12.15C13.17 12.15 12.71 11.69 12.71 11.11V8.08C12.71 7.5 13.17 7.04 13.75 7.04Z"/>
-                                </svg>
-                              </div>
-                              <div className="w-3.5 h-3">
-                                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M12 2C7.58 2 4 5.58 4 10C4 14.42 7.58 18 12 18C16.42 18 20 14.42 20 10C20 5.58 16.42 2 12 2ZM7 9H17V11H7V9Z"/>
-                                </svg>
-                              </div>
-                              <div className="w-4 h-3">
-                                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M15.67 4H14V2H10V4H8.33C7.6 4 7 4.6 7 5.33V20.66C7 21.4 7.6 22 8.33 22H15.67C16.4 22 17 21.4 17 20.66V5.33C17 4.6 16.4 4 15.67 4ZM13 18H11V16H13V18ZM16.2 13.37C15.07 14.07 14.5 14.68 14.5 16H13.5V9.26C13.5 8.73 13.3 8.35 12.87 8.04C12.43 7.73 11.5 7.7 11.5 7.7C10.8 7.7 10.3 7.92 9.97 8.36C9.64 8.8 9.5 9.36 9.5 10.07H10.5C10.5 9.58 10.6 9.23 10.77 9.04C10.93 8.83 11.38 8.5 11.83 8.5C12.4 8.5 12.5 8.95 12.5 9.27V10.88C10.77 11.3 9.35 11.82 9.35 14.19C9.35 15.94 10.05 16.28 12.36 16.04V17.04H13.36V16.92C14.36 16.74 14.84 16.07 15.42 15.68C15.9 15.36 16.24 15.03 16.24 14.31C16.24 13.8 15.93 13.5 15.75 13.37H16.2Z"/>
-                                </svg>
-                              </div>
+                      {devicePreview === 'desktop' ? (
+                        // Desktop view with browser frame
+                        <div className="bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden">
+                          {/* Browser header */}
+                          <div className="bg-muted/20 border-b border-muted/30 px-3 py-2 flex items-center">
+                            <div className="flex space-x-1.5 mr-3">
+                              <div className="w-3 h-3 rounded-full bg-red-400/60"></div>
+                              <div className="w-3 h-3 rounded-full bg-amber-400/60"></div>
+                              <div className="w-3 h-3 rounded-full bg-green-400/60"></div>
+                            </div>
+                            <div className="flex-1 bg-background/80 text-xs text-center py-1 px-3 rounded-full truncate text-muted-foreground">
+                              Vista previa de página
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* Content area */}
-                        <div className="bg-white h-[600px] overflow-hidden">
-                          <div className="h-full overflow-y-auto">
-                            <div className="py-4 px-3">
-                              <MemoizedPreviewSectionManager 
-                                components={pendingComponents}
-                              />
-                            </div>
+                          {/* Desktop content */}
+                          <div className="p-4 bg-white min-h-[300px] overflow-auto">
+                            <MemoizedPreviewSectionManager 
+                              components={pendingComponents}
+                            />
                           </div>
                         </div>
-                        
-                        {/* Home bar */}
-                        <div className="h-8 bg-black flex justify-center items-center">
-                          <div className="w-32 h-1.5 rounded-full bg-zinc-600/70"></div>
+                      ) : (
+                        // Mobile view - iPhone style frame
+                        <div className="max-w-[375px] mx-auto">
+                          <div className="overflow-hidden rounded-[36px] border-[8px] border-black shadow-lg bg-black">
+                            {/* Status bar */}
+                            <div className="bg-black text-white relative h-8">
+                              {/* Dynamic Island */}
+                              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[35%] h-[22px] bg-black rounded-b-[18px] flex justify-center items-end pb-1">
+                                <div className="h-2 w-2 rounded-full bg-zinc-700 mx-0.5"></div>
+                                <div className="h-1 w-5 rounded-full bg-zinc-800 mx-0.5"></div>
+                                <div className="h-2 w-2 rounded-full bg-zinc-700 mx-0.5"></div>
+                              </div>
+                              {/* Status icons */}
+                              <div className="flex justify-between px-5 pt-1.5 text-[10px] font-medium">
+                                <div>9:41</div>
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-3.5 h-3">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M17 5.33C17.58 5.33 18.04 5.79 18.04 6.37V11.11C18.04 11.69 17.58 12.15 17 12.15C16.42 12.15 15.96 11.69 15.96 11.11V6.37C15.96 5.79 16.42 5.33 17 5.33ZM10.5 8.37C11.08 8.37 11.54 8.83 11.54 9.41V11.11C11.54 11.69 11.08 12.15 10.5 12.15C9.92 12.15 9.46 11.69 9.46 11.11V9.41C9.46 8.83 9.92 8.37 10.5 8.37ZM7.25 10.26C7.83 10.26 8.29 10.72 8.29 11.3V11.11C8.29 11.69 7.83 12.15 7.25 12.15C6.67 12.15 6.21 11.69 6.21 11.11V11.3C6.21 10.72 6.67 10.26 7.25 10.26ZM13.75 7.04C14.33 7.04 14.79 7.5 14.79 8.08V11.11C14.79 11.69 14.33 12.15 13.75 12.15C13.17 12.15 12.71 11.69 12.71 11.11V8.08C12.71 7.5 13.17 7.04 13.75 7.04Z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="w-3.5 h-3">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M12 2C7.58 2 4 5.58 4 10C4 14.42 7.58 18 12 18C16.42 18 20 14.42 20 10C20 5.58 16.42 2 12 2ZM7 9H17V11H7V9Z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="w-4 h-3">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M15.67 4H14V2H10V4H8.33C7.6 4 7 4.6 7 5.33V20.66C7 21.4 7.6 22 8.33 22H15.67C16.4 22 17 21.4 17 20.66V5.33C17 4.6 16.4 4 15.67 4ZM13 18H11V16H13V18ZM16.2 13.37C15.07 14.07 14.5 14.68 14.5 16H13.5V9.26C13.5 8.73 13.3 8.35 12.87 8.04C12.43 7.73 11.5 7.7 11.5 7.7C10.8 7.7 10.3 7.92 9.97 8.36C9.64 8.8 9.5 9.36 9.5 10.07H10.5C10.5 9.58 10.6 9.23 10.77 9.04C10.93 8.83 11.38 8.5 11.83 8.5C12.4 8.5 12.5 8.95 12.5 9.27V10.88C10.77 11.3 9.35 11.82 9.35 14.19C9.35 15.94 10.05 16.28 12.36 16.04V17.04H13.36V16.92C14.36 16.74 14.84 16.07 15.42 15.68C15.9 15.36 16.24 15.03 16.24 14.31C16.24 13.8 15.93 13.5 15.75 13.37H16.2Z"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Content area */}
+                            <div className="bg-white h-[600px] overflow-hidden">
+                              <div className="h-full overflow-y-auto">
+                                <div className="py-4 px-3">
+                                  <MemoizedPreviewSectionManager 
+                                    components={pendingComponents}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Home bar */}
+                            <div className="h-8 bg-black flex justify-center items-center">
+                              <div className="w-32 h-1.5 rounded-full bg-zinc-600/70"></div>
+                            </div>
+                          </div>
+                          
+                          {/* Device label */}
+                          <div className="text-center text-xs text-muted-foreground mt-2">
+                            iPhone 14 Pro
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Device label */}
-                      <div className="text-center text-xs text-muted-foreground mt-2">
-                        iPhone 14 Pro
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Edit View */}
+          {viewMode === 'edit' && (
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Modo Editor</h3>
+              </div>
+              <SectionManagerWithDrag
+                initialComponents={pendingComponents}
+                isEditing={true}
+                onComponentsChange={handleComponentsChange}
+                activeComponentId={activeComponentId}
+              />
+            </div>
+          )}
+
+          {/* Preview View */}
+          {viewMode === 'preview' && (
+            <div className="w-full">
+              <div className="relative mx-auto">
+                <div 
+                  className="w-full overflow-hidden transition-all duration-300 border rounded-md shadow-sm"
+                  style={{ position: 'relative', zIndex: 1 }}
+                >
+                  <MemoizedPreviewSectionManager 
+                    components={pendingComponents}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
+      
       {errorMessage && (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50">
           {errorMessage}

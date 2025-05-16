@@ -183,9 +183,10 @@ const BenefitSection = React.memo(function BenefitSection({
   return (
     <section 
       className={cn(
-        "relative overflow-hidden flex flex-col justify-center w-full",
+        "relative overflow-hidden flex flex-col justify-center w-full benefit-section",
         isEditing ? "min-h-[400px] h-auto py-12" : ""
       )}
+      style={{ position: 'relative', zIndex: 1 }}
     >
       {/* Fondo principal */}
       <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95 z-0`}></div>

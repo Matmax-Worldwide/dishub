@@ -281,7 +281,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       
       {/* Diálogo para agregar componentes */}
       <Dialog open={isAddComponentOpen} onOpenChange={setIsAddComponentOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md z-[9999]">
           <DialogHeader>
             <DialogTitle>Agregar nuevo componente</DialogTitle>
             <DialogDescription>

@@ -184,7 +184,7 @@ export default function PageWrapper({ pageSections = [], pageSlug, children }: P
   return (
     <div className="page-editor">
       {isEditMode && (
-        <div className="sticky top-0 z-50 bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
+        <div className="sticky top-0 bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
           <div className="text-lg font-medium flex items-center">
             <LayoutIcon className="h-5 w-5 mr-2" />
             {pageSlug ? `Editando: /${pageSlug}` : 'Editor de Página'}

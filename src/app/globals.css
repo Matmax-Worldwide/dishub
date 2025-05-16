@@ -306,3 +306,53 @@ body > div {
   will-change: auto; /* Let browser optimize elements that will animate */
   text-rendering: optimizeSpeed; /* Prioritize rendering speed */
 }
+
+/* Z-index layer management */
+.z-\[9999\] {
+  z-index: 9999 !important;
+}
+
+/* Ensure dialogs and modals stack above all other UI */
+[role="dialog"] {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+/* Force content sections to have lower z-index */
+.benefit-section,
+.preview-container,
+[data-component-type] {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+/* Ensure modal/dialog backdrops cover everything */
+.fixed.inset-0.bg-black\/50 {
+  z-index: 9990 !important;
+}
+
+/* Pinned editor styling */
+.component-wrapper[data-component-id].active-component {
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  background-color: hsl(var(--primary) / 0.05) !important;
+}
+
+/* Active component indicator */
+.component-preview-item[data-component-id].active-preview {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+  position: relative;
+}
+
+.component-preview-item[data-component-id].active-preview::before {
+  content: '⟹';
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--primary));
+  font-size: 16px;
+}
+
+/* Additional style to ensure proper layering */

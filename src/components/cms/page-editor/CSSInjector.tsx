@@ -69,6 +69,41 @@ const CSSInjector: React.FC = () => {
         transition: opacity 0.2s ease-in-out;
         z-index: 10;
       }
+
+      /* Ensure modals and dialogs always have the highest z-index */
+      .fixed.inset-0[class*="z-[9999]"] {
+        z-index: 9999 !important;
+        position: fixed !important;
+        isolation: isolate !important;
+      }
+
+      /* Ensure content within modals has correct stacking */
+      .fixed.inset-0[class*="z-[9999]"] > * {
+        z-index: 10000 !important;
+        position: relative !important;
+      }
+
+      /* Ensure dialog content is always at the top */
+      [class*="DialogContent"],
+      [role="dialog"] {
+        z-index: 9999 !important;
+        position: relative !important;
+      }
+
+      /* Prevent section preview from appearing over modals and dialogs */
+      .benefit-section, 
+      [data-component-type="benefit"],
+      .hero-section,
+      [data-component-type="hero"],
+      .preview-container {
+        z-index: 1 !important;
+        position: relative !important;
+      }
+
+      /* Improve modal backdrop */
+      .fixed.inset-0.bg-black\/50 {
+        background-color: rgba(0, 0, 0, 0.75) !important;
+      }
     `;
     document.head.appendChild(styleTag);
     
