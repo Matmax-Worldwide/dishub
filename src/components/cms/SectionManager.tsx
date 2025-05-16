@@ -321,32 +321,31 @@ function SectionManagerBase({
       // Capture current collapse state to preserve it
       const currentlyCollapsed = collapsedComponents.has(component.id);
       
-      // Actualizar componentes
-      setComponents(prevComponents => {
-        // For better performance, only update if the component data actually changed
-        if (JSON.stringify(component.data) === JSON.stringify(updatedComponent.data)) {
-          return prevComponents;
-        }
-        
-        // Create a new array to trigger re-render
-        return prevComponents.map(c => 
-          c.id === component.id ? updatedComponent : c
-        );
-      });
+      // Actualizar componentes - FIX: Only update if data actually changed
+      const stringifiedOriginalData = JSON.stringify(component.data);
+      const stringifiedUpdatedData = JSON.stringify(updatedComponent.data);
       
-      // Maintain the collapse state after the update
-      if (!currentlyCollapsed) {
-        setCollapsedComponents(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(component.id);
-          return newSet;
-        });
+      if (stringifiedOriginalData !== stringifiedUpdatedData) {
+        setComponents(prevComponents => 
+          prevComponents.map(c => 
+            c.id === component.id ? updatedComponent : c
+          )
+        );
+        
+        // Maintain the collapse state after the update
+        if (!currentlyCollapsed) {
+          setCollapsedComponents(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(component.id);
+            return newSet;
+          });
+        }
       }
       
       // Limpiar el pendingUpdate
       setPendingUpdate(null);
     }
-  }, [debouncedPendingUpdate, collapsedComponents]);
+  }, [debouncedPendingUpdate]); // Only dependency should be the debounced update
   
 
   // State for component selector
@@ -384,18 +383,19 @@ function SectionManagerBase({
       }
     };
     
+    // Create the updated components array
+    const updatedComponents = [...components, newComponent];
+    
     // Update components array
-    setComponents(prevComponents => {
-      // Add the new component to the array
-      const updatedComponents = [...prevComponents, newComponent];
-      
-      // Notify parent of changes if callback exists
-      if (onComponentsChange) {
+    setComponents(updatedComponents);
+    
+    // Notify parent of changes if callback exists - MOVED OUTSIDE setState
+    if (onComponentsChange) {
+      // Use setTimeout to prevent render cycle issues
+      setTimeout(() => {
         onComponentsChange(updatedComponents);
-      }
-      
-      return updatedComponents;
-    });
+      }, 0);
+    }
   };
 
   const ComponentSelector = () => {

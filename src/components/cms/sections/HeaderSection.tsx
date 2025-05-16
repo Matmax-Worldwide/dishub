@@ -665,7 +665,7 @@ export default function HeaderSection({
   return (
     <>
       {isEditing ? (
-        <div className="space-y-4 p-4 border rounded-lg">
+        <div className="space-y-4">
           <StableInput
             value={localTitle}
             onChange={handleTitleChange}

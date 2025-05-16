@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowUpIcon, ArrowDownIcon, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ComponentType type is compatible with SectionManager's ComponentType
@@ -66,9 +66,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const previewContainerRef = useRef<HTMLDivElement>(null);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
-  // Add state for current page data
-  const [pageInfo, setPageInfo] = useState<{locale: string, slug: string}>({locale: 'en', slug: ''});
-  // Estado para gestionar componentes colapsados
+ // Estado para gestionar componentes colapsados
   const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
 
   // Configure DnD sensors
@@ -194,27 +192,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     };
 
     loadComponents();
-  }, [sectionId]);
-
-  // Add effect to fetch page data for the section
-  useEffect(() => {
-    const fetchPageData = async () => {
-      try {
-        const pages = await cmsOperations.getPagesUsingSectionId(sectionId);
-        if (pages && pages.length > 0) {
-          // Use the first page that contains this section
-          const page = pages[0];
-          setPageInfo({
-            locale: page.locale || 'en',
-            slug: page.slug || ''
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching page data:', error);
-      }
-    };
-
-    fetchPageData();
   }, [sectionId]);
 
   useEffect(() => {
@@ -1024,22 +1001,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                     ref={previewContainerRef}
                   >
                     <div className="mb-4 flex items-center justify-between text-sm font-medium text-foreground pb-2 border-b border-border sticky top-0 bg-background z-10">
-                      <div className="flex items-center">
-                        <button 
-                          onClick={() => {
-                            if (pageInfo.slug) {
-                              window.open(`/${pageInfo.locale}/${pageInfo.slug}`, '_blank');
-                            } else {
-                              window.open('/preview', '_blank');
-                            }
-                          }}
-                          className="flex items-center hover:text-primary transition-colors"
-                          title="Ver página completa"
-                        >
-                          <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Vista Previa
-                        </button>
-                      </div>
+                      
                     </div>
                     
                     {/* Browser-like container for preview */}

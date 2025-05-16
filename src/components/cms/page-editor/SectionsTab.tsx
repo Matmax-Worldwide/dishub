@@ -3,10 +3,7 @@ import { SaveIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -211,16 +208,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
 
   return (
     <Card className="border-none shadow-none pb-4">
-      <CardHeader className="px-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Componentes de la página</CardTitle>
-            <CardDescription>
-              Edita los componentes de tu página
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
       <CardContent className="px-0">
         {pageSections.length > 0 ? (
           <div className="rounded-lg">
