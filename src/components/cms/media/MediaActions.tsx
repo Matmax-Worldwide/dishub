@@ -20,7 +20,14 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
   
   const openInNewTab = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.open(fileUrl, '_blank');
+    if (s3Key) {
+      // For S3 files, use our API route to view the file instead of direct access
+      // We'll use the same download route but with a different display approach
+      window.open(`/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`, '_blank');
+    } else {
+      // For other files, open directly
+      window.open(fileUrl, '_blank');
+    }
   };
 
   const downloadFile = (e: React.MouseEvent) => {

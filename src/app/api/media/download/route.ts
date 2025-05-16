@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
+    const viewMode = searchParams.get('view') === 'true';
     
     if (!key) {
       return NextResponse.json(
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Log the request details
+    console.log(`Download request for key: ${key}, view mode: ${viewMode}`);
     
     // Create get object command
     const command = new GetObjectCommand({
@@ -61,21 +65,31 @@ export async function GET(request: NextRequest) {
     // Set appropriate content type
     const contentType = response.ContentType || 'application/octet-stream';
     
+    // Create appropriate headers based on view mode
+    const headers: HeadersInit = {
+      'Content-Type': contentType,
+      'Content-Length': buffer.length.toString(),
+    };
+    
+    // If downloading (not viewing), add Content-Disposition header
+    if (!viewMode) {
+      headers['Content-Disposition'] = `attachment; filename="${filename}"`;
+    } else {
+      // For viewing, use inline disposition
+      headers['Content-Disposition'] = `inline; filename="${filename}"`;
+    }
+    
     // Create response with file data
     const res = new NextResponse(buffer, {
       status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': buffer.length.toString(),
-      }
+      headers
     });
     
     return res;
   } catch (error) {
-    console.error('Error downloading from S3:', error);
+    console.error('Error accessing S3 file:', error);
     return NextResponse.json(
-      { error: 'Failed to download file' },
+      { error: 'Failed to access file' },
       { status: 500 }
     );
   }
