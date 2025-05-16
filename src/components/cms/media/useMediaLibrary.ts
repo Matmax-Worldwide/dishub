@@ -66,7 +66,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         try {
           const errorData = await response.json();
           errorDetail = errorData.error || '';
-        } catch (ignoredError) {
+        } catch (_unused) {
           // Ignore JSON parsing errors
         }
         
