@@ -6,15 +6,52 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2, Crosshair } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+
+// Confirmation Dialog Component
+const ConfirmationDialog = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title = "Confirm Action", 
+  message = "Are you sure you want to perform this action?"
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: string;
+  message?: string;
+}) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={onClose}>
+      <div 
+        className="bg-white rounded-lg p-6 shadow-2xl w-full max-w-md transform transition-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-medium mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer';
@@ -112,23 +149,20 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isActive?: boolean;
   onComponentClick?: (componentId: string) => void;
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Get component title from component data if it exists
   const title = (component.data.componentTitle as string) || `${component.type} Component`;
   
-  const handleRemoveClick = () => {
-    setConfirmOpen(true);
+  const handleRemoveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
   };
   
-  const handleConfirmRemove = () => {
+  const confirmDelete = () => {
     onRemove(component.id);
-    setConfirmOpen(false);
-  };
-  
-  const handleCancelRemove = () => {
-    setConfirmOpen(false);
   };
 
   const handleMoveUp = useCallback((e: React.MouseEvent) => {
@@ -185,24 +219,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       data-component-id={component.id}
       onClick={handleClick}
     >
-
-      {/* Confirmation dialog for component removal */}
-      {isEditing && (
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>¿Eliminar componente?</DialogTitle>
-              <DialogDescription>
-                Esta acción eliminará el componente &quot;{title}&quot; y no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCancelRemove}>Cancelar</Button>
-              <Button variant="destructive" onClick={handleConfirmRemove}>Eliminar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
       
       {isEditing && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 rounded-t-md">
@@ -293,6 +309,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       )}>
         {children}
       </div>
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Component"
+        message={`Are you sure you want to delete the "${title}" component? This action cannot be undone.`}
+      />
     </div>
   );
 });
