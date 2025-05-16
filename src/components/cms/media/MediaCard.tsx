@@ -19,7 +19,8 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
     fileName,
     fileSize,
     fileType,
-    altText
+    altText,
+    s3Key
   } = item;
 
   const handleSelect = () => {
@@ -52,7 +53,7 @@ export function MediaCard({ item, isSelected, onSelect, onDelete }: MediaCardPro
           </div>
         )}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <MediaActions fileUrl={fileUrl} onDelete={handleDelete} />
+          <MediaActions fileUrl={fileUrl} s3Key={s3Key} onDelete={handleDelete} />
         </div>
         <div className="absolute top-2 left-2">
           <input

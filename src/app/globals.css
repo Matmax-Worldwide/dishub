@@ -26,6 +26,90 @@
   }
 }
 
+/* Dialog Positioning Fix */
+[data-radix-dialog-content] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+  max-height: 85vh !important;
+  max-width: calc(100vw - 24px) !important;
+  overflow-y: auto !important;
+}
+
+[data-radix-dialog-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9998 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Ensures Dialog container doesn't get affected by other positioning */
+[role="dialog"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  inset: 0 !important; 
+  z-index: 9999 !important;
+}
+
+/* Direct fix for component removal dialog */
+div[data-state="open"] > [data-radix-dialog-content] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+}
+
+/* Force all dialogs to be centered in the viewport */
+.fixed.inset-0.z-\[9999\] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Fix for component selector */
+.fixed.inset-0.bg-black\/50.flex.items-center.justify-center.z-\[9999\] > div {
+  position: relative !important;
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+/* Ensure all dialog content is centered */
+.Dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+}
+
+/* Reset any transform that might be overriding the dialog position */
+body:has(dialog[open]), body:has([role="dialog"]) {
+  overflow: hidden;
+}
+
+/* Additional fixes for dialogs */
+body [role="dialog"][aria-modal="true"] {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 /* Scroll Snap Styles */
 html {
   scroll-behavior: smooth;

@@ -19,7 +19,7 @@ export function MediaList({
   const allSelected = items.length > 0 && selectedItems.length === items.length;
   
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto min-h-[400px]">
       <table className="w-full">
         <thead>
           <tr className="text-left bg-gray-50">

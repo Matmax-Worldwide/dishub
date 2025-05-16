@@ -9,4 +9,5 @@ export interface MediaItem {
   altText?: string;
   uploadedAt: string;
   dimensions?: string;
+  s3Key?: string; // S3 key for deleting the file
 } 
