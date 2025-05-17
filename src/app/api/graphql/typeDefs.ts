@@ -879,6 +879,228 @@ export const typeDefs = gql`
     page: Page
   }
 
+  # Form Builder types
+  enum FormFieldType {
+    TEXT
+    TEXTAREA
+    EMAIL
+    PASSWORD
+    NUMBER
+    PHONE
+    DATE
+    TIME
+    DATETIME
+    SELECT
+    MULTISELECT
+    RADIO
+    CHECKBOX
+    TOGGLE
+    SLIDER
+    RATING
+    FILE
+    HIDDEN
+    HEADING
+    PARAGRAPH
+    DIVIDER
+    SPACER
+    HTML
+    CAPTCHA
+    SIGNATURE
+    AUTOCOMPLETE
+    ADDRESS
+  }
+
+  enum SubmissionStatus {
+    RECEIVED
+    PROCESSING
+    COMPLETED
+    REJECTED
+    SPAM
+  }
+
+  type Form {
+    id: ID!
+    title: String!
+    description: String
+    slug: String!
+    isMultiStep: Boolean!
+    isActive: Boolean!
+    successMessage: String
+    redirectUrl: String
+    submitButtonText: String!
+    submitButtonStyle: String
+    layout: String
+    styling: JSON
+    pageId: String
+    createdById: String!
+    updatedById: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    fields: [FormField!]
+    steps: [FormStep!]
+    submissions: [FormSubmission!]
+    page: Page
+  }
+
+  type FormStep {
+    id: ID!
+    formId: String!
+    title: String!
+    description: String
+    order: Int!
+    isVisible: Boolean!
+    validationRules: JSON
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    form: Form!
+    fields: [FormField!]
+  }
+
+  type FormField {
+    id: ID!
+    formId: String
+    stepId: String
+    label: String!
+    name: String!
+    type: FormFieldType!
+    placeholder: String
+    defaultValue: String
+    helpText: String
+    isRequired: Boolean!
+    order: Int!
+    options: JSON
+    validationRules: JSON
+    styling: JSON
+    width: Int
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    form: Form
+    step: FormStep
+  }
+
+  type FormSubmission {
+    id: ID!
+    formId: String!
+    data: JSON!
+    metadata: JSON
+    status: SubmissionStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    form: Form!
+  }
+
+  # Form Builder input types
+  input FormInput {
+    title: String!
+    description: String
+    slug: String!
+    isMultiStep: Boolean
+    isActive: Boolean
+    successMessage: String
+    redirectUrl: String
+    submitButtonText: String
+    submitButtonStyle: String
+    layout: String
+    styling: JSON
+    pageId: String
+  }
+
+  input FormStepInput {
+    formId: String!
+    title: String!
+    description: String
+    order: Int
+    isVisible: Boolean
+    validationRules: JSON
+  }
+
+  input FormFieldInput {
+    formId: String
+    stepId: String
+    label: String!
+    name: String!
+    type: FormFieldType!
+    placeholder: String
+    defaultValue: String
+    helpText: String
+    isRequired: Boolean
+    order: Int
+    options: JSON
+    validationRules: JSON
+    styling: JSON
+    width: Int
+  }
+
+  input FormSubmissionInput {
+    formId: String!
+    data: JSON!
+    metadata: JSON
+  }
+
+  input UpdateFormInput {
+    title: String
+    description: String
+    slug: String
+    isMultiStep: Boolean
+    isActive: Boolean
+    successMessage: String
+    redirectUrl: String
+    submitButtonText: String
+    submitButtonStyle: String
+    layout: String
+    styling: JSON
+    pageId: String
+  }
+
+  input UpdateFormStepInput {
+    title: String
+    description: String
+    order: Int
+    isVisible: Boolean
+    validationRules: JSON
+  }
+
+  input UpdateFormFieldInput {
+    formId: String
+    stepId: String
+    label: String
+    name: String
+    type: FormFieldType
+    placeholder: String
+    defaultValue: String
+    helpText: String
+    isRequired: Boolean
+    order: Int
+    options: JSON
+    validationRules: JSON
+    styling: JSON
+    width: Int
+  }
+
+  type FormResult {
+    success: Boolean!
+    message: String
+    form: Form
+  }
+
+  type FormStepResult {
+    success: Boolean!
+    message: String
+    step: FormStep
+  }
+
+  type FormFieldResult {
+    success: Boolean!
+    message: String
+    field: FormField
+  }
+
+  type FormSubmissionResult {
+    success: Boolean!
+    message: String
+    submission: FormSubmission
+  }
+
   # Root Query
   type Query {
     # User queries
@@ -977,6 +1199,18 @@ export const typeDefs = gql`
     menu(id: ID!): Menu
     menuByLocation(location: String!): Menu
     pages: [PageBasic!]! # New query to get pages for menu items
+
+    # Form Builder queries
+    forms: [Form!]!
+    form(id: ID!): Form
+    formBySlug(slug: String!): Form
+    formSteps(formId: ID!): [FormStep!]!
+    formStep(id: ID!): FormStep
+    formFields(formId: ID!, stepId: ID): [FormField!]!
+    formField(id: ID!): FormField
+    formSubmissions(formId: ID!, limit: Int, offset: Int): [FormSubmission!]!
+    formSubmission(id: ID!): FormSubmission
+    formSubmissionStats(formId: ID!): JSON
   }
 
   # Root Mutation
@@ -1089,6 +1323,23 @@ export const typeDefs = gql`
 
     # HeaderStyle mutations
     updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyle
+
+    # Form Builder mutations
+    createForm(input: FormInput!): FormResult!
+    updateForm(id: ID!, input: UpdateFormInput!): FormResult!
+    deleteForm(id: ID!): FormResult!
+    
+    createFormStep(input: FormStepInput!): FormStepResult!
+    updateFormStep(id: ID!, input: UpdateFormStepInput!): FormStepResult!
+    deleteFormStep(id: ID!): FormStepResult!
+    
+    createFormField(input: FormFieldInput!): FormFieldResult!
+    updateFormField(id: ID!, input: UpdateFormFieldInput!): FormFieldResult!
+    deleteFormField(id: ID!): FormFieldResult!
+    
+    submitForm(input: FormSubmissionInput!): FormSubmissionResult!
+    updateFormSubmissionStatus(id: ID!, status: SubmissionStatus!): FormSubmissionResult!
+    deleteFormSubmission(id: ID!): FormSubmissionResult!
   }
 
   # HeaderStyle type for storing header configuration

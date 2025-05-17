@@ -10,8 +10,7 @@ import { client } from '@/app/lib/apollo-client';
 type ProvidersProps = {
   children: ReactNode;
   locale: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  messages: Record<string, any>;
+  messages: Record<string, unknown>;
 };
 
 export function Providers({ children, locale, messages }: ProvidersProps) {

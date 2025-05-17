@@ -488,6 +488,7 @@ model Page {
   seo             PageSEO?
   sections        PageSection[]
   menuItems       MenuItem[]
+  forms           Form[]        // Added relation for forms
 }
 
 model PageSection {
@@ -907,6 +908,7 @@ enum ComponentType {
   BENEFITS
   CONTACT
   SERVICES
+  FORM_BUILDER
   CUSTOM
 }
 
@@ -934,3 +936,116 @@ model HeaderStyle {
   updatedAt         DateTime @updatedAt
   menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
 }
+
+// Form Builder models
+model Form {
+  id             String           @id @default(cuid())
+  title          String
+  description    String?
+  slug           String           @unique
+  isMultiStep    Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  successMessage String?          
+  redirectUrl    String?
+  submitButtonText String         @default("Submit")
+  submitButtonStyle String?       // CSS or predefined style for the button
+  layout         String?          // Can store layout configuration as JSON
+  styling        Json?            // Custom styling options
+  pageId         String?          // Optional connection to a specific page
+  createdById    String
+  updatedById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  fields         FormField[]      // For single-step forms
+  steps          FormStep[]       // For multi-step forms
+  submissions    FormSubmission[]
+  page           Page?            @relation(fields: [pageId], references: [id])
+}
+
+model FormStep {
+  id             String       @id @default(cuid())
+  formId         String
+  title          String
+  description    String?
+  order          Int          @default(0)
+  isVisible      Boolean      @default(true)
+  validationRules Json?       // For step-specific validation rules
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  form           Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  fields         FormField[]
+}
+
+model FormField {
+  id             String       @id @default(cuid())
+  formId         String?
+  stepId         String?
+  label          String
+  name           String       // Field name (for form submission)
+  type           FormFieldType
+  placeholder    String?
+  defaultValue   String?
+  helpText       String?
+  isRequired     Boolean      @default(false)
+  order          Int          @default(0)
+  options        Json?        // For select, radio, checkbox fields
+  validationRules Json?       // Field-specific validation rules
+  styling        Json?        // Custom styling options
+  width          Int?         // Width percentage (for layout)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  form           Form?        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  step           FormStep?    @relation(fields: [stepId], references: [id], onDelete: Cascade)
+}
+
+model FormSubmission {
+  id             String       @id @default(cuid())
+  formId         String
+  data           Json         // The submitted form data
+  metadata       Json?        // Additional metadata like IP, browser info
+  status         SubmissionStatus @default(RECEIVED)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  form           Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+// Enums for Form Builder
+enum FormFieldType {
+  TEXT
+  TEXTAREA
+  EMAIL
+  PASSWORD
+  NUMBER
+  PHONE
+  DATE
+  TIME
+  DATETIME
+  SELECT
+  MULTISELECT
+  RADIO
+  CHECKBOX
+  TOGGLE
+  SLIDER
+  RATING
+  FILE
+  HIDDEN
+  HEADING
+  PARAGRAPH
+  DIVIDER
+  SPACER
+  HTML
+  CAPTCHA
+  SIGNATURE
+  AUTOCOMPLETE
+  ADDRESS
+}
+
+enum SubmissionStatus {
+  RECEIVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  SPAM
+}
+
+// Also add FORM_BUILDER to ComponentType enum

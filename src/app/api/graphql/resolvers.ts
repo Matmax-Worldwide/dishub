@@ -25,6 +25,7 @@ import { permissionResolvers } from './resolvers/permissions';
 import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
+import { formResolvers } from './resolvers/forms';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -641,6 +642,7 @@ const resolvers = {
     ...((roleResolvers.Query as object) || {}),
     ...((permissionResolvers.Query as object) || {}),
     ...((userPermissionResolvers.Query as object) || {}),
+    ...((formResolvers.Query as object) || {}),
     
     // Add menu queries
     menus: async () => {
@@ -898,6 +900,7 @@ const resolvers = {
     ...('Mutation' in roleResolvers ? (roleResolvers.Mutation as object) : {}),
     ...('Mutation' in permissionResolvers ? (permissionResolvers.Mutation as object) : {}),
     ...('Mutation' in userPermissionResolvers ? (userPermissionResolvers.Mutation as object) : {}),
+    ...('Mutation' in formResolvers ? (formResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
     createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
@@ -1251,6 +1254,12 @@ const resolvers = {
     updateMenuItemOrder: menuResolvers.Mutation.updateMenuItemOrder,
     updateMenuItemsOrder: menuResolvers.Mutation.updateMenuItemsOrder,
   },
+
+  // Include form type resolvers
+  Form: formResolvers.Form,
+  FormStep: formResolvers.FormStep,
+  FormField: formResolvers.FormField,
+  FormSubmission: formResolvers.FormSubmission,
 
   // Add the MenuItem resolver for nested children
   MenuItem: menuResolvers.MenuItem,

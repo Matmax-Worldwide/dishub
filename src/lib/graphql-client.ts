@@ -1,5 +1,22 @@
 import { updateCMSSection } from './cms-update';
 
+// Import form types
+import {
+  FormBase,
+  FormStepBase,
+  FormFieldBase,
+  FormSubmissionBase,
+  FormResult,
+  FormStepResult,
+  FormFieldResult,
+  FormSubmissionResult,
+  FormInput,
+  FormStepInput,
+  FormFieldInput,
+  FormSubmissionInput,
+  FormSubmissionStats
+} from '@/types/forms';
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,
@@ -2052,3 +2069,550 @@ export const cmsOperations = {
     }
   },
 };
+
+// Form Builder API functions
+async function getForms(): Promise<FormBase[]> {
+  const query = `
+    query GetForms {
+      forms {
+        id
+        title
+        description
+        slug
+        isMultiStep
+        isActive
+        successMessage
+        redirectUrl
+        submitButtonText
+        submitButtonStyle
+        layout
+        styling
+        pageId
+        createdById
+        updatedById
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  try {
+    const response = await gqlRequest<{ forms: FormBase[] }>(query);
+    return response.forms || [];
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    return [];
+  }
+}
+
+async function getFormById(id: string): Promise<FormBase | null> {
+  const query = `
+    query GetForm($id: ID!) {
+      form(id: $id) {
+        id
+        title
+        description
+        slug
+        isMultiStep
+        isActive
+        successMessage
+        redirectUrl
+        submitButtonText
+        submitButtonStyle
+        layout
+        styling
+        pageId
+        createdById
+        updatedById
+        createdAt
+        updatedAt
+        fields {
+          id
+          label
+          name
+          type
+          placeholder
+          defaultValue
+          helpText
+          isRequired
+          order
+          options
+          validationRules
+          styling
+          width
+          createdAt
+          updatedAt
+        }
+        steps {
+          id
+          title
+          description
+          order
+          isVisible
+          validationRules
+          createdAt
+          updatedAt
+          fields {
+            id
+            label
+            name
+            type
+            placeholder
+            defaultValue
+            helpText
+            isRequired
+            order
+            options
+            validationRules
+            styling
+            width
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    }
+  `;
+
+  const variables = { id };
+
+  try {
+    const response = await gqlRequest<{ form: FormBase }>(query, variables);
+    return response.form || null;
+  } catch (error) {
+    console.error('Error fetching form by ID:', error);
+    return null;
+  }
+}
+
+async function getFormBySlug(slug: string): Promise<FormBase | null> {
+  const query = `
+    query GetFormBySlug($slug: String!) {
+      formBySlug(slug: $slug) {
+        id
+        title
+        description
+        slug
+        isMultiStep
+        isActive
+        successMessage
+        redirectUrl
+        submitButtonText
+        submitButtonStyle
+        layout
+        styling
+        pageId
+        createdById
+        updatedById
+        createdAt
+        updatedAt
+        fields {
+          id
+          label
+          name
+          type
+          placeholder
+          defaultValue
+          helpText
+          isRequired
+          order
+          options
+          validationRules
+          styling
+          width
+          createdAt
+          updatedAt
+        }
+        steps {
+          id
+          title
+          description
+          order
+          isVisible
+          validationRules
+          createdAt
+          updatedAt
+          fields {
+            id
+            label
+            name
+            type
+            placeholder
+            defaultValue
+            helpText
+            isRequired
+            order
+            options
+            validationRules
+            styling
+            width
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    }
+  `;
+
+  const variables = { slug };
+
+  try {
+    const response = await gqlRequest<{ formBySlug: FormBase }>(query, variables);
+    return response.formBySlug || null;
+  } catch (error) {
+    console.error('Error fetching form by slug:', error);
+    return null;
+  }
+}
+
+async function getFormSteps(formId: string): Promise<FormStepBase[]> {
+  const query = `
+    query GetFormSteps($formId: ID!) {
+      formSteps(formId: $formId) {
+        id
+        formId
+        title
+        description
+        order
+        isVisible
+        validationRules
+        createdAt
+        updatedAt
+        fields {
+          id
+          label
+          name
+          type
+          placeholder
+          defaultValue
+          helpText
+          isRequired
+          order
+          options
+          validationRules
+          styling
+          width
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { formId };
+
+  try {
+    const response = await gqlRequest<{ formSteps: FormStepBase[] }>(query, variables);
+    return response.formSteps || [];
+  } catch (error) {
+    console.error('Error fetching form steps:', error);
+    return [];
+  }
+}
+
+async function getFormFields(formId: string, stepId?: string): Promise<FormFieldBase[]> {
+  const query = `
+    query GetFormFields($formId: ID!, $stepId: ID) {
+      formFields(formId: $formId, stepId: $stepId) {
+        id
+        formId
+        stepId
+        label
+        name
+        type
+        placeholder
+        defaultValue
+        helpText
+        isRequired
+        order
+        options
+        validationRules
+        styling
+        width
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  const variables = { formId, stepId };
+
+  try {
+    const response = await gqlRequest<{ formFields: FormFieldBase[] }>(query, variables);
+    return response.formFields || [];
+  } catch (error) {
+    console.error('Error fetching form fields:', error);
+    return [];
+  }
+}
+
+async function getFormSubmissions(formId: string, limit?: number, offset?: number): Promise<FormSubmissionBase[]> {
+  const query = `
+    query GetFormSubmissions($formId: ID!, $limit: Int, $offset: Int) {
+      formSubmissions(formId: $formId, limit: $limit, offset: $offset) {
+        id
+        formId
+        data
+        metadata
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  const variables = { formId, limit, offset };
+
+  try {
+    const response = await gqlRequest<{ formSubmissions: FormSubmissionBase[] }>(query, variables);
+    return response.formSubmissions || [];
+  } catch (error) {
+    console.error('Error fetching form submissions:', error);
+    return [];
+  }
+}
+
+async function getFormSubmissionStats(formId: string): Promise<FormSubmissionStats | null> {
+  const query = `
+    query GetFormSubmissionStats($formId: ID!) {
+      formSubmissionStats(formId: $formId)
+    }
+  `;
+
+  const variables = { formId };
+
+  try {
+    const response = await gqlRequest<{ formSubmissionStats: FormSubmissionStats }>(query, variables);
+    return response.formSubmissionStats || null;
+  } catch (error) {
+    console.error('Error fetching form submission stats:', error);
+    return null;
+  }
+}
+
+async function createForm(input: FormInput): Promise<FormResult> {
+  const mutation = `
+    mutation CreateForm($input: FormInput!) {
+      createForm(input: $input) {
+        success
+        message
+        form {
+          id
+          title
+          description
+          slug
+          isMultiStep
+          isActive
+          successMessage
+          redirectUrl
+          submitButtonText
+          submitButtonStyle
+          layout
+          styling
+          pageId
+          createdById
+          updatedById
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { input };
+
+  try {
+    const response = await gqlRequest<{ createForm: FormResult }>(mutation, variables);
+    return response.createForm || { success: false, message: 'Failed to create form', form: null };
+  } catch (error) {
+    console.error('Error creating form:', error);
+    return { success: false, message: 'Error creating form', form: null };
+  }
+}
+
+async function updateForm(id: string, input: Partial<FormInput>): Promise<FormResult> {
+  const mutation = `
+    mutation UpdateForm($id: ID!, $input: UpdateFormInput!) {
+      updateForm(id: $id, input: $input) {
+        success
+        message
+        form {
+          id
+          title
+          description
+          slug
+          isMultiStep
+          isActive
+          successMessage
+          redirectUrl
+          submitButtonText
+          submitButtonStyle
+          layout
+          styling
+          pageId
+          createdById
+          updatedById
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { id, input };
+
+  try {
+    const response = await gqlRequest<{ updateForm: FormResult }>(mutation, variables);
+    return response.updateForm || { success: false, message: 'Failed to update form', form: null };
+  } catch (error) {
+    console.error('Error updating form:', error);
+    return { success: false, message: 'Error updating form', form: null };
+  }
+}
+
+async function deleteForm(id: string): Promise<FormResult> {
+  const mutation = `
+    mutation DeleteForm($id: ID!) {
+      deleteForm(id: $id) {
+        success
+        message
+      }
+    }
+  `;
+
+  const variables = { id };
+
+  try {
+    const response = await gqlRequest<{ deleteForm: FormResult }>(mutation, variables);
+    return response.deleteForm || { success: false, message: 'Failed to delete form', form: null };
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    return { success: false, message: 'Error deleting form', form: null };
+  }
+}
+
+async function createFormStep(input: FormStepInput): Promise<FormStepResult> {
+  const mutation = `
+    mutation CreateFormStep($input: FormStepInput!) {
+      createFormStep(input: $input) {
+        success
+        message
+        step {
+          id
+          formId
+          title
+          description
+          order
+          isVisible
+          validationRules
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { input };
+
+  try {
+    const response = await gqlRequest<{ createFormStep: FormStepResult }>(mutation, variables);
+    return response.createFormStep || { success: false, message: 'Failed to create form step', step: null };
+  } catch (error) {
+    console.error('Error creating form step:', error);
+    return { success: false, message: 'Error creating form step', step: null };
+  }
+}
+
+async function createFormField(input: FormFieldInput): Promise<FormFieldResult> {
+  const mutation = `
+    mutation CreateFormField($input: FormFieldInput!) {
+      createFormField(input: $input) {
+        success
+        message
+        field {
+          id
+          formId
+          stepId
+          label
+          name
+          type
+          placeholder
+          defaultValue
+          helpText
+          isRequired
+          order
+          options
+          validationRules
+          styling
+          width
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { input };
+
+  try {
+    const response = await gqlRequest<{ createFormField: FormFieldResult }>(mutation, variables);
+    return response.createFormField || { success: false, message: 'Failed to create form field', field: null };
+  } catch (error) {
+    console.error('Error creating form field:', error);
+    return { success: false, message: 'Error creating form field', field: null };
+  }
+}
+
+async function submitForm(input: FormSubmissionInput): Promise<FormSubmissionResult> {
+  const mutation = `
+    mutation SubmitForm($input: FormSubmissionInput!) {
+      submitForm(input: $input) {
+        success
+        message
+        submission {
+          id
+          formId
+          data
+          metadata
+          status
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { input };
+
+  try {
+    const response = await gqlRequest<{ submitForm: FormSubmissionResult }>(mutation, variables);
+    return response.submitForm || { success: false, message: 'Failed to submit form', submission: null };
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    return { success: false, message: 'Error submitting form', submission: null };
+  }
+}
+
+// Create a variable for the exported object
+const graphqlClient = {
+  // CMS Operations
+  ...cmsOperations,
+  
+  // Form Builder functions
+  getForms,
+  getFormById,
+  getFormBySlug,
+  getFormSteps,
+  getFormFields,
+  getFormSubmissions,
+  getFormSubmissionStats,
+  createForm,
+  updateForm,
+  deleteForm,
+  createFormStep,
+  createFormField,
+  submitForm,
+};
+
+// Export all functions
+export default graphqlClient;
