@@ -83,7 +83,17 @@ const S3FilePreview = ({
     }
     
     // Determinar el tipo de archivo
-    const detectedFileType = providedFileType || getFileTypeFromUrl(src);
+    let detectedFileType = providedFileType || getFileTypeFromUrl(src);
+    
+    // Special case: check filename for PDF if not already detected
+    if (!detectedFileType.includes('pdf') && 
+        (src.toLowerCase().endsWith('.pdf') || 
+         (fileName && fileName.toLowerCase().endsWith('.pdf')))) {
+      console.log('Detected PDF by filename extension');
+      detectedFileType = 'application/pdf';
+    }
+    
+    console.log(`File type detection for ${src}: ${detectedFileType}`);
     
     // Actualizar estados derivados del tipo de archivo
     setIsImage(detectedFileType.startsWith('image/'));
@@ -92,12 +102,21 @@ const S3FilePreview = ({
     
     // Determinar la categoría del archivo
     setFileCategory(categorizeFileType(detectedFileType));
-  }, [src, providedFileType]);
+  }, [src, providedFileType, fileName]);
 
   // Función para determinar el tipo de archivo a partir de la URL
   const getFileTypeFromUrl = (url: string): string => {
-    const extension = url.split('.').pop()?.toLowerCase();
-    if (!extension) return 'application/octet-stream';
+    // Check for query params and get the real file extension
+    const cleanUrl = url.split('?')[0];
+    const extension = cleanUrl.split('.').pop()?.toLowerCase();
+    
+    if (!extension) {
+      // Try to detect PDFs from the pattern in S3 key
+      if (url.includes('-') && url.toLowerCase().includes('pdf')) {
+        return 'application/pdf';
+      }
+      return 'application/octet-stream';
+    }
     
     switch (extension) {
       case 'jpg':

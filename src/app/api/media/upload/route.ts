@@ -25,8 +25,8 @@ const publicUrlPrefix = process.env.NEXT_PUBLIC_S3_URL_PREFIX || 'https://vercel
 const generateS3FileName = (originalName: string): string => {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 15);
-  const extension = originalName.split('.').pop();
-  return `uploads/${timestamp}-${randomString}.${extension}`;
+  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `uploads/${timestamp}-${randomString}-${sanitizedName}`;
 };
 
 /**
@@ -48,20 +48,33 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Debug logging for PDF uploads
+    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+    
     // Convert File to Buffer for S3 upload
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Generate a unique filename
     const s3Key = generateS3FileName(file.name);
+    console.log(`Generated S3 Key: ${s3Key}`);
+    
+    // Ensure proper Content-Type for PDFs
+    let contentType = file.type;
+    if (file.name.toLowerCase().endsWith('.pdf') && (!contentType || contentType === 'application/octet-stream')) {
+      contentType = 'application/pdf';
+      console.log('Detected PDF file, setting content type to application/pdf');
+    }
     
     // Create upload command
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: s3Key,
       Body: buffer,
-      ContentType: file.type,
+      ContentType: contentType,
       ContentDisposition: `inline; filename="${file.name}"`,
     });
+    
+    console.log(`Uploading to S3 with ContentType: ${contentType}`);
     
     // Execute upload
     await s3Client.send(command);
@@ -75,7 +88,7 @@ export async function POST(request: NextRequest) {
       key: s3Key,
       fileName: file.name,
       fileSize: buffer.length,
-      fileType: file.type
+      fileType: contentType // Use our possibly corrected content type
     });
   } catch (error) {
     console.error('Error uploading to S3:', error);

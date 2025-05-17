@@ -63,7 +63,16 @@ export async function GET(request: NextRequest) {
     const filename = key.split('/').pop() || 'download';
     
     // Set appropriate content type
-    const contentType = response.ContentType || 'application/octet-stream';
+    let contentType = response.ContentType || 'application/octet-stream';
+    
+    // Special case for PDFs: check filename
+    if (filename.toLowerCase().endsWith('.pdf') && contentType === 'application/octet-stream') {
+      console.log(`Fixed content type for PDF file: ${filename}`);
+      contentType = 'application/pdf';
+    }
+    
+    // Log the file details
+    console.log(`Serving file: ${filename}, Content-Type: ${contentType}, Size: ${buffer.length}`);
     
     // Create appropriate headers based on view mode
     const headers: HeadersInit = {

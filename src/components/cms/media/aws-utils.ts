@@ -88,8 +88,8 @@ export const getS3Client = (): S3Client => {
 export const generateS3FileName = (originalName: string): string => {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 15);
-  const extension = originalName.split('.').pop();
-  return `uploads/${timestamp}-${randomString}.${extension}`;
+  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `uploads/${timestamp}-${randomString}-${sanitizedName}`;
 };
 
 /**
@@ -162,13 +162,20 @@ export const uploadToS3 = async (
   
   try {
     progressCallback(10); // Started upload
+    
+    // Ensure proper content type for PDFs
+    let contentType = file.type;
+    if (file.name.toLowerCase().endsWith('.pdf') && (!contentType || contentType === 'application/octet-stream')) {
+      contentType = 'application/pdf';
+      console.log('Client-side: Detected PDF file, setting content type to application/pdf');
+    }
 
     // Create upload command
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: s3Key,
       Body: file,
-      ContentType: file.type,
+      ContentType: contentType,
       ContentDisposition: `inline; filename="${file.name}"`,
     });
 
@@ -217,9 +224,14 @@ export const fetchMediaItemsFromS3 = async (): Promise<MediaItem[]> => {
     return response.Contents.map(item => {
       const key = item.Key as string;
       const fileName = key.split('/').pop() || key;
-      const fileNameParts = fileName.split('-');
-      // Get everything after the first dash and timestamp
-      const originalFileName = fileNameParts.slice(2).join('-');
+      
+      // Extract original filename from our pattern: timestamp-randomstring-originalfilename
+      // The filename is everything after the second dash
+      const parts = fileName.split('-');
+      const originalFileName = parts.length >= 3 
+        ? parts.slice(2).join('-')  // Join all parts after the second dash
+        : fileName;
+      
       const title = originalFileName.split('.')[0];
       const fileExt = originalFileName.split('.').pop() || '';
       let fileType = 'application/octet-stream';
@@ -274,5 +286,35 @@ export const deleteFileFromS3 = async (key: string): Promise<boolean> => {
   } catch (error) {
     console.error('Error deleting from S3:', error);
     return false;
+  }
+};
+
+/**
+ * Gets the total count of media items in S3
+ */
+export const getMediaItemsCount = async (): Promise<number> => {
+  if (!isConfigured()) {
+    console.warn('AWS S3 is not properly configured. Returning 0 for media count.');
+    return 0;
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  try {
+    // List objects in the bucket with prefix
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: 'uploads/',
+      MaxKeys: 1000 // Get up to 1000 items
+    });
+    
+    const response = await s3Client.send(command);
+    
+    // Return the count of items or 0 if none
+    return response.Contents ? response.Contents.length : 0;
+  } catch (error) {
+    console.error('Error getting media count from S3:', error);
+    return 0;
   }
 }; 

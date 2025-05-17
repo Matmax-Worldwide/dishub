@@ -9,7 +9,8 @@ import {
   MenuIcon,
   SettingsIcon,
   ArrowRightIcon,
-  AlertCircleIcon
+  AlertCircleIcon,
+  ClipboardList
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 
@@ -46,8 +47,21 @@ export default function CMSDashboard() {
         console.log('Menus obtenidos:', menusData);
         setMenuCount(Array.isArray(menusData) ? menusData.length : 0);
         
-        // Mock data para otros conteos (hasta que implementemos esas APIs)
-        setMediaCount(0);
+        // Obtener conteo de elementos de media desde API
+        try {
+          const mediaResponse = await fetch('/api/media/count');
+          if (mediaResponse.ok) {
+            const data = await mediaResponse.json();
+            console.log('Media count from API:', data);
+            setMediaCount(data.count || 0);
+          } else {
+            console.error('Error fetching media count: API response not OK');
+            setMediaCount(0);
+          }
+        } catch (mediaError) {
+          console.error('Error fetching media count:', mediaError);
+          setMediaCount(0);
+        }
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {
@@ -69,21 +83,29 @@ export default function CMSDashboard() {
       disabled: false
     },
     {
-      title: 'Biblioteca de Medios',
-      description: 'Subir y gestionar imágenes, videos y documentos',
-      icon: ImageIcon,
-      href: `/${locale}/cms/media`,
-      count: mediaCount,
-      color: 'bg-purple-500',
-      disabled: true
-    },
-    {
       title: 'Menús',
       description: 'Configurar menús de navegación en todo el sitio',
       icon: MenuIcon,
       href: `/${locale}/cms/menus`,
       count: menuCount,
       color: 'bg-green-500',
+      disabled: false
+    },
+    {
+      title: 'Biblioteca de Medios',
+      description: 'Subir y gestionar imágenes, videos y documentos',
+      icon: ImageIcon,
+      href: `/${locale}/cms/media`,
+      count: mediaCount,
+      color: 'bg-purple-500',
+      disabled: false
+    },
+    {
+      title: 'Formularios',
+      description: 'Subir y gestionar formularios',
+      icon: ClipboardList,
+      href: `/${locale}/cms/forms`,
+      color: 'bg-amber-500',
       disabled: false
     },
     {
