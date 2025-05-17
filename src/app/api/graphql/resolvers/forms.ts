@@ -302,7 +302,7 @@ export const formResolvers = {
         
         return {
           totalCount,
-          statusCounts: statusCounts.map(item => ({
+          statusCounts: statusCounts.map((item: { status: string; _count: number }) => ({
             status: item.status,
             count: item._count,
           })),
