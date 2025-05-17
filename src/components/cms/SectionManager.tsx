@@ -3,18 +3,26 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2, Crosshair } from 'lucide-react';
+import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+
+// Footer types for proper typing
+interface SocialLink {
+  type: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'github' | 'custom';
+  url: string;
+  icon?: string;
+  label?: string;
+}
+
+interface FooterColumn {
+  title: string;
+  links: Array<{
+    label: string;
+    url: string;
+  }>;
+}
 
 // Type for available components
 type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer';
@@ -187,21 +195,28 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     >
 
       {/* Confirmation dialog for component removal */}
-      {isEditing && (
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent className="!fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
-            <DialogHeader>
-              <DialogTitle>¿Eliminar componente?</DialogTitle>
-              <DialogDescription>
-                Esta acción eliminará el componente &quot;{title}&quot; y no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={handleCancelRemove}>Cancelar</Button>
-              <Button variant="destructive" onClick={handleConfirmRemove}>Eliminar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {isEditing && confirmOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-background rounded-lg shadow-lg sm:max-w-[425px] w-full mx-4">
+            <div className="p-6">
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold">¿Eliminar componente?</h2>
+                <p className="text-muted-foreground text-sm">
+                  Esta acción eliminará el componente &quot;{title}&quot; y no se puede deshacer.
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={handleCancelRemove}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleConfirmRemove}>
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       
       {isEditing && (
@@ -222,10 +237,10 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
                 handleToggle(e);
               }}
               className={cn(
-                "p-1.5 rounded transition-all",
+                "p-1.5 rounded transition-all small-toggle-button",
                 isCollapsed 
-                  ? "bg-primary/10 hover:bg-primary/20 text-primary" 
-                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/10 hover:bg-primary/20 text-primary expand-button bg-gradient-to-r from-blue-500 to-sky-400 text-white" 
+                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground collapse-button bg-gradient-to-r from-blue-500 to-sky-400 text-white"
               )}
               title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
               aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
@@ -317,10 +332,7 @@ function SectionManagerBase({
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
-  // State for inspection mode
-  const [inspectionMode, setInspectionMode] = useState(false);
-  // Track the field to focus after inspection
-  const [fieldToFocus, setFieldToFocus] = useState<string | null>(null);
+  // Animation styles have been moved to ManageableSection
   
   // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -994,6 +1006,27 @@ function SectionManagerBase({
     });
   }, []);
 
+  // Function to collapse all components
+  const collapseAllComponents = useCallback(() => {
+    // Get all component IDs
+    const allComponentIds = new Set(components.map(c => c.id));
+    
+    // Update both state variables
+    setCollapsedComponents(allComponentIds);
+    setUserCollapsedComponents(allComponentIds);
+    
+    console.log(`Collapsed all ${allComponentIds.size} components`);
+  }, [components]);
+
+  // Function to expand all components
+  const expandAllComponents = useCallback(() => {
+    // Clear both sets
+    setCollapsedComponents(new Set());
+    setUserCollapsedComponents(new Set());
+    
+    console.log('Expanded all components');
+  }, []);
+
   // Agregar de vuelta el event listener para component:update-title
   useEffect(() => {
     const handleComponentTitleUpdate = (e: Event) => {
@@ -1165,131 +1198,6 @@ function SectionManagerBase({
     });
   }, [components]);
 
-  // Toggle inspection mode
-  const toggleInspectionMode = useCallback(() => {
-    setInspectionMode(prev => !prev);
-  }, []);
-
-  // Handle element inspection
-  const handleInspectElement = useCallback((e: MouseEvent) => {
-    if (!inspectionMode) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Find the nearest data attribute that would tell us what to edit
-    let target = e.target as HTMLElement;
-    let componentId = null;
-    let fieldType = null;
-    
-    // Move up the DOM tree to find relevant attributes
-    while (target && !componentId) {
-      componentId = target.dataset.componentId;
-      fieldType = target.dataset.fieldType;
-      
-      if (!componentId) {
-        target = target.parentElement as HTMLElement;
-      }
-    }
-    
-    if (componentId) {
-      console.log(`Inspected element: Component ID ${componentId}, Field type: ${fieldType}`);
-      
-      // Activate the component
-      if (onClickComponent) {
-        onClickComponent(componentId);
-        
-        // Make sure component is expanded
-        setCollapsedComponents(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(componentId as string);
-          return newSet;
-        });
-        
-        // Set the field to focus
-        if (fieldType) {
-          setFieldToFocus(fieldType);
-        }
-      }
-      
-      // Exit inspection mode
-      setInspectionMode(false);
-    }
-  }, [inspectionMode, onClickComponent]);
-
-  // Set up and clean up inspection mode listener
-  useEffect(() => {
-    if (inspectionMode) {
-      // Add hover highlights to elements that can be inspected
-      document.body.classList.add('inspection-mode');
-      
-      // Listen for click events to inspect elements
-      document.addEventListener('click', handleInspectElement);
-      
-      return () => {
-        document.body.classList.remove('inspection-mode');
-        document.removeEventListener('click', handleInspectElement);
-      };
-    }
-  }, [inspectionMode, handleInspectElement]);
-
-  // Add these styles to the document head
-  useEffect(() => {
-    if (isEditing) {
-      // Create a style element
-      const styleEl = document.createElement('style');
-      styleEl.id = 'inspection-mode-styles';
-      styleEl.innerHTML = `
-        .inspection-mode [data-component-id]:hover {
-          outline: 2px dashed #3b82f6 !important;
-          cursor: crosshair !important;
-          position: relative;
-        }
-        .inspection-mode [data-field-type]:hover {
-          outline: 2px solid #ec4899 !important;
-          cursor: crosshair !important;
-          position: relative;
-        }
-      `;
-      
-      // Add it to the document
-      document.head.appendChild(styleEl);
-      
-      return () => {
-        // Clean up
-        const existingStyle = document.getElementById('inspection-mode-styles');
-        if (existingStyle) {
-          existingStyle.remove();
-        }
-      };
-    }
-  }, [isEditing]);
-
-  // Additional effect to focus the appropriate field after inspection
-  useEffect(() => {
-    if (fieldToFocus && activeComponentId) {
-      // Wait for the DOM to update
-      setTimeout(() => {
-        try {
-          // Try to find an input with a matching data attribute
-          const input = document.querySelector(`[data-field-id="${fieldToFocus}"]`) as HTMLInputElement;
-          
-          if (input) {
-            input.focus();
-            console.log(`Focused input field: ${fieldToFocus}`);
-          } else {
-            console.log(`Could not find input field: ${fieldToFocus}`);
-          }
-          
-          // Clear the field to focus
-          setFieldToFocus(null);
-        } catch (error) {
-          console.error("Error focusing field:", error);
-        }
-      }, 300);
-    }
-  }, [fieldToFocus, activeComponentId]);
-
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
     if (!component || !component.type || !componentMap[component.type]) {
@@ -1361,6 +1269,7 @@ function SectionManagerBase({
           );
         }
         
+        
         case 'Image': {
           const ImageComponent = componentMap.Image;
           return (
@@ -1429,8 +1338,8 @@ function SectionManagerBase({
           return (
             <div {...containerProps}>
             <HeaderComponent 
-              title={component.data.title as string || "Header Title"} 
-              subtitle={component.data.subtitle as string || "Header Subtitle"}
+              title={component.data.title as string} 
+              subtitle={component.data.subtitle as string} 
               menuId={component.data.menuId as string || ""} 
               backgroundColor={component.data.backgroundColor as string || "#ffffff"}
               textColor={component.data.textColor as string || "#000000"}
@@ -1454,6 +1363,27 @@ function SectionManagerBase({
                 backgroundColor={component.data.backgroundColor as string || 'from-[#ffffff] to-[#f0f9ff]'}
                 showGrid={component.data.showGrid as boolean ?? true}
                 showDots={component.data.showDots as boolean ?? true}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Footer': {
+          const FooterComponent = componentMap.Footer;
+          return (
+            <div {...containerProps}>
+              <FooterComponent 
+                logoUrl={component.data.logoUrl as string}
+                companyName={component.data.companyName as string || "Company Name"}
+                copyright={component.data.copyright as string}
+                socialLinks={component.data.socialLinks as SocialLink[]}
+                columns={component.data.columns as FooterColumn[]}
+                menuId={component.data.menuId as string}
+                backgroundColor={component.data.backgroundColor as string || "#111827"}
+                textColor={component.data.textColor as string || "#f9fafb"}
+                showYear={component.data.showYear as boolean ?? true}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
@@ -1519,31 +1449,32 @@ function SectionManagerBase({
     <div className="relative">
       {isEditing && (
         <div className="flex justify-between items-center mb-2 sticky top-0 z-50 bg-white border-b pb-2">
-          <h2 className="text-lg font-medium text-gray-900">Page Components</h2>
-          <button
-            onClick={toggleInspectionMode}
-            className={cn(
-              "flex items-center space-x-1 px-3 py-1.5 rounded text-sm",
-              inspectionMode 
-                ? "bg-primary text-white hover:bg-primary/90" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            )}
-            title="Select elements on page to edit"
-          >
-            <Crosshair className="h-4 w-4 mr-1" />
-            <span>{inspectionMode ? "Exit Inspection" : "Inspect Page"}</span>
-          </button>
+          <div className="flex items-center">
+            <h2 className="text-lg font-medium text-gray-900 mr-4">Page Components</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={collapseAllComponents}
+                className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors collapse-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                title="Colapsar todos los componentes"
+              >
+                <ChevronDown className="h-3.5 w-3.5 inline-block mr-1" />
+                Colapsar todos
+              </button>
+              <button
+                onClick={expandAllComponents}
+                className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors expand-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                title="Expandir todos los componentes"
+              >
+                <ChevronUp className="h-3.5 w-3.5 inline-block mr-1" />
+                Expandir todos
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {inspectionMode && isEditing && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3 text-sm text-blue-700">
-          Click on any element on the page to select it for editing. The component containing that element will be activated.
-        </div>
-      )}
-      
       {/* Components */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 relative">
         {components.map((component) => 
           renderComponent(component)
         )}

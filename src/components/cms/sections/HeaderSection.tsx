@@ -13,7 +13,7 @@ import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
 
 interface HeaderSectionProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   menuId?: string;
   backgroundColor?: string;
@@ -30,7 +30,7 @@ interface HeaderSectionProps {
   advancedOptions?: HeaderAdvancedOptions;
   isEditing?: boolean;
   onUpdate?: (data: { 
-    title: string; 
+    title?: string; 
     subtitle?: string; 
     menuId?: string;
     backgroundColor?: string;
@@ -68,8 +68,8 @@ export default function HeaderSection({
   onUpdate 
 }: HeaderSectionProps) {
   // Local state to maintain during typing
-  const [localTitle, setLocalTitle] = useState(title);
-  const [localSubtitle, setLocalSubtitle] = useState(subtitle || '');
+  const [localTitle, setLocalTitle] = useState(title === undefined ? '' : title);
+  const [localSubtitle, setLocalSubtitle] = useState(subtitle === undefined ? '' : subtitle);
   const [localMenuId, setLocalMenuId] = useState(menuId || '');
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -163,8 +163,8 @@ export default function HeaderSection({
   // Update local state when props change but only if not currently editing
   useEffect(() => {
     if (!isEditingRef.current) {
-      if (title !== localTitle) setLocalTitle(title);
-      if ((subtitle || '') !== localSubtitle) setLocalSubtitle(subtitle || '');
+      if (title !== localTitle) setLocalTitle(title === undefined ? '' : title);
+      if ((subtitle || '') !== localSubtitle) setLocalSubtitle(subtitle === undefined ? '' : subtitle);
       if ((menuId || '') !== localMenuId) setLocalMenuId(menuId || '');
       if ((initialLogoUrl || '') !== logoUrl) setLogoUrl(initialLogoUrl || '');
     }
@@ -600,9 +600,9 @@ export default function HeaderSection({
           <StableInput
             value={localTitle}
             onChange={handleTitleChange}
-            placeholder="Enter title..."
+            placeholder="Enter title (optional)..."
             className="font-medium text-xl"
-            label="Title"
+            label="Title (optional)"
             debounceTime={300}
             data-field-id="title"
             data-component-type="Header"
@@ -979,7 +979,9 @@ export default function HeaderSection({
                             </div>
                           )}
                           <div>
-                            <div className="font-bold text-lg">{localTitle}</div>
+                            {localTitle && (
+                              <div className="font-bold text-lg">{localTitle}</div>
+                            )}
                             {localSubtitle && (
                               <div className="text-xs opacity-80">{localSubtitle}</div>
                             )}
@@ -1047,7 +1049,7 @@ export default function HeaderSection({
                   <div className="mr-3 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
                     <S3FilePreview
                       src={logoUrl} 
-                      alt={localTitle}
+                      alt={localTitle || "Logo"}
                       className="h-10 w-auto object-contain"
                       width={100}
                       height={100}
@@ -1055,9 +1057,11 @@ export default function HeaderSection({
                   </div>
                 )}
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight" style={{ color: textColor }} data-field-type="title" data-component-type="Header">
-                    {localTitle}
-                  </h2>
+                  {localTitle && (
+                    <h2 className="text-xl font-bold tracking-tight" style={{ color: textColor }} data-field-type="title" data-component-type="Header">
+                      {localTitle}
+                    </h2>
+                  )}
                   {localSubtitle && (
                     <p className="text-sm opacity-80" style={{ color: textColor }} data-field-type="subtitle" data-component-type="Header">
                       {localSubtitle}
@@ -1164,7 +1168,7 @@ export default function HeaderSection({
                     <div className="mb-8">
                       <S3FilePreview
                         src={logoUrl} 
-                        alt={localTitle}
+                        alt={localTitle || "Logo"}
                         className="h-16 w-auto object-contain mx-auto"
                         width={80}
                         height={80}

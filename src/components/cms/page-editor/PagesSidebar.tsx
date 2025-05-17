@@ -7,14 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
 interface PageItem {
@@ -314,60 +306,66 @@ export function PagesSidebar({ currentPageId, onPageSelect }: PagesSidebarProps)
         </Button>
       </div>
       
-      {/* Quick Create Dialog */}
-      <Dialog open={showQuickCreate} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Page</DialogTitle>
-            <DialogDescription>
-              Enter a title for your new page. Other details can be edited later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="page-title" className="text-right">
-                Title
-              </Label>
-              <Input
-                id="page-title"
-                value={quickTitle}
-                onChange={(e) => setQuickTitle(e.target.value)}
-                onKeyDown={handleQuickCreateKeyDown}
-                className="col-span-3"
-                placeholder="My New Page"
-                autoFocus
-              />
-            </div>
-            {quickCreateError && (
-              <div className="col-span-4 text-sm text-red-500 mt-1">
-                {quickCreateError}
+      {/* Quick Create Form */}
+      {showQuickCreate && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-background rounded-lg shadow-lg sm:max-w-[425px] w-full mx-4">
+            <div className="p-6">
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold">Create New Page</h2>
+                <p className="text-muted-foreground text-sm">
+                  Enter a title for your new page. Other details can be edited later.
+                </p>
               </div>
-            )}
+              
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="page-title" className="text-right">
+                    Title
+                  </Label>
+                  <Input
+                    id="page-title"
+                    value={quickTitle}
+                    onChange={(e) => setQuickTitle(e.target.value)}
+                    onKeyDown={handleQuickCreateKeyDown}
+                    className="col-span-3"
+                    placeholder="My New Page"
+                    autoFocus
+                  />
+                </div>
+                {quickCreateError && (
+                  <div className="col-span-4 text-sm text-red-500 mt-1">
+                    {quickCreateError}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleDialogOpenChange(false)}
+                  disabled={quickCreateLoading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleQuickCreate}
+                  disabled={quickCreateLoading || !quickTitle.trim()}
+                >
+                  {quickCreateLoading ? (
+                    <>
+                      <LoaderIcon className="h-4 w-4 animate-spin mr-2" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create & Edit'
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => handleDialogOpenChange(false)}
-              disabled={quickCreateLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleQuickCreate}
-              disabled={quickCreateLoading || !quickTitle.trim()}
-            >
-              {quickCreateLoading ? (
-                <>
-                  <LoaderIcon className="h-4 w-4 animate-spin mr-2" />
-                  Creating...
-                </>
-              ) : (
-                'Create & Edit'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 } 

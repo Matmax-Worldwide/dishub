@@ -13,6 +13,8 @@ import {
   Youtube, 
   Github 
 } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { cmsOperations } from '@/lib/graphql-client';
 
 interface SocialLink {
   type: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'github' | 'custom';
@@ -35,6 +37,7 @@ interface FooterSectionProps {
   copyright?: string;
   socialLinks?: SocialLink[];
   columns?: FooterColumn[];
+  menuId?: string;
   backgroundColor?: string;
   textColor?: string;
   showYear?: boolean;
@@ -45,6 +48,7 @@ interface FooterSectionProps {
     copyright?: string;
     socialLinks?: SocialLink[];
     columns?: FooterColumn[];
+    menuId?: string;
     backgroundColor?: string;
     textColor?: string;
     showYear?: boolean;
@@ -55,12 +59,30 @@ interface FooterSectionProps {
 type FooterField = keyof Omit<FooterSectionProps, 'isEditing' | 'onUpdate'>;
 type FooterValues = FooterSectionProps[FooterField];
 
+// Define simplified menu types that match what we get from the API
+interface SimpleMenuItem {
+  id: string;
+  title: string;
+  url?: string | null;
+  pageId?: string | null;
+  target?: string | null;
+  page?: { slug: string } | null;
+  children?: SimpleMenuItem[];
+}
+
+interface SimpleMenu {
+  id: string;
+  name: string;
+  items: SimpleMenuItem[];
+}
+
 export default function FooterSection({ 
   logoUrl: initialLogoUrl = '',
   companyName: initialCompanyName = 'Company Name',
   copyright: initialCopyright = 'All rights reserved',
   socialLinks: initialSocialLinks = [],
   columns: initialColumns = [],
+  menuId: initialMenuId = '',
   backgroundColor: initialBackgroundColor = '#111827',
   textColor: initialTextColor = '#f9fafb',
   showYear: initialShowYear = true,
@@ -76,12 +98,47 @@ export default function FooterSection({
   const [backgroundColor, setBackgroundColor] = useState(initialBackgroundColor);
   const [textColor, setTextColor] = useState(initialTextColor);
   const [showYear, setShowYear] = useState(initialShowYear);
+  const [menuId, setMenuId] = useState(initialMenuId);
+  const [menus, setMenus] = useState<SimpleMenu[]>([]);
+  const [selectedMenu, setSelectedMenu] = useState<SimpleMenu | null>(null);
+  const [loadingMenus, setLoadingMenus] = useState(false);
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
+  const params = useParams();
+  const locale = params.locale as string || 'en';
   
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load available menus when in editing mode
+  useEffect(() => {
+    const fetchMenus = async () => {
+      if (!isEditing) return;
+      
+      setLoadingMenus(true);
+      try {
+        const menusData = await cmsOperations.getMenus();
+        if (Array.isArray(menusData)) {
+          setMenus(menusData);
+          
+          // If we have a menuId, find and set the selected menu
+          if (menuId) {
+            const menu = menusData.find(m => m.id === menuId);
+            if (menu) {
+              setSelectedMenu(menu);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading menus:', error);
+      } finally {
+        setLoadingMenus(false);
+      }
+    };
+    
+    fetchMenus();
+  }, [isEditing, menuId]);
   
   // Update local state when props change but only if not currently editing
   useEffect(() => {
@@ -94,6 +151,7 @@ export default function FooterSection({
       if (initialBackgroundColor !== backgroundColor) setBackgroundColor(initialBackgroundColor);
       if (initialTextColor !== textColor) setTextColor(initialTextColor);
       if (initialShowYear !== showYear) setShowYear(initialShowYear);
+      if (initialMenuId !== menuId) setMenuId(initialMenuId);
     }
   }, [
     initialLogoUrl, logoUrl,
@@ -103,7 +161,8 @@ export default function FooterSection({
     initialColumns, columns,
     initialBackgroundColor, backgroundColor,
     initialTextColor, textColor,
-    initialShowYear, showYear
+    initialShowYear, showYear,
+    initialMenuId, menuId
   ]);
   
   // Optimize update handler with debouncing
@@ -125,6 +184,7 @@ export default function FooterSection({
           copyright,
           socialLinks,
           columns,
+          menuId,
           backgroundColor,
           textColor,
           showYear,
@@ -144,7 +204,7 @@ export default function FooterSection({
         }, 300);
       }
     }, 
-    [onUpdate, logoUrl, companyName, copyright, socialLinks, columns, backgroundColor, textColor, showYear]
+    [onUpdate, logoUrl, companyName, copyright, socialLinks, columns, menuId, backgroundColor, textColor, showYear]
   );
   
   // Individual change handlers
@@ -249,6 +309,49 @@ export default function FooterSection({
     handleUpdateField('socialLinks', newSocialLinks);
   }, [socialLinks, handleUpdateField]);
 
+  // Add menu change handler
+  const handleMenuChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMenuId = e.target.value;
+    setMenuId(newMenuId);
+    
+    // Find selected menu
+    const menu = menus.find(m => m.id === newMenuId);
+    setSelectedMenu(menu || null);
+    
+    // Update parent
+    handleUpdateField('menuId', newMenuId);
+  }, [menus, handleUpdateField]);
+
+  // Render menu items for the footer
+  const renderMenuItems = (items: SimpleMenuItem[]) => {
+    if (!items || items.length === 0) return null;
+    
+    return items.map((item) => {
+      // Determine the URL
+      let href = '#';
+      
+      if (item.pageId && item.page?.slug) {
+        // If the item has a pageId and the page object with slug, use that
+        href = `/${locale}/${item.page.slug}`;
+      } else if (item.url) {
+        // Otherwise use the direct URL if available
+        href = item.url;
+      }
+      
+      return (
+        <li key={item.id}>
+          <Link 
+            href={href}
+            target={item.target || "_self"}
+            className="text-sm hover:underline"
+          >
+            {item.title}
+          </Link>
+        </li>
+      );
+    });
+  };
+
   // Render social icon based on type
   const renderSocialIcon = (type: SocialLink['type']) => {
     switch (type) {
@@ -320,6 +423,26 @@ export default function FooterSection({
                 />
               </div>
               
+              <div>
+                <label className="block text-sm font-medium mb-1" htmlFor="footer-menu-selector">
+                  Menu for Footer Navigation
+                </label>
+                <select
+                  id="footer-menu-selector"
+                  value={menuId}
+                  onChange={handleMenuChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None (No Menu Navigation)</option>
+                  {menus.map(menu => (
+                    <option key={menu.id} value={menu.id}>
+                      {menu.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingMenus && <p className="text-sm text-muted-foreground">Loading menus...</p>}
+              </div>
+              
               <div className="flex space-x-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Background Color</label>
@@ -372,6 +495,38 @@ export default function FooterSection({
                 </label>
               </div>
             </div>
+            
+            {/* Menu Preview */}
+            {selectedMenu && (
+              <div className="mt-4 border p-4 rounded-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium">Selected Menu: {selectedMenu.name}</h4>
+                </div>
+                
+                {selectedMenu.items && selectedMenu.items.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <h5 className="font-medium mb-2">Menu Items</h5>
+                      <ul className="space-y-1 text-sm">
+                        {selectedMenu.items.map((item: SimpleMenuItem) => (
+                          <li key={item.id} className="px-2 py-1 bg-gray-50 rounded-sm">
+                            {item.title}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    This menu has no items.
+                  </p>
+                )}
+                
+                <div className="text-sm text-muted-foreground mt-2">
+                  This menu will be displayed in the footer along with other footer content.
+                </div>
+              </div>
+            )}
             
             {/* Social Links Editor */}
             <div className="border p-4 rounded-md">
@@ -601,9 +756,20 @@ export default function FooterSection({
             </div>
             
             {/* Footer Columns */}
-            {columns.length > 0 && (
-              <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                {columns.map((column, index) => (
+            <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              {/* Menu Items (if menu is selected) */}
+              {selectedMenu && selectedMenu.items && selectedMenu.items.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-base mb-4">{selectedMenu.name}</h4>
+                  <ul className="space-y-2">
+                    {renderMenuItems(selectedMenu.items)}
+                  </ul>
+                </div>
+              )}
+            
+              {/* Custom columns */}
+              {columns.length > 0 && 
+                columns.map((column, index) => (
                   <div key={index}>
                     <h4 className="font-medium text-base mb-4">{column.title}</h4>
                     <ul className="space-y-2">
@@ -619,9 +785,9 @@ export default function FooterSection({
                       ))}
                     </ul>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              }
+            </div>
           </div>
           
           {/* Copyright */}

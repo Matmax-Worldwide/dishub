@@ -66,8 +66,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const previewContainerRef = useRef<HTMLDivElement>(null);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
- // Estado para gestionar componentes colapsados
+  // Estado para gestionar componentes colapsados
   const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
+  // Track inspection mode
+  const [inspectionMode, setInspectionMode] = useState(false);
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -765,18 +767,18 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   <div className="flex space-x-2">
                     <button
                       onClick={collapseAllComponents}
-                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors"
+                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors collapse-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
                       title="Colapsar todos los componentes"
                     >
-                      <ChevronDown className="h-3.5 w-3.5 inline-block mr-1" />
+                      <ChevronUp className="h-3.5 w-3.5 inline-block mr-1" />
                       Colapsar todos
                     </button>
                     <button
                       onClick={expandAllComponents}
-                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors"
+                      className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors expand-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
                       title="Expandir todos los componentes"
                     >
-                      <ChevronUp className="h-3.5 w-3.5 inline-block mr-1" />
+                      <ChevronDown className="h-3.5 w-3.5 inline-block mr-1" />
                       Expandir todos
                     </button>
                   </div>
@@ -811,7 +813,11 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                       >
                         <div className="flex items-center">
                           <button 
-                            className="mr-2 p-1 rounded-full hover:bg-muted/30 transition-colors text-muted-foreground"
+                            className={`mr-2 p-1 rounded-full hover:bg-muted/30 transition-colors small-toggle-button ${
+                              collapsedComponents[component.id] 
+                                ? "expand-button bg-gradient-to-r from-blue-500 to-sky-400 text-white" 
+                                : "collapse-button bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                            }`}
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleComponentCollapse(component.id);
@@ -921,7 +927,324 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     handleAddComponent
   ]);
 
- 
+  // Add pulsating button animations
+  useEffect(() => {
+    // Create a style element
+    const styleEl = document.createElement('style');
+    styleEl.id = 'pulsating-buttons-styles';
+    styleEl.innerHTML = `
+      /* Pulsating button animations - more subtle for global buttons */
+      .expand-button-global {
+        animation: pulseExpandButtonSubtle 3s infinite;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+        transform-origin: center;
+      }
+      
+      .collapse-button-global {
+        animation: pulseCollapseButtonSubtle 3s infinite;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+        transform-origin: center;
+      }
+      
+      /* Smaller toggle buttons for components */
+      .small-toggle-button {
+        padding: 0.15rem !important;
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+      
+      .small-toggle-button svg {
+        width: 0.8rem;
+        height: 0.8rem;
+      }
+      
+      /* Regular animation for component-level buttons */
+      .expand-button {
+        animation: pulseExpandButton 2s infinite;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+        transform-origin: center;
+      }
+      
+      .collapse-button {
+        animation: pulseCollapseButton 2s infinite;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+        transform-origin: center;
+      }
+      
+      @keyframes pulseExpandButtonSubtle {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+          transform: scale(1);
+        }
+        
+        50% {
+          box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
+          transform: scale(1.05);
+        }
+        
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes pulseCollapseButtonSubtle {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+          transform: scale(1);
+        }
+        
+        50% {
+          box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
+          transform: scale(0.97);
+        }
+        
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes pulseExpandButton {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+          transform: scale(1);
+        }
+        
+        50% {
+          box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+          transform: scale(1.15);
+        }
+        
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes pulseCollapseButton {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+          transform: scale(1);
+        }
+        
+        50% {
+          box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+          transform: scale(0.9);
+        }
+        
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          transform: scale(1);
+        }
+      }
+    `;
+    
+    // Add it to the document
+    document.head.appendChild(styleEl);
+    
+    return () => {
+      // Clean up
+      const existingStyle = document.getElementById('pulsating-buttons-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
+  // Toggle inspection mode
+  const toggleInspectionMode = useCallback(() => {
+    setInspectionMode(!inspectionMode);
+  }, [inspectionMode]);
+
+  // Handle element inspection
+  const handleInspectElement = useCallback((e: MouseEvent) => {
+    if (!inspectionMode) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Find the nearest data attribute that would tell us what to edit
+    let target = e.target as HTMLElement;
+    let componentId = null;
+    let fieldType = null;
+    
+    // Move up the DOM tree to find relevant attributes
+    while (target && !componentId) {
+      componentId = target.dataset.componentId;
+      fieldType = target.dataset.fieldType;
+      
+      if (!componentId) {
+        target = target.parentElement as HTMLElement;
+      }
+    }
+    
+    if (componentId) {
+      console.log(`Inspected element: Component ID ${componentId}, Field type: ${fieldType}`);
+      
+      // Activate the component
+      setActiveComponentId(componentId);
+      
+      // Set view mode to edit if in preview mode
+      if (viewMode === 'preview') {
+        setViewMode('split');
+      }
+      
+      // Make sure component is expanded
+      const newCollapsedState = { ...collapsedComponents };
+      delete newCollapsedState[componentId];
+      setCollapsedComponents(newCollapsedState);
+      
+      // Exit inspection mode
+      setInspectionMode(false);
+    }
+  }, [inspectionMode, collapsedComponents, viewMode]);
+
+  // Set up and clean up inspection mode listener
+  useEffect(() => {
+    if (inspectionMode) {
+      // Add hover highlights to elements that can be inspected
+      document.body.classList.add('inspection-mode');
+      
+      // Listen for click events to inspect elements
+      document.addEventListener('click', handleInspectElement);
+      
+      // Add inspection styles
+      const styleEl = document.createElement('style');
+      styleEl.id = 'inspection-mode-styles';
+      styleEl.innerHTML = `
+        .inspection-mode [data-component-id]:hover {
+          outline: 2px dashed #3b82f6 !important;
+          cursor: crosshair !important;
+          position: relative;
+        }
+        .inspection-mode [data-field-type]:hover {
+          outline: 2px solid #ec4899 !important;
+          cursor: crosshair !important;
+          position: relative;
+        }
+        
+        /* Pulsating button animations - more subtle for global buttons */
+        .expand-button-global {
+          animation: pulseExpandButtonSubtle 3s infinite;
+          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+          transform-origin: center;
+        }
+        
+        .collapse-button-global {
+          animation: pulseCollapseButtonSubtle 3s infinite;
+          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+          transform-origin: center;
+        }
+        
+        /* Smaller toggle buttons for components */
+        .small-toggle-button {
+          padding: 0.15rem !important;
+          width: 1.5rem;
+          height: 1.5rem;
+        }
+        
+        .small-toggle-button svg {
+          width: 0.8rem;
+          height: 0.8rem;
+        }
+        
+        /* Regular animation for component-level buttons */
+        .expand-button {
+          animation: pulseExpandButton 2s infinite;
+          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+          transform-origin: center;
+        }
+        
+        .collapse-button {
+          animation: pulseCollapseButton 2s infinite;
+          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+          transform-origin: center;
+        }
+        
+        @keyframes pulseExpandButtonSubtle {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+            transform: scale(1);
+          }
+          
+          50% {
+            box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
+            transform: scale(1.05);
+          }
+          
+          100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            transform: scale(1);
+          }
+        }
+        
+        @keyframes pulseCollapseButtonSubtle {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+            transform: scale(1);
+          }
+          
+          50% {
+            box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
+            transform: scale(0.97);
+          }
+          
+          100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            transform: scale(1);
+          }
+        }
+        
+        @keyframes pulseExpandButton {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            transform: scale(1);
+          }
+          
+          50% {
+            box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+            transform: scale(1.15);
+          }
+          
+          100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            transform: scale(1);
+          }
+        }
+        
+        @keyframes pulseCollapseButton {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            transform: scale(1);
+          }
+          
+          50% {
+            box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+            transform: scale(0.9);
+          }
+          
+          100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            transform: scale(1);
+          }
+        }
+      `;
+      document.head.appendChild(styleEl);
+      
+      return () => {
+        document.body.classList.remove('inspection-mode');
+        document.removeEventListener('click', handleInspectElement);
+        
+        // Remove inspection styles
+        const existingStyle = document.getElementById('inspection-mode-styles');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+      };
+    }
+  }, [inspectionMode, handleInspectElement]);
+
   return (
     <div className="my-6" data-section-id={normalizedSectionId}>
       {isEditing && (
@@ -1036,7 +1359,38 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                     {/* Browser-like container for preview */}
                     <div className="pl-1">
                       {/* Device preview switcher */}
-                      <div className="flex justify-end mb-2 p-2">
+                      <div className="flex justify-between mb-2 p-2">
+                        {/* Inspect button on the left side */}
+                        {isEditing && (
+                          <button
+                            onClick={toggleInspectionMode}
+                            className={cn(
+                              "flex items-center space-x-1 px-3 py-1.5 rounded text-sm shadow-md",
+                              inspectionMode 
+                                ? "bg-primary text-white hover:bg-primary/90" 
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            )}
+                            title="Select elements on page to edit"
+                          >
+                            <svg 
+                              className="h-4 w-4 mr-1" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="22" y1="12" x2="18" y2="12"></line>
+                              <line x1="6" y1="12" x2="2" y2="12"></line>
+                              <line x1="12" y1="6" x2="12" y2="2"></line>
+                              <line x1="12" y1="22" x2="12" y2="18"></line>
+                            </svg>
+                            <span>{inspectionMode ? "Exit Inspection" : "Inspect Page"}</span>
+                          </button>
+                        )}
+                        
                         <div className="flex items-center bg-background/80 p-0.5 rounded-full border border-muted">
                           <button 
                             onClick={() => setDevicePreview('desktop')}
