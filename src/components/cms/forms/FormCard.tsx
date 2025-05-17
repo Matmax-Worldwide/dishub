@@ -1,72 +1,65 @@
-import { useRouter } from 'next/navigation';
+import { Edit, Trash2, MessageSquare, FileCheck } from 'lucide-react';
 import { FormBase } from '@/types/forms';
-import { FileEdit, Database, Eye, Copy, Trash2 } from 'lucide-react';
 
 interface FormCardProps {
   form: FormBase;
-  onDuplicate: (form: FormBase) => void;
-  onDelete: (id: string, title: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export function FormCard({ form, onDuplicate, onDelete }: FormCardProps) {
-  const router = useRouter();
+export function FormCard({ form, onEdit, onDelete }: FormCardProps) {
+  const { title, description, isActive, updatedAt, fields = [] } = form;
+
+  // Format the date
+  const formattedDate = updatedAt 
+    ? new Date(updatedAt).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    : 'No date';
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-medium text-gray-900 flex-1 truncate">{form.title}</h3>
-        <div className="ml-2 flex-shrink-0">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            form.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-            {form.isActive ? 'Active' : 'Inactive'}
-          </span>
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-md font-medium text-gray-900 truncate flex-1">{title}</h3>
+          <div className={`px-2 py-1 text-xs rounded-full ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            {isActive ? 'Active' : 'Inactive'}
+          </div>
+        </div>
+        
+        {description && (
+          <p className="text-sm text-gray-500 mb-3 line-clamp-2">{description}</p>
+        )}
+        
+        <div className="flex items-center text-xs text-gray-500 space-x-3 mb-3">
+          <div className="flex items-center">
+            <MessageSquare className="h-3 w-3 mr-1" />
+            <span>{fields.length} field{fields.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="flex items-center">
+            <FileCheck className="h-3 w-3 mr-1" />
+            <span>Updated {formattedDate}</span>
+          </div>
         </div>
       </div>
       
-      <p className="text-sm text-gray-500 mb-3 line-clamp-2">{form.description || 'No description'}</p>
-      
-      <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2">
-        <div className="text-xs text-gray-500">
-          {form.isMultiStep ? 'Multi-step form' : 'Single-step form'}
-        </div>
-        <div className="flex gap-1">
-          <button
-            onClick={() => router.push(`/cms/forms/edit/${form.id}`)}
-            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-            title="Edit form"
-          >
-            <FileEdit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => router.push(`/cms/forms/submissions/${form.id}`)}
-            className="p-1.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded"
-            title="View submissions"
-          >
-            <Database className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => router.push(`/cms/forms/preview/${form.id}`)}
-            className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded"
-            title="Preview form"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDuplicate(form)}
-            className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
-            title="Duplicate form"
-          >
-            <Copy className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDelete(form.id, form.title)}
-            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-            title="Delete form"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+      <div className="border-t border-gray-100 bg-gray-50 p-2 flex justify-end">
+        <button
+          onClick={onEdit}
+          className="text-blue-600 hover:text-blue-800 p-1.5"
+          title="Edit"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-red-600 hover:text-red-800 p-1.5"
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

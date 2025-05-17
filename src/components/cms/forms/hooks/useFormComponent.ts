@@ -1,39 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import graphqlClient from '@/lib/graphql-client';
-import { FormBase, FormInput } from '@/types/forms';
+import { FormBase, FormInput, FormFieldInput, FormFieldResult } from '@/types/forms';
 
-export function useFormComponent(formId?: string) {
+export function useFormComponent(initialFormId?: string) {
   const [form, setForm] = useState<FormBase | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(initialFormId ? true : false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (formId) {
-      loadForm(formId);
-    } else {
-      setLoading(false);
-    }
-  }, [formId]);
-
   const loadForm = async (id: string) => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      setError(null);
+
       const formData = await graphqlClient.getFormById(id);
-      setForm(formData);
+      
+      if (formData) {
+        setForm(formData);
+        return formData;
+      } else {
+        setError('Form not found');
+        setForm(null);
+        return null;
+      }
     } catch (err) {
-      setError('Failed to load form');
-      console.error('Error loading form:', err);
+      setError('Failed to load form data');
+      console.error('Error loading form data:', err);
+      setForm(null);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
+  // If initialFormId is provided, load the form on hook initialization
+  if (initialFormId && !form && !loading && !error) {
+    loadForm(initialFormId);
+  }
+
   const createForm = async (formData: FormInput) => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      setError(null);
+
       const result = await graphqlClient.createForm(formData);
+      
       if (result.success && result.form) {
         setForm(result.form);
         return { success: true, form: result.form };
@@ -42,8 +52,8 @@ export function useFormComponent(formId?: string) {
         return { success: false, error: result.message };
       }
     } catch (err) {
-      const errorMessage = 'Failed to create form';
-      setError(errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create form: ${errorMessage}`);
       console.error('Error creating form:', err);
       return { success: false, error: errorMessage };
     } finally {
@@ -52,54 +62,82 @@ export function useFormComponent(formId?: string) {
   };
 
   const updateForm = async (id: string, formData: Partial<FormInput>) => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      setError(null);
+
       const result = await graphqlClient.updateForm(id, formData);
+      
       if (result.success && result.form) {
         setForm(result.form);
-        return { success: true, form: result.form };
+        return { success: true, message: 'Form updated successfully', form: result.form };
       } else {
         setError(result.message || 'Failed to update form');
-        return { success: false, error: result.message };
+        return { success: false, message: result.message || 'Failed to update form' };
       }
     } catch (err) {
-      const errorMessage = 'Failed to update form';
-      setError(errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to update form: ${errorMessage}`);
       console.error('Error updating form:', err);
-      return { success: false, error: errorMessage };
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
   const deleteForm = async (id: string) => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      setError(null);
+
       const result = await graphqlClient.deleteForm(id);
+      
       if (result.success) {
         setForm(null);
-        return { success: true };
+        return { success: true, message: 'Form deleted successfully' };
       } else {
         setError(result.message || 'Failed to delete form');
-        return { success: false, error: result.message };
+        return { success: false, message: result.message || 'Failed to delete form' };
       }
     } catch (err) {
-      const errorMessage = 'Failed to delete form';
-      setError(errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to delete form: ${errorMessage}`);
       console.error('Error deleting form:', err);
-      return { success: false, error: errorMessage };
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
-  const attachFormToComponent = async (componentId: string, formId: string) => {
-    // This function would handle connecting a form to a specific component
-    // Implementation would depend on how components and forms are linked
-    console.log(`Attaching form ${formId} to component ${componentId}`);
-    return { success: true };
+  const createFormField = async (fieldData: FormFieldInput): Promise<FormFieldResult> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await graphqlClient.createFormField(fieldData);
+      
+      if (result.success && result.field) {
+        // If we have a form loaded, update it with the new field
+        if (form && form.id === fieldData.formId) {
+          await loadForm(form.id);
+        }
+        return result;
+      } else {
+        setError(result.message || 'Failed to create form field');
+        return result;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to create field: ${errorMessage}`);
+      console.error('Error creating form field:', err);
+      return { 
+        success: false, 
+        message: errorMessage,
+        field: null
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
@@ -110,6 +148,6 @@ export function useFormComponent(formId?: string) {
     createForm,
     updateForm,
     deleteForm,
-    attachFormToComponent
+    createFormField
   };
 } 
