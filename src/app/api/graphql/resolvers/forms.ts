@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
+import { SubmissionStatus } from '@prisma/client';
 
 export const formResolvers = {
   Query: {
@@ -686,7 +687,7 @@ export const formResolvers = {
     },
     
     // Update form submission status
-    updateFormSubmissionStatus: async (_parent: unknown, args: { id: string, status: string }, context: { req: NextRequest }) => {
+    updateFormSubmissionStatus: async (_parent: unknown, args: { id: string, status: SubmissionStatus }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
