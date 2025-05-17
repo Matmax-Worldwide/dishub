@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { 
   FileIcon, 
   FileTextIcon, 
-  DownloadIcon, 
   FileSpreadsheetIcon, 
   PresentationIcon, 
   FileCodeIcon, 
@@ -38,7 +37,6 @@ const S3FilePreview = ({
   width = 100, 
   height = 100,
   fileType: providedFileType,
-  showDownload = false,
   fileName
 }: S3FilePreviewProps) => {
   const [isS3Url, setIsS3Url] = useState(false);
@@ -48,6 +46,7 @@ const S3FilePreview = ({
   const [isVideo, setIsVideo] = useState(false);
   const [fileCategory, setFileCategory] = useState<string>('other');
   const [imageError, setImageError] = useState(false);
+  const [isSvg, setIsSvg] = useState(false);
   
   useEffect(() => {
     // No hacer nada si no hay URL
@@ -102,6 +101,11 @@ const S3FilePreview = ({
     
     // Determinar la categoría del archivo
     setFileCategory(categorizeFileType(detectedFileType));
+    
+    // Set SVG flag based on file type
+    setIsSvg(providedFileType === 'image/svg+xml' || 
+             (src && src.toLowerCase().endsWith('.svg')) ||
+             getFileTypeFromUrl(src) === 'image/svg+xml');
   }, [src, providedFileType, fileName]);
 
   // Función para determinar el tipo de archivo a partir de la URL
@@ -190,20 +194,45 @@ const S3FilePreview = ({
     return 'other';
   };
   
+  // Handler for image error
+  const handleImageError = () => {
+    console.error("Error loading image:", src);
+    setImageError(true);
+  };
+  
+  // Ensure URL is properly encoded
+  const getSafeUrl = (url: string): string => {
+    if (!url) return '';
+    
+    try {
+      // Try to parse the URL
+      const parsedUrl = new URL(url);
+      
+      // Properly encode the pathname segments while preserving the slashes
+      const encodedPathSegments = parsedUrl.pathname
+        .split('/')
+        .map(segment => segment ? encodeURIComponent(segment) : '')
+        .join('/');
+      
+      // Rebuild the URL with encoded path
+      parsedUrl.pathname = encodedPathSegments;
+      
+      return parsedUrl.toString();
+    } catch {
+      // If URL parsing fails, try basic encoding
+      return url
+        .split('/')
+        .map((part, i) => i === 0 ? part : encodeURIComponent(part))
+        .join('/');
+    }
+  };
+  
   // Obtener la URL de visualización
   const getFileUrl = (): string => {
     if (isS3Url && s3Key) {
       return `/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`;
     }
-    return src;
-  };
-  
-  // Obtener la URL de descarga
-  const getDownloadUrl = (): string => {
-    if (isS3Url && s3Key) {
-      return `/api/media/download?key=${encodeURIComponent(s3Key)}`;
-    }
-    return src;
+    return getSafeUrl(src);
   };
   
   // Mostrar nada si no hay URL
@@ -242,28 +271,52 @@ const S3FilePreview = ({
     }
   };
   
-  // Handler for image error
-  const handleImageError = () => {
-    console.error("Error loading image:", src);
-    setImageError(true);
+  // Renderizar componente de imagen
+  const renderImage = () => {
+    const imageUrl = getFileUrl();
+    
+    if (imageError) {
+      return (
+        <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-400 p-4 text-center">
+          <div>
+            <FileImageIcon className="h-8 w-8 mx-auto mb-2" />
+            <span className="text-xs">Error loading image</span>
+          </div>
+        </div>
+      );
+    }
+    
+    if (isSvg) {
+      // Los SVG los renderizamos como imagenes normales para evitar inyección XSS
+      return (
+        <img 
+          src={imageUrl} 
+          alt={alt}
+          className={`object-contain ${className}`}
+          width={width} 
+          height={height}
+          onError={handleImageError}
+        />
+      );
+    }
+    
+    return (
+      <Image 
+        src={imageUrl}
+        alt={alt}
+        width={width}
+        height={height}
+        className={`object-contain ${className}`}
+        onError={handleImageError}
+      />
+    );
   };
   
   // Renderizar según el tipo de archivo
   return (
     <div className="relative group">
       {isImage && !imageError ? (
-        // Para imágenes, mostrar con Image component
-        <div className={className || "max-h-full max-w-full flex items-center justify-center"}>
-          <Image
-            src={getFileUrl()}
-            alt={alt}
-            width={width}
-            height={height}
-            className="max-h-full max-w-full object-contain"
-            onError={handleImageError}
-            unoptimized={isS3Url} // Skip optimization for S3 URLs to prevent potential issues
-          />
-        </div>
+        renderImage()
       ) : isPdf ? (
         // Para PDFs, mostrar un icono de PDF con opción para ver
         <div className={`flex flex-col items-center justify-center ${className}`}>
@@ -301,18 +354,7 @@ const S3FilePreview = ({
         </div>
       )}
       
-      {/* Botón de descarga si está habilitado */}
-      {showDownload && (
-        <a 
-          href={getDownloadUrl()}
-          download={displayFileName}
-          className="absolute top-1 right-1 bg-white/80 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-          title="Descargar archivo"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DownloadIcon className="h-4 w-4 text-gray-700" />
-        </a>
-      )}
+    
     </div>
   );
 };

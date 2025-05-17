@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { CopyIcon, ExternalLinkIcon, TrashIcon, CheckIcon, DownloadIcon } from 'lucide-react';
+import { ExternalLinkIcon, TrashIcon, DownloadIcon } from 'lucide-react';
 
 interface MediaActionsProps {
   fileUrl: string;
@@ -9,15 +8,6 @@ interface MediaActionsProps {
 }
 
 export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: MediaActionsProps) {
-  const [copied, setCopied] = useState(false);
-  
-  const copyToClipboard = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(fileUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  
   const openInNewTab = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (s3Key) {
@@ -54,17 +44,6 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
   return horizontal ? (
     <div className="flex justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={copyToClipboard}
-        className="text-gray-600 hover:text-gray-900"
-        title="Copy URL"
-      >
-        {copied ? (
-          <CheckIcon className="h-5 w-5 text-green-500" />
-        ) : (
-          <CopyIcon className="h-5 w-5" />
-        )}
-      </button>
-      <button
         onClick={downloadFile}
         className="text-blue-600 hover:text-blue-900"
         title="Download file"
@@ -88,17 +67,6 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
     </div>
   ) : (
     <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-      <button
-        onClick={copyToClipboard}
-        className="p-2 bg-white rounded-full hover:bg-gray-100"
-        title="Copy URL"
-      >
-        {copied ? (
-          <CheckIcon className="h-4 w-4 text-green-500" />
-        ) : (
-          <CopyIcon className="h-4 w-4" />
-        )}
-      </button>
       <button
         onClick={downloadFile}
         className="p-2 bg-white rounded-full hover:bg-gray-100"

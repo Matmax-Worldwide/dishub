@@ -22,11 +22,17 @@ const publicUrlPrefix = process.env.NEXT_PUBLIC_S3_URL_PREFIX || 'https://vercel
 /**
  * Generates a unique file name for S3 upload
  */
-const generateS3FileName = (originalName: string): string => {
+const generateS3FileName = (originalName: string, folderPath: string = ''): string => {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 15);
   const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  return `uploads/${timestamp}-${randomString}-${sanitizedName}`;
+  
+  // If folder path is provided, use it
+  const basePath = folderPath 
+    ? (folderPath.endsWith('/') ? folderPath : `${folderPath}/`) 
+    : '';
+    
+  return `${basePath}${timestamp}-${randomString}-${sanitizedName}`;
 };
 
 /**
@@ -40,6 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folderPath = formData.get('folderPath') as string || '';
     
     if (!file) {
       return NextResponse.json(
@@ -48,14 +55,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Debug logging for PDF uploads
-    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+    // Debug logging for uploads
+    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size}, folder: ${folderPath || 'root'}`);
     
     // Convert File to Buffer for S3 upload
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Generate a unique filename
-    const s3Key = generateS3FileName(file.name);
+    // Generate a unique filename with optional folder path
+    const s3Key = generateS3FileName(file.name, folderPath);
     console.log(`Generated S3 Key: ${s3Key}`);
     
     // Ensure proper Content-Type for PDFs

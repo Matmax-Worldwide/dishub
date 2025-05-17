@@ -1,5 +1,6 @@
-import { Inbox, XCircle, RefreshCw } from 'lucide-react';
+import { Inbox, XCircle, RefreshCw, FolderIcon } from 'lucide-react';
 import { MediaUploadButton } from './MediaUploadButton';
+import { Folder } from './types';
 
 interface EmptyStateProps {
   searchQuery: string;
@@ -7,6 +8,7 @@ interface EmptyStateProps {
   onClearFilters: () => void;
   onRefresh?: () => void;
   onUpload?: (files: FileList) => void;
+  currentFolder: Folder;
 }
 
 export function EmptyState({ 
@@ -14,14 +16,20 @@ export function EmptyState({
   filterType, 
   onClearFilters, 
   onRefresh,
-  onUpload 
+  onUpload,
+  currentFolder
 }: EmptyStateProps) {
   const isFiltered = searchQuery || filterType !== 'all';
+  const isInFolder = !currentFolder.isRoot && currentFolder.path !== '';
   
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <div className="bg-gray-100 rounded-full p-4 mb-4">
-        <Inbox className="h-8 w-8 text-gray-400" />
+        {isInFolder ? (
+          <FolderIcon className="h-8 w-8 text-yellow-500" />
+        ) : (
+          <Inbox className="h-8 w-8 text-gray-400" />
+        )}
       </div>
       
       {isFiltered ? (
@@ -52,9 +60,17 @@ export function EmptyState({
         </div>
       ) : (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No media files yet</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-1">
+            {isInFolder 
+              ? `Empty folder: ${currentFolder.name}`
+              : 'No media files yet'
+            }
+          </h3>
           <p className="text-gray-500 mb-6">
-            Upload your first file to get started
+            {isInFolder
+              ? 'This folder is empty. Upload a file or create subfolders.'
+              : 'Upload your first file to get started'
+            }
           </p>
           <div className="flex justify-center space-x-4">
             {onUpload && (

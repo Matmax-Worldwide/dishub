@@ -3,7 +3,9 @@ import {
   S3Client, 
   PutObjectCommand, 
   DeleteObjectCommand,
-  ListObjectsV2Command
+  ListObjectsV2Command,
+  CopyObjectCommand,
+  HeadObjectCommand
 } from '@aws-sdk/client-s3';
 
 /**
@@ -316,5 +318,257 @@ export const getMediaItemsCount = async (): Promise<number> => {
   } catch (error) {
     console.error('Error getting media count from S3:', error);
     return 0;
+  }
+};
+
+/**
+ * Creates a folder in S3
+ * In S3, folders are just objects with a trailing slash and no content
+ */
+export const createFolderInS3 = async (folderPath: string): Promise<boolean> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  // Ensure the folder path ends with a slash
+  const normalizedPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+  
+  try {
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: normalizedPath,
+      Body: ''
+    });
+    
+    await s3Client.send(command);
+    return true;
+  } catch (error) {
+    console.error('Error creating folder in S3:', error);
+    return false;
+  }
+};
+
+/**
+ * Lists folders from S3
+ */
+export const listFoldersFromS3 = async (prefix: string = ''): Promise<string[]> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  // Ensure the prefix ends with a slash if it's not empty
+  const normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : `${prefix}/`) : '';
+  
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: normalizedPrefix,
+      Delimiter: '/'
+    });
+    
+    const response = await s3Client.send(command);
+    
+    // Extract folder names from CommonPrefixes
+    const folders = response.CommonPrefixes?.map(prefix => {
+      const folderPath = prefix.Prefix as string;
+      // Get just the folder name (last segment without the trailing slash)
+      const folderName = folderPath.split('/').filter(Boolean).pop() || folderPath;
+      return folderName;
+    }) || [];
+    
+    return folders;
+  } catch (error) {
+    console.error('Error listing folders from S3:', error);
+    return [];
+  }
+};
+
+/**
+ * Move/rename a file in S3
+ * This is done by copying to the new location and then deleting the original
+ */
+export const moveFileInS3 = async (sourceKey: string, destinationKey: string): Promise<boolean> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  try {
+    // First, copy the object to the new location
+    const copyCommand = new CopyObjectCommand({
+      Bucket: bucketName,
+      CopySource: `${bucketName}/${sourceKey}`,
+      Key: destinationKey
+    });
+    
+    await s3Client.send(copyCommand);
+    
+    // Then delete the original
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: sourceKey
+    });
+    
+    await s3Client.send(deleteCommand);
+    
+    return true;
+  } catch (error) {
+    console.error('Error moving/renaming file in S3:', error);
+    return false;
+  }
+};
+
+/**
+ * Rename a file in S3
+ */
+export const renameFileInS3 = async (sourceKey: string, newName: string): Promise<string | null> => {
+  // Extract the path without the filename
+  const pathParts = sourceKey.split('/');
+  const path = pathParts.join('/');
+  
+  // Create the new destination key with the new name
+  const destinationKey = path ? `${path}/${newName}` : newName;
+  
+  // Move the file
+  const success = await moveFileInS3(sourceKey, destinationKey);
+  
+  return success ? destinationKey : null;
+};
+
+/**
+ * Move a file to a different folder in S3
+ */
+export const moveFileToFolderInS3 = async (sourceKey: string, targetFolder: string): Promise<string | null> => {
+  // Extract just the filename from the source key
+  const fileName = sourceKey.split('/').pop() || '';
+  
+  // Ensure the target folder has a trailing slash
+  const normalizedFolder = targetFolder.endsWith('/') ? targetFolder : `${targetFolder}/`;
+  
+  // Create the new destination key
+  const destinationKey = `${normalizedFolder}${fileName}`;
+  
+  // Move the file
+  const success = await moveFileInS3(sourceKey, destinationKey);
+  
+  return success ? destinationKey : null;
+};
+
+/**
+ * Get file metadata from S3
+ */
+export const getFileMetadataFromS3 = async (key: string): Promise<Record<string, string> | null> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: key
+    });
+    
+    const response = await s3Client.send(command);
+    
+    return response.Metadata || null;
+  } catch (error) {
+    console.error('Error getting file metadata from S3:', error);
+    return null;
+  }
+};
+
+/**
+ * Check if a folder exists in S3
+ */
+export const checkFolderExistsInS3 = async (folderPath: string): Promise<boolean> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  // Ensure the folder path ends with a slash
+  const normalizedPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+  
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: normalizedPath,
+      MaxKeys: 1
+    });
+    
+    const response = await s3Client.send(command);
+    
+    // If there are any objects with this prefix, the folder exists
+    return response.Contents !== undefined && response.Contents.length > 0;
+  } catch (error) {
+    console.error('Error checking if folder exists in S3:', error);
+    return false;
+  }
+};
+
+/**
+ * Deletes a folder and all its contents from S3
+ * This requires two steps: 
+ * 1. List all objects in the folder
+ * 2. Delete each object
+ */
+export const deleteFolderFromS3 = async (folderPath: string): Promise<boolean> => {
+  if (!isConfigured()) {
+    throw new Error('AWS S3 is not properly configured. Please set environment variables.');
+  }
+
+  const s3Client = getS3Client();
+  const { bucketName } = getS3Config();
+  
+  // Ensure the folder path ends with a slash
+  const normalizedPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+  
+  try {
+    // First, list all objects in this folder
+    const listCommand = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: normalizedPath
+    });
+    
+    const response = await s3Client.send(listCommand);
+    
+    if (!response.Contents || response.Contents.length === 0) {
+      // Folder is empty or doesn't exist, just try to delete the folder placeholder
+      const deleteFolderCommand = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: normalizedPath
+      });
+      
+      await s3Client.send(deleteFolderCommand);
+      return true;
+    }
+    
+    // Delete each object in the folder (including the folder itself)
+    for (const object of response.Contents) {
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: object.Key as string
+      });
+      
+      await s3Client.send(deleteCommand);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting folder from S3:', error);
+    return false;
   }
 }; 

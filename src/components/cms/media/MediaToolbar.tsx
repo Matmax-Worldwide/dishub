@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { Search, Grid, List, Trash2, RefreshCw } from 'lucide-react';
+import { Search, Grid, List, RefreshCw } from 'lucide-react';
 import { MediaUploadButton } from './MediaUploadButton';
 
 interface MediaToolbarProps {
   searchQuery: string;
   filterType: string;
   viewMode: 'grid' | 'list';
-  selectedCount: number;
   onSearchChange: (query: string) => void;
   onFilterChange: (type: string) => void;
   onViewModeChange: (mode: 'grid' | 'list') => void;
   onFileSelect: (files: FileList) => void;
-  onDeleteSelected: () => void;
   onRefresh?: () => void;
 }
 
@@ -19,12 +17,10 @@ export function MediaToolbar({
   searchQuery,
   filterType,
   viewMode,
-  selectedCount,
   onSearchChange,
   onFilterChange,
   onViewModeChange,
   onFileSelect,
-  onDeleteSelected,
   onRefresh
 }: MediaToolbarProps) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -97,17 +93,7 @@ export function MediaToolbar({
             <List className="h-4 w-4" />
           </button>
         </div>
-        
-        {selectedCount > 0 && (
-          <button
-            onClick={onDeleteSelected}
-            className="px-3 py-2 flex items-center space-x-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>Delete ({selectedCount})</span>
-          </button>
-        )}
-        
+
         <MediaUploadButton onFileSelect={onFileSelect}>
           Upload
         </MediaUploadButton>

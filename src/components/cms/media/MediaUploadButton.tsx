@@ -45,7 +45,7 @@ export function MediaUploadButton({
         onChange={handleFileChange}
         className="hidden"
         multiple
-        accept="image/*,video/*,application/pdf"
+        accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,audio/*"
       />
     </>
   );

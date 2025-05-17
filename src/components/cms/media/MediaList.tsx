@@ -1,5 +1,6 @@
-import { MediaItem } from './types';
+import { MediaItem, Folder } from './types';
 import { MediaListItem } from './MediaListItem';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 interface MediaListProps {
   items: MediaItem[];
@@ -7,6 +8,13 @@ interface MediaListProps {
   onSelectItem: (id: string) => void;
   onSelectAll: () => void;
   onDeleteItem: (id: string) => void;
+  onRenameItem: (id: string, newName: string) => Promise<void>;
+  onMoveItem: (id: string, targetFolder: string) => Promise<void>;
+  folders: Folder[];
+  currentFolder: Folder;
+  onSort?: (field: keyof MediaItem) => void;
+  sortField?: keyof MediaItem;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export function MediaList({ 
@@ -14,7 +22,14 @@ export function MediaList({
   selectedItems,
   onSelectItem,
   onSelectAll,
-  onDeleteItem 
+  onDeleteItem,
+  onRenameItem,
+  onMoveItem,
+  folders,
+  currentFolder,
+  onSort,
+  sortField,
+  sortDirection
 }: MediaListProps) {
   const allSelected = items.length > 0 && selectedItems.length === items.length;
   
@@ -31,10 +46,74 @@ export function MediaList({
                 className="h-4 w-4"
               />
             </th>
-            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
-            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
+            <th 
+              className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition"
+              onClick={() => onSort?.('fileName')}
+            >
+              <div className="flex items-center">
+                File
+                {sortField === 'fileName' ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="h-3 w-3 ml-1" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3 ml-1" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition"
+              onClick={() => onSort?.('fileType')}
+            >
+              <div className="flex items-center">
+                Type
+                {sortField === 'fileType' ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="h-3 w-3 ml-1" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3 ml-1" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition"
+              onClick={() => onSort?.('fileSize')}
+            >
+              <div className="flex items-center">
+                Size
+                {sortField === 'fileSize' ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="h-3 w-3 ml-1" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3 ml-1" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />
+                )}
+              </div>
+            </th>
+            <th 
+              className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition"
+              onClick={() => onSort?.('uploadedAt')}
+            >
+              <div className="flex items-center">
+                Uploaded
+                {sortField === 'uploadedAt' ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="h-3 w-3 ml-1" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3 ml-1" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />
+                )}
+              </div>
+            </th>
             <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Actions</th>
           </tr>
         </thead>
@@ -46,6 +125,10 @@ export function MediaList({
               isSelected={selectedItems.includes(item.id)}
               onSelect={onSelectItem}
               onDelete={onDeleteItem}
+              onRename={onRenameItem}
+              onMove={onMoveItem}
+              folders={folders}
+              currentFolder={currentFolder}
             />
           ))}
         </tbody>

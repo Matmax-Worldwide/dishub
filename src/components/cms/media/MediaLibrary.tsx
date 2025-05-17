@@ -4,8 +4,11 @@ import { UploadProgress } from './UploadProgress';
 import { MediaGrid } from './MediaGrid';
 import { MediaList } from './MediaList';
 import { EmptyState } from './EmptyState';
+import { FolderNavigation } from './FolderNavigation';
+import { MediaSelectionActions } from './MediaSelectionActions';
 import { MediaItem } from './types';
 import { AlertCircle, Settings } from 'lucide-react';
+import { useRef } from 'react';
 
 export interface MediaLibraryProps {
   onSelect?: (mediaItem: MediaItem) => void;
@@ -28,6 +31,8 @@ export function MediaLibrary({
     uploadProgress,
     error,
     isConfigError,
+    currentFolder,
+    folders,
     setSearchQuery,
     setFilterType,
     setViewMode,
@@ -36,8 +41,22 @@ export function MediaLibrary({
     handleFileUpload,
     deleteItem,
     deleteSelectedItems,
-    refreshMediaItems
+    refreshMediaItems,
+    navigateToFolder,
+    navigateBack,
+    createFolder,
+    deleteFolder,
+    renameFile,
+    moveFile,
+    moveFilesInBulk,
+    toggleSort,
+    sortField,
+    sortDirection,
+    renameFolder,
+    moveFolder
   } = useMediaLibrary();
+  
+  const uploadAreaRef = useRef<HTMLDivElement>(null);
 
   // Handle item selection in selection mode
   const handleItemSelect = (id: string) => {
@@ -51,8 +70,29 @@ export function MediaLibrary({
     toggleItemSelection(id);
   };
 
+  // Handle bulk move operation
+  const handleMoveSelected = (targetFolder: string) => {
+    if (selectedItems.length > 0) {
+      moveFilesInBulk(selectedItems, targetFolder);
+    }
+  };
+  
+  // Handle file drop for upload
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
   return (
-    <div className="min-h-[80vh] flex flex-col">
+    <div 
+      ref={uploadAreaRef}
+      className="min-h-[80vh] flex flex-col relative pb-16"
+      onDrop={handleFileDrop}
+      onDragOver={(e) => e.preventDefault()}
+    >
       {showHeader && (
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Media Library</h1>
@@ -107,14 +147,26 @@ export function MediaLibrary({
           searchQuery={searchQuery}
           filterType={filterType}
           viewMode={viewMode}
-          selectedCount={selectedItems.length}
           onSearchChange={setSearchQuery}
           onFilterChange={setFilterType}
           onViewModeChange={setViewMode}
           onFileSelect={handleFileUpload}
-          onDeleteSelected={deleteSelectedItems}
           onRefresh={refreshMediaItems}
         />
+        
+        {/* Folder navigation bar */}
+        <div className="px-4 pt-3 pb-1 border-b border-gray-100">
+          <FolderNavigation
+            currentFolder={currentFolder}
+            folders={folders}
+            onNavigateFolder={navigateToFolder}
+            onNavigateBack={navigateBack}
+            onCreateFolder={createFolder}
+            onDeleteFolder={deleteFolder}
+            onRenameFolder={renameFolder}
+            onMoveFolder={moveFolder}
+          />
+        </div>
 
         {isLoading ? (
           <div className="p-6 animate-pulse">
@@ -131,6 +183,13 @@ export function MediaLibrary({
               selectedItems={selectedItems}
               onSelectItem={handleItemSelect}
               onDeleteItem={deleteItem}
+              onRenameItem={renameFile}
+              onMoveItem={moveFile}
+              folders={folders}
+              currentFolder={currentFolder}
+              onSort={toggleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
             />
           ) : (
             <MediaList
@@ -139,6 +198,13 @@ export function MediaLibrary({
               onSelectItem={handleItemSelect}
               onSelectAll={toggleSelectAll}
               onDeleteItem={deleteItem}
+              onRenameItem={renameFile}
+              onMoveItem={moveFile}
+              folders={folders}
+              currentFolder={currentFolder}
+              onSort={toggleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
             />
           )
         ) : (
@@ -151,9 +217,22 @@ export function MediaLibrary({
             }}
             onRefresh={refreshMediaItems}
             onUpload={!isConfigError ? handleFileUpload : undefined}
+            currentFolder={currentFolder}
           />
         )}
       </div>
+      
+      {/* Selection actions bar */}
+      <MediaSelectionActions
+        selectedCount={selectedItems.length}
+        folders={folders}
+        currentFolder={currentFolder}
+        onDeleteSelected={deleteSelectedItems}
+        onMoveSelected={handleMoveSelected}
+        onSelectAll={toggleSelectAll}
+        isAllSelected={selectedItems.length === filteredMedia.length && filteredMedia.length > 0}
+        totalItems={filteredMedia.length}
+      />
     </div>
   );
 } 
