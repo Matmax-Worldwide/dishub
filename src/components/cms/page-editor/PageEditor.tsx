@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileTextIcon, SearchIcon, LayoutIcon } from 'lucide-react';
+import { FileTextIcon, SearchIcon, LayoutIcon, PanelLeftIcon, PanelRightIcon } from 'lucide-react';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import {
   PageData as BasePageData,
@@ -20,7 +20,8 @@ import {
   AddSectionDialog,
   DeleteSectionDialog,
   ExitConfirmationDialog,
-  CSSInjector
+  CSSInjector,
+  PagesSidebar
 } from '@/components/cms/page-editor';
 import {
   Tabs,
@@ -28,6 +29,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 
 // Extend PageData to include SEO properties
 interface PageData extends BasePageData {
@@ -91,6 +93,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const [redirectTarget, setRedirectTarget] = useState('');
+  const [showSidebar, setShowSidebar] = useState(true);
   
   // Section management states
   const [availableSections, setAvailableSections] = useState<AvailableSection[]>([]);
@@ -126,6 +129,22 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         // Continue with page saving even if component saving fails
       }
     }
+  };
+
+  // Handle page selection from sidebar
+  const handlePageSelect = (slug: string) => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      setRedirectTarget(`/${locale}/cms/pages/edit/${slug}`);
+      setIsExitConfirmationOpen(true);
+    } else {
+      router.push(`/${locale}/cms/pages/edit/${slug}`);
+    }
+  };
+
+  // Toggle sidebar visibility
+  const toggleSidebar = () => {
+    setShowSidebar(!showSidebar);
   };
 
   // Load page data
@@ -941,7 +960,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* CSS Injector for drag-and-drop functionality */}
       <CSSInjector />
       
@@ -954,7 +973,17 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onPublishChange={(checked) => handleCheckboxChange('isPublished', checked)}
         onCancel={handleCancel}
         onSave={handleSavePage}
-      />
+      >
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggleSidebar} 
+          className="ml-4"
+          title={showSidebar ? "Hide Pages Sidebar" : "Show Pages Sidebar"}
+        >
+          {showSidebar ? <PanelLeftIcon className="h-4 w-4" /> : <PanelRightIcon className="h-4 w-4" />}
+        </Button>
+      </PageHeader>
       
       {/* Notification */}
       {notification && (
@@ -964,79 +993,92 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         />
       )}
       
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 mb-6">
-          
-          <TabsTrigger value="seo" className="flex items-center">
-            <SearchIcon className="h-4 w-4 mr-2" />
-            <span>SEO</span>
-          </TabsTrigger>
-          <TabsTrigger value="sections" className="flex items-center">
-            <LayoutIcon className="h-4 w-4 mr-2" />
-            <span>Secciones</span>
-          </TabsTrigger>
-          <TabsTrigger value="details" className="flex items-center">
-            <FileTextIcon className="h-4 w-4 mr-2" />
-            <span>Detalles</span>
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Pages Sidebar */}
+        {showSidebar && (
+          <PagesSidebar 
+            currentPageId={pageData.id} 
+            onPageSelect={handlePageSelect} 
+          />
+        )}
         
-        {/* Sections Tab */}
-        <TabsContent value="sections" className="space-y-6">
-          <SectionsTab
-            pageSections={pageSections}
-            isSaving={isSaving}
-            isCreatingSection={isCreatingSection}
-            isSavingSection={isSavingSection}
-            newSectionName={newSectionName}
-            onNameChange={setNewSectionName}
-            onCreateSection={handleCreateSection}
-            onCancelCreate={() => {
-              setIsCreatingSection(false);
-              setNewSectionName('');
-            }}
-            onStartCreating={() => setIsCreatingSection(true)}
-            onSectionNameChange={(newName) => {
-              setPageSections(prev => prev.map((section, idx) => 
-                idx === 0 ? { ...section, name: newName } : section
-              ));
-              setHasUnsavedChanges(true);
-            }}
-            onBackClick={() => setActiveTab('details')}
-            onSavePage={handleSavePage}
-            sectionRef={sectionRef}
-          />
-        </TabsContent>
-        {/* SEO Tab */}
-        <TabsContent value="seo" className="space-y-6">
-          <SEOTab
-            pageData={pageData}
-            locale={locale}
-            onInputChange={handleInputChange}
-            onBackClick={() => setActiveTab('details')}
-            onContinue={() => setActiveTab('sections')}
-            onSEOChange={handleSEOChange}
-          />
-        </TabsContent>
-        
-
-        {/* Page Details Tab */}
-        <TabsContent value="details" className="space-y-6">
-          <PageDetailsTab 
-            pageData={pageData}
-            locale={locale}
-            onTitleChange={handleTitleChange}
-            onInputChange={handleInputChange}
-            onSelectChange={handleSelectChange}
-            onCancel={handleCancel}
-            onContinue={() => setActiveTab('sections')}
-          />
-        </TabsContent>
-
-      </Tabs>
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-auto">
+          {/* Tabs */}
+          <div className="p-6 space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-3 mb-6 sticky top-0 z-10 bg-white">
+                <TabsTrigger value="seo" className="flex items-center">
+                  <SearchIcon className="h-4 w-4 mr-2" />
+                  <span>SEO</span>
+                </TabsTrigger>
+                <TabsTrigger value="sections" className="flex items-center">
+                  <LayoutIcon className="h-4 w-4 mr-2" />
+                  <span>Secciones</span>
+                </TabsTrigger>
+                <TabsTrigger value="details" className="flex items-center">
+                  <FileTextIcon className="h-4 w-4 mr-2" />
+                  <span>Detalles</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Sections Tab */}
+              <TabsContent value="sections" className="space-y-6">
+                <SectionsTab
+                  pageSections={pageSections}
+                  isSaving={isSaving}
+                  isCreatingSection={isCreatingSection}
+                  isSavingSection={isSavingSection}
+                  newSectionName={newSectionName}
+                  onNameChange={setNewSectionName}
+                  onCreateSection={handleCreateSection}
+                  onCancelCreate={() => {
+                    setIsCreatingSection(false);
+                    setNewSectionName('');
+                  }}
+                  onStartCreating={() => setIsCreatingSection(true)}
+                  onSectionNameChange={(newName) => {
+                    setPageSections(prev => prev.map((section, idx) => 
+                      idx === 0 ? { ...section, name: newName } : section
+                    ));
+                    setHasUnsavedChanges(true);
+                  }}
+                  onBackClick={() => setActiveTab('details')}
+                  onSavePage={handleSavePage}
+                  sectionRef={sectionRef}
+                />
+              </TabsContent>
+              
+              {/* SEO Tab */}
+              <TabsContent value="seo" className="space-y-6">
+                <SEOTab
+                  pageData={pageData}
+                  locale={locale}
+                  onInputChange={handleInputChange}
+                  onBackClick={() => setActiveTab('details')}
+                  onContinue={() => setActiveTab('sections')}
+                  onSEOChange={handleSEOChange}
+                />
+              </TabsContent>
+              
+              {/* Page Details Tab */}
+              <TabsContent value="details" className="space-y-6">
+                <PageDetailsTab 
+                  pageData={pageData}
+                  locale={locale}
+                  onTitleChange={handleTitleChange}
+                  onInputChange={handleInputChange}
+                  onSelectChange={handleSelectChange}
+                  onCancel={handleCancel}
+                  onContinue={() => setActiveTab('sections')}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
       
-      {/* Add Section Dialog */}
+      {/* Dialogs */}
       <AddSectionDialog
         open={showAddSectionDialog}
         onOpenChange={setShowAddSectionDialog}
@@ -1046,7 +1088,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onAddSection={handleAddSectionClick}
       />
       
-      {/* Delete Section Confirmation */}
       <DeleteSectionDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
@@ -1055,7 +1096,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onCancel={cancelDeleteSection}
       />
       
-      {/* Exit Confirmation */}
       <ExitConfirmationDialog
         open={isExitConfirmationOpen}
         onOpenChange={setIsExitConfirmationOpen}

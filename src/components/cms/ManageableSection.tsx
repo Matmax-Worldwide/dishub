@@ -568,7 +568,16 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           const componentId = mostVisibleEntry.target.getAttribute('data-component-id');
           if (componentId) {
             setActiveComponentId(componentId);
-            
+
+            // Only auto-expand/collapse components when user isn't actively editing
+            if (!isEditingComponentRef.current) {
+              // Expand the visible component and collapse others
+              const newCollapsedState: Record<string, boolean> = {};
+              pendingComponents.forEach(component => {
+                newCollapsedState[component.id] = component.id !== componentId;
+              });
+              setCollapsedComponents(newCollapsedState);
+            }
           }
         }
       },
@@ -596,6 +605,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const handleScrollToComponent = useCallback((componentId: string) => {
     setActiveComponentId(componentId);
 
+    // Collapse all components except the clicked one
+    const newCollapsedState: Record<string, boolean> = {};
+    pendingComponents.forEach(component => {
+      newCollapsedState[component.id] = component.id !== componentId;
+    });
+    setCollapsedComponents(newCollapsedState);
+
     if (viewMode === 'split' && previewContainerRef.current) {
       // Find the corresponding component in preview
       const previewComponent = previewContainerRef.current.querySelector(`[data-component-id="${componentId}"]`);
@@ -606,7 +622,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         });
       }
     }
-  }, [viewMode, previewContainerRef]);
+  }, [viewMode, previewContainerRef, pendingComponents]);
 
   // Toggle component collapse state
   const toggleComponentCollapse = useCallback((componentId: string) => {
@@ -636,6 +652,25 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   }: {
     components: Component[];
   }) {
+    // Handler for clicking on components in the preview
+    const handlePreviewComponentClick = (componentId: string, event: React.MouseEvent) => {
+      event.preventDefault();
+      setActiveComponentId(componentId);
+      
+      // Expand the clicked component and collapse others
+      const newCollapsedState: Record<string, boolean> = {};
+      components.forEach(component => {
+        newCollapsedState[component.id] = component.id !== componentId;
+      });
+      setCollapsedComponents(newCollapsedState);
+      
+      // Scroll to the component in the editor
+      const editorComponent = document.querySelector(`[data-component-id="${componentId}"]`);
+      if (editorComponent) {
+        editorComponent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
     return (
       <div className="">
         {components.map(component => (
@@ -646,6 +681,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             className={`relative component-preview-item ${
               activeComponentId === component.id ? 'active-preview' : ''
             }`}
+            onClick={(e) => handlePreviewComponentClick(component.id, e)}
+            style={{ cursor: 'pointer' }}
           >
             {/* Render actual component using SectionManager */}
             <SectionManager
