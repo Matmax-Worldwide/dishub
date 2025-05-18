@@ -21,7 +21,6 @@ import {
   DeleteSectionDialog,
   ExitConfirmationDialog,
   CSSInjector,
-  PagesSidebar
 } from '@/components/cms/page-editor';
 import {
   Tabs,
@@ -30,6 +29,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { PageSidebar } from './PageSidebar';
 
 // Extend PageData to include SEO properties
 interface PageData extends BasePageData {
@@ -996,7 +996,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Pages Sidebar */}
         {showSidebar && (
-          <PagesSidebar 
+          <PageSidebar 
             currentPageId={pageData.id} 
             onPageSelect={handlePageSelect} 
           />

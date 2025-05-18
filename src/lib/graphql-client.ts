@@ -2068,6 +2068,9 @@ export const cmsOperations = {
       return null;
     }
   },
+
+  // Añadir referencia a la función getForms
+  getForms,
 };
 
 // Form Builder API functions
@@ -2092,13 +2095,39 @@ async function getForms(): Promise<FormBase[]> {
         updatedById
         createdAt
         updatedAt
+        fields {
+          id
+        }
+        steps {
+          id
+          fields {
+            id
+          }
+        }
       }
     }
   `;
 
   try {
     const response = await gqlRequest<{ forms: FormBase[] }>(query);
-    return response.forms || [];
+    
+    // Calcular el número total de campos para cada formulario
+    const formsWithFieldCount = response.forms?.map(form => {
+      // Campos directos del formulario
+      const directFields = form.fields || [];
+      
+      // Campos en los pasos (si es un formulario de múltiples pasos)
+      const stepFields = form.steps?.flatMap(step => step.fields || []) || [];
+      
+      // Asegurar que fields sea al menos un array vacío
+      return {
+        ...form,
+        fields: directFields,
+        totalFieldCount: directFields.length + stepFields.length
+      };
+    }) || [];
+    
+    return formsWithFieldCount;
   } catch (error) {
     console.error('Error fetching forms:', error);
     return [];

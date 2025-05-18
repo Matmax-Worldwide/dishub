@@ -9,9 +9,9 @@ interface CMSSidebarProps {
     cms?: {
       dashboard: string;
       pages: string;
-      media: string;
       menus: string;
       forms: string;
+      media: string;
       settings: string;
     };
   };
@@ -26,17 +26,17 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     dashboard: 'Dashboard',
     pages: 'Pages',
     menus: 'Menus',
-    media: 'Media',
     forms: 'Forms',
+    media: 'Media',
     settings: 'Settings'
   };
 
   const navigationItems = [
     { name: nav.dashboard, href: `/${locale}/cms/` },
-    { name: nav.pages, href: `/${locale}/cms/pages` },
+    { name: nav.pages, href: `/${locale}/cms/pages/list` },
     { name: nav.menus, href: `/${locale}/cms/menus` },
-    { name: nav.media, href: `/${locale}/cms/media` },
     { name: nav.forms, href: `/${locale}/cms/forms` },
+    { name: nav.media, href: `/${locale}/cms/media` },
     { name: nav.settings, href: `/${locale}/cms/settings` },
   ];
 

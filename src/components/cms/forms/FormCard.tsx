@@ -8,7 +8,12 @@ interface FormCardProps {
 }
 
 export function FormCard({ form, onEdit, onDelete }: FormCardProps) {
-  const { title, description, isActive, updatedAt, fields = [] } = form;
+  const { title, description, isActive, updatedAt, fields = [], steps = [] } = form;
+  
+  // Calcular la cantidad total de campos sumando los campos directos y los de los pasos
+  const totalFieldCount = 
+    (fields?.length || 0) + 
+    steps.reduce((count, step) => count + (step.fields?.length || 0), 0);
 
   // Format the date
   const formattedDate = updatedAt 
@@ -36,7 +41,7 @@ export function FormCard({ form, onEdit, onDelete }: FormCardProps) {
         <div className="flex items-center text-xs text-gray-500 space-x-3 mb-3">
           <div className="flex items-center">
             <MessageSquare className="h-3 w-3 mr-1" />
-            <span>{fields.length} field{fields.length !== 1 ? 's' : ''}</span>
+            <span>{totalFieldCount} field{totalFieldCount !== 1 ? 's' : ''}</span>
           </div>
           <div className="flex items-center">
             <FileCheck className="h-3 w-3 mr-1" />

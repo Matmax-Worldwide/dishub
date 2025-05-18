@@ -13,6 +13,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
+import graphqlClient from '@/lib/graphql-client';
 
 type CMSModule = {
   title: string;
@@ -29,6 +30,7 @@ export default function CMSDashboard() {
   const [pageCount, setPageCount] = useState(0);
   const [mediaCount, setMediaCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
+  const [formCount, setFormCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +49,11 @@ export default function CMSDashboard() {
         console.log('Menus obtenidos:', menusData);
         setMenuCount(Array.isArray(menusData) ? menusData.length : 0);
         
+        // Obtener formularios desde GraphQL
+        const formsData = await graphqlClient.getForms();
+        console.log('Formularios obtenidos:', formsData);
+        setFormCount(Array.isArray(formsData) ? formsData.length : 0);
+
         // Obtener conteo de elementos de media desde API
         try {
           const mediaResponse = await fetch('/api/media/count');
@@ -92,20 +99,20 @@ export default function CMSDashboard() {
       disabled: false
     },
     {
-      title: 'Biblioteca de Medios',
-      description: 'Subir y gestionar imágenes, videos y documentos',
-      icon: ImageIcon,
-      href: `/${locale}/cms/media`,
-      count: mediaCount,
-      color: 'bg-purple-500',
-      disabled: false
-    },
-    {
       title: 'Formularios',
       description: 'Subir y gestionar formularios',
       icon: ClipboardList,
       href: `/${locale}/cms/forms`,
+      count: formCount,
       color: 'bg-amber-500',
+      disabled: false
+    },
+    {
+      title: 'Biblioteca de Medios',
+      description: 'Subir y gestionar imágenes, videos y documentos',
+      icon: ImageIcon,
+      href: `/${locale}/cms/media`,
+      color: 'bg-purple-500',
       disabled: false
     },
     {

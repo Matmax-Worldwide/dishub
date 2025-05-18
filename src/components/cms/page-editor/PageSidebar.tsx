@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon } from 'lucide-react';
+import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,12 @@ interface PageItem {
   updatedAt?: string;
 }
 
-// Simplified props - no currentPageId required
-interface PagesSidebarProps {
+interface PageSidebarProps {
+  currentPageId?: string;
   onPageSelect?: (slug: string) => void;
 }
 
-export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
+export function PageSidebar({ currentPageId, onPageSelect }: PageSidebarProps) {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [filteredPages, setFilteredPages] = useState<PageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,41 +69,14 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     };
   }, [handleDialogOpenChange]);
 
-  // Fetch pages when component mounts with timeout
+  // Fetch pages when component mounts
   useEffect(() => {
-    // Flag to track if component is mounted
-    let isMounted = true;
-    // Timeout ID for load timeout
-    let timeoutId: NodeJS.Timeout;
-
     const fetchPages = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // Set a timeout to prevent indefinite loading
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            setIsLoading(false);
-            setError('Tiempo de espera agotado. Por favor, intenta recargar la página.');
-          }
-        }, 10000); // 10 second timeout
-        
         const pagesData = await cmsOperations.getAllPages();
-        
-        // Clear timeout since we got a response
-        clearTimeout(timeoutId);
-        
-        // If component unmounted, don't update state
-        if (!isMounted) return;
-        
-        if (!pagesData || pagesData.length === 0) {
-          setError('No se encontraron páginas');
-          setPages([]);
-          setFilteredPages([]);
-          setIsLoading(false);
-          return;
-        }
         
         // Transform the data to match our PageItem interface
         const formattedPages: PageItem[] = pagesData.map(page => ({
@@ -118,32 +91,15 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         setPages(formattedPages);
         setFilteredPages(formattedPages);
       } catch (error) {
-        // Clear timeout since we got an error
-        clearTimeout(timeoutId);
-        
-        // If component unmounted, don't update state
-        if (!isMounted) return;
-        
         console.error('Error fetching pages:', error);
-        setError('Error al cargar las páginas. Por favor, intenta recargar.');
-        setPages([]);
-        setFilteredPages([]);
+        setError('Failed to load pages');
       } finally {
-        // If component still mounted, set loading to false
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
     fetchPages();
-    
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, []); // Empty array means this effect runs once on mount
+  }, []);
 
   // Filter pages when search query changes
   useEffect(() => {
@@ -160,7 +116,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     setFilteredPages(filtered);
   }, [searchQuery, pages]);
 
-  // Handle page selection - always navigate to edit page
+  // Handle page selection
   const handlePageClick = (slug: string) => {
     if (onPageSelect) {
       onPageSelect(slug);
@@ -251,48 +207,6 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     }
   };
 
-  // Reload data 
-  const handleReload = () => {
-    setIsLoading(true);
-    setError(null);
-    
-    // Simulate effect trigger by remounting
-    setTimeout(() => {
-      // Triggers the useEffect for fetching pages
-      const fetchPages = async () => {
-        try {
-          const pagesData = await cmsOperations.getAllPages();
-          
-          if (!pagesData || pagesData.length === 0) {
-            setError('No se encontraron páginas');
-            setPages([]);
-            setFilteredPages([]);
-            return;
-          }
-          
-          const formattedPages: PageItem[] = pagesData.map(page => ({
-            id: page.id,
-            title: page.title,
-            slug: page.slug,
-            pageType: page.pageType,
-            isPublished: page.isPublished,
-            updatedAt: page.updatedAt ? new Date(page.updatedAt).toISOString().split('T')[0] : undefined
-          }));
-          
-          setPages(formattedPages);
-          setFilteredPages(formattedPages);
-        } catch (error) {
-          console.error('Error fetching pages:', error);
-          setError('Error al cargar las páginas. Por favor, intenta recargar.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchPages();
-    }, 500);
-  };
-
   return (
     <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
@@ -324,20 +238,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
               ))}
             </div>
           ) : error ? (
-            <div className="p-4 text-center">
-              <div className="text-red-500 text-sm mb-3 flex flex-col items-center">
-                <AlertCircleIcon className="h-8 w-8 mb-2" />
-                <span>{error}</span>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReload}
-                className="mt-2"
-              >
-                Intentar de nuevo
-              </Button>
-            </div>
+            <div className="p-4 text-red-500 text-center text-sm">{error}</div>
           ) : filteredPages.length === 0 ? (
             <div className="p-4 text-gray-500 text-center text-sm">
               {searchQuery ? 'No pages found' : 'No pages available'}
@@ -347,7 +248,12 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
               {filteredPages.map(page => (
                 <li 
                   key={page.id}
-                  className="rounded-md transition-colors cursor-pointer hover:bg-gray-100 text-gray-700"
+                  className={`
+                    rounded-md transition-colors cursor-pointer
+                    ${page.id === currentPageId 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'hover:bg-gray-100 text-gray-700'}
+                  `}
                   onClick={() => handlePageClick(page.slug)}
                 >
                   <div className="flex items-center justify-between p-2">
