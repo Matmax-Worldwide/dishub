@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FormFieldBase } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
 import { PlusCircle, XCircle, GripVertical } from 'lucide-react';
+import { normalizeValue } from '@/lib/normalize';
 
 // Interfaz para opciones de selección
 interface SelectOption {
@@ -16,24 +17,46 @@ interface SelectOption {
 export function SelectFieldPreview({ field }: { field: FormFieldBase }) {
   const options = (field.options?.items || []) as SelectOption[];
   
+  // Obtener la etiqueta del valor predeterminado para mostrar en la vista previa
+  const getSelectedOptionLabel = (): string => {
+    if (!field.defaultValue) {
+      return field.placeholder || 'Seleccione una opción';
+    }
+    
+    const selectedOption = options.find(opt => opt.value === field.defaultValue);
+    return selectedOption ? selectedOption.label : (field.placeholder || 'Seleccione una opción');
+  };
+  
   return (
     <BaseFieldPreview field={field}>
-      <select
-        id={`preview-${field.name}`}
-        name={`preview-${field.name}`}
-        disabled
-        className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-      >
-        {field.placeholder && (
-          <option value="">{field.placeholder}</option>
-        )}
+      <div className="relative w-full">
+        {/* Select oculto para mantener el comportamiento nativo */}
+        <select
+          id={`preview-${field.name}`}
+          name={`preview-${field.name}`}
+          disabled
+          value={field.defaultValue || ''}
+          className="opacity-0 absolute inset-0 w-full h-full cursor-not-allowed"
+          aria-hidden="true"
+        >
+          {field.placeholder && <option value="">{field.placeholder}</option>}
+          {options.map((option, index) => (
+            <option key={index} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         
-        {options.map((option, index) => (
-          <option key={index} value={option.value} disabled={option.disabled}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        {/* Diseño visual personalizado del select */}
+        <div className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed flex items-center justify-between">
+          <span className="text-gray-500 truncate">
+            {getSelectedOptionLabel()}
+          </span>
+          <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </div>
+      </div>
     </BaseFieldPreview>
   );
 }
@@ -81,12 +104,12 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
   const handleNewOptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Auto-generate value from label if value is empty
-    if (name === 'label' && !newOption.value) {
+    if (name === 'label') {
+      // Siempre auto-generar el valor a partir de la etiqueta usando nuestra función robusta
       setNewOption({
         ...newOption,
         label: value,
-        value: value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+        value: normalizeValue(value)
       });
     } else {
       setNewOption({
@@ -97,9 +120,15 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
   };
   
   const handleAddOption = () => {
-    if (!newOption.label || !newOption.value) return;
+    if (!newOption.label) return;
     
-    const updatedOptions = [...options, { ...newOption }];
+    // Asegurar que el valor siempre sea normalizado
+    const optionToAdd = {
+      label: newOption.label,
+      value: normalizeValue(newOption.label)
+    };
+    
+    const updatedOptions = [...options, optionToAdd];
     setOptions(updatedOptions);
     
     // Update the field with new options
@@ -122,14 +151,21 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
     const updatedOptions = options.filter((_, i) => i !== index);
     setOptions(updatedOptions);
     
-    // Update the field with new options
-    const updatedField = {
+    // Si el valor predeterminado era esta opción, lo eliminamos
+    let updatedField = {
       ...localField,
       options: {
         ...localField.options,
         items: updatedOptions
       }
     };
+    
+    if (localField.defaultValue === options[index].value) {
+      updatedField = {
+        ...updatedField,
+        defaultValue: ''
+      };
+    }
     
     setLocalField(updatedField);
     onChange(updatedField);
@@ -151,6 +187,19 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
         ...localField.options,
         items: updatedOptions
       }
+    };
+    
+    setLocalField(updatedField);
+    onChange(updatedField);
+  };
+  
+  const handleDefaultValueChange = (value: string) => {
+    // Si el valor actual ya está seleccionado, lo quitamos para volver al placeholder
+    const newValue = localField.defaultValue === value ? '' : value;
+    
+    const updatedField = {
+      ...localField,
+      defaultValue: newValue
     };
     
     setLocalField(updatedField);
@@ -240,6 +289,22 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
       <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
         <h4 className="text-sm font-medium text-gray-900 mb-3">Opciones de selección</h4>
         
+        <div className="mb-4 bg-white p-3 border border-gray-200 rounded-md">
+          <div className="flex items-center">
+            <input
+              type="radio"
+              name="defaultValue"
+              id="default-none"
+              checked={!localField.defaultValue}
+              onChange={() => handleDefaultValueChange('')}
+              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+            />
+            <label htmlFor="default-none" className="ml-2 text-sm text-gray-700">
+              Sin valor predeterminado (mostrar placeholder)
+            </label>
+          </div>
+        </div>
+        
         {options.length > 0 ? (
           <ul className="space-y-2 mb-4">
             {options.map((option, index) => (
@@ -252,6 +317,17 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
                   <span className="text-xs text-gray-500">({option.value})</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="defaultValue"
+                    id={`default-${option.value}`}
+                    checked={localField.defaultValue === option.value}
+                    onChange={() => handleDefaultValueChange(option.value)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor={`default-${option.value}`} className="text-xs text-gray-500">
+                    Default
+                  </label>
                   <button
                     type="button"
                     onClick={() => handleToggleOptionDisabled(index)}
@@ -294,22 +370,22 @@ export function SelectField({ field, onChange, showPreview = true }: FieldProps)
           </div>
           <div className="flex-1">
             <label htmlFor="optionValue" className="block text-xs font-medium text-gray-700 mb-1">
-              Valor
+              Valor (generado automáticamente)
             </label>
             <input
               type="text"
               id="optionValue"
               name="value"
               value={newOption.value}
-              onChange={handleNewOptionChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Ej: spain"
+              disabled
+              className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+              placeholder="Generado automáticamente"
             />
           </div>
           <button
             type="button"
             onClick={handleAddOption}
-            disabled={!newOption.label || !newOption.value}
+            disabled={!newOption.label}
             className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PlusCircle size={20} />

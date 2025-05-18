@@ -7,6 +7,7 @@ import { FormFieldBase, FormBase, FormFieldInput } from '@/types/forms';
 import { ArrowLeft, Save, PlusCircle, Trash2, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { FieldEditor } from '@/components/cms/forms/fields';
+import { Separator } from '@/components/ui/separator';
 
 interface RouteParams {
   locale: string;
@@ -249,16 +250,7 @@ export default function EditFormPage() {
           >
             General Settings
           </button>
-          <button
-            onClick={() => setActiveTab('fields')}
-            className={`${
-              activeTab === 'fields'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            Form Fields
-          </button>
+
           {form.isMultiStep && (
             <button
               onClick={() => setActiveTab('steps')}
@@ -277,6 +269,121 @@ export default function EditFormPage() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         {/* General Settings Tab */}
         {activeTab === 'general' && (
+            <>
+            <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Campos del Formulario</h2>
+              
+              {/* Estado para gestionar la edición de campo */}
+              {isEditingField ? (
+                <div className="mb-6 relative">
+                  <button 
+                    onClick={() => setIsEditingField(false)} 
+                    className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
+                    aria-label="Cerrar editor"
+                  >
+                    <X className="h-5 w-5 text-gray-600" />
+                  </button>
+                  <FieldEditor 
+                    field={currentEditingField}
+                    onSave={(updatedField) => {
+                      if (currentEditingField?.id) {
+                        // Actualizar campo existente
+                        // Aquí iría la lógica para actualizar un campo
+                        setIsEditingField(false);
+                      } else {
+                        // Crear nuevo campo
+                        handleAddField(updatedField);
+                        setIsEditingField(false);
+                      }
+                    }}
+                    onCancel={() => setIsEditingField(false)}
+                    formId={form.id}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Existing fields */}
+                  {form.fields && form.fields.length > 0 ? (
+                    <div className="mb-8">
+                      <div className="overflow-hidden border border-gray-200 rounded-md">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orden</th>
+                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Etiqueta</th>
+                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requerido</th>
+                              <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {form.fields.map((field: FormFieldBase) => (
+                              <tr key={field.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.order}</td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{field.label}</td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.name}</td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.type}</td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  {field.isRequired ? 
+                                    <span className="text-green-600">Sí</span> : 
+                                    <span className="text-gray-400">No</span>
+                                  }
+                                </td>
+                                <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
+                                  <div className="flex justify-end space-x-2">
+                                    <button 
+                                      className="text-blue-600 hover:text-blue-800"
+                                      title="Editar campo"
+                                      onClick={() => {
+                                        setCurrentEditingField(field);
+                                        setIsEditingField(true);
+                                      }}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </button>
+                                    <button 
+                                      className="text-red-600 hover:text-red-800"
+                                      title="Eliminar campo"
+                                      onClick={() => handleDeleteField(field.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-8 text-center rounded-md mb-8">
+                      <p className="text-gray-500">No hay campos añadidos. Utiliza el botón a continuación para agregar tu primer campo.</p>
+                    </div>
+                  )}
+                  
+                  {/* Botón para agregar nuevo campo */}
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentEditingField(null);
+                        setIsEditingField(true);
+                      }}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Agregar Campo
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <Separator className="my-4" />
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -404,122 +511,7 @@ export default function EditFormPage() {
               </div>
             </div>
           </div>
-        )}
-        
-        {/* Form Fields Tab */}
-        {activeTab === 'fields' && (
-          <div className="p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Campos del Formulario</h2>
-              
-              {/* Estado para gestionar la edición de campo */}
-              {isEditingField ? (
-                <div className="mb-6 relative">
-                  <button 
-                    onClick={() => setIsEditingField(false)} 
-                    className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
-                    aria-label="Cerrar editor"
-                  >
-                    <X className="h-5 w-5 text-gray-600" />
-                  </button>
-                  <FieldEditor 
-                    field={currentEditingField}
-                    onSave={(updatedField) => {
-                      if (currentEditingField?.id) {
-                        // Actualizar campo existente
-                        // Aquí iría la lógica para actualizar un campo
-                        setIsEditingField(false);
-                      } else {
-                        // Crear nuevo campo
-                        handleAddField(updatedField);
-                        setIsEditingField(false);
-                      }
-                    }}
-                    onCancel={() => setIsEditingField(false)}
-                    formId={form.id}
-                  />
-                </div>
-              ) : (
-                <>
-                  {/* Existing fields */}
-                  {form.fields && form.fields.length > 0 ? (
-                    <div className="mb-8">
-                      <div className="overflow-hidden border border-gray-200 rounded-md">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orden</th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Etiqueta</th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requerido</th>
-                              <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {form.fields.map((field: FormFieldBase) => (
-                              <tr key={field.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.order}</td>
-                                <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{field.label}</td>
-                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.name}</td>
-                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{field.type}</td>
-                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                  {field.isRequired ? 
-                                    <span className="text-green-600">Sí</span> : 
-                                    <span className="text-gray-400">No</span>
-                                  }
-                                </td>
-                                <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
-                                  <div className="flex justify-end space-x-2">
-                                    <button 
-                                      className="text-blue-600 hover:text-blue-800"
-                                      title="Editar campo"
-                                      onClick={() => {
-                                        setCurrentEditingField(field);
-                                        setIsEditingField(true);
-                                      }}
-                                    >
-                                      <Edit2 className="h-4 w-4" />
-                                    </button>
-                                    <button 
-                                      className="text-red-600 hover:text-red-800"
-                                      title="Eliminar campo"
-                                      onClick={() => handleDeleteField(field.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 p-8 text-center rounded-md mb-8">
-                      <p className="text-gray-500">No hay campos añadidos. Utiliza el botón a continuación para agregar tu primer campo.</p>
-                    </div>
-                  )}
-                  
-                  {/* Botón para agregar nuevo campo */}
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentEditingField(null);
-                        setIsEditingField(true);
-                      }}
-                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Agregar Campo
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          </>
         )}
         
         {/* Form Steps Tab (only shown if isMultiStep is true) */}
