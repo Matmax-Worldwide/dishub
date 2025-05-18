@@ -2592,6 +2592,69 @@ async function createFormField(input: FormFieldInput): Promise<FormFieldResult> 
   }
 }
 
+// Update a form field
+async function updateFormField(id: string, input: FormFieldInput): Promise<FormFieldResult> {
+  const mutation = `
+    mutation UpdateFormField($id: ID!, $input: UpdateFormFieldInput!) {
+      updateFormField(id: $id, input: $input) {
+        success
+        message
+        field {
+          id
+          formId
+          stepId
+          label
+          name
+          type
+          placeholder
+          defaultValue
+          helpText
+          isRequired
+          order
+          options
+          validationRules
+          styling
+          width
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { id, input };
+
+  try {
+    const response = await gqlRequest<{ updateFormField: FormFieldResult }>(mutation, variables);
+    return response.updateFormField || { success: false, message: 'Failed to update form field', field: null };
+  } catch (error) {
+    console.error('Error updating form field:', error);
+    return { success: false, message: 'Error updating form field', field: null };
+  }
+}
+
+// Delete a form field
+async function deleteFormField(id: string): Promise<{success: boolean; message: string}> {
+  const mutation = `
+    mutation DeleteFormField($id: ID!) {
+      deleteFormField(id: $id) {
+        success
+        message
+      }
+    }
+  `;
+
+  const variables = { id };
+
+  try {
+    const response = await gqlRequest<{ deleteFormField: {success: boolean; message: string} }>(mutation, variables);
+    return response.deleteFormField || { success: false, message: 'Failed to delete form field' };
+  } catch (error) {
+    console.error('Error deleting form field:', error);
+    return { success: false, message: 'Error deleting form field' };
+  }
+}
+
 async function submitForm(input: FormSubmissionInput): Promise<FormSubmissionResult> {
   const mutation = `
     mutation SubmitForm($input: FormSubmissionInput!) {
@@ -2622,6 +2685,77 @@ async function submitForm(input: FormSubmissionInput): Promise<FormSubmissionRes
   }
 }
 
+// Update field order
+async function updateFieldOrder(id: string, newOrder: number): Promise<FormFieldResult> {
+  const mutation = `
+    mutation UpdateFieldOrder($id: ID!, $order: Int!) {
+      updateFormField(id: $id, input: { order: $order }) {
+        success
+        message
+        field {
+          id
+          formId
+          stepId
+          label
+          name
+          type
+          order
+          isRequired
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { id, order: newOrder };
+
+  try {
+    const response = await gqlRequest<{ updateFormField: FormFieldResult }>(mutation, variables);
+    return response.updateFormField || { success: false, message: 'Failed to update field order', field: null };
+  } catch (error) {
+    console.error('Error updating field order:', error);
+    return { success: false, message: 'Error updating field order', field: null };
+  }
+}
+
+// Update multiple field orders at once
+async function updateFieldOrders(updates: Array<{ id: string; order: number }>): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const mutation = `
+    mutation UpdateFieldOrders($updates: [FieldOrderUpdate!]!) {
+      updateFieldOrders(updates: $updates) {
+        success
+        message
+      }
+    }
+  `;
+
+  const variables = { updates };
+
+  try {
+    const response = await gqlRequest<{ 
+      updateFieldOrders: {
+        success: boolean;
+        message: string;
+      }
+    }>(mutation, variables);
+    
+    return response.updateFieldOrders || { 
+      success: false, 
+      message: 'Failed to update field orders' 
+    };
+  } catch (error) {
+    console.error('Error updating field orders:', error);
+    return { 
+      success: false, 
+      message: 'Error updating field orders' 
+    };
+  }
+}
+
 // Create a variable for the exported object
 const graphqlClient = {
   // CMS Operations
@@ -2640,6 +2774,10 @@ const graphqlClient = {
   deleteForm,
   createFormStep,
   createFormField,
+  updateFormField,
+  updateFieldOrder,
+  updateFieldOrders,
+  deleteFormField,
   submitForm,
 };
 

@@ -1101,6 +1101,16 @@ export const typeDefs = gql`
     submission: FormSubmission
   }
 
+  type FormFieldOrderResult {
+    success: Boolean!
+    message: String
+  }
+
+  input FieldOrderUpdate {
+    id: ID!
+    order: Int!
+  }
+
   # Root Query
   type Query {
     # User queries
@@ -1336,6 +1346,7 @@ export const typeDefs = gql`
     createFormField(input: FormFieldInput!): FormFieldResult!
     updateFormField(id: ID!, input: UpdateFormFieldInput!): FormFieldResult!
     deleteFormField(id: ID!): FormFieldResult!
+    updateFieldOrders(updates: [FieldOrderUpdate!]!): FormFieldOrderResult!
     
     submitForm(input: FormSubmissionInput!): FormSubmissionResult!
     updateFormSubmissionStatus(id: ID!, status: SubmissionStatus!): FormSubmissionResult!

@@ -857,6 +857,44 @@ export const formResolvers = {
         };
       }
     },
+    
+    // Update multiple form field orders at once
+    updateFieldOrders: async (_parent: unknown, args: { updates: Array<{ id: string; order: number }> }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const decoded = await verifyToken(token) as { userId: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+        
+        // Process updates in a transaction to ensure consistency
+        const results = await prisma.$transaction(
+          args.updates.map(update => 
+            prisma.formField.update({
+              where: { id: update.id },
+              data: { order: update.order },
+            })
+          )
+        );
+        
+        return {
+          success: true,
+          message: `Successfully updated orders for ${results.length} fields`,
+        };
+      } catch (error) {
+        console.error('Error updating form field orders:', error);
+        return {
+          success: false,
+          message: `Error updating form field orders: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+      }
+    },
   },
   
   // Type resolvers
