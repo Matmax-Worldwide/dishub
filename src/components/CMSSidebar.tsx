@@ -33,7 +33,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
 
   const navigationItems = [
     { name: nav.dashboard, href: `/${locale}/cms/` },
-    { name: nav.pages, href: `/${locale}/cms/pages/list` },
+    { name: nav.pages, href: `/${locale}/cms/pages` },
     { name: nav.menus, href: `/${locale}/cms/menus` },
     { name: nav.forms, href: `/${locale}/cms/forms` },
     { name: nav.media, href: `/${locale}/cms/media` },

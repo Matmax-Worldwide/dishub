@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon } from 'lucide-react';
+import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, LayoutIcon, Settings } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from "@/components/ui/label";
+import { useTabContext } from '@/app/[locale]/cms/pages/layout';
 
 interface PageItem {
   id: string;
@@ -23,6 +24,50 @@ interface PagesSidebarProps {
   onPageSelect?: (slug: string) => void;
 }
 
+// Mejorar los tipos para el bus de eventos definiendo interfaces específicas
+interface PagePublishChangeEvent {
+  id: string;
+  isPublished: boolean;
+}
+
+interface PageCreatedEvent {
+  id: string;
+}
+
+interface PageUpdatedEvent {
+  id: string;
+  shouldRefresh: boolean;
+}
+
+type PageEventData = PagePublishChangeEvent | PageCreatedEvent | PageUpdatedEvent;
+
+// Crear un pequeño bus de eventos para comunicar actualizaciones entre componentes
+export const PageEvents = {
+  listeners: new Map<string, Array<(data: PageEventData) => void>>(),
+  
+  subscribe: (event: string, callback: (data: PageEventData) => void) => {
+    if (!PageEvents.listeners.has(event)) {
+      PageEvents.listeners.set(event, []);
+    }
+    PageEvents.listeners.get(event)?.push(callback);
+    
+    // Devolver función para eliminar la suscripción
+    return () => {
+      const callbacks = PageEvents.listeners.get(event) || [];
+      const index = callbacks.indexOf(callback);
+      if (index !== -1) {
+        callbacks.splice(index, 1);
+      }
+    };
+  },
+  
+  emit: (event: string, data: PageEventData) => {
+    (PageEvents.listeners.get(event) || []).forEach(callback => {
+      callback(data);
+    });
+  }
+};
+
 export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [filteredPages, setFilteredPages] = useState<PageItem[]>([]);
@@ -35,9 +80,19 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   const [quickCreateLoading, setQuickCreateLoading] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
   
+  // Obtener el contexto directamente en cada renderizado
+  const { activeTab, setActiveTab } = useTabContext();
+  
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string || 'en';
+  // Get current slug from URL params
+  const currentSlug = params.slug as string;
+
+  // Log del valor actual de activeTab para debugging
+  useEffect(() => {
+    console.log('PagesSidebar: activeTab changed to', activeTab);
+  }, [activeTab]);
 
   // Handle dialog open state changes
   const handleDialogOpenChange = React.useCallback((open: boolean) => {
@@ -69,80 +124,113 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     };
   }, [handleDialogOpenChange]);
 
-  // Fetch pages when component mounts with timeout
-  useEffect(() => {
-    // Flag to track if component is mounted
-    let isMounted = true;
-    // Timeout ID for load timeout
-    let timeoutId: NodeJS.Timeout;
-
-    const fetchPages = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Set a timeout to prevent indefinite loading
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            setIsLoading(false);
-            setError('Tiempo de espera agotado. Por favor, intenta recargar la página.');
-          }
-        }, 10000); // 10 second timeout
-        
-        const pagesData = await cmsOperations.getAllPages();
-        
-        // Clear timeout since we got a response
-        clearTimeout(timeoutId);
-        
-        // If component unmounted, don't update state
-        if (!isMounted) return;
-        
-        if (!pagesData || pagesData.length === 0) {
-          setError('No se encontraron páginas');
-          setPages([]);
-          setFilteredPages([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Transform the data to match our PageItem interface
-        const formattedPages: PageItem[] = pagesData.map(page => ({
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-          pageType: page.pageType,
-          isPublished: page.isPublished,
-          updatedAt: page.updatedAt ? new Date(page.updatedAt).toISOString().split('T')[0] : undefined
-        }));
-        
-        setPages(formattedPages);
-        setFilteredPages(formattedPages);
-      } catch (error) {
-        // Clear timeout since we got an error
-        clearTimeout(timeoutId);
-        
-        // If component unmounted, don't update state
-        if (!isMounted) return;
-        
-        console.error('Error fetching pages:', error);
-        setError('Error al cargar las páginas. Por favor, intenta recargar.');
+  // Función para actualizar la lista de páginas desde el servidor
+  const fetchPages = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const pagesData = await cmsOperations.getAllPages();
+      
+      if (!pagesData || pagesData.length === 0) {
+        setError('No se encontraron páginas');
         setPages([]);
         setFilteredPages([]);
-      } finally {
-        // If component still mounted, set loading to false
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
+        return;
       }
-    };
+      
+      // Transform the data to match our PageItem interface
+      const formattedPages: PageItem[] = pagesData.map(page => ({
+        id: page.id,
+        title: page.title,
+        slug: page.slug,
+        pageType: page.pageType,
+        isPublished: page.isPublished,
+        updatedAt: page.updatedAt ? new Date(page.updatedAt).toISOString().split('T')[0] : undefined
+      }));
+      
+      setPages(formattedPages);
+      setFilteredPages(searchQuery 
+        ? formattedPages.filter(page => 
+            page.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            page.slug.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : formattedPages
+      );
+    } catch (error) {
+      console.error('Error fetching pages:', error);
+      setError('Error al cargar las páginas. Por favor, intenta recargar.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery]);
 
-    fetchPages();
+  // Suscribirse al evento de publicación/despublicación para actualizar la UI optimistamente
+  useEffect(() => {
+    const unsubscribe = PageEvents.subscribe('page:publish-state-change', (data: PageEventData) => {
+      if ('isPublished' in data) {
+        console.log('PagesSidebar: Received publish state change', data);
+        
+        // Actualización optimista de la UI
+        setPages(prevPages => 
+          prevPages.map(page => 
+            page.id === data.id 
+              ? { ...page, isPublished: data.isPublished }
+              : page
+          )
+        );
+        
+        // Actualizar también las páginas filtradas
+        setFilteredPages(prevPages => 
+          prevPages.map(page => 
+            page.id === data.id 
+              ? { ...page, isPublished: data.isPublished }
+              : page
+          )
+        );
+        
+        // No hacemos fetch para evitar llamadas innecesarias al servidor
+        // Confiar en la actualización optimista es suficiente aquí
+      }
+    });
     
-    // Cleanup function
+    // Limpiar la suscripción al desmontar
     return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
+      unsubscribe();
     };
+  }, []);
+
+  // Suscribirse al evento de creación de página
+  useEffect(() => {
+    const unsubscribe = PageEvents.subscribe('page:created', () => {
+      // Refrescar la lista de páginas cuando se crea una nueva
+      fetchPages();
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchPages]);
+
+  // Suscribirse al evento de actualización de página
+  useEffect(() => {
+    const unsubscribe = PageEvents.subscribe('page:updated', (data: PageEventData) => {
+      if ('shouldRefresh' in data && data.shouldRefresh) {
+        console.log('PagesSidebar: Received page updated event that requires refresh', data);
+        // Solo hacemos fetch cuando es realmente necesario (cambios importantes)
+        fetchPages();
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchPages]);
+
+  // Fetch pages when component mounts with timeout
+  useEffect(() => {
+    fetchPages();
   }, []); // Empty array means this effect runs once on mount
 
   // Filter pages when search query changes
@@ -212,6 +300,10 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
       });
       
       if (result && result.success && result.page && result.page.id) {
+        // Emitir evento para actualizar la lista de páginas
+        PageEvents.emit('page:created', { id: result.page.id });
+        console.log('Emitting page:created event:', { id: result.page.id });
+        
         // Reset form
         setQuickTitle('');
         setShowQuickCreate(false);
@@ -298,6 +390,47 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-medium">Pages</h3>
+          
+          {/* Tab Navigation Controls - con visual feedback */}
+          <div className="flex space-x-1">
+            <Button 
+              variant={activeTab === 'details' ? "secondary" : "ghost"}
+              size="icon" 
+              className="h-6 w-6" 
+              title="Detalles"
+              onClick={() => {
+                console.log('Sidebar: Clicking details tab, current:', activeTab);
+                setActiveTab('details');
+              }}
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              variant={activeTab === 'seo' ? "secondary" : "ghost"}
+              size="icon" 
+              className="h-6 w-6" 
+              title="SEO"
+              onClick={() => {
+                console.log('Sidebar: Clicking SEO tab, current:', activeTab);
+                setActiveTab('seo');
+              }}
+            >
+              <SearchIcon className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              variant={activeTab === 'sections' ? "secondary" : "ghost"}
+              size="icon" 
+              className="h-6 w-6" 
+              title="Secciones"
+              onClick={() => {
+                console.log('Sidebar: Clicking sections tab, current:', activeTab);
+                setActiveTab('sections');
+              }}
+            >
+              <LayoutIcon className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          
           <span className="text-xs text-gray-500">{filteredPages.length} {filteredPages.length === 1 ? 'page' : 'pages'}</span>
         </div>
         <div className="relative">
@@ -347,13 +480,13 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
               {filteredPages.map(page => (
                 <li 
                   key={page.id}
-                  className="rounded-md transition-colors cursor-pointer hover:bg-gray-100 text-gray-700"
+                  className={`rounded-md transition-colors cursor-pointer hover:bg-gray-100 ${page.slug === currentSlug ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                   onClick={() => handlePageClick(page.slug)}
                 >
                   <div className="flex items-center justify-between p-2">
                     <div className="flex items-center min-w-0">
                       {getPageIcon(page.pageType)}
-                      <span className="ml-2 text-sm font-medium truncate">{page.title}</span>
+                      <span className={`ml-2 text-sm font-medium truncate ${page.slug === currentSlug ? 'text-blue-800' : 'text-gray-700'}`}>{page.title}</span>
                     </div>
                     {page.isPublished && (
                       <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">

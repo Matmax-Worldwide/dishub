@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileTextIcon, SearchIcon, LayoutIcon, PanelLeftIcon, PanelRightIcon } from 'lucide-react';
+import { PanelLeftIcon, PanelRightIcon } from 'lucide-react';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
+import { useTabContext } from '@/app/[locale]/cms/pages/layout';
 import {
   PageData as BasePageData,
   AvailableSection,
@@ -22,14 +23,8 @@ import {
   ExitConfirmationDialog,
   CSSInjector,
 } from '@/components/cms/page-editor';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PageSidebar } from './PageSidebar';
+import { PageEvents } from './PagesSidebar';
 
 // Extend PageData to include SEO properties
 interface PageData extends BasePageData {
@@ -86,7 +81,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   });
   
   // UI states
-  const [activeTab, setActiveTab] = useState('sections');
+  const { activeTab, setActiveTab } = useTabContext();
+  
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState<NotificationType | null>(null);
@@ -128,17 +124,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         console.error('Error saving section components:', error);
         // Continue with page saving even if component saving fails
       }
-    }
-  };
-
-  // Handle page selection from sidebar
-  const handlePageSelect = (slug: string) => {
-    // Check for unsaved changes
-    if (hasUnsavedChanges) {
-      setRedirectTarget(`/${locale}/cms/pages/edit/${slug}`);
-      setIsExitConfirmationOpen(true);
-    } else {
-      router.push(`/${locale}/cms/pages/edit/${slug}`);
     }
   };
 
@@ -512,6 +497,16 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   
   // Handle checkbox/switch changes
   const handleCheckboxChange = (name: string, checked: boolean) => {
+    // Si el cambio es en isPublished, emitir el evento para actualizar la UI optimistamente
+    if (name === 'isPublished') {
+      // Emitir el evento con los datos actualizados
+      PageEvents.emit('page:publish-state-change', { 
+        id: pageData.id, 
+        isPublished: checked 
+      });
+      console.log('Emitting page:publish-state-change event:', { id: pageData.id, isPublished: checked });
+    }
+    
     setPageData(prev => ({ ...prev, [name]: checked }));
     setHasUnsavedChanges(true);
   };
@@ -745,6 +740,12 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         });
         
         setHasUnsavedChanges(false);
+        // Notificar al PagesSidebar de que la página se ha actualizado
+        PageEvents.emit('page:updated', { 
+          id: pageData.id, 
+          isPublished: pageData.isPublished 
+        });
+        
         // Refresh section view to show updated components
         setForceReloadSection(!forceReloadSection);
       } else {
@@ -955,6 +956,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   }, [pageData.id]);
 
+
+
   if (isLoading) {
     return <LoadingSpinner size="lg" text="Cargando página..." className="min-h-screen" />;
   }
@@ -994,36 +997,15 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       )}
       
       <div className="flex flex-1 overflow-hidden">
-        {/* Pages Sidebar */}
-        {showSidebar && (
-          <PageSidebar 
-            currentPageId={pageData.id} 
-            onPageSelect={handlePageSelect} 
-          />
-        )}
+
         
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto">
-          {/* Tabs */}
+          {/* Contenido - sin TabsList */}
           <div className="p-6 space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-6 sticky top-0 z-10 bg-white">
-                <TabsTrigger value="seo" className="flex items-center">
-                  <SearchIcon className="h-4 w-4 mr-2" />
-                  <span>SEO</span>
-                </TabsTrigger>
-                <TabsTrigger value="sections" className="flex items-center">
-                  <LayoutIcon className="h-4 w-4 mr-2" />
-                  <span>Secciones</span>
-                </TabsTrigger>
-                <TabsTrigger value="details" className="flex items-center">
-                  <FileTextIcon className="h-4 w-4 mr-2" />
-                  <span>Detalles</span>
-                </TabsTrigger>
-              </TabsList>
-              
+            <div className="w-full">
               {/* Sections Tab */}
-              <TabsContent value="sections" className="space-y-6">
+              <div className={activeTab === 'sections' ? 'block space-y-6' : 'hidden'}>
                 <SectionsTab
                   pageSections={pageSections}
                   isSaving={isSaving}
@@ -1047,10 +1029,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onSavePage={handleSavePage}
                   sectionRef={sectionRef}
                 />
-              </TabsContent>
+              </div>
               
               {/* SEO Tab */}
-              <TabsContent value="seo" className="space-y-6">
+              <div className={activeTab === 'seo' ? 'block space-y-6' : 'hidden'}>
                 <SEOTab
                   pageData={pageData}
                   locale={locale}
@@ -1059,10 +1041,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onContinue={() => setActiveTab('sections')}
                   onSEOChange={handleSEOChange}
                 />
-              </TabsContent>
+              </div>
               
               {/* Page Details Tab */}
-              <TabsContent value="details" className="space-y-6">
+              <div className={activeTab === 'details' ? 'block space-y-6' : 'hidden'}>
                 <PageDetailsTab 
                   pageData={pageData}
                   locale={locale}
@@ -1072,8 +1054,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onCancel={handleCancel}
                   onContinue={() => setActiveTab('sections')}
                 />
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </div>
         </div>
       </div>

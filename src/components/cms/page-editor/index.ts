@@ -14,4 +14,3 @@ export { default as PagesEditor } from './PagesEditor';
 export { default as CSSInjector } from './CSSInjector';
 export { default as PagePreview } from './PagePreview';
 export { PagesSidebar } from './PagesSidebar';
-export { PageSidebar } from './PageSidebar'; 
