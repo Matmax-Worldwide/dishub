@@ -7,6 +7,8 @@ import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, 
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
 import { Button } from '@/components/ui/button';
+import { FormStyles } from './sections/FormStyleConfig';
+import { FormCustomConfig } from './sections/FormConfig';
 
 // Footer types for proper typing
 interface SocialLink {
@@ -25,7 +27,7 @@ interface FooterColumn {
 }
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form';
 
 export interface Component {
   id: string;
@@ -62,6 +64,9 @@ const componentMap = {
   }),
   Footer: dynamic(() => import('./sections/FooterSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Footer...</div>
+  }),
+  Form: dynamic(() => import('./sections/FormSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Form...</div>
   }),
 };
 
@@ -730,6 +735,30 @@ function SectionManagerBase({
           </div>
         )
       },
+      {
+        type: 'Form',
+        title: 'Form Component',
+        description: 'Add forms for user interaction and data collection',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M7 8H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M7 12H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M7 16H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        color: 'text-purple-500 bg-purple-100 border-purple-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-md">
+            <div className="h-2 bg-purple-200 rounded w-1/3 mb-3"></div>
+            <div className="h-6 bg-white border border-purple-200 rounded mb-2"></div>
+            <div className="h-6 bg-white border border-purple-200 rounded mb-2"></div>
+            <div className="h-6 bg-white border border-purple-200 rounded mb-3"></div>
+            <div className="w-1/3 h-8 bg-purple-500 rounded-md self-start"></div>
+          </div>
+        )
+      },
     ];
 
     // Ensure sliderPosition is in bounds
@@ -1379,6 +1408,23 @@ function SectionManagerBase({
                 backgroundColor={component.data.backgroundColor as string || "#111827"}
                 textColor={component.data.textColor as string || "#f9fafb"}
                 showYear={component.data.showYear as boolean ?? true}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Form': {
+          const FormComponent = componentMap.Form;
+          return (
+            <div {...containerProps}>
+              <FormComponent
+                title={component.data.title as string}
+                description={component.data.description as string}
+                formId={component.data.formId as string}
+                styles={component.data.styles as FormStyles}
+                customConfig={component.data.customConfig as FormCustomConfig}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
