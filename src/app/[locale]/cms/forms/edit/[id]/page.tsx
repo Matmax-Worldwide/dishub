@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { useFormComponent } from '@/components/cms/forms/hooks/useFormComponent';
 import { FormFieldBase, FormBase, FormFieldInput, FormFieldType } from '@/types/forms';
 import { ArrowLeft, Save, PlusCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function EditFormPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  // Unwrap params with React.use()
-  const resolvedParams = typeof params === 'object' && 'then' in params ? use(params) : params;
-  const formId = resolvedParams.id;
+interface RouteParams {
+  locale: string;
+  id: string;
+  [key: string]: string;
+}
+
+export default function EditFormPage() {
+  const params = useParams<RouteParams>();
+  const { id } = params;
   
   const { loadForm, updateForm, createFormField } = useFormComponent();
   const [form, setForm] = useState<FormBase | null>(null);
@@ -26,22 +32,36 @@ export default function EditFormPage({ params }: { params: Promise<{ id: string 
   });
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchForm = async () => {
+      if (!id) return;
+      
       try {
-        const formData = await loadForm(formId);
-        if (formData) {
+        setLoading(true);
+        const formData = await loadForm(id);
+        
+        if (isMounted && formData) {
           setForm(formData as FormBase);
         }
       } catch (err) {
-        setError('Failed to load form');
-        console.error('Error loading form:', err);
+        if (isMounted) {
+          setError('Failed to load form');
+          console.error('Error loading form:', err);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchForm();
-  }, [formId, loadForm]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [id, loadForm]);
 
   const handleGeneralFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -138,10 +158,16 @@ export default function EditFormPage({ params }: { params: Promise<{ id: string 
       const result = await createFormField(fieldData);
       
       if (result.success && result.field) {
-        // Update the form data with the latest from the server
-        const updatedForm = await loadForm(form.id);
-        if (updatedForm) {
-          setForm(updatedForm as FormBase);
+        if (form.fields) {
+          setForm({
+            ...form,
+            fields: [...form.fields, result.field]
+          });
+        } else {
+          setForm({
+            ...form,
+            fields: [result.field]
+          });
         }
         
         // Reset the new field form
