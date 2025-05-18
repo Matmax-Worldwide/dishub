@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import graphqlClient from '@/lib/graphql-client';
 import { FormBase } from '@/types/forms';
+import { useRouter } from 'next/navigation';
 
 import { FormPageHeader } from './FormPageHeader';
 import { FormToolbar } from './FormToolbar';
@@ -12,11 +13,12 @@ import { FormEmptyState } from './FormEmptyState';
 import { FormLoading } from './FormLoading';
 
 export function FormPageContent() {
+  const router = useRouter();
   const [forms, setForms] = useState<FormBase[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortField, setSortField] = useState<'title' | 'createdAt'>('createdAt');
+  const [sortField, setSortField] = useState<'title' | 'createdAt' | 'updatedAt'>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Load forms on component mount
@@ -36,9 +38,37 @@ export function FormPageContent() {
     }
   }
 
+  // Navigate to create form page
+  const handleCreateForm = () => {
+    router.push('/cms/forms/create');
+  };
+
+  // Handle search change
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Handle view mode change
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+  };
+  
+  // Clear search query
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
+  // Handle editing a form
+  const handleEditForm = (id: string) => {
+    router.push(`/cms/forms/edit/${id}`);
+  };
+
   // Handle form deletion
-  const handleDeleteForm = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete the form "${title}"?`)) {
+  const handleDeleteForm = async (id: string) => {
+    const form = forms.find(f => f.id === id);
+    if (!form) return;
+
+    if (!window.confirm(`Are you sure you want to delete the form "${form.title}"?`)) {
       return;
     }
 
@@ -55,39 +85,8 @@ export function FormPageContent() {
     }
   };
 
-  // Handle duplicating a form
-  const handleDuplicateForm = async (form: FormBase) => {
-    try {
-      const newFormInput = {
-        title: `${form.title} (Copy)`,
-        description: form.description,
-        slug: `${form.slug}-copy-${Date.now().toString().slice(-6)}`,
-        isMultiStep: form.isMultiStep,
-        isActive: form.isActive,
-        successMessage: form.successMessage,
-        redirectUrl: form.redirectUrl,
-        submitButtonText: form.submitButtonText,
-        submitButtonStyle: form.submitButtonStyle,
-        layout: form.layout,
-        styling: form.styling,
-        pageId: form.pageId
-      };
-
-      const result = await graphqlClient.createForm(newFormInput);
-      if (result.success && result.form) {
-        setForms([...forms, result.form]);
-        alert('Form duplicated successfully');
-      } else {
-        alert(`Failed to duplicate form: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error duplicating form:', error);
-      alert('An error occurred while duplicating the form. Please try again.');
-    }
-  };
-
-  // Toggle sort direction or change sort field
-  const handleSort = (field: 'title' | 'createdAt') => {
+  // Handle sort change
+  const handleSort = (field: 'title' | 'createdAt' | 'updatedAt') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -108,6 +107,10 @@ export function FormPageContent() {
       return sortDirection === 'asc'
         ? a.title.localeCompare(b.title)
         : b.title.localeCompare(a.title);
+    } else if (sortField === 'updatedAt') {
+      const dateA = new Date(a.updatedAt || '').getTime();
+      const dateB = new Date(b.updatedAt || '').getTime();
+      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
     } else {
       // Sort by createdAt
       const dateA = new Date(a.createdAt || '').getTime();
@@ -118,18 +121,19 @@ export function FormPageContent() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <FormPageHeader />
+      <FormPageHeader 
+        title="Forms" 
+        onCreateClick={handleCreateForm} 
+        createButtonLabel="Create Form" 
+      />
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         {/* Toolbar */}
         <FormToolbar 
           searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           viewMode={viewMode}
-          setViewMode={setViewMode}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          handleSort={handleSort}
+          onSearchChange={handleSearchChange}
+          onViewModeChange={handleViewModeChange}
         />
 
         {/* Content */}
@@ -139,18 +143,25 @@ export function FormPageContent() {
           viewMode === 'grid' ? (
             <FormsGridView 
               forms={sortedForms} 
-              onDuplicate={handleDuplicateForm} 
-              onDelete={handleDeleteForm} 
+              onEdit={handleEditForm}
+              onDelete={handleDeleteForm}
             />
           ) : (
             <FormsListView 
               forms={sortedForms} 
-              onDuplicate={handleDuplicateForm} 
-              onDelete={handleDeleteForm} 
+              onEdit={handleEditForm}
+              onDelete={handleDeleteForm}
+              onSort={handleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
             />
           )
         ) : (
-          <FormEmptyState searchQuery={searchQuery} />
+          <FormEmptyState 
+            searchQuery={searchQuery} 
+            onClearSearch={handleClearSearch}
+            onCreateForm={handleCreateForm}
+          />
         )}
       </div>
     </div>
