@@ -1,5 +1,5 @@
 // Page components
-export { default as FormsPage } from './page';
+// Removing the export for FormsPage as page.ts doesn't exist in this directory
 export { FormPageContent } from './FormPageContent';
 export { FormPageHeader } from './FormPageHeader';
 export { FormToolbar } from './FormToolbar';
