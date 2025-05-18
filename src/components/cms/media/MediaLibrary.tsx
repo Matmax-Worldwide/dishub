@@ -6,7 +6,7 @@ import { MediaList } from './MediaList';
 import { EmptyState } from './EmptyState';
 import { FolderNavigation } from './FolderNavigation';
 import { MediaSelectionActions } from './MediaSelectionActions';
-import { MediaItem } from './types';
+import { MediaItem, Folder } from './types';
 import { AlertCircle, Settings } from 'lucide-react';
 import { useRef } from 'react';
 
@@ -14,12 +14,14 @@ export interface MediaLibraryProps {
   onSelect?: (mediaItem: MediaItem) => void;
   isSelectionMode?: boolean;
   showHeader?: boolean;
+  onFolderChange?: (folder: string) => void;
 }
 
 export function MediaLibrary({ 
   onSelect, 
   isSelectionMode = false,
-  showHeader = false
+  showHeader = false,
+  onFolderChange
 }: MediaLibraryProps) {
   const {
     isLoading,
@@ -83,6 +85,41 @@ export function MediaLibrary({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileUpload(e.dataTransfer.files);
+    }
+  };
+  
+  // Handle folder navigation with callback
+  const handleFolderNavigation = (folder: Folder) => {
+    // Log folder navigation for debugging
+    console.log(`MediaLibrary: Navigating to folder`, {
+      folderName: folder.name,
+      folderPath: folder.path,
+      folderId: folder.id,
+      isRoot: folder.isRoot
+    });
+    
+    // Navigate to the folder in the media library
+    navigateToFolder(folder);
+    
+    // Call the onFolderChange prop if provided
+    if (onFolderChange) {
+      console.log(`MediaLibrary: Calling onFolderChange with path: ${folder.path}`);
+      onFolderChange(folder.path);
+    }
+  };
+  
+  // Handle navigate back with callback
+  const handleNavigateBack = () => {
+    console.log('MediaLibrary: Navigating back from folder:', currentFolder.path);
+    
+    navigateBack();
+    
+    // Call the onFolderChange prop with the current folder after navigating back
+    if (onFolderChange) {
+      setTimeout(() => {
+        console.log(`MediaLibrary: After navigation, current folder is: ${currentFolder.path}`);
+        onFolderChange(currentFolder.path);
+      }, 50);
     }
   };
 
@@ -159,8 +196,8 @@ export function MediaLibrary({
           <FolderNavigation
             currentFolder={currentFolder}
             folders={folders}
-            onNavigateFolder={navigateToFolder}
-            onNavigateBack={navigateBack}
+            onNavigateFolder={handleFolderNavigation}
+            onNavigateBack={handleNavigateBack}
             onCreateFolder={createFolder}
             onDeleteFolder={deleteFolder}
             onRenameFolder={renameFolder}

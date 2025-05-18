@@ -104,6 +104,80 @@ const CSSInjector: React.FC = () => {
       .fixed.inset-0.bg-black\/50 {
         background-color: rgba(0, 0, 0, 0.75) !important;
       }
+
+      /* CSS for drag and drop functionality */
+      .section-container {
+        position: relative;
+        transition: padding 0.2s ease-in-out;
+      }
+      
+      .section-container.dragging {
+        opacity: 0.5;
+      }
+      
+      .section-container.drag-over {
+        padding-top: 30px;
+        padding-bottom: 30px;
+      }
+      
+      .drag-handle {
+        cursor: grab;
+        z-index: 20;
+      }
+      
+      .section-controls {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 5px;
+        z-index: 10;
+      }
+      
+      /* Ensure modals and dialogs always have the highest z-index */
+      .modal, .dialog, .popover {
+        z-index: 9999 !important;
+      }
+      
+      /* Make the media selector appear above everything else */
+      .media-selector-overlay,
+      #media-selector-root,
+      [id^="media-selector"] {
+        z-index: 2147483647 !important; /* Máximo z-index posible */
+        position: fixed !important;
+        isolation: isolate !important;
+      }
+      
+      /* Ensure the MediaSelector and its children have proper stacking */
+      .media-selector-overlay > *,
+      #media-selector-root > *,
+      [id^="media-selector"] > * {
+        z-index: 2147483647 !important; 
+        position: relative !important;
+      }
+      
+      /* Específicamente para portales montados en el body */
+      body > [id^="media-selector"],
+      body > .fixed.inset-0 {
+        z-index: 2147483647 !important;
+      }
+      
+      /* Special selector for the HeaderSection MediaSelector */
+      body > .fixed.inset-0[style*="z-index: 2147483647"] {
+        z-index: 2147483647 !important;
+      }
+      
+      /* Priority levels for z-index */
+      .z-priority-high {
+        z-index: 9999 !important;
+      }
+      
+      .z-priority-highest {
+        z-index: 999999 !important;
+      }
+      
+      .z-priority-lower {
+        z-index: 1 !important;
+      }
     `;
     document.head.appendChild(styleTag);
     

@@ -32,6 +32,9 @@ export function FolderNavigation({
 
   const handleCreateFolder = () => {
     if (!newFolderName.trim()) return;
+    
+    // Prevent default events
+    console.log(`Creating folder with name: ${newFolderName.trim()}`);
     onCreateFolder(newFolderName.trim());
     setNewFolderName('');
     setShowNewFolderInput(false);
@@ -39,6 +42,9 @@ export function FolderNavigation({
 
   const handleDeleteFolder = (e: React.MouseEvent, folder: Folder) => {
     e.stopPropagation(); // Prevent navigating to the folder
+    e.preventDefault();
+    
+    console.log(`Deleting folder: ${folder.name}, Path: ${folder.path}`);
     if (onDeleteFolder) {
       onDeleteFolder(folder.path);
     }
@@ -81,14 +87,28 @@ export function FolderNavigation({
     setEditingName('');
   };
 
+  const handleNavigateFolder = (e: React.MouseEvent, folder: Folder) => {
+    // Prevent event bubbling
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log(`Navigating to folder: ${folder.name}, Path: ${folder.path}, ID: ${folder.id}`);
+    onNavigateFolder(folder);
+  };
+
   return (
-    <div className="mb-4">
+    <div className="mb-4 folder-navigation-container" onClick={(e) => e.stopPropagation()}>
       {/* Bread crumb navigation */}
       <div className="flex flex-col space-y-3">
-        <div className="flex items-center mb-1 text-sm bg-gray-50 p-2 rounded-md">
+        <div className="flex items-center mb-1 text-sm bg-gray-50 p-2 rounded-md"
+             onClick={(e) => e.stopPropagation()}>
           {!currentFolder.isRoot && (
             <button 
-              onClick={onNavigateBack}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onNavigateBack();
+              }}
               className="inline-flex items-center px-2 py-1 mr-2 text-xs bg-white rounded-md border border-gray-200 hover:bg-gray-50"
               title="Volver atrás"
             >
@@ -100,12 +120,16 @@ export function FolderNavigation({
           <div className="flex items-center flex-wrap gap-1">
             <button 
               className={`inline-flex items-center px-2 py-1 rounded-md ${currentFolder.isRoot ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
-              onClick={() => onNavigateFolder({
-                id: 'root',
-                name: 'Media Library',
-                path: '',
-                isRoot: true
-              })}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onNavigateFolder({
+                  id: 'root',
+                  name: 'Media Library',
+                  path: '',
+                  isRoot: true
+                });
+              }}
               title="Ir a la biblioteca principal"
             >
               <HomeIcon className="h-3 w-3 mr-1" />
@@ -161,13 +185,21 @@ export function FolderNavigation({
                       />
                       <div className="flex">
                         <button
-                          onClick={completeRenaming}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            completeRenaming();
+                          }}
                           className="px-1 py-1 bg-blue-500 text-white text-xs"
                         >
                           <CheckIcon className="h-3 w-3" />
                         </button>
                         <button
-                          onClick={cancelRenaming}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            cancelRenaming();
+                          }}
                           className="px-1 py-1 bg-gray-200 text-gray-700 text-xs"
                         >
                           <XIcon className="h-3 w-3" />
@@ -181,8 +213,10 @@ export function FolderNavigation({
                           ? 'bg-blue-50 text-blue-700 font-medium' 
                           : 'bg-white border border-gray-200 hover:bg-gray-50'
                       }`}
-                      onClick={() => onNavigateFolder(folderObj)}
-                      onDoubleClick={() => {
+                      onClick={(e) => handleNavigateFolder(e, folderObj)}
+                      onDoubleClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (isLastSegment && onRenameFolder) {
                           startRenaming(folderObj);
                         }

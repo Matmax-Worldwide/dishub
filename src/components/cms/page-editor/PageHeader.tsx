@@ -27,7 +27,7 @@ export default function PageHeader({
     
 
   return (
-    <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-xl font-bold tracking-tight mr-4 max-w-md truncate">{title}</h1>

@@ -1246,7 +1246,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   }, [inspectionMode, handleInspectElement]);
 
   return (
-    <div className="my-6" data-section-id={normalizedSectionId}>
+    <div className="my-6" data-section-id={normalizedSectionId} style={{ zIndex: 1, position: 'relative' }}>
       {isEditing && (
         <div className="mb-4">
           <div className="flex justify-between items-center">
@@ -1348,16 +1348,15 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 <div className="relative">
                   <div 
                     className={cn(
-                      "preview-container w-full overflow-x-hidden transition-all duration-300 border rounded-md shadow-sm",
+                      " w-full overflow-x-hidden transition-all duration-300 border rounded-md shadow-sm",
                       devicePreview === 'desktop' ? 'h-auto min-h-[400px]' : 'mx-auto',
                       devicePreview === 'mobile' ? 'w-[375px]' : 'w-full'
                     )}
-                    style={{ position: 'relative', zIndex: 1 }}
+                    style={{ position: 'relative', zIndex: 0 }}
                     ref={previewContainerRef}
                   >
-                    
                     {/* Browser-like container for preview */}
-                    <div className="pl-1">
+                    <div className="px-1">
                       {/* Device preview switcher */}
                       <div className="flex justify-between mb-2 p-2">
                         {/* Inspect button on the left side */}

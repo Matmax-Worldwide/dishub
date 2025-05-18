@@ -161,7 +161,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
     console.log(`Toggle button clicked for component ${component.id}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
     
     if (onToggleCollapse) {
-      // We're passing the *current* state for the component
+      // Pass the current collapse state to the parent
       // The parent will invert it (expand if collapsed, collapse if expanded)
       onToggleCollapse(component.id, isCollapsed);
     }
@@ -239,8 +239,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
               className={cn(
                 "p-1.5 rounded transition-all small-toggle-button",
                 isCollapsed 
-                  ? "bg-primary/10 hover:bg-primary/20 text-primary expand-button bg-gradient-to-r from-blue-500 to-sky-400 text-white" 
-                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground collapse-button bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                  ? "bg-primary/10 hover:bg-primary/20 text-primary expand-button" 
+                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground collapse-button"
               )}
               title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
               aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
@@ -939,14 +939,30 @@ function SectionManagerBase({
 
   // Initialize components as collapsed by default
   useEffect(() => {
-    // When components are loaded initially, they should start collapsed
+    // When components are loaded initially, only collapse some by default
     if (components.length > 0 && collapsedComponents.size === 0) {
-      // Start with all components collapsed by default
-      const allComponentIds = new Set(components.map(c => c.id));
-      setCollapsedComponents(allComponentIds);
-      console.log('Starting with all components collapsed');
+      // Start with only non-active components collapsed
+      const nonActiveComponentIds = new Set<string>();
+      
+      components.forEach(component => {
+        // If there's an activeComponentId, don't collapse it initially
+        if (activeComponentId && component.id === activeComponentId) {
+          return;
+        }
+        
+        // Don't collapse the first component by default for better UX
+        if (components.indexOf(component) === 0) {
+          return;
+        }
+        
+        // Collapse all other components
+        nonActiveComponentIds.add(component.id);
+      });
+      
+      setCollapsedComponents(nonActiveComponentIds);
+      console.log('Starting with most components collapsed, except active and first component');
     }
-  }, [componentsDataString]); // Only run when component data actually changes
+  }, [componentsDataString, activeComponentId, components]);
 
   // Auto-expand active component (but respect user's explicit collapse actions)
   useEffect(() => {
@@ -970,17 +986,13 @@ function SectionManagerBase({
     // Note: isCollapsed parameter now represents the CURRENT state, not the target state
     // So if isCollapsed is true, we need to expand it, and vice versa
     
-    const wasCollapsed = isCollapsed;
-    const willBeCollapsed = !wasCollapsed;
-    
-    console.log(`Component ${componentId} WAS ${wasCollapsed ? 'collapsed' : 'expanded'}, WILL BE ${willBeCollapsed ? 'collapsed' : 'expanded'}`);
-    
+    // Create new set from previous state
     setCollapsedComponents(prev => {
       const newSet = new Set(prev);
       
       // If currently collapsed, expand it (remove from set)
       // If currently expanded, collapse it (add to set)
-      if (wasCollapsed) {
+      if (isCollapsed) {
         console.log(`Expanding component ${componentId}`);
         newSet.delete(componentId);
         
@@ -1011,7 +1023,7 @@ function SectionManagerBase({
     // Get all component IDs
     const allComponentIds = new Set(components.map(c => c.id));
     
-    // Update both state variables
+    // Update both state variables to collapse all components
     setCollapsedComponents(allComponentIds);
     setUserCollapsedComponents(allComponentIds);
     
@@ -1020,7 +1032,7 @@ function SectionManagerBase({
 
   // Function to expand all components
   const expandAllComponents = useCallback(() => {
-    // Clear both sets
+    // Clear both sets to expand all components
     setCollapsedComponents(new Set());
     setUserCollapsedComponents(new Set());
     
@@ -1096,33 +1108,16 @@ function SectionManagerBase({
     setPendingUpdate({ component, data: updatedData });
   }, []);
 
-  // Handle when a component is clicked to collapse others
+  // Handle when a component is clicked
   const handleComponentClick = useCallback((componentId: string) => {
     // Set as active component
     if (onClickComponent) {
       onClickComponent(componentId);
     }
     
-    // We're no longer toggling components when clicked
-    // Instead, we only collapse other components
-    setCollapsedComponents(prev => {
-      const newSet = new Set<string>();
-      
-      // Add all component IDs to the set (all collapsed) except the active one
-      components.forEach(component => {
-        if (component.id !== componentId) {
-          newSet.add(component.id);
-        } else {
-          // For the active component, preserve its current state
-          if (prev.has(componentId)) {
-            newSet.add(componentId);
-          }
-        }
-      });
-      
-      return newSet;
-    });
-  }, [components, onClickComponent]);
+    // No longer collapse other components when one is clicked
+    // Just set the active component and let explicit collapse/expand handle visibility
+  }, [onClickComponent]);
 
   // Manejar el movimiento de componentes hacia arriba
   const handleMoveComponentUp = useCallback((componentId: string) => {
@@ -1448,7 +1443,7 @@ function SectionManagerBase({
   return (
     <div className="relative">
       {isEditing && (
-        <div className="flex justify-between items-center mb-2 sticky top-0 z-50 bg-white border-b pb-2">
+        <div className="flex justify-between items-center mb-2 top-0 bg-white border-b pb-2">
           <div className="flex items-center">
             <h2 className="text-lg font-medium text-gray-900 mr-4">Page Components</h2>
             <div className="flex space-x-2">
