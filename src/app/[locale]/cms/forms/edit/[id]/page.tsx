@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useFormComponent } from '@/components/cms/forms/hooks/useFormComponent';
 import { FormFieldBase, FormBase, FormFieldInput, FormFieldType } from '@/types/forms';
 import { ArrowLeft, Save, PlusCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function EditFormPage({ params }: { params: { id: string } }) {
+export default function EditFormPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  // Unwrap params with React.use()
+  const resolvedParams = typeof params === 'object' && 'then' in params ? use(params) : params;
+  const formId = resolvedParams.id;
+  
   const { loadForm, updateForm, createFormField } = useFormComponent();
   const [form, setForm] = useState<FormBase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +28,10 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        await loadForm(params.id);
+        const formData = await loadForm(formId);
+        if (formData) {
+          setForm(formData as FormBase);
+        }
       } catch (err) {
         setError('Failed to load form');
         console.error('Error loading form:', err);
@@ -34,15 +41,7 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
     };
 
     fetchForm();
-  }, [params.id, loadForm]);
-
-  // Update local form state when useFormComponent form updates
-  useEffect(() => {
-    const currentForm = loadForm(params.id);
-    if (currentForm) {
-      setForm(currentForm as unknown as FormBase);
-    }
-  }, [params.id, loadForm]);
+  }, [formId, loadForm]);
 
   const handleGeneralFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -139,8 +138,11 @@ export default function EditFormPage({ params }: { params: { id: string } }) {
       const result = await createFormField(fieldData);
       
       if (result.success && result.field) {
-        // Reload the form to get the updated fields
-        await loadForm(form.id);
+        // Update the form data with the latest from the server
+        const updatedForm = await loadForm(form.id);
+        if (updatedForm) {
+          setForm(updatedForm as FormBase);
+        }
         
         // Reset the new field form
         setNewField({

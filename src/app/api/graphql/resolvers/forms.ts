@@ -1,7 +1,110 @@
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { NextRequest } from 'next/server';
-import { SubmissionStatus } from '@prisma/client';
+import { SubmissionStatus, FormFieldType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+// Define interfaces for the input types
+interface FormInput {
+  title: string;
+  description?: string;
+  slug: string;
+  isMultiStep?: boolean;
+  isActive?: boolean;
+  successMessage?: string;
+  redirectUrl?: string;
+  submitButtonText?: string;
+  submitButtonStyle?: string;
+  layout?: string;
+  styling?: Prisma.InputJsonValue;
+  pageId?: string;
+}
+
+interface FormStepInput {
+  formId: string;
+  title: string;
+  description?: string;
+  order: number;
+  isVisible?: boolean;
+  validationRules?: Prisma.InputJsonValue;
+}
+
+interface FormFieldInput {
+  formId?: string;
+  stepId?: string;
+  label: string;
+  name: string;
+  type: FormFieldType;
+  placeholder?: string;
+  defaultValue?: string;
+  helpText?: string;
+  isRequired?: boolean;
+  order: number;
+  options?: Prisma.InputJsonValue;
+  validationRules?: Prisma.InputJsonValue;
+  styling?: Prisma.InputJsonValue;
+  width?: number;
+}
+
+interface FormSubmissionInput {
+  formId: string;
+  data: Prisma.InputJsonValue;
+  metadata?: Prisma.InputJsonValue;
+}
+
+interface FormParent {
+  id: string;
+  fields?: FormField[];
+  steps?: FormStep[];
+  submissions?: FormSubmission[];
+  pageId?: string;
+}
+
+interface FormStep {
+  id: string;
+  formId: string;
+  title: string;
+  description?: string;
+  order: number;
+  isVisible: boolean;
+  validationRules?: Prisma.JsonValue;
+}
+
+interface FormField {
+  id: string;
+  formId?: string;
+  stepId?: string;
+  label: string;
+  name: string;
+  type: FormFieldType;
+}
+
+interface FormSubmission {
+  id: string;
+  formId: string;
+  data: Prisma.JsonValue;
+  metadata?: Prisma.JsonValue;
+  status?: SubmissionStatus;
+}
+
+interface FormStepParent {
+  id: string;
+  formId: string;
+  form?: FormParent;
+  fields?: FormField[];
+}
+
+interface FormFieldParent {
+  id: string;
+  formId?: string;
+  stepId?: string;
+}
+
+interface FormSubmissionParent {
+  id: string;
+  formId: string;
+  form?: FormParent;
+}
 
 export const formResolvers = {
   Query: {
@@ -317,7 +420,7 @@ export const formResolvers = {
   
   Mutation: {
     // Create a new form
-    createForm: async (_parent: unknown, args: { input: any }, context: { req: NextRequest }) => {
+    createForm: async (_parent: unknown, args: { input: FormInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -354,7 +457,7 @@ export const formResolvers = {
     },
     
     // Update a form
-    updateForm: async (_parent: unknown, args: { id: string, input: any }, context: { req: NextRequest }) => {
+    updateForm: async (_parent: unknown, args: { id: string, input: FormInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -426,7 +529,7 @@ export const formResolvers = {
     },
     
     // Create a form step
-    createFormStep: async (_parent: unknown, args: { input: any }, context: { req: NextRequest }) => {
+    createFormStep: async (_parent: unknown, args: { input: FormStepInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -460,7 +563,7 @@ export const formResolvers = {
     },
     
     // Update a form step
-    updateFormStep: async (_parent: unknown, args: { id: string, input: any }, context: { req: NextRequest }) => {
+    updateFormStep: async (_parent: unknown, args: { id: string, input: FormStepInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -529,7 +632,7 @@ export const formResolvers = {
     },
     
     // Create a form field
-    createFormField: async (_parent: unknown, args: { input: any }, context: { req: NextRequest }) => {
+    createFormField: async (_parent: unknown, args: { input: FormFieldInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -572,7 +675,7 @@ export const formResolvers = {
     },
     
     // Update a form field
-    updateFormField: async (_parent: unknown, args: { id: string, input: any }, context: { req: NextRequest }) => {
+    updateFormField: async (_parent: unknown, args: { id: string, input: FormFieldInput }, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -641,7 +744,7 @@ export const formResolvers = {
     },
     
     // Submit a form
-    submitForm: async (_parent: unknown, args: { input: { formId: string, data: any, metadata?: any } }) => {
+    submitForm: async (_parent: unknown, args: { input: FormSubmissionInput }) => {
       try {
         const form = await prisma.form.findUnique({
           where: { id: args.input.formId },
@@ -758,7 +861,7 @@ export const formResolvers = {
   
   // Type resolvers
   Form: {
-    fields: (parent: any) => {
+    fields: (parent: FormParent) => {
       if (parent.fields) {
         return parent.fields;
       }
@@ -767,7 +870,7 @@ export const formResolvers = {
         orderBy: { order: 'asc' },
       });
     },
-    steps: (parent: any) => {
+    steps: (parent: FormParent) => {
       if (parent.steps) {
         return parent.steps;
       }
@@ -776,7 +879,7 @@ export const formResolvers = {
         orderBy: { order: 'asc' },
       });
     },
-    submissions: (parent: any) => {
+    submissions: (parent: FormParent) => {
       if (parent.submissions) {
         return parent.submissions;
       }
@@ -785,7 +888,7 @@ export const formResolvers = {
         orderBy: { createdAt: 'desc' },
       });
     },
-    page: (parent: any) => {
+    page: (parent: FormParent) => {
       if (parent.pageId) {
         return prisma.page.findUnique({
           where: { id: parent.pageId },
@@ -796,7 +899,7 @@ export const formResolvers = {
   },
   
   FormStep: {
-    form: (parent: any) => {
+    form: (parent: FormStepParent) => {
       if (parent.form) {
         return parent.form;
       }
@@ -804,7 +907,7 @@ export const formResolvers = {
         where: { id: parent.formId },
       });
     },
-    fields: (parent: any) => {
+    fields: (parent: FormStepParent) => {
       if (parent.fields) {
         return parent.fields;
       }
@@ -816,7 +919,7 @@ export const formResolvers = {
   },
   
   FormField: {
-    form: (parent: any) => {
+    form: (parent: FormFieldParent) => {
       if (parent.formId) {
         return prisma.form.findUnique({
           where: { id: parent.formId },
@@ -824,7 +927,7 @@ export const formResolvers = {
       }
       return null;
     },
-    step: (parent: any) => {
+    step: (parent: FormFieldParent) => {
       if (parent.stepId) {
         return prisma.formStep.findUnique({
           where: { id: parent.stepId },
@@ -835,7 +938,7 @@ export const formResolvers = {
   },
   
   FormSubmission: {
-    form: (parent: any) => {
+    form: (parent: FormSubmissionParent) => {
       if (parent.form) {
         return parent.form;
       }
