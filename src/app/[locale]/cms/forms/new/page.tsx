@@ -54,7 +54,7 @@ export default function NewFormPage() {
       const result = await createForm(formData);
       
       if (result.success && result.form) {
-        router.push(`/cms/forms/edit/${result.form.id}`);
+        router.push('/cms/forms');
       } else {
         setError(result.error || 'Failed to create form');
       }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormComponent } from './hooks/useFormComponent';
-import { FormFieldBase, FormSubmissionInput, FormBase, FormSubmissionBase } from '@/types/forms';
+import { FormFieldBase, FormSubmissionInput, FormBase, FormSubmissionBase, FieldOption } from '@/types/forms';
 import graphqlClient from '@/lib/graphql-client';
 
 interface FormComponentProps {
@@ -30,7 +30,7 @@ export function FormComponent({
   const { form, loading, error } = useFormComponent(formId);
   
   // If no formId is provided but slug is, load the form by slug
-  useState(() => {
+  useEffect(() => {
     const loadFormBySlug = async () => {
       if (!formId && slug) {
         try {
@@ -45,7 +45,7 @@ export function FormComponent({
     };
     
     loadFormBySlug();
-  });
+  }, [formId, slug]);
 
   if (loading) {
     return <div className="animate-pulse h-40 bg-gray-100 rounded-md"></div>;
@@ -205,7 +205,7 @@ export function FormComponent({
         return (
           <select {...commonProps}>
             <option value="">-- Select an option --</option>
-            {field.options?.map((option, idx) => (
+            {field.options?.items?.map((option: FieldOption, idx: number) => (
               <option key={idx} value={option.value} disabled={option.disabled}>
                 {option.label}
               </option>

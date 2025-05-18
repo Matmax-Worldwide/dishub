@@ -22,22 +22,34 @@ export default function FormsPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadForms = async () => {
       try {
-        setLoading(true);
+        if (isMounted) setLoading(true);
         setError(null);
         
         const formsList = await graphqlClient.getForms();
-        setForms(formsList);
+        
+        if (isMounted) {
+          setForms(formsList);
+          setLoading(false);
+        }
       } catch (err) {
-        setError('Failed to load forms');
-        console.error('Error loading forms:', err);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setError('Failed to load forms');
+          setLoading(false);
+          console.error('Error loading forms:', err);
+        }
       }
     };
     
     loadForms();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleCreateForm = () => {
@@ -51,20 +63,17 @@ export default function FormsPage() {
   const handleDeleteForm = async (formId: string) => {
     if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
       try {
-        setLoading(true);
         const result = await graphqlClient.deleteForm(formId);
         
         if (result.success) {
           // Remove the deleted form from the state
-          setForms(forms.filter(form => form.id !== formId));
+          setForms(prevForms => prevForms.filter(form => form.id !== formId));
         } else {
           setError(result.message || 'Failed to delete form');
         }
       } catch (err) {
         setError('An error occurred while deleting the form');
         console.error('Error deleting form:', err);
-      } finally {
-        setLoading(false);
       }
     }
   };

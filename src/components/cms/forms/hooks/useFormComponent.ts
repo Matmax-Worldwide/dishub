@@ -114,7 +114,23 @@ export function useFormComponent(initialFormId?: string) {
       setLoading(true);
       setError(null);
 
-      const result = await graphqlClient.createFormField(fieldData);
+      // Verify that the field data doesn't contain an id
+      // If it comes from FormFieldBase, it might have an id that needs to be removed
+      // to avoid GraphQL schema validation errors
+      const cleanedFieldData = { 
+        ...fieldData,
+        // Asegurarse que isRequired sea booleano y no undefined
+        isRequired: fieldData.isRequired === true
+      };
+      
+      if ('id' in cleanedFieldData) {
+        // Using type assertion to Record<string, unknown> to safely delete extra properties
+        delete (cleanedFieldData as Record<string, unknown>)['id'];
+      }
+
+      console.log('Sending to API with isRequired:', cleanedFieldData.isRequired);
+      
+      const result = await graphqlClient.createFormField(cleanedFieldData);
       
       if (result.success && result.field) {
         // If we have a form loaded, update it with the new field

@@ -47,6 +47,44 @@ export interface FieldOption {
   disabled?: boolean;
 }
 
+// Field options como objeto con propiedades específicas
+export interface FieldOptions {
+  // Opciones para campos de tipo SELECT y RADIO
+  items?: FieldOption[];
+  
+  // Opciones para RADIO
+  layout?: 'horizontal' | 'vertical';
+  
+  // Opciones para CHECKBOX
+  labelPosition?: 'left' | 'right';
+  linkText?: string;
+  linkUrl?: string;
+  
+  // Opciones para TEXTAREA
+  rows?: number;
+  resize?: boolean;
+  maxLength?: number;
+  
+  // Opciones para EMAIL
+  confirmEmail?: boolean;
+  confirmLabel?: string;
+  autocomplete?: string;
+  
+  // Opciones para PASSWORD
+  showToggle?: boolean;
+  minLength?: number;
+  passwordStrength?: 'none' | 'basic' | 'medium' | 'strong';
+  confirmPassword?: boolean;
+  
+  // Opciones para PHONE
+  format?: 'international' | 'national' | 'any';
+  defaultCountry?: string;
+  showCountryCode?: boolean;
+  
+  // Otras opciones comunes
+  [key: string]: unknown;
+}
+
 // Validation rules for form fields
 export interface ValidationRule {
   type: 'required' | 'email' | 'min' | 'max' | 'pattern' | 'custom';
@@ -69,7 +107,7 @@ export interface FormFieldBase {
   helpText?: string;
   isRequired: boolean;
   order: number;
-  options?: FieldOption[];
+  options?: FieldOptions;
   validationRules?: ValidationRule[];
   styling?: Record<string, unknown>;
   width?: number;
@@ -160,7 +198,7 @@ export interface FormFieldInput {
   helpText?: string;
   isRequired?: boolean;
   order?: number;
-  options?: FieldOption[];
+  options?: FieldOptions;
   validationRules?: ValidationRule[];
   styling?: Record<string, unknown>;
   width?: number;
