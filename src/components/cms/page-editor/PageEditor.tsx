@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { PanelLeftIcon, PanelRightIcon } from 'lucide-react';
+import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 import { useTabContext } from '@/app/[locale]/cms/pages/layout';
 import {
@@ -89,8 +89,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const [redirectTarget, setRedirectTarget] = useState('');
-  const [showSidebar, setShowSidebar] = useState(true);
-  
+
   // Section management states
   const [availableSections, setAvailableSections] = useState<AvailableSection[]>([]);
   const [pageSections, setPageSections] = useState<Section[]>([]);
@@ -125,11 +124,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         // Continue with page saving even if component saving fails
       }
     }
-  };
-
-  // Toggle sidebar visibility
-  const toggleSidebar = () => {
-    setShowSidebar(!showSidebar);
   };
 
   // Load page data
@@ -977,15 +971,42 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onCancel={handleCancel}
         onSave={handleSavePage}
       >
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={toggleSidebar} 
-          className="ml-4"
-          title={showSidebar ? "Hide Pages Sidebar" : "Show Pages Sidebar"}
-        >
-          {showSidebar ? <PanelLeftIcon className="h-4 w-4" /> : <PanelRightIcon className="h-4 w-4" />}
-        </Button>
+         {/* Tab Navigation Controls - con visual feedback */}
+         <div className="flex space-x-1">
+  <Button 
+    variant={activeTab === 'details' ? "secondary" : "ghost"}
+    size="sm" 
+    className="h-7 px-2 flex items-center gap-x-1"
+    title="Detalles"
+    onClick={() => setActiveTab('details')}
+  >
+    <Settings className="h-4 w-4" />
+    <span className="text-xs text-muted-foreground">Detalles</span>
+  </Button>
+  <Button 
+    variant={activeTab === 'sections' ? "secondary" : "ghost"}
+    size="sm" 
+    className="h-7 px-2 flex items-center gap-x-1"
+    title="Secciones"
+    onClick={() => setActiveTab('sections')}
+  >
+    <LayoutIcon className="h-4 w-4" />
+    <span className="text-xs text-muted-foreground">Secciones</span>
+  </Button>
+  <Button 
+    variant={activeTab === 'seo' ? "secondary" : "ghost"}
+    size="sm" 
+    className="h-7 px-2 flex items-center gap-x-1"
+    title="SEO"
+    onClick={() => setActiveTab('seo')}
+  >
+    <SearchIcon className="h-4 w-4" />
+    <span className="text-xs text-muted-foreground">SEO</span>
+  </Button>
+
+
+</div>
+          
       </PageHeader>
       
       {/* Notification */}

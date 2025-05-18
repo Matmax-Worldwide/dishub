@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, LayoutIcon, Settings } from 'lucide-react';
+import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, Settings, LayoutIcon } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -388,52 +388,14 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   return (
     <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
+        {/* Titulo y contador de páginas */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-medium">Pages</h3>
-          
-          {/* Tab Navigation Controls - con visual feedback */}
-          <div className="flex space-x-1">
-            <Button 
-              variant={activeTab === 'details' ? "secondary" : "ghost"}
-              size="icon" 
-              className="h-6 w-6" 
-              title="Detalles"
-              onClick={() => {
-                console.log('Sidebar: Clicking details tab, current:', activeTab);
-                setActiveTab('details');
-              }}
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </Button>
-            <Button 
-              variant={activeTab === 'seo' ? "secondary" : "ghost"}
-              size="icon" 
-              className="h-6 w-6" 
-              title="SEO"
-              onClick={() => {
-                console.log('Sidebar: Clicking SEO tab, current:', activeTab);
-                setActiveTab('seo');
-              }}
-            >
-              <SearchIcon className="h-3.5 w-3.5" />
-            </Button>
-            <Button 
-              variant={activeTab === 'sections' ? "secondary" : "ghost"}
-              size="icon" 
-              className="h-6 w-6" 
-              title="Secciones"
-              onClick={() => {
-                console.log('Sidebar: Clicking sections tab, current:', activeTab);
-                setActiveTab('sections');
-              }}
-            >
-              <LayoutIcon className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          
           <span className="text-xs text-gray-500">{filteredPages.length} {filteredPages.length === 1 ? 'page' : 'pages'}</span>
         </div>
-        <div className="relative">
+        
+        {/* Buscador */}
+        <div className="relative mb-3">
           <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             type="text"
@@ -442,6 +404,52 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 py-1 h-9 text-sm"
           />
+        </div>
+        
+        {/* Tabs de navegación */}
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-1 w-full">
+            <Button 
+              variant={activeTab === 'details' ? "secondary" : "ghost"}
+              size="sm" 
+              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
+              title="Detalles"
+              onClick={() => {
+                console.log('Sidebar: Clicking details tab, current:', activeTab);
+                setActiveTab('details');
+              }}
+            >
+              <span className="text-xs">Detalles</span>
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              variant={activeTab === 'sections' ? "secondary" : "ghost"}
+              size="sm" 
+              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
+              title="Secciones"
+              onClick={() => {
+                console.log('Sidebar: Clicking sections tab, current:', activeTab);
+                setActiveTab('sections');
+              }}
+            >
+              <span className="text-xs">Secciones</span>
+              <LayoutIcon className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              variant={activeTab === 'seo' ? "secondary" : "ghost"}
+              size="sm" 
+              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
+              title="SEO"
+              onClick={() => {
+                console.log('Sidebar: Clicking SEO tab, current:', activeTab);
+                setActiveTab('seo');
+              }}
+            >
+              <span className="text-xs">SEO</span>
+              <SearchIcon className="h-3.5 w-3.5" />
+            </Button>
+            
+          </div>
         </div>
       </div>
 

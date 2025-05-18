@@ -24,12 +24,12 @@ const PagesEditor: React.FC<PagesEditorProps> = ({ children }) => {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Pages Sidebar - This is the main focus of this component now */}
-      <PagesSidebar 
-        onPageSelect={handlePageSelect} 
-      />
+          <PagesSidebar 
+            onPageSelect={handlePageSelect} 
+          />
         
       {/* Main content area - now renders children instead of placeholder */}
-      <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto">
         {children || (
           <div className="flex items-center justify-center h-full p-6">
             <p className="text-gray-500 text-center">
