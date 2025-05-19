@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, Settings, LayoutIcon } from 'lucide-react';
+import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, Settings, LayoutIcon, EyeIcon } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -385,6 +385,13 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     }, 500);
   };
 
+  // Function to navigate to the published page
+  const handlePreviewPage = (e: React.MouseEvent, slug: string) => {
+    e.stopPropagation(); // Prevent triggering the parent click handler
+    // Navigate to the actual page (not the CMS edit page)
+    window.open(`/${locale}/${slug}`, '_blank');
+  };
+
   return (
     <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
@@ -496,12 +503,23 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
                       {getPageIcon(page.pageType)}
                       <span className={`ml-2 text-sm font-medium truncate ${page.slug === currentSlug ? 'text-blue-800' : 'text-gray-700'}`}>{page.title}</span>
                     </div>
-                    {page.isPublished && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">
-                        <CheckIcon className="h-3 w-3 mr-1" />
-                        Live
-                      </Badge>
-                    )}
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        title="Preview page"
+                        onClick={(e) => handlePreviewPage(e, page.slug)}
+                      >
+                        <EyeIcon className="h-3.5 w-3.5 text-gray-500 hover:text-blue-500" />
+                      </Button>
+                      {page.isPublished && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">
+                          <CheckIcon className="h-3 w-3 mr-1" />
+                          Live
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
