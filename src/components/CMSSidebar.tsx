@@ -1,8 +1,32 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard,
+  FileText,
+  Menu, 
+  FormInput, 
+  Image as ImageIcon, 
+  Settings,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut
+} from 'lucide-react';
+
+import { 
+  Sidebar, 
+  SidebarProvider, 
+  SidebarHeader, 
+  SidebarContent, 
+  SidebarFooter,
+  SidebarGroup,
+  SidebarItem,
+  SidebarCollapseButton,
+  useSidebar
+} from '@/components/ui/sidebar';
 
 interface CMSSidebarProps {
   dictionary?: {
@@ -16,6 +40,22 @@ interface CMSSidebarProps {
     };
   };
   locale: string;
+}
+
+// Custom component for the collapsible button with dynamic icon
+function CollapsibleButton({ className = "" }) {
+  const { collapsed } = useSidebar();
+  
+  return (
+    <SidebarCollapseButton 
+      icon={
+        collapsed 
+          ? <PanelLeftOpen className="h-4 w-4 sidebar-collapse-icon" /> 
+          : <PanelLeftClose className="h-4 w-4 sidebar-collapse-icon" />
+      }
+      className={className}
+    />
+  );
 }
 
 export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
@@ -32,12 +72,36 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   };
 
   const navigationItems = [
-    { name: nav.dashboard, href: `/${locale}/cms/` },
-    { name: nav.pages, href: `/${locale}/cms/pages` },
-    { name: nav.menus, href: `/${locale}/cms/menus` },
-    { name: nav.forms, href: `/${locale}/cms/forms` },
-    { name: nav.media, href: `/${locale}/cms/media` },
-    { name: nav.settings, href: `/${locale}/cms/settings` },
+    { 
+      name: nav.dashboard, 
+      href: `/${locale}/cms/`, 
+      icon: <LayoutDashboard className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.pages, 
+      href: `/${locale}/cms/pages`, 
+      icon: <FileText className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.menus, 
+      href: `/${locale}/cms/menus`, 
+      icon: <Menu className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.forms, 
+      href: `/${locale}/cms/forms`, 
+      icon: <FormInput className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.media, 
+      href: `/${locale}/cms/media`, 
+      icon: <ImageIcon className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.settings, 
+      href: `/${locale}/cms/settings`, 
+      icon: <Settings className="h-4 w-4" /> 
+    },
   ];
 
   const isActiveLink = (path: string): boolean => {
@@ -52,55 +116,58 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   };
 
   return (
-    <div className="h-full w-64 bg-white border-r border-gray-200">
-      <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="p-4 border-b border-gray-200">
+    <SidebarProvider defaultCollapsed={false}>
+      <Sidebar className="flex flex-col h-full relative">
+        <SidebarHeader className="flex items-center justify-between p-3 pb-2">
           <Link href={`/${locale}/cms`} className="flex items-center">
-            <div className="relative h-8 w-24">
+            <div className="relative h-8 w-8 mr-2">
               <Image 
                 src="/images/logo.png" 
                 alt="E-Voque CMS" 
                 fill
-                sizes="96px"
+                sizes="32px"
                 priority
                 style={{ objectFit: 'contain' }}
               />
             </div>
-            <span className="ml-2 text-lg font-semibold text-gray-800">Content Management System</span>
+            <span className="text-lg font-semibold text-foreground sidebar-title">CMS</span>
           </Link>
+          <div className="flex items-center">
+            <CollapsibleButton className="sidebar-header-collapse-button" />
+          </div>
+        </SidebarHeader>
+        
+        {/* Button that will be positioned in the middle of the sidebar when collapsed */}
+        <div className="sidebar-header-collapse-container">
+          <CollapsibleButton />
         </div>
         
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navigationItems.map((item) => {
-            const isActive = isActiveLink(item.href);
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-4 py-2 rounded-md transition-colors ${
-                  isActive 
-                    ? 'bg-[#01319c] text-white font-medium' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {item.name}
+        <SidebarContent>
+          <SidebarGroup title="Main Navigation">
+            {navigationItems.map((item) => (
+              <Link key={item.name} href={item.href} className="block">
+                <SidebarItem 
+                  icon={item.icon}
+                  active={isActiveLink(item.href)}
+                >
+                  {item.name}
+                </SidebarItem>
               </Link>
-            );
-          })}
-        </nav>
+            ))}
+          </SidebarGroup>
+        </SidebarContent>
         
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 space-y-3">
-          <Link
-            href={`/${locale}/dashboard`}
-            className="flex items-center text-sm text-gray-600 hover:text-gray-900"
-          >
-            ← Return to Dashboard
+        <SidebarFooter>
+          <Link href={`/${locale}/dashboard`} className="block w-full">
+            <SidebarItem 
+              icon={<LogOut className="h-4 w-4" />}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Return to Dashboard
+            </SidebarItem>
           </Link>
-        </div>
-      </div>
-    </div>
+        </SidebarFooter>
+      </Sidebar>
+    </SidebarProvider>
   );
 } 
