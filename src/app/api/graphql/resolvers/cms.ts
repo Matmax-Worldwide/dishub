@@ -1391,7 +1391,11 @@ export const cmsResolvers = {
                   order: section.order,
                   componentType: componentType as ComponentType,
                   isVisible: section.isVisible !== false, // default to true if undefined
-                  data: section.data ? section.data as Prisma.InputJsonValue : Prisma.JsonNull,
+                  data: {
+                    ...section.data,
+                    // Asegurar que el sectionId sea único para esta página
+                    sectionId: `${id}-section-${section.order}`
+                  } as Prisma.InputJsonValue,
                   updatedAt: new Date()
                 }
               });
@@ -1405,7 +1409,11 @@ export const cmsResolvers = {
                   order: section.order,
                   componentType: componentType as ComponentType,
                   isVisible: section.isVisible !== false, // default to true if undefined
-                  data: section.data ? section.data as Prisma.InputJsonValue : Prisma.JsonNull,
+                  data: {
+                    ...section.data,
+                    // Asegurar que el sectionId sea único para esta página
+                    sectionId: `${id}-section-${section.order}`
+                  } as Prisma.InputJsonValue,
                   createdAt: new Date(),
                   updatedAt: new Date()
                 }

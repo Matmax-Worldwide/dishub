@@ -194,7 +194,7 @@ export default function HeaderSection({
   }, [isEditing]);
   
   // Optimize update handler with debouncing
-  const handleUpdateField = useCallback((field: string, value: string | number | boolean) => {
+  const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown>) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
@@ -222,7 +222,7 @@ export default function HeaderSection({
       };
       
       // Update the specific field with the new value
-      (updateData as Record<string, string | number | boolean | HeaderAdvancedOptions>)[field] = value;
+      (updateData as Record<string, string | number | boolean | Record<string, unknown>>)[field] = value;
       
       // Set up a debounced update
       debounceRef.current = setTimeout(() => {
@@ -577,8 +577,8 @@ export default function HeaderSection({
       [key]: value
     };
     setAdvancedOptions(updatedOptions);
-    // Convert to string for handleUpdateField
-    handleUpdateField('advancedOptions', JSON.stringify(updatedOptions));
+    // Pass the object directly instead of stringifying it
+    handleUpdateField('advancedOptions', updatedOptions);
   }, [advancedOptions, handleUpdateField]);
   
   // Utility function to convert hex to rgb for transparency
@@ -614,7 +614,7 @@ export default function HeaderSection({
         mobileMenuPosition,
         transparentHeader,
         borderBottom,
-        advancedOptions
+        advancedOptions: advancedOptions || {} // Ensure advancedOptions is always an object
       };
       
       // Save the header style using the GraphQL client

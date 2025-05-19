@@ -714,8 +714,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           componentType: 'CUSTOM',
           isVisible: true,
           data: {
-            sectionId: section.sectionId,
-            name: section.name
+            name: section.name,
+            // Generar un ID único para cada sección basado en la página y el índice
+            sectionId: `${pageData.id}-section-${index}`
           }
         }));
       }
