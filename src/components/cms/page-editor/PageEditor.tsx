@@ -950,7 +950,39 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   }, [pageData.id]);
 
-
+  // Add delete page handler
+  const handleDeletePage = async () => {
+    try {
+      setIsSaving(true);
+      const result = await cmsOperations.deletePage(pageData.id);
+      
+      if (result.success) {
+        setNotification({
+          type: 'success',
+          message: result.message
+        });
+        
+        // Notify PagesSidebar that the page was deleted
+        PageEvents.emit('page:deleted', { id: pageData.id });
+        
+        // Redirect to pages list
+        router.push(`/${locale}/cms/pages`);
+      } else {
+        setNotification({
+          type: 'error',
+          message: result.message || 'Error deleting page'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting page:', error);
+      setNotification({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error deleting page'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner size="lg" text="Cargando página..." className="min-h-screen" />;
@@ -1074,6 +1106,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onSelectChange={handleSelectChange}
                   onCancel={handleCancel}
                   onContinue={() => setActiveTab('sections')}
+                  onDelete={handleDeletePage}
                 />
               </div>
             </div>

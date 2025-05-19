@@ -65,6 +65,17 @@ export const PageEvents = {
     (PageEvents.listeners.get(event) || []).forEach(callback => {
       callback(data);
     });
+  },
+
+  on: (event: string, callback: (data: PageEventData) => void) => {
+    PageEvents.subscribe(event, callback);
+  },
+
+  off: (event: string, callback: (data: PageEventData) => void) => {
+    const unsubscribe = PageEvents.subscribe(event, callback);
+    return () => {
+      unsubscribe();
+    };
   }
 };
 
@@ -227,6 +238,19 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
       unsubscribe();
     };
   }, [fetchPages]);
+
+  // Add page deletion event handler
+  useEffect(() => {
+    const handlePageDeleted = ({ id }: { id: string }) => {
+      setPages(prevPages => prevPages.filter(page => page.id !== id));
+    };
+
+    PageEvents.on('page:deleted', handlePageDeleted);
+
+    return () => {
+      PageEvents.off('page:deleted', handlePageDeleted);
+    };
+  }, []);
 
   // Fetch pages when component mounts with timeout
   useEffect(() => {
