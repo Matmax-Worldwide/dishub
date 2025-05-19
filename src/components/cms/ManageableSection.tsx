@@ -147,7 +147,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             // Ensure the component type is one of the allowed types in the ComponentType
             // Primero convertimos a formato de título (primera letra mayúscula)
             let componentType = comp.type.charAt(0).toUpperCase() + comp.type.slice(1);
-            if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit'].includes(componentType)) {
+            if (!['Hero', 'Text', 'Image', 'Feature', 'Testimonial', 'Header', 'Card', 'Benefit', 'Form', 'Footer'].includes(componentType)) {
               console.warn(`⚠️ [${loadId}] Tipo de componente no reconocido: ${comp.type}, usando 'Text' como valor predeterminado`);
               componentType = 'Text';
             } else {
@@ -164,7 +164,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             
             const mappedComponent = {
               id: comp.id,
-              type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit', // Tipo específico
+              type: componentType as 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Form' | 'Footer', // Tipo específico
               data: comp.data || {},
             } as Component;
             
