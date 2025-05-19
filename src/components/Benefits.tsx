@@ -421,7 +421,6 @@ export default function Benefits({ dictionary }: BenefitsProps) {
       </section>
 
       {/* Introducción de la sección */}
-
       <section id="intro" className="relative w-full h-screen overflow-hidden">
         {/* VIDEO DE FONDO */}
         <video

@@ -20,6 +20,7 @@ export interface FormCustomConfig {
   disableFormAfterSubmit?: boolean;
   showResetButton?: boolean;
   resetButtonText?: string;
+  selectedIcon?: string;
 }
 
 export const FormConfig: React.FC<FormConfigProps> = ({

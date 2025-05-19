@@ -10,6 +10,10 @@ import StableInput from './StableInput';
 import { FileText, LayoutPanelTop, FormInput } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import FormRenderer from '@/components/cms/forms/FormRenderer';
+import { motion } from 'framer-motion';
+import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import IconSelector from '@/components/cms/IconSelector';
+import * as LucideIcons from 'lucide-react';
 
 interface FormSectionProps {
   title?: string;
@@ -18,14 +22,34 @@ interface FormSectionProps {
   styles?: FormStyles;
   customConfig?: FormCustomConfig;
   isEditing?: boolean;
+  template?: 'DEFAULT' | string;
+  selectedIcon?: string;
   onUpdate?: (data: {
     title?: string;
     description?: string;
     formId?: string;
     styles?: FormStyles;
     customConfig?: FormCustomConfig;
+    selectedIcon?: string;
   }) => void;
 }
+
+const SUBMIT_FORM = `
+  mutation SubmitForm($input: FormSubmissionInput!) {
+    submitForm(input: $input) {
+      success
+      message
+      submission {
+        id
+        formId
+        data
+        metadata
+        status
+        createdAt
+      }
+    }
+  }
+`;
 
 export default function FormSection({
   title: initialTitle = '',
@@ -34,6 +58,8 @@ export default function FormSection({
   styles: initialStyles = {},
   customConfig: initialCustomConfig = {},
   isEditing = false,
+  template = 'DEFAULT',
+  selectedIcon: initialSelectedIcon = 'PaperAirplaneIcon',
   onUpdate
 }: FormSectionProps) {
   // Local state
@@ -43,7 +69,9 @@ export default function FormSection({
   const [selectedForm, setSelectedForm] = useState<FormBase | null>(null);
   const [styles, setStyles] = useState<FormStyles>(initialStyles);
   const [customConfig, setCustomConfig] = useState<FormCustomConfig>(initialCustomConfig);
+  const [selectedIcon, setSelectedIcon] = useState(initialSelectedIcon);
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = React.useRef(false);
@@ -102,7 +130,8 @@ export default function FormSection({
         description,
         formId,
         styles,
-        customConfig
+        customConfig,
+        selectedIcon
       };
       
       // Update the specific field
@@ -122,6 +151,14 @@ export default function FormSection({
         case 'customConfig':
           updateData.customConfig = value as FormCustomConfig;
           break;
+        case 'selectedIcon':
+          updateData.selectedIcon = value as string;
+          // Also update the customConfig to persist the icon
+          updateData.customConfig = {
+            ...customConfig,
+            selectedIcon: value as string
+          };
+          break;
       }
       
       // Set up a debounced update
@@ -133,7 +170,7 @@ export default function FormSection({
         }, 300);
       }, 500);
     }
-  }, [title, description, formId, styles, customConfig, onUpdate]);
+  }, [title, description, formId, styles, customConfig, selectedIcon, onUpdate]);
   
   // Handle form selection
   const handleFormSelect = useCallback((form: FormBase | null) => {
@@ -153,6 +190,24 @@ export default function FormSection({
     setCustomConfig(newConfig);
     handleUpdateField('customConfig', newConfig);
   }, [handleUpdateField]);
+  
+  // Handle icon selection
+  const handleIconSelect = useCallback((iconName: string) => {
+    setSelectedIcon(iconName);
+    handleUpdateField('selectedIcon', iconName);
+  }, [handleUpdateField]);
+  
+  // Get the icon component based on the selected icon name
+  const getIconComponent = () => {
+    // First check if there's a saved icon in customConfig
+    const savedIcon = customConfig.selectedIcon || selectedIcon;
+    
+    if (savedIcon === 'PaperAirplaneIcon') {
+      return <PaperAirplaneIcon className="h-14 w-14 text-white" />;
+    }
+    const IconComponent = LucideIcons[savedIcon as keyof typeof LucideIcons] as React.ElementType;
+    return IconComponent ? <IconComponent className="h-14 w-14 text-white" /> : <PaperAirplaneIcon className="h-14 w-14 text-white" />;
+  };
   
   // Clean up on unmount
   useEffect(() => {
@@ -174,8 +229,66 @@ export default function FormSection({
     handleUpdateField('description', newValue);
   }, [handleUpdateField]);
   
-  // Generate class names for form container based on styles
+  // Add this function to handle form submission
+  const handleFormSubmit = async (formData: Record<string, unknown>) => {
+    if (!selectedForm) return;
+
+    try {
+      setSubmitStatus('submitting');
+
+      const response = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: SUBMIT_FORM,
+          variables: {
+            input: {
+              formId: selectedForm.id,
+              data: formData,
+              metadata: {
+                submittedAt: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                referrer: document.referrer,
+              }
+            }
+          }
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        console.error('GraphQL errors:', result.errors);
+        setSubmitStatus('error');
+        return;
+      }
+
+      if (result.data.submitForm.success) {
+        setSubmitStatus('success');
+        
+        // If there's a custom redirect URL, redirect after a short delay
+        if (customConfig.customRedirectUrl) {
+          setTimeout(() => {
+            window.location.href = customConfig.customRedirectUrl!;
+          }, 1000);
+        }
+      } else {
+        setSubmitStatus('error');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus('error');
+    }
+  };
+  
+  // Generate class names for form container based on styles and template
   const getContainerClassNames = () => {
+    if (template === 'DEFAULT') {
+      return 'relative overflow-hidden h-screen';
+    }
+
     const classes = ['rounded-md'];
     
     // Padding
@@ -209,6 +322,13 @@ export default function FormSection({
   
   // Generate inline styles for form container
   const getContainerStyles = () => {
+    if (template === 'DEFAULT') {
+      return {
+        background: 'linear-gradient(to bottom right, #01112A, #01319c, #1E0B4D)',
+        opacity: 0.95
+      };
+    }
+
     const inlineStyles: React.CSSProperties = {};
     
     if (styles.containerStyles) {
@@ -228,8 +348,12 @@ export default function FormSection({
     return inlineStyles;
   };
   
-  // Generate class and styles for button
+  // Generate class names for button
   const getButtonClassNames = () => {
+    if (template === 'DEFAULT') {
+      return 'w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300';
+    }
+
     const classes = ['px-4 py-2 rounded'];
     
     if (styles.buttonStyles) {
@@ -244,6 +368,10 @@ export default function FormSection({
   };
   
   const getButtonStyles = () => {
+    if (template === 'DEFAULT') {
+      return {};
+    }
+
     const inlineStyles: React.CSSProperties = {};
     
     if (styles.buttonStyles) {
@@ -257,6 +385,30 @@ export default function FormSection({
     }
     
     return inlineStyles;
+  };
+  
+  // Generate class names for input fields
+  const getInputClassNames = () => {
+    if (template === 'DEFAULT') {
+      return 'w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300';
+    }
+    return '';
+  };
+
+  // Generate class names for labels
+  const getLabelClassNames = () => {
+    if (template === 'DEFAULT') {
+      return 'block text-sm font-medium text-white mb-1';
+    }
+    return '';
+  };
+
+  // Generate class names for form wrapper
+  const getFormWrapperClassNames = () => {
+    if (template === 'DEFAULT') {
+      return 'bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10';
+    }
+    return '';
   };
   
   return (
@@ -286,6 +438,19 @@ export default function FormSection({
                   debounceTime={300}
                 />
               </div>
+            </div>
+            
+            {/* Icon Selector */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium mb-3 flex items-center">
+                <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+                Section Icon
+              </h3>
+              <IconSelector
+                selectedIcon={selectedIcon}
+                onSelectIcon={handleIconSelect}
+                className="w-full"
+              />
             </div>
             
             <div className="border-t pt-4">
@@ -341,13 +506,24 @@ export default function FormSection({
                   style={getContainerStyles()}
                 >
                   {!customConfig.hideTitle && (
-                    <h3 className="text-lg font-medium mb-2">
-                      {selectedForm.title}
-                    </h3>
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.7 }}
+                        className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
+                      >
+                        {getIconComponent()}
+                      </motion.div>
+
+                      <h3 className="text-lg font-medium mb-2 text-white">
+                        {selectedForm.title}
+                      </h3>
+                    </>
                   )}
                   
                   {!customConfig.hideDescription && selectedForm.description && (
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-white/80 mb-4">
                       {selectedForm.description}
                     </p>
                   )}
@@ -355,7 +531,7 @@ export default function FormSection({
                   {/* Form fields representation */}
                   <div className="space-y-4 mb-6">
                     {[...Array(Math.min(selectedForm.fields?.length || 3, 3))].map((_, i) => (
-                      <div key={i} className="h-10 bg-muted/30 rounded-md animate-pulse" />
+                      <div key={i} className="h-10 bg-white/10 rounded-md animate-pulse" />
                     ))}
                   </div>
                   
@@ -372,7 +548,7 @@ export default function FormSection({
                   {customConfig.showResetButton && (
                     <button
                       type="button"
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded ml-2"
+                      className="px-4 py-2 bg-white/10 text-white rounded ml-2 hover:bg-white/20 transition-colors"
                     >
                       {customConfig.resetButtonText || "Reset"}
                     </button>
@@ -388,45 +564,105 @@ export default function FormSection({
           className={getContainerClassNames()}
           style={getContainerStyles()}
         >
-          {title && !customConfig.hideTitle && (
-            <h3 className="text-xl font-medium mb-2">{title}</h3>
-          )}
-          
-          {description && !customConfig.hideDescription && (
-            <p className="text-muted-foreground mb-4">{description}</p>
-          )}
-          
-          {/* Form placeholder - in a real implementation, you would fetch and render the form here */}
-          {loading ? (
-            <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
-              <div className="animate-pulse">Loading form...</div>
-            </div>
-          ) : selectedForm ? (
-            <div className="form-placeholder">
-              {!customConfig.hideTitle && (
-                <h4 className="text-lg font-medium mb-2">{selectedForm.title}</h4>
-              )}
-              
-              {!customConfig.hideDescription && selectedForm.description && (
-                <p className="text-sm text-muted-foreground mb-4">{selectedForm.description}</p>
-              )}
-              
-              {/* Actual form fields rendering instead of placeholder */}
-              <div className="space-y-4 mb-6">
-                {/* Import and use the FormRenderer component */}
-                <FormRenderer
-                  form={selectedForm}
-                  buttonClassName={getButtonClassNames()}
-                  buttonStyles={getButtonStyles()}
-                />
+          {template === 'DEFAULT' && (
+            <>
+              <div
+                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+                style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
+              />
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {Array.from({ length: 30 }).map((_, i) => {
+                  const width = 1 + ((i * 7) % 3);
+                  const height = 1 + ((i * 13) % 3);
+                  const left = ((i * 17) % 100);
+                  const top = ((i * 23) % 100);
+                  const duration = 2 + ((i * 11) % 3);
+                  const delay = (i * 19) % 2;
+                  
+                  return (
+                    <motion.div
+                      key={i}
+                      className="absolute rounded-full bg-white"
+                      style={{
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        left: `${left}%`,
+                        top: `${top}%`,
+                      }}
+                      animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
+                      transition={{
+                        duration: duration,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: delay,
+                      }}
+                    />
+                  );
+                })}
               </div>
-            </div>
-          ) : (
-            <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
-              <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
-              <p className="text-muted-foreground">No form selected for this section</p>
-            </div>
+            </>
           )}
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
+            <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0 flex flex-col sm:flex-row sm:items-center justify-center md:justify-between items-center gap-4">
+              {title && !customConfig.hideTitle && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7 }}
+                  className="text-center mb-8"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.7 }}
+                    className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
+                  >
+                    {getIconComponent()}
+                  </motion.div>
+
+                  <h2 className="text-xl md:text-4xl lg:text-3xl font-bold text-white mb-2 drop-shadow-md">
+                    {title}
+                  </h2>
+                  {description && !customConfig.hideDescription && (
+                    <p className="text-sm md:text-md text-white/80 max-w-xl mx-auto mb-8">
+                      {description}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
+              {loading ? (
+                <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
+                  <div className="animate-pulse">Loading form...</div>
+                </div>
+              ) : selectedForm ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  className="w-full"
+                >
+                  <div className={getFormWrapperClassNames()}>
+                    <FormRenderer
+                      form={selectedForm}
+                      buttonClassName={getButtonClassNames()}
+                      buttonStyles={getButtonStyles()}
+                      inputClassName={getInputClassNames()}
+                      labelClassName={getLabelClassNames()}
+                      onSubmit={handleFormSubmit}
+                      submitStatus={submitStatus}
+                    />
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
+                  <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-muted-foreground">No form selected for this section</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

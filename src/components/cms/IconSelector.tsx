@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 
 interface IconSelectorProps {
   selectedIcon: string;
@@ -35,7 +36,8 @@ const IconSelector: React.FC<IconSelectorProps> = ({
         'File', 'FileText', 'Send', 'MessageSquare', 'Phone',
         'Lock', 'Unlock', 'Shield', 'Globe', 'Map', 'MapPin',
         'Bookmark', 'Save', 'Trash', 'Edit', 'Pencil', 'Download',
-        'Upload', 'ExternalLink', 'Link', 'Share', 'Printer', 'Copy'
+        'Upload', 'ExternalLink', 'Link', 'Share', 'Printer', 'Copy',
+        'PaperAirplaneIcon'
       ]
     },
     {
@@ -117,7 +119,7 @@ const IconSelector: React.FC<IconSelectorProps> = ({
         'Pentagon', 'Diamond', 'Star', 'Heart', 'CheckSquare',
         'CheckCircle', 'Plus', 'Minus', 'X', 'XCircle',
         'XSquare', 'Divide', 'CircleDot', 'SquareDot', 'CircleCheck',
-        'SquareCheck', 'CircleX', 'SquareX'
+        'SquareCheck', 'CircleX', 'SquareX', 'PaperAirplaneIcon'
       ]
     },
     {
@@ -137,9 +139,9 @@ const IconSelector: React.FC<IconSelectorProps> = ({
   const processedIconCategories = iconCategories.map(category => {
     // Use a Set to remove duplicates but maintain order
     const uniqueIcons = Array.from(new Set(category.icons));
-    // Filter for only icons that exist in Lucide
+    // Filter for only icons that exist in Lucide or are PaperAirplaneIcon
     const validIcons = uniqueIcons.filter(
-      icon => LucideIcons[icon as keyof typeof LucideIcons]
+      icon => icon === 'PaperAirplaneIcon' || LucideIcons[icon as keyof typeof LucideIcons]
     );
     return {
       ...category,
@@ -162,7 +164,9 @@ const IconSelector: React.FC<IconSelectorProps> = ({
     : [];
 
   // Get the currently selected icon component
-  const SelectedIcon = LucideIcons[selectedIcon as keyof typeof LucideIcons] as React.ElementType || LucideIcons.HelpCircle;
+  const SelectedIcon = selectedIcon === 'PaperAirplaneIcon' 
+    ? PaperAirplaneIcon 
+    : (LucideIcons[selectedIcon as keyof typeof LucideIcons] as React.ElementType || LucideIcons.HelpCircle);
 
   // Handle click outside to close the dropdown
   useEffect(() => {
@@ -267,7 +271,9 @@ const IconSelector: React.FC<IconSelectorProps> = ({
                 {filteredIcons.length > 0 ? (
                   <div className="grid grid-cols-8 gap-1">
                     {filteredIcons.map(iconName => {
-                      const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons] as React.ElementType;
+                      const IconComponent = iconName === 'PaperAirplaneIcon'
+                        ? PaperAirplaneIcon
+                        : (LucideIcons[iconName as keyof typeof LucideIcons] as React.ElementType);
                       return (
                         <button
                           key={iconName}
@@ -306,7 +312,9 @@ const IconSelector: React.FC<IconSelectorProps> = ({
                         </div>
                         <div className="grid grid-cols-8 gap-1 mt-2">
                           {category.icons.map(iconName => {
-                            const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons] as React.ElementType;
+                            const IconComponent = iconName === 'PaperAirplaneIcon'
+                              ? PaperAirplaneIcon
+                              : (LucideIcons[iconName as keyof typeof LucideIcons] as React.ElementType);
                             return (
                               <button
                                 key={iconName}

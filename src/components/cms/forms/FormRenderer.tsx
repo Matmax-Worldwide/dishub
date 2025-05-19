@@ -1,272 +1,197 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FormBase, FormFieldBase, FormFieldType } from '@/types/forms';
+import { FormBase, FormFieldType } from '@/types/forms';
 
 interface FormRendererProps {
   form: FormBase;
   buttonClassName?: string;
   buttonStyles?: React.CSSProperties;
+  inputClassName?: string;
+  labelClassName?: string;
+  onSubmit?: (formData: Record<string, unknown>) => Promise<void>;
+  submitStatus?: 'idle' | 'submitting' | 'success' | 'error';
 }
 
-const FormRenderer: React.FC<FormRendererProps> = ({ 
-  form, 
-  buttonClassName = '', 
-  buttonStyles = {} 
-}) => {
+export default function FormRenderer({
+  form,
+  buttonClassName = 'w-full px-6 py-3 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors',
+  buttonStyles,
+  inputClassName = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50',
+  labelClassName = 'block text-sm font-medium text-gray-700 mb-1',
+  onSubmit,
+  submitStatus = 'idle'
+}: FormRendererProps) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
-  
-  // Get all fields from the form
-  const getFormFields = () => {
-    // If it's a multi-step form, combine fields from all steps
-    if (form.isMultiStep && form.steps && form.steps.length > 0) {
-      return form.steps.flatMap(step => step.fields || []);
-    }
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Otherwise, use the direct fields
-    return form.fields || [];
+    // Validate form
+    const newErrors: Record<string, string> = {};
+    form.fields?.forEach(field => {
+      if (field.isRequired && !formData[field.id]) {
+        newErrors[field.id] = 'This field is required';
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    if (onSubmit) {
+      await onSubmit(formData);
+    }
   };
 
-  const allFields = getFormFields();
-  
-  const handleChange = (name: string, value: unknown) => {
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    // Here you would usually send the data to an API
-  };
-  
-  const renderField = (field: FormFieldBase) => {
-    const { 
-      id, 
-      label, 
-      name, 
-      type, 
-      placeholder, 
-      defaultValue, 
-      isRequired,
-      options 
-    } = field;
-    
-    // Convert to string for form values (or use defaultValue if nothing in form data)
-    const stringValue = typeof formData[name] !== 'undefined' 
-      ? String(formData[name]) 
-      : (defaultValue || '');
-    
-    // Basic props shared by most input fields
-    const commonProps = {
-      id,
-      name,
-      value: stringValue,
-      placeholder,
-      required: isRequired,
-      className: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => 
-        handleChange(name, e.target.value),
-    };
-    
-    switch (type) {
-      case FormFieldType.TEXT:
-        return (
-          <input 
-            type="text" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.TEXTAREA:
-        return (
-          <textarea 
-            {...commonProps} 
-            rows={options?.rows as number || 4}
-          />
-        );
-        
-      case FormFieldType.EMAIL:
-        return (
-          <input 
-            type="email" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.PASSWORD:
-        return (
-          <input 
-            type="password" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.NUMBER:
-        return (
-          <input 
-            type="number" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.PHONE:
-        return (
-          <input 
-            type="tel" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.DATE:
-        return (
-          <input 
-            type="date" 
-            {...commonProps} 
-          />
-        );
-        
-      case FormFieldType.SELECT:
-        return (
-          <select {...commonProps}>
-            <option value="">Select an option</option>
-            {options?.items?.map(option => (
-              <option 
-                key={option.value} 
-                value={option.value}
-                disabled={option.disabled}
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-        
-      case FormFieldType.CHECKBOX:
-        return (
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id={id}
-              name={name}
-              checked={Boolean(formData[name] ?? defaultValue === 'true')}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              onChange={(e) => handleChange(name, e.target.checked)}
-              required={isRequired}
-            />
-            <label
-              htmlFor={id}
-              className={`ml-2 block text-sm ${options?.labelPosition === 'left' ? 'order-first mr-2 ml-0' : ''}`}
-            >
-              {label}
-              {options?.linkText && options?.linkUrl && (
-                <a 
-                  href={options.linkUrl as string} 
-                  className="ml-1 text-blue-600 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {options.linkText as string}
-                </a>
-              )}
-            </label>
-          </div>
-        );
-        
-      case FormFieldType.RADIO:
-        return (
-          <div className={`space-y-2 ${options?.layout === 'horizontal' ? 'flex space-y-0 space-x-4' : ''}`}>
-            {options?.items?.map(option => (
-              <div key={option.value} className="flex items-center">
-                <input
-                  type="radio"
-                  id={`${id}-${option.value}`}
-                  name={name}
-                  value={option.value}
-                  checked={stringValue === option.value}
-                  disabled={option.disabled}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  onChange={(e) => handleChange(name, e.target.value)}
-                  required={isRequired}
-                />
-                <label htmlFor={`${id}-${option.value}`} className="ml-2 block text-sm">
-                  {option.label}
-                </label>
-              </div>
-            ))}
-          </div>
-        );
-        
-      case FormFieldType.HEADING:
-        return (
-          <h3 className="text-lg font-semibold">{label}</h3>
-        );
-        
-      case FormFieldType.PARAGRAPH:
-        return (
-          <p className="text-sm text-gray-600">{defaultValue}</p>
-        );
-        
-      case FormFieldType.DIVIDER:
-        return (
-          <hr className="my-4" />
-        );
-        
-      case FormFieldType.SPACER:
-        return (
-          <div className="h-6"></div>
-        );
-        
-      default:
-        return (
-          <input 
-            type="text" 
-            {...commonProps} 
-          />
-        );
+  const handleInputChange = (fieldId: string, value: unknown) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+    // Clear error when user starts typing
+    if (errors[fieldId]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      });
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {allFields.map(field => (
-        <div key={field.id} className="space-y-1">
-          {/* Don't show labels for headings, paragraphs, dividers, etc. */}
-          {![
-            FormFieldType.HEADING, 
-            FormFieldType.PARAGRAPH, 
-            FormFieldType.DIVIDER, 
-            FormFieldType.SPACER,
-            FormFieldType.CHECKBOX
-          ].includes(field.type) && (
-            <label htmlFor={field.id} className="block text-sm font-medium">
-              {field.label}
-              {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-            </label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {form.fields?.map(field => (
+        <div key={field.id} className="space-y-2">
+          <label htmlFor={field.id} className={labelClassName}>
+            {field.label}
+            {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          
+          {field.type === FormFieldType.TEXT && (
+            <input
+              type="text"
+              id={field.id}
+              name={field.id}
+              value={formData[field.id] as string || ''}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+            />
           )}
-          
-          {renderField(field)}
-          
-          {field.helpText && (
-            <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+
+          {field.type === FormFieldType.EMAIL && (
+            <input
+              type="email"
+              id={field.id}
+              name={field.id}
+              value={formData[field.id] as string || ''}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.TEXTAREA && (
+            <textarea
+              id={field.id}
+              name={field.id}
+              value={formData[field.id] as string || ''}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`${inputClassName} min-h-[100px] ${errors[field.id] ? 'border-red-500' : ''}`}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.SELECT && (
+            <select
+              id={field.id}
+              name={field.id}
+              value={formData[field.id] as string || ''}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              required={field.isRequired}
+            >
+              <option value="">Select an option</option>
+              {field.options?.items?.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {field.type === FormFieldType.CHECKBOX && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id={field.id}
+                name={field.id}
+                checked={formData[field.id] as boolean || false}
+                onChange={(e) => handleInputChange(field.id, e.target.checked)}
+                className={`${inputClassName} w-4 h-4`}
+                required={field.isRequired}
+              />
+              <label htmlFor={field.id} className={labelClassName}>
+                {field.label}
+                {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+              </label>
+            </div>
+          )}
+
+          {field.type === FormFieldType.RADIO && (
+            <div className="space-y-2">
+              {field.options?.items?.map(option => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id={`${field.id}-${option.value}`}
+                    name={field.id}
+                    value={option.value}
+                    checked={formData[field.id] === option.value}
+                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    className={`${inputClassName} w-4 h-4`}
+                    required={field.isRequired}
+                  />
+                  <label htmlFor={`${field.id}-${option.value}`} className={labelClassName}>
+                    {option.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {errors[field.id] && (
+            <p className="text-sm text-red-500">{errors[field.id]}</p>
           )}
         </div>
       ))}
-      
-      {/* Submit button */}
-      <div className="pt-4">
-        <button 
-          type="submit"
-          className={buttonClassName}
-          style={buttonStyles}
-        >
-          {form.submitButtonText || "Submit"}
-        </button>
-      </div>
+
+      <button
+        type="submit"
+        className={buttonClassName}
+        style={buttonStyles}
+        disabled={submitStatus === 'submitting'}
+      >
+        {submitStatus === 'submitting' ? 'Submitting...' : form.submitButtonText || 'Submit'}
+      </button>
+
+      {submitStatus === 'success' && (
+        <div className="p-4 bg-green-50 text-green-700 rounded-md">
+          {form.successMessage || 'Form submitted successfully!'}
+        </div>
+      )}
+
+      {submitStatus === 'error' && (
+        <div className="p-4 bg-red-50 text-red-700 rounded-md">
+          An error occurred while submitting the form. Please try again.
+        </div>
+      )}
     </form>
   );
-};
-
-export default FormRenderer; 
+} 
