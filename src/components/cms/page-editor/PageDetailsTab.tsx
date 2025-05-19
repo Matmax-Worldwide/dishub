@@ -20,7 +20,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageData } from '@/types/cms';
+import { cmsOperations } from '@/lib/graphql-client';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import DeletePageDialog from './DeletePageDialog';
+import { PageEvents } from './PagesSidebar';
 
 interface PageDetailsTabProps {
   pageData: PageData;
@@ -30,7 +34,6 @@ interface PageDetailsTabProps {
   onSelectChange: (name: string, value: string) => void;
   onCancel: () => void;
   onContinue: () => void;
-  onDelete: () => void;
 }
 
 export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
@@ -40,9 +43,35 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
   onInputChange,
   onSelectChange,
   onContinue,
-  onDelete,
 }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
+
+  const handleDeletePage = async () => {
+    if (!pageData.id) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      const result = await cmsOperations.deletePage(pageData.id);
+      
+      if (result.success) {
+        // Emit event to update the sidebar
+        PageEvents.emit('page:deleted', { id: pageData.id });
+        
+        toast.success('Página eliminada correctamente');
+        router.push('/cms/pages');
+      } else {
+        toast.error(result.message || 'Error al eliminar la página');
+      }
+    } catch (error) {
+      toast.error('Error al eliminar la página');
+      console.error('Error deleting page:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -144,7 +173,7 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
             className="flex items-center gap-2"
           >
             <Trash2Icon className="h-4 w-4" />
-            <span>Delete Page</span>
+            <span>Eliminar página</span>
           </Button>
           <Button onClick={onContinue} className="flex items-center">
             <span>Continuar a Secciones</span>
@@ -156,9 +185,10 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
       <DeletePageDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={onDelete}
+        onConfirm={handleDeletePage}
         onCancel={() => setIsDeleteDialogOpen(false)}
         pageTitle={pageData.title}
+        isLoading={isDeleting}
       />
     </>
   );

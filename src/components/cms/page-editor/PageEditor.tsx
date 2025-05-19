@@ -19,7 +19,6 @@ import {
   SEOTab,
   SectionsTab,
   AddSectionDialog,
-  DeleteSectionDialog,
   ExitConfirmationDialog,
   CSSInjector,
 } from '@/components/cms/page-editor';
@@ -97,9 +96,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   const [selectedTemplateSection, setSelectedTemplateSection] = useState<string>('');
   const [forceReloadSection, setForceReloadSection] = useState(false);
   
-  // Delete confirmation states
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
   
   // Reference to the section editor
   const sectionRef = useRef<ManageableSectionHandle>(null);
@@ -580,27 +576,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   };
 
-  // Confirm section removal
-  const confirmDeleteSection = () => {
-    if (!sectionToDelete) return;
-    
-    console.log(`Eliminando sección: ${sectionToDelete.name} (${sectionToDelete.sectionId})`);
-    
-    setPageSections(prev => prev
-      .filter(s => s.sectionId !== sectionToDelete.sectionId)
-      .map((section, index) => ({ ...section, order: index }))
-    );
-    
-    setIsDeleteConfirmOpen(false);
-    setSectionToDelete(null);
-    setHasUnsavedChanges(true);
-  };
-  
-  // Cancel section removal
-  const cancelDeleteSection = () => {
-    setIsDeleteConfirmOpen(false);
-    setSectionToDelete(null);
-  };
 
   // Save the entire page
   const handleSavePage = async () => {
@@ -951,39 +926,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   }, [pageData.id]);
 
-  // Add delete page handler
-  const handleDeletePage = async () => {
-    try {
-      setIsSaving(true);
-      const result = await cmsOperations.deletePage(pageData.id);
-      
-      if (result.success) {
-        setNotification({
-          type: 'success',
-          message: result.message
-        });
-        
-        // Notify PagesSidebar that the page was deleted
-        PageEvents.emit('page:deleted', { id: pageData.id });
-        
-        // Redirect to pages list
-        router.push(`/${locale}/cms/pages`);
-      } else {
-        setNotification({
-          type: 'error',
-          message: result.message || 'Error deleting page'
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting page:', error);
-      setNotification({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Unknown error deleting page'
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   if (isLoading) {
     return <LoadingSpinner size="lg" text="Cargando página..." className="min-h-screen" />;
@@ -1107,7 +1049,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onSelectChange={handleSelectChange}
                   onCancel={handleCancel}
                   onContinue={() => setActiveTab('sections')}
-                  onDelete={handleDeletePage}
                 />
               </div>
             </div>
@@ -1125,13 +1066,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onAddSection={handleAddSectionClick}
       />
       
-      <DeleteSectionDialog
-        open={isDeleteConfirmOpen}
-        onOpenChange={setIsDeleteConfirmOpen}
-        section={sectionToDelete}
-        onConfirm={confirmDeleteSection}
-        onCancel={cancelDeleteSection}
-      />
       
       <ExitConfirmationDialog
         open={isExitConfirmationOpen}
