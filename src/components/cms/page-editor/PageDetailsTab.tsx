@@ -39,7 +39,6 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
   onTitleChange,
   onInputChange,
   onSelectChange,
-  onCancel,
   onContinue,
   onDelete,
 }) => {
