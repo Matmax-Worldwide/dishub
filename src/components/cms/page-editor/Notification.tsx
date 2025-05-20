@@ -1,8 +1,9 @@
 import React from 'react';
-import { CheckIcon, AlertCircleIcon } from 'lucide-react';
+import { CheckIcon, AlertCircleIcon, AlertTriangleIcon } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
 export interface NotificationProps {
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'warning';
   message: string;
   className?: string;
 }
@@ -12,15 +13,23 @@ export const Notification: React.FC<NotificationProps> = ({
   message, 
   className = '' 
 }) => {
-  const bgColor = type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700';
+  let bgColor = '';
+  let Icon: LucideIcon | null = null;
+  
+  if (type === 'success') {
+    bgColor = 'bg-green-50 text-green-700';
+    Icon = CheckIcon;
+  } else if (type === 'error') {
+    bgColor = 'bg-red-50 text-red-700';
+    Icon = AlertCircleIcon;
+  } else if (type === 'warning') {
+    bgColor = 'bg-amber-50 text-amber-700';
+    Icon = AlertTriangleIcon;
+  }
 
   return (
     <div className={`p-3 rounded-md ${bgColor} flex items-center ${className}`}>
-      {type === 'success' ? (
-        <CheckIcon className="h-5 w-5 mr-2" />
-      ) : (
-        <AlertCircleIcon className="h-5 w-5 mr-2" />
-      )}
+      {Icon && <Icon className="h-5 w-5 mr-2" />}
       {message}
     </div>
   );

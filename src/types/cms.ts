@@ -11,6 +11,7 @@ export interface Section {
   order: number;
   description: string;
   pageId: string;
+  componentId?: string;
 }
 
 export interface AvailableSection {
@@ -94,7 +95,7 @@ export interface PageResponse {
 }
 
 export interface NotificationType {
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'warning';
   message: string;
 }
 

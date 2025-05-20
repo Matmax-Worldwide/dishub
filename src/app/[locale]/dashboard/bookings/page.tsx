@@ -58,20 +58,6 @@ interface Appointment {
 }
 
 export default function SchedulePage() {
-  // Debug authentication
-  if (typeof window !== 'undefined') {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('session-token='))
-      ?.split('=')[1];
-      
-    console.log('Schedule page auth token:', cookieValue ? 'Token found' : 'No token found');
-    if (cookieValue) {
-      console.log('Token length:', cookieValue.length);
-      console.log('Token first 10 chars:', cookieValue.substring(0, 10) + '...');
-    }
-  }
-
   const router = useRouter();
   const { locale } = useParams();
   const [currentDate, setCurrentDate] = useState(new Date());

@@ -53,19 +53,15 @@ export async function generateToken(userId: string, roleInfo?: { id?: string, na
 
 export async function verifyToken(token: string) {
   try {
-    console.log('Verifying token...');
-    
+
     if (!token || typeof token !== 'string' || token.trim() === '') {
       console.error('Token validation error: Empty or invalid token');
       return null;
     }
     
-    console.log('Token length:', token.length);
-    console.log('Token first 10 chars:', token.substring(0, 10) + '...');
-    
+
     const { payload } = await jwtVerify(token, secret);
-    console.log('Token decoded successfully:', payload);
-    
+
     // Validate payload contains required fields
     if (!payload.userId) {
       console.error('Token missing userId in payload');

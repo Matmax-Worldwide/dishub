@@ -452,41 +452,27 @@ async function updatePage(id: string, input: {
     canonicalUrl?: string;
     structuredData?: Record<string, unknown>;
   };
-  sections?: Array<{
-    id?: string;
-    order: number;
-    title?: string;
-    componentType?: string;
-    data?: Record<string, unknown>;
-    isVisible?: boolean;
-  }>;
+  sectionIds?: string[]; // Usar sectionIds en lugar de sections
 }): Promise<{
   success: boolean;
   message: string;
   page: PageData | null;
 }> {
   try {
-    // Preprocess sections data to ensure component titles and section names are preserved
-    if (input.sections && input.sections.length > 0) {
-      input.sections = input.sections.map(section => {
-        // Make sure section data includes section name if available
-        if (section.title) {
-          if (!section.data) {
-            section.data = {};
-          }
-          section.data.sectionName = section.title;
-        }
-
-        // Make sure data field exists
-        if (!section.data) {
-          section.data = {};
-        }
-
-        return section;
-      });
+    // Preprocess SEO data for consistency
+    const seoData = input.seo || {};
+    const titleValue = input.metaTitle || seoData.title;
+    const descriptionValue = input.metaDescription || seoData.description;
+    
+    if (titleValue) {
+      if (!seoData.title) seoData.title = titleValue;
+      if (!input.metaTitle) input.metaTitle = titleValue;
     }
-
-    console.log('Processed input for updatePage:', JSON.stringify(input, null, 2));
+    
+    if (descriptionValue) {
+      if (!seoData.description) seoData.description = descriptionValue;
+      if (!input.metaDescription) input.metaDescription = descriptionValue;
+    }
 
     const mutation = `
       mutation UpdatePage($id: ID!, $input: UpdatePageInput!) {
@@ -509,9 +495,9 @@ async function updatePage(id: string, input: {
             updatedAt
             sections {
               id
+              sectionId
+              name
               order
-              title
-              data
             }
             seo {
               title
@@ -680,6 +666,31 @@ export async function getPagePreview(pageData: PageData): Promise<{
   };
 }
 
+
+// Update a section name
+async function updateSectionName(sectionId: string, name: string): Promise<{
+  success: boolean;
+  message: string;
+  lastUpdated?: string | null;
+}> {
+  try {
+    // Use the updateCMSSection function from cms-update.ts
+    const result = await updateCMSSection(sectionId, { name });
+    
+    return {
+      success: result.success,
+      message: result.message,
+      lastUpdated: result.lastUpdated
+    };
+  } catch (error) {
+    console.error('Error updating section name:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error updating section name'
+    };
+  }
+}
+
 // Get section components for editing
 export async function loadSectionComponentsForEdit(sectionId: string): Promise<{
   sectionId: string;
@@ -835,29 +846,6 @@ async function updateComponentTitle(sectionId: string, componentId: string, titl
   }
 }
 
-// Update a section name
-async function updateSectionName(sectionId: string, name: string): Promise<{
-  success: boolean;
-  message: string;
-  lastUpdated?: string | null;
-}> {
-  try {
-    // Use the updateCMSSection function from cms-update.ts
-    const result = await updateCMSSection(sectionId, { name });
-    
-    return {
-      success: result.success,
-      message: result.message,
-      lastUpdated: result.lastUpdated
-    };
-  } catch (error) {
-    console.error('Error updating section name:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error updating section name'
-    };
-  }
-}
 
 // Create a simple in-memory cache for API responses
 const apiCache: Record<string, { data: unknown; timestamp: number }> = {};
@@ -947,8 +935,6 @@ export const cmsOperations = {
         }
       `;
 
-      console.log('GraphQL query completa para getAllCMSSections:', query);
-
       try {
         const result = await gqlRequest<{ getAllCMSSections: Array<{
           id: string;
@@ -961,11 +947,8 @@ export const cmsOperations = {
           createdBy: string | null;
           components: unknown;
         }> }>(query);
-        
-        console.log("Resultado completo GraphQL getAllCMSSections:", JSON.stringify(result).substring(0, 200));
-        
+
         if (!result || !result.getAllCMSSections) {
-          console.log("No se encontraron resultados o la estructura no es la esperada");
           return [];
         }
         
@@ -1715,6 +1698,8 @@ export const cmsOperations = {
     order: number;
     isVisible?: boolean;
     data?: Record<string, unknown>;
+    sectionId?: string;
+    componentId?: string;
   }): Promise<{
     success: boolean;
     message: string;
@@ -1739,35 +1724,79 @@ export const cmsOperations = {
         }
       `;
       
-      console.log(`Starting createPageSection mutation for page ${input.pageId}: ${input.title}`);
+      console.log(`Starting createPageSection mutation with data:`, JSON.stringify(input, null, 2));
       
       const variables = { input };
-      const result = await gqlRequest<{ 
-        createPageSection: { 
-          success: boolean; 
+      
+      // Define a type for the GraphQL response
+      type CreatePageSectionResponse = {
+        createPageSection?: {
+          success: boolean;
           message: string;
           section: {
             id: string;
             title: string;
             order: number;
           } | null;
-        } 
-      }>(mutation, variables, 30000);
+        };
+        data?: {
+          createPageSection: {
+            success: boolean;
+            message: string;
+            section: {
+              id: string;
+              title: string;
+              order: number;
+            } | null;
+          }
+        };
+        errors?: Array<{ message: string }>;
+      };
       
-      if (!result) {
-        console.error('No result from GraphQL request in createPageSection');
-        throw new Error('No result received from server');
+      // Use a longer timeout for this operation (30 seconds)
+      const response = await gqlRequest<CreatePageSectionResponse>(mutation, variables, 30000);
+      
+      console.log('Raw GraphQL response for createPageSection:', JSON.stringify(response, null, 2));
+      
+      // Check for different possible response structures
+      let result = null;
+      
+      // Direct structure: { createPageSection: { ... } }
+      if (response && response.createPageSection) {
+        console.log('Found direct createPageSection result in response');
+        result = response.createPageSection;
+      }
+      // Nested in data: { data: { createPageSection: { ... } } }
+      else if (response && response.data && response.data.createPageSection) {
+        console.log('Found nested createPageSection result in response.data');
+        result = response.data.createPageSection;
+      }
+      // Handle errors if present in response
+      else if (response && response.errors) {
+        const errorMessages = response.errors.map((e: { message: string }) => e.message).join(', ');
+        console.error('GraphQL errors in createPageSection:', errorMessages);
+        throw new Error(`GraphQL errors: ${errorMessages}`);
+      }
+      else {
+        console.error('Unexpected response structure (missing createPageSection):', response);
       }
       
-      if (!result.createPageSection) {
-        console.error('Missing createPageSection in result:', result);
-        throw new Error('Invalid response format: missing createPageSection field');
+      // If we found a valid result, return it
+      if (result) {
+        // Clear cache for related data
+        clearCache(`page_id_${input.pageId}`);
+        return result;
       }
       
-      // Clear cache for related data
-      clearCache(`page_id_${input.pageId}`);
+      // If we get here, the response didn't have the expected structure
+      console.error('Could not extract valid createPageSection result from response:', response);
       
-      return result.createPageSection;
+      // Create a defensively consistent response object
+      return {
+        success: false,
+        message: 'La sección no pudo ser creada debido a un problema con la respuesta del servidor',
+        section: null
+      };
     } catch (error) {
       console.error('Error creating Page section:', error);
       return {
@@ -2087,6 +2116,98 @@ export const cmsOperations = {
 
   // Añadir referencia a la función getForms
   getForms,
+
+  // Asociar una sección a una página
+  associateSectionToPage: async (pageId: string, sectionId: string, order: number): Promise<{
+    success: boolean;
+    message: string;
+    page: PageData | null;
+  }> => {
+    try {
+      const mutation = `
+        mutation AssociateSectionToPage($pageId: ID!, $sectionId: ID!, $order: Int!) {
+          associateSectionToPage(pageId: $pageId, sectionId: $sectionId, order: $order) {
+            success
+            message
+            page {
+              id
+              title
+              sections {
+                id
+                sectionId
+                name
+                order
+              }
+            }
+          }
+        }
+      `;
+
+      const variables = { pageId, sectionId, order };
+      const result = await gqlRequest<{ 
+        associateSectionToPage: {
+          success: boolean;
+          message: string;
+          page: PageData | null;
+        } 
+      }>(mutation, variables);
+
+      return result.associateSectionToPage;
+    } catch (error) {
+      console.error('Error associating section to page:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        page: null
+      };
+    }
+  },
+
+  // Desasociar una sección de una página
+  dissociateSectionFromPage: async (pageId: string, sectionId: string): Promise<{
+    success: boolean;
+    message: string;
+    page: PageData | null;
+  }> => {
+    try {
+      const mutation = `
+        mutation DissociateSectionFromPage($pageId: ID!, $sectionId: ID!) {
+          dissociateSectionFromPage(pageId: $pageId, sectionId: $sectionId) {
+            success
+            message
+            page {
+              id
+              title
+              sections {
+                id
+                sectionId
+                name
+                order
+              }
+            }
+          }
+        }
+      `;
+
+      const variables = { pageId, sectionId };
+      const result = await gqlRequest<{ 
+        dissociateSectionFromPage: {
+          success: boolean;
+          message: string;
+          page: PageData | null;
+        } 
+      }>(mutation, variables);
+
+      return result.dissociateSectionFromPage;
+    } catch (error) {
+      console.error('Error dissociating section from page:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        page: null
+      };
+    }
+  },
 };
 
 // Form Builder API functions

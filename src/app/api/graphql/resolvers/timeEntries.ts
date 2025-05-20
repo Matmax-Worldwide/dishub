@@ -157,7 +157,7 @@ export const timeEntryResolvers = {
           throw new Error('Not authenticated');
         }
 
-        console.log('createTimeEntry: Verifying token...');
+
         const decoded = await verifyToken(token) as { userId: string };
         console.log('createTimeEntry: Token verified for user:', decoded.userId);
         

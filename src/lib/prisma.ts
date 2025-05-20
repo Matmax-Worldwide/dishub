@@ -1,8 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-// Log that we're initializing Prisma
-console.log('Initializing PrismaClient...');
-
 // Create the global type
 declare global {
   // eslint-disable-next-line no-var
@@ -18,17 +15,13 @@ if (process.env.NODE_ENV === 'production') {
   prismaClient = new PrismaClient({
     log: ['error'],
   });
-  console.log('PrismaClient initialized in production mode');
 } else {
   // Development: Use global to preserve connection between hot reloads
   if (!global.prisma) {
-    console.log('Development mode: Creating new PrismaClient instance');
     global.prisma = new PrismaClient({
       log: ['query', 'error', 'warn'],
     });
-  } else {
-    console.log('Development mode: Reusing existing PrismaClient instance');
-  }
+  } 
   prismaClient = global.prisma;
 }
 

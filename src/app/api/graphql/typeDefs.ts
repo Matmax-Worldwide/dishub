@@ -815,12 +815,14 @@ export const typeDefs = gql`
 
   # Input for creating a page section
   input CreatePageSectionInput {
-    pageId: String!
+    pageId: ID!
     title: String!
     componentType: String!
     order: Int!
     isVisible: Boolean
     data: JSON
+    sectionId: ID
+    componentId: ID
   }
 
   # Result type for page section operations
@@ -857,6 +859,7 @@ export const typeDefs = gql`
     componentType: String
     data: JSON
     isVisible: Boolean
+    sectionId: ID
   }
 
   input PageSEOInput {

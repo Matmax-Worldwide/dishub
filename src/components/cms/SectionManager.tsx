@@ -163,8 +163,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       e.stopPropagation();
     }
     
-    console.log(`Toggle button clicked for component ${component.id}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
-    
     if (onToggleCollapse) {
       // Pass the current collapse state to the parent
       // The parent will invert it (expand if collapsed, collapse if expanded)
@@ -173,7 +171,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   }, [component.id, isCollapsed, onToggleCollapse]);
 
   const handleClick = useCallback(() => {
-    console.log(`Component ${component.id} clicked`);
     
     if (onComponentClick) {
       onComponentClick(component.id);
@@ -989,8 +986,7 @@ function SectionManagerBase({
       });
       
       setCollapsedComponents(nonActiveComponentIds);
-      console.log('Starting with most components collapsed, except active and first component');
-    }
+      }
   }, [componentsDataString, activeComponentId, components]);
 
   // Auto-expand active component (but respect user's explicit collapse actions)
@@ -1010,7 +1006,6 @@ function SectionManagerBase({
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
-    console.log(`Explicitly toggling collapse for component ${componentId}. Current state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
     
     // Note: isCollapsed parameter now represents the CURRENT state, not the target state
     // So if isCollapsed is true, we need to expand it, and vice versa
@@ -1022,7 +1017,6 @@ function SectionManagerBase({
       // If currently collapsed, expand it (remove from set)
       // If currently expanded, collapse it (add to set)
       if (isCollapsed) {
-        console.log(`Expanding component ${componentId}`);
         newSet.delete(componentId);
         
         // Remove from user collapsed components when explicitly expanded
@@ -1032,7 +1026,6 @@ function SectionManagerBase({
           return newUserCollapsed;
         });
       } else {
-        console.log(`Collapsing component ${componentId}`);
         newSet.add(componentId);
         
         // Add to user collapsed components when explicitly collapsed
@@ -1056,7 +1049,6 @@ function SectionManagerBase({
     setCollapsedComponents(allComponentIds);
     setUserCollapsedComponents(allComponentIds);
     
-    console.log(`Collapsed all ${allComponentIds.size} components`);
   }, [components]);
 
   // Function to expand all components
@@ -1065,7 +1057,6 @@ function SectionManagerBase({
     setCollapsedComponents(new Set());
     setUserCollapsedComponents(new Set());
     
-    console.log('Expanded all components');
   }, []);
 
   // Agregar de vuelta el event listener para component:update-title
@@ -1078,8 +1069,7 @@ function SectionManagerBase({
       
       if (customEvent.detail) {
         const { componentId, newTitle } = customEvent.detail;
-        console.log(`[SectionManager] 📝 Updating title for component ${componentId}: ${newTitle}`);
-        
+
         setComponents(prev => {
           // Create a shallow copy to preserve component references
           const newComponents = [...prev];

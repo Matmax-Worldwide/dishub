@@ -488,23 +488,24 @@ model Page {
   parent          Page?         @relation("PageToPage", fields: [parentId], references: [id])
   children        Page[]        @relation("PageToPage")
   seo             PageSEO?
-  sections        PageSection[]
+  sections        CMSSection[]  @relation("PageToSection")
 }
 
-model PageSection {
-  id            String        @id @default(cuid())
-  pageId        String
-  title         String?
-  content       String?
-  componentType ComponentType
-  order         Int           @default(0)
-  isVisible     Boolean       @default(true)
-  configuration Json?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  data          Json?
-  media         Media[]
-  page          Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+model CMSSection {
+  id          String             @id @default(cuid())
+  sectionId   String             @unique
+  lastUpdated DateTime           @default(now())
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdBy   String?
+  description String?
+  name        String?
+  components  SectionComponent[]
+  pages       Page[]             @relation("PageToSection")
+  media       Media[]
+  order       Int                @default(0)
+
+  @@map("CMSSection")
 }
 
 model Media {
@@ -516,11 +517,11 @@ model Media {
   fileSize      Int?
   fileType      String?
   altText       String?
-  pageSectionId String?
+  cmsSectionId  String?      
   uploadedById  String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  pageSection   PageSection? @relation(fields: [pageSectionId], references: [id])
+  cmsSection    CMSSection?  @relation(fields: [cmsSectionId], references: [id])
 }
 
 model PageSEO {
@@ -685,20 +686,6 @@ model CMSComponent {
   templateId       String?
   template         CMSTemplate?       @relation(fields: [templateId], references: [id])
   sectionInstances SectionComponent[]
-}
-
-model CMSSection {
-  id          String             @id @default(cuid())
-  sectionId   String             @unique
-  lastUpdated DateTime           @default(now())
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  createdBy   String?
-  description String?
-  name        String?
-  components  SectionComponent[]
-
-  @@map("CMSSection")
 }
 
 model SectionComponent {

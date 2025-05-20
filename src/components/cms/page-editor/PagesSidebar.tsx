@@ -100,11 +100,6 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   // Get current slug from URL params
   const currentSlug = params.slug as string;
 
-  // Log del valor actual de activeTab para debugging
-  useEffect(() => {
-    console.log('PagesSidebar: activeTab changed to', activeTab);
-  }, [activeTab]);
-
   // Handle dialog open state changes
   const handleDialogOpenChange = React.useCallback((open: boolean) => {
     setShowQuickCreate(open);
@@ -181,8 +176,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   useEffect(() => {
     const unsubscribe = PageEvents.subscribe('page:publish-state-change', (data: PageEventData) => {
       if ('isPublished' in data) {
-        console.log('PagesSidebar: Received publish state change', data);
-        
+
         // Actualización optimista de la UI
         setPages(prevPages => 
           prevPages.map(page => 
@@ -228,7 +222,6 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   useEffect(() => {
     const unsubscribe = PageEvents.subscribe('page:updated', (data: PageEventData) => {
       if ('shouldRefresh' in data && data.shouldRefresh) {
-        console.log('PagesSidebar: Received page updated event that requires refresh', data);
         // Solo hacemos fetch cuando es realmente necesario (cambios importantes)
         fetchPages();
       }
