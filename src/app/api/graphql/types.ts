@@ -142,6 +142,7 @@ export interface CMSSection {
   sectionId: string;
   name?: string;
   description?: string;
+  order?: number;
   lastUpdated: string | Date;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -159,22 +160,16 @@ export interface SectionComponent {
   component?: CMSComponent;
 }
 
-// Tipos para secciones y componentes de página
-export interface PageSection {
+
+// solo queda SectionData para renderizado interno
+export interface SectionData {
   id: string;
-  pageId: string;
   title?: string;
-  content?: string;
-  componentType: ComponentType;
   order: number;
-  isVisible: boolean;
-  configuration?: Record<string, unknown>;
-  data?: Record<string, unknown>;
-  createdAt: string | Date;
-  updatedAt: string | Date;
+  components: CMSComponent[];
 }
 
-// Tipo para datos de sección para renderizado
+// Interfaz para datos de sección en renderizado interno
 export interface SectionData {
   id: string;
   title?: string;
@@ -269,5 +264,5 @@ export interface Page {
   parent?: Page | null;
   children?: Page[];
   seo?: PageSEO | null;
-  sections?: PageSection[];
+  sections?: CMSSection[];
 }

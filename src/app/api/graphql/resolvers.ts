@@ -1144,12 +1144,15 @@ const resolvers = {
     saveSectionComponents: cmsResolvers.Mutation.saveSectionComponents,
     deleteCMSSection: cmsResolvers.Mutation.deleteCMSSection,
     updateCMSSection: cmsResolvers.Mutation.updateCMSSection,
+    createCMSSection: cmsResolvers.Mutation.createCMSSection,
     createCMSComponent: cmsResolvers.Mutation.createCMSComponent,
     updateCMSComponent: cmsResolvers.Mutation.updateCMSComponent,
     deleteCMSComponent: cmsResolvers.Mutation.deleteCMSComponent,
     createPage: cmsResolvers.Mutation.createPage,
     updatePage: cmsResolvers.Mutation.updatePage,
     deletePage: cmsResolvers.Mutation.deletePage,
+    associateSectionToPage: cmsResolvers.Mutation.associateSectionToPage,
+    dissociateSectionFromPage: cmsResolvers.Mutation.dissociateSectionFromPage,
 
     // Add menu mutations
     createMenu: async (_parent: unknown, { input }: { input: MenuInput }) => {

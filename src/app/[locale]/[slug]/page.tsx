@@ -27,10 +27,10 @@ interface PageData {
   metaTitle?: string | null;
   metaDescription?: string | null;
   featuredImage?: string | null;
-  sections?: Array<{id: string; order?: number; data?: Record<string, unknown>}>;
+  sections?: Array<{id: string; sectionId: string; order?: number; name?: string}>;
 }
 
-// Define section data type
+// Define section data type for rendering
 interface SectionData {
   id: string;
   title?: string;
@@ -291,231 +291,64 @@ export default function CMSPage() {
           return;
         }
         
-        setPageData(pageData);
+        // Use type assertion to handle type mismatch
+        setPageData(pageData as unknown as PageData);
         console.log('Page data retrieved:', pageData);
         
         try {
-          // Fetch components for each section directly instead of using getPagePreview
-          const pageSections: SectionData[] = [];
+          // Create array to store section data for rendering
+          const pageSectionsData: SectionData[] = [];
           
           if (pageData.sections && pageData.sections.length > 0) {
-            // Get all CMS sections first
-            const allCMSSections = await cmsOperations.getAllCMSSections();
-            console.log(`Obtenidas ${allCMSSections.length} secciones CMS disponibles:`, 
-              allCMSSections.map(s => ({ id: s.id, sectionId: s.sectionId, name: s.name })));
+            console.log(`Procesando ${pageData.sections.length} secciones`);
             
-            // Create detailed maps for lookup
-            const idToSectionMap = new Map();
-            const sectionIdToSectionMap = new Map();
-            const idPrefixMap = new Map();
-            
-            // Function to strip any query parameters or hash from IDs
-            const cleanId = (id: string) => id.split('?')[0].split('#')[0];
-            
-            // Build lookup maps
-            allCMSSections.forEach(section => {
-              // Store by exact id
-              const cleanedId = cleanId(section.id);
-              idToSectionMap.set(cleanedId, section);
-              
-              // Store by exact sectionId
-              const cleanedSectionId = cleanId(section.sectionId);
-              sectionIdToSectionMap.set(cleanedSectionId, section);
-              
-              // Store prefixes for fuzzy matching
-              // Create prefix map for fuzzy matching (first 8 chars)
-              if (cleanedId.length > 8) {
-                idPrefixMap.set(cleanedId.substring(0, 8), section);
-              }
-              if (cleanedSectionId.length > 8) {
-                idPrefixMap.set(cleanedSectionId.substring(0, 8), section);
-              }
-            });
-            
-            // Enhanced section lookup function
-            const findCmsSection = (pageSection: {id: string; data?: Record<string, unknown>}): typeof allCMSSections[0] | null => {
-              console.log(`🔍 Buscando CMS section para: ${pageSection.id}`);
-              let foundSection = null;
-              
-              // Get cleaned IDs
-              const sectionId = cleanId(pageSection.id);
-              
-              // 1. Direct ID lookups (fastest path)
-              foundSection = idToSectionMap.get(sectionId);
-              if (foundSection) {
-                console.log(`✅ Encontrada por ID exacto: ${foundSection.name}`);
-                return foundSection;
-              }
-              
-              // 2. Check data.sectionId or data.cmsSection if available
-              if (pageSection.data) {
-                const data = pageSection.data as Record<string, unknown>;
-                
-                // Check various data field names
-                const possibleIds = [
-                  data.sectionId as string,
-                  data.cmsSection as string,
-                  data.cmsSectionId as string
-                ].filter(Boolean);
-                
-                for (const id of possibleIds) {
-                  const cleanDataId = cleanId(id);
-                  foundSection = sectionIdToSectionMap.get(cleanDataId) || idToSectionMap.get(cleanDataId);
-                  if (foundSection) {
-                    console.log(`✅ Encontrada por data.ID: ${foundSection.name}`);
-                    return foundSection;
-                  }
-                }
-                
-                // 3. Look in component data if available
-                if (data.components && Array.isArray(data.components)) {
-                  const components = data.components as Array<Record<string, unknown>>;
-                  for (const comp of components) {
-                    if (comp.sectionId) {
-                      const cleanCompId = cleanId(comp.sectionId as string);
-                      foundSection = sectionIdToSectionMap.get(cleanCompId);
-                      if (foundSection) {
-                        console.log(`✅ Encontrada por component.sectionId: ${foundSection.name}`);
-                        return foundSection;
-                      }
-                    }
-                  }
-                }
-              }
-              
-              // 4. Prefix matching for fuzzy lookups
-              const sectionIdPrefix = sectionId.substring(0, Math.min(8, sectionId.length));
-              foundSection = idPrefixMap.get(sectionIdPrefix);
-              if (foundSection) {
-                console.log(`✅ Encontrada por coincidencia de prefijo: ${foundSection.name}`);
-                return foundSection;
-              }
-              
-              // 5. Last resort: brute force substring matching
-              for (const section of allCMSSections) {
-                if (sectionId.includes(section.sectionId) || section.sectionId.includes(sectionId) ||
-                    sectionId.includes(section.id) || section.id.includes(sectionId)) {
-                  console.log(`✅ Encontrada por coincidencia parcial: ${section.name}`);
-                  return section;
-                }
-              }
-              
-              // 6. If all else fails and we only have one section, use it
-              if (allCMSSections.length === 1) {
-                console.log(`✅ Usando la única sección disponible por defecto: ${allCMSSections[0].name}`);
-                return allCMSSections[0];
-              }
-              
-              // No match found
-              console.log(`❌ No se pudo encontrar ninguna sección CMS para: ${sectionId}`);
-              return null;
-            };
-            
-            // Process sections with advanced lookup
-            // Map to track which sections we've already processed
-            const processedSections = new Map();
-            
+            // Process each section
             for (const section of pageData.sections) {
               try {
-                console.log(`\n📋 Procesando sección de página: ${section.id} (orden: ${section.order || 0})`);
+                console.log(`Cargando componentes para sección: ${section.sectionId}`);
                 
-                // Try to find matching CMS section with enhanced lookup
-                const cmsSection = findCmsSection(section);
+                // Load components for this section from the CMS
+                const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
                 
-                if (cmsSection) {
-                  // Store the mapping to avoid duplicate work
-                  processedSections.set(section.id, cmsSection);
+                if (componentResult && componentResult.components) {
+                  console.log(`Recibidos ${componentResult.components.length} componentes para ${section.name || section.id}`);
                   
-                  // Fetch components for this section
-                  console.log(`📥 Solicitando componentes para sección: ${cmsSection.sectionId}`);
-                  try {
-                    const componentResult = await cmsOperations.getSectionComponents(cmsSection.sectionId);
-                    
-                    if (componentResult && componentResult.components) {
-                      console.log(`📦 Recibidos ${componentResult.components.length} componentes para ${cmsSection.name}`);
-                      
-                      pageSections.push({
-                        id: section.id,
-                        order: section.order || 0,
-                        title: cmsSection.name || undefined,
-                        components: componentResult.components
-                      });
-                    } else {
-                      console.warn(`⚠️ No se encontraron componentes para la sección: ${cmsSection.sectionId}`);
-                      pageSections.push({
-                        id: section.id,
-                        order: section.order || 0,
-                        title: cmsSection.name || undefined,
-                        components: []
-                      });
-                    }
-                  } catch (compError) {
-                    console.error(`❌ Error al cargar componentes: ${compError instanceof Error ? compError.message : String(compError)}`);
-                    pageSections.push({
-                      id: section.id,
-                      order: section.order || 0,
-                      title: cmsSection.name || undefined,
-                      components: []
-                    });
-                  }
+                  // Add section with its components to our rendering data
+                  pageSectionsData.push({
+                    id: section.id,
+                    order: section.order || 0,
+                    title: section.name,
+                    components: componentResult.components
+                  });
                 } else {
-                  // Emergency fallback: if we can't find a section, try ALL sections as a last resort
-                  console.warn(`⚠️ Intento de emergencia: probando todas las secciones CMS para: ${section.id}`);
-                  let foundComponents = false;
-                  
-                  for (const fallbackSection of allCMSSections) {
-                    try {
-                      const fallbackResult = await cmsOperations.getSectionComponents(fallbackSection.sectionId);
-                      if (fallbackResult && fallbackResult.components && fallbackResult.components.length > 0) {
-                        console.log(`🚨 Encontrados componentes en sección alternativa: ${fallbackSection.name}`);
-                        
-                        pageSections.push({
-                          id: section.id,
-                          order: section.order || 0,
-                          title: fallbackSection.name || undefined,
-                          components: fallbackResult.components
-                        });
-                        
-                        foundComponents = true;
-                        break;
-                      }
-                    } catch {
-                      // Ignore errors during fallback attempts to try all sections
-                      // We're just trying every section as a last resort
-                    }
-                  }
-                  
-                  if (!foundComponents) {
-                    console.error(`❌ No se pudo encontrar ninguna sección con componentes para: ${section.id}`);
-                    pageSections.push({
-                      id: section.id,
-                      order: section.order || 0,
-                      title: `Sección ${section.order || 0}`,
-                      components: []
-                    });
-                  }
+                  console.warn(`No se encontraron componentes para la sección: ${section.sectionId}`);
+                  pageSectionsData.push({
+                    id: section.id,
+                    order: section.order || 0,
+                    title: section.name,
+                    components: []
+                  });
                 }
-              } catch (sectionError) {
-                console.error(`❌ Error al procesar sección ${section.id}:`, sectionError);
-                pageSections.push({
+              } catch (error) {
+                console.error(`Error al cargar componentes para sección ${section.id}:`, error);
+                // Still add the section, but with empty components
+                pageSectionsData.push({
                   id: section.id,
                   order: section.order || 0,
-                  title: `Sección ${section.order || 0} (error)`,
+                  title: section.name,
                   components: []
                 });
               }
             }
             
             // Sort sections by order
-            pageSections.sort((a, b) => a.order - b.order);
+            pageSectionsData.sort((a, b) => a.order - b.order);
             
-            console.log(`📊 Resumen final: ${pageSections.length} secciones cargadas`);
-            pageSections.forEach((s, i) => {
-              console.log(`  ${i+1}. ${s.title || 'Sin título'} (${s.components.length} componentes)`);
-            });
+            // Log summary
+            console.log(`${pageSectionsData.length} secciones procesadas y ordenadas`);
           }
           
-          setSections(pageSections);
+          setSections(pageSectionsData);
         } catch (sectionsError) {
           console.error('Error al cargar las secciones de la página:', sectionsError);
           setError('Error al cargar las secciones de la página');

@@ -215,7 +215,13 @@ export interface PageData {
   scrollType?: 'normal' | 'smooth';
   createdAt?: string;
   updatedAt?: string;
-  sections?: PageSectionData[]; // Allow for different structure
+  sections?: Array<{
+    id: string;
+    sectionId: string;
+    name?: string;
+    order: number;
+    // Otra metadata relevante
+  }>; // Adaptado a la estructura de CMSSection
   seo?: {
     title?: string; // Add title (same as metaTitle)
     description?: string; // Add description (same as metaDescription)
@@ -239,31 +245,12 @@ interface GraphQLResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
-export interface PageSectionData {
-  id: string;
-  pageId: string;  // Añadir referencia a la página
-  sectionId: string;
-  order: number;
-  title?: string;
-  componentType?: string;
-  data?: Record<string, unknown>;
-  isVisible?: boolean;
-}
 
 // Función de utilidad para validar la pertenencia de secciones
 export const validateSectionOwnership = (sectionId: string, pageId: string): boolean => {
   return sectionId.startsWith(`page-${pageId}-`);
 };
 
-// Función de utilidad para generar IDs de sección únicos por página
-export const generatePageSectionId = (pageId: string, sectionName: string): string => {
-  const timestamp = Date.now();
-  const sanitizedName = sectionName
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
-  return `page-${pageId}-section-${sanitizedName}-${timestamp}`;
-};
 
 // Get a page by its slug
 async function getPageBySlug(slug: string): Promise<PageData | null> {
@@ -298,11 +285,8 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
           updatedAt
           sections {
             id
-            order
-            title
-            componentType
-            data
-            isVisible
+            sectionId
+            name
           }
           seo {
             title
@@ -356,6 +340,13 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
     
     // Found a page
     if (page && page.id) {
+      // Filtrar las secciones con sectionId null para evitar errores GraphQL
+      if (page.sections && Array.isArray(page.sections)) {
+        page.sections = page.sections.filter(section => 
+          section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+        );
+      }
+      
       // Ensure there's always at least an empty SEO object
       if (!page.seo) {
         page.seo = {};
@@ -563,6 +554,13 @@ async function getPageById(id: string): Promise<PageData | null> {
     const page = allPages.find(p => p.id === id);
     
     if (page) {
+      // Make sure to filter out sections with null sectionId
+      if (page.sections && Array.isArray(page.sections)) {
+        page.sections = page.sections.filter(section => 
+          section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+        );
+      }
+      
       // Cache the found page
       setCachedResponse(cacheKey, page as PageData);
       return page as PageData;
@@ -648,7 +646,7 @@ export async function getPagePreview(pageData: PageData): Promise<{
       // Add the section with empty components to maintain structure
       sections.push({
         id: section.id,
-        title: 'title' in section ? section.title : `Section ${section.order || 0}`,
+        title: 'title' in section ? (section.title as string) : `Section ${section.order || 0}`,
         order: section.order || 0,
         components: []
       });
@@ -1119,9 +1117,8 @@ export const cmsOperations = {
             updatedAt
             sections {
               id
-              componentType
-              content
-              data
+              sectionId
+              name
             }
           }
         }
@@ -1139,55 +1136,24 @@ export const cmsOperations = {
           return [];
         }
         
-        return result.getAllCMSPages;
+        // Filtrar las secciones con sectionId null para evitar errores GraphQL
+        const pagesWithValidSections = result.getAllCMSPages.map(page => {
+          if (page.sections && Array.isArray(page.sections)) {
+            // Asegurar que todas las secciones tengan sectionId válido
+            page.sections = page.sections.filter(section => 
+              section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+            );
+          }
+          return page;
+        });
+        
+        return pagesWithValidSections;
       } catch (error) {
         console.error('Error en la consulta GraphQL getAllCMSPages:', error);
         return [];
       }
     } catch (error) {
       console.error(`Error general en getAllPages:`, error);
-      return [];
-    }
-  },
-
-  // Obtener todos los componentes CMS
-  getAllComponents: async () => {
-    try {
-      const query = `
-        query GetAllCMSComponents {
-          getAllCMSComponents {
-            id
-            name
-            slug
-            description
-            category
-            icon
-            isActive
-            createdAt
-            updatedAt
-          }
-        }
-      `;
-
-      console.log('GraphQL query para getAllCMSComponents');
-
-      try {
-        const result = await gqlRequest<{ getAllCMSComponents: CMSComponentDB[] }>(query);
-        
-        console.log("Resultado GraphQL getAllCMSComponents:", JSON.stringify(result).substring(0, 200));
-        
-        if (!result || !result.getAllCMSComponents) {
-          console.log("No se encontraron componentes o la estructura no es la esperada");
-          return [];
-        }
-        
-        return result.getAllCMSComponents;
-      } catch (error) {
-        console.error('Error en la consulta GraphQL getAllCMSComponents:', error);
-        return [];
-      }
-    } catch (error) {
-      console.error(`Error general en getAllComponents:`, error);
       return [];
     }
   },
@@ -1527,8 +1493,8 @@ export const cmsOperations = {
             updatedAt
             sections {
               id
-              order
-              data
+              sectionId
+              name
             }
           }
         }
@@ -1546,7 +1512,18 @@ export const cmsOperations = {
           return [];
         }
         
-        return result.getPagesUsingSectionId;
+        // Filtrar las secciones con sectionId null para evitar errores GraphQL
+        const pagesWithValidSections = result.getPagesUsingSectionId.map(page => {
+          if (page.sections && Array.isArray(page.sections)) {
+            // Asegurar que todas las secciones tengan sectionId válido
+            page.sections = page.sections.filter(section => 
+              section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+            );
+          }
+          return page;
+        });
+        
+        return pagesWithValidSections;
       } catch (error) {
         console.error(`Error en la consulta GraphQL getPagesUsingSectionId (${sectionId}):`, error);
         return [];
@@ -1638,9 +1615,20 @@ export const cmsOperations = {
   }): Promise<{ 
     success: boolean; 
     message: string; 
-    section: { id: string; sectionId: string; name: string } | null;
+    section: { id: string; sectionId: string; name: string; order?: number } | null;
   }> => {
     try {
+      if (!input.sectionId || !input.name) {
+        console.error('Missing required fields for createCMSSection', input);
+        return {
+          success: false,
+          message: 'sectionId and name are required',
+          section: null
+        };
+      }
+
+      console.log('Starting createCMSSection mutation with:', JSON.stringify(input));
+      
       const mutation = `
         mutation CreateCMSSection($input: CreateCMSSectionInput!) {
           createCMSSection(input: $input) {
@@ -1650,30 +1638,39 @@ export const cmsOperations = {
               id
               sectionId
               name
+              order
             }
           }
         }
       `;
       
-      console.log('Starting createCMSSection mutation with:', input);
-      
       // Use a longer timeout for section creation - increase from 15s to 30s
       const result = await gqlRequest<{ 
-        createCMSSection: { 
+        createCMSSection?: { 
           success: boolean; 
           message: string; 
-          section: { id: string; sectionId: string; name: string } | null;
+          section: { id: string; sectionId: string; name: string; order?: number } | null;
         }
       }>(mutation, { input }, 30000);
       
+      console.log('createCMSSection raw result:', JSON.stringify(result));
+      
       if (!result) {
         console.error('No result from GraphQL request in createCMSSection');
-        throw new Error('No result received from server');
+        return {
+          success: false,
+          message: 'No result received from server',
+          section: null
+        };
       }
       
       if (!result.createCMSSection) {
-        console.error('Missing createCMSSection in result:', result);
-        throw new Error('Invalid response format: missing createCMSSection field');
+        console.error('Missing createCMSSection in result:', JSON.stringify(result));
+        return {
+          success: false,
+          message: 'Invalid response format: missing createCMSSection field',
+          section: null
+        };
       }
       
       // Clear cache for related data
@@ -1690,122 +1687,7 @@ export const cmsOperations = {
     }
   },
 
-  // Create a Page section - used in automatic page creation
-  createPageSection: async (input: {
-    pageId: string;
-    title: string;
-    componentType: string;
-    order: number;
-    isVisible?: boolean;
-    data?: Record<string, unknown>;
-    sectionId?: string;
-    componentId?: string;
-  }): Promise<{
-    success: boolean;
-    message: string;
-    section: {
-      id: string;
-      title: string;
-      order: number;
-    } | null;
-  }> => {
-    try {
-      const mutation = `
-        mutation CreatePageSection($input: CreatePageSectionInput!) {
-          createPageSection(input: $input) {
-            success
-            message
-            section {
-              id
-              title
-              order
-            }
-          }
-        }
-      `;
-      
-      console.log(`Starting createPageSection mutation with data:`, JSON.stringify(input, null, 2));
-      
-      const variables = { input };
-      
-      // Define a type for the GraphQL response
-      type CreatePageSectionResponse = {
-        createPageSection?: {
-          success: boolean;
-          message: string;
-          section: {
-            id: string;
-            title: string;
-            order: number;
-          } | null;
-        };
-        data?: {
-          createPageSection: {
-            success: boolean;
-            message: string;
-            section: {
-              id: string;
-              title: string;
-              order: number;
-            } | null;
-          }
-        };
-        errors?: Array<{ message: string }>;
-      };
-      
-      // Use a longer timeout for this operation (30 seconds)
-      const response = await gqlRequest<CreatePageSectionResponse>(mutation, variables, 30000);
-      
-      console.log('Raw GraphQL response for createPageSection:', JSON.stringify(response, null, 2));
-      
-      // Check for different possible response structures
-      let result = null;
-      
-      // Direct structure: { createPageSection: { ... } }
-      if (response && response.createPageSection) {
-        console.log('Found direct createPageSection result in response');
-        result = response.createPageSection;
-      }
-      // Nested in data: { data: { createPageSection: { ... } } }
-      else if (response && response.data && response.data.createPageSection) {
-        console.log('Found nested createPageSection result in response.data');
-        result = response.data.createPageSection;
-      }
-      // Handle errors if present in response
-      else if (response && response.errors) {
-        const errorMessages = response.errors.map((e: { message: string }) => e.message).join(', ');
-        console.error('GraphQL errors in createPageSection:', errorMessages);
-        throw new Error(`GraphQL errors: ${errorMessages}`);
-      }
-      else {
-        console.error('Unexpected response structure (missing createPageSection):', response);
-      }
-      
-      // If we found a valid result, return it
-      if (result) {
-        // Clear cache for related data
-        clearCache(`page_id_${input.pageId}`);
-        return result;
-      }
-      
-      // If we get here, the response didn't have the expected structure
-      console.error('Could not extract valid createPageSection result from response:', response);
-      
-      // Create a defensively consistent response object
-      return {
-        success: false,
-        message: 'La sección no pudo ser creada debido a un problema con la respuesta del servidor',
-        section: null
-      };
-    } catch (error) {
-      console.error('Error creating Page section:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Unknown error creating Page section',
-        section: null
-      };
-    }
-  },
+
 
   updateComponentTitle,
   updateSectionName,
@@ -2124,6 +2006,17 @@ export const cmsOperations = {
     page: PageData | null;
   }> => {
     try {
+      if (!pageId || !sectionId) {
+        console.error('Missing required parameters in associateSectionToPage', { pageId, sectionId });
+        return {
+          success: false,
+          message: 'Los IDs de la página y la sección son requeridos',
+          page: null
+        };
+      }
+
+      console.log(`Asociando sección ${sectionId} a página ${pageId} con orden ${order}`);
+      
       const mutation = `
         mutation AssociateSectionToPage($pageId: ID!, $sectionId: ID!, $order: Int!) {
           associateSectionToPage(pageId: $pageId, sectionId: $sectionId, order: $order) {
@@ -2144,20 +2037,44 @@ export const cmsOperations = {
       `;
 
       const variables = { pageId, sectionId, order };
+      
+      // Usar un timeout más largo para esta operación
       const result = await gqlRequest<{ 
-        associateSectionToPage: {
+        associateSectionToPage?: {
           success: boolean;
           message: string;
           page: PageData | null;
         } 
-      }>(mutation, variables);
+      }>(mutation, variables, 30000); // Increased timeout to 30 seconds
+
+      console.log('Respuesta de associateSectionToPage:', JSON.stringify(result, null, 2));
+      
+      if (!result) {
+        console.error('No se recibió respuesta del servidor');
+        return {
+          success: false,
+          message: 'No se recibió respuesta del servidor al asociar la sección a la página',
+          page: null
+        };
+      }
+      
+      if (!result.associateSectionToPage) {
+        console.error('Respuesta sin el campo associateSectionToPage:', result);
+        return {
+          success: false,
+          message: 'Respuesta no válida del servidor: campo associateSectionToPage no encontrado',
+          page: null
+        };
+      }
 
       return result.associateSectionToPage;
     } catch (error) {
       console.error('Error associating section to page:', error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        message: error instanceof Error 
+          ? `Error al asociar sección a página: ${error.message}` 
+          : 'Error desconocido al asociar sección a página',
         page: null
       };
     }

@@ -584,6 +584,7 @@ export const typeDefs = gql`
     updatedAt: DateTime!
     createdBy: String
     components: [SectionComponent!]
+    order: Int
   }
 
   # Definición del componente de sección
@@ -629,7 +630,7 @@ export const typeDefs = gql`
     scrollType: ScrollType
     createdAt: DateTime!
     updatedAt: DateTime!
-    sections: [PageSection]
+    sections: [CMSSection!]
     seo: PageSEO
   }
 
@@ -678,21 +679,6 @@ export const typeDefs = gql`
     page: Page
   }
 
-  # Page section type
-  type PageSection {
-    id: ID!
-    pageId: String!
-    title: String
-    content: String
-    componentType: String
-    order: Int
-    isVisible: Boolean
-    configuration: JSON
-    data: JSON
-    createdAt: DateTime
-    updatedAt: DateTime
-  }
-  
   # Menu types
   type Menu {
     id: ID!
@@ -813,24 +799,6 @@ export const typeDefs = gql`
     section: CMSSection
   }
 
-  # Input for creating a page section
-  input CreatePageSectionInput {
-    pageId: ID!
-    title: String!
-    componentType: String!
-    order: Int!
-    isVisible: Boolean
-    data: JSON
-    sectionId: ID
-    componentId: ID
-  }
-
-  # Result type for page section operations
-  type PageSectionResult {
-    success: Boolean!
-    message: String!
-    section: PageSection
-  }
 
   # Input for updating pages
   input UpdatePageInput {
@@ -849,17 +817,7 @@ export const typeDefs = gql`
     locale: String
     scrollType: String
     seo: PageSEOInput
-    sections: [PageSectionInput!]
-  }
-
-  input PageSectionInput {
-    id: ID
-    order: Int!
-    title: String
-    componentType: String
-    data: JSON
-    isVisible: Boolean
-    sectionId: ID
+    sections: [ID!]
   }
 
   input PageSEOInput {
@@ -1320,7 +1278,8 @@ export const typeDefs = gql`
     
     # Section mutations
     createCMSSection(input: CreateCMSSectionInput!): CMSSectionResult
-    createPageSection(input: CreatePageSectionInput!): PageSectionResult
+    associateSectionToPage(pageId: ID!, sectionId: ID!, order: Int!): PageResult
+    dissociateSectionFromPage(pageId: ID!, sectionId: ID!): PageResult
 
     # Menu mutations
     createMenu(input: MenuInput!): Menu

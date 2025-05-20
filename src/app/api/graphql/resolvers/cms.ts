@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma, PageType, ComponentType } from '@prisma/client';
+import { Prisma, PageType } from '@prisma/client';
 import crypto from 'crypto';
 
 // Tipo para los componentes de una sección
@@ -64,139 +64,29 @@ export const cmsResolvers = {
       try {
         const { slug } = args;
         
-        if (!slug) {
-          console.log('Error: Slug is missing');
-          return null;
-        }
-        
-        console.log(`Looking for page with slug: ${slug}`);
-        
-        // Normalize the slug
-        const normalizedSlug = slug.replace(/\s+/g, '-').toLowerCase();
-        
-        // Find page by slug
-        const page = await prisma.page.findFirst({
-          where: { 
-            slug: {
-              equals: normalizedSlug,
-              mode: 'insensitive'
-            }
-          },
+        const page = await prisma.page.findUnique({
+          where: { slug },
           include: {
-            sections: {
-              orderBy: {
-                order: 'asc'
-              }
-            },
-            seo: true // Include SEO data
+            sections: true,
+            seo: true
           }
         });
         
         if (!page) {
-          console.log(`No page found with slug: ${normalizedSlug}`);
           return null;
         }
         
-        // Enhanced logging for SEO data debugging
-        console.log(`Page found: ID=${page.id}, Title=${page.title}`);
-        console.log(`Direct Meta Data: Title=${page.metaTitle}, Description=${page.metaDescription}`);
-        console.log(`Page has SEO relationship: ${page.seo ? 'Yes' : 'No'}`);
+        // Filter out sections with null sectionId to prevent GraphQL errors
+        const filteredPage = {
+          ...page,
+          sections: page.sections.filter(section => 
+            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+          )
+        };
         
-        // If page doesn't have a SEO record, try to find it explicitly
-        if (!page.seo) {
-          console.log(`No SEO data found in relationship. Looking up separately by pageId=${page.id}`);
-          
-          try {
-            const seoRecord = await prisma.pageSEO.findUnique({
-              where: { pageId: page.id }
-            });
-            
-            if (seoRecord) {
-              console.log('Found SEO record separately:', seoRecord);
-              // Attach the SEO record to the page
-              page.seo = seoRecord;
-            } else {
-              console.log(`No SEO record found for pageId=${page.id}. Creating a new one.`);
-              
-              // Create a new SEO record for this page
-              // Initialize with values from the page's metaTitle and metaDescription
-              const newSeoRecord = await prisma.pageSEO.create({
-                data: {
-                  pageId: page.id,
-                  title: page.metaTitle || '',
-                  description: page.metaDescription || '',
-                  keywords: '',
-                  createdAt: new Date(),
-                  updatedAt: new Date()
-                }
-              });
-              
-              console.log('Created new SEO record:', newSeoRecord);
-              page.seo = newSeoRecord;
-            }
-          } catch (seoError) {
-            console.error('Error finding/creating SEO record:', seoError);
-            // Instead of creating an empty SEO object, use a metadata structure
-            // that's compatible with the GraphQL schema but not attempting to be a Prisma model
-            console.log('Creating a metadata SEO object for client use');
-          }
-        } else {
-          console.log('SEO data found in relationship:', page.seo);
-        }
-        
-        // Make sure the fields in SEO are synced with metaTitle/metaDescription
-        if (page.seo) {
-          // If seo.title is missing but metaTitle exists, use metaTitle
-          if (!page.seo.title && page.metaTitle) {
-            page.seo.title = page.metaTitle;
-          }
-          // If metaTitle is missing but seo.title exists, use seo.title
-          else if (!page.metaTitle && page.seo.title) {
-            page.metaTitle = page.seo.title;
-          }
-          
-          // Same for description
-          if (!page.seo.description && page.metaDescription) {
-            page.seo.description = page.metaDescription;
-          }
-          else if (!page.metaDescription && page.seo.description) {
-            page.metaDescription = page.seo.description;
-          }
-        } else {
-          // If there's no SEO object at all, create one based on page meta fields
-          console.log('No SEO data found for page, creating a placeholder object');
-          page.seo = {
-            id: '',
-            pageId: '',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            title: page.metaTitle || '',
-            description: page.metaDescription || '',
-            keywords: '',
-            ogTitle: '',
-            ogDescription: '',
-            ogImage: '',
-            twitterTitle: '',
-            twitterDescription: '',
-            twitterImage: '',
-            canonicalUrl: '',
-            structuredData: {}
-          };
-        }
-        
-        // Final log of the data being returned
-        console.log('Returning page with SEO data:', {
-          pageId: page.id,
-          metaTitle: page.metaTitle,
-          metaDescription: page.metaDescription,
-          seoPresent: !!page.seo,
-          seoTitle: page.seo?.title || 'none',
-          seoDescription: page.seo?.description || 'none'
-        });
-        
-        return page;
+        return filteredPage;
       } catch (error) {
-        console.error('Error en getPageBySlug:', error);
+        console.error('Error in getPageBySlug:', error);
         return null;
       }
     },
@@ -454,27 +344,29 @@ export const cmsResolvers = {
 
     // Obtener todas las páginas CMS
     getAllCMSPages: async () => {
+      console.log('======== START getAllCMSPages resolver ========');
       try {
-        // Obtener las páginas de la base de datos con sus secciones
         const pages = await prisma.page.findMany({
           include: {
-            sections: {
-              select: {
-                id: true,
-                order: true
-              },
-              orderBy: {
-                order: 'asc'
-              }
-            }
+            sections: true
           },
           orderBy: {
-            updatedAt: 'desc'
+            createdAt: 'desc'
           }
         });
-        return pages;
+        
+        // Filter out sections with null sectionId to prevent GraphQL errors
+        return pages.map(page => {
+          if (page.sections && Array.isArray(page.sections)) {
+            // Filter out any sections with null sectionId
+            page.sections = page.sections.filter(section => 
+              section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+            );
+          }
+          return page;
+        });
       } catch (error) {
-        console.error('Error al obtener páginas CMS:', error);
+        console.error('Error in getAllCMSPages:', error);
         return [];
       }
     },
@@ -498,14 +390,13 @@ export const cmsResolvers = {
         
         console.log(`Sección encontrada: ${section.id} (${section.name})`);
         
-        // Buscar todas las páginas que tienen secciones con datos que contienen el sectionId
-        // La búsqueda es más compleja porque el campo data es de tipo JSON
+        // Buscar todas las páginas que tienen relación con la sección dada
         const pages = await prisma.$queryRaw`
           SELECT p.* 
           FROM "Page" p 
-          JOIN "PageSection" ps ON p."id" = ps."pageId" 
-          WHERE ps."data"::jsonb ? 'sectionId' 
-          AND ps."data"->>'sectionId' = ${sectionId}
+          JOIN "_PageToSection" pts ON p."id" = pts."B" 
+          JOIN "CMSSection" s ON s."id" = pts."A"
+          WHERE s."id" = ${sectionId} OR s."sectionId" = ${sectionId}
           ORDER BY p."updatedAt" DESC
         `;
         
@@ -519,23 +410,29 @@ export const cmsResolvers = {
         // Para cada página, cargar sus secciones
         const pagesWithSections = await Promise.all(
           pages.map(async (page) => {
-            const sections = await prisma.pageSection.findMany({
+            // Obtener las secciones directamente asociadas a la página
+            const sections = await prisma.page.findUnique({
               where: {
-                pageId: page.id
+                id: page.id
               },
               select: {
-                id: true,
-                order: true,
-                data: true
-              },
-              orderBy: {
-                order: 'asc'
+                sections: {
+                  select: {
+                    id: true,
+                    order: true,
+                    name: true,
+                    description: true
+                  },
+                  orderBy: {
+                    order: 'asc'
+                  }
+                }
               }
             });
             
             return {
               ...page,
-              sections
+              sections: sections?.sections || []
             };
           })
         );
@@ -1148,19 +1045,22 @@ export const cmsResolvers = {
             });
             
             if (section) {
-              // Crear relación entre la página y la sección
-              await prisma.pageSection.create({
+              // Asociar la sección a la página usando la relación many-to-many directa
+              await prisma.page.update({
+                where: { id: newPage.id },
                 data: {
-                  pageId: newPage.id,
-                  title: `Section ${i + 1}`,
-                  componentType: "CUSTOM",
-                  order: i,
-                  isVisible: true,
-                  data: { sectionId },
-                  createdAt: timestamp,
-                  updatedAt: timestamp
+                  sections: {
+                    connect: { id: section.id }
+                  }
                 }
               });
+              
+              // Actualizar el orden de la sección
+              await prisma.$executeRaw`
+                UPDATE "CMSSection" 
+                SET "order" = ${i}
+                WHERE "id" = ${section.id}
+              `;
             } else {
               console.warn(`Sección con ID ${sectionId} no encontrada, omitiendo`);
             }
@@ -1423,16 +1323,17 @@ export const cmsResolvers = {
         if (existingPage.sections.length > 0) {
           const sectionIds = existingPage.sections.map(section => section.id);
           
-          // Eliminar todas las secciones de la página
-          await prisma.pageSection.deleteMany({
-            where: {
-              id: {
-                in: sectionIds
+          // Desasociar todas las secciones de la página
+          await prisma.page.update({
+            where: { id },
+            data: {
+              sections: {
+                disconnect: sectionIds.map(sectionId => ({ id: sectionId }))
               }
             }
           });
           
-          console.log(`Se eliminaron ${sectionIds.length} secciones asociadas a la página`);
+          console.log(`Se desasociaron ${sectionIds.length} secciones asociadas a la página`);
         }
         
         // Eliminar la página
@@ -1509,20 +1410,27 @@ export const cmsResolvers = {
               lastUpdated: timestamp.toISOString(),
               createdAt: timestamp,
               updatedAt: timestamp,
-              createdBy: context?.user?.id || 'system'
+              createdBy: context?.user?.id || 'system',
+              order: 0 // Establecer orden predeterminado
             }
           });
           
-          console.log(`✅ CMS section created successfully: ${newSection.id}`);
+          console.log(`✅ CMS section created successfully:`, {
+            id: newSection.id,
+            sectionId: newSection.sectionId,
+            name: newSection.name,
+            order: newSection.order
+          });
           
-          // Devolver el resultado exitoso
+          // Devolver el resultado exitoso con todos los campos necesarios
           return {
             success: true,
             message: 'Sección CMS creada correctamente',
             section: {
               id: newSection.id,
               sectionId: newSection.sectionId,
-              name: newSection.name
+              name: newSection.name,
+              order: newSection.order || 0 // Asegurar que order esté definido
             }
           };
         } catch (dbError) {
@@ -1543,198 +1451,6 @@ export const cmsResolvers = {
       }
     },
 
-    // Create Page Section mutation - needed for automatic page setup
-    createPageSection: async (_parent: unknown, args: { 
-      input: { 
-        pageId: string;
-        title: string;
-        componentType: string;
-        order: number;
-        isVisible?: boolean;
-        data?: Record<string, unknown>;
-        sectionId?: string;
-        componentId?: string;
-      } 
-    }) => {
-      console.log('======== START createPageSection resolver ========');
-      try {
-        const { input } = args;
-        console.log(`Creando nueva sección de página: ${input.title} para página: ${input.pageId}`);
-        console.log('Input completo recibido:', JSON.stringify(input, null, 2));
-        
-        // Validar campos obligatorios
-        if (!input.pageId || !input.title) {
-          console.error('Error: El ID de página y el título son campos requeridos');
-          return {
-            success: false,
-            message: 'El ID de página y el título son campos requeridos',
-            section: null
-          };
-        }
-        
-        // Verificar si la página existe
-        const existingPage = await prisma.page.findUnique({
-          where: { id: input.pageId }
-        });
-        
-        if (!existingPage) {
-          console.error(`Error: No se encontró ninguna página con ID: ${input.pageId}`);
-          return {
-            success: false,
-            message: `No se encontró ninguna página con ID: ${input.pageId}`,
-            section: null
-          };
-        }
-
-        // If sectionId is provided, verify the CMSSection exists
-        let cmsSectionId = null;
-        if (input.sectionId) {
-          console.log(`Buscando CMSSection con sectionId: ${input.sectionId}`);
-          
-          // Primero intentamos buscar por id exacto
-          let existingSection = await prisma.cMSSection.findFirst({
-            where: { id: input.sectionId }
-          });
-          
-          if (existingSection) {
-            console.log(`Encontrada CMSSection por ID exacto: ${existingSection.id} (${existingSection.name || 'sin nombre'})`);
-            cmsSectionId = existingSection.id;
-          } else {
-            // Si no encontramos por ID, intentamos por sectionId
-            existingSection = await prisma.cMSSection.findFirst({
-              where: { sectionId: input.sectionId }
-            });
-            
-            if (existingSection) {
-              console.log(`Encontrada CMSSection por sectionId: ${existingSection.id} (${existingSection.name || 'sin nombre'})`);
-              cmsSectionId = existingSection.id;
-            } else {
-              // Intentemos crear una sección específica para esta página
-              const pageSectionId = `page-${input.pageId}-section-${Date.now()}`;
-              console.log(`Creando nueva CMSSection específica para esta página con ID: ${pageSectionId}`);
-              
-              try {
-                const newSection = await prisma.cMSSection.create({
-                  data: {
-                    sectionId: pageSectionId,
-                    name: `Sección ${input.title} (Page: ${existingPage.title})`,
-                    description: `Sección específica para página: ${existingPage.title}`,
-                    lastUpdated: new Date(),
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }
-                });
-                
-                console.log(`Creada nueva CMSSection específica con ID: ${newSection.id}, sectionId: ${newSection.sectionId}`);
-                cmsSectionId = newSection.id;
-              } catch (createError) {
-                console.error('Error al crear nueva CMSSection:', createError);
-                // Continuamos sin sectionId si hay error al crear
-              }
-            }
-          }
-        } else {
-          // Si no se proporciona un sectionId, siempre debemos crear uno específico para esta página
-          // para evitar que las secciones aparezcan en todas las páginas
-          const pageSectionId = `page-${input.pageId}-section-${Date.now()}`;
-          console.log(`No se proporcionó sectionId. Creando uno específico para esta página: ${pageSectionId}`);
-          
-          try {
-            const newSection = await prisma.cMSSection.create({
-              data: {
-                sectionId: pageSectionId,
-                name: `Sección ${input.title} (Page: ${existingPage.title})`,
-                description: `Sección automática para página: ${existingPage.title}`,
-                lastUpdated: new Date(),
-                createdAt: new Date(),
-                updatedAt: new Date()
-              }
-            });
-            
-            console.log(`Creada nueva CMSSection específica con ID: ${newSection.id}, sectionId: ${newSection.sectionId}`);
-            cmsSectionId = newSection.id;
-          } catch (createError) {
-            console.error('Error al crear nueva CMSSection:', createError);
-            // Continuamos sin sectionId si hay error al crear
-          }
-        }
-
-        // If componentId is provided, verify the CMSComponent exists
-        if (input.componentId) {
-          const existingComponent = await prisma.cMSComponent.findUnique({
-            where: { id: input.componentId }
-          });
-
-          if (!existingComponent) {
-            console.error(`Error: No se encontró ningún componente CMS con ID: ${input.componentId}`);
-            return {
-              success: false,
-              message: `No se encontró ningún componente CMS con ID: ${input.componentId}`,
-              section: null
-            };
-          }
-        }
-        
-        const timestamp = new Date();
-        
-        // Asegurarse de incluir información de la página en los datos
-        const pageMetadata = {
-          pageId: input.pageId,
-          pageTitle: existingPage.title,
-          pageSpecificSectionId: cmsSectionId
-        };
-        
-        const sectionData = {
-          ...(input.data || {}),
-          _pageMetadata: pageMetadata
-        };
-        
-        // Crear la sección de página en la base de datos
-        const newPageSection = {
-          pageId: input.pageId,
-          title: input.title,
-          componentType: input.componentType as ComponentType,
-          order: input.order,
-          isVisible: input.isVisible !== false, // default to true if undefined
-          data: sectionData as Prisma.InputJsonValue,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-          sectionId: cmsSectionId, // Use the found or created CMSSection ID
-          componentId: input.componentId || undefined
-        };
-        
-        console.log('Creando PageSection con datos:', JSON.stringify(newPageSection, null, 2));
-        
-        const newSection = await prisma.pageSection.create({
-          data: newPageSection
-        });
-        
-        console.log(`Sección de página creada correctamente: ${newSection.id} con sectionId: ${cmsSectionId}`);
-        
-        // Crear el objeto de respuesta con la estructura esperada
-        const responseObject = {
-          success: true,
-          message: `Sección "${input.title}" creada correctamente`,
-          section: {
-            id: newSection.id,
-            title: newSection.title || '',
-            order: newSection.order
-          }
-        };
-        
-        console.log('Objeto de respuesta final:', JSON.stringify(responseObject, null, 2));
-        console.log('======== END createPageSection resolver ========');
-        
-        return responseObject;
-      } catch (error) {
-        console.error('Error al crear sección de página:', error);
-        return {
-          success: false,
-          message: `Error al crear sección: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-          section: null
-        };
-      }
-    },
 
     // Asociar una sección a una página directamente
     associateSectionToPage: async (_parent: unknown, args: { 

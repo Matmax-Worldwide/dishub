@@ -1,15 +1,13 @@
+import { CMSComponent, CMSSection } from '@/app/api/graphql/types';
+
 export interface Section {
   id: string;
   sectionId: string;
-  name: string;
+  name?: string;
   type: string;
-  data: Array<{
-    sectionId: string;
-    type: string;
-    data: Record<string, unknown>;
-  }>;
+  data: CMSComponent[];
   order: number;
-  description: string;
+  description?: string;
   pageId: string;
   componentId?: string;
 }
@@ -32,7 +30,7 @@ export interface PageData {
   isPublished: boolean;
   pageType: string;
   locale: string;
-  sections: Section[];
+  sections: CMSSection[];
   metaTitle: string;
   metaDescription: string;
   featuredImage: string;
