@@ -694,14 +694,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           canonicalUrl: string;
           structuredData: Record<string, unknown>;
         };
-        sections?: Array<{
-          id: string;
-          order: number;
-          title: string;
-          componentType: string;
-          isVisible: boolean;
-          data: Record<string, unknown>;
-        }>;
+        sections?: string[];
       } = {
         title: pageData.title,
         slug: pageData.slug,
@@ -746,27 +739,15 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           componentId: s.componentId
         })), null, 2));
         
-        // Create new sections array for the update
-        const newSections = pageSections.map((section, index) => ({
-          order: index,
-          title: section.name || `Section ${index + 1}`,
-          componentType: 'CUSTOM',
-          isVisible: true,
-          data: {
-            name: section.name,
-            sectionId: section.sectionId, // Incluir sectionId en los datos
-            sectionName: section.name
-          },
-          sectionId: section.sectionId, // Pasar el sectionId a nivel raíz para la relación
-          componentId: section.componentId // Keep the componentId if it exists
-        }));
+        // Extract sectionIds as an array of strings
+        const sectionIdsArray = pageSections.map(section => section.sectionId);
+        
+        console.log('Enviando sectionIds para actualizar:', JSON.stringify(sectionIdsArray, null, 2));
 
-        console.log('Enviando secciones para actualizar:', JSON.stringify(newSections, null, 2));
-
-        // Actualizar la página con las nuevas secciones
+        // Actualizar la página con las secciones
         const result = await cmsOperations.updatePage(pageData.id, {
           ...updateInput,
-          sectionIds: newSections.map(section => section.sectionId)
+          sections: sectionIdsArray
         });
 
         if (!result.success) {

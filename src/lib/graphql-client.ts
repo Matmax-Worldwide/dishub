@@ -443,7 +443,8 @@ async function updatePage(id: string, input: {
     canonicalUrl?: string;
     structuredData?: Record<string, unknown>;
   };
-  sectionIds?: string[]; // Usar sectionIds en lugar de sections
+  sectionIds?: string[]; // This is used by client code but converted to sections
+  sections?: string[]; // This matches the GraphQL schema
 }): Promise<{
   success: boolean;
   message: string;
@@ -463,6 +464,15 @@ async function updatePage(id: string, input: {
     if (descriptionValue) {
       if (!seoData.description) seoData.description = descriptionValue;
       if (!input.metaDescription) input.metaDescription = descriptionValue;
+    }
+
+    // Convert sectionIds to sections format if present
+    const inputData = { ...input };
+    
+    // If sectionIds is provided but sections isn't, move the values
+    if (inputData.sectionIds && !inputData.sections) {
+      inputData.sections = inputData.sectionIds;
+      delete inputData.sectionIds;
     }
 
     const mutation = `
@@ -508,8 +518,8 @@ async function updatePage(id: string, input: {
       }
     `;
 
-    console.log('Updating page with data:', { id, input });
-    const variables = { id, input };
+    console.log('Updating page with data:', { id, input: inputData });
+    const variables = { id, input: inputData };
     const result = await gqlRequest<{ 
       updatePage?: { success: boolean; message: string; page: PageData | null };
       data?: { updatePage: { success: boolean; message: string; page: PageData | null } }
