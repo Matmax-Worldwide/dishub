@@ -1187,6 +1187,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onBackClick={() => setActiveTab('details')}
                   onSavePage={handleSavePage}
                   sectionRef={sectionRef}
+                  fetchSections={loadSections}
                 />
               </div>
               

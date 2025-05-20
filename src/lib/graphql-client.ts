@@ -2125,6 +2125,48 @@ export const cmsOperations = {
       };
     }
   },
+
+  // Obtener todos los componentes CMS
+  getAllComponents: async () => {
+    try {
+      const query = `
+        query GetAllCMSComponents {
+          getAllCMSComponents {
+            id
+            name
+            slug
+            description
+            category
+            icon
+            isActive
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      console.log('GraphQL query para getAllCMSComponents');
+
+      try {
+        const result = await gqlRequest<{ getAllCMSComponents: CMSComponentDB[] }>(query);
+        
+        console.log("Resultado GraphQL getAllCMSComponents:", JSON.stringify(result).substring(0, 200));
+        
+        if (!result || !result.getAllCMSComponents) {
+          console.log("No se encontraron componentes o la estructura no es la esperada");
+          return [];
+        }
+        
+        return result.getAllCMSComponents;
+      } catch (error) {
+        console.error('Error en la consulta GraphQL getAllCMSComponents:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error general en getAllComponents:`, error);
+      return [];
+    }
+  },
 };
 
 // Form Builder API functions

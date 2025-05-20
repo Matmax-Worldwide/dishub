@@ -411,7 +411,7 @@ export const cmsResolvers = {
         const pagesWithSections = await Promise.all(
           pages.map(async (page) => {
             // Obtener las secciones directamente asociadas a la página
-            const sections = await prisma.page.findUnique({
+            const sectionsData = await prisma.page.findUnique({
               where: {
                 id: page.id
               },
@@ -419,6 +419,7 @@ export const cmsResolvers = {
                 sections: {
                   select: {
                     id: true,
+                    sectionId: true,
                     order: true,
                     name: true,
                     description: true
@@ -430,9 +431,17 @@ export const cmsResolvers = {
               }
             });
             
+            // Filter out sections with null sectionId to prevent GraphQL errors
+            let filteredSections: { id: string; sectionId: string; order: number; name: string | null; description: string | null }[] = [];
+            if (sectionsData?.sections) {
+              filteredSections = sectionsData.sections.filter(section => 
+                section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+              );
+            }
+            
             return {
               ...page,
-              sections: sections?.sections || []
+              sections: filteredSections || []
             };
           })
         );

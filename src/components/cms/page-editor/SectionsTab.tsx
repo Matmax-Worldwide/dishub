@@ -32,6 +32,7 @@ interface SectionsTabProps {
   onBackClick: () => void;
   onSavePage: () => void;
   sectionRef: React.RefObject<ManageableSectionHandle>;
+  fetchSections?: () => Promise<void>;
 }
 
 // Tipos de componentes disponibles
@@ -60,6 +61,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
   onBackClick,
   onSavePage,
   sectionRef,
+  fetchSections
 }) => {
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
   
@@ -76,6 +78,44 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       document.removeEventListener('section:request-add-component', handleRequestAddComponent);
     };
   }, []);
+
+  // Escuchar eventos de creación de secciones para actualizar automáticamente
+  useEffect(() => {
+    const handleSectionCreated = () => {
+      console.log('[SectionsTab] 📣 Sección creada, actualizando lista de secciones');
+      if (fetchSections) {
+        fetchSections().catch(err => 
+          console.error('[SectionsTab] ❌ Error al actualizar secciones:', err)
+        );
+      }
+    };
+    
+    document.addEventListener('section:created', handleSectionCreated);
+    
+    return () => {
+      document.removeEventListener('section:created', handleSectionCreated);
+    };
+  }, [fetchSections]);
+  
+  // Handler para crear sección y actualizar
+  const handleCreateSectionAndFetch = async () => {
+    // Llamar a la función original para crear sección
+    onCreateSection();
+    
+    // Esperar un momento y luego actualizar la lista de secciones
+    setTimeout(async () => {
+      if (fetchSections) {
+        try {
+          await fetchSections();
+          console.log('[SectionsTab] ✅ Secciones actualizadas después de crear');
+          // Disparar evento para cualquier otro componente que necesite saber
+          document.dispatchEvent(new CustomEvent('section:created'));
+        } catch (error) {
+          console.error('[SectionsTab] ❌ Error actualizando secciones después de crear:', error);
+        }
+      }
+    }, 1000); // Dar tiempo para que se complete la creación
+  };
   
   // Función para agregar un componente
   const handleAddComponent = (componentType: string, displayType: string) => {
@@ -225,7 +265,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
             isSavingSection={isSavingSection}
             newSectionName={newSectionName}
             onNameChange={onNameChange}
-            onCreateSection={onCreateSection}
+            onCreateSection={handleCreateSectionAndFetch}
             onCancelCreate={onCancelCreate}
             onStartCreating={onStartCreating}
           />
