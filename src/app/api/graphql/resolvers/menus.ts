@@ -110,6 +110,21 @@ export const menuResolvers = {
         },
       });
     },
+    
+    menuByName: async (_: unknown, { name }: { name: string }) => {
+      return prisma.menu.findFirst({
+        where: { name },
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          createdAt: true,
+          updatedAt: true,
+          items: true,
+          headerStyle: true
+        },
+      });
+    },
 
     // Add a query to get all pages for the menu item selection
     pages: async () => {

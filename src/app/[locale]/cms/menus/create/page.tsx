@@ -100,12 +100,39 @@ function CreateMenuPage() {
     setMenuItems(updatedItems);
   };
 
+  // Add a function to check if menu name exists
+  const checkMenuNameExists = async (name: string): Promise<boolean> => {
+    try {
+      const query = `
+        query CheckMenuExists($name: String!) {
+          menuByName(name: $name) {
+            id
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ menuByName: { id: string } | null }>(query, { name });
+      return !!response.menuByName;
+    } catch (err) {
+      console.error('Error checking menu name:', err);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Check if menu name already exists
+      const nameExists = await checkMenuNameExists(name);
+      if (nameExists) {
+        setError(`A menu with the name "${name}" already exists. Please use a different name.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Step 1: Create the menu
       const createMenuMutation = `
         mutation CreateMenu($input: MenuInput!) {
@@ -154,7 +181,6 @@ function CreateMenuPage() {
               pageId: item.pageId,
               target: item.target,
               icon: item.icon,
-              order: item.order,
               parentId: null
             }
           };
@@ -167,7 +193,11 @@ function CreateMenuPage() {
       router.push(`/cms/menus/edit/${menuId}`);
     } catch (err) {
       console.error('Error creating menu:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      if (err instanceof Error && err.message.includes('Unique constraint failed')) {
+        setError(`A menu with the name "${name}" already exists. Please use a different name.`);
+      } else {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      }
     } finally {
       setIsSubmitting(false);
     }

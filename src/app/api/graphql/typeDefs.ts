@@ -1168,6 +1168,7 @@ export const typeDefs = gql`
     # Menu queries
     menus: [Menu!]!
     menu(id: ID!): Menu
+    menuByName(name: String!): Menu
     menuByLocation(location: String!): Menu
     pages: [PageBasic!]! # New query to get pages for menu items
 
