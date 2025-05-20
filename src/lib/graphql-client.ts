@@ -241,6 +241,7 @@ interface GraphQLResponse<T> {
 
 export interface PageSectionData {
   id: string;
+  pageId: string;  // Añadir referencia a la página
   sectionId: string;
   order: number;
   title?: string;
@@ -248,6 +249,21 @@ export interface PageSectionData {
   data?: Record<string, unknown>;
   isVisible?: boolean;
 }
+
+// Función de utilidad para validar la pertenencia de secciones
+export const validateSectionOwnership = (sectionId: string, pageId: string): boolean => {
+  return sectionId.startsWith(`page-${pageId}-`);
+};
+
+// Función de utilidad para generar IDs de sección únicos por página
+export const generatePageSectionId = (pageId: string, sectionName: string): string => {
+  const timestamp = Date.now();
+  const sanitizedName = sectionName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+  return `page-${pageId}-section-${sanitizedName}-${timestamp}`;
+};
 
 // Get a page by its slug
 async function getPageBySlug(slug: string): Promise<PageData | null> {

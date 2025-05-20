@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
-import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
+import { cmsOperations, CMSComponent, generatePageSectionId } from '@/lib/graphql-client';
 import { useTabContext } from '@/app/[locale]/cms/pages/layout';
 import {
   PageData as BasePageData,
@@ -312,13 +312,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                 
                 // Create section data with the found CMS section
                 const sectionData: Section = {
-                  id: section.id, // Keep original section ID from page
-                  sectionId: cmsSection.sectionId, // IMPORTANT: Use CMS section's sectionId
+                  id: section.id,
+                  sectionId: cmsSection.sectionId,
                   name: sectionName,
                   type: 'default',
-                  data: [], // Keep empty data array 
+                  data: [],
                   order: section.order || index,
-                  description: cmsSection.description || ''
+                  description: cmsSection.description || '',
+                  pageId: pageData.id
                 };
                 
                 console.log('Created section data:', JSON.stringify({
@@ -356,6 +357,18 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
             sections: validSections
           }));
         }
+
+        // En la función loadPageData, actualizar la carga de secciones disponibles
+        const sections = await cmsOperations.getAllCMSSections();
+        const formattedSections: AvailableSection[] = sections.map((section) => ({
+          id: section.id,
+          sectionId: section.sectionId || section.id,
+          name: section.name,
+          type: 'default',
+          description: section.description || '',
+          pageId: pageData.id
+        }));
+        setAvailableSections(formattedSections);
       } catch (error) {
         console.error('Error al cargar la página:', error);
         setNotification({
@@ -376,13 +389,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   useEffect(() => {
     const loadSections = async () => {
       try {
-        const response = await cmsOperations.getAllCMSSections();
-        const formattedSections: AvailableSection[] = response.map((section) => ({
+        const sections = await cmsOperations.getAllCMSSections();
+        const formattedSections: AvailableSection[] = sections.map((section) => ({
           id: section.id,
-          sectionId: section.id,
+          sectionId: section.sectionId || section.id,
           name: section.name,
           type: 'default',
-          description: section.description
+          description: section.description || '',
+          pageId: pageData.id
         }));
         setAvailableSections(formattedSections);
       } catch (error) {
@@ -560,7 +574,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       type: section.type,
       data: [],
       order: pageSections.length,
-      description: section.description || ''
+      description: section.description || '',
+      pageId: pageData.id
     };
     
     setPageSections([...pageSections, newSection]);
@@ -684,14 +699,15 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       if (pageSections.length > 0) {
         updateInput.sections = pageSections.map((section, index) => ({
           id: section.id,
+          pageId: pageData.id,
           order: index,
           title: section.name || `Section ${index + 1}`,
           componentType: 'CUSTOM',
           isVisible: true,
           data: {
             name: section.name,
-            // Generar un ID único para cada sección basado en la página y el índice
-            sectionId: `${pageData.id}-section-${index}`
+            sectionId: section.sectionId,
+            pageId: pageData.id
           }
         }));
       }
@@ -776,10 +792,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       return;
     }
     
-    const sectionId = `section-${newSectionName
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')}-${Date.now()}`;
+    // Generar ID único para la sección usando el ID de la página
+    const sectionId = generatePageSectionId(pageData.id, newSectionName);
       
     setIsSavingSection(true);
     
@@ -787,38 +801,29 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       console.log(`Creando nueva sección "${newSectionName}" con ID: ${sectionId}`);
       
       // Crear componentes con tipos en minúsculas para coincidir con los slugs en la BD
-      // Estos son los tipos exactos que serán buscados en la base de datos
       const sectionComponents: CMSComponent[] = [
         {
           id: `header-${Date.now()}`,
-          type: 'header', // Minúsculas para coincidir con los slugs en la BD
+          type: 'header',
           data: {
             componentTitle: 'Encabezado',
             title: newSectionName,
-            subtitle: 'Nueva sección personalizada'
+            subtitle: 'Nueva sección personalizada',
+            pageId: pageData.id // Añadir referencia a la página
           }
         },
         {
           id: `text-${Date.now() + 1}`,
-          type: 'text', // Minúsculas para coincidir con los slugs en la BD
+          type: 'text',
           data: {
             componentTitle: 'Contenido principal',
-            content: 'Edite este contenido para personalizar su sección.'
+            content: 'Edite este contenido para personalizar su sección.',
+            pageId: pageData.id // Añadir referencia a la página
           }
         }
       ];
       
       console.log('Componentes a guardar:', JSON.stringify(sectionComponents, null, 2));
-      
-      // Comprobar si los componentes existen en el sistema
-      try {
-        const availableComponents = await cmsOperations.getAllComponents();
-        console.log('Tipos de componentes disponibles en el sistema:', 
-          availableComponents.map((c: { name: string; slug: string }) => ({ name: c.name, slug: c.slug }))
-        );
-      } catch (err) {
-        console.warn('No se pudieron obtener los componentes disponibles:', err);
-      }
       
       // Guardar la sección en el sistema
       const result = await cmsOperations.saveSectionComponents(sectionId, sectionComponents);
@@ -833,20 +838,22 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           name: newSectionName,
           description: 'Sección personalizada',
           type: 'default',
-          id: sectionId
+          id: sectionId,
+          pageId: pageData.id // Añadir referencia a la página
         };
         
         setAvailableSections(prev => [...prev, newSection]);
         
         // Agregar a las secciones de la página
         const newPageSection: Section = {
-          id: `temp-${Date.now()}`, 
+          id: sectionId, // Usar el mismo ID generado
           sectionId: sectionId,
           name: newSectionName,
           type: 'default',
           data: [],
           order: pageSections.length,
-          description: 'Sección personalizada'
+          description: 'Sección personalizada',
+          pageId: pageData.id // Añadir referencia a la página
         };
         
         setPageSections(prev => [...prev, newPageSection]);
@@ -859,8 +866,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           type: 'success',
           message: `Sección "${newSectionName}" creada exitosamente`
         });
-        
-        // Ahora el usuario podrá editar los componentes dentro de esta sección
         
         setTimeout(() => {
           setNotification(null);

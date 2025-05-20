@@ -10,6 +10,7 @@ export interface Section {
   }>;
   order: number;
   description: string;
+  pageId: string;
 }
 
 export interface AvailableSection {
@@ -18,6 +19,7 @@ export interface AvailableSection {
   name: string;
   type: string;
   description?: string;
+  pageId: string;
 }
 
 export interface PageData {

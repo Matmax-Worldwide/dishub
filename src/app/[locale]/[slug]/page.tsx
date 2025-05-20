@@ -597,8 +597,10 @@ export default function CMSPage() {
   // Return the component
   return (
     <div className="cms-page">
+      {/* Add spacer for fixed header */}
+      <div className="h-[4rem]"></div>
+      
       {/* Header Menu + Section Header components */}
-      {/* First check if we have a Header section in the sections array that should handle the menu */}
       {sections.some(section => 
         section.components.some(comp => comp.type.toLowerCase() === 'header')
       ) ? (
@@ -761,7 +763,12 @@ export default function CMSPage() {
                           }
                           
                           if (isFixedHeader) {
-                            classNames += ' fixed-header z-50';
+                            classNames += ' fixed-header z-[50]';
+                          }
+
+                          // Add scale effect for "Aplica aquí" button in second section
+                          if (type.toLowerCase() === 'button' && activeSection === 1) {
+                            classNames += ' transition-transform duration-500 transform scale-200';
                           }
                           
                           return classNames;

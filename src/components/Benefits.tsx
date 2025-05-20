@@ -274,7 +274,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
           />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <motion.div
               ref={heroRef.ref}
@@ -438,7 +438,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
         </video>
 
         {/* Capa encima del video para contraste */}
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10"></div>
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm"></div>
 
         {/* CONTENIDO PRINCIPAL */}
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center items-center text-center">
@@ -488,7 +488,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
             className="relative overflow-hidden"
           >
             {/* Transición de degradado en la parte superior - desde la sección anterior */}
-            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+            <div className="absolute top-0 left-0 right-0 h-32  pointer-events-none"
                  style={{ background: `linear-gradient(to bottom, ${prevColorFrom}, ${prevColorFrom}50, transparent)` }}></div>
             
             {/* Transición de degradado en la parte inferior - hacia la siguiente sección */}
@@ -581,7 +581,7 @@ export default function Benefits({ dictionary }: BenefitsProps) {
               />
             </div>
             
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative h-full flex flex-col justify-center">
               <div className={`flex flex-col items-center justify-center ${benefit.textColor || "text-white"} px-4 py-8 md:py-12`}>
                 <motion.div
                   ref={benefit.ref.ref}

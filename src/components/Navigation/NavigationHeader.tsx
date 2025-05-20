@@ -134,12 +134,18 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   return (
     <header 
       ref={headerRef}
-      className={`w-full ${'relative'} z-50 transition-all duration-300 ${
+      className={`w-full transition-all duration-300 ${
         isScrolled ? 'py-2 backdrop-blur-md shadow-md' : 'py-5'
       } ${className}`}
       style={{ 
-        backgroundColor: 'inherit',
-        color: 'inherit'
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        color: 'inherit',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        backdropFilter: 'blur(8px)'
       }}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -188,7 +194,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4 border-t border-gray-200">
+          <nav className="md:hidden mt-4 pb-4 border-t border-gray-200 fixed top-[4rem] left-0 right-0 bg-white shadow-lg z-[45]">
             <ul className="space-y-1 pt-2">
               {menu.items.map(item => renderMenuItem(item))}
             </ul>
