@@ -41,9 +41,26 @@ export async function gqlRequest<T>(
       controller.abort();
     }, timeout);
 
-    // Get session token from cookies if available
+    // Check if this is a public operation that doesn't require authentication
+    const isPublicOperation = (
+      query.includes('getPageBySlug') || 
+      query.includes('getSectionComponents') || 
+      query.includes('submitForm') || 
+      query.includes('getMenus') ||
+      query.includes('formBySlug') ||
+      query.includes('getFormById') ||
+      query.includes('form(id:') ||
+      query.includes('forms') ||
+      query.includes('formFields') ||
+      query.includes('menus') ||
+      query.includes('getAllCMSPages') ||
+      // Add more specific operations
+      query.includes('GetForm')
+    );
+
+    // Get session token from cookies if available and not a public operation
     const getToken = () => {
-      if (typeof document !== 'undefined') {
+      if (!isPublicOperation && typeof document !== 'undefined') {
         const cookies = document.cookie.split(';');
         const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('session-token='));
         if (tokenCookie) {
@@ -83,6 +100,13 @@ export async function gqlRequest<T>(
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`GraphQL HTTP error ${response.status} for [${requestId}]:`, errorText);
+        
+        // For public operations, return empty result instead of throwing
+        if (isPublicOperation) {
+          console.warn(`HTTP error in public operation [${requestId}], returning empty result`);
+          return {} as T;
+        }
+        
         throw new Error(`HTTP error ${response.status}: ${errorText}`);
       }
       
@@ -93,6 +117,21 @@ export async function gqlRequest<T>(
       if (responseData.errors && responseData.errors.length > 0) {
         const errorMessages = responseData.errors.map((e: { message: string }) => e.message).join(', ');
         console.error(`GraphQL errors for [${requestId}]:`, errorMessages);
+        
+        // For public operations, handle auth errors gracefully
+        if (isPublicOperation && (errorMessages.includes('Not authenticated') || errorMessages.includes('Unauthorized'))) {
+          console.warn(`Authentication error in public operation [${requestId}], continuing with partial data`);
+          // Return partial data if available, or empty object
+          return (responseData.data || {}) as T;
+        }
+        
+        // For form operations, don't throw to prevent UI breakage
+        if ((query.includes('form') || query.includes('Form')) && 
+            (errorMessages.includes('Not authenticated') || errorMessages.includes('Unauthorized'))) {
+          console.warn(`Form auth error [${requestId}], returning empty result`);
+          return {} as T;
+        }
+        
         throw new Error(`GraphQL errors: ${errorMessages}`);
       }
       
@@ -108,12 +147,24 @@ export async function gqlRequest<T>(
         throw new Error(`La solicitud GraphQL excedió el tiempo límite de ${timeout}ms`);
       }
       
+      // For public operations, swallow errors and return empty result
+      if (isPublicOperation) {
+        console.warn(`Error in public operation [${requestId}], returning empty result:`, error);
+        return {} as T;
+      }
+      
       throw error;
     }
   } catch (error) {
     // Format the error for better debugging
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`GraphQL error [${requestId}]:`, errorMessage);
+    
+    // Check if this is a query about forms and return empty data instead of throwing
+    if (query.toLowerCase().includes('form')) {
+      console.warn(`Form query error, returning empty result:`, errorMessage);
+      return {} as T;
+    }
     
     // Rethrow with more context
     throw new Error(`Error en solicitud GraphQL: ${errorMessage}`);
@@ -2475,50 +2526,25 @@ async function getForms(): Promise<FormBase[]> {
 }
 
 async function getFormById(id: string): Promise<FormBase | null> {
-  const query = `
-    query GetForm($id: ID!) {
-      form(id: $id) {
-        id
-        title
-        description
-        slug
-        isMultiStep
-        isActive
-        successMessage
-        redirectUrl
-        submitButtonText
-        submitButtonStyle
-        layout
-        styling
-        pageId
-        createdById
-        updatedById
-        createdAt
-        updatedAt
-        fields {
-          id
-          label
-          name
-          type
-          placeholder
-          defaultValue
-          helpText
-          isRequired
-          order
-          options
-          validationRules
-          styling
-          width
-          createdAt
-          updatedAt
-        }
-        steps {
+  try {
+    const query = `
+      query GetForm($id: ID!) {
+        form(id: $id) {
           id
           title
           description
-          order
-          isVisible
-          validationRules
+          slug
+          isMultiStep
+          isActive
+          successMessage
+          redirectUrl
+          submitButtonText
+          submitButtonStyle
+          layout
+          styling
+          pageId
+          createdById
+          updatedById
           createdAt
           updatedAt
           fields {
@@ -2538,18 +2564,62 @@ async function getFormById(id: string): Promise<FormBase | null> {
             createdAt
             updatedAt
           }
+          steps {
+            id
+            title
+            description
+            order
+            isVisible
+            validationRules
+            createdAt
+            updatedAt
+            fields {
+              id
+              label
+              name
+              type
+              placeholder
+              defaultValue
+              helpText
+              isRequired
+              order
+              options
+              validationRules
+              styling
+              width
+              createdAt
+              updatedAt
+            }
+          }
         }
       }
+    `;
+
+    const variables = { id };
+
+    try {
+      const response = await gqlRequest<{ form: FormBase }>(query, variables);
+      return response.form || null;
+    } catch (error) {
+      console.warn('Error fetching form by ID, creating fallback:', error);
+      // Return a minimal fallback form to prevent UI breakage
+      return {
+        id,
+        title: 'Form Unavailable',
+        description: 'This form could not be loaded.',
+        slug: 'unavailable-form',
+        isMultiStep: false,
+        isActive: true,
+        fields: [],
+        steps: [],
+        submitButtonText: 'Submit',
+        createdById: 'system',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as FormBase;
     }
-  `;
-
-  const variables = { id };
-
-  try {
-    const response = await gqlRequest<{ form: FormBase }>(query, variables);
-    return response.form || null;
   } catch (error) {
-    console.error('Error fetching form by ID:', error);
+    console.error('Error in getFormById:', error);
     return null;
   }
 }

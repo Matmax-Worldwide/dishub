@@ -91,10 +91,34 @@ export default function FormSection({
         setLoading(true);
         try {
           const form = await graphqlClient.getFormById(formId);
-          setSelectedForm(form);
+          if (form) {
+            setSelectedForm(form);
+          } else {
+            // Handle case where form doesn't exist
+            console.warn(`Form with ID ${formId} not found`);
+            setSelectedForm(null);
+          }
         } catch (error) {
           console.error('Error loading form data:', error);
+          // Don't break the UI if form data can't be loaded
           setSelectedForm(null);
+          
+          // Create a fallback form object if needed for rendering
+          if (isEditing === false) {
+            setSelectedForm({
+              id: formId,
+              title: title || 'Form unavailable',
+              description: description || 'Sorry, this form is currently unavailable.',
+              fields: [],
+              isMultiStep: false,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              slug: 'fallback-form',
+              submitButtonText: 'Submit',
+              createdById: 'system'
+            } as FormBase);
+          }
         } finally {
           setLoading(false);
         }
@@ -104,7 +128,7 @@ export default function FormSection({
     }
     
     loadFormData();
-  }, [formId]);
+  }, [formId, title, description, isEditing]);
   
   // Update local state when props change, but only if not currently editing
   useEffect(() => {
@@ -265,7 +289,7 @@ export default function FormSection({
         return;
       }
 
-      if (result.data.submitForm.success) {
+      if (result.data?.submitForm?.success) {
         setSubmitStatus('success');
         
         // If there's a custom redirect URL, redirect after a short delay

@@ -135,16 +135,19 @@ export const formResolvers = {
     // Get a single form by ID
     form: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
       try {
+        // Allow public access to forms for viewing/submission
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
+        // Continue even without authentication
+        let userId = null;
         
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
+        if (token) {
+          try {
+            const decoded = await verifyToken(token) as { userId: string };
+            userId = decoded?.userId;
+          } catch (tokenError) {
+            console.warn('Invalid token, continuing as public access:', tokenError);
+          }
         }
         
         return prisma.form.findUnique({
@@ -172,16 +175,19 @@ export const formResolvers = {
     // Get a single form by slug
     formBySlug: async (_parent: unknown, args: { slug: string }, context: { req: NextRequest }) => {
       try {
+        // Allow public access to forms by slug
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
+        // Continue even without authentication
+        let userId = null;
         
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
+        if (token) {
+          try {
+            const decoded = await verifyToken(token) as { userId: string };
+            userId = decoded?.userId;
+          } catch (tokenError) {
+            console.warn('Invalid token, continuing as public access:', tokenError);
+          }
         }
         
         return prisma.form.findUnique({
@@ -766,11 +772,17 @@ export const formResolvers = {
           };
         }
         
+        // Check if this is a guest submission and mark it as such
+        const metadata = args.input.metadata || {};
+        if (metadata && typeof metadata === 'object' && metadata.isGuestSubmission) {
+          metadata.submissionType = 'guest';
+        }
+        
         const submission = await prisma.formSubmission.create({
           data: {
             formId: args.input.formId,
             data: args.input.data,
-            metadata: args.input.metadata || {},
+            metadata: metadata,
           },
         });
         

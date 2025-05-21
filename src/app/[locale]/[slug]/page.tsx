@@ -65,6 +65,8 @@ export default function CMSPage() {
         }
       } catch (error) {
         console.error('Error loading menus:', error);
+        // Continue with empty menus rather than failing
+        setMenus([]);
       }
     }
     
@@ -512,6 +514,7 @@ export default function CMSPage() {
         if (!pageData) {
           console.error(`Page not found: ${slug}`);
           setError('Página no encontrada');
+          setIsLoading(false);
           return;
         }
         
@@ -576,6 +579,8 @@ export default function CMSPage() {
         } catch (sectionsError) {
           console.error('Error al cargar las secciones de la página:', sectionsError);
           setError('Error al cargar las secciones de la página');
+          // Continue with empty sections instead of failing completely
+          setSections([]);
         }
       } catch (pageError) {
         console.error('Error al cargar la página:', pageError);
@@ -760,7 +765,7 @@ export default function CMSPage() {
                           let classNames = '';
                           
                           if (pageData.pageType === 'LANDING' && isScrollable) {
-                            classNames = 'min-h-screen h-screen snap-center flex items-center justify-center relative w-full';
+                            classNames = 'min-h-screen h-screen snap-center items-center justify-center relative w-full';
                           } else {
                             classNames = `w-full component-${type.toLowerCase()}`;
                           }
