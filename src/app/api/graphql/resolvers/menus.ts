@@ -180,10 +180,13 @@ export const menuResolvers = {
         
         // If headerStyle was provided, create it separately
         if (headerStyle) {
+          const { advancedOptions, ...headerStyleData } = headerStyle;
           await prisma.headerStyle.create({
             data: {
-              ...headerStyle,
-              menuId: menu.id
+              ...headerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
@@ -228,12 +231,19 @@ export const menuResolvers = {
         
         // If headerStyle was provided, update or create it
         if (headerStyle) {
+          const { advancedOptions, ...headerStyleData } = headerStyle;
           await prisma.headerStyle.upsert({
             where: { menuId: menu.id },
-            update: headerStyle,
+            update: {
+              ...headerStyleData,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+            },
             create: {
-              ...headerStyle,
-              menuId: menu.id
+              ...headerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
@@ -472,13 +482,22 @@ export const menuResolvers = {
           throw new Error(`Menu with ID ${menuId} not found`);
         }
         
+        // Extract advancedOptions for proper JSON handling
+        const { advancedOptions, ...headerStyleData } = input;
+        
         // Update or create the header style
         const headerStyle = await prisma.headerStyle.upsert({
           where: { menuId },
-          update: input,
+          update: {
+            ...headerStyleData,
+            // Safely convert advancedOptions to JSON
+            ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+          },
           create: {
-            ...input,
-            menuId
+            ...headerStyleData,
+            menuId,
+            // Safely convert advancedOptions to JSON
+            ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
           }
         });
         
@@ -504,6 +523,9 @@ export const menuResolvers = {
           };
         }
 
+        // Extract advancedOptions for proper JSON handling
+        const { advancedOptions, ...footerStyleData } = input;
+
         // First check if a footer style already exists for this menu
         let footerStyle = await prisma.footerStyle.findUnique({
           where: { menuId }
@@ -514,16 +536,18 @@ export const menuResolvers = {
           footerStyle = await prisma.footerStyle.update({
             where: { id: footerStyle.id },
             data: {
-              ...input,
-              advancedOptions: input.advancedOptions ? input.advancedOptions : undefined
+              ...footerStyleData,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         } else {
           footerStyle = await prisma.footerStyle.create({
             data: {
               menuId,
-              ...input,
-              advancedOptions: input.advancedOptions ? input.advancedOptions : undefined
+              ...footerStyleData,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
