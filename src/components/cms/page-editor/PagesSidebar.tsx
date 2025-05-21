@@ -181,7 +181,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         // Actualización optimista de la UI
         setPages(prevPages => 
           prevPages.map(page => 
-            page.id === data.id 
+            page.id === data.id && typeof data.isPublished === 'boolean'
               ? { ...page, isPublished: data.isPublished }
               : page
           )
@@ -190,7 +190,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         // Actualizar también las páginas filtradas
         setFilteredPages(prevPages => 
           prevPages.map(page => 
-            page.id === data.id 
+            page.id === data.id && typeof data.isPublished === 'boolean'
               ? { ...page, isPublished: data.isPublished }
               : page
           )
@@ -231,7 +231,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         console.log('Updating publish status in pages sidebar');
         setPages(prevPages => 
           prevPages.map(page => 
-            page.id === data.id 
+            page.id === data.id && typeof data.isPublished === 'boolean'
               ? { ...page, isPublished: data.isPublished }
               : page
           )
@@ -239,7 +239,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         
         setFilteredPages(prevPages => 
           prevPages.map(page => 
-            page.id === data.id 
+            page.id === data.id && typeof data.isPublished === 'boolean'
               ? { ...page, isPublished: data.isPublished }
               : page
           )
