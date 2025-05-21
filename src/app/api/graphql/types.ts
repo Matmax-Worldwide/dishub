@@ -11,6 +11,8 @@ export interface User {
     name: string;
   };
   permissions?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Session {
@@ -82,6 +84,7 @@ export interface Menu {
   location: string | null;
   items: MenuItem[];
   headerStyle?: HeaderStyle | null;
+  footerStyle?: FooterStyle | null;
 }
 
 // Tipo para estilo de header
@@ -96,6 +99,20 @@ export interface HeaderStyle {
   mobileMenuPosition?: MobileMenuPosition;
   transparentHeader?: boolean;
   borderBottom?: boolean;
+  advancedOptions?: Record<string, unknown>;
+}
+
+// Tipo para estilo de footer
+export interface FooterStyle {
+  id: string;
+  menuId: string;
+  transparency?: number;
+  columnLayout?: 'stacked' | 'grid' | 'flex';
+  socialAlignment?: 'left' | 'center' | 'right';
+  borderTop?: boolean;
+  alignment?: 'left' | 'center' | 'right';
+  padding?: 'small' | 'medium' | 'large';
+  width?: 'full' | 'container' | 'narrow';
   advancedOptions?: Record<string, unknown>;
 }
 

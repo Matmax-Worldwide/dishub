@@ -2,8 +2,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import StableInput from './StableInput';
-import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Facebook, 
@@ -11,16 +9,31 @@ import {
   Instagram, 
   Linkedin, 
   Youtube, 
-  Github 
+  Github,
+  Trash2,
+  Plus,
+  LayoutPanelTop,
+  FileText,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
+import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
+import { MediaItem } from '@/components/cms/media/types';
+import S3FilePreview from '@/components/shared/S3FilePreview';
+import { createPortal } from 'react-dom';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
+// Types from schema.prisma
 interface SocialLink {
   type: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'github' | 'custom';
   url: string;
-  icon?: string; // Para enlaces personalizados
-  label?: string; // Para enlaces personalizados
+  icon?: string;
+  label?: string;
 }
 
 interface FooterColumn {
@@ -28,6 +41,8 @@ interface FooterColumn {
   links: Array<{
     label: string;
     url: string;
+    pageId?: string;
+    isPageLink?: boolean;
   }>;
 }
 
@@ -41,6 +56,7 @@ interface FooterSectionProps {
   backgroundColor?: string;
   textColor?: string;
   showYear?: boolean;
+  footerStyle?: FooterStyle;
   isEditing?: boolean;
   onUpdate?: (data: { 
     logoUrl?: string;
@@ -52,14 +68,15 @@ interface FooterSectionProps {
     backgroundColor?: string;
     textColor?: string;
     showYear?: boolean;
+    footerStyle?: FooterStyle;
   }) => void;
 }
 
-// Definir un tipo para los campos válidos
+// Define field types
 type FooterField = keyof Omit<FooterSectionProps, 'isEditing' | 'onUpdate'>;
 type FooterValues = FooterSectionProps[FooterField];
 
-// Define simplified menu types that match what we get from the API
+// Menu types aligned with schema.prisma
 interface SimpleMenuItem {
   id: string;
   title: string;
@@ -76,6 +93,285 @@ interface SimpleMenu {
   items: SimpleMenuItem[];
 }
 
+// Footer style types
+interface FooterStyle {
+  transparency?: number;
+  columnLayout?: 'stacked' | 'grid' | 'flex';
+  socialAlignment?: 'left' | 'center' | 'right';
+  borderTop?: boolean;
+  alignment?: 'left' | 'center' | 'right';
+  padding?: 'small' | 'medium' | 'large';
+  width?: 'full' | 'container' | 'narrow';
+  advancedOptions?: {
+    glassmorphism?: boolean;
+    blur?: number;
+    shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+    animation?: 'none' | 'fade' | 'slide' | 'bounce';
+    customClass?: string;
+  };
+}
+
+// Social icon renderer
+const SocialIcon = ({ type, size = 20 }: { type: SocialLink['type'], size?: number }) => {
+  switch (type) {
+    case 'facebook': return <Facebook size={size} />;
+    case 'twitter': return <Twitter size={size} />;
+    case 'instagram': return <Instagram size={size} />;
+    case 'linkedin': return <Linkedin size={size} />;
+    case 'youtube': return <Youtube size={size} />;
+    case 'github': return <Github size={size} />;
+    default: return <div>•</div>;
+  }
+};
+
+// SocialLinkItem component for rendering each social link
+const SocialLinkItem = ({ 
+  link, 
+  index, 
+  onRemove, 
+  onChange 
+}: { 
+  link: SocialLink; 
+  index: number; 
+  onRemove: (index: number) => void; 
+  onChange: (index: number, field: keyof SocialLink, value: string) => void 
+}) => {
+  // Create local input state
+  const [localUrl, setLocalUrl] = useState(link.url);
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalUrl(link.url);
+  }, [link.url]);
+  
+  return (
+    <div className="flex items-center space-x-2 p-2 border rounded-md">
+      <div className="flex-shrink-0 w-8 flex justify-center">
+        <SocialIcon type={link.type} size={18} />
+      </div>
+      <select
+        value={link.type}
+        onChange={e => onChange(index, 'type', e.target.value as SocialLink['type'])}
+        className="p-2 border rounded-md"
+      >
+        <option value="facebook">Facebook</option>
+        <option value="twitter">Twitter</option>
+        <option value="instagram">Instagram</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="youtube">YouTube</option>
+        <option value="github">GitHub</option>
+        <option value="custom">Custom</option>
+      </select>
+      
+      <input
+        type="text"
+        value={localUrl}
+        onChange={(e) => setLocalUrl(e.target.value)}
+        onBlur={() => onChange(index, 'url', localUrl)}
+        placeholder="Enter URL..."
+        className="flex-1 px-2 py-1 border rounded"
+      />
+      
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="p-1 text-destructive"
+        title="Remove"
+      >
+        <Trash2 size={16} />
+      </button>
+    </div>
+  );
+};
+
+// FooterColumnLink component for rendering each link in a column
+const FooterColumnLink = ({
+  link,
+  columnIndex,
+  linkIndex,
+  pages,
+  onChange,
+  onRemove
+}: {
+  link: FooterColumn['links'][0];
+  columnIndex: number;
+  linkIndex: number;
+  pages: Array<{id: string; title: string; slug: string}>;
+  locale: string;
+  onChange: (columnIndex: number, linkIndex: number, field: 'label' | 'url' | 'pageId' | 'isPageLink', value: string | boolean) => void;
+  onRemove: (columnIndex: number, linkIndex: number) => void;
+}) => {
+  // Create local state for link values
+  const [localLabel, setLocalLabel] = useState(link.label);
+  const [localUrl, setLocalUrl] = useState(link.url);
+  
+  // Update local state when props change
+  useEffect(() => {
+    setLocalLabel(link.label);
+    setLocalUrl(link.url);
+  }, [link.label, link.url]);
+  
+  return (
+    <div className="flex flex-col space-y-2 border border-muted p-3 rounded-md">
+      <div className="flex items-center space-x-2">
+        <input
+          type="text"
+          value={localLabel}
+          onChange={(e) => setLocalLabel(e.target.value)}
+          onBlur={() => onChange(columnIndex, linkIndex, 'label', localLabel)}
+          placeholder="Link text"
+          className="flex-1 text-sm px-2 py-1 border rounded"
+        />
+        <button
+          type="button"
+          onClick={() => onRemove(columnIndex, linkIndex)}
+          className="text-destructive"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <select 
+          className="text-xs px-2 py-1 border rounded"
+          value={link.isPageLink ? "page" : "url"}
+          onChange={(e) => {
+            onChange(
+              columnIndex,
+              linkIndex,
+              'isPageLink',
+              e.target.value === "page"
+            );
+          }}
+        >
+          <option value="url">URL directa</option>
+          <option value="page">Página del sitio</option>
+        </select>
+        
+        {link.isPageLink ? (
+          <select
+            value={link.pageId || ""}
+            onChange={(e) => {
+              onChange(
+                columnIndex,
+                linkIndex,
+                'pageId',
+                e.target.value
+              );
+            }}
+            className="flex-1 text-sm px-2 py-1 border rounded"
+          >
+            <option value="">Seleccionar página...</option>
+            {pages.map(page => (
+              <option key={page.id} value={page.id}>
+                {page.title} ({page.slug})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={localUrl}
+            onChange={(e) => setLocalUrl(e.target.value)}
+            onBlur={() => onChange(columnIndex, linkIndex, 'url', localUrl)}
+            placeholder="URL"
+            className="flex-1 text-sm px-2 py-1 border rounded"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// FooterColumnItem component for rendering each column
+const FooterColumnItem = ({
+  column,
+  columnIndex,
+  pages,
+  locale,
+  onTitleChange,
+  onAddLink,
+  onRemoveColumn,
+  onLinkChange,
+  onRemoveLink
+}: {
+  column: FooterColumn;
+  columnIndex: number;
+  pages: Array<{id: string; title: string; slug: string}>;
+  locale: string;
+  onTitleChange: (columnIndex: number, title: string) => void;
+  onAddLink: (columnIndex: number) => void;
+  onRemoveColumn: (columnIndex: number) => void;
+  onLinkChange: (columnIndex: number, linkIndex: number, field: 'label' | 'url' | 'pageId' | 'isPageLink', value: string | boolean) => void;
+  onRemoveLink: (columnIndex: number, linkIndex: number) => void;
+}) => {
+  // Create local state for column title
+  const [localTitle, setLocalTitle] = useState(column.title);
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalTitle(column.title);
+  }, [column.title]);
+  
+  return (
+    <div className="border rounded-md p-4">
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex-1 mr-2">
+          <input
+            type="text"
+            value={localTitle}
+            onChange={(e) => setLocalTitle(e.target.value)}
+            onBlur={() => onTitleChange(columnIndex, localTitle)}
+            placeholder="Column Title"
+            className="font-medium w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div className="flex space-x-1">
+          <button
+            type="button"
+            onClick={() => onAddLink(columnIndex)}
+            className="p-1 text-xs bg-muted hover:bg-muted/80 rounded flex items-center gap-1"
+            title="Add Link"
+          >
+            <Plus size={14} />
+            Link
+          </button>
+          <button
+            type="button"
+            onClick={() => onRemoveColumn(columnIndex)}
+            className="p-1 text-xs text-destructive"
+            title="Remove Column"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+      
+      {column.links.length > 0 ? (
+        <div className="space-y-2">
+          {column.links.map((link, linkIndex) => (
+            <FooterColumnLink
+              key={linkIndex}
+              link={link}
+              columnIndex={columnIndex}
+              linkIndex={linkIndex}
+              pages={pages}
+              locale={locale}
+              onChange={onLinkChange}
+              onRemove={onRemoveLink}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-2">
+          No links added. Click &quot;+ Link&quot; to add.
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Main Footer Component
 export default function FooterSection({ 
   logoUrl: initialLogoUrl = '',
   companyName: initialCompanyName = 'Company Name',
@@ -86,10 +382,11 @@ export default function FooterSection({
   backgroundColor: initialBackgroundColor = '#111827',
   textColor: initialTextColor = '#f9fafb',
   showYear: initialShowYear = true,
+  footerStyle: initialFooterStyle = {},
   isEditing = false, 
   onUpdate 
 }: FooterSectionProps) {
-  // Local state to maintain during typing
+  // Local state
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [companyName, setCompanyName] = useState(initialCompanyName);
   const [copyright, setCopyright] = useState(initialCopyright);
@@ -102,14 +399,15 @@ export default function FooterSection({
   const [menus, setMenus] = useState<SimpleMenu[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<SimpleMenu | null>(null);
   const [loadingMenus, setLoadingMenus] = useState(false);
+  const [footerStyle, setFooterStyle] = useState(initialFooterStyle);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [pages, setPages] = useState<Array<{id: string; title: string; slug: string}>>([]);
   
-  // Track if we're actively editing to prevent props from overriding local state
+  // References
   const isEditingRef = useRef(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const params = useParams();
   const locale = params.locale as string || 'en';
-  
-  // Optimize debounce updates
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load available menus when in editing mode
   useEffect(() => {
@@ -140,14 +438,33 @@ export default function FooterSection({
     fetchMenus();
   }, [isEditing, menuId]);
   
-  // Update local state when props change but only if not currently editing
+  // Load all available pages when in editing mode
+  useEffect(() => {
+    const fetchPages = async () => {
+      if (!isEditing) return;
+      
+      setPages([]); // Clear pages first
+      try {
+        const pagesData = await cmsOperations.getAllPages();
+        if (Array.isArray(pagesData)) {
+          setPages(pagesData);
+        }
+      } catch (error) {
+        console.error('Error loading pages:', error);
+      }
+    };
+    
+    fetchPages();
+  }, [isEditing]);
+  
+  // Update local state when props change, but only if not currently editing
   useEffect(() => {
     if (!isEditingRef.current) {
       if (initialLogoUrl !== logoUrl) setLogoUrl(initialLogoUrl);
       if (initialCompanyName !== companyName) setCompanyName(initialCompanyName);
       if (initialCopyright !== copyright) setCopyright(initialCopyright);
-      if (initialSocialLinks !== socialLinks) setSocialLinks([...initialSocialLinks]);
-      if (initialColumns !== columns) setColumns([...initialColumns]);
+      if (JSON.stringify(initialSocialLinks) !== JSON.stringify(socialLinks)) setSocialLinks([...initialSocialLinks]);
+      if (JSON.stringify(initialColumns) !== JSON.stringify(columns)) setColumns([...initialColumns]);
       if (initialBackgroundColor !== backgroundColor) setBackgroundColor(initialBackgroundColor);
       if (initialTextColor !== textColor) setTextColor(initialTextColor);
       if (initialShowYear !== showYear) setShowYear(initialShowYear);
@@ -165,7 +482,23 @@ export default function FooterSection({
     initialMenuId, menuId
   ]);
   
-  // Optimize update handler with debouncing
+  // Separate useEffect for footerStyle to prevent infinite loops
+  useEffect(() => {
+    // Only run when initialFooterStyle changes and not during editing
+    if (!isEditingRef.current && initialFooterStyle) {
+      const initialStyleStr = JSON.stringify(initialFooterStyle);
+      const currentStyleStr = JSON.stringify(footerStyle || {});
+      if (initialStyleStr !== currentStyleStr) {
+        // Use a timeout to break the potential update cycle
+        const timeoutId = setTimeout(() => {
+          setFooterStyle({...initialFooterStyle});
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [initialFooterStyle]);
+  
+  // Update handler with debouncing
   const handleUpdateField = useCallback(
     (field: FooterField, value: FooterValues) => {
       if (onUpdate) {
@@ -188,6 +521,7 @@ export default function FooterSection({
           backgroundColor,
           textColor,
           showYear,
+          footerStyle
         };
         
         // Update the specific field
@@ -204,20 +538,10 @@ export default function FooterSection({
         }, 300);
       }
     }, 
-    [onUpdate, logoUrl, companyName, copyright, socialLinks, columns, menuId, backgroundColor, textColor, showYear]
+    [onUpdate, logoUrl, companyName, copyright, socialLinks, columns, menuId, backgroundColor, textColor, showYear, footerStyle]
   );
   
   // Individual change handlers
-  const handleCompanyNameChange = useCallback((newValue: string) => {
-    setCompanyName(newValue);
-    handleUpdateField('companyName', newValue);
-  }, [handleUpdateField]);
-  
-  const handleCopyrightChange = useCallback((newValue: string) => {
-    setCopyright(newValue);
-    handleUpdateField('copyright', newValue);
-  }, [handleUpdateField]);
-  
   const handleLogoUrlChange = useCallback((newValue: string) => {
     setLogoUrl(newValue);
     handleUpdateField('logoUrl', newValue);
@@ -265,12 +589,38 @@ export default function FooterSection({
   }, [columns, handleUpdateField]);
 
   // Update link in a column
-  const handleLinkChange = useCallback((columnIndex: number, linkIndex: number, field: 'label' | 'url', value: string) => {
+  const handleLinkChange = useCallback((columnIndex: number, linkIndex: number, field: 'label' | 'url' | 'pageId' | 'isPageLink', value: string | boolean) => {
     const newColumns = [...columns];
-    newColumns[columnIndex].links[linkIndex][field] = value;
+    
+    if (field === 'isPageLink') {
+      // Cuando cambia entre URL y página
+      newColumns[columnIndex].links[linkIndex].isPageLink = value as boolean;
+      
+      // Reset the other field
+      if (value) {
+        newColumns[columnIndex].links[linkIndex].pageId = '';
+        // Keep URL for now in case they switch back
+      } else {
+        // Going back to URL mode
+        newColumns[columnIndex].links[linkIndex].pageId = undefined;
+      }
+    } else {
+      // Para otros campos (label, url, pageId)
+      (newColumns[columnIndex].links[linkIndex] as Record<string, string | boolean>)[field] = value;
+      
+      // If changing pageId, update URL to reflect the page path
+      if (field === 'pageId' && value) {
+        const selectedPage = pages.find(p => p.id === value);
+        if (selectedPage) {
+          // Format URL as /locale/slug
+          newColumns[columnIndex].links[linkIndex].url = `/${locale}/${selectedPage.slug}`;
+        }
+      }
+    }
+    
     setColumns(newColumns);
     handleUpdateField('columns', newColumns);
-  }, [columns, handleUpdateField]);
+  }, [columns, handleUpdateField, pages, locale]);
 
   // Remove a column
   const handleRemoveColumn = useCallback((columnIndex: number) => {
@@ -322,107 +672,305 @@ export default function FooterSection({
     handleUpdateField('menuId', newMenuId);
   }, [menus, handleUpdateField]);
 
-  // Render menu items for the footer
-  const renderMenuItems = (items: SimpleMenuItem[]) => {
-    if (!items || items.length === 0) return null;
-    
-    return items.map((item) => {
-      // Determine the URL
-      let href = '#';
+  // Footer style handlers
+  const handleFooterStyleChange = useCallback((field: keyof typeof footerStyle, value: unknown) => {
+    try {
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
       
-      if (item.pageId && item.page?.slug) {
-        // If the item has a pageId and the page object with slug, use that
-        href = `/${locale}/${item.page.slug}`;
-      } else if (item.url) {
-        // Otherwise use the direct URL if available
-        href = item.url;
+      // Update local state immediately
+      const newFooterStyle = { ...footerStyle, [field]: value };
+      setFooterStyle(newFooterStyle);
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
       
-      return (
-        <li key={item.id}>
-          <Link 
-            href={href}
-            target={item.target || "_self"}
-            className="text-sm hover:underline"
-          >
-            {item.title}
-          </Link>
-        </li>
-      );
-    });
+      // Add a debounce to prevent rapid updates
+      debounceRef.current = setTimeout(() => {
+        handleUpdateField('footerStyle', newFooterStyle);
+        
+        // Reset editing flag after a short delay
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 500);
+      }, 300);
+    } catch (error) {
+      console.error('Error updating footer style:', error);
+    }
+  }, [footerStyle, handleUpdateField]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  // Function to create the MediaSelector component
+  const MediaSelector = () => {
+    // Close the selector
+    const handleClose = (e?: React.MouseEvent) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      setShowMediaSelector(false);
+    };
+
+    // Handle media item selection from MediaLibrary
+    const handleMediaSelection = (mediaItem: MediaItem) => {
+      setLogoUrl(mediaItem.fileUrl);
+      handleLogoUrlChange(mediaItem.fileUrl);
+      setShowMediaSelector(false);
+    };
+
+    // URL personalizada
+    const [customUrl, setCustomUrl] = useState('');
+    
+    // Handle custom URL selection
+    const handleCustomUrlSelection = (url: string) => {
+      setLogoUrl(url);
+      handleLogoUrlChange(url);
+      setShowMediaSelector(false);
+    };
+    
+    // Handle folder change events
+    const handleFolderChange = (folderPath: string) => {
+      console.log('Folder changed in MediaSelector:', folderPath);
+    };
+
+    // Prevent event bubbling
+    const stopPropagation = (e: React.MouseEvent) => {
+      e.stopPropagation();
+    };
+
+    const mediaSelector = (
+      <div 
+        className="fixed inset-0 flex items-center justify-center bg-black/50" 
+        id="media-selector-root" 
+      style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 2147483647,
+          isolation: 'isolate'
+        }}
+        onClick={handleClose}
+      >
+        <div 
+          className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-auto"
+          style={{ 
+            position: 'relative',
+            margin: 'auto'
+          }}
+          onClick={stopPropagation}
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Select Logo</h3>
+              <button 
+                onClick={handleClose}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Custom URL input */}
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-1 block">Enter Image URL</label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="flex-1 border rounded-l-md p-2 text-sm"
+                />
+                <button
+                  onClick={() => handleCustomUrlSelection(customUrl)}
+                  disabled={!customUrl.trim()}
+                  className="bg-blue-600 text-white px-3 py-2 rounded-r-md disabled:bg-blue-300"
+                >
+                  Use URL
+                </button>
+              </div>
+            </div>
+            
+            <div className="border-t pt-4">
+              <MediaLibrary 
+                onSelect={handleMediaSelection}
+                isSelectionMode={true}
+                showHeader={true}
+                onFolderChange={handleFolderChange}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    // Use createPortal to render the MediaSelector at the end of the DOM
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    return createPortal(
+      mediaSelector,
+      document.body
+    );
   };
 
-  // Render social icon based on type
-  const renderSocialIcon = (type: SocialLink['type']) => {
-    switch (type) {
-      case 'facebook': return <Facebook size={20} />;
-      case 'twitter': return <Twitter size={20} />;
-      case 'instagram': return <Instagram size={20} />;
-      case 'linkedin': return <Linkedin size={20} />;
-      case 'youtube': return <Youtube size={20} />;
-      case 'github': return <Github size={20} />;
-      default: return <div>•</div>;
+  // Details Tab Component
+  const DetailsTab = () => {
+    // Create separate local state for form inputs
+    const [localInputs, setLocalInputs] = useState({
+      companyName: companyName,
+      copyright: copyright
+    });
+    
+    // Update local state when props change and not editing
+    useEffect(() => {
+      if (!isEditingRef.current) {
+        setLocalInputs({
+          companyName: companyName,
+          copyright: copyright
+        });
+      }
+    }, [companyName, copyright]);
+
+    // Function to safely update inputs
+    const updateLocalInput = (field: keyof typeof localInputs, value: string) => {
+      // Update only the local state without triggering any parent updates
+      setLocalInputs(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    };
+    
+    // Handle form submission - only update parent when form is submitted
+    const handleFormSubmit = (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      
+      // Only update if values changed
+      if (localInputs.companyName !== companyName) {
+        handleUpdateField('companyName', localInputs.companyName);
+      }
+      
+      if (localInputs.copyright !== copyright) {
+        handleUpdateField('copyright', localInputs.copyright);
     }
   };
 
   return (
-    <footer 
-      className={cn(
-        "w-full py-8", 
-        isEditing ? "rounded-lg border border-dashed border-border" : ""
-      )}
-      style={{ 
-        backgroundColor: isEditing ? 'transparent' : backgroundColor,
-        color: isEditing ? 'inherit' : textColor 
-      }}
-    >
-      {isEditing ? (
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium">Footer Settings</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+      <div className="space-y-4">
+        <div className="flex items-start space-x-2">
+          <FileText className="h-5 w-5 mt-1 text-muted-foreground" />
+          <form 
+            className="flex-1" 
+            onSubmit={handleFormSubmit}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Company Name</label>
-                <StableInput
-                  value={companyName}
-                  onChange={handleCompanyNameChange}
-                  placeholder="Enter company name..."
-                  className="font-medium text-xl"
-                  label="Company Name"
-                  debounceTime={300}
-                  data-field-id="companyName"
-                  data-component-type="Footer"
+              <input
+                type="text"
+                value={localInputs.companyName}
+                onChange={(e) => updateLocalInput('companyName', e.target.value)}
+                onBlur={handleFormSubmit}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-xl"
+                placeholder="Company Name..."
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Logo URL</label>
-                <StableInput
-                  value={logoUrl}
-                  onChange={handleLogoUrlChange}
-                  placeholder="Enter logo URL..."
-                  label="Logo URL (optional)"
-                  debounceTime={300}
-                  data-field-id="logoUrl"
-                  data-component-type="Footer"
+            <div className="mt-2">
+              <label className="block text-sm font-medium mb-1">Copyright Text</label>
+              <input
+                type="text"
+                value={localInputs.copyright}
+                onChange={(e) => updateLocalInput('copyright', e.target.value)}
+                onBlur={handleFormSubmit}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-muted-foreground"
+                placeholder="Copyright text..."
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Copyright Text</label>
-                <StableInput
-                  value={copyright}
-                  onChange={handleCopyrightChange}
-                  placeholder="Enter copyright text..."
-                  className="text-muted-foreground"
-                  label="Copyright Text"
-                  debounceTime={300}
-                  data-field-id="copyright"
-                  data-component-type="Footer"
-                />
+            <div className="flex items-center space-x-2 mt-2">
+              <input
+                type="checkbox"
+                checked={showYear}
+                onChange={handleShowYearChange}
+                className="rounded border-gray-300"
+                id="showYear"
+              />
+              <label htmlFor="showYear" className="text-sm font-medium">
+                Show Current Year
+              </label>
+            </div>
+          </form>
               </div>
               
+        {/* Logo Selector */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium mb-3 flex items-center">
+            <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+            Footer Logo
+          </h3>
+          <div className="flex flex-col sm:flex-row items-start gap-2">
+            <div 
+              className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
+            >
+              {logoUrl ? (
+                <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Footer">
+                  <S3FilePreview
+                    src={logoUrl} 
+                    alt="Logo"
+                    className="max-h-full max-w-full object-contain" 
+                    width={80}
+                    height={80}
+                  />
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm text-center">
+                  No logo<br/>selected
+                </div>
+              )}
+            </div>
+            <div className="flex-1 space-y-2 w-full">
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => setShowMediaSelector(true)}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                >
+                  Select Logo
+                </button>
+                {logoUrl && (
+                  <button 
+                    onClick={() => handleLogoUrlChange('')}
+                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-gray-500">
+                Select an image from your media library or enter a URL
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Menu Selector */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium mb-3 flex items-center">
+            <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+            Menu Selection
+          </h3>
               <div>
                 <label className="block text-sm font-medium mb-1" htmlFor="footer-menu-selector">
                   Menu for Footer Navigation
@@ -432,6 +980,7 @@ export default function FooterSection({
                   value={menuId}
                   onChange={handleMenuChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={(e) => e.stopPropagation()}
                 >
                   <option value="">None (No Menu Navigation)</option>
                   {menus.map(menu => (
@@ -441,59 +990,6 @@ export default function FooterSection({
                   ))}
                 </select>
                 {loadingMenus && <p className="text-sm text-muted-foreground">Loading menus...</p>}
-              </div>
-              
-              <div className="flex space-x-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Background Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={backgroundColor}
-                      onChange={handleBackgroundColorChange}
-                      className="w-10 h-10 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={backgroundColor}
-                      onChange={handleBackgroundColorChange}
-                      className="flex-1 px-3 py-2 border rounded-md"
-                      placeholder="#000000"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Text Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={textColor}
-                      onChange={handleTextColorChange}
-                      className="w-10 h-10 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={textColor}
-                      onChange={handleTextColorChange}
-                      className="flex-1 px-3 py-2 border rounded-md"
-                      placeholder="#ffffff"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showYear}
-                    onChange={handleShowYearChange}
-                    className="rounded"
-                  />
-                  <span className="text-sm font-medium">Show Current Year</span>
-                </label>
-              </div>
             </div>
             
             {/* Menu Preview */}
@@ -521,13 +1017,16 @@ export default function FooterSection({
                     This menu has no items.
                   </p>
                 )}
-                
-                <div className="text-sm text-muted-foreground mt-2">
-                  This menu will be displayed in the footer along with other footer content.
-                </div>
               </div>
             )}
+        </div>
+      </div>
+    );
+  };
             
+  // Content Tab Component
+  const ContentTab = () => (
+    <div className="space-y-6">
             {/* Social Links Editor */}
             <div className="border p-4 rounded-md">
               <div className="flex justify-between items-center mb-4">
@@ -535,8 +1034,9 @@ export default function FooterSection({
                 <button
                   type="button"
                   onClick={handleAddSocialLink}
-                  className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+                  className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded flex items-center gap-1"
                 >
+                  <Plus size={14} />
                   Add Social Link
                 </button>
               </div>
@@ -544,37 +1044,13 @@ export default function FooterSection({
               {socialLinks.length > 0 ? (
                 <div className="space-y-2">
                   {socialLinks.map((link, index) => (
-                    <div key={index} className="flex items-center space-x-2 p-2 border rounded-md">
-                      <select
-                        value={link.type}
-                        onChange={e => handleSocialLinkChange(index, 'type', e.target.value as SocialLink['type'])}
-                        className="p-2 border rounded-md"
-                      >
-                        <option value="facebook">Facebook</option>
-                        <option value="twitter">Twitter</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="github">GitHub</option>
-                        <option value="custom">Custom</option>
-                      </select>
-                      
-                      <StableInput
-                        value={link.url}
-                        onChange={value => handleSocialLinkChange(index, 'url', value)}
-                        placeholder="Enter URL..."
-                        className="flex-1"
-                        debounceTime={300}
-                      />
-                      
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSocialLink(index)}
-                        className="p-1 text-destructive"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    <SocialLinkItem 
+                      key={index}
+                      link={link}
+                      index={index}
+                      onRemove={handleRemoveSocialLink}
+                      onChange={handleSocialLinkChange}
+                    />
                   ))}
                 </div>
               ) : (
@@ -591,8 +1067,9 @@ export default function FooterSection({
                 <button
                   type="button"
                   onClick={handleAddColumn}
-                  className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+                  className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded flex items-center gap-1"
                 >
+                  <Plus size={14} />
                   Add Column
                 </button>
               </div>
@@ -600,70 +1077,18 @@ export default function FooterSection({
               {columns.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {columns.map((column, columnIndex) => (
-                    <div key={columnIndex} className="border rounded-md p-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <StableInput
-                          value={column.title}
-                          onChange={value => handleColumnTitleChange(columnIndex, value)}
-                          placeholder="Column Title"
-                          className="font-medium"
-                          debounceTime={300}
-                        />
-                        
-                        <div className="flex space-x-1">
-                          <button
-                            type="button"
-                            onClick={() => handleAddLink(columnIndex)}
-                            className="p-1 text-xs bg-muted hover:bg-muted/80 rounded"
-                            title="Add Link"
-                          >
-                            + Link
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveColumn(columnIndex)}
-                            className="p-1 text-xs text-destructive"
-                            title="Remove Column"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {column.links.length > 0 ? (
-                        <div className="space-y-2">
-                          {column.links.map((link, linkIndex) => (
-                            <div key={linkIndex} className="flex items-center space-x-2">
-                              <StableInput
-                                value={link.label}
-                                onChange={value => handleLinkChange(columnIndex, linkIndex, 'label', value)}
-                                placeholder="Link text"
-                                className="flex-1 text-sm"
-                                debounceTime={300}
-                              />
-                              <StableInput
-                                value={link.url}
-                                onChange={value => handleLinkChange(columnIndex, linkIndex, 'url', value)}
-                                placeholder="URL"
-                                className="flex-1 text-sm"
-                                debounceTime={300}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLink(columnIndex, linkIndex)}
-                                className="p-1 text-destructive"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-2">
-                          No links added. Click &quot;+ Link&quot; to add.
-                        </p>
-                      )}
-                    </div>
+                    <FooterColumnItem
+                      key={columnIndex}
+                      column={column}
+                      columnIndex={columnIndex}
+                      pages={pages}
+                      locale={locale}
+                      onTitleChange={handleColumnTitleChange}
+                      onAddLink={handleAddLink}
+                      onRemoveColumn={handleRemoveColumn}
+                      onLinkChange={handleLinkChange}
+                      onRemoveLink={handleRemoveLink}
+                    />
                   ))}
                 </div>
               ) : (
@@ -672,19 +1097,183 @@ export default function FooterSection({
                 </p>
               )}
             </div>
-            
-            {/* Preview */}
-            <div className="border-t pt-4 mt-4">
-              <h4 className="font-medium mb-2">Preview</h4>
-              <div 
-                className="p-4 rounded-md" 
+    </div>
+  );
+
+  // Styles Tab Component
+  const StylesTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="backgroundColor" className="text-sm block mb-1">
+            Background Color
+          </label>
+          <input
+            type="color"
+            id="backgroundColor"
+            value={backgroundColor}
+            onChange={handleBackgroundColorChange}
+            className="rounded border border-gray-300 h-8 w-full"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="textColor" className="text-sm block mb-1">
+            Text Color
+          </label>
+          <input
+            type="color"
+            id="textColor"
+            value={textColor}
+            onChange={handleTextColorChange}
+            className="rounded border border-gray-300 h-8 w-full"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="footerAlignment" className="text-sm block mb-1">
+            Content Alignment
+          </label>
+          <select
+            id="footerAlignment"
+            value={footerStyle.alignment || 'left'}
+            onChange={(e) => handleFooterStyleChange('alignment', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="footerWidth" className="text-sm block mb-1">
+            Footer Width
+          </label>
+          <select
+            id="footerWidth"
+            value={footerStyle.width || 'container'}
+            onChange={(e) => handleFooterStyleChange('width', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="full">Full Width</option>
+            <option value="container">Container (max-width)</option>
+            <option value="narrow">Narrow</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="columnLayout" className="text-sm block mb-1">
+            Column Layout
+          </label>
+          <select
+            id="columnLayout"
+            value={footerStyle.columnLayout || 'grid'}
+            onChange={(e) => handleFooterStyleChange('columnLayout', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="stacked">Stacked</option>
+            <option value="grid">Grid</option>
+            <option value="flex">Flex</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="socialAlignment" className="text-sm block mb-1">
+            Social Links Alignment
+          </label>
+          <select
+            id="socialAlignment"
+            value={footerStyle.socialAlignment || 'left'}
+            onChange={(e) => handleFooterStyleChange('socialAlignment', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="padding" className="text-sm block mb-1">
+            Padding
+          </label>
+          <select
+            id="padding"
+            value={footerStyle.padding || 'medium'}
+            onChange={(e) => handleFooterStyleChange('padding', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="transparency" className="text-sm block mb-1">
+            Background Transparency
+          </label>
+          <div className="flex items-center">
+            <input
+              type="range"
+              id="transparency"
+              min="0"
+              max="100"
+              value={footerStyle.transparency || 0}
+              onChange={(e) => handleFooterStyleChange('transparency', parseInt(e.target.value))}
+              className="flex-1 mr-2"
+            />
+            <span className="text-sm">{footerStyle.transparency || 0}%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-2 mt-4">
+        <input
+          type="checkbox"
+          id="borderTop"
+          checked={footerStyle.borderTop || false}
+          onChange={(e) => handleFooterStyleChange('borderTop', e.target.checked)}
+          className="rounded border-gray-300"
+        />
+        <label htmlFor="borderTop" className="text-sm font-medium">
+          Show Border at Top
+        </label>
+      </div>
+    </div>
+  );
+
+  // Preview Tab Component
+  const PreviewTab = () => (
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium mb-3">Footer Preview</h3>
+      <div 
+        className="p-4 rounded-md border" 
                 style={{ backgroundColor, color: textColor }}
               >
-                <div className="text-sm">
-                  <div className="flex items-center space-x-3" data-field-type="companyName" data-component-type="Footer">
+        <div className={`${
+          footerStyle.width === 'narrow' ? 'max-w-3xl' :
+          footerStyle.width === 'container' ? 'max-w-7xl' : 'w-full'
+        } mx-auto`}>
+          <div className={`${
+            footerStyle.columnLayout === 'stacked' ? 'flex flex-col space-y-6' :
+            footerStyle.columnLayout === 'flex' ? 'flex flex-wrap justify-between gap-8' :
+            'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8'
+          }`}>
+            {/* Company info */}
+            <div>
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center space-x-3">
                     {logoUrl && (
-                      <div className="h-8 w-8" data-field-type="logoUrl" data-component-type="Footer">
-                        <Image 
+                    <div className="h-8 w-8">
+                      <S3FilePreview 
                           src={logoUrl}
                           alt={companyName}
                           width={32}
@@ -697,33 +1286,138 @@ export default function FooterSection({
                       {companyName}
                     </span>
                   </div>
-                  <div className="text-sm opacity-80" data-field-type="copyright" data-component-type="Footer">
-                    © {showYear ? new Date().getFullYear() : ''} {companyName}. {copyright}
-                  </div>
+                
+                {/* Social Links */}
                   {socialLinks.length > 0 && (
-                    <div className="flex mt-2 space-x-2">
-                      {socialLinks.map((link, i) => (
-                        <span key={i} className="inline-block" title={link.url}>
-                          {renderSocialIcon(link.type)}
+                  <div className={`flex space-x-4 mt-4 ${
+                    footerStyle.socialAlignment === 'center' ? 'justify-center' :
+                    footerStyle.socialAlignment === 'right' ? 'justify-end' : 'justify-start'
+                  }`}>
+                    {socialLinks.map((link, index) => (
+                      <span key={index} className="inline-block" title={link.url}>
+                        <SocialIcon type={link.type} />
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
+            
+            {/* Menu Preview */}
+            {selectedMenu && selectedMenu.items && selectedMenu.items.length > 0 && (
+              <div>
+                <h4 className="font-medium text-base mb-4">{selectedMenu.name}</h4>
+                <ul className="space-y-2">
+                  {selectedMenu.items.map(item => {
+                    // Determine the URL
+                    let href = '#';
+                    
+                    if (item.pageId && item.page?.slug) {
+                      // If the item has a pageId and the page object with slug, use that
+                      href = `/${locale}/${item.page.slug}`;
+                    } else if (item.url) {
+                      // Otherwise use the direct URL if available
+                      href = item.url;
+                    }
+                    
+                    return (
+                      <li key={item.id}>
+                        <Link 
+                          href={href}
+                          target={item.target || "_self"}
+                          className="text-sm hover:underline"
+                        >
+                          {item.title}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+            </div>
+            )}
+            
+            {/* Columns Preview */}
+            {columns.map((column, index) => (
+              <div key={index}>
+                <h4 className="font-medium text-base mb-4">{column.title}</h4>
+                <ul className="space-y-2">
+                  {column.links.map((link, linkIndex) => (
+                    <li key={linkIndex} className="text-sm">
+                      {link.label}
+                    </li>
+                  ))}
+                </ul>
+          </div>
+            ))}
+        </div>
+          
+          {/* Copyright */}
+          <div className={`mt-12 pt-6 ${footerStyle.borderTop ? 'border-t' : ''} text-sm ${
+            footerStyle.alignment === 'center' ? 'text-center' :
+            footerStyle.alignment === 'right' ? 'text-right' : 'text-left'
+          }`}>
+            <div className="text-sm opacity-80">
+              © {showYear ? new Date().getFullYear() : ''} {companyName}. {copyright}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <footer 
+      className={cn(
+        "w-full py-8", 
+        isEditing ? "rounded-lg border border-dashed border-border" : ""
+      )}
+      style={{ 
+        backgroundColor: isEditing ? 'transparent' : backgroundColor,
+        color: isEditing ? 'inherit' : textColor 
+      }}
+    >
+      {isEditing ? (
+        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <TabsList className="flex flex-wrap space-x-2 w-full">
+            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
+            <TabsTrigger value="content" className="flex-1 min-w-[100px]">Content</TabsTrigger>
+            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
+            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+          </TabsList>
+
+          {/* DETAILS TAB */}
+          <TabsContent value="details" className="space-y-4">
+            <DetailsTab />
+          </TabsContent>
+
+          {/* CONTENT TAB */}
+          <TabsContent value="content" className="space-y-4">
+            <ContentTab />
+          </TabsContent>
+
+          {/* STYLES TAB */}
+          <TabsContent value="styles" className="space-y-4">
+            <StylesTab />
+          </TabsContent>
+
+          {/* PREVIEW TAB */}
+          <TabsContent value="preview" className="space-y-4">
+            <PreviewTab />
+          </TabsContent>
+          
+          {/* Media selector modal */}
+          {showMediaSelector && <MediaSelector />}
+        </Tabs>
       ) : (
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             {/* Company info */}
             <div className="md:col-span-1">
               <div className="flex flex-col space-y-4">
-                <div className="flex items-center space-x-3" data-field-type="companyName" data-component-type="Footer">
+                <div className="flex items-center space-x-3">
                   {logoUrl && (
-                    <div className="h-8 w-8" data-field-type="logoUrl" data-component-type="Footer">
-                      <Image 
+                    <div className="h-8 w-8">
+                      <S3FilePreview 
                         src={logoUrl}
                         alt={companyName}
                         width={32}
@@ -747,7 +1441,7 @@ export default function FooterSection({
                         target="_blank" 
                         className="hover:opacity-80 transition-opacity"
                       >
-                        {renderSocialIcon(link.type)}
+                        <SocialIcon type={link.type} />
                       </Link>
                     ))}
                   </div>
@@ -762,14 +1456,36 @@ export default function FooterSection({
                 <div>
                   <h4 className="font-medium text-base mb-4">{selectedMenu.name}</h4>
                   <ul className="space-y-2">
-                    {renderMenuItems(selectedMenu.items)}
+                    {selectedMenu.items.map(item => {
+                      // Determine the URL
+                      let href = '#';
+                      
+                      if (item.pageId && item.page?.slug) {
+                        // If the item has a pageId and the page object with slug, use that
+                        href = `/${locale}/${item.page.slug}`;
+                      } else if (item.url) {
+                        // Otherwise use the direct URL if available
+                        href = item.url;
+                      }
+                      
+                      return (
+                        <li key={item.id}>
+                          <Link 
+                            href={href}
+                            target={item.target || "_self"}
+                            className="text-sm hover:underline"
+                          >
+                            {item.title}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
             
               {/* Custom columns */}
-              {columns.length > 0 && 
-                columns.map((column, index) => (
+              {columns.map((column, index) => (
                   <div key={index}>
                     <h4 className="font-medium text-base mb-4">{column.title}</h4>
                     <ul className="space-y-2">
@@ -785,14 +1501,13 @@ export default function FooterSection({
                       ))}
                     </ul>
                   </div>
-                ))
-              }
+              ))}
             </div>
           </div>
           
           {/* Copyright */}
           <div className="mt-12 pt-6 border-t border-gray-700 text-sm">
-            <div className="text-sm opacity-80" data-field-type="copyright" data-component-type="Footer">
+            <div className="text-sm opacity-80">
               © {showYear ? new Date().getFullYear() : ''} {companyName}. {copyright}
             </div>
           </div>

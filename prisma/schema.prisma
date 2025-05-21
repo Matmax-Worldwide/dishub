@@ -550,6 +550,7 @@ model Menu {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   headerStyle HeaderStyle?
+  footerStyle FooterStyle?
   items       MenuItem[]
 }
 
@@ -749,6 +750,24 @@ model HeaderStyle {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   menu               Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+}
+
+model FooterStyle {
+  id                String   @id @default(cuid())
+  transparency      Int?     @default(0)
+  columnLayout      String?  @default("grid")
+  socialAlignment   String?  @default("left")
+  borderTop         Boolean? @default(false)
+  alignment         String?  @default("left")
+  padding           String?  @default("medium")
+  width             String?  @default("container")
+  advancedOptions   Json?
+  
+  menuId            String   @unique
+  menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Form {

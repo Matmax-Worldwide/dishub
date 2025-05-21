@@ -6,7 +6,6 @@ import { FormBase } from '@/types/forms';
 import { FormPreview } from './FormPreview';
 import { FormStyleConfig, FormStyles } from './FormStyleConfig';
 import { FormConfig, FormCustomConfig } from './FormConfig';
-import StableInput from './StableInput';
 import { FileText, LayoutPanelTop, FormInput } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import FormRenderer from '@/components/cms/forms/FormRenderer';
@@ -120,9 +119,8 @@ export default function FormSection({
   
   // Update parent with changes
   const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig, event?: React.SyntheticEvent) => {
-    // Si se proporciona un evento, prevenir comportamiento por defecto y propagación
-    if (event) {
-      event.preventDefault();
+    // Solo para los campos que no son title y description, hacemos stopPropagation
+    if (event && field !== 'title' && field !== 'description') {
       event.stopPropagation();
     }
     
@@ -187,10 +185,6 @@ export default function FormSection({
   
   // Handle form selection
   const handleFormSelect = useCallback((form: FormBase | null, event?: React.SyntheticEvent) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
     setSelectedForm(form);
     setFormId(form?.id || '');
     handleUpdateField('formId', form?.id || '', event);
@@ -234,17 +228,6 @@ export default function FormSection({
       }
     };
   }, []);
-  
-  // Individual change handlers
-  const handleTitleChange = useCallback((newValue: string) => {
-    setTitle(newValue);
-    handleUpdateField('title', newValue);
-  }, [handleUpdateField]);
-  
-  const handleDescriptionChange = useCallback((newValue: string) => {
-    setDescription(newValue);
-    handleUpdateField('description', newValue);
-  }, [handleUpdateField]);
   
   // Add this function to handle form submission
   const handleFormSubmit = async (formData: Record<string, unknown>) => {
@@ -428,78 +411,143 @@ export default function FormSection({
     return '';
   };
   
+  // Memoized Form Preview Component to prevent unnecessary re-renders
+  const MemoizedFormPreview = React.memo(({ form }: { form: FormBase | null }) => {
+    return form ? <FormPreview form={form} compact /> : null;
+  });
+  
+  // Add display name for React DevTools and linter
+  MemoizedFormPreview.displayName = 'MemoizedFormPreview';
+
   // Details Tab Component
-  const DetailsTab = () => (
-    <div className="space-y-4">
-      <div className="flex items-start space-x-2">
-        <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-        <div 
-          className="flex-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <StableInput
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Form Section Title..."
-            className="font-medium text-xl"
-            label="Section Title"
-            debounceTime={300}
-          />
-          
-          <StableInput
-            value={description}
-            onChange={handleDescriptionChange}
-            placeholder="Section description..."
-            className="text-muted-foreground mt-2"
-            label="Section Description"
-            debounceTime={300}
-          />
-        </div>
-      </div>
+  const DetailsTab = () => {
+    // Estado local para los inputs
+    const [localTitle, setLocalTitle] = useState(title);
+    const [localDescription, setLocalDescription] = useState(description);
+    
+    // Manejador de submit para los inputs
+    const handleInputSubmit = useCallback(() => {
+      // Solo actualizar si los valores han cambiado
+      if (localTitle !== title) {
+        setTitle(localTitle);
+        if (onUpdate) {
+          onUpdate({
+            title: localTitle,
+            description,
+            formId,
+            styles,
+            customConfig,
+            selectedIcon
+          });
+        }
+      }
       
-      {/* Icon Selector */}
-      <div className="border-t pt-4">
-        <h3 className="text-sm font-medium mb-3 flex items-center">
-          <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-          Section Icon
-        </h3>
-        <div 
-          className="isolate"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <IconSelector
-            selectedIcon={selectedIcon}
-            onSelectIcon={handleIconSelect}
-            className="w-full"
-          />
-        </div>
-      </div>
-      
-      <div className="border-t pt-4">
-        <h3 className="text-sm font-medium mb-3 flex items-center">
-          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-          Form Selection
-        </h3>
-        <FormSelector
-          onSelect={handleFormSelect}
-          selectedFormId={formId}
-          required={true}
-          className="mb-4"
-        />
-        
-        {loading ? (
-          <div className="mt-4 p-4 bg-muted/20 rounded-md flex items-center justify-center">
-            <span className="animate-pulse">Loading form preview...</span>
+      if (localDescription !== description) {
+        setDescription(localDescription);
+        if (onUpdate) {
+          onUpdate({
+            title,
+            description: localDescription,
+            formId,
+            styles,
+            customConfig,
+            selectedIcon
+          });
+        }
+      }
+    }, [localTitle, localDescription, title, description, formId, styles, customConfig, selectedIcon, onUpdate]);
+
+    // Actualizar estado local cuando cambian las props
+    useEffect(() => {
+      setLocalTitle(title);
+      setLocalDescription(description);
+    }, [title, description]);
+    
+    return (
+      <div className="space-y-4">
+        {/* Title and Description inputs */}
+        <div className="flex items-start space-x-2">
+          <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+          <div className="flex-1">
+            {/* Wrapping StableInput in an isolation div */}
+            <div className="isolate" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-sm font-medium mb-2 text-foreground">
+                Section Title
+              </label>
+              <input
+                type="text"
+                value={localTitle}
+                onChange={(e) => setLocalTitle(e.target.value)}
+                onBlur={handleInputSubmit}
+                placeholder="Form Section Title..."
+                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-medium text-xl"
+              />
+            </div>
+            
+            {/* Wrapping StableInput in an isolation div */}
+            <div className="isolate mt-4" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-sm font-medium mb-2 text-foreground">
+                Section Description
+              </label>
+              <textarea
+                value={localDescription}
+                onChange={(e) => setLocalDescription(e.target.value)}
+                onBlur={handleInputSubmit}
+                placeholder="Section description..."
+                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground text-muted-foreground"
+                rows={3}
+              />
+            </div>
           </div>
-        ) : selectedForm && (
+        </div>
+        
+        {/* Icon Selector */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium mb-3 flex items-center">
+            <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+            Section Icon
+          </h3>
+          <div>
+            <IconSelector
+              selectedIcon={selectedIcon}
+              onSelectIcon={handleIconSelect}
+              className="w-full"
+            />
+          </div>
+        </div>
+        
+        {/* Form Selection section */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium mb-3 flex items-center">
+            <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+            Form Selection
+          </h3>
+          <div onClick={(e) => e.stopPropagation()}>
+            <FormSelector
+              onSelect={handleFormSelect}
+              selectedFormId={formId}
+              required={true}
+              className="mb-4"
+            />
+          </div>
+          
+          {/* Separated Form Preview to prevent re-renders affecting inputs */}
           <div className="mt-4">
             <div className="text-sm font-medium mb-2">Selected Form Preview</div>
-            <FormPreview form={selectedForm} compact />
+            {loading ? (
+              <div className="p-4 bg-muted/20 rounded-md flex items-center justify-center">
+                <span className="animate-pulse">Loading form preview...</span>
+              </div>
+            ) : (
+              <div className="form-preview-container">
+                <MemoizedFormPreview form={selectedForm} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Styles Tab Component
   const StylesTab = () => (

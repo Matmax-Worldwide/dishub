@@ -68,6 +68,9 @@ export default function StableInput({
   
   // Handle input changes with debounce to notify parent
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Stop propagation to prevent parent form triggers
+    e.stopPropagation();
+    
     const newValue = e.target.value;
     
     // Mark that we're editing
@@ -84,16 +87,22 @@ export default function StableInput({
     // Set new timeout to notify parent only after debounce time
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
-      // No longer resetting isEditingRef here to prevent interference with special characters
-      // isEditingRef will be reset on blur instead
     }, debounceTime);
   }, [onChange, debounceTime]);
 
-  // Handle keydown to ensure special key combinations work (like accent keys)
-  const handleKeyDown = useCallback(() => {
-    // Don't interfere with special key combinations
+  // Handle keydown to ensure special key combinations work and prevent form submission
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Prevent enter key from submitting the form
+    if (e.key === 'Enter' && !isTextArea) {
+      e.preventDefault();
+    }
+    
+    // Stop propagation for all key events
+    e.stopPropagation();
+    
+    // Mark that we're editing
     isEditingRef.current = true;
-  }, []);
+  }, [isTextArea]);
   
   // Handle focus events
   const handleFocus = useCallback(() => {
@@ -127,19 +136,9 @@ export default function StableInput({
     }, 300);
   }, []);
   
-  // Stop propagation of clicks to prevent parent components from rerendering
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  // Stop all event propagation
+  const stopAllPropagation = useCallback((e: React.SyntheticEvent) => {
     e.stopPropagation();
-    isEditingRef.current = true; // Mark as editing on click
-  }, []);
-  
-  // Clear timeout when component unmounts
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
   }, []);
   
   // Render textarea or input based on configuration
@@ -150,7 +149,6 @@ export default function StableInput({
       onKeyDown: handleKeyDown,
       onFocus: handleFocus,
       onBlur: handleBlur,
-      onClick: handleClick,
       placeholder,
       disabled,
       'data-field-id': fieldId,
@@ -184,9 +182,17 @@ export default function StableInput({
   };
   
   return (
-    <div className="w-full" onClick={handleClick}>
+    <div 
+      className="w-full isolate" 
+      onClick={stopAllPropagation}
+      onMouseDown={stopAllPropagation}
+      onPointerDown={stopAllPropagation}
+    >
       {label && (
-        <label className="block text-sm font-medium mb-2 text-foreground">
+        <label 
+          className="block text-sm font-medium mb-2 text-foreground"
+          onClick={stopAllPropagation}
+        >
           {label}
         </label>
       )}

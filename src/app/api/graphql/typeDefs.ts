@@ -688,12 +688,14 @@ export const typeDefs = gql`
     updatedAt: DateTime!
     items: [MenuItem!]
     headerStyle: HeaderStyle
+    footerStyle: FooterStyle
   }
 
   input MenuInput {
     name: String!
     location: String
     headerStyle: HeaderStyleInput
+    footerStyle: FooterStyleInput
   }
 
   type MenuItem {
@@ -1297,6 +1299,9 @@ export const typeDefs = gql`
     # HeaderStyle mutations
     updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyle
 
+    # FooterStyle mutations
+    updateFooterStyle(menuId: ID!, input: FooterStyleInput!): FooterStyleResult!
+
     # Form Builder mutations
     createForm(input: FormInput!): FormResult!
     updateForm(id: ID!, input: UpdateFormInput!): FormResult!
@@ -1331,6 +1336,65 @@ export const typeDefs = gql`
     advancedOptions: JSON
     createdAt: DateTime
     updatedAt: DateTime
+  }
+
+  # FooterStyle type for storing footer configuration
+  type FooterStyle {
+    id: ID!
+    menuId: String!
+    transparency: Int
+    columnLayout: String
+    socialAlignment: String
+    borderTop: Boolean
+    alignment: String
+    padding: String
+    width: String
+    advancedOptions: JSON
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # Enum types for footer customization
+  enum FooterColumnLayout {
+    stacked
+    grid
+    flex
+  }
+
+  enum SocialAlignment {
+    left
+    center
+    right
+  }
+
+  enum FooterAlignment {
+    left
+    center
+    right
+  }
+
+  enum FooterPadding {
+    small
+    medium
+    large
+  }
+
+  enum FooterWidth {
+    full
+    container
+    narrow
+  }
+
+  # Input for footer style
+  input FooterStyleInput {
+    transparency: Int
+    columnLayout: String
+    socialAlignment: String
+    borderTop: Boolean
+    alignment: String
+    padding: String
+    width: String
+    advancedOptions: JSON
   }
 
   # Enum types for header customization
@@ -1384,5 +1448,12 @@ export const typeDefs = gql`
     animation: String
     customClass: String
     borderRadius: String
+  }
+
+  # FooterStyleResult type for updating footer style
+  type FooterStyleResult {
+    success: Boolean!
+    message: String!
+    footerStyle: FooterStyle
   }
 `; 

@@ -918,6 +918,17 @@ export interface HeaderStyleInput {
   advancedOptions?: Record<string, unknown>;
 }
 
+export interface FooterStyleInput {
+  transparency?: number;
+  columnLayout?: 'stacked' | 'grid' | 'flex';
+  socialAlignment?: 'left' | 'center' | 'right';
+  borderTop?: boolean;
+  alignment?: 'left' | 'center' | 'right';
+  padding?: 'small' | 'medium' | 'large';
+  width?: 'full' | 'container' | 'narrow';
+  advancedOptions?: Record<string, unknown>;
+}
+
 // Operaciones CMS
 export const cmsOperations = {
   // Obtener todas las secciones CMS
@@ -1745,6 +1756,17 @@ export const cmsOperations = {
         borderBottom: boolean;
         advancedOptions?: Record<string, unknown>;
       };
+      footerStyle?: {
+        id: string;
+        transparency: number;
+        columnLayout: string;
+        socialAlignment: string;
+        borderTop: boolean;
+        alignment: string;
+        padding: string;
+        width: string;
+        advancedOptions?: Record<string, unknown>;
+      };
     }>>(cacheKey);
     
     if (cachedMenus) {
@@ -1793,6 +1815,17 @@ export const cmsOperations = {
               borderBottom
               advancedOptions
             }
+            footerStyle {
+              id
+              transparency
+              columnLayout
+              socialAlignment
+              borderTop
+              alignment
+              padding
+              width
+              advancedOptions
+            }
           }
         }
       `;
@@ -1834,6 +1867,17 @@ export const cmsOperations = {
           mobileMenuPosition: string;
           transparentHeader: boolean;
           borderBottom: boolean;
+          advancedOptions?: Record<string, unknown>;
+        };
+        footerStyle?: {
+          id: string;
+          transparency: number;
+          columnLayout: string;
+          socialAlignment: string;
+          borderTop: boolean;
+          alignment: string;
+          padding: string;
+          width: string;
           advancedOptions?: Record<string, unknown>;
         };
       }> }>(query);
@@ -2177,6 +2221,196 @@ export const cmsOperations = {
       return [];
     }
   },
+
+  // Header and footer style update methods are defined earlier in the cmsOperations object
+
+  // Update Footer Style
+  async updateFooterStyle(menuId: string, styleData: FooterStyleInput): Promise<{
+    success: boolean;
+    message: string;
+    footerStyle?: Record<string, unknown>;
+  }> {
+    try {
+      const query = `
+        mutation UpdateFooterStyle($menuId: ID!, $input: FooterStyleInput!) {
+          updateFooterStyle(menuId: $menuId, input: $input) {
+            success
+            message
+            footerStyle {
+              id
+              menuId
+              transparency
+              columnLayout
+              socialAlignment
+              borderTop
+              alignment
+              padding
+              width
+              advancedOptions
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+
+      const variables = {
+        menuId,
+        input: styleData
+      };
+
+      const response = await gqlRequest<{
+        updateFooterStyle: {
+          success: boolean;
+          message: string;
+          footerStyle: Record<string, unknown> | null;
+        };
+      }>(query, variables);
+
+      return {
+        success: response.updateFooterStyle.success,
+        message: response.updateFooterStyle.message,
+        footerStyle: response.updateFooterStyle.footerStyle || undefined
+      };
+    } catch (error) {
+      console.error('Error updating footer style:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  },
+
+  // Get menu with Footer style
+  async getMenuWithFooterStyle(menuId: string): Promise<{
+    id: string;
+    name: string;
+    location: string | null;
+    items: Array<{
+      id: string;
+      title: string;
+      url: string | null;
+      pageId: string | null;
+      target: string | null;
+      icon: string | null;
+      order: number;
+      parentId: string | null;
+      children?: Array<{
+        id: string;
+        title: string;
+        url: string | null;
+        pageId: string | null;
+        target: string | null;
+        icon: string | null;
+        order: number;
+      }>;
+      page?: { slug: string } | null;
+    }>;
+    footerStyle?: {
+      transparency?: number;
+      columnLayout?: string;
+      socialAlignment?: string;
+      borderTop?: boolean;
+      alignment?: string;
+      padding?: string;
+      width?: string;
+      advancedOptions?: Record<string, unknown>;
+    } | null;
+  } | null> {
+    try {
+      const query = `
+        query GetMenuWithFooterStyle($id: ID!) {
+          menu(id: $id) {
+            id
+            name
+            location
+            items {
+              id
+              title
+              url
+              pageId
+              target
+              icon
+              order
+              parentId
+              children {
+                id
+                title
+                url
+                pageId
+                target
+                icon
+                order
+              }
+              page {
+                slug
+              }
+            }
+            footerStyle {
+              id
+              transparency
+              columnLayout
+              socialAlignment
+              borderTop
+              alignment
+              padding
+              width
+              advancedOptions
+            }
+          }
+        }
+      `;
+
+      const variables = { id: menuId };
+      // Use a longer timeout for this query
+      const result = await gqlRequest<{
+        menu: {
+          id: string;
+          name: string;
+          location: string | null;
+          items: Array<{
+            id: string;
+            title: string;
+            url: string | null;
+            pageId: string | null;
+            target: string | null;
+            icon: string | null;
+            order: number;
+            parentId: string | null;
+            children?: Array<{
+              id: string;
+              title: string;
+              url: string | null;
+              pageId: string | null;
+              target: string | null;
+              icon: string | null;
+              order: number;
+            }>;
+            page?: { slug: string } | null;
+          }>;
+          footerStyle: {
+            id: string;
+            transparency?: number;
+            columnLayout?: string;
+            socialAlignment?: string;
+            borderTop?: boolean;
+            alignment?: string;
+            padding?: string;
+            width?: string;
+            advancedOptions?: Record<string, unknown>;
+          } | null;
+        } | null;
+      }>(query, variables, 20000); // Increase timeout to 20 seconds
+
+      return result?.menu || null;
+    } catch (error) {
+      console.error('Error fetching menu with footer style:', error);
+      return null;
+    }
+  },
+
+  // Expose the clearCache function
+  clearCache,
 };
 
 // Form Builder API functions

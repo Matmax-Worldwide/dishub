@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -55,7 +54,18 @@ interface HeaderStyleInput {
   mobileMenuPosition?: 'left' | 'right';
   transparentHeader?: boolean;
   borderBottom?: boolean;
-  advancedOptions?: Prisma.InputJsonValue;
+  advancedOptions?: Record<string, unknown>;
+}
+
+interface FooterStyleInput {
+  transparency?: number;
+  columnLayout?: 'stacked' | 'grid' | 'flex';
+  socialAlignment?: 'left' | 'center' | 'right';
+  borderTop?: boolean;
+  alignment?: 'left' | 'center' | 'right';
+  padding?: 'small' | 'medium' | 'large';
+  width?: 'full' | 'container' | 'narrow';
+  advancedOptions?: Record<string, unknown>;
 }
 
 // Update the interface for menu item order updates
@@ -417,7 +427,7 @@ export const menuResolvers = {
     updateMenuItemsOrder: async (_: unknown, { items }: { items: MenuItemOrderUpdate[] }) => {
       try {
         // Use a transaction to ensure all updates succeed or fail together
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: PrismaClient) => {
           for (const item of items) {
             // Update both order and parentId if provided
             await tx.menuItem.update({
@@ -476,6 +486,60 @@ export const menuResolvers = {
       } catch (error) {
         console.error('Error updating header style:', error);
         throw new Error(`Failed to update header style: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    },
+
+    updateFooterStyle: async (_parent: unknown, { menuId, input }: { menuId: string; input: FooterStyleInput }) => {
+      try {
+        // Find the menu to make sure it exists
+        const menu = await prisma.menu.findUnique({
+          where: { id: menuId },
+        });
+
+        if (!menu) {
+          return {
+            success: false,
+            message: `Menu with ID ${menuId} not found`,
+            footerStyle: null
+          };
+        }
+
+        // First check if a footer style already exists for this menu
+        let footerStyle = await prisma.footerStyle.findUnique({
+          where: { menuId }
+        });
+
+        // If it exists, update it, otherwise create a new one
+        if (footerStyle) {
+          footerStyle = await prisma.footerStyle.update({
+            where: { id: footerStyle.id },
+            data: {
+              ...input,
+              advancedOptions: input.advancedOptions ? input.advancedOptions : undefined
+            }
+          });
+        } else {
+          footerStyle = await prisma.footerStyle.create({
+            data: {
+              menuId,
+              ...input,
+              advancedOptions: input.advancedOptions ? input.advancedOptions : undefined
+            }
+          });
+        }
+
+        return {
+          success: true,
+          message: "Footer style updated successfully",
+          footerStyle
+        };
+      } catch (error) {
+        console.error("Error updating footer style:", error);
+        return {
+          success: false,
+          message: `Error updating footer style: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          footerStyle: null
+        };
       }
     },
   },

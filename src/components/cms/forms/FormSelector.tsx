@@ -81,16 +81,15 @@ export function FormSelector({
 
   // Evitar que la tecla Enter se propague y cause un envío del formulario
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   // Manejar cambio en el input de búsqueda
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     // Evitar propagación del evento para prevenir envío del formulario
+    e.preventDefault();
     e.stopPropagation();
   };
 
@@ -98,7 +97,10 @@ export function FormSelector({
     <div 
       className={`form-selector relative ${className}`} 
       onKeyDown={handleKeyDown}
-      onClick={(e) => e.stopPropagation()} // Prevent click events from propagating up
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }} // Prevent click events from propagating up
     >
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -112,6 +114,7 @@ export function FormSelector({
           type="button"
           onClick={(e) => {
             e.preventDefault(); // Evitar envío de formulario si el botón está dentro de un form
+            e.stopPropagation();
             if (!disabled) setIsOpen(!isOpen);
           }}
           className={`w-full flex items-center justify-between p-2.5 text-left border border-gray-300 rounded-md bg-white ${

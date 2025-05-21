@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { GraphQLScalarType, Kind } from 'graphql';
-import { Prisma } from '@prisma/client';
 
 // Import individual resolver modules
 import { appointmentResolvers } from './resolvers/appointments';
@@ -26,6 +25,7 @@ import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
+import { Role, User } from './types';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -197,6 +197,7 @@ interface MenuInput {
   name: string;
   location?: string | null;
   headerStyle?: HeaderStyleInput;
+  footerStyle?: FooterStyleInput;
 }
 
 interface HeaderStyleInput {
@@ -208,7 +209,18 @@ interface HeaderStyleInput {
   mobileMenuPosition?: 'left' | 'right';
   transparentHeader?: boolean;
   borderBottom?: boolean;
-  advancedOptions?: Prisma.InputJsonValue;
+  advancedOptions?: Record<string, unknown>;
+}
+
+interface FooterStyleInput {
+  transparency?: number;
+  columnLayout?: 'stacked' | 'grid' | 'flex';
+  socialAlignment?: 'left' | 'center' | 'right';
+  borderTop?: boolean;
+  alignment?: 'left' | 'center' | 'right';
+  padding?: 'small' | 'medium' | 'large';
+  width?: 'full' | 'container' | 'narrow';
+  advancedOptions?: Record<string, unknown>;
 }
 
 // Merge all resolvers
@@ -434,7 +446,7 @@ const resolvers = {
         });
         
         // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
-        return users.map(user => ({
+        return users.map((user: User) => ({
           ...user,
           // Asegurar que el role es siempre un objeto completo
           role: user.role || { id: "default", name: "USER", description: null },
@@ -538,7 +550,7 @@ const resolvers = {
         
         // For each role, get user count and permission count
         const rolesWithCounts = await Promise.all(
-          roles.map(async (role) => {
+          roles.map(async (role: Role) => {
             // Get user count
             const userCount = await prisma.user.count({
               where: {
@@ -655,7 +667,8 @@ const resolvers = {
             createdAt: true,
             updatedAt: true,
             items: true,
-            headerStyle: true
+            headerStyle: true,
+            footerStyle: true
           },
         });
         return menus;
@@ -675,7 +688,8 @@ const resolvers = {
             createdAt: true,
             updatedAt: true,
             items: true,
-            headerStyle: true
+            headerStyle: true,
+            footerStyle: true
           },
         });
       } catch (error) {
@@ -694,7 +708,8 @@ const resolvers = {
             createdAt: true,
             updatedAt: true,
             items: true,
-            headerStyle: true
+            headerStyle: true,
+            footerStyle: true
           },
         });
       } catch (error) {
@@ -1155,12 +1170,12 @@ const resolvers = {
     dissociateSectionFromPage: cmsResolvers.Mutation.dissociateSectionFromPage,
 
     // Add menu mutations
-    createMenu: async (_parent: unknown, { input }: { input: MenuInput }) => {
+    createMenu: async (_: unknown, { input }: { input: MenuInput }) => {
       try {
-        // Extract headerStyle from input if provided
-        const { headerStyle, ...menuData } = input;
+        // Extract headerStyle and footerStyle from input if provided
+        const { headerStyle, footerStyle, ...menuData } = input;
         
-        // Create the menu first with explicit select
+        // Create the menu first
         const menu = await prisma.menu.create({
           data: menuData,
           select: {
@@ -1183,7 +1198,17 @@ const resolvers = {
           });
         }
         
-        // Return the full menu with relationships using explicit select
+        // If footerStyle was provided, create it separately
+        if (footerStyle) {
+          await prisma.footerStyle.create({
+            data: {
+              ...footerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the full menu with relationships
         return await prisma.menu.findUnique({
           where: { id: menu.id },
           select: {
@@ -1193,20 +1218,20 @@ const resolvers = {
             createdAt: true,
             updatedAt: true,
             items: true,
-            headerStyle: true
+            headerStyle: true,
+            footerStyle: true
           }
         });
       } catch (error) {
-        console.error('Error creating menu:', error);
         throw new Error(`Failed to create menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
-    updateMenu: async (_parent: unknown, { id, input }: { id: string, input: MenuInput }) => {
+    updateMenu: async (_: unknown, { id, input }: { id: string; input: MenuInput }) => {
       try {
-        // Extract headerStyle from input if provided
-        const { headerStyle, ...menuData } = input;
+        // Extract headerStyle and footerStyle from input if provided
+        const { headerStyle, footerStyle, ...menuData } = input;
         
-        // Update the menu with explicit select
+        // Update the menu
         const menu = await prisma.menu.update({
           where: { id },
           data: menuData,
@@ -1232,7 +1257,19 @@ const resolvers = {
           });
         }
         
-        // Return the updated menu with all relationships using explicit select
+        // If footerStyle was provided, update or create it
+        if (footerStyle) {
+          await prisma.footerStyle.upsert({
+            where: { menuId: menu.id },
+            update: footerStyle,
+            create: {
+              ...footerStyle,
+              menuId: menu.id
+            }
+          });
+        }
+        
+        // Return the updated menu with all relationships
         return await prisma.menu.findUnique({
           where: { id: menu.id },
           select: {
@@ -1242,11 +1279,11 @@ const resolvers = {
             createdAt: true,
             updatedAt: true,
             items: true,
-            headerStyle: true
+            headerStyle: true,
+            footerStyle: true
           }
         });
       } catch (error) {
-        console.error('Error updating menu:', error);
         throw new Error(`Failed to update menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
