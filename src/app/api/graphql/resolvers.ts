@@ -1210,20 +1210,26 @@ const resolvers = {
         
         // If headerStyle was provided, create it separately
         if (headerStyle) {
+          const { advancedOptions, ...headerStyleData } = headerStyle;
           await prisma.headerStyle.create({
             data: {
-              ...headerStyle,
-              menuId: menu.id
+              ...headerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
         
         // If footerStyle was provided, create it separately
         if (footerStyle) {
+          const { advancedOptions, ...footerStyleData } = footerStyle;
           await prisma.footerStyle.create({
             data: {
-              ...footerStyle,
-              menuId: menu.id
+              ...footerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
@@ -1267,24 +1273,38 @@ const resolvers = {
         
         // If headerStyle was provided, update or create it
         if (headerStyle) {
+          const { advancedOptions, ...headerStyleData } = headerStyle;
           await prisma.headerStyle.upsert({
             where: { menuId: menu.id },
-            update: headerStyle,
+            update: {
+              ...headerStyleData,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+            },
             create: {
-              ...headerStyle,
-              menuId: menu.id
+              ...headerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
         
         // If footerStyle was provided, update or create it
         if (footerStyle) {
+          const { advancedOptions, ...footerStyleData } = footerStyle;
           await prisma.footerStyle.upsert({
             where: { menuId: menu.id },
-            update: footerStyle,
+            update: {
+              ...footerStyleData,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+            },
             create: {
-              ...footerStyle,
-              menuId: menu.id
+              ...footerStyleData,
+              menuId: menu.id,
+              // Safely convert advancedOptions to JSON
+              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
             }
           });
         }
