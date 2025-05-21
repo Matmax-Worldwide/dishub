@@ -25,7 +25,6 @@ import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
-import { Role } from './types';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -565,7 +564,13 @@ const resolvers = {
         
         // For each role, get user count and permission count
         const rolesWithCounts = await Promise.all(
-          roles.map(async (role: Role) => {
+          roles.map(async (role: {
+            id: string;
+            name: string;
+            description: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+          }) => {
             // Get user count
             const userCount = await prisma.user.count({
               where: {

@@ -102,6 +102,7 @@ interface FooterStyle {
   alignment?: 'left' | 'center' | 'right';
   padding?: 'small' | 'medium' | 'large';
   width?: 'full' | 'container' | 'narrow';
+  logoSize?: 'small' | 'medium' | 'large';
   advancedOptions?: {
     glassmorphism?: boolean;
     blur?: number;
@@ -867,6 +868,19 @@ export default function FooterSection({
     }
   };
 
+  // Helper function to get logo size classes based on footerStyle.logoSize
+  const getLogoSizeClasses = () => {
+    switch (footerStyle.logoSize) {
+      case 'small':
+        return 'h-6 w-6';
+      case 'large':
+        return 'h-12 w-12';
+      case 'medium':
+      default:
+        return 'h-8 w-8';
+    }
+  };
+
   return (
       <div className="space-y-4">
         <div className="flex items-start space-x-2">
@@ -926,7 +940,7 @@ export default function FooterSection({
               className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
             >
               {logoUrl ? (
-                <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Footer">
+                <div className={getLogoSizeClasses()}>
                   <S3FilePreview
                     src={logoUrl} 
                     alt="Logo"
@@ -1100,6 +1114,19 @@ export default function FooterSection({
     </div>
   );
 
+  const getLogoSizeClasses = () => {
+    switch (footerStyle.logoSize) {
+      case 'small':
+        return 'h-6 w-6';
+      case 'large':
+        return 'h-12 w-12';
+      case 'medium':
+      default:
+        return 'h-8 w-8';
+    }
+  };
+  
+
   // Styles Tab Component
   const StylesTab = () => (
     <div className="space-y-4">
@@ -1217,6 +1244,24 @@ export default function FooterSection({
         </div>
         
         <div>
+          <label htmlFor="logoSize" className="text-sm block mb-1">
+            Logo Size
+          </label>
+          <select
+            id="logoSize"
+            value={footerStyle.logoSize || 'medium'}
+            onChange={(e) => handleFooterStyleChange('logoSize', e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
           <label htmlFor="transparency" className="text-sm block mb-1">
             Background Transparency
           </label>
@@ -1233,19 +1278,19 @@ export default function FooterSection({
             <span className="text-sm">{footerStyle.transparency || 0}%</span>
           </div>
         </div>
-      </div>
-      
-      <div className="flex items-center space-x-2 mt-4">
-        <input
-          type="checkbox"
-          id="borderTop"
-          checked={footerStyle.borderTop || false}
-          onChange={(e) => handleFooterStyleChange('borderTop', e.target.checked)}
-          className="rounded border-gray-300"
-        />
-        <label htmlFor="borderTop" className="text-sm font-medium">
-          Show Border at Top
-        </label>
+        
+        <div className="flex items-center space-x-2 mt-4">
+          <input
+            type="checkbox"
+            id="borderTop"
+            checked={footerStyle.borderTop || false}
+            onChange={(e) => handleFooterStyleChange('borderTop', e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <label htmlFor="borderTop" className="text-sm font-medium">
+            Show Border at Top
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -1256,8 +1301,8 @@ export default function FooterSection({
       <h3 className="text-sm font-medium mb-3">Footer Preview</h3>
       <div 
         className="p-4 rounded-md border" 
-                style={{ backgroundColor, color: textColor }}
-              >
+        style={{ backgroundColor, color: textColor }}
+      >
         <div className={`${
           footerStyle.width === 'narrow' ? 'max-w-3xl' :
           footerStyle.width === 'container' ? 'max-w-7xl' : 'w-full'
@@ -1272,16 +1317,16 @@ export default function FooterSection({
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center space-x-3">
                     {logoUrl && (
-                    <div className="h-8 w-8">
+                    <div className={getLogoSizeClasses()}>
                       <S3FilePreview 
-                          src={logoUrl}
-                          alt={companyName}
-                          width={32}
-                          height={32}
-                          className="h-full w-auto"
-                        />
-                      </div>
-                    )}
+                        src={logoUrl}
+                        alt={companyName}
+                        width={32}
+                        height={32}
+                        className="h-full w-auto"
+                      />
+                    </div>
+                  )}
                     <span className="text-lg font-semibold">
                       {companyName}
                     </span>
@@ -1416,7 +1461,7 @@ export default function FooterSection({
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center space-x-3">
                   {logoUrl && (
-                    <div className="h-8 w-8">
+                    <div className={getLogoSizeClasses()}>
                       <S3FilePreview 
                         src={logoUrl}
                         alt={companyName}
