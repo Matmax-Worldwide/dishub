@@ -183,10 +183,10 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   return (
     <div 
       className={cn(
-        "component-wrapper relative group border rounded-md transition-all",
+        "component-wrapper relative group transition-all",
         isEditing ? "border-border bg-card/50 hover:border-foreground/20" : "",
         isActive && isEditing ? "border-primary border-2 ring-0 outline-none bg-primary/5" : "",
-        !isEditing && "border-transparent",
+        !isEditing && "",
         isHovered && isEditing && "bg-accent/5",
         isEditing && "cursor-pointer"
       )}
@@ -878,7 +878,7 @@ function SectionManagerBase({
                       ? "border-gray-200 cursor-not-allowed opacity-60" 
                       : sliderPosition === index 
                         ? "border-primary bg-primary/10" 
-                        : "border-transparent hover:bg-gray-100"
+                        : "hover:bg-gray-100"
                   )}
                   disabled={component.disabled}
                   title={component.disabled ? "Disponible próximamente" : component.title}
@@ -1505,7 +1505,7 @@ function SectionManagerBase({
       )}
 
       {/* Components */}
-      <div className="flex flex-col gap-1 relative">
+      <div className="flex flex-col relative">
         {components.map((component) => 
           renderComponent(component)
         )}

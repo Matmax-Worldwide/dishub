@@ -843,14 +843,16 @@ export default function EditMenuPage() {
                   <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
                     Location
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="location"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., Header, Footer"
-                  />
+                  >
+                    <option value="">Select a location (optional)</option>
+                    <option value="HEADER">Header</option>
+                    <option value="FOOTER">Footer</option>
+                  </select>
                   <p className="mt-1 text-sm text-gray-500">
                     Specify where this menu will be displayed
                   </p>

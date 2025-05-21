@@ -1131,7 +1131,7 @@ export default function HeaderSection({
         </Tabs>
       ) : (
         <nav
-          className={`w-full z-50 transition-all duration-300 py-4 ${
+          className={`w-full z-1000 transition-all duration-300 py-4 fixed top-0 left-0 right-0 ${
             transparentHeader && !scrolled ? 'bg-transparent' : ''
           } ${
             borderBottom ? 'border-b border-gray-200' : ''
@@ -1155,7 +1155,12 @@ export default function HeaderSection({
                 ? `rgba(${hexToRgb(backgroundColor || '#ffffff').r}, ${hexToRgb(backgroundColor || '#ffffff').g}, ${hexToRgb(backgroundColor || '#ffffff').b}, ${(100 - transparency) / 100})`
                 : (backgroundColor || '#ffffff'),
             backdropFilter: advancedOptions?.glassmorphism ? `blur(${advancedOptions?.blur || 5}px)` : undefined,
-            color: textColor
+            color: textColor,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

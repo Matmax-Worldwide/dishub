@@ -183,17 +183,16 @@ const BenefitSection = React.memo(function BenefitSection({
   return (
     <section 
       className={cn(
-        "relative overflow-hidden flex flex-col justify-center w-full benefit-section",
+        "relative overflow-hidden flex flex-col justify-center w-full benefit-section min-h-screen",
         isEditing ? "min-h-[400px] h-auto py-12" : ""
       )}
-      style={{ position: 'relative', zIndex: 1 }}
     >
-      {/* Fondo principal */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95 z-0`}></div>
+      {/* Main background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95`} style={{ zIndex: 0 }}></div>
       
-      {/* Grilla background si está activada */}
+      {/* Grid background if enabled */}
       {localShowGrid && !isEditing && (
-        <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
           <div className="absolute left-0 right-0 h-[1px] top-1/4" style={{ backgroundColor: localAccentColor }}></div>
           <div className="absolute left-0 right-0 h-[1px] top-2/4" style={{ backgroundColor: localAccentColor }}></div>
           <div className="absolute left-0 right-0 h-[1px] top-3/4" style={{ backgroundColor: localAccentColor }}></div>
@@ -203,10 +202,10 @@ const BenefitSection = React.memo(function BenefitSection({
         </div>
       )}
       
-      {/* Elementos decorativos tecnológicos */}
+      {/* Decorative tech elements */}
       {localShowDots && !isEditing && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Círculos tecnológicos */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+          {/* Tech circles */}
           <motion.div 
             className="absolute top-20 left-10 w-48 h-48 rounded-full border"
             style={{ borderColor: `${localAccentColor}30` }}
@@ -234,7 +233,7 @@ const BenefitSection = React.memo(function BenefitSection({
             }}
           />
           
-          {/* Partículas */}
+          {/* Particles */}
           <motion.div 
             className="absolute top-1/3 right-1/4 w-2 h-2 rounded-full"
             style={{ backgroundColor: localAccentColor }}
@@ -380,33 +379,31 @@ const BenefitSection = React.memo(function BenefitSection({
           </div>
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col justify-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col justify-center h-full" style={{ zIndex: 5 }}>
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 md:py-12">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              className={`mb-8 p-6 ${iconBg} rounded-full backdrop-blur-sm border`}
-              style={{ borderColor: `${localAccentColor}50` }}
+            <div
+              className={`mb-8 p-6 ${iconBg} rounded-full backdrop-blur-sm border icon-container`}
+              style={{ borderColor: `${localAccentColor}50`, position: 'relative', zIndex: 10 }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
               data-field-type="iconType"
               data-component-type="Benefit"
             >
               <motion.div
-                animate={isHovered ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: isHovered ? 1.1 : 1, rotate: isHovered ? 5 : 0 }}
+                transition={{ duration: 0.7 }}
               >
                 {getIconByType(localIconType, localAccentColor)}
               </motion.div>
-            </motion.div>
+            </div>
             
             <motion.h3
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-4xl md:text-5xl font-bold mb-6 text-center"
-              style={{ color: localAccentColor }}
+              className="text-4xl md:text-5xl font-bold mb-6 text-center benefit-title"
+              style={{ color: localAccentColor, position: 'relative', zIndex: 5 }}
               data-field-type="title"
               data-component-type="Benefit"
             >
@@ -417,7 +414,8 @@ const BenefitSection = React.memo(function BenefitSection({
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-xl md:text-2xl text-center max-w-3xl text-gray-700"
+              className="text-xl md:text-2xl text-center max-w-3xl text-gray-700 benefit-description"
+              style={{ position: 'relative', zIndex: 5 }}
               data-field-type="description"
               data-component-type="Benefit"
             >
@@ -428,6 +426,7 @@ const BenefitSection = React.memo(function BenefitSection({
               className="mt-16"
               animate={{ y: [0, 10, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
+              style={{ position: 'relative', zIndex: 5 }}
             >
               <svg 
                 className="w-10 h-10 mx-auto" 

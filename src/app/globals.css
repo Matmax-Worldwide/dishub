@@ -110,17 +110,63 @@ body [role="dialog"][aria-modal="true"] {
   justify-content: center !important;
 }
 
-/* Scroll Snap Styles */
-html {
+/* Scroll behavior styling */
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   scroll-behavior: smooth;
 }
 
 body {
-  scroll-snap-type: y mandatory;
-  overflow-y: scroll;
+  overflow-y: auto; /* Enable vertical scrolling at body level */
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure the root app div takes full height */
+body > div:first-child {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove internal scroll containers */
+.cms-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Ensure SectionManager doesn't add its own scrollbars */
+.cms-section, 
+[data-section-id] {
+  overflow: visible !important;
+}
+
+/* Fix for landing pages using snap scroll */
+.full-page-flow, 
+.benefits-container {
+  overflow-y: visible !important;
+  height: auto !important;
+}
+
+/* Reset any overflow settings that might be causing issues */
+.overflow-x-hidden {
+  overflow-x: hidden !important;
+}
+
+.overflow-y-auto {
+  overflow-y: auto !important;
+}
+
+/* For pages using snap scroll, keep it at the page level */
+body.snap-scroll {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
 }
 
 section {
@@ -396,6 +442,28 @@ body > div {
   z-index: 9999 !important;
 }
 
+/* Fixed header positioning */
+.fixed-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 1000 !important;
+  isolation: isolate !important;
+}
+
+/* Space for fixed header */
+.has-fixed-header {
+  padding-top: 4rem !important;
+}
+
+@media (min-width: 768px) {
+  .has-fixed-header {
+    padding-top: 5rem !important;
+  }
+}
+
 /* Ensure dialogs and modals stack above all other UI */
 [role="dialog"] {
   z-index: 9999 !important;
@@ -408,6 +476,26 @@ body > div {
 [data-component-type] {
   z-index: 1 !important;
   position: relative !important;
+}
+
+/* Ensure specific section types are below header */
+[data-component-type="Hero"],
+[data-component-type="Benefit"],
+[data-component-type="Form"],
+[data-component-type="Feature"],
+.cms-section,
+.component-hero,
+.component-benefit,
+.component-form {
+  z-index: 5 !important;
+  position: relative !important;
+}
+
+/* Force HeaderSection to be on top */
+.fixed-header,
+[data-component-type="Header"],
+.component-header {
+  z-index: 1000 !important;
 }
 
 /* Ensure modal/dialog backdrops cover everything */
@@ -524,3 +612,195 @@ body > div {
 }
 
 /* Additional style to ensure proper layering */
+
+
+/* Component-level scroll snap styling */
+body.snap-scroll [data-component-type="Hero"],
+body.snap-scroll [data-component-type="Benefit"],
+body.snap-scroll [data-component-type="Form"] {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Fix Form component width and layout */
+[data-component-type="Form"] {
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+[data-component-type="Form"] > div {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* Form container should extend full width */
+[data-component-type="Form"] .w-full {
+  width: 100% !important;
+}
+
+/* Ensure proper spacing for form content */
+[data-component-type="Form"] .form-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Ensure smooth scroll animation */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Fix component content layout when scrolling */
+.hero-content,
+.benefit-title,
+.benefit-description,
+.form-icon-container {
+  position: relative;
+  z-index: 20 !important;
+}
+
+/* Fix content order in mobile views */
+@media (max-width: 768px) {
+  .order-1 {
+    order: 1 !important;
+  }
+  
+  .order-2 {
+    order: 2 !important;
+  }
+}
+
+/* Ensure backgrounds remain behind content */
+[data-component-type] > div:first-child {
+  z-index: 1;
+}
+
+/* Ensure component content is properly layered */
+[data-component-type="Hero"] .icon-container,
+[data-component-type="Benefit"] .icon-container,
+[data-component-type="Form"] .form-icon-container {
+  position: relative;
+  z-index: 20 !important;
+}
+
+/* Ensure proper layering of titles and descriptions */
+h1[data-field-type="title"],
+h2[data-field-type="title"],
+h3[data-field-type="title"],
+p[data-field-type="subtitle"],
+p[data-field-type="description"] {
+  position: relative;
+  z-index: 15 !important;
+}
+
+/* Prevent background elements from covering content */
+.absolute {
+  z-index: 1;
+}
+
+/* Component-specific selector to fix element order */
+.component-content {
+  position: relative;
+  z-index: 10 !important;
+}
+
+/* Fix for component elements positioning and visibility */
+.hero-content,
+.icon-container,
+.benefit-content {
+  isolation: isolate;
+}
+
+/* Ensure better visibility for specific component elements */
+.hero-content h1,
+.hero-content p,
+.benefit-title,
+.benefit-description,
+.form-icon-container {
+  isolation: isolate;
+  position: relative;
+  z-index: 50 !important;
+}
+
+/* Fix icon containers to always be visible */
+.icon-container svg,
+.form-icon-container svg {
+  position: relative;
+  z-index: 40 !important;
+}
+
+/* Ensure proper vertical alignment in component sections */
+[data-component-type="Hero"],
+[data-component-type="Benefit"],
+[data-component-type="Form"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fix background elements layering */
+[data-component-type] > .absolute {
+  z-index: 0 !important;
+}
+
+/* Fix section content display for BenefitSection */
+.benefit-section .icon-container {
+  display: flex !important;
+  z-index: 40 !important;
+  position: relative !important;
+}
+
+.benefit-section .max-w-7xl {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Fix for Hero component vertical alignment */
+[data-component-type="Hero"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-component-type="Hero"] .grid {
+  display: grid;
+  align-items: center;
+}
+
+/* Remove order styling that could be causing issues */
+@media (min-width: 768px) {
+  [data-component-type="Hero"] .hero-content {
+    order: unset !important;
+  }
+  
+  [data-component-type="Hero"] .icon-container {
+    order: unset !important;
+  }
+}
+
+/* Ensure proper stacking for Hero elements */
+[data-component-type="Hero"] [data-field-type="title"],
+[data-component-type="Hero"] [data-field-type="subtitle"] {
+  position: relative;
+  z-index: 5;
+}
+
+/* Ensure icon container in BenefitSection is visible */
+.benefit-section .icon-container {
+  position: relative;
+  z-index: 10;
+}

@@ -640,7 +640,7 @@ export default function FormSection({
   );
   
   return (
-    <div className="space-y-4">
+    <div data-section-id="form">
       {isEditing ? (
         // Editor mode UI with tabs
         <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
@@ -668,16 +668,17 @@ export default function FormSection({
       ) : (
         // Visitor-facing UI with actual form here
         <div
-          className={getContainerClassNames()}
+          className={`${getContainerClassNames()}`}
           style={getContainerStyles()}
+          data-component-type="Form"
         >
           {template === 'DEFAULT' && (
             <>
               <div
-                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-[1] pointer-events-none"
                 style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
               />
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
                 {Array.from({ length: 30 }).map((_, i) => {
                   const width = 1 + ((i * 7) % 3);
                   const height = 1 + ((i * 13) % 3);
@@ -710,29 +711,30 @@ export default function FormSection({
             </>
           )}
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex flex-col justify-center">
-            <div className="w-full max-w-2xl mx-auto px-4 py-8 md:py-0 flex flex-col sm:flex-row sm:items-center justify-center md:justify-between items-center gap-4">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[10] flex-1 flex flex-col justify-center">
+            <div className="w-full flex flex-col items-center justify-center">
               {title && !customConfig.hideTitle && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7 }}
-                  className="text-center mb-8"
+                  className="text-center mb-8 z-[15] relative w-full"
                 >
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.7 }}
-                    className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
+                    className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20 form-icon-container z-[20]"
+                    style={{ position: 'relative' }}
                   >
                     {getIconComponent()}
                   </motion.div>
 
-                  <h2 className="text-xl md:text-4xl lg:text-3xl font-bold text-white mb-2 drop-shadow-md">
+                  <h2 className="text-xl md:text-4xl lg:text-3xl font-bold text-white mb-2 drop-shadow-md relative z-[15]">
                     {title}
                   </h2>
                   {description && !customConfig.hideDescription && (
-                    <p className="text-sm md:text-md text-white/80 max-w-xl mx-auto mb-8">
+                    <p className="text-sm md:text-md text-white/80 max-w-xl mx-auto mb-8 relative z-[15]">
                       {description}
                     </p>
                   )}
@@ -748,7 +750,7 @@ export default function FormSection({
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
-                  className="w-full"
+                  className="w-full max-w-2xl mx-auto relative z-[15]"
                 >
                   <div className={getFormWrapperClassNames()}>
                     <FormRenderer
