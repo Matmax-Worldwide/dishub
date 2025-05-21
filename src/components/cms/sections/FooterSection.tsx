@@ -1189,9 +1189,9 @@ export default function FooterSection({
             <option value="container">Container (max-width)</option>
             <option value="narrow">Narrow</option>
           </select>
-        </div>
-      </div>
-      
+                        </div>
+                      </div>
+                      
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="columnLayout" className="text-sm block mb-1">
@@ -1207,7 +1207,7 @@ export default function FooterSection({
             <option value="grid">Grid</option>
             <option value="flex">Flex</option>
           </select>
-        </div>
+                            </div>
         
         <div>
           <label htmlFor="socialAlignment" className="text-sm block mb-1">
@@ -1223,8 +1223,8 @@ export default function FooterSection({
             <option value="center">Center</option>
             <option value="right">Right</option>
           </select>
-        </div>
-      </div>
+                        </div>
+                    </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -1241,7 +1241,7 @@ export default function FooterSection({
             <option value="medium">Medium</option>
             <option value="large">Large</option>
           </select>
-        </div>
+                </div>
         
         <div>
           <label htmlFor="logoSize" className="text-sm block mb-1">
@@ -1258,8 +1258,8 @@ export default function FooterSection({
             <option value="large">Large</option>
           </select>
         </div>
-      </div>
-      
+            </div>
+            
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="transparency" className="text-sm block mb-1">
@@ -1301,8 +1301,8 @@ export default function FooterSection({
       <h3 className="text-sm font-medium mb-3">Footer Preview</h3>
       <div 
         className="p-4 rounded-md border" 
-        style={{ backgroundColor, color: textColor }}
-      >
+                style={{ backgroundColor, color: textColor }}
+              >
         <div className={`${
           footerStyle.width === 'narrow' ? 'max-w-3xl' :
           footerStyle.width === 'container' ? 'max-w-7xl' : 'w-full'
@@ -1319,14 +1319,14 @@ export default function FooterSection({
                     {logoUrl && (
                     <div className={getLogoSizeClasses()}>
                       <S3FilePreview 
-                        src={logoUrl}
-                        alt={companyName}
-                        width={32}
-                        height={32}
-                        className="h-full w-auto"
-                      />
-                    </div>
-                  )}
+                          src={logoUrl}
+                          alt={companyName}
+                          width={32}
+                          height={32}
+                          className="h-full w-auto"
+                        />
+                      </div>
+                    )}
                     <span className="text-lg font-semibold">
                       {companyName}
                     </span>

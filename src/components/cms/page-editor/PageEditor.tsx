@@ -1192,7 +1192,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onTitleChange={handleTitleChange}
                   onInputChange={handleInputChange}
                   onSelectChange={handleSelectChange}
-                  onCancel={handleCancel}
                   onContinue={() => setActiveTab('sections')}
                 />
               </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronRightIcon, Trash2Icon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRightIcon, Trash2Icon, SaveIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -32,8 +32,8 @@ interface PageDetailsTabProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onSelectChange: (name: string, value: string) => void;
-  onCancel: () => void;
   onContinue: () => void;
+  onSave?: () => Promise<boolean>;
 }
 
 export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
@@ -43,9 +43,11 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
   onInputChange,
   onSelectChange,
   onContinue,
+  onSave,
 }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
   const handleDeletePage = async () => {
@@ -70,6 +72,80 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
       console.error('Error deleting page:', error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        const success = await onSave();
+        if (success) {
+          // Emit event to update sidebar
+          PageEvents.emit('page:updated', { 
+            id: pageData.id, 
+            shouldRefresh: true 
+          });
+          toast.success('Página actualizada correctamente');
+          return true;
+        } else {
+          toast.error('Error al actualizar la página');
+          return false;
+        }
+      } catch (error) {
+        toast.error('Error al actualizar la página');
+        console.error('Error saving page:', error);
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      // If no onSave provided, save directly using API
+      setIsSaving(true);
+      try {
+        const result = await cmsOperations.updatePage(pageData.id, {
+          title: pageData.title,
+          slug: pageData.slug,
+          description: pageData.description || '',
+          template: pageData.template || 'default',
+          pageType: pageData.pageType,
+          isPublished: pageData.isPublished,
+          locale: pageData.locale,
+          metaTitle: pageData.metaTitle || pageData.title,
+          metaDescription: pageData.metaDescription || '',
+        });
+
+        if (result && result.success) {
+          // Emit event to update sidebar with latest data
+          PageEvents.emit('page:updated', { 
+            id: pageData.id, 
+            shouldRefresh: true 
+          });
+          toast.success('Página actualizada correctamente');
+          return true;
+        } else {
+          toast.error(result?.message || 'Error al actualizar la página');
+          return false;
+        }
+      } catch (error) {
+        toast.error('Error al actualizar la página');
+        console.error('Error saving page directly:', error);
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleContinue = async () => {
+    // Save first if possible
+    if (onSave) {
+      const saved = await handleSave();
+      if (saved) {
+        onContinue();
+      }
+    } else {
+      onContinue();
     }
   };
 
@@ -167,15 +243,32 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Trash2Icon className="h-4 w-4" />
+              <span>Eliminar página</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              <SaveIcon className="h-4 w-4" />
+              <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
+            </Button>
+          </div>
+          
           <Button 
-            variant="destructive" 
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="flex items-center gap-2"
+            onClick={handleContinue} 
+            disabled={isSaving}
+            className="flex items-center"
           >
-            <Trash2Icon className="h-4 w-4" />
-            <span>Eliminar página</span>
-          </Button>
-          <Button onClick={onContinue} className="flex items-center">
             <span>Continuar a Secciones</span>
             <ChevronRightIcon className="h-4 w-4 ml-1" />
           </Button>
