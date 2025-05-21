@@ -3,6 +3,28 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Session } from '../graphql/types';
 
+// Define a type for the permission object
+type UserPermissionItem = {
+  permissionName: string;
+  granted: boolean;
+};
+
+// Processing permissions
+function processPermission(permission: UserPermissionItem, userPermissions: string[]): void {
+  if (permission.granted) {
+    // Add permission if it doesn't already exist
+    if (!userPermissions.includes(permission.permissionName)) {
+      userPermissions.push(permission.permissionName);
+    }
+  } else {
+    // Remove permission if it exists
+    const index = userPermissions.indexOf(permission.permissionName);
+    if (index !== -1) {
+      userPermissions.splice(index, 1);
+    }
+  }
+}
+
 /**
  * Verifica la sesión del usuario a partir del token de autenticación
  * @param req Solicitud Next.js
@@ -32,6 +54,8 @@ export async function verifySession(req: NextRequest): Promise<Session | null> {
         email: true,
         firstName: true,
         lastName: true,
+        createdAt: true,
+        updatedAt: true,
         role: {
           select: {
             id: true,
@@ -67,29 +91,22 @@ export async function verifySession(req: NextRequest): Promise<Session | null> {
       },
     });
     
-    userPermissions = rolePermissions.map(permission => permission.name);
+    userPermissions = rolePermissions.map((permission: { name: string }) => permission.name);
     
     // Obtener permisos específicos del usuario
     const userSpecificPermissions = await prisma.userPermission.findMany({
       where: {
         userId: user.id,
       },
-    });
-    
-    // Procesar permisos específicos (agregar los concedidos, quitar los denegados)
-    userSpecificPermissions.forEach(permission => {
-      if (permission.granted) {
-        // Agregar el permiso si no existe ya
-        if (!userPermissions.includes(permission.permissionName)) {
-          userPermissions.push(permission.permissionName);
-        }
-      } else {
-        // Quitar el permiso si existe
-        const index = userPermissions.indexOf(permission.permissionName);
-        if (index !== -1) {
-          userPermissions.splice(index, 1);
-        }
+      select: {
+        permissionName: true,
+        granted: true
       }
+    }) as UserPermissionItem[];
+    
+    // Process each permission using the helper function
+    userSpecificPermissions.forEach(function(permission: UserPermissionItem) {
+      processPermission(permission, userPermissions);
     });
     
     // Devolver la sesión del usuario con sus permisos
@@ -104,6 +121,8 @@ export async function verifySession(req: NextRequest): Promise<Session | null> {
           name: user.role.name,
         },
         permissions: userPermissions,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       },
     };
   } catch (error) {
