@@ -181,12 +181,16 @@ export const menuResolvers = {
         // If headerStyle was provided, create it separately
         if (headerStyle) {
           const { advancedOptions, ...headerStyleData } = headerStyle;
+          
+          // Create the header style
           await prisma.headerStyle.create({
             data: {
               ...headerStyleData,
               menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+              // Handle the advancedOptions safely
+              ...(advancedOptions ? { 
+                advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) 
+              } : {})
             }
           });
         }
@@ -232,18 +236,22 @@ export const menuResolvers = {
         // If headerStyle was provided, update or create it
         if (headerStyle) {
           const { advancedOptions, ...headerStyleData } = headerStyle;
+          
+          // Prepare the advancedOptions data
+          const processedAdvancedOptions = advancedOptions 
+            ? JSON.parse(JSON.stringify(advancedOptions)) 
+            : undefined;
+          
           await prisma.headerStyle.upsert({
             where: { menuId: menu.id },
             update: {
               ...headerStyleData,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             },
             create: {
               ...headerStyleData,
               menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
         }
@@ -485,19 +493,22 @@ export const menuResolvers = {
         // Extract advancedOptions for proper JSON handling
         const { advancedOptions, ...headerStyleData } = input;
         
+        // Process advancedOptions
+        const processedAdvancedOptions = advancedOptions 
+          ? JSON.parse(JSON.stringify(advancedOptions)) 
+          : undefined;
+        
         // Update or create the header style
         const headerStyle = await prisma.headerStyle.upsert({
           where: { menuId },
           update: {
             ...headerStyleData,
-            // Safely convert advancedOptions to JSON
-            ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+            ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
           },
           create: {
             ...headerStyleData,
             menuId,
-            // Safely convert advancedOptions to JSON
-            ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+            ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
           }
         });
         
@@ -525,6 +536,11 @@ export const menuResolvers = {
 
         // Extract advancedOptions for proper JSON handling
         const { advancedOptions, ...footerStyleData } = input;
+        
+        // Process advancedOptions
+        const processedAdvancedOptions = advancedOptions 
+          ? JSON.parse(JSON.stringify(advancedOptions)) 
+          : undefined;
 
         // First check if a footer style already exists for this menu
         let footerStyle = await prisma.footerStyle.findUnique({
@@ -537,8 +553,7 @@ export const menuResolvers = {
             where: { id: footerStyle.id },
             data: {
               ...footerStyleData,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
         } else {
@@ -546,8 +561,7 @@ export const menuResolvers = {
             data: {
               menuId,
               ...footerStyleData,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
         }

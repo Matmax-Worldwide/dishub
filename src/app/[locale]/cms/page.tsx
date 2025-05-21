@@ -28,7 +28,6 @@ type CMSModule = {
 export default function CMSDashboard() {
   const { locale } = useParams();
   const [pageCount, setPageCount] = useState(0);
-  const [mediaCount, setMediaCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
   const [formCount, setFormCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,22 +52,6 @@ export default function CMSDashboard() {
         const formsData = await graphqlClient.getForms();
         console.log('Formularios obtenidos:', formsData);
         setFormCount(Array.isArray(formsData) ? formsData.length : 0);
-
-        // Obtener conteo de elementos de media desde API
-        try {
-          const mediaResponse = await fetch('/api/media/count');
-          if (mediaResponse.ok) {
-            const data = await mediaResponse.json();
-            console.log('Media count from API:', data);
-            setMediaCount(data.count || 0);
-          } else {
-            console.error('Error fetching media count: API response not OK');
-            setMediaCount(0);
-          }
-        } catch (mediaError) {
-          console.error('Error fetching media count:', mediaError);
-          setMediaCount(0);
-        }
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {
