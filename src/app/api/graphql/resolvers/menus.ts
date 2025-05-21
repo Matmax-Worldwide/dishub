@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 
@@ -74,6 +74,9 @@ interface MenuItemOrderUpdate {
   order: number;
   parentId?: string | null;
 }
+
+// Define a type for Prisma transaction client
+type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 export const menuResolvers = {
   Query: {
@@ -445,7 +448,7 @@ export const menuResolvers = {
     updateMenuItemsOrder: async (_: unknown, { items }: { items: MenuItemOrderUpdate[] }) => {
       try {
         // Use a transaction to ensure all updates succeed or fail together
-        await prisma.$transaction(async (tx: any) => {
+        await prisma.$transaction(async (tx: TransactionClient) => {
           for (const item of items) {
             // Update both order and parentId if provided
             await tx.menuItem.update({
