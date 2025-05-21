@@ -133,22 +133,11 @@ export const formResolvers = {
     },
     
     // Get a single form by ID
-    form: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    form: async (_parent: unknown, args: { id: string }) => {
       try {
         // Allow public access to forms for viewing/submission
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        // Continue even without authentication
-        let userId = null;
-        
-        if (token) {
-          try {
-            const decoded = await verifyToken(token) as { userId: string };
-            userId = decoded?.userId;
-          } catch (tokenError) {
-            console.warn('Invalid token, continuing as public access:', tokenError);
-          }
-        }
+       
+
         
         return prisma.form.findUnique({
           where: { id: args.id },
@@ -173,22 +162,9 @@ export const formResolvers = {
     },
     
     // Get a single form by slug
-    formBySlug: async (_parent: unknown, args: { slug: string }, context: { req: NextRequest }) => {
+    formBySlug: async (_parent: unknown, args: { slug: string }) => {
       try {
-        // Allow public access to forms by slug
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
         
-        // Continue even without authentication
-        let userId = null;
-        
-        if (token) {
-          try {
-            const decoded = await verifyToken(token) as { userId: string };
-            userId = decoded?.userId;
-          } catch (tokenError) {
-            console.warn('Invalid token, continuing as public access:', tokenError);
-          }
-        }
         
         return prisma.form.findUnique({
           where: { slug: args.slug },
@@ -213,19 +189,9 @@ export const formResolvers = {
     },
     
     // Get form steps for a form
-    formSteps: async (_parent: unknown, args: { formId: string }, context: { req: NextRequest }) => {
+    formSteps: async (_parent: unknown, args: { formId: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
+       
         
         return prisma.formStep.findMany({
           where: { formId: args.formId },
@@ -774,8 +740,8 @@ export const formResolvers = {
         
         // Check if this is a guest submission and mark it as such
         const metadata = args.input.metadata || {};
-        if (metadata && typeof metadata === 'object' && metadata.isGuestSubmission) {
-          metadata.submissionType = 'guest';
+        if (metadata && typeof metadata === 'object' && (metadata as { isGuestSubmission?: boolean }).isGuestSubmission) {
+          (metadata as Record<string, string | boolean | number>).submissionType = 'guest';
         }
         
         const submission = await prisma.formSubmission.create({
