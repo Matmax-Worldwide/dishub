@@ -25,7 +25,7 @@ import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
-import { Role, User } from './types';
+import { Role } from './types';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -446,7 +446,22 @@ const resolvers = {
         });
         
         // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
-        return users.map((user: User) => ({
+        return users.map((user: {
+          id: string;
+          email: string;
+          firstName?: string | null;
+          lastName?: string | null;
+          phoneNumber?: string | null;
+          roleId?: string | null;
+          isActive?: boolean;
+          role?: {
+            id: string;
+            name: string;
+            description?: string | null;
+          } | null;
+          createdAt: Date;
+          updatedAt: Date;
+        }) => ({
           ...user,
           // Asegurar que el role es siempre un objeto completo
           role: user.role || { id: "default", name: "USER", description: null },
