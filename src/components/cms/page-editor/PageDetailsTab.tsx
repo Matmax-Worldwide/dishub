@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronRightIcon, Trash2Icon, SaveIcon } from 'lucide-react';
 import {
   Card,
@@ -23,6 +23,7 @@ import { PageData } from '@/types/cms';
 import { cmsOperations } from '@/lib/graphql-client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import DeletePageDialog from './DeletePageDialog';
 import { PageEvents } from './PagesSidebar';
 
@@ -259,7 +260,11 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
               disabled={isSaving}
               className="flex items-center gap-2"
             >
-              <SaveIcon className="h-4 w-4" />
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <SaveIcon className="h-4 w-4" />
+              )}
               <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
             </Button>
           </div>

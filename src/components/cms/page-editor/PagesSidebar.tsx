@@ -36,7 +36,8 @@ interface PageCreatedEvent {
 
 interface PageUpdatedEvent {
   id: string;
-  shouldRefresh: boolean;
+  shouldRefresh?: boolean;
+  isPublished?: boolean;
 }
 
 type PageEventData = PagePublishChangeEvent | PageCreatedEvent | PageUpdatedEvent;
@@ -222,8 +223,27 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   useEffect(() => {
     const unsubscribe = PageEvents.subscribe('page:updated', (data: PageEventData) => {
       if ('shouldRefresh' in data && data.shouldRefresh) {
+        console.log('Refreshing pages in sidebar because shouldRefresh flag is true');
         // Solo hacemos fetch cuando es realmente necesario (cambios importantes)
         fetchPages();
+      } else if ('isPublished' in data) {
+        // Update for publish status changes
+        console.log('Updating publish status in pages sidebar');
+        setPages(prevPages => 
+          prevPages.map(page => 
+            page.id === data.id 
+              ? { ...page, isPublished: data.isPublished }
+              : page
+          )
+        );
+        
+        setFilteredPages(prevPages => 
+          prevPages.map(page => 
+            page.id === data.id 
+              ? { ...page, isPublished: data.isPublished }
+              : page
+          )
+        );
       }
     });
     

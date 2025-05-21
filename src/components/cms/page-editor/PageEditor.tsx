@@ -636,7 +636,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
 
   // Save the entire page
-  const handleSavePage = async () => {
+  const handleSavePage = async (): Promise<boolean> => {
     try {
       setIsSaving(true);
       
@@ -766,7 +766,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         // Notificar al PagesSidebar de que la página se ha actualizado
         PageEvents.emit('page:updated', { 
           id: pageData.id, 
-          isPublished: pageData.isPublished 
+          shouldRefresh: true 
         });
         
         // Actualizar vista de secciones
@@ -777,7 +777,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           setNotification(null);
         }, 3000);
         
-        return;
+        return true;
       }
       
       console.log('Updating page with:', updateInput);
@@ -797,16 +797,19 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         // Notificar al PagesSidebar de que la página se ha actualizado
         PageEvents.emit('page:updated', { 
           id: pageData.id, 
-          isPublished: pageData.isPublished 
+          shouldRefresh: true 
         });
         
         // Refresh section view to show updated components
         setForceReloadSection(!forceReloadSection);
+        
+        return true;
       } else {
         setNotification({
           type: 'error',
           message: result.message || 'Error updating page'
         });
+        return false;
       }
       
       // Clear notification after 3 seconds
@@ -814,8 +817,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         setNotification(null);
       }, 3000);
       
-      // IMPORTANTE: Siempre establecer isSaving a false, incluso si hay un error
-      setIsSaving(false);
     } catch (error) {
       console.error('Error saving page:', error);
       setNotification({
@@ -823,6 +824,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         message: error instanceof Error ? error.message : 'Unknown error saving page'
       });
       // IMPORTANTE: Asegurarse de que isSaving se establezca a false en caso de error
+      setIsSaving(false);
+      return false;
+    } finally {
+      // IMPORTANTE: Siempre establecer isSaving a false, incluso si hay un error
       setIsSaving(false);
     }
   };
@@ -1193,6 +1198,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onInputChange={handleInputChange}
                   onSelectChange={handleSelectChange}
                   onContinue={() => setActiveTab('sections')}
+                  onSave={handleSavePage}
                 />
               </div>
             </div>
