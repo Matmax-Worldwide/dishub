@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 
@@ -445,7 +445,7 @@ export const menuResolvers = {
     updateMenuItemsOrder: async (_: unknown, { items }: { items: MenuItemOrderUpdate[] }) => {
       try {
         // Use a transaction to ensure all updates succeed or fail together
-        await prisma.$transaction(async (tx: PrismaClient) => {
+        await prisma.$transaction(async (tx: any) => {
           for (const item of items) {
             // Update both order and parentId if provided
             await tx.menuItem.update({
