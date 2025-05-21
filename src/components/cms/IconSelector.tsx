@@ -185,11 +185,20 @@ const IconSelector: React.FC<IconSelectorProps> = ({
     };
   }, [isOpen]);
 
-  const toggleOpen = () => setIsOpen(!isOpen);
+  const toggleOpen = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
 
   const handleSelectIcon = (iconName: string) => {
     onSelectIcon(iconName);
     setIsOpen(false);
+  };
+
+  // Prevenir que los eventos de teclado se propaguen cuando el input de búsqueda está activo
+  const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Evitar que estos eventos se propaguen fuera del componente
+    e.stopPropagation();
   };
 
   // Focus the search input when dropdown opens
@@ -223,7 +232,10 @@ const IconSelector: React.FC<IconSelectorProps> = ({
 
       {/* Icon selector dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[320px] max-h-[420px] bg-white shadow-lg rounded-md border-2 border-border/60 overflow-hidden flex flex-col">
+        <div 
+          className="absolute z-50 mt-1 w-[320px] max-h-[420px] bg-white shadow-lg rounded-md border-2 border-border/60 overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Search input */}
           <div className="p-2 border-b-2 border-border/60 sticky top-0 bg-white backdrop-blur-sm z-10">
             <div className="relative">
@@ -234,6 +246,7 @@ const IconSelector: React.FC<IconSelectorProps> = ({
                 placeholder="Search icons..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchInputKeyDown}
                 className="w-full pl-8 pr-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>

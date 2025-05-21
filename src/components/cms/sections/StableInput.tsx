@@ -84,12 +84,16 @@ export default function StableInput({
     // Set new timeout to notify parent only after debounce time
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
-      // Leave editing mode active briefly to prevent immediate prop updates
-      setTimeout(() => {
-        isEditingRef.current = false;
-      }, 300);
+      // No longer resetting isEditingRef here to prevent interference with special characters
+      // isEditingRef will be reset on blur instead
     }, debounceTime);
   }, [onChange, debounceTime]);
+
+  // Handle keydown to ensure special key combinations work (like accent keys)
+  const handleKeyDown = useCallback(() => {
+    // Don't interfere with special key combinations
+    isEditingRef.current = true;
+  }, []);
   
   // Handle focus events
   const handleFocus = useCallback(() => {
@@ -117,11 +121,10 @@ export default function StableInput({
   }, [isTextArea]);
   
   const handleBlur = useCallback(() => {
-    // Small delay before considering editing complete
-    // This prevents immediate state updates when clicking within the field
+    // Reset editing state only when user completely leaves the input
     setTimeout(() => {
       isEditingRef.current = false;
-    }, 200);
+    }, 300);
   }, []);
   
   // Stop propagation of clicks to prevent parent components from rerendering
@@ -144,6 +147,7 @@ export default function StableInput({
     const commonProps = {
       value: localValue,
       onChange: handleChange,
+      onKeyDown: handleKeyDown,
       onFocus: handleFocus,
       onBlur: handleBlur,
       onClick: handleClick,

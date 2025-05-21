@@ -61,8 +61,19 @@ export default function FormRenderer({
     }
   };
 
+  // Prevenir envío del formulario cuando se presiona Enter en un input (excepto textarea)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.target instanceof HTMLElement) {
+      const tagName = e.target.tagName.toLowerCase();
+      // Permitir Enter en textareas, pero prevenir envío en otros inputs
+      if (tagName !== 'textarea') {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" onKeyDown={handleKeyDown}>
       {form.fields?.map(field => (
         <div key={field.id} className="space-y-2">
           <label htmlFor={field.id} className={labelClassName}>

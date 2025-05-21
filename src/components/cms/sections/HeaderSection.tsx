@@ -12,6 +12,14 @@ import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
 import { createPortal } from 'react-dom';
+import IconSelector from '@/components/cms/IconSelector';
+import * as LucideIcons from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface HeaderSectionProps {
   title?: string;
@@ -29,6 +37,7 @@ interface HeaderSectionProps {
   transparentHeader?: boolean;
   borderBottom?: boolean;
   advancedOptions?: HeaderAdvancedOptions;
+  menuIcon?: string;
   isEditing?: boolean;
   onUpdate?: (data: { 
     title?: string; 
@@ -46,6 +55,7 @@ interface HeaderSectionProps {
     transparentHeader?: boolean;
     borderBottom?: boolean;
     advancedOptions?: HeaderAdvancedOptions;
+    menuIcon?: string;
   }) => void;
 }
 
@@ -65,6 +75,7 @@ export default function HeaderSection({
   transparentHeader: initialTransparentHeader = false,
   borderBottom: initialBorderBottom = false,
   advancedOptions: initialAdvancedOptions = {},
+  menuIcon: initialMenuIcon = 'Menu',
   isEditing = false, 
   onUpdate 
 }: HeaderSectionProps) {
@@ -81,6 +92,7 @@ export default function HeaderSection({
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState<{ [key: string]: boolean }>({});
   const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [menuIcon, setMenuIcon] = useState(initialMenuIcon);
   
   // Nuevos estados para las opciones adicionales
   const [transparency, setTransparency] = useState(initialTransparency);
@@ -218,7 +230,8 @@ export default function HeaderSection({
         mobileMenuPosition,
         transparentHeader,
         borderBottom,
-        advancedOptions
+        advancedOptions,
+        menuIcon
       };
       
       // Update the specific field with the new value
@@ -247,6 +260,7 @@ export default function HeaderSection({
     transparentHeader,
     borderBottom,
     advancedOptions,
+    menuIcon,
     onUpdate
   ]);
   
@@ -631,435 +645,490 @@ export default function HeaderSection({
   }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
       mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, advancedOptions]);
 
-  // Add a save button for the header style
-  const HeaderStyleSaveButton = () => (
-    <button
-      onClick={saveHeaderStyle}
-      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-    >
-      Save Header Style
-    </button>
+  // Separating components for modularity
+  const LogoSelector = () => (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Logo</label>
+      <div className="flex flex-col sm:flex-row items-start gap-2">
+        <div 
+          className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
+        >
+          {logoUrl ? (
+            <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
+              <S3FilePreview
+                src={logoUrl} 
+                alt="Logo"
+                className="max-h-full max-w-full object-contain" 
+                width={80}
+                height={80}
+              />
+            </div>
+          ) : (
+            <div className="text-gray-400 text-sm text-center">
+              No logo<br/>selected
+            </div>
+          )}
+        </div>
+        <div className="flex-1 space-y-2 w-full">
+          <div className="flex flex-wrap gap-2">
+            <button 
+              onClick={() => setShowMediaSelector(true)}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+            >
+              Select Logo
+            </button>
+            {logoUrl && (
+              <button 
+                onClick={() => handleLogoUrlChange('')}
+                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="text-xs text-gray-500">
+            Select an image from your media library or enter a URL
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
-  return (
-    <>
-      {isEditing ? (
-        <div className="space-y-4">
-          <StableInput
-            value={localTitle}
-            onChange={handleTitleChange}
-            placeholder="Enter title (optional)..."
-            className="font-medium text-xl"
-            label="Title (optional)"
-            debounceTime={300}
-            data-field-id="title"
-            data-component-type="Header"
+  const MenuSelector = () => (
+    <div className="space-y-2">
+      <label className="text-sm font-medium" htmlFor="menu-selector">
+        Select Menu for Navigation
+      </label>
+      <select
+        id="menu-selector"
+        value={localMenuId}
+        onChange={handleMenuChange}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">None (No Navigation)</option>
+        {menus.map(menu => (
+          <option key={menu.id} value={menu.id}>
+            {menu.name}
+          </option>
+        ))}
+      </select>
+      {loadingMenus && <p className="text-sm text-muted-foreground">Loading menus...</p>}
+    </div>
+  );
+
+  const StyleOptions = () => (
+    <div className="space-y-4">
+      <div className="flex flex-col space-y-2">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="transparentHeader"
+            checked={transparentHeader}
+            onChange={handleTransparentHeaderChange}
+            className="rounded border-gray-300 text-blue-600"
           />
-          
-          <StableInput
-            value={localSubtitle}
-            onChange={handleSubtitleChange}
-            placeholder="Enter subtitle (optional)..."
-            className="text-muted-foreground"
-            label="Subtitle (optional)"
-            debounceTime={300}
-            data-field-id="subtitle"
-            data-component-type="Header"
+          <label htmlFor="transparentHeader" className="text-sm">
+            Transparent background (changes on scroll)
+          </label>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="borderBottom"
+            checked={borderBottom}
+            onChange={handleBorderBottomChange}
+            className="rounded border-gray-300 text-blue-600"
           />
+          <label htmlFor="borderBottom" className="text-sm">
+            Show border at bottom
+          </label>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="backgroundColor" className="text-sm block mb-1">
+            Background Color
+          </label>
+          <input
+            type="color"
+            id="backgroundColor"
+            value={backgroundColor}
+            onChange={handleBackgroundColorChange}
+            className="rounded border border-gray-300 h-8 w-full"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="textColor" className="text-sm block mb-1">
+            Text Color
+          </label>
+          <input
+            type="color"
+            id="textColor"
+            value={textColor}
+            onChange={handleTextColorChange}
+            className="rounded border border-gray-300 h-8 w-full"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="menuAlignment" className="text-sm block mb-1">
+            Menu Alignment
+          </label>
+          <select
+            id="menuAlignment"
+            value={menuAlignment}
+            onChange={handleMenuAlignmentChange}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="menuButtonStyle" className="text-sm block mb-1">
+            Menu Button Style
+          </label>
+          <select
+            id="menuButtonStyle"
+            value={menuButtonStyle}
+            onChange={handleMenuButtonStyleChange}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="default">Default</option>
+            <option value="filled">Filled</option>
+            <option value="outline">Outline</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="mobileMenuStyle" className="text-sm block mb-1">
+            Mobile Menu Style
+          </label>
+          <select
+            id="mobileMenuStyle"
+            value={mobileMenuStyle}
+            onChange={handleMobileMenuStyleChange}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="dropdown">Dropdown</option>
+            <option value="fullscreen">Fullscreen</option>
+            <option value="sidebar">Sidebar</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="mobileMenuPosition" className="text-sm block mb-1">
+            Sidebar Position (mobile)
+          </label>
+          <select
+            id="mobileMenuPosition"
+            value={mobileMenuPosition}
+            onChange={handleMobileMenuPositionChange}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="headerSize" className="text-sm block mb-1">
+            Header Size
+          </label>
+          <select
+            id="headerSize"
+            value={headerSize}
+            onChange={handleHeaderSizeChange}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="sm">Small</option>
+            <option value="md">Medium</option>
+            <option value="lg">Large</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="transparency" className="text-sm block mb-1">
+            Background Transparency
+          </label>
+          <div className="flex items-center">
+            <input
+              type="range"
+              id="transparency"
+              min="0"
+              max="100"
+              value={transparency}
+              onChange={handleTransparencyChange}
+              className="flex-1 mr-2"
+            />
+            <span className="text-sm">{transparency}%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-center sm:justify-end">
+        <button
+          onClick={saveHeaderStyle}
+          className="w-full sm:w-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Save Header Style
+        </button>
+      </div>
+    </div>
+  );
+
+  const MenuIconSelector = () => (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Menu Icon</label>
+      <div className="flex flex-col sm:flex-row items-start gap-2">
+        <IconSelector 
+          selectedIcon={menuIcon} 
+          onSelectIcon={setMenuIcon} 
+          className="w-full" 
+        />
+        <div className="text-xs text-gray-500 mt-1">
+          This icon will be used for the mobile menu button
+        </div>
+      </div>
+    </div>
+  );
+
+  const AdvancedOptions = () => (
+    <div className="mt-4 border-t pt-2">
+      <button
+        type="button"
+        onClick={() => setShowAdvancedOptions(prev => !prev)}
+        className="flex items-center text-sm text-gray-600 hover:text-gray-900"
+      >
+        <svg 
+          className={`h-4 w-4 mr-1 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        Advanced Options
+      </button>
+      
+      {showAdvancedOptions && (
+        <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-200">
+          <div>
+            <label className="flex items-center text-sm">
+              <input
+                type="checkbox"
+                checked={advancedOptions?.glassmorphism || false}
+                onChange={(e) => handleAdvancedOptionChange('glassmorphism', e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 mr-2"
+              />
+              Enable Glassmorphism
+            </label>
+          </div>
           
-          {/* Logo selector */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Logo</label>
-            <div className="flex items-start gap-2">
-              <div 
-                className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
-              >
-                {logoUrl ? (
+          {advancedOptions?.glassmorphism && (
+            <div>
+              <label htmlFor="blur" className="text-sm block mb-1">
+                Blur Amount
+              </label>
+              <input
+                type="range"
+                id="blur"
+                min="0"
+                max="20"
+                value={advancedOptions?.blur || 5}
+                onChange={(e) => handleAdvancedOptionChange('blur', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>0px</span>
+                <span>20px</span>
+              </div>
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="customClass" className="text-sm block mb-1">
+              Custom CSS Class
+            </label>
+            <input
+              type="text"
+              id="customClass"
+              value={advancedOptions?.customClass || ''}
+              onChange={(e) => handleAdvancedOptionChange('customClass', e.target.value)}
+              placeholder="e.g. my-header-class"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="shadow" className="text-sm block mb-1">
+              Shadow Style
+            </label>
+            <select
+              id="shadow"
+              value={advancedOptions?.shadow || 'none'}
+              onChange={(e) => handleAdvancedOptionChange('shadow', e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="none">None</option>
+              <option value="sm">Small</option>
+              <option value="md">Medium</option>
+              <option value="lg">Large</option>
+              <option value="xl">Extra Large</option>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="animation" className="text-sm block mb-1">
+              Animation Effect
+            </label>
+            <select
+              id="animation"
+              value={advancedOptions?.animation || 'none'}
+              onChange={(e) => handleAdvancedOptionChange('animation', e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="none">None</option>
+              <option value="fade">Fade In</option>
+              <option value="slide">Slide Down</option>
+              <option value="bounce">Bounce</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const HeaderPreview = () => (
+    <div className="mt-4">
+      <h4 className="text-sm font-medium mb-2">Menu Preview</h4>
+      <div className="border rounded-md overflow-hidden">
+        <div 
+          className="p-3 transition-all"
+          style={{ 
+            backgroundColor: backgroundColor,
+            color: textColor
+          }}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {logoUrl && (
                   <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
                     <S3FilePreview
                       src={logoUrl} 
                       alt="Logo"
-                      className="max-h-full max-w-full object-contain" 
+                      className="max-h-full max-w-full object-contain"
                       width={80}
                       height={80}
                     />
                   </div>
-                ) : (
-                  <div className="text-gray-400 text-sm text-center">
-                    No logo<br/>selected
-                  </div>
                 )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <button 
-                  onClick={() => setShowMediaSelector(true)}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
-                >
-                  Select Logo
-                </button>
-                {logoUrl && (
-                  <button 
-                    onClick={() => handleLogoUrlChange('')}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 ml-2"
-                  >
-                    Remove
-                  </button>
-                )}
-                <div className="text-xs text-gray-500">
-                  Select an image from your media library or enter a URL
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Menu selector */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="menu-selector">
-              Select Menu for Navigation
-            </label>
-            <select
-              id="menu-selector"
-              value={localMenuId}
-              onChange={handleMenuChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">None (No Navigation)</option>
-              {menus.map(menu => (
-                <option key={menu.id} value={menu.id}>
-                  {menu.name}
-                </option>
-              ))}
-            </select>
-            {loadingMenus && <p className="text-sm text-muted-foreground">Loading menus...</p>}
-            
-            {/* Header style settings */}
-            <div className="space-y-4 mt-4">
-              <h4 className="text-sm font-medium">Header Style</h4>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="transparentHeader"
-                  checked={transparentHeader}
-                  onChange={handleTransparentHeaderChange}
-                  className="rounded border-gray-300 text-blue-600"
-                />
-                <label htmlFor="transparentHeader" className="text-sm">
-                  Transparent background (changes on scroll)
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="borderBottom"
-                  checked={borderBottom}
-                  onChange={handleBorderBottomChange}
-                  className="rounded border-gray-300 text-blue-600"
-                />
-                <label htmlFor="borderBottom" className="text-sm">
-                  Show border at bottom
-                </label>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="backgroundColor" className="text-sm block mb-1">
-                    Background Color
-                  </label>
-                  <input
-                    type="color"
-                    id="backgroundColor"
-                    value={backgroundColor}
-                    onChange={handleBackgroundColorChange}
-                    className="rounded border border-gray-300 h-8 w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="textColor" className="text-sm block mb-1">
-                    Text Color
-                  </label>
-                  <input
-                    type="color"
-                    id="textColor"
-                    value={textColor}
-                    onChange={handleTextColorChange}
-                    className="rounded border border-gray-300 h-8 w-full"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div>
-                  <label htmlFor="menuAlignment" className="text-sm block mb-1">
-                    Menu Alignment
-                  </label>
-                  <select
-                    id="menuAlignment"
-                    value={menuAlignment}
-                    onChange={handleMenuAlignmentChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label htmlFor="menuButtonStyle" className="text-sm block mb-1">
-                    Menu Button Style
-                  </label>
-                  <select
-                    id="menuButtonStyle"
-                    value={menuButtonStyle}
-                    onChange={handleMenuButtonStyleChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="default">Default</option>
-                    <option value="filled">Filled</option>
-                    <option value="outline">Outline</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label htmlFor="mobileMenuStyle" className="text-sm block mb-1">
-                    Mobile Menu Style
-                  </label>
-                  <select
-                    id="mobileMenuStyle"
-                    value={mobileMenuStyle}
-                    onChange={handleMobileMenuStyleChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="dropdown">Dropdown</option>
-                    <option value="fullscreen">Fullscreen</option>
-                    <option value="sidebar">Sidebar</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label htmlFor="mobileMenuPosition" className="text-sm block mb-1">
-                    Sidebar Position (mobile)
-                  </label>
-                  <select
-                    id="mobileMenuPosition"
-                    value={mobileMenuPosition}
-                    onChange={handleMobileMenuPositionChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            {/* Replace with this: */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="headerSize" className="text-sm block mb-1">
-                  Header Size
-                </label>
-                <select
-                  id="headerSize"
-                  value={headerSize}
-                  onChange={handleHeaderSizeChange}
-                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                  <option value="sm">Small</option>
-                  <option value="md">Medium</option>
-                  <option value="lg">Large</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="transparency" className="text-sm block mb-1">
-                  Background Transparency
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="range"
-                    id="transparency"
-                    min="0"
-                    max="100"
-                    value={transparency}
-                    onChange={handleTransparencyChange}
-                    className="flex-1 mr-2"
-                  />
-                  <span className="text-sm">{transparency}%</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Advanced Options Toggle */}
-            <div className="mt-4 border-t pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAdvancedOptions(prev => !prev)}
-                className="flex items-center text-sm text-gray-600 hover:text-gray-900"
-              >
-                <svg 
-                  className={`h-4 w-4 mr-1 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Advanced Options
-              </button>
-              
-              {showAdvancedOptions && (
-                <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-200">
-                  <div>
-                    <label className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={advancedOptions?.glassmorphism || false}
-                        onChange={(e) => handleAdvancedOptionChange('glassmorphism', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 mr-2"
-                      />
-                      Enable Glassmorphism
-                    </label>
-                  </div>
-                  
-                  {advancedOptions?.glassmorphism && (
-                    <div>
-                      <label htmlFor="blur" className="text-sm block mb-1">
-                        Blur Amount
-                      </label>
-                      <input
-                        type="range"
-                        id="blur"
-                        min="0"
-                        max="20"
-                        value={advancedOptions?.blur || 5}
-                        onChange={(e) => handleAdvancedOptionChange('blur', parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>0px</span>
-                        <span>20px</span>
-                      </div>
-                    </div>
+                  {localTitle && (
+                    <div className="font-bold text-lg">{localTitle}</div>
                   )}
-                  
-                  <div>
-                    <label htmlFor="customClass" className="text-sm block mb-1">
-                      Custom CSS Class
-                    </label>
-                    <input
-                      type="text"
-                      id="customClass"
-                      value={advancedOptions?.customClass || ''}
-                      onChange={(e) => handleAdvancedOptionChange('customClass', e.target.value)}
-                      placeholder="e.g. my-header-class"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="shadow" className="text-sm block mb-1">
-                      Shadow Style
-                    </label>
-                    <select
-                      id="shadow"
-                      value={advancedOptions?.shadow || 'none'}
-                      onChange={(e) => handleAdvancedOptionChange('shadow', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                    >
-                      <option value="none">None</option>
-                      <option value="sm">Small</option>
-                      <option value="md">Medium</option>
-                      <option value="lg">Large</option>
-                      <option value="xl">Extra Large</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="animation" className="text-sm block mb-1">
-                      Animation Effect
-                    </label>
-                    <select
-                      id="animation"
-                      value={advancedOptions?.animation || 'none'}
-                      onChange={(e) => handleAdvancedOptionChange('animation', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                    >
-                      <option value="none">None</option>
-                      <option value="fade">Fade In</option>
-                      <option value="slide">Slide Down</option>
-                      <option value="bounce">Bounce</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Preview of selected menu */}
-            {selectedMenu && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Menu Preview</h4>
-                <div className="border rounded-md overflow-hidden">
-                  <div 
-                    className="p-3 transition-all"
-                    style={{ 
-                      backgroundColor: backgroundColor,
-                      color: textColor
-                    }}
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {logoUrl && (
-                            <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
-                              <S3FilePreview
-                                src={logoUrl} 
-                                alt="Logo"
-                                className="max-h-full max-w-full object-contain"
-                                width={80}
-                                height={80}
-                              />
-                            </div>
-                          )}
-                          <div>
-                            {localTitle && (
-                              <div className="font-bold text-lg">{localTitle}</div>
-                            )}
-                            {localSubtitle && (
-                              <div className="text-xs opacity-80">{localSubtitle}</div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex space-x-4">
-                          {selectedMenu.items.slice(0, 4).map(item => (
-                            <div key={item.id} className="text-sm font-medium">{item.title}</div>
-                          ))}
-                          {selectedMenu.items.length > 4 && (
-                            <div className="text-sm font-medium">+ {selectedMenu.items.length - 4} más</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                        ✓ Posición fija - el header se mantendrá al hacer scroll
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <HeaderStyleSaveButton />
+                  {localSubtitle && (
+                    <div className="text-xs opacity-80">{localSubtitle}</div>
+                  )}
                 </div>
               </div>
-            )}
+              <div className="flex flex-wrap gap-2 sm:gap-4">
+                {selectedMenu && selectedMenu.items && selectedMenu.items.slice(0, 4).map(item => (
+                  <div key={item.id} className="text-sm font-medium">{item.title}</div>
+                ))}
+                {selectedMenu && selectedMenu.items && selectedMenu.items.length > 4 && (
+                  <div className="text-sm font-medium">+ {selectedMenu.items.length - 4} más</div>
+                )}
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+              ✓ Posición fija - el header se mantendrá al hacer scroll
+            </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Function to render the menu icon
+  const renderMenuIcon = () => {
+    if (menuIcon === 'PaperAirplaneIcon') {
+      return (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      );
+    }
+    
+    const IconComponent = LucideIcons[menuIcon as keyof typeof LucideIcons] as React.ElementType || LucideIcons.Menu;
+    return <IconComponent className="h-6 w-6" />;
+  };
+
+  return (
+    <>
+      {isEditing ? (
+        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <TabsList className="flex flex-wrap space-x-2 w-full">
+            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
+            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
+            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+          </TabsList>
+
+          {/* DETAILS TAB */}
+          <TabsContent value="details" className="space-y-4">
+            <StableInput
+              value={localTitle}
+              onChange={handleTitleChange}
+              placeholder="Enter title (optional)..."
+              className="font-medium text-xl"
+              label="Title (optional)"
+              debounceTime={300}
+              data-field-id="title"
+              data-component-type="Header"
+            />
+            
+            <StableInput
+              value={localSubtitle}
+              onChange={handleSubtitleChange}
+              placeholder="Enter subtitle (optional)..."
+              className="text-muted-foreground"
+              label="Subtitle (optional)"
+              debounceTime={300}
+              data-field-id="subtitle"
+              data-component-type="Header"
+            />
+            
+            <LogoSelector />
+            <MenuSelector />
+            <MenuIconSelector />
+          </TabsContent>
+
+          {/* STYLES TAB */}
+          <TabsContent value="styles" className="space-y-4">
+            <StyleOptions />
+            <AdvancedOptions />
+          </TabsContent>
+
+          {/* PREVIEW TAB */}
+          <TabsContent value="preview" className="space-y-4">
+            <HeaderPreview />
+          </TabsContent>
           
           {/* Media selector modal */}
           {showMediaSelector && <MediaSelector />}
-        </div>
+        </Tabs>
       ) : (
         <nav
           className={`w-full z-50 transition-all duration-300 py-4 ${
@@ -1163,13 +1232,9 @@ export default function HeaderSection({
                   style={{ color: textColor }}
                 >
                   {isDropdownOpen.mobileMenu ? (
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <LucideIcons.X className="h-6 w-6" />
                   ) : (
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
+                    renderMenuIcon()
                   )}
                 </button>
               </div>
@@ -1190,27 +1255,37 @@ export default function HeaderSection({
               <div 
                 className={`md:hidden fixed z-40 transition-all duration-300 ease-in-out ${
                   mobileMenuStyle === 'fullscreen' ? 'inset-0 bg-white animate-fadeIn' :
-                  mobileMenuStyle === 'sidebar' ? `top-0 bottom-0 w-[280px] bg-white shadow-xl ${
+                  mobileMenuStyle === 'sidebar' ? `top-0 bottom-0 h-screen w-[280px] bg-white shadow-xl ${
                     mobileMenuPosition === 'left' ? 'left-0 animate-slideInLeft' : 'right-0 animate-slideInRight'
                   }` :
                   'top-[4rem] left-0 right-0 bg-white/90 backdrop-blur-md shadow-lg animate-slideInDown'
                 }`}
               >
-                {mobileMenuStyle === 'fullscreen' && (
-                  <div className="flex justify-end p-4">
+                {(mobileMenuStyle === 'fullscreen' || mobileMenuStyle === 'sidebar') && (
+                  <div className="flex justify-between items-center p-4 border-b">
+                    {logoUrl && (
+                      <div className="h-8 w-8">
+                        <S3FilePreview
+                          src={logoUrl}
+                          alt={localTitle || "Logo"}
+                          className="h-full w-auto object-contain"
+                          width={32}
+                          height={32}
+                        />
+                      </div>
+                    )}
                     <button
                       onClick={() => setIsDropdownOpen(prev => ({ ...prev, mobileMenu: false }))}
-                      className="p-2"
+                      className="p-2 rounded-md hover:bg-gray-100"
                     >
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <LucideIcons.X className="h-5 w-5" />
                     </button>
                   </div>
                 )}
                 
                 <div className={`${
-                  mobileMenuStyle === 'fullscreen' ? 'flex flex-col items-center justify-center h-full' : 'p-4'
+                  mobileMenuStyle === 'fullscreen' ? 'flex flex-col items-center justify-center h-full' : 
+                  mobileMenuStyle === 'sidebar' ? 'p-4 overflow-y-auto max-h-screen' : 'p-4'
                 }`}>
                   {mobileMenuStyle === 'fullscreen' && logoUrl && (
                     <div className="mb-8">

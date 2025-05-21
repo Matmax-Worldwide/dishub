@@ -6,7 +6,7 @@ import { FormBase } from '@/types/forms';
 import { Search, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 interface FormSelectorProps {
-  onSelect: (form: FormBase | null) => void;
+  onSelect: (form: FormBase | null, event?: React.SyntheticEvent) => void;
   selectedFormId?: string;
   label?: string;
   required?: boolean;
@@ -60,19 +60,46 @@ export function FormSelector({
       )
     : forms;
 
-  const handleSelectForm = (form: FormBase) => {
+  const handleSelectForm = (form: FormBase, event?: React.SyntheticEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setSelectedForm(form);
-    onSelect(form);
+    onSelect(form, event);
     setIsOpen(false);
   };
 
-  const handleClearSelection = () => {
+  const handleClearSelection = (event?: React.SyntheticEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setSelectedForm(null);
-    onSelect(null);
+    onSelect(null, event);
+  };
+
+  // Evitar que la tecla Enter se propague y cause un envío del formulario
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  // Manejar cambio en el input de búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    // Evitar propagación del evento para prevenir envío del formulario
+    e.stopPropagation();
   };
 
   return (
-    <div className={`form-selector relative ${className}`}>
+    <div 
+      className={`form-selector relative ${className}`} 
+      onKeyDown={handleKeyDown}
+      onClick={(e) => e.stopPropagation()} // Prevent click events from propagating up
+    >
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label}
@@ -83,7 +110,10 @@ export function FormSelector({
       <div className="relative">
         <button
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={(e) => {
+            e.preventDefault(); // Evitar envío de formulario si el botón está dentro de un form
+            if (!disabled) setIsOpen(!isOpen);
+          }}
           className={`w-full flex items-center justify-between p-2.5 text-left border border-gray-300 rounded-md bg-white ${
             disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
           }`}
@@ -98,7 +128,11 @@ export function FormSelector({
         {selectedForm && !disabled && (
           <button
             type="button"
-            onClick={handleClearSelection}
+                          onClick={(e) => {
+                e.preventDefault(); // Evitar envío de formulario
+                e.stopPropagation();
+                handleClearSelection(e);
+              }}
             className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <span className="sr-only">Clear selection</span>
@@ -119,7 +153,9 @@ export function FormSelector({
                   placeholder="Search forms..."
                   className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
+                  onKeyDown={handleKeyDown}
+                  onClick={(e) => e.stopPropagation()} // Prevent click from reaching other components
                 />
               </div>
             </div>
@@ -133,7 +169,11 @@ export function FormSelector({
                   {filteredForms.map(form => (
                     <li 
                       key={form.id}
-                      onClick={() => handleSelectForm(form)}
+                      onClick={(e) => {
+                        e.preventDefault(); // Evitar envío de formulario
+                        e.stopPropagation();
+                        handleSelectForm(form, e);
+                      }}
                       className={`px-3 py-2 cursor-pointer flex items-center justify-between hover:bg-gray-100 ${
                         selectedForm?.id === form.id ? 'bg-blue-50' : ''
                       }`}
@@ -164,6 +204,7 @@ export function FormSelector({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                onClick={(e) => e.stopPropagation()} // Evitar propagación
               >
                 + Create a new form
               </a>

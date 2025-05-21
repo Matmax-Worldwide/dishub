@@ -14,6 +14,12 @@ import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import IconSelector from '@/components/cms/IconSelector';
 import * as LucideIcons from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface FormSectionProps {
   title?: string;
@@ -110,11 +116,16 @@ export default function FormSection({
       if (JSON.stringify(initialStyles) !== JSON.stringify(styles)) setStyles(initialStyles);
       if (JSON.stringify(initialCustomConfig) !== JSON.stringify(customConfig)) setCustomConfig(initialCustomConfig);
     }
-  }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig, 
-      title, description, formId, styles, customConfig]);
+  }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig]);
   
   // Update parent with changes
-  const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig) => {
+  const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig, event?: React.SyntheticEvent) => {
+    // Si se proporciona un evento, prevenir comportamiento por defecto y propagación
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
@@ -161,22 +172,28 @@ export default function FormSection({
           break;
       }
       
-      // Set up a debounced update
-      debounceRef.current = setTimeout(() => {
-        onUpdate(updateData);
-        // Reset the editing ref after a short delay
-        setTimeout(() => {
-          isEditingRef.current = false;
-        }, 300);
-      }, 500);
+      try {
+        // Set up a debounced update
+        debounceRef.current = setTimeout(() => {
+          onUpdate(updateData);
+          // Don't reset the editing ref right away to prevent props from overriding local state
+          // Allow changes to persist during the editing session
+        }, 500);
+      } catch (error) {
+        console.error("Error updating field:", error);
+      }
     }
   }, [title, description, formId, styles, customConfig, selectedIcon, onUpdate]);
   
   // Handle form selection
-  const handleFormSelect = useCallback((form: FormBase | null) => {
+  const handleFormSelect = useCallback((form: FormBase | null, event?: React.SyntheticEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setSelectedForm(form);
     setFormId(form?.id || '');
-    handleUpdateField('formId', form?.id || '');
+    handleUpdateField('formId', form?.id || '', event);
   }, [handleUpdateField]);
   
   // Handle style changes
@@ -411,153 +428,195 @@ export default function FormSection({
     return '';
   };
   
+  // Details Tab Component
+  const DetailsTab = () => (
+    <div className="space-y-4">
+      <div className="flex items-start space-x-2">
+        <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+        <div 
+          className="flex-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <StableInput
+            value={title}
+            onChange={handleTitleChange}
+            placeholder="Form Section Title..."
+            className="font-medium text-xl"
+            label="Section Title"
+            debounceTime={300}
+          />
+          
+          <StableInput
+            value={description}
+            onChange={handleDescriptionChange}
+            placeholder="Section description..."
+            className="text-muted-foreground mt-2"
+            label="Section Description"
+            debounceTime={300}
+          />
+        </div>
+      </div>
+      
+      {/* Icon Selector */}
+      <div className="border-t pt-4">
+        <h3 className="text-sm font-medium mb-3 flex items-center">
+          <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+          Section Icon
+        </h3>
+        <div 
+          className="isolate"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <IconSelector
+            selectedIcon={selectedIcon}
+            onSelectIcon={handleIconSelect}
+            className="w-full"
+          />
+        </div>
+      </div>
+      
+      <div className="border-t pt-4">
+        <h3 className="text-sm font-medium mb-3 flex items-center">
+          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+          Form Selection
+        </h3>
+        <FormSelector
+          onSelect={handleFormSelect}
+          selectedFormId={formId}
+          required={true}
+          className="mb-4"
+        />
+        
+        {loading ? (
+          <div className="mt-4 p-4 bg-muted/20 rounded-md flex items-center justify-center">
+            <span className="animate-pulse">Loading form preview...</span>
+          </div>
+        ) : selectedForm && (
+          <div className="mt-4">
+            <div className="text-sm font-medium mb-2">Selected Form Preview</div>
+            <FormPreview form={selectedForm} compact />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Styles Tab Component
+  const StylesTab = () => (
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium mb-2 flex items-center">
+        <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+        Form Display Options
+      </h3>
+      
+      <div className="space-y-4">
+        <FormStyleConfig 
+          initialStyles={styles}
+          onChange={handleStyleChange}
+        />
+        
+        <FormConfig
+          form={selectedForm}
+          initialConfig={customConfig}
+          onCustomConfigChange={handleCustomConfigChange}
+        />
+      </div>
+    </div>
+  );
+
+  // Preview Tab Component
+  const PreviewTab = () => (
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium mb-3">Form Preview</h3>
+      {selectedForm ? (
+        <div 
+          className={getContainerClassNames()}
+          style={getContainerStyles()}
+        >
+          {!customConfig.hideTitle && (
+            <>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.7 }}
+                className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
+              >
+                {getIconComponent()}
+              </motion.div>
+
+              <h3 className="text-lg font-medium mb-2 text-white">
+                {selectedForm.title}
+              </h3>
+            </>
+          )}
+          
+          {!customConfig.hideDescription && selectedForm.description && (
+            <p className="text-white/80 mb-4">
+              {selectedForm.description}
+            </p>
+          )}
+          
+          {/* Form fields representation */}
+          <div className="space-y-4 mb-6">
+            {[...Array(Math.min(selectedForm.fields?.length || 3, 3))].map((_, i) => (
+              <div key={i} className="h-10 bg-white/10 rounded-md animate-pulse" />
+            ))}
+          </div>
+          
+          {/* Submit button */}
+          <button
+            type="button"
+            className={getButtonClassNames()}
+            style={getButtonStyles()}
+          >
+            {customConfig.customSubmitText || selectedForm.submitButtonText || "Submit"}
+          </button>
+          
+          {/* Reset button if enabled */}
+          {customConfig.showResetButton && (
+            <button
+              type="button"
+              className="px-4 py-2 bg-white/10 text-white rounded ml-2 hover:bg-white/20 transition-colors"
+            >
+              {customConfig.resetButtonText || "Reset"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
+          <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+          <p className="text-muted-foreground">No form selected for preview</p>
+        </div>
+      )}
+    </div>
+  );
+  
   return (
     <div className="space-y-4">
       {isEditing ? (
-        // Editor mode UI
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-start space-x-2">
-              <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-              <div className="flex-1">
-                <StableInput
-                  value={title}
-                  onChange={handleTitleChange}
-                  placeholder="Form Section Title..."
-                  className="font-medium text-xl"
-                  label="Section Title"
-                  debounceTime={300}
-                />
-                
-                <StableInput
-                  value={description}
-                  onChange={handleDescriptionChange}
-                  placeholder="Section description..."
-                  className="text-muted-foreground mt-2"
-                  label="Section Description"
-                  debounceTime={300}
-                />
-              </div>
-            </div>
-            
-            {/* Icon Selector */}
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-3 flex items-center">
-                <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-                Section Icon
-              </h3>
-              <IconSelector
-                selectedIcon={selectedIcon}
-                onSelectIcon={handleIconSelect}
-                className="w-full"
-              />
-            </div>
-            
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-3 flex items-center">
-                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                Form Selection
-              </h3>
-              <FormSelector
-                onSelect={handleFormSelect}
-                selectedFormId={formId}
-                required={true}
-                className="mb-4"
-              />
-              
-              {loading ? (
-                <div className="mt-4 p-4 bg-muted/20 rounded-md flex items-center justify-center">
-                  <span className="animate-pulse">Loading form preview...</span>
-                </div>
-              ) : selectedForm && (
-                <div className="mt-4">
-                  <div className="text-sm font-medium mb-2">Selected Form Preview</div>
-                  <FormPreview form={selectedForm} compact />
-                </div>
-              )}
-            </div>
-            
-            <div className="border-t pt-4 space-y-4">
-              <h3 className="text-sm font-medium mb-2 flex items-center">
-                <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-                Form Display Options
-              </h3>
-              
-              <div className="space-y-4">
-                <FormStyleConfig 
-                  initialStyles={styles}
-                  onChange={handleStyleChange}
-                />
-                
-                <FormConfig
-                  form={selectedForm}
-                  initialConfig={customConfig}
-                  onCustomConfigChange={handleCustomConfigChange}
-                />
-              </div>
-            </div>
-            
-            {/* Preview section */}
-            {selectedForm && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-3">Form Preview</h3>
-                <div 
-                  className={getContainerClassNames()}
-                  style={getContainerStyles()}
-                >
-                  {!customConfig.hideTitle && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.7 }}
-                        className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
-                      >
-                        {getIconComponent()}
-                      </motion.div>
+        // Editor mode UI with tabs
+        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <TabsList className="flex flex-wrap space-x-2 w-full">
+            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
+            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
+            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+          </TabsList>
 
-                      <h3 className="text-lg font-medium mb-2 text-white">
-                        {selectedForm.title}
-                      </h3>
-                    </>
-                  )}
-                  
-                  {!customConfig.hideDescription && selectedForm.description && (
-                    <p className="text-white/80 mb-4">
-                      {selectedForm.description}
-                    </p>
-                  )}
-                  
-                  {/* Form fields representation */}
-                  <div className="space-y-4 mb-6">
-                    {[...Array(Math.min(selectedForm.fields?.length || 3, 3))].map((_, i) => (
-                      <div key={i} className="h-10 bg-white/10 rounded-md animate-pulse" />
-                    ))}
-                  </div>
-                  
-                  {/* Submit button */}
-                  <button
-                    type="button"
-                    className={getButtonClassNames()}
-                    style={getButtonStyles()}
-                  >
-                    {customConfig.customSubmitText || selectedForm.submitButtonText || "Submit"}
-                  </button>
-                  
-                  {/* Reset button if enabled */}
-                  {customConfig.showResetButton && (
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-white/10 text-white rounded ml-2 hover:bg-white/20 transition-colors"
-                    >
-                      {customConfig.resetButtonText || "Reset"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+          {/* DETAILS TAB */}
+          <TabsContent value="details" className="space-y-4">
+            <DetailsTab />
+          </TabsContent>
+
+          {/* STYLES TAB */}
+          <TabsContent value="styles" className="space-y-4">
+            <StylesTab />
+          </TabsContent>
+
+          {/* PREVIEW TAB */}
+          <TabsContent value="preview" className="space-y-4">
+            <PreviewTab />
+          </TabsContent>
+        </Tabs>
       ) : (
         // Visitor-facing UI with actual form here
         <div

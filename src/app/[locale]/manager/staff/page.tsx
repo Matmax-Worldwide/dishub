@@ -79,7 +79,7 @@ export default function StaffManagement() {
   // Consulta GraphQL para obtener usuarios
   const { data, loading: usersLoading } = useQuery(GET_USERS_WITH_EMPLOYEE_ROLE, {
     client,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
     context: {
       headers: {
         credentials: 'include'
@@ -94,7 +94,6 @@ export default function StaffManagement() {
   // Filtrar empleados
   const filteredUsers = users.filter(user => {
     // Solo incluir usuarios con rol EMPLOYEE
-    console.log(user.role.name);
     if (user.role.name !== 'EMPLOYEE') return false;
     
     // Aplicar filtro de búsqueda
@@ -160,27 +159,32 @@ export default function StaffManagement() {
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
-            <Select 
-              value={departmentFilter} 
-              onValueChange={setDepartmentFilter}
-            >
-           
-            </Select>
-            <Select 
-              value={statusFilter} 
-              onValueChange={setStatusFilter}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="active">Activo</SelectItem>
-                <SelectItem value="inactive">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select 
+                value={departmentFilter} 
+                onValueChange={setDepartmentFilter}
+              >
+                {/* Content here */}
+              </Select>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select 
+                value={statusFilter} 
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

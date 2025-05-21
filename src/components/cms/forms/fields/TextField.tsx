@@ -32,6 +32,10 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
   if (!localField) return null;
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    // Evitar propagación del evento
+    e.preventDefault();
+    e.stopPropagation();
+    
     const { name, value } = e.target;
     
     const updatedField = {
@@ -44,6 +48,10 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
   };
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Evitar propagación del evento
+    e.preventDefault();
+    e.stopPropagation();
+    
     const { name, checked } = e.target;
     
     const updatedField = {
@@ -55,8 +63,16 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
     onChange(updatedField);
   };
   
+  // Prevenir envío del formulario y propagación de eventos de teclado
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+  
   const editorContent = (
-    <div className="space-y-4">
+    <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
       <div>
         <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-1">
           Etiqueta del campo <span className="text-red-500">*</span>
@@ -67,6 +83,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           name="label"
           value={localField.label}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Ej: Nombre completo"
         />
@@ -82,6 +99,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           name="name"
           value={localField.name}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Ej: full_name"
         />
@@ -100,6 +118,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           name="placeholder"
           value={localField.placeholder || ''}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Ej: Ingrese su nombre completo"
         />
@@ -115,6 +134,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           name="helpText"
           value={localField.helpText || ''}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Ej: Ingrese su nombre tal como aparece en su identificación"
         />
@@ -128,6 +148,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           checked={localField.isRequired || false}
           onChange={handleCheckboxChange}
           className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          onClick={(e) => e.stopPropagation()}
         />
         <label htmlFor="isRequired" className="ml-2 text-sm text-gray-700">
           Campo requerido
@@ -144,6 +165,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           name="defaultValue"
           value={localField.defaultValue || ''}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Ej: John Doe"
         />
@@ -162,6 +184,7 @@ export function TextField({ field, onChange, showPreview = true }: FieldProps) {
           step="25"
           value={localField.width || 100}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
