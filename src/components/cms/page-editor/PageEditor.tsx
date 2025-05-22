@@ -695,7 +695,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       // IMPORTANTE: Siempre establecer isSaving a false, incluso si hay un error
       setIsSaving(false);
     }
-  }, [pageData, pageSections, hasUnsavedChanges, locale, slug, forceReloadSection]);
+  }, [slug, locale]);
 
   // Set up global save function for unsaved changes context
   useEffect(() => {
