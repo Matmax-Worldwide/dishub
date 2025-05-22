@@ -553,12 +553,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       return false;
     }
     
-    // Only save if there are actual unsaved changes
-    if (!hasUnsavedChanges) {
-      console.log('ℹ️ No unsaved changes, skipping save');
-      return true;
-    }
-    
     try {
       console.log('💾 Starting page save...');
       setIsSaving(true);

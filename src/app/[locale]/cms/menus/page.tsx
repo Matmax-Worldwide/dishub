@@ -220,8 +220,8 @@ export default function MenusManagerPage() {
   const fetchPages = async () => {
     try {
       const query = `
-        query GetPages {
-          pages {
+        query GetAllCMSPages {
+          getAllCMSPages {
             id
             title
             slug
@@ -229,9 +229,9 @@ export default function MenusManagerPage() {
         }
       `;
 
-      const response = await gqlRequest<{ pages: Page[] }>(query);
-      if (response && response.pages) {
-        setPages(response.pages);
+      const response = await gqlRequest<{ getAllCMSPages: Page[] }>(query);
+      if (response && response.getAllCMSPages) {
+        setPages(response.getAllCMSPages);
       }
     } catch (err) {
       console.error('Error fetching pages:', err);
@@ -438,9 +438,27 @@ export default function MenusManagerPage() {
             target
             parentId
             icon
+            page {
+              id
+              title
+              slug
+            }
           }
         }
       `;
+
+      // Validate inputs based on type
+      if (itemForm.type === 'url' && !itemForm.url.trim()) {
+        setError('Please enter a valid URL');
+        setIsSaving(false);
+        return;
+      }
+      
+      if (itemForm.type === 'page' && !itemForm.pageId) {
+        setError('Please select a page');
+        setIsSaving(false);
+        return;
+      }
 
       const response = await gqlRequest<{ createMenuItem: MenuItem }>(mutation, {
         input: {
@@ -482,6 +500,27 @@ export default function MenusManagerPage() {
 
     setIsSaving(true);
     try {
+      // If we have a "type" field in the updates, we need to make sure
+      // we set the right field to null (url or pageId)
+      if ('type' in updates) {
+        const type = updates.type;
+        if (type === 'url') {
+          updates.pageId = null;
+        } else if (type === 'page') {
+          updates.url = null;
+        }
+      }
+      
+      // If updating pageId, set url to null
+      if (updates.pageId) {
+        updates.url = null;
+      }
+      
+      // If updating url, set pageId to null
+      if (updates.url) {
+        updates.pageId = null;
+      }
+      
       const mutation = `
         mutation UpdateMenuItem($id: ID!, $input: MenuItemInput!) {
           updateMenuItem(id: $id, input: $input) {
@@ -493,6 +532,11 @@ export default function MenusManagerPage() {
             target
             parentId
             icon
+            page {
+              id
+              title
+              slug
+            }
           }
         }
       `;
@@ -656,6 +700,8 @@ export default function MenusManagerPage() {
       icon: '',
       type: 'url',
     });
+    // Also clear any error messages related to the form
+    setError(null);
   };
 
   const filteredMenus = menus.filter(menu => {
@@ -1543,27 +1589,25 @@ function MenuItemForm({
           
           <div className="space-y-2">
             <Label>Link Type</Label>
-            <div className="flex gap-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id="type-url"
-                  name="type"
-                  checked={form.type === 'url'}
-                  onChange={() => onFormChange({ ...form, type: 'url' })}
-                />
-                <Label htmlFor="type-url">Custom URL</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id="type-page"
-                  name="type"
-                  checked={form.type === 'page'}
-                  onChange={() => onFormChange({ ...form, type: 'page' })}
-                />
-                <Label htmlFor="type-page">Internal Page</Label>
-              </div>
+            <div className="flex border border-gray-300 rounded-md overflow-hidden">
+              <button
+                type="button"
+                onClick={() => onFormChange({ ...form, type: 'url', pageId: '' })}
+                className={`flex-1 py-2 text-sm font-medium ${
+                  form.type === 'url' ? 'bg-blue-100 text-blue-800' : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Custom URL
+              </button>
+              <button
+                type="button"
+                onClick={() => onFormChange({ ...form, type: 'page', url: '' })}
+                className={`flex-1 py-2 text-sm font-medium ${
+                  form.type === 'page' ? 'bg-green-100 text-green-800' : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Internal Page
+              </button>
             </div>
           </div>
           
@@ -1580,60 +1624,55 @@ function MenuItemForm({
           ) : (
             <div className="space-y-2">
               <Label htmlFor="item-page">Page *</Label>
-              <Select 
-                value={form.pageId} 
-                onValueChange={(value) => onFormChange({ ...form, pageId: value })}
+              <select
+                id="item-page"
+                value={form.pageId}
+                onChange={(e) => onFormChange({ ...form, pageId: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a page" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pages.map(page => (
-                    <SelectItem key={page.id} value={page.id}>
-                      {page.title} ({page.slug})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-                </div>
+                <option value="">Select a page</option>
+                {pages.map(page => (
+                  <option key={page.id} value={page.id}>
+                    {page.title} ({page.slug})
+                  </option>
+                ))}
+              </select>
+              {pages.length === 0 && (
+                <p className="text-sm text-yellow-600 mt-1">No pages available. Please create pages first.</p>
               )}
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="item-target">Open In</Label>
-              <Select 
-                value={form.target} 
-                onValueChange={(value) => onFormChange({ ...form, target: value })}
+              <select
+                id="item-target"
+                value={form.target}
+                onChange={(e) => onFormChange({ ...form, target: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_self">Same Window</SelectItem>
-                  <SelectItem value="_blank">New Window</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="_self">Same Window</option>
+                <option value="_blank">New Window</option>
+              </select>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="item-parent">Parent Item</Label>
-              <Select 
-                value={form.parentId || "none"} 
-                onValueChange={(value) => onFormChange({ ...form, parentId: value === "none" ? "" : value })}
+              <select
+                id="item-parent"
+                value={form.parentId || "none"}
+                onChange={(e) => onFormChange({ ...form, parentId: e.target.value === "none" ? "" : e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="None (top level)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None (top level)</SelectItem>
-                  {parentItems.map(item => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-        </div>
+                <option value="none">None (top level)</option>
+                {parentItems.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div className="flex gap-2 justify-end pt-4">
