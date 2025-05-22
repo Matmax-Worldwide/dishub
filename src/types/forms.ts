@@ -37,7 +37,8 @@ export enum SubmissionStatus {
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
-  SPAM = 'SPAM'
+  SPAM = 'SPAM',
+  DRAFT = 'DRAFT'
 }
 
 // Field options for select, radio, etc.

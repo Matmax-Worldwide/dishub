@@ -1,13 +1,14 @@
-import { Edit, Trash2, MessageSquare, FileCheck } from 'lucide-react';
+import { Edit, Trash2, MessageSquare, FileCheck, Inbox } from 'lucide-react';
 import { FormBase } from '@/types/forms';
 
 interface FormCardProps {
   form: FormBase;
   onEdit: () => void;
   onDelete: () => void;
+  onViewSubmissions?: () => void;
 }
 
-export function FormCard({ form, onEdit, onDelete }: FormCardProps) {
+export function FormCard({ form, onEdit, onDelete, onViewSubmissions }: FormCardProps) {
   const { title, description, isActive, updatedAt, fields = [], steps = [] } = form;
   
   // Calcular la cantidad total de campos sumando los campos directos y los de los pasos
@@ -50,21 +51,32 @@ export function FormCard({ form, onEdit, onDelete }: FormCardProps) {
         </div>
       </div>
       
-      <div className="border-t border-gray-100 bg-gray-50 p-2 flex justify-end">
+      <div className="border-t border-gray-100 bg-gray-50 p-2 flex justify-between">
         <button
-          onClick={onEdit}
-          className="text-blue-600 hover:text-blue-800 p-1.5"
-          title="Edit"
+          onClick={onViewSubmissions}
+          className="text-blue-600 hover:text-blue-800 p-1.5 flex items-center text-xs"
+          title="View Submissions"
         >
-          <Edit className="h-4 w-4" />
+          <Inbox className="h-4 w-4 mr-1" />
+          <span>Submissions</span>
         </button>
-        <button
-          onClick={onDelete}
-          className="text-red-600 hover:text-red-800 p-1.5"
-          title="Delete"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        
+        <div className="flex">
+          <button
+            onClick={onEdit}
+            className="text-blue-600 hover:text-blue-800 p-1.5"
+            title="Edit"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-red-600 hover:text-red-800 p-1.5"
+            title="Delete"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

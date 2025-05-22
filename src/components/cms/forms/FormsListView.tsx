@@ -1,10 +1,11 @@
-import { Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
 import { FormBase } from '@/types/forms';
 
 export interface FormsListViewProps {
   forms: FormBase[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onViewSubmissions?: (id: string) => void;
   onSort: (field: 'title' | 'updatedAt' | 'createdAt') => void;
   sortField: 'title' | 'updatedAt' | 'createdAt';
   sortDirection: 'asc' | 'desc';
@@ -14,6 +15,7 @@ export function FormsListView({
   forms, 
   onEdit, 
   onDelete, 
+  onViewSubmissions,
   onSort, 
   sortField, 
   sortDirection 
@@ -43,10 +45,10 @@ export function FormsListView({
               </div>
             </th>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
+              Fields
             </th>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type
+              Status
             </th>
             <th 
               scope="col" 
@@ -74,35 +76,48 @@ export function FormsListView({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {forms.map(form => (
-            <tr key={form.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{form.title}</div>
-                {form.description && (
-                  <div className="text-xs text-gray-500 truncate max-w-xs">{form.description}</div>
-                )}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${
-                  form.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {form.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {form.isMultiStep ? 'Multi-step' : 'Single-step'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex justify-end">
+          {forms.map(form => {
+            const totalFieldCount = 
+              (form.fields?.length || 0) + 
+              (form.steps?.reduce((count, step) => count + (step.fields?.length || 0), 0) || 0);
+              
+            return (
+              <tr key={form.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{form.title}</div>
+                  {form.description && (
+                    <div className="text-xs text-gray-500 truncate max-w-xs">{form.description}</div>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {totalFieldCount} field{totalFieldCount !== 1 ? 's' : ''}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${
+                    form.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {form.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : 'N/A'}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : 'N/A'}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                  {onViewSubmissions && (
+                    <button
+                      onClick={() => onViewSubmissions(form.id)}
+                      className="text-blue-600 hover:text-blue-800 p-1.5 mr-3"
+                    >
+                      <Inbox className="h-4 w-4 inline mr-1" />
+                      <span>Submissions</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => onEdit(form.id)}
-                    className="text-blue-600 hover:text-blue-800 p-1.5"
+                    className="text-blue-600 hover:text-blue-800 p-1.5 mr-3"
                     title="Edit"
                   >
                     <Edit className="h-4 w-4" />
@@ -114,10 +129,10 @@ export function FormsListView({
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -62,6 +62,10 @@ export default function FormsPage() {
     router.push(`/cms/forms/edit/${formId}`);
   };
 
+  const handleViewSubmissions = (formId: string) => {
+    router.push(`/cms/forms/submissions/${formId}`);
+  };
+
   // These functions can be implemented when the component interfaces support them
   // const handleViewForm = (formId: string) => {
   //   router.push(`/cms/forms/preview/${formId}`);
@@ -309,12 +313,14 @@ export default function FormsPage() {
               forms={sortedForms}
               onEdit={handleEditForm}
               onDelete={handleDeleteForm}
+              onViewSubmissions={handleViewSubmissions}
             />
           ) : (
             <FormsListView
               forms={sortedForms}
               onEdit={handleEditForm}
               onDelete={handleDeleteForm}
+              onViewSubmissions={handleViewSubmissions}
               onSort={handleSort}
               sortField={sortBy}
               sortDirection={sortDirection}
