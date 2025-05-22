@@ -930,6 +930,7 @@ export const cmsResolvers = {
         description?: string;
         backgroundImage?: string;
         backgroundType?: string;
+        gridDesign?: string;
       } 
     }) => {
       console.log('======== START updateCMSSection resolver ========');
@@ -959,6 +960,7 @@ export const cmsResolvers = {
             ...(input.description && { description: input.description }),
             ...(input.backgroundImage !== undefined && { backgroundImage: input.backgroundImage }),
             ...(input.backgroundType !== undefined && { backgroundType: input.backgroundType }),
+            ...(input.gridDesign !== undefined && { gridDesign: input.gridDesign }),
             lastUpdated: timestamp,
             updatedAt: timestamp
           }

@@ -789,6 +789,7 @@ export const typeDefs = gql`
     description: String
     backgroundImage: String
     backgroundType: String
+    gridDesign: String
   }
 
   # Input for creating a CMS section
@@ -798,6 +799,7 @@ export const typeDefs = gql`
     description: String
     backgroundImage: String
     backgroundType: String
+    gridDesign: String
   }
 
   # Result type for CMS section operations

@@ -1396,6 +1396,7 @@ function SectionManagerBase({
                 backgroundType={!isEditing && sectionBackgroundType ? sectionBackgroundType : undefined}
                 showGrid={component.data.showGrid as boolean ?? true}
                 showDots={component.data.showDots as boolean ?? true}
+                gridDesign={component.data.gridDesign as 'basic' | 'diagonal' | 'dots' | 'circles' | 'wave' || 'basic'}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />

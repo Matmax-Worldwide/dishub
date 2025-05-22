@@ -124,12 +124,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             backgroundType?: string;
             id: string;
             sectionId: string;
+            gridDesign?: string;
           };
           
           if (sectionData) {
             console.log(`✅ [${loadId}] Section background data loaded:`, {
               backgroundImage: sectionData.backgroundImage,
-              backgroundType: sectionData.backgroundType
+              backgroundType: sectionData.backgroundType,
+              gridDesign: sectionData.gridDesign
             });
             
             if (sectionData.backgroundImage) {

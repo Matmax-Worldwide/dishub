@@ -20,6 +20,7 @@ interface BenefitSectionProps {
   backgroundType?: 'image' | 'gradient';
   showGrid: boolean;
   showDots: boolean;
+  gridDesign?: 'basic' | 'diagonal' | 'dots' | 'circles' | 'wave';
   isEditing?: boolean;
   onUpdate?: (data: Partial<BenefitSectionProps>) => void;
 }
@@ -64,6 +65,7 @@ const BenefitSection = React.memo(function BenefitSection({
   backgroundType = 'gradient',
   showGrid = true,
   showDots = true,
+  gridDesign = 'basic',
   isEditing = false,
   onUpdate
 }: BenefitSectionProps) {
@@ -78,6 +80,7 @@ const BenefitSection = React.memo(function BenefitSection({
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [localShowGrid, setLocalShowGrid] = useState(showGrid);
   const [localShowDots, setLocalShowDots] = useState(showDots);
+  const [localGridDesign, setLocalGridDesign] = useState(gridDesign);
   const [isHovered, setIsHovered] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   
@@ -99,14 +102,17 @@ const BenefitSection = React.memo(function BenefitSection({
       if (backgroundType !== localBackgroundType) setLocalBackgroundType(backgroundType);
       if (showGrid !== localShowGrid) setLocalShowGrid(showGrid);
       if (showDots !== localShowDots) setLocalShowDots(showDots);
+      if (gridDesign !== localGridDesign) setLocalGridDesign(gridDesign);
     }
-  }, [title, description, iconType, accentColor, backgroundColor, backgroundImage, backgroundType, showGrid, showDots,
-      localTitle, localDescription, localIconType, localAccentColor, localBackgroundColor, localBackgroundImage, localBackgroundType, localShowGrid, localShowDots]);
+  }, [title, description, iconType, accentColor, backgroundColor, backgroundImage, backgroundType, showGrid, showDots, 
+      gridDesign,
+      localTitle, localDescription, localIconType, localAccentColor, localBackgroundColor, localBackgroundImage, 
+      localBackgroundType, localShowGrid, localShowDots, localGridDesign]);
 
   // Optimized update function with debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  const handleUpdateField = useCallback((field: string, value: string | boolean) => {
+  const handleUpdateField = useCallback((field: string, value: string | boolean | number) => {
     if (onUpdate) {
       // Mark that we're in editing mode to prevent useEffect override
       isEditingRef.current = true;
@@ -428,6 +434,34 @@ const BenefitSection = React.memo(function BenefitSection({
           </label>
         </div>
         
+        {localShowGrid && (
+          <div className="ml-6 mt-2">
+            <label className="text-sm font-medium text-gray-700 block mb-2">Grid Design</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['basic', 'diagonal', 'dots', 'circles', 'wave'] as const).map((design) => (
+                <div 
+                  key={design}
+                  onClick={() => handleGridDesignChange(design)}
+                  className={`p-2 border rounded-md cursor-pointer transition-all ${
+                    localGridDesign === design 
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary' 
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="h-16 bg-gray-50 rounded relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                      {design.charAt(0).toUpperCase() + design.slice(1)}
+                    </div>
+                    <div className="opacity-50">
+                      {renderGridBackground(design, localAccentColor)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -467,16 +501,7 @@ const BenefitSection = React.memo(function BenefitSection({
         )}
         
         {/* Grid background if enabled */}
-        {localShowGrid && (
-          <div className="absolute inset-0 opacity-20 rounded-lg">
-            <div className="absolute left-0 right-0 h-[1px] top-1/4" style={{ backgroundColor: localAccentColor }}></div>
-            <div className="absolute left-0 right-0 h-[1px] top-2/4" style={{ backgroundColor: localAccentColor }}></div>
-            <div className="absolute left-0 right-0 h-[1px] top-3/4" style={{ backgroundColor: localAccentColor }}></div>
-            <div className="absolute top-0 bottom-0 w-[1px] left-1/4" style={{ backgroundColor: localAccentColor }}></div>
-            <div className="absolute top-0 bottom-0 w-[1px] left-2/4" style={{ backgroundColor: localAccentColor }}></div>
-            <div className="absolute top-0 bottom-0 w-[1px] left-3/4" style={{ backgroundColor: localAccentColor }}></div>
-          </div>
-        )}
+        {localShowGrid && renderGridBackground(localGridDesign, localAccentColor)}
         
         {/* Decorative tech elements */}
         {localShowDots && (
@@ -571,6 +596,85 @@ const BenefitSection = React.memo(function BenefitSection({
     </div>
   );
 
+  // Add handlers for the new grid customization options
+  const handleGridDesignChange = useCallback((newValue: 'basic' | 'diagonal' | 'dots' | 'circles' | 'wave') => {
+    console.log(`Changing gridDesign from '${localGridDesign}' to '${newValue}'`);
+    setLocalGridDesign(newValue);
+    
+    // Use a small delay to ensure the UI updates before notifying parent
+    setTimeout(() => {
+      handleUpdateField('gridDesign', newValue);
+    }, 50);
+  }, [handleUpdateField, localGridDesign]);
+
+  // Function to render the appropriate grid based on selected design
+  const renderGridBackground = (design: string, accent: string) => {
+    switch (design) {
+      case 'diagonal':
+        return (
+          <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <pattern id="diagonalGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 0,40 l 40,-40 M -10,10 l 20,-20 M 30,50 l 20,-20" 
+                      stroke={accent} strokeWidth="1" fill="none" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#diagonalGrid)" />
+            </svg>
+          </div>
+        );
+      
+      case 'dots':
+        return (
+          <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <pattern id="dotsPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1.5" fill={accent} />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#dotsPattern)" />
+            </svg>
+          </div>
+        );
+      
+      case 'circles':
+        return (
+          <div className="absolute inset-0 opacity-15" style={{ zIndex: 1 }}>
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <pattern id="circlesPattern" width="80" height="80" patternUnits="userSpaceOnUse">
+                <circle cx="40" cy="40" r="20" stroke={accent} strokeWidth="1" fill="none" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#circlesPattern)" />
+            </svg>
+          </div>
+        );
+      
+      case 'wave':
+        return (
+          <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <pattern id="wavePattern" width="100" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 0 10 C 20 5, 30 15, 50 10 C 70 5, 80 15, 100 10" 
+                      stroke={accent} strokeWidth="1" fill="none" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#wavePattern)" />
+            </svg>
+          </div>
+        );
+      
+      case 'basic':
+      default:
+        return (
+          <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
+            <div className="absolute left-0 right-0 h-[1px] top-1/4" style={{ backgroundColor: accent }}></div>
+            <div className="absolute left-0 right-0 h-[1px] top-2/4" style={{ backgroundColor: accent }}></div>
+            <div className="absolute left-0 right-0 h-[1px] top-3/4" style={{ backgroundColor: accent }}></div>
+            <div className="absolute top-0 bottom-0 w-[1px] left-1/4" style={{ backgroundColor: accent }}></div>
+            <div className="absolute top-0 bottom-0 w-[1px] left-2/4" style={{ backgroundColor: accent }}></div>
+            <div className="absolute top-0 bottom-0 w-[1px] left-3/4" style={{ backgroundColor: accent }}></div>
+          </div>
+        );
+    }
+  };
+
   return (
     <>
       {showBackgroundSelector && (
@@ -619,16 +723,7 @@ const BenefitSection = React.memo(function BenefitSection({
       )}
       
       {/* Grid background if enabled */}
-      {localShowGrid && !isEditing && (
-        <div className="absolute inset-0 opacity-20" style={{ zIndex: 1 }}>
-          <div className="absolute left-0 right-0 h-[1px] top-1/4" style={{ backgroundColor: localAccentColor }}></div>
-          <div className="absolute left-0 right-0 h-[1px] top-2/4" style={{ backgroundColor: localAccentColor }}></div>
-          <div className="absolute left-0 right-0 h-[1px] top-3/4" style={{ backgroundColor: localAccentColor }}></div>
-          <div className="absolute top-0 bottom-0 w-[1px] left-1/4" style={{ backgroundColor: localAccentColor }}></div>
-          <div className="absolute top-0 bottom-0 w-[1px] left-2/4" style={{ backgroundColor: localAccentColor }}></div>
-          <div className="absolute top-0 bottom-0 w-[1px] left-3/4" style={{ backgroundColor: localAccentColor }}></div>
-        </div>
-      )}
+      {localShowGrid && !isEditing && renderGridBackground(localGridDesign, localAccentColor)}
       
       {/* Decorative tech elements */}
       {localShowDots && !isEditing && (

@@ -502,6 +502,7 @@ model CMSSection {
   name        String?
   backgroundImage String?
   backgroundType  String?         @default("gradient")
+  gridDesign   String?           @default("basic")
   components  SectionComponent[]
   pages       Page[]             @relation("PageToSection")
   media       Media[]
