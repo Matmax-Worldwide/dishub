@@ -16,6 +16,8 @@ export interface Folder {
   path: string;
   parentPath: string;
   isRoot: boolean;
+  itemCount?: number;
+  subfolderCount?: number;
 }
 
 export interface MediaLibraryState {

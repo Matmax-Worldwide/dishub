@@ -127,6 +127,7 @@ export function FolderNavigation({
                   id: 'root',
                   name: 'Media Library',
                   path: '',
+                  parentPath: '',
                   isRoot: true
                 });
               }}
@@ -160,7 +161,8 @@ export function FolderNavigation({
                     id: `folder-${path}`,
                     name: segment,
                     path: path,
-                    parentPath: array.slice(0, index).join('/') || ''
+                    parentPath: array.slice(0, index).join('/') || '',
+                    isRoot: false
                   };
                 }
               }
