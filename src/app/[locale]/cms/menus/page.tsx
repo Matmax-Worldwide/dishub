@@ -156,58 +156,58 @@ export default function MenusManagerPage() {
     fetchPages();
   }, []);
 
-  const fetchMenus = async () => {
+    const fetchMenus = async () => {
     setIsLoading(true);
-    try {
-      const query = `
-        query GetMenus {
-          menus {
-            id
-            name
-            location
-            createdAt
-            updatedAt
-            items {
+      try {
+        const query = `
+          query GetMenus {
+            menus {
               id
-              title
-              url
-              pageId
-              order
-              target
-              parentId
+              name
+              location
+              createdAt
+              updatedAt
+              items {
+                id
+                title
+                url
+                pageId
+                order
+                target
+                parentId
               icon
               page {
                 id
                 title
                 slug
               }
-            }
-            headerStyle {
-              id
-              transparency
-              headerSize
-              menuAlignment
-              menuButtonStyle
-              mobileMenuStyle
-              mobileMenuPosition
-              transparentHeader
-              borderBottom
+              }
+              headerStyle {
+                id
+                transparency
+                headerSize
+                menuAlignment
+                menuButtonStyle
+                mobileMenuStyle
+                mobileMenuPosition
+                transparentHeader
+                borderBottom
+              }
             }
           }
-        }
-      `;
+        `;
 
-      const response = await gqlRequest<{ menus: Menu[] }>(query);
-      if (response && response.menus) {
-        setMenus(response.menus);
+        const response = await gqlRequest<{ menus: Menu[] }>(query);
+        if (response && response.menus) {
+          setMenus(response.menus);
         // Initialize history
         setHistory([response.menus]);
         setHistoryIndex(0);
-      }
-    } catch (err) {
-      console.error('Error fetching menus:', err);
-      setError('Failed to load menus. Please try again later.');
-    } finally {
+        }
+      } catch (err) {
+        console.error('Error fetching menus:', err);
+        setError('Failed to load menus. Please try again later.');
+      } finally {
       setIsLoading(false);
     }
   };
@@ -689,7 +689,7 @@ export default function MenusManagerPage() {
     );
   }
 
-  return (
+    return (
     <div className="space-y-6 p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -698,7 +698,7 @@ export default function MenusManagerPage() {
           <p className="text-muted-foreground">
             Create and manage navigation menus with advanced features
           </p>
-        </div>
+      </div>
         
         <div className="flex items-center gap-2">
           {/* Undo/Redo */}
@@ -740,11 +740,11 @@ export default function MenusManagerPage() {
           {/* Create Menu */}
           <Button onClick={() => setIsEditing(true)}>
             <PlusIcon className="h-4 w-4 mr-2" />
-            New Menu
+          New Menu
           </Button>
         </div>
       </div>
-
+      
       {/* Messages */}
       {successMessage && (
         <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 flex items-center">
@@ -922,7 +922,7 @@ export default function MenusManagerPage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+        </div>
         </div>
       </div>
 
@@ -1007,9 +1007,9 @@ export default function MenusManagerPage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+                  </div>
       )}
-    </div>
+                  </div>
   );
 }
 
@@ -1068,13 +1068,13 @@ function MenuEditor({
             <div className="flex items-center gap-3 flex-1">
               <div {...provided.dragHandleProps} className="cursor-move">
                 <GripVerticalIcon className="h-4 w-4 text-gray-400" />
-              </div>
-              
+                </div>
+                
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   {item.icon && <span className="text-sm">{item.icon}</span>}
                   <span className="font-medium">{item.title}</span>
-                </div>
+                  </div>
                 
                 <div className="flex items-center gap-2 mt-1">
                   {item.pageId ? (
@@ -1110,8 +1110,8 @@ function MenuEditor({
               >
                 <Trash2Icon className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
+                </div>
+              </div>
         </div>
       )}
     </Draggable>
@@ -1187,19 +1187,19 @@ function MenuEditor({
             <h3 className="text-lg font-semibold">Menu Items ({menu.items.length})</h3>
             <Button onClick={onAddItem}>
               <PlusIcon className="h-4 w-4 mr-2" />
-              Add Item
+                      Add Item
             </Button>
-          </div>
-          
-          {menu.items.length === 0 ? (
+                  </div>
+                  
+                  {menu.items.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
               <MenuIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-500">No menu items yet</p>
               <Button variant="outline" onClick={onAddItem} className="mt-2">
                 Add First Item
               </Button>
-            </div>
-          ) : (
+                    </div>
+                  ) : (
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="menu-items">
                 {(provided) => (
@@ -1208,8 +1208,8 @@ function MenuEditor({
                     ref={provided.innerRef}
                     className="space-y-2"
                   >
-                    {menu.items
-                      .sort((a, b) => a.order - b.order)
+                          {menu.items
+                            .sort((a, b) => a.order - b.order)
                       .map(item => renderMenuItem(item))}
                     {provided.placeholder}
                   </div>
@@ -1287,7 +1287,7 @@ function MenuCreator({ form, onFormChange, onCreate, onCancel, isSaving }: MenuC
                 ))}
               </SelectContent>
             </Select>
-          </div>
+                    </div>
         </div>
         
         <div className="flex gap-2 justify-end pt-4">
@@ -1422,8 +1422,8 @@ function MenuItemForm({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
+                </div>
+              )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -1445,14 +1445,14 @@ function MenuItemForm({
             <div className="space-y-2">
               <Label htmlFor="item-parent">Parent Item</Label>
               <Select 
-                value={form.parentId} 
-                onValueChange={(value) => onFormChange({ ...form, parentId: value })}
+                value={form.parentId || "none"} 
+                onValueChange={(value) => onFormChange({ ...form, parentId: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (top level)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (top level)</SelectItem>
+                  <SelectItem value="none">None (top level)</SelectItem>
                   {parentItems.map(item => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.title}
@@ -1460,7 +1460,7 @@ function MenuItemForm({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+        </div>
           </div>
           
           <div className="flex gap-2 justify-end pt-4">

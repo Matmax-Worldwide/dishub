@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
@@ -312,10 +312,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   }, [slug, locale]);
 
-  // Set up global save function for unsaved changes context
-  useEffect(() => {
-    setGlobalOnSave(handleSavePage);
-  }, [setGlobalOnSave]);
+
 
   // Sync local unsaved changes with global context
   useEffect(() => {
@@ -504,7 +501,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
 
   // Save the entire page
-  const handleSavePage = async (): Promise<boolean> => {
+  const handleSavePage = useCallback(async (): Promise<boolean> => {
     try {
       setIsSaving(true);
       
@@ -698,7 +695,12 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       // IMPORTANTE: Siempre establecer isSaving a false, incluso si hay un error
       setIsSaving(false);
     }
-  };
+  }, [pageData, pageSections, hasUnsavedChanges, locale, slug, forceReloadSection]);
+
+  // Set up global save function for unsaved changes context
+  useEffect(() => {
+    setGlobalOnSave(handleSavePage);
+  }, [setGlobalOnSave, handleSavePage]);
   
   // Handle cancel/back button
   const handleCancel = () => {
