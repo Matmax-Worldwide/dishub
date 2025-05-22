@@ -34,6 +34,8 @@ interface SectionData {
   id: string;
   title?: string;
   order: number;
+  backgroundImage?: string;
+  backgroundType?: string;
   components: Array<{
     id: string;
     type: string;
@@ -537,6 +539,30 @@ export default function CMSPage() {
                 // Load components for this section from the CMS
                 const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
                 
+                // Get section background data
+                let sectionBackgroundImage;
+                let sectionBackgroundType;
+                
+                try {
+                  // Get all sections and find this one to get its background
+                  const allSections = await cmsOperations.getAllCMSSections();
+                  const sectionData = allSections.find(s => s.sectionId === section.sectionId) as unknown as {
+                    backgroundImage?: string;
+                    backgroundType?: string;
+                  };
+                  
+                  if (sectionData) {
+                    sectionBackgroundImage = sectionData.backgroundImage;
+                    sectionBackgroundType = sectionData.backgroundType;
+                    console.log(`Found background for section ${section.sectionId}:`, { 
+                      backgroundImage: sectionBackgroundImage, 
+                      backgroundType: sectionBackgroundType 
+                    });
+                  }
+                } catch (bgError) {
+                  console.warn(`Could not load background for section ${section.sectionId}:`, bgError);
+                }
+                
                 if (componentResult && componentResult.components) {
                   console.log(`Recibidos ${componentResult.components.length} componentes para ${section.name || section.id}`);
                   
@@ -545,6 +571,9 @@ export default function CMSPage() {
                     id: section.id,
                     order: section.order || 0,
                     title: section.name,
+                    // Include background data from the section
+                    backgroundImage: sectionBackgroundImage,
+                    backgroundType: sectionBackgroundType,
                     components: componentResult.components
                   });
                 } else {
@@ -553,6 +582,8 @@ export default function CMSPage() {
                     id: section.id,
                     order: section.order || 0,
                     title: section.name,
+                    backgroundImage: sectionBackgroundImage,
+                    backgroundType: sectionBackgroundType,
                     components: []
                   });
                 }
@@ -563,6 +594,8 @@ export default function CMSPage() {
                   id: section.id,
                   order: section.order || 0,
                   title: section.name,
+                  backgroundImage: undefined,
+                  backgroundType: undefined,
                   components: []
                 });
               }
@@ -754,6 +787,8 @@ export default function CMSPage() {
                           data: comp.data || {}
                         }))}
                         isEditing={false}
+                        sectionBackground={section.backgroundImage}
+                        sectionBackgroundType={section.backgroundType as 'image' | 'gradient'}
                         componentClassName={(type: string) => {
                           const isScrollable = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit' || type.toLowerCase() === 'form';
                           const isFixedHeader = type.toLowerCase() === 'header' && 

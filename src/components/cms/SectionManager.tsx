@@ -78,6 +78,8 @@ interface SectionManagerProps {
   componentClassName?: (type: string) => string;
   activeComponentId?: string | null;
   onClickComponent?: (componentId: string) => void;
+  sectionBackground?: string;
+  sectionBackgroundType?: 'image' | 'gradient';
 }
 
 // Utilidad para debounce
@@ -321,7 +323,9 @@ function SectionManagerBase({
   onComponentsChange,
   componentClassName,
   activeComponentId,
-  onClickComponent
+  onClickComponent,
+  sectionBackground,
+  sectionBackgroundType
 }: SectionManagerProps) {
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track collapsed components by ID - initialize with empty set (all expanded)
@@ -334,8 +338,7 @@ function SectionManagerBase({
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
-  // Animation styles have been moved to ManageableSection
-  
+
   // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
 
@@ -1257,6 +1260,15 @@ function SectionManagerBase({
               title={component.data.title as string || "Default Title"} 
               subtitle={component.data.subtitle as string || "Default Subtitle"}
               image={component.data.image as string}
+              // Use component's own background if it exists, otherwise use section background
+              backgroundImage={
+                (component.data.backgroundImage as string) || 
+                (!isEditing && sectionBackground ? sectionBackground : undefined)
+              }
+              backgroundType={
+                (component.data.backgroundType as 'image' | 'gradient') || 
+                (!isEditing && sectionBackgroundType ? sectionBackgroundType : 'gradient')
+              }
               cta={component.data.cta as { text: string; url: string }}
               secondaryCta={component.data.secondaryCta as { text: string; url: string }}
               badgeText={component.data.badgeText as string}
@@ -1374,7 +1386,14 @@ function SectionManagerBase({
                 description={component.data.description as string || "Benefit Description"}
                 iconType={component.data.iconType as string || 'CheckCircle'}
                 accentColor={component.data.accentColor as string || '#01319c'}
-                backgroundColor={component.data.backgroundColor as string || 'from-[#ffffff] to-[#f0f9ff]'}
+                // Use component's own background if it exists, otherwise use section background for gradient type
+                backgroundColor={
+                  (component.data.backgroundColor as string) || 
+                  (!isEditing && sectionBackgroundType === 'gradient' && sectionBackground ? sectionBackground : 'from-[#ffffff] to-[#f0f9ff]')
+                }
+                // If section background is an image, pass it as backgroundImage
+                backgroundImage={!isEditing && sectionBackgroundType === 'image' && sectionBackground ? sectionBackground : undefined}
+                backgroundType={!isEditing && sectionBackgroundType ? sectionBackgroundType : undefined}
                 showGrid={component.data.showGrid as boolean ?? true}
                 showDots={component.data.showDots as boolean ?? true}
                 isEditing={isEditing}
@@ -1415,6 +1434,15 @@ function SectionManagerBase({
                 formId={component.data.formId as string}
                 styles={component.data.styles as FormStyles}
                 customConfig={component.data.customConfig as FormCustomConfig}
+                // Use component's own background if it exists, otherwise use section background
+                backgroundImage={
+                  (component.data.backgroundImage as string) || 
+                  (!isEditing && sectionBackground ? sectionBackground : undefined)
+                }
+                backgroundType={
+                  (component.data.backgroundType as 'image' | 'gradient') || 
+                  (!isEditing && sectionBackgroundType ? sectionBackgroundType : undefined)
+                }
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
@@ -1471,13 +1499,23 @@ function SectionManagerBase({
     handleToggleCollapse,
     componentClassName,
     activeComponentId,
-    handleComponentClick
+    handleComponentClick,
+    sectionBackground,
+    sectionBackgroundType
   ]);
 
 
   // If we're editing, render the add component button and component list
   return (
-    <div className="relative">
+    <div 
+      className="relative"
+      style={!isEditing && sectionBackground ? {
+        background: sectionBackground,
+        backgroundSize: sectionBackgroundType === 'image' ? 'cover' : undefined,
+        backgroundPosition: sectionBackgroundType === 'image' ? 'center' : undefined,
+        backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
+      } : undefined}
+    >
       {isEditing && (
         <div className="flex justify-between items-center mb-2 top-0 bg-white border-b pb-2">
           <div className="flex items-center">
