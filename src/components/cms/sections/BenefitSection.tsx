@@ -353,7 +353,7 @@ const BenefitSection = React.memo(function BenefitSection({
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat'
             } : {
-              background: localBackgroundImage || localBackgroundColor || BACKGROUND_TEMPLATES[0].value
+              background: localBackgroundImage || (localBackgroundColor ? `linear-gradient(to bottom right, ${localBackgroundColor})` : BACKGROUND_TEMPLATES[0].value)
             })
           }}
         >
@@ -362,24 +362,50 @@ const BenefitSection = React.memo(function BenefitSection({
               No background selected
             </div>
           )}
+          
+          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs py-1 px-2 rounded">
+            {localBackgroundType === 'image' ? 'Image' : 'Gradient'}
+          </div>
         </div>
         
-        <button
-          type="button"
-          onClick={() => setShowBackgroundSelector(true)}
-          className="bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-        >
-          Select Background
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setShowBackgroundSelector(true)}
+            className="flex-1 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+          >
+            Select Background
+          </button>
+          
+          {localBackgroundImage && (
+            <button
+              type="button"
+              onClick={() => {
+                setLocalBackgroundImage('');
+                setLocalBackgroundType('gradient');
+                if (onUpdate) {
+                  onUpdate({
+                    backgroundImage: '',
+                    backgroundType: 'gradient'
+                  });
+                }
+              }}
+              className="bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm font-medium text-red-600 hover:bg-gray-50 focus:outline-none"
+            >
+              Clear
+            </button>
+          )}
+        </div>
         
         <div className="mt-3">
-          <label className="text-sm font-medium text-gray-700">Tailwind Gradient (Optional)</label>
+          <label className="text-sm font-medium text-gray-700">Gradient Colors (When not using image)</label>
           <input
             type="text"
             value={localBackgroundColor}
             onChange={(e) => handleBackgroundColorChange(e.target.value)}
-            className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
+            className={`mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md ${localBackgroundType === 'image' ? 'opacity-50' : ''}`}
             placeholder="from-[#ffffff] to-[#f0f9ff]"
+            disabled={localBackgroundType === 'image'}
           />
           <p className="text-xs text-gray-500">Format: from-[#color1] to-[#color2]</p>
         </div>
@@ -429,12 +455,14 @@ const BenefitSection = React.memo(function BenefitSection({
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
-        } : {})
+        } : {
+          background: localBackgroundImage || `linear-gradient(to bottom right, ${localBackgroundColor})`
+        })
       }}
     >
       <div className="max-w-4xl mx-auto px-4 py-8 relative flex flex-col justify-center h-full">
-        {/* Main background - only show if not using image background */}
-        {!(localBackgroundType === 'image' && localBackgroundImage) && (
+        {/* Main background - only show when not using image background */}
+        {(!localBackgroundType || localBackgroundType === 'gradient') && (
           <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95 rounded-lg`}></div>
         )}
         
@@ -576,15 +604,19 @@ const BenefitSection = React.memo(function BenefitSection({
         style={{
           ...(localBackgroundType === 'image' && localBackgroundImage ? {
             backgroundImage: `url(${localBackgroundImage})`,
-            backgroundSize: 'cover',
             backgroundPosition: 'center',
+            backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat'
-          } : {}),
+          } : {
+            background: localBackgroundImage || `linear-gradient(to bottom right, ${localBackgroundColor})`
+          }),
           isolation: 'isolate' // Create new stacking context
         }}
       >
-      {/* Main background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95`} style={{ zIndex: 0 }}></div>
+      {/* Main background - only show when not using image background */}
+      {(!localBackgroundType || localBackgroundType === 'gradient') && (
+        <div className={`absolute inset-0 bg-gradient-to-br ${localBackgroundColor} opacity-95`} style={{ zIndex: 0 }}></div>
+      )}
       
       {/* Grid background if enabled */}
       {localShowGrid && !isEditing && (

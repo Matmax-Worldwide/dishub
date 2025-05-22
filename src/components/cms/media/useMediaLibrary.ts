@@ -730,7 +730,8 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
     const originalItem = { ...item };
     
     // Determine if we're moving to a different folder
-    const isDifferentFolder = targetFolder !== (item.folder || '');
+    const currentItemFolder = item.s3Key ? item.s3Key.split('/').slice(0, -1).join('/') : '';
+    const isDifferentFolder = targetFolder !== currentItemFolder;
     
     // 1. Apply optimistic update
     if (isDifferentFolder) {
@@ -743,7 +744,6 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         // Create a new version of the item with updated path
         const updatedItem: MediaItem = {
           ...item,
-          folder: targetFolder,
           // Simulate the new S3 key and file URL - will be updated with actual values if API call succeeds
           s3Key: targetFolder ? `${targetFolder}/${item.fileName}` : item.fileName,
         };
@@ -756,7 +756,6 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         payload: { 
           id, 
           update: { 
-            folder: targetFolder,
             s3Key: targetFolder ? `${targetFolder}/${item.fileName}` : item.fileName,
           } 
         } 
