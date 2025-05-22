@@ -136,7 +136,7 @@ Menus are created for the current CMS locale automatically. The system supports 
 ## 🎨 Design Patterns
 
 ### Layout Structure
-- **Header**: Title, actions, and language tabs
+- **Header**: Title and action buttons
 - **Sidebar**: Menu list with search and filters
 - **Main Content**: Menu editor or creation form
 - **Modals**: Item configuration and confirmations
