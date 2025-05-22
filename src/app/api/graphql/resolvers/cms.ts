@@ -1551,15 +1551,48 @@ export const cmsResolvers = {
       order: number;
     }) => {
       console.log('======== START associateSectionToPage resolver ========');
+      console.log('📋 Argumentos recibidos:', args);
       try {
         const { pageId, sectionId, order } = args;
         
+        console.log('🔍 Buscando página con ID:', pageId);
+        console.log('🔍 Tipo de pageId:', typeof pageId);
+        console.log('🔍 Valor exacto de pageId:', JSON.stringify(pageId));
+        console.log('🔍 Longitud del pageId:', pageId ? pageId.length : 'null/undefined');
+        
         // Verificar si la página existe
+        console.log('🔎 Ejecutando consulta a la base de datos...');
         const existingPage = await prisma.page.findUnique({
           where: { id: pageId }
         });
         
+        console.log('🔎 Resultado de búsqueda de página:', existingPage ? 'ENCONTRADA' : 'NO ENCONTRADA');
+        if (existingPage) {
+          console.log('📄 Página encontrada:', { 
+            id: existingPage.id, 
+            title: existingPage.title, 
+            slug: existingPage.slug 
+          });
+        }
+        
         if (!existingPage) {
+          console.log('❌ Error: Página no encontrada en la base de datos');
+          
+          // Debug: Mostrar todas las páginas disponibles para comparar IDs
+          try {
+            const allPages = await prisma.page.findMany({
+              select: { id: true, title: true, slug: true },
+              take: 10
+            });
+            console.log('📚 Páginas disponibles en la base de datos:');
+            allPages.forEach(page => {
+              console.log(`   - ID: "${page.id}" | Title: "${page.title}" | Slug: "${page.slug}"`);
+              console.log(`   - ID length: ${page.id.length} | Matches searched: ${page.id === pageId}`);
+            });
+          } catch (debugError) {
+            console.error('Error al obtener páginas para debug:', debugError);
+          }
+          
           return {
             success: false,
             message: `No se encontró ninguna página con ID: ${pageId}`,

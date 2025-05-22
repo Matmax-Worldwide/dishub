@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
@@ -110,6 +110,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   // Reference to the section editor
   const sectionRef = useRef<ManageableSectionHandle>(null);
   
+  // Flag to prevent multiple setups of the global save function
+  const globalSaveSetupRef = useRef(false);
+  
   // New states for section creation
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
@@ -142,18 +145,36 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         setIsLoading(true);
       }
       
+      console.log(`Loading page data for slug: "${slug}"`);
       const response = await cmsOperations.getPageBySlug(slug as string) as PageResponse;
       
+      console.log('Page response received:', response ? 'found' : 'not found');
+      if (response) {
+        console.log('Page ID:', response.id, 'Title:', response.title);
+      }
+      
       if (!response) {
-        console.error('No se encontró la página');
+        console.error(`No se encontró la página con slug: "${slug}"`);
         setNotification({
           type: 'error',
-          message: 'No se encontró la página'
+          message: `No se encontró la página con slug: "${slug}"`
         });
         return;
       }
 
       console.log('Page data reloaded completely:', response);
+      console.log('🆔 Page ID from response:', response.id);
+      console.log('🆔 Page ID type:', typeof response.id);
+      
+      // Validar que tenemos un ID válido
+      if (!response.id || typeof response.id !== 'string' || response.id.trim() === '') {
+        console.error('❌ ID de página inválido:', response.id);
+        setNotification({
+          type: 'error',
+          message: 'ID de página inválido en la respuesta del servidor'
+        });
+        return;
+      }
       
       // Initialize seoData with default values if it doesn't exist
       const seoData = response.seo || {
@@ -179,6 +200,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       seoData.description = seoData.description || metaDescription;
       
       // Set the page data with sections
+      console.log('🔧 Configurando pageData con ID:', response.id);
       setPageData({
         id: response.id,
         title: response.title,
@@ -501,7 +523,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
 
   // Save the entire page
-  const handleSavePage = useCallback(async (): Promise<boolean> => {
+  const handleSavePage = async (): Promise<boolean> => {
     try {
       setIsSaving(true);
       
@@ -695,12 +717,19 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       // IMPORTANTE: Siempre establecer isSaving a false, incluso si hay un error
       setIsSaving(false);
     }
-  }, [slug, locale]);
+  };
 
-  // Set up global save function for unsaved changes context
+  // Setup global save function when component is ready
   useEffect(() => {
-    setGlobalOnSave(handleSavePage);
-  }, [setGlobalOnSave, handleSavePage]);
+    if (pageData.id && !globalSaveSetupRef.current) {
+      console.log('🔧 Setting up global save function for page:', pageData.id);
+      globalSaveSetupRef.current = true;
+      
+      // Create a simple wrapper function
+      const saveHandler = () => handleSavePage();
+      setGlobalOnSave(saveHandler);
+    }
+  }, [pageData.id]); // Only setup when we have a valid page ID
   
   // Handle cancel/back button
   const handleCancel = () => {
@@ -740,21 +769,43 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     setIsSavingSection(true);
     
     try {
-      // Asegurarse de tener el ID de la página correcto obteniendo la página por su slug
+      // Debug: Log current state
+      console.log('=== handleCreateSection DEBUG ===');
+      console.log('pageData.id:', pageData.id);
+      console.log('slug:', slug);
+      console.log('pageData:', { id: pageData.id, title: pageData.title, slug: pageData.slug });
+      
+      // Asegurarse de tener el ID de la página correcto
       let pageId = pageData.id;
       
-      // Si hay dudas sobre la validez del ID de página actual, obtenerla de nuevo
+      // Si no hay pageId o está vacío, obtenerlo de nuevo
       if (!pageId || pageId.trim() === '') {
-        console.log(`Obteniendo página por slug: ${slug}`);
+        console.log(`⚠️ pageId está vacío, obteniendo página por slug: "${slug}"`);
         const pageResponse = await cmsOperations.getPageBySlug(slug);
         
+        console.log('Respuesta de getPageBySlug:', pageResponse);
+        
         if (!pageResponse || !pageResponse.id) {
+          console.error('❌ No se pudo obtener el ID de la página desde getPageBySlug');
           throw new Error('No se pudo obtener el ID de la página');
         }
         
         pageId = pageResponse.id;
-        console.log(`ID de página obtenido: ${pageId}`);
+        console.log(`✅ ID de página obtenido: ${pageId}`);
+        
+        // Actualizar el estado con el ID correcto
+        setPageData(prev => ({ ...prev, id: pageId }));
+      } else {
+        console.log(`✅ Usando pageId existente: ${pageId}`);
       }
+      
+      // Validación final del pageId antes de continuar
+      if (!pageId || typeof pageId !== 'string' || pageId.trim() === '') {
+        console.error('❌ CRITICAL: pageId is invalid after all attempts:', pageId);
+        throw new Error('No se pudo obtener un ID de página válido');
+      }
+      
+      console.log(`🔑 FINAL pageId validation passed: ${pageId}`);
       
       // Generar ID único para la sección usando el ID de la página
       const sectionIdentifier = generatePageSectionId(pageId, newSectionName);
@@ -789,7 +840,12 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         ? Math.max(...pageSections.map(s => s.order)) + 1 
         : 0;
       
-      console.log(`Asociando sección ${createdSectionId} a página ${pageId} con orden ${newOrder}`);
+      console.log(`📎 Asociando sección ${createdSectionId} a página ${pageId} con orden ${newOrder}`);
+      console.log('Parámetros para associateSectionToPage:', {
+        pageId: pageId,
+        sectionId: createdSectionId,
+        order: newOrder
+      });
       
       const associateResult = await cmsOperations.associateSectionToPage(
         pageId, 

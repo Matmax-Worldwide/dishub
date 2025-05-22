@@ -310,11 +310,14 @@ export const validateSectionOwnership = (sectionId: string, pageId: string): boo
 // Get a page by its slug
 async function getPageBySlug(slug: string): Promise<PageData | null> {
   try {
+    console.log(`[getPageBySlug] Attempting to fetch page with slug: "${slug}"`);
+    
     // Check cache first
     const cacheKey = `page_slug_${slug}`;
     const cachedPage = getCachedResponse<PageData>(cacheKey);
     
     if (cachedPage) {
+      console.log(`[getPageBySlug] Found cached page: ${cachedPage.title}`);
       return cachedPage;
     }
     
@@ -362,15 +365,18 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
 
     const variables = { slug };
     
+    console.log(`[getPageBySlug] Executing GraphQL query with variables:`, variables);
     const result = await gqlRequest<{ 
       getPageBySlug?: PageData; 
       data?: { getPageBySlug: PageData };
       errors?: Array<{ message: string }>
     }>(query, variables);
     
+    console.log(`[getPageBySlug] GraphQL result:`, result);
+    
     // Check for errors in the response
     if (result.errors && result.errors.length > 0) {
-      console.error(`Error in getPageBySlug: ${result.errors.map(e => e.message).join(', ')}`);
+      console.error(`[getPageBySlug] GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
       return null;
     }
     
@@ -395,6 +401,8 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
     
     // Found a page
     if (page && page.id) {
+      console.log(`[getPageBySlug] Found page: ID=${page.id}, Title="${page.title}"`);
+      
       // Filtrar las secciones con sectionId null para evitar errores GraphQL
       if (page.sections && Array.isArray(page.sections)) {
         page.sections = page.sections.filter(section => 
@@ -463,9 +471,10 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
       console.error(`Error listing pages:`, listError);
     }
     
+    console.log(`[getPageBySlug] No page found with slug: "${slug}"`);
     return null;
   } catch (error) {
-    console.error(`Error retrieving page:`, error);
+    console.error(`[getPageBySlug] Error retrieving page with slug "${slug}":`, error);
     throw error;
   }
 }
