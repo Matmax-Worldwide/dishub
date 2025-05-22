@@ -8,6 +8,7 @@ export interface MediaItem {
   altText?: string;
   uploadedAt: string;
   s3Key?: string;
+  dimensions?: string;
 }
 
 export interface Folder {
