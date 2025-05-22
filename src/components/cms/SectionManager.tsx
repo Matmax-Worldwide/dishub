@@ -1371,6 +1371,7 @@ function SectionManagerBase({
               textColor={component.data.textColor as string || "#000000"}
               logoUrl={component.data.logoUrl as string || ""}
               isEditing={isEditing}
+              previewMode={!isEditing}
               onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>

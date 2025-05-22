@@ -38,6 +38,7 @@ interface HeaderSectionProps {
   advancedOptions?: HeaderAdvancedOptions;
   menuIcon?: string;
   isEditing?: boolean;
+  previewMode?: boolean;
   onUpdate?: (data: { 
     title?: string; 
     subtitle?: string; 
@@ -76,6 +77,7 @@ export default function HeaderSection({
   advancedOptions: initialAdvancedOptions = {},
   menuIcon: initialMenuIcon = 'Menu',
   isEditing = false, 
+  previewMode = false,
   onUpdate 
 }: HeaderSectionProps) {
   // Local state to maintain during typing
@@ -1026,7 +1028,7 @@ export default function HeaderSection({
         </Tabs>
       ) : (
         <nav
-          className={`w-full z-1000 transition-all duration-300 py-4 fixed top-0 left-0 right-0 ${
+          className={`w-full z-1000 transition-all duration-300 py-4 ${previewMode ? 'relative' : 'fixed top-0 left-0 right-0'} ${
             transparentHeader && !scrolled ? 'bg-transparent' : ''
           } ${
             borderBottom ? 'border-b border-gray-200' : ''
@@ -1051,11 +1053,12 @@ export default function HeaderSection({
                 : (backgroundColor || '#ffffff'),
             backdropFilter: advancedOptions?.glassmorphism ? `blur(${advancedOptions?.blur || 5}px)` : undefined,
             color: textColor,
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1000
+            // Conditionally apply positioning - relative for preview mode, fixed for live mode
+            position: previewMode ? 'relative' : 'fixed',
+            top: previewMode ? 'auto' : 0,
+            left: previewMode ? 'auto' : 0,
+            right: previewMode ? 'auto' : 0,
+            zIndex: previewMode ? 'auto' : 1000
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1064,7 +1064,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                             <SectionManager
                               initialComponents={pendingComponents}
                               isEditing={false}
-                              componentClassName={(type) => `component-${type.toLowerCase()}`}
+                              componentClassName={(type) => {
+                                // For headers in preview mode, use relative positioning to keep them within the preview container
+                                if (type.toLowerCase() === 'header') {
+                                  return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
+                                }
+                                return `component-${type.toLowerCase()}`;
+                              }}
                               sectionBackground={sectionBackground}
                               sectionBackgroundType={sectionBackgroundType}
                             />
@@ -1119,7 +1125,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                                 <SectionManager
                                   initialComponents={pendingComponents}
                                   isEditing={false}
-                                  componentClassName={(type) => `component-${type.toLowerCase()}`}
+                                  componentClassName={(type) => {
+                                    // For headers in mobile preview mode, use relative positioning to keep them within the mobile frame
+                                    if (type.toLowerCase() === 'header') {
+                                      return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
+                                    }
+                                    return `component-${type.toLowerCase()}`;
+                                  }}
                                   sectionBackground={sectionBackground}
                                   sectionBackgroundType={sectionBackgroundType}
                                 />
@@ -1180,7 +1192,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   <SectionManager
                     initialComponents={pendingComponents}
                     isEditing={false}
-                    componentClassName={(type) => `component-${type.toLowerCase()}`}
+                    componentClassName={(type) => {
+                      // For headers in preview mode, use relative positioning to keep them within the preview container
+                      if (type.toLowerCase() === 'header') {
+                        return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
+                      }
+                      return `component-${type.toLowerCase()}`;
+                    }}
                     sectionBackground={sectionBackground}
                     sectionBackgroundType={sectionBackgroundType}
                   />
