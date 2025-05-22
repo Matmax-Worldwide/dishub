@@ -877,7 +877,6 @@ export default function FormSection({
             <>
               <div
                 className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-[1] pointer-events-none"
-                style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
               />
               <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
                 {Array.from({ length: 30 }).map((_, i) => {
