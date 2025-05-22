@@ -1108,7 +1108,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto">
           {/* Contenido - sin TabsList */}
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 pt-0">
             <div className="w-full">
               {/* Sections Tab */}
               <div className={activeTab === 'sections' ? 'block space-y-6' : 'hidden'}>
