@@ -15,8 +15,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import ManageableSection from '@/components/cms/ManageableSection';
-import EmptySectionPlaceholder from './EmptySectionPlaceholder';
 import { Section, ManageableSectionHandle } from '@/types/cms';
+import EmptySectionPlaceholder from './EmptySectionPlaceholder';
 
 interface SectionsTabProps {
   pageSections: Section[];
@@ -25,14 +25,14 @@ interface SectionsTabProps {
   isSavingSection: boolean;
   newSectionName: string;
   onNameChange: (name: string) => void;
-  onCreateSection: () => void;
+  onCreateSection: () => Promise<boolean>;
   onCancelCreate: () => void;
   onStartCreating: () => void;
-  onSectionNameChange: (newName: string) => void;
+  onSectionNameChange: (name: string) => void;
   onBackClick: () => void;
-  onSavePage: () => void;
+  onSavePage: () => Promise<boolean>;
   sectionRef: React.RefObject<ManageableSectionHandle>;
-  fetchSections?: () => Promise<void>;
+  fetchSections: () => void;
 }
 
 // Tipos de componentes disponibles
@@ -65,6 +65,16 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
 }) => {
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
   
+  // Monitor pageSections prop changes
+  useEffect(() => {
+    console.log('[SectionsTab] pageSections prop updated:', pageSections.length, 'sections');
+    if (pageSections.length > 0) {
+      console.log('[SectionsTab] Showing ManageableSection for:', pageSections[0].sectionId);
+    } else {
+      console.log('[SectionsTab] No sections, showing EmptySectionPlaceholder');
+    }
+  }, [pageSections]);
+
   // Escuchar evento para abrir el diálogo desde SectionManager
   useEffect(() => {
     const handleRequestAddComponent = () => {
@@ -79,42 +89,32 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
     };
   }, []);
 
-  // Escuchar eventos de creación de secciones para actualizar automáticamente
-  useEffect(() => {
-    const handleSectionCreated = () => {
-      console.log('[SectionsTab] 📣 Sección creada, actualizando lista de secciones');
-      if (fetchSections) {
-        fetchSections().catch(err => 
-          console.error('[SectionsTab] ❌ Error al actualizar secciones:', err)
-        );
-      }
-    };
-    
-    document.addEventListener('section:created', handleSectionCreated);
-    
-    return () => {
-      document.removeEventListener('section:created', handleSectionCreated);
-    };
-  }, [fetchSections]);
-  
   // Handler para crear sección y actualizar
   const handleCreateSectionAndFetch = async () => {
-    // Llamar a la función original para crear sección
-    onCreateSection();
+    console.log('[SectionsTab] Starting section creation...');
     
-    // Esperar un momento y luego actualizar la lista de secciones
-    setTimeout(async () => {
+    // Llamar a la función original para crear sección
+    const success = await onCreateSection();
+    
+    if (success) {
+      console.log('[SectionsTab] ✅ Sección creada con éxito');
+      
+      // No necesitamos disparar eventos adicionales aquí porque
+      // el PageEditor ya actualiza el estado directamente en handleCreateSection
+      // Solo necesitamos asegurar que el componente se re-renderice
+      
+      // Opcional: recargar datos del servidor en segundo plano
       if (fetchSections) {
-        try {
-          await fetchSections();
-          console.log('[SectionsTab] ✅ Secciones actualizadas después de crear');
-          // Disparar evento para cualquier otro componente que necesite saber
-          document.dispatchEvent(new CustomEvent('section:created'));
-        } catch (error) {
-          console.error('[SectionsTab] ❌ Error actualizando secciones después de crear:', error);
-        }
+        console.log('[SectionsTab] Fetching updated sections from server...');
+        setTimeout(() => {
+          fetchSections();
+        }, 1000); // Dar tiempo para que la UI se actualice primero
       }
-    }, 1000); // Dar tiempo para que se complete la creación
+    } else {
+      console.log('[SectionsTab] ❌ Error creando sección');
+    }
+    
+    return success;
   };
   
   // Función para agregar un componente

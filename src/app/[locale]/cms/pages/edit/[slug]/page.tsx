@@ -17,8 +17,9 @@ export default function EditPageWithSections() {
   const { activeTab, setActiveTab } = useTabContext();
   
   useEffect(() => {
-    // Al cargar la página, establecemos la tab activa a 'sections'
-    console.log('EditPageWithSections: Setting initial tab to sections');
+    // Al cargar la página de edición, siempre ir a la pestaña de secciones
+    // porque ahora todas las páginas se crean con una sección automática
+    console.log('EditPageWithSections: Setting initial tab to sections (auto-section created)');
     setActiveTab('sections');
   }, [setActiveTab]);
   

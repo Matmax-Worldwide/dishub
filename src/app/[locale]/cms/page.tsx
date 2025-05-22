@@ -175,40 +175,7 @@ export default function CMSDashboard() {
           <ModuleCard key={module.title} module={module} />
         ))}
       </div>
-      
-      <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-medium mb-4">Actividad Reciente</h2>
-        {isLoading ? (
-          <div className="animate-pulse space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded w-3/4"></div>
-            ))}
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Componente &apos;Feature Card&apos; actualizado</span>
-              <span className="text-gray-400">Hace 1 hora</span>
-            </li>
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Página de inicio actualizada</span>
-              <span className="text-gray-400">2 horas atrás</span>
-            </li>
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Nueva sección &quot;Hero&quot; creada</span>
-              <span className="text-gray-400">Ayer</span>
-            </li>
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Nueva imagen subida a la Biblioteca</span>
-              <span className="text-gray-400">Ayer</span>
-            </li>
-            <li className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Menú principal actualizado</span>
-              <span className="text-gray-400">2 días atrás</span>
-            </li>
-          </ul>
-        )}
-      </div>
+
     </div>
   );
 } 

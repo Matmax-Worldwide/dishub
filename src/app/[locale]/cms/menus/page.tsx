@@ -1,16 +1,68 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { 
-  PlusCircleIcon, 
+  PlusIcon, 
   MenuIcon, 
   Edit2Icon, 
-  ArrowUpRightIcon,
-  Loader2Icon
+  Trash2Icon,
+  CopyIcon,
+  DownloadIcon,
+  UploadIcon,
+  SearchIcon,
+  FilterIcon,
+  MoreVerticalIcon,
+  GripVerticalIcon,
+  ExternalLinkIcon,
+  EyeOffIcon,
+  UsersIcon,
+  SettingsIcon,
+  SaveIcon,
+  AlertTriangleIcon,
+  CheckIcon,
+  Loader2Icon,
+  UndoIcon,
+  RedoIcon
 } from 'lucide-react';
-import Link from 'next/link';
+import { 
+  DragDropContext, 
+  Droppable, 
+  Draggable, 
+  DropResult
+} from 'react-beautiful-dnd';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { gqlRequest } from '@/lib/graphql-client';
 
+// Types
 interface MenuItem {
   id: string;
   title: string;
@@ -19,13 +71,25 @@ interface MenuItem {
   order: number;
   target: string | null;
   parentId: string | null;
+  icon?: string;
+  roles?: string[];
+  isVisible: boolean;
   children?: MenuItem[];
+  page?: {
+    id: string;
+    title: string;
+    slug: string;
+  };
 }
 
 interface Menu {
   id: string;
   name: string;
+  slug: string;
   location: string | null;
+  locale: string;
+  isPublic: boolean;
+  description?: string;
   createdAt: string;
   updatedAt: string;
   items: MenuItem[];
@@ -42,81 +106,657 @@ interface Menu {
   } | null;
 }
 
-export default function MenusPage() {
+interface Page {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+
+
+// Available roles
+const ROLES = [
+  { id: 'admin', name: 'Administrator', color: 'bg-red-100 text-red-800' },
+  { id: 'user', name: 'User', color: 'bg-blue-100 text-blue-800' },
+  { id: 'guest', name: 'Guest', color: 'bg-gray-100 text-gray-800' },
+];
+
+// Menu locations
+const MENU_LOCATIONS = [
+  { value: 'HEADER', label: 'Header Navigation' },
+  { value: 'FOOTER', label: 'Footer Navigation' },
+  { value: 'SIDEBAR', label: 'Sidebar Navigation' },
+  { value: 'MOBILE', label: 'Mobile Navigation' },
+];
+
+export default function MenusManagerPage() {
+  const params = useParams();
+  const locale = params.locale as string || 'en';
+
+  // State management
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [pages, setPages] = useState<Page[]>([]);
+  const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterLocation, setFilterLocation] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Editor state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+
+  // Form state
+  const [menuForm, setMenuForm] = useState({
+    name: '',
+    slug: '',
+    location: '',
+    locale: locale,
+    isPublic: true,
+    description: '',
+  });
+
+  const [itemForm, setItemForm] = useState({
+    title: '',
+    url: '',
+    pageId: '',
+    target: '_self',
+    parentId: '',
+    icon: '',
+    roles: [] as string[],
+    isVisible: true,
+    type: 'url' as 'url' | 'page',
+  });
+
+  // History for undo/redo
+  const [history, setHistory] = useState<Menu[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  // Load data
   useEffect(() => {
-    const fetchMenus = async () => {
-      setLoading(true);
-      try {
-        const query = `
-          query GetMenus {
-            menus {
-              id
-              name
-              location
-              createdAt
-              updatedAt
-              items {
-                id
-                title
-                url
-                pageId
-                order
-                target
-                parentId
-              }
-              headerStyle {
-                id
-                transparency
-                headerSize
-                menuAlignment
-                menuButtonStyle
-                mobileMenuStyle
-                mobileMenuPosition
-                transparentHeader
-                borderBottom
-              }
-            }
-          }
-        `;
-
-        const response = await gqlRequest<{ menus: Menu[] }>(query);
-        if (response && response.menus) {
-          setMenus(response.menus);
-        }
-      } catch (err) {
-        console.error('Error fetching menus:', err);
-        setError('Failed to load menus. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMenus();
+    fetchPages();
   }, []);
 
-  const toggleExpandMenu = (menuId: string) => {
-    if (expandedMenuId === menuId) {
-      setExpandedMenuId(null);
-    } else {
-      setExpandedMenuId(menuId);
+  const fetchMenus = async () => {
+    setIsLoading(true);
+    try {
+      const query = `
+        query GetMenus($locale: String) {
+          menus(locale: $locale) {
+            id
+            name
+            slug
+            location
+            locale
+            isPublic
+            description
+            createdAt
+            updatedAt
+            items {
+              id
+              title
+              url
+              pageId
+              order
+              target
+              parentId
+              icon
+              roles
+              isVisible
+              page {
+                id
+                title
+                slug
+              }
+            }
+            headerStyle {
+              id
+              transparency
+              headerSize
+              menuAlignment
+              menuButtonStyle
+              mobileMenuStyle
+              mobileMenuPosition
+              transparentHeader
+              borderBottom
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ menus: Menu[] }>(query, { locale });
+      if (response && response.menus) {
+        setMenus(response.menus);
+        // Initialize history
+        setHistory([response.menus]);
+        setHistoryIndex(0);
+      }
+    } catch (err) {
+      console.error('Error fetching menus:', err);
+      setError('Failed to load menus. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  const fetchPages = async () => {
+    try {
+      const query = `
+        query GetPages($locale: String) {
+          pages(locale: $locale) {
+            id
+            title
+            slug
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ pages: Page[] }>(query, { locale });
+      if (response && response.pages) {
+        setPages(response.pages);
+      }
+    } catch (err) {
+      console.error('Error fetching pages:', err);
+    }
+  };
+
+  // History management
+  const saveToHistory = useCallback((newMenus: Menu[]) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newMenus);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, [history, historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setMenus(history[historyIndex - 1]);
+    }
+  }, [history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setMenus(history[historyIndex + 1]);
+    }
+  }, [history, historyIndex]);
+
+  // Menu operations
+  const createMenu = async () => {
+    if (!menuForm.name.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation CreateMenu($input: MenuInput!) {
+          createMenu(input: $input) {
+            id
+            name
+            slug
+            location
+            locale
+            isPublic
+            description
+            createdAt
+            updatedAt
+            items {
+              id
+              title
+              url
+              pageId
+              order
+              target
+              parentId
+              icon
+              roles
+              isVisible
+            }
+          }
+        }
+      `;
+
+      const slug = menuForm.slug || menuForm.name.toLowerCase().replace(/\s+/g, '-');
+      const response = await gqlRequest<{ createMenu: Menu }>(mutation, {
+        input: {
+          ...menuForm,
+          slug,
+        }
+      });
+
+      if (response && response.createMenu) {
+        const newMenus = [...menus, response.createMenu];
+        setMenus(newMenus);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu created successfully');
+        resetMenuForm();
+      }
+    } catch (err) {
+      console.error('Error creating menu:', err);
+      setError('Failed to create menu');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateMenu = async (menuId: string, updates: Partial<Menu>) => {
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation UpdateMenu($id: ID!, $input: MenuInput!) {
+          updateMenu(id: $id, input: $input) {
+            id
+            name
+            slug
+            location
+            locale
+            isPublic
+            description
+            updatedAt
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateMenu: Menu }>(mutation, {
+        id: menuId,
+        input: updates
+      });
+
+      if (response && response.updateMenu) {
+        const newMenus = menus.map(menu => 
+          menu.id === menuId ? { ...menu, ...response.updateMenu } : menu
+        );
+        setMenus(newMenus);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu updated successfully');
+      }
+    } catch (err) {
+      console.error('Error updating menu:', err);
+      setError('Failed to update menu');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteMenu = async (menuId: string) => {
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation DeleteMenu($id: ID!) {
+          deleteMenu(id: $id)
+        }
+      `;
+
+      const response = await gqlRequest<{ deleteMenu: boolean }>(mutation, { id: menuId });
+
+      if (response && response.deleteMenu) {
+        const newMenus = menus.filter(menu => menu.id !== menuId);
+        setMenus(newMenus);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu deleted successfully');
+        if (selectedMenu?.id === menuId) {
+          setSelectedMenu(null);
+          setIsEditing(false);
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting menu:', err);
+      setError('Failed to delete menu');
+    } finally {
+      setIsSaving(false);
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  const duplicateMenu = async (menu: Menu) => {
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation CreateMenu($input: MenuInput!) {
+          createMenu(input: $input) {
+            id
+            name
+            slug
+            location
+            locale
+            isPublic
+            description
+            createdAt
+            updatedAt
+            items {
+              id
+              title
+              url
+              pageId
+              order
+              target
+              parentId
+              icon
+              roles
+              isVisible
+            }
+          }
+        }
+      `;
+
+      const duplicatedMenu = {
+        name: `${menu.name} (Copy)`,
+        slug: `${menu.slug}-copy`,
+        location: menu.location,
+        locale: menu.locale,
+        isPublic: menu.isPublic,
+        description: menu.description,
+      };
+
+      const response = await gqlRequest<{ createMenu: Menu }>(mutation, {
+        input: duplicatedMenu
+      });
+
+      if (response && response.createMenu) {
+        const newMenus = [...menus, response.createMenu];
+        setMenus(newMenus);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu duplicated successfully');
+      }
+    } catch (err) {
+      console.error('Error duplicating menu:', err);
+      setError('Failed to duplicate menu');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Menu item operations
+  const addMenuItem = async () => {
+    if (!selectedMenu || !itemForm.title.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation CreateMenuItem($input: MenuItemInput!) {
+          createMenuItem(input: $input) {
+            id
+            title
+            url
+            pageId
+            order
+            target
+            parentId
+            icon
+            roles
+            isVisible
+          }
+        }
+      `;
+
+      const newOrder = selectedMenu.items.length;
+      const response = await gqlRequest<{ createMenuItem: MenuItem }>(mutation, {
+        input: {
+          menuId: selectedMenu.id,
+          title: itemForm.title,
+          url: itemForm.type === 'url' ? itemForm.url : null,
+          pageId: itemForm.type === 'page' ? itemForm.pageId : null,
+          target: itemForm.target,
+          parentId: itemForm.parentId || null,
+          icon: itemForm.icon,
+          roles: itemForm.roles,
+          isVisible: itemForm.isVisible,
+          order: newOrder,
+        }
+      });
+
+      if (response && response.createMenuItem) {
+        const updatedMenu = {
+          ...selectedMenu,
+          items: [...selectedMenu.items, response.createMenuItem]
+        };
+        const newMenus = menus.map(menu => 
+          menu.id === selectedMenu.id ? updatedMenu : menu
+        );
+        setMenus(newMenus);
+        setSelectedMenu(updatedMenu);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu item added successfully');
+        resetItemForm();
+        setShowItemForm(false);
+      }
+    } catch (err) {
+      console.error('Error adding menu item:', err);
+      setError('Failed to add menu item');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateMenuItem = async (itemId: string, updates: Partial<MenuItem>) => {
+    if (!selectedMenu) return;
+
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation UpdateMenuItem($id: ID!, $input: MenuItemInput!) {
+          updateMenuItem(id: $id, input: $input) {
+            id
+            title
+            url
+            pageId
+            order
+            target
+            parentId
+            icon
+            roles
+            isVisible
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateMenuItem: MenuItem }>(mutation, {
+        id: itemId,
+        input: updates
+      });
+
+      if (response && response.updateMenuItem) {
+        const updatedMenu = {
+          ...selectedMenu,
+          items: selectedMenu.items.map(item => 
+            item.id === itemId ? { ...item, ...response.updateMenuItem } : item
+          )
+        };
+        const newMenus = menus.map(menu => 
+          menu.id === selectedMenu.id ? updatedMenu : menu
+        );
+        setMenus(newMenus);
+        setSelectedMenu(updatedMenu);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu item updated successfully');
+      }
+    } catch (err) {
+      console.error('Error updating menu item:', err);
+      setError('Failed to update menu item');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteMenuItem = async (itemId: string) => {
+    if (!selectedMenu) return;
+
+    setIsSaving(true);
+    try {
+      const mutation = `
+        mutation DeleteMenuItem($id: ID!) {
+          deleteMenuItem(id: $id)
+        }
+      `;
+
+      const response = await gqlRequest<{ deleteMenuItem: boolean }>(mutation, { id: itemId });
+
+      if (response && response.deleteMenuItem) {
+        const updatedMenu = {
+          ...selectedMenu,
+          items: selectedMenu.items.filter(item => item.id !== itemId)
+        };
+        const newMenus = menus.map(menu => 
+          menu.id === selectedMenu.id ? updatedMenu : menu
+        );
+        setMenus(newMenus);
+        setSelectedMenu(updatedMenu);
+        saveToHistory(newMenus);
+        setSuccessMessage('Menu item deleted successfully');
+      }
+    } catch (err) {
+      console.error('Error deleting menu item:', err);
+      setError('Failed to delete menu item');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Drag and drop
+  const handleDragEnd = async (result: DropResult) => {
+    if (!selectedMenu || !result.destination) return;
+
+    const { source, destination } = result;
+    const items = Array.from(selectedMenu.items);
+    const [reorderedItem] = items.splice(source.index, 1);
+    items.splice(destination.index, 0, reorderedItem);
+
+    // Update order values
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      order: index
+    }));
+
+    const updatedMenu = { ...selectedMenu, items: updatedItems };
+    const newMenus = menus.map(menu => 
+      menu.id === selectedMenu.id ? updatedMenu : menu
+    );
+    
+    setMenus(newMenus);
+    setSelectedMenu(updatedMenu);
+    saveToHistory(newMenus);
+
+    // Save to backend
+    try {
+      const mutation = `
+        mutation UpdateMenuItemsOrder($items: [MenuItemOrderUpdate!]!) {
+          updateMenuItemsOrder(items: $items)
+        }
+      `;
+
+      const orderUpdates = updatedItems.map(item => ({
+        id: item.id,
+        order: item.order,
+        parentId: item.parentId
+      }));
+
+      await gqlRequest<{ updateMenuItemsOrder: boolean }>(mutation, { items: orderUpdates });
+    } catch (err) {
+      console.error('Error updating item order:', err);
+      setError('Failed to update item order');
+    }
+  };
+
+  // Import/Export
+  const exportMenu = (menu: Menu) => {
+    const dataStr = JSON.stringify(menu, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `menu-${menu.slug}-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const importMenu = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const menuData = JSON.parse(e.target?.result as string);
+        // Process imported menu data
+        setMenuForm({
+          name: `${menuData.name} (Imported)`,
+          slug: `${menuData.slug}-imported`,
+          location: menuData.location || '',
+          locale: locale,
+          isPublic: menuData.isPublic ?? true,
+          description: menuData.description || '',
+        });
+        setSuccessMessage('Menu imported successfully. Please review and save.');
+      } catch {
+        setError('Invalid menu file format');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Utility functions
+  const resetMenuForm = () => {
+    setMenuForm({
+      name: '',
+      slug: '',
+      location: '',
+      locale: locale,
+      isPublic: true,
+      description: '',
     });
   };
 
-  if (loading) {
+  const resetItemForm = () => {
+    setItemForm({
+      title: '',
+      url: '',
+      pageId: '',
+      target: '_self',
+      parentId: '',
+      icon: '',
+      roles: [],
+      isVisible: true,
+      type: 'url',
+    });
+  };
+
+  const filteredMenus = menus.filter(menu => {
+    const matchesSearch = menu.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         menu.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLocation = filterLocation === 'all' || menu.location === filterLocation;
+    return matchesSearch && matchesLocation;
+  });
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (successMessage || error) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, error]);
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2Icon className="h-8 w-8 animate-spin text-blue-500" />
@@ -125,130 +765,946 @@ export default function MenusPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
-        <p className="font-semibold">Error</p>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Menu Manager</h1>
-        <Link href="/cms/menus/create" className="px-4 py-2 bg-[#01319c] text-white rounded-md flex items-center">
-          <PlusCircleIcon className="h-5 w-5 mr-2" />
-          New Menu
-        </Link>
-      </div>
-      
-      <p className="text-gray-500">
-        Create and manage navigation menus for your website.
-      </p>
-      
-      {menus.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <MenuIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No Menus Found</h3>
-          <p className="mt-2 text-gray-500">
-            You haven&apos;t created any menus yet. Click the button above to create your first menu.
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Navigation Menus</h1>
+          <p className="text-muted-foreground">
+            Create and manage navigation menus with advanced features
           </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {menus.map((menu) => (
-            <div key={menu.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="p-4 flex items-center justify-between bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 text-blue-700 rounded-md">
-                    <MenuIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium">{menu.name}</h3>
-                    <p className="text-sm text-gray-500">Location: {menu.location || 'Not assigned'}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="text-xs text-gray-500">
-                    {menu.items.length} items • Last updated: {formatDate(menu.updatedAt)}
-                  </div>
-                  <button 
-                    onClick={() => toggleExpandMenu(menu.id)}
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                  >
-                    {expandedMenuId === menu.id ? 'Collapse' : 'Expand'}
-                  </button>
-                  <Link href={`/cms/menus/edit/${menu.id}`} className="p-1 text-blue-600 hover:text-blue-800">
-                    <Edit2Icon className="h-5 w-5" />
-                  </Link>
-                </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Undo/Redo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+            title="Undo"
+          >
+            <UndoIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            title="Redo"
+          >
+            <RedoIcon className="h-4 w-4" />
+          </Button>
+          
+          <Separator orientation="vertical" className="h-6" />
+          
+          {/* Import */}
+          <div className="relative">
+            <input
+              type="file"
+              accept=".json"
+              onChange={importMenu}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <Button variant="outline" size="sm">
+              <UploadIcon className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+          </div>
+          
+          {/* Create Menu */}
+          <Button onClick={() => setIsEditing(true)}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            New Menu
+          </Button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 flex items-center">
+          <CheckIcon className="h-5 w-5 mr-2" />
+          {successMessage}
+        </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center">
+          <AlertTriangleIcon className="h-5 w-5 mr-2" />
+          {error}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="space-y-6">
+          {/* Filters and Search */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search menus..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select value={filterLocation} onValueChange={setFilterLocation}>
+              <SelectTrigger className="w-full sm:w-48">
+                <FilterIcon className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {MENU_LOCATIONS.map(location => (
+                  <SelectItem key={location.value} value={location.value}>
+                    {location.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Menus List */}
+            <div className="lg:col-span-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Menus ({filteredMenus.length})</h2>
               </div>
               
-              {expandedMenuId === menu.id && (
-                <div className="p-4">
-                  <div className="mb-4 flex justify-between">
-                    <h4 className="font-medium">Menu Items</h4>
-                    <Link 
-                      href={`/cms/menus/edit/${menu.id}?addItem=true`} 
-                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+              {filteredMenus.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <MenuIcon className="h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No menus found</h3>
+                    <p className="text-gray-500 text-center mb-4">
+                      {searchQuery || filterLocation !== 'all' 
+                        ? 'Try adjusting your search or filters'
+                        : 'Create your first navigation menu to get started'
+                      }
+                    </p>
+                    {!searchQuery && filterLocation === 'all' && (
+                      <Button onClick={() => setIsEditing(true)}>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Create Menu
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {filteredMenus.map((menu) => (
+                    <Card 
+                      key={menu.id} 
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedMenu?.id === menu.id ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                      onClick={() => setSelectedMenu(menu)}
                     >
-                      <PlusCircleIcon className="h-4 w-4 mr-1" />
-                      Add Item
-                    </Link>
-                  </div>
-                  
-                  {menu.items.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <p className="text-gray-500">No menu items added yet.</p>
-                    </div>
-                  ) : (
-                    <div className="border border-gray-200 rounded-md">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {menu.items
-                            .filter(item => !item.parentId) // Show only top-level items
-                            .sort((a, b) => a.order - b.order)
-                            .map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.title}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.url || 'N/A'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    {item.pageId ? 'Internal Page' : 'External Link'}
-                                    {!item.pageId && item.url && <ArrowUpRightIcon className="ml-1 h-3 w-3" />}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <Link 
-                                    href={`/cms/menus/edit/${menu.id}?itemId=${item.id}`} 
-                                    className="text-blue-600 hover:text-blue-900 mr-3"
-                                  >
-                                    Edit
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base truncate">{menu.name}</CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1">
+                              {menu.location && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {MENU_LOCATIONS.find(l => l.value === menu.location)?.label || menu.location}
+                                </Badge>
+                              )}
+                              {!menu.isPublic && (
+                                <Badge variant="outline" className="text-xs">
+                                  <EyeOffIcon className="h-3 w-3 mr-1" />
+                                  Private
+                                </Badge>
+                              )}
+                            </CardDescription>
+                          </div>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm">
+                                <MoreVerticalIcon className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedMenu(menu);
+                                setIsEditing(true);
+                              }}>
+                                <Edit2Icon className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => duplicateMenu(menu)}>
+                                <CopyIcon className="h-4 w-4 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => exportMenu(menu)}>
+                                <DownloadIcon className="h-4 w-4 mr-2" />
+                                Export
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => setShowDeleteConfirm(menu.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2Icon className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardHeader>
+                      
+                      <CardContent className="pt-0">
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <span>{menu.items.length} items</span>
+                          <span>{formatDate(menu.updatedAt)}</span>
+                        </div>
+                        
+                        {menu.description && (
+                          <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                            {menu.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
-          ))}
+
+            {/* Menu Editor */}
+            <div className="lg:col-span-2">
+              {selectedMenu ? (
+                <MenuEditor 
+                  menu={selectedMenu}
+                  pages={pages}
+                  onUpdate={(updates) => updateMenu(selectedMenu.id, updates)}
+                  onAddItem={() => setShowItemForm(true)}
+                  onEditItem={setEditingItem}
+                  onDeleteItem={deleteMenuItem}
+                  onDragEnd={handleDragEnd}
+                  isSaving={isSaving}
+                />
+              ) : isEditing ? (
+                <MenuCreator 
+                  form={menuForm}
+                  onFormChange={setMenuForm}
+                  onCreate={createMenu}
+                  onCancel={() => {
+                    setIsEditing(false);
+                    resetMenuForm();
+                  }}
+                  isSaving={isSaving}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <SettingsIcon className="h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a menu to edit</h3>
+                    <p className="text-gray-500 text-center">
+                      Choose a menu from the list to view and edit its structure and settings
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+
+      {/* Menu Item Form Modal */}
+      {showItemForm && (
+        <MenuItemForm
+          form={itemForm}
+          pages={pages}
+          parentItems={selectedMenu?.items.filter(item => !item.parentId) || []}
+          onFormChange={setItemForm}
+          onSave={addMenuItem}
+          onCancel={() => {
+            setShowItemForm(false);
+            resetItemForm();
+          }}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <MenuItemForm
+          form={{
+            title: editingItem.title,
+            url: editingItem.url || '',
+            pageId: editingItem.pageId || '',
+            target: editingItem.target || '_self',
+            parentId: editingItem.parentId || '',
+            icon: editingItem.icon || '',
+            roles: editingItem.roles || [],
+            isVisible: editingItem.isVisible,
+            type: editingItem.pageId ? 'page' : 'url',
+          }}
+          pages={pages}
+          parentItems={selectedMenu?.items.filter(item => !item.parentId && item.id !== editingItem.id) || []}
+          onFormChange={(form) => {
+            const updates: Partial<MenuItem> = {
+              title: form.title,
+              url: form.type === 'url' ? form.url : null,
+              pageId: form.type === 'page' ? form.pageId : null,
+              target: form.target,
+              parentId: form.parentId || null,
+              icon: form.icon,
+              roles: form.roles,
+              isVisible: form.isVisible,
+            };
+            updateMenuItem(editingItem.id, updates);
+          }}
+          onSave={() => setEditingItem(null)}
+          onCancel={() => setEditingItem(null)}
+          isSaving={isSaving}
+          isEditing
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangleIcon className="h-5 w-5 text-red-500" />
+                Delete Menu
+              </CardTitle>
+              <CardDescription>
+                Are you sure you want to delete this menu? This action cannot be undone.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => deleteMenu(showDeleteConfirm)}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+// Menu Editor Component
+interface MenuEditorProps {
+  menu: Menu;
+  pages: Page[];
+  onUpdate: (updates: Partial<Menu>) => void;
+  onAddItem: () => void;
+  onEditItem: (item: MenuItem) => void;
+  onDeleteItem: (itemId: string) => void;
+  onDragEnd: (result: DropResult) => void;
+  isSaving: boolean;
+}
+
+function MenuEditor({ 
+  menu, 
+  pages, 
+  onUpdate, 
+  onAddItem, 
+  onEditItem, 
+  onDeleteItem, 
+  onDragEnd,
+  isSaving 
+}: MenuEditorProps) {
+  const [localForm, setLocalForm] = useState({
+    name: menu.name,
+    slug: menu.slug,
+    location: menu.location || '',
+    isPublic: menu.isPublic,
+    description: menu.description || '',
+  });
+
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    const changed = 
+      localForm.name !== menu.name ||
+      localForm.slug !== menu.slug ||
+      localForm.location !== menu.location ||
+      localForm.isPublic !== menu.isPublic ||
+      localForm.description !== menu.description;
+    setHasChanges(changed);
+  }, [localForm, menu]);
+
+  const handleSave = () => {
+    onUpdate(localForm);
+    setHasChanges(false);
+  };
+
+  const renderMenuItem = (item: MenuItem, level = 0) => (
+    <Draggable key={item.id} draggableId={item.id} index={item.order}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          className={`border rounded-lg p-3 bg-white ${
+            snapshot.isDragging ? 'shadow-lg' : 'shadow-sm'
+          } ${level > 0 ? 'ml-6 border-l-4 border-l-blue-200' : ''}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <div {...provided.dragHandleProps} className="cursor-move">
+                <GripVerticalIcon className="h-4 w-4 text-gray-400" />
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  {item.icon && <span className="text-sm">{item.icon}</span>}
+                  <span className="font-medium">{item.title}</span>
+                  {!item.isVisible && (
+                    <EyeOffIcon className="h-4 w-4 text-gray-400" />
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2 mt-1">
+                  {item.pageId ? (
+                    <Badge variant="secondary" className="text-xs">
+                      Page: {pages.find(p => p.id === item.pageId)?.title || 'Unknown'}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">
+                      URL: {item.url}
+                    </Badge>
+                  )}
+                  
+                  {item.target === '_blank' && (
+                    <ExternalLinkIcon className="h-3 w-3 text-gray-400" />
+                  )}
+                  
+                  {item.roles && item.roles.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      <UsersIcon className="h-3 w-3 mr-1" />
+                      {item.roles.length} roles
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEditItem(item)}
+              >
+                <Edit2Icon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDeleteItem(item.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2Icon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Draggable>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Edit Menu: {menu.name}</CardTitle>
+            <CardDescription>
+              Configure menu settings and manage menu items
+            </CardDescription>
+          </div>
+          
+          {hasChanges && (
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Menu Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="menu-name">Menu Name</Label>
+            <Input
+              id="menu-name"
+              value={localForm.name}
+              onChange={(e) => setLocalForm(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter menu name"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="menu-slug">Slug</Label>
+            <Input
+              id="menu-slug"
+              value={localForm.slug}
+              onChange={(e) => setLocalForm(prev => ({ ...prev, slug: e.target.value }))}
+              placeholder="menu-slug"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="menu-location">Location</Label>
+            <Select 
+              value={localForm.location} 
+              onValueChange={(value) => setLocalForm(prev => ({ ...prev, location: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {MENU_LOCATIONS.map(location => (
+                  <SelectItem key={location.value} value={location.value}>
+                    {location.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="menu-visibility">Visibility</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="menu-visibility"
+                checked={localForm.isPublic}
+                onCheckedChange={(checked) => setLocalForm(prev => ({ ...prev, isPublic: checked }))}
+              />
+              <Label htmlFor="menu-visibility" className="text-sm">
+                {localForm.isPublic ? 'Public' : 'Private'}
+              </Label>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="menu-description">Description</Label>
+          <Textarea
+            id="menu-description"
+            value={localForm.description}
+            onChange={(e) => setLocalForm(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Optional description for this menu"
+            rows={3}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Menu Items */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Menu Items ({menu.items.length})</h3>
+            <Button onClick={onAddItem}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+          </div>
+          
+          {menu.items.length === 0 ? (
+            <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+              <MenuIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500">No menu items yet</p>
+              <Button variant="outline" onClick={onAddItem} className="mt-2">
+                Add First Item
+              </Button>
+            </div>
+          ) : (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="menu-items">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-2"
+                  >
+                    {menu.items
+                      .sort((a, b) => a.order - b.order)
+                      .map(item => renderMenuItem(item))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Form types
+interface MenuFormData {
+  name: string;
+  slug: string;
+  location: string;
+  locale: string;
+  isPublic: boolean;
+  description: string;
+}
+
+interface MenuItemFormData {
+  title: string;
+  url: string;
+  pageId: string;
+  target: string;
+  parentId: string;
+  icon: string;
+  roles: string[];
+  isVisible: boolean;
+  type: 'url' | 'page';
+}
+
+// Menu Creator Component
+interface MenuCreatorProps {
+  form: MenuFormData;
+  onFormChange: (form: MenuFormData) => void;
+  onCreate: () => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}
+
+function MenuCreator({ form, onFormChange, onCreate, onCancel, isSaving }: MenuCreatorProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Create New Menu</CardTitle>
+        <CardDescription>
+          Set up a new navigation menu for your website
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="new-menu-name">Menu Name *</Label>
+            <Input
+              id="new-menu-name"
+              value={form.name}
+              onChange={(e) => onFormChange({ ...form, name: e.target.value })}
+              placeholder="Main Navigation"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="new-menu-slug">Slug</Label>
+            <Input
+              id="new-menu-slug"
+              value={form.slug}
+              onChange={(e) => onFormChange({ ...form, slug: e.target.value })}
+              placeholder="main-navigation"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="new-menu-location">Location</Label>
+            <Select 
+              value={form.location} 
+              onValueChange={(value) => onFormChange({ ...form, location: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {MENU_LOCATIONS.map(location => (
+                  <SelectItem key={location.value} value={location.value}>
+                    {location.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="new-menu-visibility">Visibility</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="new-menu-visibility"
+                checked={form.isPublic}
+                onCheckedChange={(checked) => onFormChange({ ...form, isPublic: checked })}
+              />
+              <Label htmlFor="new-menu-visibility" className="text-sm">
+                {form.isPublic ? 'Public' : 'Private'}
+              </Label>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="new-menu-description">Description</Label>
+          <Textarea
+            id="new-menu-description"
+            value={form.description}
+            onChange={(e) => onFormChange({ ...form, description: e.target.value })}
+            placeholder="Optional description for this menu"
+            rows={3}
+          />
+        </div>
+        
+        <div className="flex gap-2 justify-end pt-4">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={onCreate} disabled={!form.name.trim() || isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create Menu
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Menu Item Form Component
+interface MenuItemFormProps {
+  form: MenuItemFormData;
+  pages: Page[];
+  parentItems: MenuItem[];
+  onFormChange: (form: MenuItemFormData) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isSaving: boolean;
+  isEditing?: boolean;
+}
+
+function MenuItemForm({ 
+  form, 
+  pages, 
+  parentItems, 
+  onFormChange, 
+  onSave, 
+  onCancel, 
+  isSaving,
+  isEditing = false 
+}: MenuItemFormProps) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <CardTitle>{isEditing ? 'Edit' : 'Add'} Menu Item</CardTitle>
+          <CardDescription>
+            Configure the menu item settings and behavior
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="item-title">Title *</Label>
+              <Input
+                id="item-title"
+                value={form.title}
+                onChange={(e) => onFormChange({ ...form, title: e.target.value })}
+                placeholder="Menu item title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="item-icon">Icon (optional)</Label>
+              <Input
+                id="item-icon"
+                value={form.icon}
+                onChange={(e) => onFormChange({ ...form, icon: e.target.value })}
+                placeholder="🏠 or icon name"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Link Type</Label>
+            <div className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="type-url"
+                  name="type"
+                  checked={form.type === 'url'}
+                  onChange={() => onFormChange({ ...form, type: 'url' })}
+                />
+                <Label htmlFor="type-url">Custom URL</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="type-page"
+                  name="type"
+                  checked={form.type === 'page'}
+                  onChange={() => onFormChange({ ...form, type: 'page' })}
+                />
+                <Label htmlFor="type-page">Internal Page</Label>
+              </div>
+            </div>
+          </div>
+          
+          {form.type === 'url' ? (
+            <div className="space-y-2">
+              <Label htmlFor="item-url">URL *</Label>
+              <Input
+                id="item-url"
+                value={form.url}
+                onChange={(e) => onFormChange({ ...form, url: e.target.value })}
+                placeholder="https://example.com or /about"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="item-page">Page *</Label>
+              <Select 
+                value={form.pageId} 
+                onValueChange={(value) => onFormChange({ ...form, pageId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a page" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pages.map(page => (
+                    <SelectItem key={page.id} value={page.id}>
+                      {page.title} ({page.slug})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="item-target">Open In</Label>
+              <Select 
+                value={form.target} 
+                onValueChange={(value) => onFormChange({ ...form, target: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_self">Same Window</SelectItem>
+                  <SelectItem value="_blank">New Window</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="item-parent">Parent Item</Label>
+              <Select 
+                value={form.parentId} 
+                onValueChange={(value) => onFormChange({ ...form, parentId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None (top level)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None (top level)</SelectItem>
+                  {parentItems.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Role Visibility</Label>
+            <div className="flex flex-wrap gap-2">
+              {ROLES.map(role => (
+                <div key={role.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`role-${role.id}`}
+                    checked={form.roles.includes(role.id)}
+                    onChange={(e) => {
+                      const newRoles = e.target.checked
+                        ? [...form.roles, role.id]
+                        : form.roles.filter((r: string) => r !== role.id);
+                      onFormChange({ ...form, roles: newRoles });
+                    }}
+                  />
+                  <Label htmlFor={`role-${role.id}`} className="text-sm">
+                    {role.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="item-visible"
+              checked={form.isVisible}
+              onCheckedChange={(checked) => onFormChange({ ...form, isVisible: checked })}
+            />
+            <Label htmlFor="item-visible" className="text-sm">
+              Visible in menu
+            </Label>
+          </div>
+          
+          <div className="flex gap-2 justify-end pt-4">
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={onSave} 
+              disabled={!form.title.trim() || (form.type === 'url' && !form.url.trim()) || (form.type === 'page' && !form.pageId) || isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  {isEditing ? 'Updating...' : 'Adding...'}
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  {isEditing ? 'Update' : 'Add'} Item
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

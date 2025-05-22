@@ -8,12 +8,34 @@ interface EmptySectionPlaceholderProps {
   isSavingSection: boolean;
   newSectionName: string;
   onNameChange: (name: string) => void;
-  onCreateSection: () => void;
+  onCreateSection: () => Promise<boolean>;
   onCancelCreate: () => void;
   onStartCreating: () => void;
 }
 
 export const EmptySectionPlaceholder: React.FC<EmptySectionPlaceholderProps> = (props) => {
+  // Handle section creation with async/await
+  const handleCreateSection = async () => {
+    console.log('[EmptySectionPlaceholder] Creating section...');
+    
+    try {
+      const success = await props.onCreateSection();
+      
+      if (success) {
+        console.log('[EmptySectionPlaceholder] Section created successfully');
+        // El PageEditor se encarga de toda la lógica de actualización de estado
+        // No necesitamos disparar eventos adicionales aquí
+      } else {
+        console.log('[EmptySectionPlaceholder] Section creation failed');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('[EmptySectionPlaceholder] Error creating section:', error);
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header with section name and controls */}
@@ -29,12 +51,19 @@ export const EmptySectionPlaceholder: React.FC<EmptySectionPlaceholderProps> = (
                 placeholder="Nombre de la sección"
                 disabled={props.isSavingSection}
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && props.newSectionName.trim() && !props.isSavingSection) {
+                    handleCreateSection();
+                  } else if (e.key === 'Escape') {
+                    props.onCancelCreate();
+                  }
+                }}
               />
               <div className="flex items-center ml-4">
                 <Button 
                   variant="default"
                   size="sm"
-                  onClick={props.onCreateSection}
+                  onClick={handleCreateSection}
                   disabled={!props.newSectionName.trim() || props.isSavingSection}
                   className="mr-2"
                 >

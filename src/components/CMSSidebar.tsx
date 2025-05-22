@@ -3,7 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
+import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
 import { 
   LayoutDashboard,
   FileText,
@@ -60,6 +62,19 @@ function CollapsibleButton({ className = "" }) {
 
 export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  
+  // Unsaved changes context
+  const {
+    hasUnsavedChanges,
+    onSave,
+    isSaving,
+    setIsSaving,
+    pendingNavigation,
+    setPendingNavigation,
+    showUnsavedAlert,
+    setShowUnsavedAlert,
+  } = useUnsavedChanges();
   
   // Default navigation items if dictionary is not provided
   const nav = dictionary?.cms || {
@@ -115,9 +130,63 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     return pathname === path || pathname.startsWith(`${path}/`);
   };
 
+  // Handle navigation with unsaved changes check
+  const handleNavigation = (href: string, e: React.MouseEvent) => {
+    // Check if we have unsaved changes and we're navigating away from current page
+    if (hasUnsavedChanges && pathname !== href) {
+      e.preventDefault();
+      setPendingNavigation(href);
+      setShowUnsavedAlert(true);
+      return;
+    }
+  };
+
+  // Handle unsaved changes alert actions
+  const handleSaveAndContinue = async (): Promise<boolean> => {
+    if (!onSave) return false;
+    
+    setIsSaving(true);
+    try {
+      const success = await onSave();
+      if (success && pendingNavigation) {
+        setShowUnsavedAlert(false);
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error saving:', error);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    if (pendingNavigation) {
+      setShowUnsavedAlert(false);
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedAlert(false);
+    setPendingNavigation(null);
+  };
+
   return (
-    <SidebarProvider defaultCollapsed={false}>
-      <Sidebar className="flex flex-col h-full relative">
+    <>
+      <UnsavedChangesAlert
+        isVisible={showUnsavedAlert}
+        onSave={handleSaveAndContinue}
+        onDiscard={handleDiscardChanges}
+        onCancel={handleCancelNavigation}
+        isSaving={isSaving}
+      />
+      <SidebarProvider defaultCollapsed={false}>
+        <Sidebar className="flex flex-col h-full relative">
         <SidebarHeader className="flex items-center justify-between p-3 pb-2">
           <Link href={`/${locale}/cms`} className="flex items-center">
             <div className="relative h-8 w-8 mr-2">
@@ -145,7 +214,12 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         <SidebarContent>
           <SidebarGroup title="Main Navigation">
             {navigationItems.map((item) => (
-              <Link key={item.name} href={item.href} className="block">
+              <Link 
+                key={item.name} 
+                href={item.href} 
+                className="block"
+                onClick={(e) => handleNavigation(item.href, e)}
+              >
                 <SidebarItem 
                   icon={item.icon}
                   active={isActiveLink(item.href)}
@@ -158,7 +232,11 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         </SidebarContent>
         
         <SidebarFooter>
-          <Link href={`/${locale}/dashboard`} className="block w-full">
+          <Link 
+            href={`/${locale}/dashboard`} 
+            className="block w-full"
+            onClick={(e) => handleNavigation(`/${locale}/dashboard`, e)}
+          >
             <SidebarItem 
               icon={<LogOut className="h-4 w-4" />}
               className="text-muted-foreground hover:text-foreground"
@@ -169,5 +247,6 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         </SidebarFooter>
       </Sidebar>
     </SidebarProvider>
+    </>
   );
 } 

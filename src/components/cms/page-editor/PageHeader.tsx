@@ -9,7 +9,6 @@ import {
   MoreHorizontalIcon, 
   ArrowLeftIcon, 
   ClockIcon,
-  CalendarIcon,
   CheckCircleIcon,
   AlertCircleIcon,
   LoaderIcon
@@ -38,7 +37,6 @@ interface PageHeaderProps {
   children?: React.ReactNode;
   lastModified?: Date;
   author?: string;
-  pageType?: string;
   onBack?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
@@ -56,7 +54,6 @@ export default function PageHeader({
   children,
   lastModified,
   author,
-  pageType = 'Page',
   onBack,
   onDuplicate,
   onDelete
@@ -162,10 +159,6 @@ export default function PageHeader({
             </div>
             
             <div className="flex mt-1 text-xs text-gray-500 items-center">
-              <span className="flex items-center mr-4">
-                <CalendarIcon className="h-3 w-3 mr-1" />
-                {pageType}
-              </span>
               
               {lastModified && (
                 <span className="flex items-center">

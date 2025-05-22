@@ -1,4 +1,5 @@
 import { updateCMSSection } from './cms-update';
+import { deletePageWithSections } from './cms-page-delete';
 
 // Import form types
 import {
@@ -1440,7 +1441,7 @@ export const cmsOperations = {
     }
   },
 
-  // Create a new CMS page
+  // Create a new CMS page with an automatic section
   createPage: async (pageInput: {
     title: string;
     slug: string;
@@ -1465,10 +1466,11 @@ export const cmsOperations = {
     // Generate a unique request ID for logging
     const requestId = `createPage-${Math.random().toString(36).substring(2, 9)}`;
     
-    console.log(`🔍 [${requestId}] GraphQL CLIENT - createPage - Starting request`);
+    console.log(`🔍 [${requestId}] GraphQL CLIENT - createPage - Starting request with auto-section`);
     
     try {
-      const query = `
+      // Step 1: Create the page first
+      const pageQuery = `
         mutation CreatePage($input: CreatePageInput!) {
           createPage(input: $input) {
             success
@@ -1482,11 +1484,11 @@ export const cmsOperations = {
         }
       `;
       
-      const variables = {
+      const pageVariables = {
         input: pageInput
       };
       
-      const result = await gqlRequest<{
+      const pageResult = await gqlRequest<{
         createPage: {
           success: boolean;
           message: string;
@@ -1496,16 +1498,81 @@ export const cmsOperations = {
             slug: string;
           } | null;
         }
-      }>(query, variables);
+      }>(pageQuery, pageVariables);
       
-      console.log(`✅ [${requestId}] GraphQL CLIENT - createPage - Result:`, result);
+      console.log(`✅ [${requestId}] GraphQL CLIENT - createPage - Page created:`, pageResult);
       
-      if (!result || !result.createPage) {
-        console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error: No valid response`);
-        return { success: false, message: 'Failed to create page', page: null };
+      if (!pageResult || !pageResult.createPage || !pageResult.createPage.success || !pageResult.createPage.page) {
+        console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error: Failed to create page`);
+        return { 
+          success: false, 
+          message: pageResult?.createPage?.message || 'Failed to create page', 
+          page: null 
+        };
       }
       
-      return result.createPage;
+      const createdPage = pageResult.createPage.page;
+      
+      // Step 2: Create a default section for the page
+      console.log(`🔧 [${requestId}] Creating default section for page ${createdPage.id}`);
+      
+      // Generate section ID based on page
+      const generatePageSectionId = (pageId: string, sectionName: string): string => {
+        const cleanName = sectionName
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+        return `${pageId.substring(0, 8)}-${cleanName}-${Date.now().toString(36)}`;
+      };
+      
+      const defaultSectionName = 'Contenido Principal';
+      const sectionIdentifier = generatePageSectionId(createdPage.id, defaultSectionName);
+      
+      // Create the CMS section
+      const sectionResult = await cmsOperations.createCMSSection({
+        sectionId: sectionIdentifier,
+        name: defaultSectionName,
+        description: `Sección principal para la página "${createdPage.title}"`
+      });
+      
+      console.log(`🔧 [${requestId}] Section creation result:`, sectionResult);
+      
+      if (sectionResult.success && sectionResult.section) {
+        // Step 3: Associate the section with the page
+        console.log(`🔗 [${requestId}] Associating section ${sectionResult.section.id} to page ${createdPage.id}`);
+        
+        const associateResult = await cmsOperations.associateSectionToPage(
+          createdPage.id,
+          sectionResult.section.id,
+          0 // First section, order 0
+        );
+        
+        console.log(`🔗 [${requestId}] Association result:`, associateResult);
+        
+        if (associateResult.success) {
+          console.log(`✅ [${requestId}] Page and section created successfully`);
+          return {
+            success: true,
+            message: `Página "${createdPage.title}" creada con sección inicial`,
+            page: createdPage
+          };
+        } else {
+          console.warn(`⚠️ [${requestId}] Page created but section association failed: ${associateResult.message}`);
+          return {
+            success: true,
+            message: `Página creada. ${associateResult.message || 'La sección se creará automáticamente al editar.'}`,
+            page: createdPage
+          };
+        }
+      } else {
+        console.warn(`⚠️ [${requestId}] Page created but section creation failed: ${sectionResult.message}`);
+        return {
+          success: true,
+          message: `Página creada. ${sectionResult.message || 'La sección se creará automáticamente al editar.'}`,
+          page: createdPage
+        };
+      }
+      
     } catch (error) {
       console.error(`❌ [${requestId}] GraphQL CLIENT - createPage - Error:`, error);
       return { 
@@ -1531,41 +1598,8 @@ export const cmsOperations = {
     success: boolean;
     message: string;
   }> => {
-    try {
-      const mutation = `
-        mutation DeletePage($id: ID!) {
-          deletePage(id: $id) {
-            success
-            message
-          }
-        }
-      `;
-      
-      console.log(`Eliminando página con ID: ${id}`);
-      
-      const variables = { id };
-      const result = await gqlRequest<{ 
-        deletePage: { 
-          success: boolean; 
-          message: string; 
-        } 
-      }>(mutation, variables);
-      
-      if (!result.deletePage) {
-        return {
-          success: false,
-          message: 'Error: No se recibió respuesta del servidor'
-        };
-      }
-      
-      return result.deletePage;
-    } catch (error) {
-      console.error('Error al eliminar página:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Error desconocido al eliminar la página'
-      };
-    }
+    console.log(`Eliminando página con ID: ${id} y sus secciones asociadas`);
+    return deletePageWithSections(id);
   },
 
   // Obtener páginas que usan una sección específica

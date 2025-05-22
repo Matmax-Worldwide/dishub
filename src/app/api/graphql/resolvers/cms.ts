@@ -1367,9 +1367,11 @@ export const cmsResolvers = {
           };
         }
         
-        // Eliminar primero las secciones asociadas a la página
+        // Procesar las secciones asociadas a la página
         if (existingPage.sections.length > 0) {
           const sectionIds = existingPage.sections.map(section => section.id);
+          
+          console.log(`La página tiene ${sectionIds.length} secciones asociadas que serán procesadas`);
           
           // Desasociar todas las secciones de la página
           await prisma.page.update({
@@ -1381,7 +1383,45 @@ export const cmsResolvers = {
             }
           });
           
-          console.log(`Se desasociaron ${sectionIds.length} secciones asociadas a la página`);
+          console.log(`Se desasociaron ${sectionIds.length} secciones de la página`);
+          
+          // Obtener las secciones que no están conectadas a otras páginas
+          for (const sectionId of sectionIds) {
+            // Verificar si la sección está conectada a otras páginas
+            const pagesUsingSection = await prisma.page.count({
+              where: {
+                sections: {
+                  some: {
+                    id: sectionId
+                  }
+                }
+              }
+            });
+            
+            // Si la sección no está conectada a ninguna otra página, eliminarla
+            if (pagesUsingSection === 0) {
+              console.log(`La sección ${sectionId} no está conectada a ninguna otra página, eliminándola...`);
+              
+              try {
+                // Eliminar los componentes de la sección primero
+                await prisma.$executeRaw(
+                  Prisma.sql`DELETE FROM "SectionComponent" WHERE "sectionId" = ${sectionId}`
+                );
+                
+                // Eliminar la sección
+                await prisma.cMSSection.delete({
+                  where: { id: sectionId }
+                });
+                
+                console.log(`Sección ${sectionId} eliminada correctamente`);
+              } catch (error) {
+                console.error(`Error al eliminar la sección ${sectionId}:`, error);
+                // Continuar con las demás secciones aunque falle una
+              }
+            } else {
+              console.log(`La sección ${sectionId} está conectada a ${pagesUsingSection} páginas, no se eliminará`);
+            }
+          }
         }
         
         // Eliminar la página
@@ -1626,6 +1666,40 @@ export const cmsResolvers = {
           }
         });
         
+        // Verificar si la sección está conectada a otras páginas
+        const pagesUsingSection = await prisma.page.count({
+          where: {
+            sections: {
+              some: {
+                id: sectionId
+              }
+            }
+          }
+        });
+        
+        // Si la sección no está conectada a ninguna otra página, eliminarla
+        let sectionDeleted = false;
+        if (pagesUsingSection === 0) {
+          console.log(`La sección ${sectionId} no está conectada a ninguna otra página, eliminándola...`);
+          
+          try {
+            // Eliminar los componentes de la sección primero
+            await prisma.$executeRaw(
+              Prisma.sql`DELETE FROM "SectionComponent" WHERE "sectionId" = ${sectionId}`
+            );
+            
+            // Eliminar la sección
+            await prisma.cMSSection.delete({
+              where: { id: sectionId }
+            });
+            
+            sectionDeleted = true;
+            console.log(`Sección ${sectionId} eliminada correctamente`);
+          } catch (error) {
+            console.error(`Error al eliminar la sección ${sectionId}:`, error);
+          }
+        }
+        
         // Obtener la página actualizada
         const updatedPage = await prisma.page.findUnique({
           where: { id: pageId },
@@ -1636,7 +1710,9 @@ export const cmsResolvers = {
         
         return {
           success: true,
-          message: 'Sección desasociada de la página correctamente',
+          message: sectionDeleted 
+            ? 'Sección desasociada de la página y eliminada correctamente' 
+            : 'Sección desasociada de la página correctamente',
           page: updatedPage
         };
       } catch (error) {

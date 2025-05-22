@@ -8,9 +8,10 @@ interface CreateSectionFormProps {
   isSavingSection: boolean;
   newSectionName: string;
   onNameChange: (name: string) => void;
-  onCreateSection: () => void;
+  onCreateSection: () => Promise<boolean>;
   onCancel: () => void;
   onStartCreating: () => void;
+  onCreateSuccess?: () => void;
 }
 
 export const CreateSectionForm: React.FC<CreateSectionFormProps> = ({
@@ -20,8 +21,16 @@ export const CreateSectionForm: React.FC<CreateSectionFormProps> = ({
   onNameChange,
   onCreateSection,
   onCancel,
-  onStartCreating
+  onStartCreating,
+  onCreateSuccess
 }) => {
+  const handleCreate = async () => {
+    const success = await onCreateSection();
+    if (success && onCreateSuccess) {
+      onCreateSuccess();
+    }
+  };
+
   if (isCreatingSection) {
     return (
       <div className="max-w-md mx-auto">
@@ -33,9 +42,16 @@ export const CreateSectionForm: React.FC<CreateSectionFormProps> = ({
             className="flex-1 border-blue-300 focus:ring-blue-500"
             autoFocus
             disabled={isSavingSection}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newSectionName.trim() && !isSavingSection) {
+                handleCreate();
+              } else if (e.key === 'Escape') {
+                onCancel();
+              }
+            }}
           />
           <Button
-            onClick={onCreateSection}
+            onClick={handleCreate}
             disabled={!newSectionName.trim() || isSavingSection}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
           >

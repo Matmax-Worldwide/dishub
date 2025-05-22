@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
+import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { cmsOperations } from '@/lib/graphql-client';
 import { useTabContext } from '@/app/[locale]/cms/pages/layout';
 import {
@@ -52,6 +53,12 @@ interface PageEditorProps {
 }
 
 const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
+  // Unsaved changes context
+  const { 
+    setHasUnsavedChanges: setGlobalUnsavedChanges, 
+    setOnSave: setGlobalOnSave 
+  } = useUnsavedChanges();
+  
   // Page data state
   const [pageData, setPageData] = useState<PageData>({
     id: '',
@@ -125,335 +132,196 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   };
 
-  // Load page data
-  useEffect(() => {
-    const loadPageData = async () => {
-      try {
+  // Load page data with full refresh
+  const loadPageDataWithSections = async () => {
+    try {
+      // Solamente establecer isLoading a true si no hay secciones actuales
+      // para evitar flashear la UI en blanco durante una recarga
+      const shouldShowLoading = pageSections.length === 0;
+      if (shouldShowLoading) {
         setIsLoading(true);
-        const response = await cmsOperations.getPageBySlug(slug as string) as PageResponse;
-        
-        console.log('=== DEBUG: Raw API response ===');
-        console.log(JSON.stringify(response, null, 2));
-        console.log('==============================');
-        
-        if (!response) {
-          console.error('No se encontró la página');
-          setNotification({
-            type: 'error',
-            message: 'No se encontró la página'
-          });
-          return;
-        }
-
-        console.log('Page data received:', response);
-        // Ensure SEO data is properly extracted and synchronized
-        // Initialize seoData with default values if it doesn't exist
-        const seoData = response.seo || {
-          title: '',
-          description: '',
-          keywords: '',
-          ogTitle: '',
-          ogDescription: '',
-          ogImage: '',
-          twitterTitle: '',
-          twitterDescription: '',
-          twitterImage: '',
-          canonicalUrl: '',
-          structuredData: {}
-        };
-        
-
-        // Use metaTitle/metaDescription as the primary source of truth if they exist
-        // Otherwise, fall back to seo.title/seo.description
-        const metaTitle = response.metaTitle || '';
-        const metaDescription = response.metaDescription || '';
-        
-        // Ensure the SEO title/description always has a value
-        // If not present in the SEO object, use the metaTitle/metaDescription
-        seoData.title = seoData.title || metaTitle;
-        seoData.description = seoData.description || metaDescription;
-        
-        
-        // First set the page data
-        setPageData({
-          id: response.id,
-          title: response.title,
-          slug: response.slug,
-          description: response.description || '',
-          template: response.template || 'default',
-          isPublished: response.isPublished,
-          pageType: response.pageType,
-          locale: response.locale || locale,
-          sections: [],
-          metaTitle: metaTitle,
-          metaDescription: metaDescription,
-          featuredImage: response.featuredImage || '',
-          publishDate: response.publishDate || '',
-          seo: seoData
-        });
-        
-        // Then load components for each section
-        if (response.sections && response.sections.length > 0) {
-          console.log('Sections from response:', JSON.stringify(response.sections, null, 2));
-          
-          // First get all CMS sections
-          const allCMSSections = await cmsOperations.getAllCMSSections();
-          console.log('All CMS sections:', JSON.stringify(allCMSSections.map(s => ({ 
-            id: s.id,
-            sectionId: s.sectionId,
-            name: s.name
-          })), null, 2));
-          
-          // Create a map of sectionId to corresponding CMS section for faster lookup
-          const cmsSectionMap = new Map();
-          allCMSSections.forEach(section => {
-            cmsSectionMap.set(section.id, section);
-            cmsSectionMap.set(section.sectionId, section);
-          });
-          
-          const sectionsWithComponents = await Promise.all(
-            response.sections.map(async (section, index) => {
-              console.log(`Processing section ${index}:`, JSON.stringify(section, null, 2));
-              
-              // Check if section has an ID at minimum
-              if (!section.id) {
-                console.error('Section missing ID:', JSON.stringify(section, null, 2));
-                return null;
-              }
-              
-              try {
-                // First try: look for section in the data.sectionId or data.cmsSection
-                let cmsSectionId = null;
-                if (section.data) {
-                  // Verify data fields exist using safer approach
-                  const sectionData = section.data as Record<string, unknown>;
-                  cmsSectionId = sectionData.sectionId as string || sectionData.cmsSection as string;
-                }
-                console.log(`Looking for CMS section with data.sectionId/cmsSection: ${cmsSectionId || 'None'}`);
-                
-                // Try to find CMS section using different strategies
-                let cmsSection = null;
-                
-                // Strategy 1: Use sectionId from section.data if available
-                if (cmsSectionId) {
-                  cmsSection = cmsSectionMap.get(cmsSectionId) || 
-                               allCMSSections.find(s => s.sectionId === cmsSectionId);
-                  if (cmsSection) {
-                    console.log(`Found section via data.sectionId: ${cmsSection.name}`);
-                  }
-                }
-                
-                // Strategy 2: Use section.sectionId if available
-                if (!cmsSection && section.sectionId) {
-                  cmsSection = cmsSectionMap.get(section.sectionId) || 
-                               allCMSSections.find(s => s.sectionId === section.sectionId);
-                  if (cmsSection) {
-                    console.log(`Found section via section.sectionId: ${cmsSection.name}`);
-                  }
-                }
-                
-                // Strategy 3: Direct match by page section's ID
-                if (!cmsSection) {
-                  cmsSection = cmsSectionMap.get(section.id) || 
-                               allCMSSections.find(s => s.id === section.id);
-                  if (cmsSection) {
-                    console.log(`Found section via direct ID match: ${cmsSection.name}`);
-                  }
-                }
-                
-                // Final fallback: use first available section
-                if (!cmsSection && allCMSSections.length > 0) {
-                  cmsSection = allCMSSections[0];
-                  console.log(`Using first available section as fallback: ${cmsSection.name}`);
-                }
-                
-                console.log(`Section lookup result:`, cmsSection ? 
-                  { id: cmsSection.id, sectionId: cmsSection.sectionId, name: cmsSection.name } : 
-                  'Not found');
-                
-                // Create a fallback section if no CMS section is found
-                if (!cmsSection) {
-                  console.warn(`No CMSSection found in system for section ${section.id}. Creating fallback.`);
-                  
-                  // Create a fallback section with the ID as the name
-                  cmsSection = {
-                    id: section.id,
-                    sectionId: section.id,
-                    name: `Section ${section.id.substring(0, 8)}...`,
-                    description: 'Fallback section created for compatibility'
-                  };
-                }
-                
-                // Check if the section has a stored name in its data
-                let sectionName = cmsSection.name || 'Unknown Section';
-                if (section.data) {
-                  const sectionData = section.data as Record<string, unknown>;
-                  if (sectionData.sectionName && typeof sectionData.sectionName === 'string') {
-                    sectionName = sectionData.sectionName;
-                    console.log(`Using stored section name from data: ${sectionName}`);
-                  }
-                }
-
-                // Log the original data structure for debugging
-                if (section.data) {
-                  console.log('Original section data:', JSON.stringify(section.data, null, 2));
-                }
-                
-                // Get current order from section or fall back to index
-                const order = typeof section.order === 'number' ? section.order : index;
-                
-                // Create section data with the found CMS section
-                const sectionData: Section = {
-                  id: section.id,
-                  sectionId: cmsSection.sectionId,
-                  name: sectionName,
-                  type: 'default',
-                  data: [],
-                  order: order,
-                  description: cmsSection.description || '',
-                  pageId: response.id
-                };
-                
-                console.log('Created section data:', JSON.stringify({
-                  id: sectionData.id,
-                  sectionId: sectionData.sectionId,
-                  name: sectionData.name,
-                  order: sectionData.order
-                }, null, 2));
-                
-                return sectionData;
-              } catch (error) {
-                console.error(`Error processing section with ID ${section.id}:`, error);
-                return null;
-              }
-            })
-          );
-          
-          // Filter out any null sections
-          const validSections = sectionsWithComponents.filter((section): section is Section => section !== null);
-          
-          // Sort by order
-          validSections.sort((a, b) => a.order - b.order);
-          
-          console.log(`Final processed sections (${validSections.length}):`, JSON.stringify(
-            validSections.map(s => ({ 
-              id: s.id, 
-              sectionId: s.sectionId,
-              name: s.name,
-              order: s.order 
-            })), null, 2));
-          
-          setPageSections(validSections);
-          
-          // Convert to a structure compatible with our application
-          const pageSectionsData = validSections.map(section => ({
-            id: section.id,
-            sectionId: section.sectionId,
-            name: section.name,
-            order: section.order
-          }));
-          
-          // Update page data with the processed sections
-          setPageData(prev => ({
-            ...prev,
-            sections: pageSectionsData as CMSSection[]
-          }));
-        }
-
-        // En la función loadPageData, actualizar la carga de secciones disponibles
-        const sections = await cmsOperations.getAllCMSSections();
-        const formattedSections: AvailableSection[] = sections.map((section) => ({
-          id: section.id,
-          sectionId: section.sectionId || section.id,
-          name: section.name,
-          type: 'default',
-          description: section.description || '',
-          pageId: pageData.id
-        }));
-        setAvailableSections(formattedSections);
-      } catch (error) {
-        console.error('Error al cargar la página:', error);
+      }
+      
+      const response = await cmsOperations.getPageBySlug(slug as string) as PageResponse;
+      
+      if (!response) {
+        console.error('No se encontró la página');
         setNotification({
           type: 'error',
-          message: 'Error al cargar la página'
+          message: 'No se encontró la página'
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
+      console.log('Page data reloaded completely:', response);
+      
+      // Initialize seoData with default values if it doesn't exist
+      const seoData = response.seo || {
+        title: '',
+        description: '',
+        keywords: '',
+        ogTitle: '',
+        ogDescription: '',
+        ogImage: '',
+        twitterTitle: '',
+        twitterDescription: '',
+        twitterImage: '',
+        canonicalUrl: '',
+        structuredData: {}
+      };
+
+      // Use metaTitle/metaDescription as the primary source of truth if they exist
+      const metaTitle = response.metaTitle || '';
+      const metaDescription = response.metaDescription || '';
+      
+      // Ensure the SEO title/description always has a value
+      seoData.title = seoData.title || metaTitle;
+      seoData.description = seoData.description || metaDescription;
+      
+      // Set the page data with sections
+      setPageData({
+        id: response.id,
+        title: response.title,
+        slug: response.slug,
+        description: response.description || '',
+        template: response.template || 'default',
+        isPublished: response.isPublished,
+        pageType: response.pageType,
+        locale: response.locale || locale,
+        sections: (response.sections || []) as CMSSection[],
+        metaTitle: metaTitle,
+        metaDescription: metaDescription,
+        featuredImage: response.featuredImage || '',
+        publishDate: response.publishDate || '',
+        seo: seoData
+      });
+      
+      // Process sections if they exist
+      if (response.sections && response.sections.length > 0) {
+        console.log(`Found ${response.sections.length} sections, processing...`);
+        
+        // Get all CMS sections for reference
+        const allCMSSections = await cmsOperations.getAllCMSSections();
+        const cmsSectionMap = new Map();
+        allCMSSections.forEach(section => {
+          cmsSectionMap.set(section.id, section);
+          cmsSectionMap.set(section.sectionId, section);
+        });
+        
+        // Convert API sections to application format
+        const processedSections = await Promise.all(
+          response.sections.map(async (section, index) => {
+            if (!section.id) return null;
+            
+            try {
+              // Find the CMS section definition
+              let cmsSection = null;
+              
+              // Try by section.sectionId first
+              if (section.sectionId) {
+                cmsSection = cmsSectionMap.get(section.sectionId) || 
+                  allCMSSections.find(s => s.sectionId === section.sectionId);
+              }
+              
+              // Try by section.id if still not found
+              if (!cmsSection) {
+                cmsSection = cmsSectionMap.get(section.id) || 
+                  allCMSSections.find(s => s.id === section.id);
+              }
+              
+              // If still not found, create fallback
+              if (!cmsSection) {
+                cmsSection = {
+                  id: section.id,
+                  sectionId: section.id,
+                  name: `Section ${section.id.substring(0, 8)}...`,
+                  description: 'Fallback section'
+                };
+              }
+              
+              // Get section name
+              let sectionName = cmsSection.name || 'Unknown Section';
+              if (section.data && section.data.sectionName) {
+                sectionName = section.data.sectionName as string;
+              }
+              
+              // Get order
+              const order = typeof section.order === 'number' ? section.order : index;
+              
+              // Create the section object
+              const sectionData: Section = {
+                id: section.id,
+                sectionId: cmsSection.sectionId,
+                name: sectionName,
+                type: 'default',
+                data: [],
+                order: order,
+                description: cmsSection.description || '',
+                pageId: response.id
+              };
+              
+              return sectionData;
+            } catch (error) {
+              console.error(`Error processing section ${section.id}:`, error);
+              return null;
+            }
+          })
+        );
+        
+        // Filter out nulls and sort by order
+        const validSections = processedSections
+          .filter((section): section is Section => section !== null)
+          .sort((a, b) => a.order - b.order);
+        
+        console.log(`Processed ${validSections.length} valid sections`);
+        
+        // Update the page sections state
+        setPageSections(validSections);
+      } else {
+        console.log('No sections found for this page');
+        setPageSections([]);
+      }
+      
+      // Also load the available sections
+      const sections = await cmsOperations.getAllCMSSections();
+      const formattedSections: AvailableSection[] = sections.map((section) => ({
+        id: section.id,
+        sectionId: section.sectionId || section.id,
+        name: section.name,
+        type: 'default',
+        description: section.description || '',
+        pageId: response.id
+      }));
+      setAvailableSections(formattedSections);
+      
+    } catch (error) {
+      console.error('Error loading page with sections:', error);
+      setNotification({
+        type: 'error',
+        message: 'Error loading page with sections'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial page load
+  useEffect(() => {
     if (slug) {
-      loadPageData();
+      loadPageDataWithSections();
     }
   }, [slug, locale]);
 
-  // Load sections
-    const loadSections = async () => {
-    if (!pageData.id) return;
-    
-    console.log(`Cargando secciones para la página ${pageData.id}`);
-    
-    try {
-      // Get sections directly from the updated page
-      const sections = pageData.sections || [];
-      console.log(`Se encontraron ${sections.length} secciones para la página`);
-      
-      // Load full data for each section including components
-      const sectionsData = await Promise.all(
-        sections.map(async (section) => {
-          try {
-            // Load components for this section
-            const sectionData = await cmsOperations.getSectionComponents(section.sectionId);
-            
-            // Safely access order property with a fallback
-            const sectionOrder = 'order' in section ? (section.order as number) : 0;
-            
-            return {
-          id: section.id,
-              title: section.name || `Sección ${sectionOrder}`,
-              sectionId: section.sectionId,
-              order: sectionOrder,
-              components: sectionData.components || []
-            };
-          } catch (error) {
-            console.error(`Error cargando componentes para la sección ${section.id}:`, error);
-            // Safely access order property with a fallback
-            const sectionOrder = 'order' in section ? (section.order as number) : 0;
-            
-            return {
-              id: section.id,
-              title: section.name || `Sección ${sectionOrder}`,
-              sectionId: section.sectionId,
-              order: sectionOrder,
-              components: []
-            };
-          }
-        })
-      );
-      
-      // Sort sections by order
-      const sortedSections = sectionsData.sort((a, b) => a.order - b.order);
-      
-      // Create sections in the format expected by the component
-      setPageSections(sortedSections.map(section => ({
-        id: section.id,
-        sectionId: section.sectionId,
-        name: section.title || '',
-          type: 'default',
-        data: [],
-        order: section.order,
-        description: '',
-          pageId: pageData.id
-      })));
-      } catch (error) {
-      console.error('Error cargando secciones:', error);
-        setNotification({
-          type: 'error',
-        message: 'Error al cargar las secciones de la página'
-        });
-      }
-    };
-  
+  // Set up global save function for unsaved changes context
+  useEffect(() => {
+    setGlobalOnSave(handleSavePage);
+  }, [setGlobalOnSave]);
+
+  // Sync local unsaved changes with global context
+  useEffect(() => {
+    setGlobalUnsavedChanges(hasUnsavedChanges);
+  }, [hasUnsavedChanges, setGlobalUnsavedChanges]);
+
   // Exit confirmation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -864,7 +732,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         type: 'error',
         message: 'Debes proporcionar un nombre para la sección'
       });
-      return;
+      return false;
     }
     
     setIsSavingSection(true);
@@ -937,37 +805,32 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           ? cmsSectionResult.section.description 
           : '';
       
-      if (!associateResult || !associateResult.success) {
-        // Si falla la asociación, intentar añadir manualmente la sección a la lista local
-        console.log('Falló la asociación con la API, creando visualización local de la sección');
-        
-        // Crear una sección local
-        const newSection: Section = {
+      // Crear una sección local con los datos recibidos para mostrar inmediatamente
+      const newSection: Section = {
+        id: createdSectionId,
+        sectionId: createdSectionSectionId,
+        name: newSectionName,
+        type: 'default',
+        order: newOrder,
+        data: [],
+        description: sectionDescription,
+        pageId: pageId,
+        componentId: undefined
+      };
+      
+      // Actualizar ambos estados inmediatamente para reflejar cambios en UI
+      setPageSections([newSection]);  // Reemplazar cualquier sección existente para asegurar actualización UI
+      setPageData(prev => ({
+        ...prev,
+        sections: [{
           id: createdSectionId,
           sectionId: createdSectionSectionId,
           name: newSectionName,
-          type: 'default',
-          order: newOrder,
-          data: [],
-          description: sectionDescription,
-          pageId: pageId,
-          componentId: undefined
-        };
-        
-        // Agregar la sección localmente
-        setPageSections(prev => [...prev, newSection]);
-        
-        // Actualizar pageData.sections para mantener sincronizado
-        setPageData(prev => ({
-          ...prev,
-          sections: [...(prev.sections || []), {
-            id: createdSectionId,
-            sectionId: createdSectionSectionId,
-            name: newSectionName,
-            order: newOrder
-          } as CMSSection]
-        }));
-        
+          order: newOrder
+        } as CMSSection]
+      }));
+      
+      if (!associateResult || !associateResult.success) {
         setNotification({
           type: 'warning',
           message: `Sección "${newSectionName}" creada. ${associateResult?.message || 'Error al asociarla automáticamente a la página. Se actualizará al guardar.'}`
@@ -978,25 +841,13 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           message: `Sección "${newSectionName}" creada y asociada correctamente`
         });
         
-        // Actualizar las secciones con la información del servidor
+        // Tenemos los datos locales ya, pero aún así recargar completo en segundo plano
         if (associateResult.page) {
-          // Recargar la página para obtener las nuevas secciones
-          await loadSections();
-        } else {
-          // Actualización manual si no se recibe la página
-          const newSection: Section = {
-            id: createdSectionId,
-            sectionId: createdSectionSectionId,
-            name: newSectionName,
-            type: 'default',
-            order: newOrder,
-            data: [],
-            description: sectionDescription,
-            pageId: pageId,
-            componentId: undefined
-          };
-          
-          setPageSections(prev => [...prev, newSection]);
+          // Recargar la página para obtener las nuevas secciones, pero después de un breve retraso
+          // para permitir que la UI se actualice primero
+          setTimeout(() => {
+            loadPageDataWithSections();
+          }, 500);
         }
       }
       
@@ -1004,8 +855,18 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       setNewSectionName('');
       setIsCreatingSection(false);
       
+      console.log('[PageEditor] Section creation completed. Clearing form and updating UI state.');
+      console.log('[PageEditor] New pageSections state:', [newSection]);
+      
       // Marcar que hay cambios sin guardar
       setHasUnsavedChanges(true);
+      
+      // Ya hemos actualizado la UI inmediatamente arriba.
+      // No necesitamos recargar aquí porque 1) ya lo hicimos si hubo éxito, y
+      // 2) sobreescribiría nuestras actualizaciones inmediatas del UI
+      // loadPageDataWithSections();
+      
+      return true;
       
     } catch (error) {
       console.error('Error creando sección:', error);
@@ -1015,6 +876,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
           ? `Error al crear la sección: ${error.message}` 
           : 'Error desconocido al crear la sección'
       });
+      return false;
     } finally {
       setIsSavingSection(false);
     }
@@ -1075,6 +937,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       .replace(/[^a-z0-9-]/g, '');
     return `${pageId.substring(0, 8)}-${cleanName}-${Date.now().toString(36)}`;
   };
+
+  // Monitor pageSections changes for debugging
+  useEffect(() => {
+    console.log('[PageEditor] pageSections updated:', pageSections.length, 'sections');
+    if (pageSections.length > 0) {
+      console.log('[PageEditor] First section:', pageSections[0]);
+    }
+  }, [pageSections]);
 
   if (isLoading) {
     return <LoadingSpinner size="lg" text="Cargando página..." className="min-h-screen" />;
@@ -1150,6 +1020,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
               {/* Sections Tab */}
               <div className={activeTab === 'sections' ? 'block space-y-6' : 'hidden'}>
                 <SectionsTab
+                  key={`sections-${pageSections.length}-${pageSections[0]?.id || 'empty'}`}
                   pageSections={pageSections}
                   isSaving={isSaving}
                   isCreatingSection={isCreatingSection}
@@ -1171,7 +1042,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onBackClick={() => setActiveTab('details')}
                   onSavePage={handleSavePage}
                   sectionRef={sectionRef}
-                  fetchSections={loadSections}
+                  fetchSections={loadPageDataWithSections}
                 />
               </div>
               

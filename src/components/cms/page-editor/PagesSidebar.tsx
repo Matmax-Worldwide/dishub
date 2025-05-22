@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
+import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
 import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, Settings, LayoutIcon, EyeIcon } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
@@ -91,6 +93,18 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   const [quickTitle, setQuickTitle] = useState('');
   const [quickCreateLoading, setQuickCreateLoading] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
+  
+  // Unsaved changes context
+  const {
+    hasUnsavedChanges,
+    onSave,
+    isSaving,
+    setIsSaving,
+    pendingNavigation,
+    setPendingNavigation,
+    showUnsavedAlert,
+    setShowUnsavedAlert,
+  } = useUnsavedChanges();
   
   // Obtener el contexto directamente en cada renderizado
   const { activeTab, setActiveTab } = useTabContext();
@@ -291,10 +305,20 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
 
   // Handle page selection - always navigate to edit page
   const handlePageClick = (slug: string) => {
+    const targetPath = `/${locale}/cms/pages/edit/${slug}`;
+    
+    // Check if we have unsaved changes
+    if (hasUnsavedChanges && currentSlug !== slug) {
+      setPendingNavigation(targetPath);
+      setShowUnsavedAlert(true);
+      return;
+    }
+    
+    // Navigate normally if no unsaved changes
     if (onPageSelect) {
       onPageSelect(slug);
     } else {
-      router.push(`/${locale}/cms/pages/edit/${slug}`);
+      router.push(targetPath);
     }
   };
 
@@ -440,8 +464,51 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     window.open(`/${locale}/${slug}`, '_blank');
   };
 
+  // Handle unsaved changes alert actions
+  const handleSaveAndContinue = async (): Promise<boolean> => {
+    if (!onSave) return false;
+    
+    setIsSaving(true);
+    try {
+      const success = await onSave();
+      if (success && pendingNavigation) {
+        setShowUnsavedAlert(false);
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error saving:', error);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    if (pendingNavigation) {
+      setShowUnsavedAlert(false);
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedAlert(false);
+    setPendingNavigation(null);
+  };
+
   return (
-    <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
+    <>
+      <UnsavedChangesAlert
+        isVisible={showUnsavedAlert}
+        onSave={handleSaveAndContinue}
+        onDiscard={handleDiscardChanges}
+        onCancel={handleCancelNavigation}
+        isSaving={isSaving}
+      />
+      <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         {/* Titulo y contador de páginas */}
         <div className="flex items-center justify-between mb-3">
@@ -668,5 +735,6 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         </div>
       )}
     </div>
+    </>
   );
 } 
