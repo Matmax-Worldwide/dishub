@@ -1,6 +1,7 @@
 export interface MediaItem {
   id: string;
   title: string;
+  description?: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
@@ -9,6 +10,7 @@ export interface MediaItem {
   uploadedAt: string;
   s3Key?: string;
   dimensions?: string;
+  folder?: string;
 }
 
 export interface Folder {

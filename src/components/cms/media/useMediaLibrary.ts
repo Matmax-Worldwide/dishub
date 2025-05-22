@@ -10,6 +10,7 @@ const ROOT_FOLDER: Folder = {
   id: 'root',
   name: 'Media Library',
   path: '',
+  parentPath: '',
   isRoot: true
 };
 
@@ -18,26 +19,22 @@ const FALLBACK_MEDIA_ITEMS: MediaItem[] = [
   {
     id: 'fallback-1',
     title: 'Sample Image',
-    description: 'This is a sample image for development',
     fileUrl: 'https://images.unsplash.com/photo-1604537466158-719b1972feb8',
     fileName: 'sample-image.jpg',
     fileSize: 1240000,
     fileType: 'image/jpeg',
     altText: 'Sample development image',
     uploadedAt: new Date().toISOString().split('T')[0],
-    dimensions: '1920x1080',
-    folder: ''
+    dimensions: '1920x1080'
   },
   {
     id: 'fallback-2',
     title: 'Sample Document',
-    description: 'This is a sample document for development',
     fileUrl: '/documents/sample.pdf',
     fileName: 'sample-document.pdf',
     fileSize: 2450000,
     fileType: 'application/pdf',
-    uploadedAt: new Date().toISOString().split('T')[0],
-    folder: ''
+    uploadedAt: new Date().toISOString().split('T')[0]
   }
 ];
 
@@ -298,8 +295,8 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         if (process.env.NODE_ENV === 'development') {
           dispatch({ type: 'SET_MEDIA_ITEMS', payload: FALLBACK_MEDIA_ITEMS });
           dispatch({ type: 'SET_FOLDERS', payload: [
-            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '' },
-            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '' }
+            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '', isRoot: false },
+            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '', isRoot: false }
           ]});
         }
       } else {
@@ -309,8 +306,8 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         if (process.env.NODE_ENV === 'development') {
           dispatch({ type: 'SET_MEDIA_ITEMS', payload: FALLBACK_MEDIA_ITEMS });
           dispatch({ type: 'SET_FOLDERS', payload: [
-            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '' },
-            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '' }
+            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '', isRoot: false },
+            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '', isRoot: false }
           ]});
         }
       }
@@ -376,7 +373,8 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
       name: originalName, // Usar el nombre original para UI
       path: folderPath,   // Usar nombre sanitizado para el path
       parentPath: currentFolder.path,
-      itemCount: 0
+      itemCount: 0,
+      isRoot: false
     };
     
     console.log(`New folder object:`, newFolder);
@@ -464,8 +462,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
       dispatch({
         type: 'SET_MEDIA_ITEMS',
         payload: mediaItems.filter(item => {
-          const itemFolder = item.folder || '';
-          return !itemFolder.startsWith(folderPath);
+          return !item.s3Key || !item.s3Key.startsWith(folderPath);
         })
       });
       
