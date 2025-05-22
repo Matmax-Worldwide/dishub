@@ -14,8 +14,10 @@ import {
   ArrowUpRightIcon,
   GripVerticalIcon,
   CornerDownRightIcon,
-  LayoutIcon
+  LayoutIcon,
+  Eye
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   DragDropContext, 
   Droppable, 
@@ -787,38 +789,153 @@ export default function EditMenuPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <Link href="/cms/menus" className="mr-4 p-2 hover:bg-gray-100 rounded-md">
-            <ArrowLeftIcon className="h-5 w-5" />
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight">Edit Menu: {menu?.name}</h1>
-        </div>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="px-3 py-2 text-red-600 border border-red-300 rounded-md hover:bg-red-50 flex items-center"
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8"
+    >
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Enhanced Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center"
         >
-          <Trash2Icon className="h-4 w-4 mr-1" />
-          Delete Menu
-        </button>
-      </div>
+          <div className="flex items-center justify-center mb-6">
+            <Link 
+              href="/cms/menus" 
+              className="mr-4 p-3 rounded-xl bg-white shadow-md hover:shadow-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200 group"
+            >
+              <ArrowLeftIcon className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" />
+            </Link>
+            <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg mr-4">
+              <LayoutIcon className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Edit Menu: {menu?.name}</h1>
+              <p className="text-gray-600 text-lg">Configure your menu structure and settings</p>
+            </div>
+          </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-6">
-          <p className="font-medium">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
+          {/* Menu Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-blue-100 rounded-lg mr-3">
+                  <LayoutIcon className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menu?.items?.length || 0}</p>
+                  <p className="text-sm text-gray-600">Menu Items</p>
+                </div>
+              </div>
+            </motion.div>
 
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-6">
-          <p className="font-medium">Success</p>
-          <p>{successMessage}</p>
-        </div>
-      )}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-green-100 rounded-lg mr-3">
+                  <Eye className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menu?.location ? 1 : 0}</p>
+                  <p className="text-sm text-gray-600">Active Location</p>
+                </div>
+              </div>
+            </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-purple-100 rounded-lg mr-3">
+                  <GripVerticalIcon className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menu?.items?.filter(item => item.parentId).length || 0}</p>
+                  <p className="text-sm text-gray-600">Sub Items</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Action Toolbar */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-6 py-3 text-red-600 border border-red-300 rounded-xl hover:bg-red-50 flex items-center bg-white shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <Trash2Icon className="h-5 w-5 mr-2" />
+              Delete Menu
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Messages */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 flex items-center shadow-sm"
+            >
+              <div className="p-2 bg-red-100 rounded-lg mr-3">
+                <Trash2Icon className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Error</h3>
+                <p className="text-sm">{error}</p>
+              </div>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-auto p-1 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-4 flex items-center shadow-sm"
+            >
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <SaveIcon className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Success</h3>
+                <p className="text-sm">{successMessage}</p>
+              </div>
+              <button 
+                onClick={() => setSuccessMessage(null)}
+                className="ml-auto p-1 hover:bg-green-100 rounded-lg transition-colors"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Menu Settings Form */}
         <div className="md:col-span-1">
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
@@ -1285,5 +1402,6 @@ export default function EditMenuPage() {
         }
       `}</style>
     </div>
+  </motion.div>
   );
 } 

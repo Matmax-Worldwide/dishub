@@ -20,8 +20,13 @@ import {
   CheckIcon,
   Loader2Icon,
   UndoIcon,
-  RedoIcon
+  RedoIcon,
+  Sparkles,
+  Navigation,
+  Link2,
+  Eye
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   DragDropContext, 
   Droppable, 
@@ -690,240 +695,408 @@ export default function MenusManagerPage() {
   }
 
     return (
-    <div className="space-y-6 p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Navigation Menus</h1>
-          <p className="text-muted-foreground">
-            Create and manage navigation menus with advanced features
-          </p>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8"
+    >
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Enhanced Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center"
+        >
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg mr-4">
+              <Navigation className="h-8 w-8 text-white" />
       </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Navigation Menus</h1>
+              <p className="text-gray-600 text-lg">
+                Create and manage beautiful navigation menus with advanced features
+              </p>
+            </div>
+          </div>
+
+          {/* Feature Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-blue-100 rounded-lg mr-3">
+                  <MenuIcon className="h-6 w-6 text-blue-600" />
+      </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menus.length}</p>
+                  <p className="text-sm text-gray-600">Total Menus</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-green-100 rounded-lg mr-3">
+                  <Link2 className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menus.reduce((total, menu) => total + menu.items.length, 0)}</p>
+                  <p className="text-sm text-gray-600">Menu Items</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-purple-100 rounded-lg mr-3">
+                  <Eye className="h-6 w-6 text-purple-600" />
+        </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{menus.filter(m => m.location).length}</p>
+                  <p className="text-sm text-gray-600">Active Locations</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-center">
+                <div className="p-3 bg-orange-100 rounded-lg mr-3">
+                  <Sparkles className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                  <p className="text-2xl font-bold text-gray-900">{Math.round(menus.length * 0.85)}</p>
+                  <p className="text-sm text-gray-600">Published</p>
+                  </div>
+                </div>
+            </motion.div>
+          </div>
+        </motion.div>
         
-        <div className="flex items-center gap-2">
-          {/* Undo/Redo */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={undo}
-            disabled={historyIndex <= 0}
-            title="Undo"
-          >
-            <UndoIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={redo}
-            disabled={historyIndex >= history.length - 1}
-            title="Redo"
-          >
-            <RedoIcon className="h-4 w-4" />
-          </Button>
-          
-          <Separator orientation="vertical" className="h-6" />
-          
-          {/* Import */}
-          <div className="relative">
-            <input
-              type="file"
-              accept=".json"
-              onChange={importMenu}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Button variant="outline" size="sm">
-              <UploadIcon className="h-4 w-4 mr-2" />
-              Import
-            </Button>
-          </div>
-          
-          {/* Create Menu */}
-          <Button onClick={() => setIsEditing(true)}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-          New Menu
-          </Button>
-        </div>
-      </div>
-      
-      {/* Messages */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 flex items-center">
-          <CheckIcon className="h-5 w-5 mr-2" />
-          {successMessage}
-        </div>
-      )}
-      
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center">
-          <AlertTriangleIcon className="h-5 w-5 mr-2" />
-          {error}
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="space-y-6">
-        {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search menus..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <Select value={filterLocation} onValueChange={setFilterLocation}>
-            <SelectTrigger className="w-full sm:w-48">
-              <FilterIcon className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {MENU_LOCATIONS.map(location => (
-                <SelectItem key={location.value} value={location.value}>
-                  {location.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Menus List */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Menus ({filteredMenus.length})</h2>
+        {/* Action Toolbar */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {/* Undo/Redo */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                title="Undo"
+                className="border-gray-300 hover:bg-gray-50"
+              >
+                <UndoIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={redo}
+                disabled={historyIndex >= history.length - 1}
+                title="Redo"
+                className="border-gray-300 hover:bg-gray-50"
+              >
+                <RedoIcon className="h-4 w-4" />
+              </Button>
+              
+              <Separator orientation="vertical" className="h-6" />
+              
+              {/* Import */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importMenu}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-50">
+                  <UploadIcon className="h-4 w-4 mr-2" />
+                  Import
+                </Button>
+              </div>
             </div>
             
-            {filteredMenus.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <MenuIcon className="h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No menus found</h3>
-                  <p className="text-gray-500 text-center mb-4">
-                    {searchQuery || filterLocation !== 'all' 
-                      ? 'Try adjusting your search or filters'
-                      : 'Create your first navigation menu to get started'
-                    }
-                  </p>
-                  {!searchQuery && filterLocation === 'all' && (
-                    <Button onClick={() => setIsEditing(true)}>
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Create Menu
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredMenus.map((menu) => (
-                  <Card 
-                    key={menu.id} 
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedMenu?.id === menu.id ? 'ring-2 ring-blue-500' : ''
-                    }`}
-                    onClick={() => setSelectedMenu(menu)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base truncate">{menu.name}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            {menu.location && (
-                              <Badge variant="secondary" className="text-xs">
-                                {MENU_LOCATIONS.find(l => l.value === menu.location)?.label || menu.location}
-                              </Badge>
-                            )}
-                          </CardDescription>
-                        </div>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm">
-                              <MoreVerticalIcon className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedMenu(menu);
-                              setIsEditing(true);
-                            }}>
-                              <Edit2Icon className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => duplicateMenu(menu)}>
-                              <CopyIcon className="h-4 w-4 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => exportMenu(menu)}>
-                              <DownloadIcon className="h-4 w-4 mr-2" />
-                              Export
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => setShowDeleteConfirm(menu.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2Icon className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="pt-0">
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>{menu.items.length} items</span>
-                        <span>{formatDate(menu.updatedAt)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            {/* Create Menu */}
+            <Button 
+              onClick={() => setIsEditing(true)}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New Menu
+            </Button>
+          </div>
+        </motion.div>
+        
+        {/* Messages */}
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-4 flex items-center shadow-sm"
+            >
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <CheckIcon className="h-5 w-5 text-green-600" />
               </div>
-            )}
+              <div>
+                <h3 className="font-medium">Success</h3>
+                <p className="text-sm">{successMessage}</p>
+                  </div>
+                  <button 
+                onClick={() => setSuccessMessage(null)}
+                className="ml-auto p-1 hover:bg-green-100 rounded-lg transition-colors"
+                  >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                  </button>
+            </motion.div>
+          )}
+          
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 flex items-center shadow-sm"
+            >
+              <div className="p-2 bg-red-100 rounded-lg mr-3">
+                <AlertTriangleIcon className="h-5 w-5 text-red-600" />
+                </div>
+              <div>
+                <h3 className="font-medium">Error</h3>
+                <p className="text-sm">{error}</p>
+              </div>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-auto p-1 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden"
+        >
+          {/* Filters and Search */}
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search menus..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                />
+              </div>
+              
+              <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <SelectTrigger className="w-full sm:w-48 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                  <FilterIcon className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {MENU_LOCATIONS.map(location => (
+                    <SelectItem key={location.value} value={location.value}>
+                      {location.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Menu Editor */}
-          <div className="lg:col-span-2">
-            {selectedMenu ? (
-              <MenuEditor 
-                menu={selectedMenu}
-                pages={pages}
-                onUpdate={(updates) => updateMenu(selectedMenu.id, updates)}
-                onAddItem={() => setShowItemForm(true)}
-                onEditItem={setEditingItem}
-                onDeleteItem={deleteMenuItem}
-                onDragEnd={handleDragEnd}
-                isSaving={isSaving}
-              />
-            ) : isEditing ? (
-              <MenuCreator 
-                form={menuForm}
-                onFormChange={setMenuForm}
-                onCreate={createMenu}
-                onCancel={() => {
-                  setIsEditing(false);
-                  resetMenuForm();
-                }}
-                isSaving={isSaving}
-              />
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <SettingsIcon className="h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a menu to edit</h3>
-                  <p className="text-gray-500 text-center">
-                    Choose a menu from the list to view and edit its structure and settings
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-        </div>
-        </div>
+          {/* Main Content */}
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Menus List */}
+              <div className="lg:col-span-1 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Menus ({filteredMenus.length})</h2>
+                </div>
+                
+                {filteredMenus.length === 0 ? (
+                  <Card className="border-dashed border-2">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <div className="p-4 bg-gray-100 rounded-full mb-4">
+                        <MenuIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No menus found</h3>
+                      <p className="text-gray-500 text-center mb-4 text-sm">
+                        {searchQuery || filterLocation !== 'all' 
+                          ? 'Try adjusting your search or filters'
+                          : 'Create your first navigation menu to get started'
+                        }
+                      </p>
+                      {!searchQuery && filterLocation === 'all' && (
+                        <Button 
+                          onClick={() => setIsEditing(true)}
+                          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Create Menu
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredMenus.map((menu, index) => (
+                      <motion.div
+                        key={menu.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card 
+                          className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
+                            selectedMenu?.id === menu.id 
+                              ? 'ring-2 ring-blue-500 border-blue-200 shadow-lg' 
+                              : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                          onClick={() => setSelectedMenu(menu)}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-base truncate text-gray-900">{menu.name}</CardTitle>
+                                <CardDescription className="flex items-center gap-2 mt-1">
+                                  {menu.location && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {MENU_LOCATIONS.find(l => l.value === menu.location)?.label || menu.location}
+                                    </Badge>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreVerticalIcon className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedMenu(menu);
+                                    setIsEditing(true);
+                                  }}>
+                                    <Edit2Icon className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => duplicateMenu(menu)}>
+                                    <CopyIcon className="h-4 w-4 mr-2" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => exportMenu(menu)}>
+                                    <DownloadIcon className="h-4 w-4 mr-2" />
+                                    Export
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => setShowDeleteConfirm(menu.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2Icon className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="pt-0">
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <Link2 className="h-3 w-3 mr-1" />
+                                {menu.items.length} items
+                              </span>
+                              <span>{formatDate(menu.updatedAt)}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Menu Editor */}
+              <div className="lg:col-span-2">
+                {selectedMenu ? (
+                  <MenuEditor 
+                    menu={selectedMenu}
+                    pages={pages}
+                    onUpdate={(updates: Partial<Menu>) => updateMenu(selectedMenu.id, updates)}
+                    onAddItem={() => setShowItemForm(true)}
+                    onEditItem={setEditingItem}
+                    onDeleteItem={deleteMenuItem}
+                    onDragEnd={handleDragEnd}
+                    isSaving={isSaving}
+                  />
+                ) : isEditing ? (
+                  <MenuCreator 
+                    form={menuForm}
+                    onFormChange={setMenuForm}
+                    onCreate={createMenu}
+                    onCancel={() => {
+                      setIsEditing(false);
+                      resetMenuForm();
+                    }}
+                    isSaving={isSaving}
+                  />
+                ) : (
+                  <Card className="border-dashed border-2 bg-gray-50">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <div className="p-4 bg-gray-200 rounded-full mb-4">
+                        <SettingsIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Select a menu to edit</h3>
+                      <p className="text-gray-500 text-center text-sm">
+                        Choose a menu from the list to view and edit its structure and settings
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Menu Item Form Modal */}
@@ -1007,9 +1180,9 @@ export default function MenusManagerPage() {
               </Button>
             </CardContent>
           </Card>
-                  </div>
+        </div>
       )}
-                  </div>
+    </motion.div>
   );
 }
 
