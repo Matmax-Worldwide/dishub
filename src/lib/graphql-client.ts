@@ -52,10 +52,13 @@ export async function gqlRequest<T>(
       query.includes('form(id:') ||
       query.includes('forms') ||
       query.includes('formFields') ||
+      query.includes('formSteps') ||
+      query.includes('formStep') ||
+      query.includes('GetForm') ||
+      query.includes('FormStep') ||
+      query.includes('FormField') ||
       query.includes('menus') ||
-      query.includes('getAllCMSPages') ||
-      // Add more specific operations
-      query.includes('GetForm')
+      query.includes('getAllCMSPages')
     );
 
     // Get session token from cookies if available and not a public operation

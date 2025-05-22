@@ -109,20 +109,9 @@ interface FormSubmissionParent {
 export const formResolvers = {
   Query: {
     // Get all forms
-    forms: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    forms: async () => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
+        // Make forms publicly accessible for editors
         return prisma.form.findMany({
           orderBy: { createdAt: 'desc' },
         });
@@ -191,8 +180,7 @@ export const formResolvers = {
     // Get form steps for a form
     formSteps: async (_parent: unknown, args: { formId: string }) => {
       try {
-       
-        
+        // Make this public - no authentication check
         return prisma.formStep.findMany({
           where: { formId: args.formId },
           orderBy: { order: 'asc' },
@@ -209,20 +197,9 @@ export const formResolvers = {
     },
     
     // Get a single form step
-    formStep: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    formStep: async (_parent: unknown, args: { id: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
+        // Make this public - no authentication check
         return prisma.formStep.findUnique({
           where: { id: args.id },
           include: {
@@ -238,20 +215,9 @@ export const formResolvers = {
     },
     
     // Get form fields for a form or step
-    formFields: async (_parent: unknown, args: { formId: string, stepId?: string }, context: { req: NextRequest }) => {
+    formFields: async (_parent: unknown, args: { formId: string, stepId?: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
+        // Make this public - no authentication check
         const where = args.stepId 
           ? { stepId: args.stepId }
           : { formId: args.formId };

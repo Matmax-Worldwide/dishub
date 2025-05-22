@@ -30,6 +30,26 @@ export function FormSelector({
 
   // Load forms on component mount
   useEffect(() => {
+    const loadForms = async () => {
+      setLoading(true);
+      try {
+        const formsData = await graphqlClient.getForms();
+        if (Array.isArray(formsData)) {
+          setForms(formsData);
+        } else {
+          // If we get an error or no data, provide a fallback
+          console.warn('Failed to load forms data, using empty array');
+          setForms([]);
+        }
+      } catch (error) {
+        console.error('Error loading forms:', error);
+        // Don't break the UI when forms can't be loaded
+        setForms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadForms();
   }, []);
 
@@ -40,18 +60,6 @@ export function FormSelector({
       setSelectedForm(form);
     }
   }, [selectedFormId, forms]);
-
-  async function loadForms() {
-    setLoading(true);
-    try {
-      const formsList = await graphqlClient.getForms();
-      setForms(formsList);
-    } catch (error) {
-      console.error('Error loading forms:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const filteredForms = searchQuery 
     ? forms.filter(form => 

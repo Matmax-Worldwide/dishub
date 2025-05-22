@@ -96,7 +96,25 @@ export default function FormSection({
           } else {
             // Handle case where form doesn't exist
             console.warn(`Form with ID ${formId} not found`);
-            setSelectedForm(null);
+            if (isEditing) {
+              // In editing mode, we can show empty state
+              setSelectedForm(null);
+            } else {
+              // In viewing mode, create a fallback form
+              setSelectedForm({
+                id: formId,
+                title: title || 'Form unavailable',
+                description: description || 'Sorry, this form is currently unavailable.',
+                fields: [],
+                isMultiStep: false,
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                slug: 'fallback-form',
+                submitButtonText: 'Submit',
+                createdById: 'system'
+              } as FormBase);
+            }
           }
         } catch (error) {
           console.error('Error loading form data:', error);
@@ -124,6 +142,7 @@ export default function FormSection({
         }
       } else {
         setSelectedForm(null);
+        setLoading(false);
       }
     }
     
