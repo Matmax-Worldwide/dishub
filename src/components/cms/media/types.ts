@@ -1,26 +1,21 @@
 export interface MediaItem {
   id: string;
   title: string;
-  description?: string;
-  fileUrl: string;
   fileName: string;
-  fileSize: number;
+  fileUrl: string;
   fileType: string;
+  fileSize: number;
   altText?: string;
   uploadedAt: string;
-  dimensions?: string;
-  s3Key?: string; // S3 key for deleting the file
-  folder?: string; // Path of the folder the file is in
+  s3Key?: string;
 }
 
 export interface Folder {
   id: string;
-  name: string;       // Display name (puede contener caracteres especiales)
-  path: string;       // S3 path (sanitizado)
-  parentPath?: string;
-  isRoot?: boolean;
-  itemCount?: number;
-  subfolderCount?: number; // Cantidad de subcarpetas dentro de esta carpeta
+  name: string;
+  path: string;
+  parentPath: string;
+  isRoot: boolean;
 }
 
 export interface MediaLibraryState {

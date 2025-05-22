@@ -579,6 +579,8 @@ export const typeDefs = gql`
     sectionId: String!
     name: String
     description: String
+    backgroundImage: String
+    backgroundType: String
     lastUpdated: DateTime!
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -785,6 +787,8 @@ export const typeDefs = gql`
   input UpdateCMSSectionInput {
     name: String
     description: String
+    backgroundImage: String
+    backgroundType: String
   }
 
   # Input for creating a CMS section
@@ -792,6 +796,8 @@ export const typeDefs = gql`
     sectionId: String!
     name: String!
     description: String
+    backgroundImage: String
+    backgroundType: String
   }
 
   # Result type for CMS section operations

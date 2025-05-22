@@ -1,6 +1,6 @@
 import { gqlRequest } from './graphql-client';
 
-export async function updateCMSSection(sectionId: string, input: { name?: string; description?: string }) {
+export async function updateCMSSection(sectionId: string, input: { name?: string; description?: string; backgroundImage?: string; backgroundType?: string }) {
   try {
     console.log('Actualizando sección con ID:', sectionId, input);
     

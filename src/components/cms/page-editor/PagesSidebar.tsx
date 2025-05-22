@@ -212,6 +212,8 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     const unsubscribe = PageEvents.subscribe('page:created', () => {
       // Refrescar la lista de páginas cuando se crea una nueva
       fetchPages();
+      // Reset creating state
+      setIsCreating(false);
     });
     
     return () => {
@@ -268,6 +270,8 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   // Fetch pages when component mounts with timeout
   useEffect(() => {
     fetchPages();
+    // Reset loading states
+    setIsCreating(false);
   }, []); // Empty array means this effect runs once on mount
 
   // Filter pages when search query changes
@@ -300,6 +304,13 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     // Navigate to create page route
     router.push(`/${locale}/cms/pages/create`);
   };
+  
+  // Reset isCreating state when component unmounts or when coming back to the page
+  useEffect(() => {
+    return () => {
+      setIsCreating(false);
+    };
+  }, []);
 
   // Generate slug from title
   const generateSlug = (title: string) => {

@@ -12,6 +12,9 @@ import FormRenderer from '@/components/cms/forms/FormRenderer';
 import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import IconSelector from '@/components/cms/IconSelector';
+import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/BackgroundSelector';
+import MediaSelector from '@/components/cms/MediaSelector';
+import { MediaItem } from '@/components/cms/media/types';
 import * as LucideIcons from 'lucide-react';
 import {
   Tabs,
@@ -29,6 +32,8 @@ interface FormSectionProps {
   isEditing?: boolean;
   template?: 'DEFAULT' | string;
   selectedIcon?: string;
+  backgroundImage?: string;
+  backgroundType?: 'image' | 'gradient';
   onUpdate?: (data: {
     title?: string;
     description?: string;
@@ -36,6 +41,8 @@ interface FormSectionProps {
     styles?: FormStyles;
     customConfig?: FormCustomConfig;
     selectedIcon?: string;
+    backgroundImage?: string;
+    backgroundType?: 'image' | 'gradient';
   }) => void;
 }
 
@@ -65,6 +72,8 @@ export default function FormSection({
   isEditing = false,
   template = 'DEFAULT',
   selectedIcon: initialSelectedIcon = 'PaperAirplaneIcon',
+  backgroundImage: initialBackgroundImage = '',
+  backgroundType: initialBackgroundType = 'gradient',
   onUpdate
 }: FormSectionProps) {
   // Local state
@@ -75,6 +84,10 @@ export default function FormSection({
   const [styles, setStyles] = useState<FormStyles>(initialStyles);
   const [customConfig, setCustomConfig] = useState<FormCustomConfig>(initialCustomConfig);
   const [selectedIcon, setSelectedIcon] = useState(initialSelectedIcon);
+  const [backgroundImage, setBackgroundImage] = useState(initialBackgroundImage);
+  const [backgroundType, setBackgroundType] = useState<'image' | 'gradient'>(initialBackgroundType);
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   
@@ -157,8 +170,12 @@ export default function FormSection({
       if (initialFormId !== formId) setFormId(initialFormId);
       if (JSON.stringify(initialStyles) !== JSON.stringify(styles)) setStyles(initialStyles);
       if (JSON.stringify(initialCustomConfig) !== JSON.stringify(customConfig)) setCustomConfig(initialCustomConfig);
+      if (initialBackgroundImage !== backgroundImage) setBackgroundImage(initialBackgroundImage);
+      if (initialBackgroundType !== backgroundType) setBackgroundType(initialBackgroundType);
     }
-  }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig]);
+  }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig, 
+      initialBackgroundImage, initialBackgroundType, title, description, formId, styles, customConfig,
+      backgroundImage, backgroundType]);
   
   // Update parent with changes
   const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig, event?: React.SyntheticEvent) => {
@@ -250,6 +267,70 @@ export default function FormSection({
     setSelectedIcon(iconName);
     handleUpdateField('selectedIcon', iconName);
   }, [handleUpdateField]);
+  
+  // Handle background selection with immediate local update and debounced parent update
+  const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
+    console.log('Background selected:', { background, type });
+    
+    // Immediately update local state for responsive UI
+    setBackgroundImage(background);
+    setBackgroundType(type);
+    setShowBackgroundSelector(false); // Close the selector immediately
+    
+    // Update parent component data with both fields
+    if (onUpdate) {
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      // Set up a debounced update with both background properties
+      debounceRef.current = setTimeout(() => {
+        console.log('Updating parent with background data:', { backgroundImage: background, backgroundType: type });
+        
+        onUpdate({
+          title,
+          description,
+          formId,
+          styles,
+          customConfig,
+          selectedIcon,
+          backgroundImage: background,
+          backgroundType: type
+        });
+        
+        // Reset editing flag after update
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 500);
+      }, 300); // Shorter debounce for background changes
+    }
+  }, [onUpdate, title, description, formId, styles, customConfig, selectedIcon]);
+
+  // Handler for background media selection
+  const handleBackgroundMediaSelect = (mediaItem: MediaItem) => {
+    setBackgroundImage(mediaItem.fileUrl);
+    setBackgroundType('image');
+    setShowMediaSelectorForBackground(false);
+    setShowBackgroundSelector(false);
+    
+    // Update parent with the new background
+    if (onUpdate) {
+      onUpdate({
+        title,
+        description,
+        formId,
+        styles,
+        customConfig,
+        selectedIcon,
+        backgroundImage: mediaItem.fileUrl,
+        backgroundType: 'image'
+      });
+    }
+  };
   
   // Get the icon component based on the selected icon name
   const getIconComponent = () => {
@@ -366,10 +447,20 @@ export default function FormSection({
   // Generate inline styles for form container
   const getContainerStyles = () => {
     if (template === 'DEFAULT') {
-      return {
-        background: 'linear-gradient(to bottom right, #01112A, #01319c, #1E0B4D)',
-        opacity: 0.95
-      };
+      if (backgroundType === 'image' && backgroundImage) {
+        return {
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.95
+        };
+      } else {
+        return {
+          background: backgroundImage || 'linear-gradient(to bottom right, #01112A, #01319c, #1E0B4D)',
+          opacity: 0.95
+        };
+      }
     }
 
     const inlineStyles: React.CSSProperties = {};
@@ -601,6 +692,38 @@ export default function FormSection({
       </h3>
       
       <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <h4 className="text-sm font-medium">Background</h4>
+          
+          <div 
+            className="h-32 mb-3 rounded-md border border-gray-200 overflow-hidden relative"
+            style={{
+              ...(backgroundType === 'image' && backgroundImage ? {
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundPosition: 'center',
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat'
+              } : {
+                background: backgroundImage || BACKGROUND_TEMPLATES[0].value
+              })
+            }}
+          >
+            {(!backgroundImage) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
+                {template === 'DEFAULT' ? 'Using default template background' : 'No background selected'}
+              </div>
+            )}
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => setShowBackgroundSelector(true)}
+            className="bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+          >
+            Select Background
+          </button>
+        </div>
+        
         <FormStyleConfig 
           initialStyles={styles}
           onChange={handleStyleChange}
@@ -622,7 +745,16 @@ export default function FormSection({
       {selectedForm ? (
         <div 
           className={getContainerClassNames()}
-          style={getContainerStyles()}
+          style={{
+            ...getContainerStyles(),
+            ...(backgroundType === 'image' && backgroundImage ? {
+              backgroundImage: `url(${backgroundImage})`,
+              backgroundPosition: 'center',
+              backgroundSize: 'cover',
+              backgroundRepeat: 'no-repeat'
+            } : {})
+          }}
+          data-component-type="Form"
         >
           {!customConfig.hideTitle && (
             <>
@@ -684,6 +816,29 @@ export default function FormSection({
   
   return (
     <div data-section-id="form">
+      {showBackgroundSelector && (
+        <BackgroundSelector
+          isOpen={showBackgroundSelector}
+          onClose={() => setShowBackgroundSelector(false)}
+          onSelect={handleBackgroundSelect}
+          currentBackground={backgroundImage}
+          onOpenMediaSelector={() => {
+            setShowBackgroundSelector(false);
+            setShowMediaSelectorForBackground(true);
+          }}
+        />
+      )}
+
+      {showMediaSelectorForBackground && (
+        <MediaSelector
+          isOpen={showMediaSelectorForBackground}
+          onClose={() => setShowMediaSelectorForBackground(false)}
+          onSelect={handleBackgroundMediaSelect}
+          title="Select Background Image"
+          initialType="image"
+        />
+      )}
+
       {isEditing ? (
         // Editor mode UI with tabs
         <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
@@ -712,7 +867,10 @@ export default function FormSection({
         // Visitor-facing UI with actual form here
         <div
           className={`${getContainerClassNames()}`}
-          style={getContainerStyles()}
+          style={{
+            ...getContainerStyles(),
+            isolation: 'isolate' // Create new stacking context
+          }}
           data-component-type="Form"
         >
           {template === 'DEFAULT' && (

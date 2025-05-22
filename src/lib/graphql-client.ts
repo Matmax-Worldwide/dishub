@@ -790,7 +790,7 @@ export async function loadSectionComponentsForEdit(sectionId: string): Promise<{
   }
 }
 
-// Apply edits to a component within a section
+// Update the component edit function to handle background properties
 export async function applyComponentEdit(
   sectionId: string,
   componentId: string,
@@ -802,6 +802,7 @@ export async function applyComponentEdit(
 }> {
   try {
     console.log(`Applying edits to component ${componentId} in section ${sectionId}`);
+    console.log('Edit data:', editedData);
     
     // First fetch the current components
     const result = await cmsOperations.getSectionComponents(sectionId);
@@ -831,19 +832,34 @@ export async function applyComponentEdit(
     
     // Create a new array with the updated component
     const updatedComponents = [...components];
-    updatedComponents[componentIndex] = {
-      ...updatedComponents[componentIndex],
-      data: {
-        ...updatedComponents[componentIndex].data,
-        ...editedData
-      }
+    const currentComponent = updatedComponents[componentIndex];
+    
+    // Merge the new data with existing data, preserving all properties
+    const mergedData = {
+      ...currentComponent.data,
+      ...editedData
     };
     
-    console.log(`Saving updated component: ${JSON.stringify({
+    // Special handling for background properties to ensure they persist
+    if (editedData.backgroundImage !== undefined) {
+      mergedData.backgroundImage = editedData.backgroundImage;
+    }
+    if (editedData.backgroundType !== undefined) {
+      mergedData.backgroundType = editedData.backgroundType;
+    }
+    
+    updatedComponents[componentIndex] = {
+      ...currentComponent,
+      data: mergedData
+    };
+    
+    console.log(`Saving updated component with merged data:`, {
       id: updatedComponents[componentIndex].id,
       type: updatedComponents[componentIndex].type,
-      dataKeys: Object.keys(updatedComponents[componentIndex].data || {})
-    })}`);
+      dataKeys: Object.keys(updatedComponents[componentIndex].data || {}),
+      backgroundImage: mergedData.backgroundImage,
+      backgroundType: mergedData.backgroundType
+    });
     
     // Save all components back to the section
     const result2 = await cmsOperations.saveSectionComponents(sectionId, updatedComponents);
@@ -1766,6 +1782,26 @@ export const cmsOperations = {
 
   updateComponentTitle,
   updateSectionName,
+  
+  // Update section background
+  updateSectionBackground: async (sectionId: string, backgroundImage: string, backgroundType: 'image' | 'gradient') => {
+    try {
+      // Use the updateCMSSection function from cms-update.ts
+      const result = await updateCMSSection(sectionId, { backgroundImage, backgroundType });
+      
+      return {
+        success: result.success,
+        message: result.message,
+        lastUpdated: result.lastUpdated
+      };
+    } catch (error) {
+      console.error('Error updating section background:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error updating section background'
+      };
+    }
+  },
   
   // Get all menus with their items
   getMenus: async () => {

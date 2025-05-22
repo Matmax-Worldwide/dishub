@@ -1096,8 +1096,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         onSave={handleSavePage}
       >
          {/* Tab Navigation Controls - con visual feedback */}
-         <div className="flex space-x-1">
-  <Button 
+      <div className="flex space-x-1">
+        <Button 
     variant={activeTab === 'details' ? "secondary" : "ghost"}
     size="sm" 
     className="h-7 px-2 flex items-center gap-x-1"
@@ -1106,8 +1106,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   >
     <Settings className="h-4 w-4" />
     <span className="text-xs text-muted-foreground">Detalles</span>
-  </Button>
-  <Button 
+        </Button>
+        <Button 
     variant={activeTab === 'sections' ? "secondary" : "ghost"}
     size="sm" 
     className="h-7 px-2 flex items-center gap-x-1"
@@ -1116,8 +1116,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   >
     <LayoutIcon className="h-4 w-4" />
     <span className="text-xs text-muted-foreground">Secciones</span>
-  </Button>
-  <Button 
+        </Button>
+        <Button 
     variant={activeTab === 'seo' ? "secondary" : "ghost"}
     size="sm" 
     className="h-7 px-2 flex items-center gap-x-1"
@@ -1126,10 +1126,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   >
     <SearchIcon className="h-4 w-4" />
     <span className="text-xs text-muted-foreground">SEO</span>
-  </Button>
-
-
-</div>
+        </Button>
+      </div>
           
       </PageHeader>
       

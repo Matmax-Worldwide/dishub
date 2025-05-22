@@ -108,7 +108,8 @@ export default function PageHeader({
     
   return (
     <motion.div 
-      className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0 shadow-sm"
+      className="top-0 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0 shadow-sm"
+      style={{ zIndex: 1000 }} // Lower z-index to ensure BackgroundSelector appears above
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}

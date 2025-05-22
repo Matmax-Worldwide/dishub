@@ -17,16 +17,15 @@ import {
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
-import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import { createPortal } from 'react-dom';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import MediaSelector from '@/components/cms/MediaSelector';
 
 // Types from schema.prisma
 interface SocialLink {
@@ -711,120 +710,24 @@ export default function FooterSection({
     };
   }, []);
 
-  // Function to create the MediaSelector component
-  const MediaSelector = () => {
-    // Close the selector
-    const handleClose = (e?: React.MouseEvent) => {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      setShowMediaSelector(false);
-    };
+  // Replace the MediaLibrary implementation with MediaSelector
+  const handleMediaSelection = (mediaItem: MediaItem) => {
+    setLogoUrl(mediaItem.fileUrl);
+    handleLogoUrlChange(mediaItem.fileUrl);
+    setShowMediaSelector(false);
+  };
 
-    // Handle media item selection from MediaLibrary
-    const handleMediaSelection = (mediaItem: MediaItem) => {
-      setLogoUrl(mediaItem.fileUrl);
-      handleLogoUrlChange(mediaItem.fileUrl);
-      setShowMediaSelector(false);
-    };
-
-    // URL personalizada
-    const [customUrl, setCustomUrl] = useState('');
-    
-    // Handle custom URL selection
-    const handleCustomUrlSelection = (url: string) => {
-      setLogoUrl(url);
-      handleLogoUrlChange(url);
-      setShowMediaSelector(false);
-    };
-    
-    // Handle folder change events
-    const handleFolderChange = (folderPath: string) => {
-      console.log('Folder changed in MediaSelector:', folderPath);
-    };
-
-    // Prevent event bubbling
-    const stopPropagation = (e: React.MouseEvent) => {
-      e.stopPropagation();
-    };
-
-    const mediaSelector = (
-      <div 
-        className="fixed inset-0 flex items-center justify-center bg-black/50" 
-        id="media-selector-root" 
-      style={{ 
-          position: 'fixed', 
-          inset: 0, 
-          zIndex: 2147483647,
-          isolation: 'isolate'
-        }}
-        onClick={handleClose}
-      >
-        <div 
-          className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-auto"
-          style={{ 
-            position: 'relative',
-            margin: 'auto'
-          }}
-          onClick={stopPropagation}
-        >
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Select Logo</h3>
-              <button 
-                onClick={handleClose}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Custom URL input */}
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-1 block">Enter Image URL</label>
-              <div className="flex">
-                <input
-                  type="text"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 border rounded-l-md p-2 text-sm"
-                />
-                <button
-                  onClick={() => handleCustomUrlSelection(customUrl)}
-                  disabled={!customUrl.trim()}
-                  className="bg-blue-600 text-white px-3 py-2 rounded-r-md disabled:bg-blue-300"
-                >
-                  Use URL
-                </button>
-              </div>
-            </div>
-            
-            <div className="border-t pt-4">
-              <MediaLibrary 
-                onSelect={handleMediaSelection}
-                isSelectionMode={true}
-                showHeader={true}
-                onFolderChange={handleFolderChange}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-
-    // Use createPortal to render the MediaSelector at the end of the DOM
-    if (typeof window === 'undefined') {
-      return null;
+  // Helper function to get logo size classes based on footerStyle.logoSize
+  const getLogoSizeClasses = () => {
+    switch (footerStyle.logoSize) {
+      case 'small':
+        return 'h-6 w-6';
+      case 'large':
+        return 'h-12 w-12';
+      case 'medium':
+      default:
+        return 'h-8 w-8';
     }
-
-    return createPortal(
-      mediaSelector,
-      document.body
-    );
   };
 
   // Details Tab Component
@@ -865,23 +768,10 @@ export default function FooterSection({
       
       if (localInputs.copyright !== copyright) {
         handleUpdateField('copyright', localInputs.copyright);
-    }
-  };
+      }
+    };
 
-  // Helper function to get logo size classes based on footerStyle.logoSize
-  const getLogoSizeClasses = () => {
-    switch (footerStyle.logoSize) {
-      case 'small':
-        return 'h-6 w-6';
-      case 'large':
-        return 'h-12 w-12';
-      case 'medium':
-      default:
-        return 'h-8 w-8';
-    }
-  };
-
-  return (
+    return (
       <div className="space-y-4">
         <div className="flex items-start space-x-2">
           <FileText className="h-5 w-5 mt-1 text-muted-foreground" />
@@ -1114,19 +1004,6 @@ export default function FooterSection({
     </div>
   );
 
-  const getLogoSizeClasses = () => {
-    switch (footerStyle.logoSize) {
-      case 'small':
-        return 'h-6 w-6';
-      case 'large':
-        return 'h-12 w-12';
-      case 'medium':
-      default:
-        return 'h-8 w-8';
-    }
-  };
-  
-
   // Styles Tab Component
   const StylesTab = () => (
     <div className="space-y-4">
@@ -1189,9 +1066,9 @@ export default function FooterSection({
             <option value="container">Container (max-width)</option>
             <option value="narrow">Narrow</option>
           </select>
-                        </div>
-                      </div>
-                      
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="columnLayout" className="text-sm block mb-1">
@@ -1207,7 +1084,7 @@ export default function FooterSection({
             <option value="grid">Grid</option>
             <option value="flex">Flex</option>
           </select>
-                            </div>
+        </div>
         
         <div>
           <label htmlFor="socialAlignment" className="text-sm block mb-1">
@@ -1223,8 +1100,8 @@ export default function FooterSection({
             <option value="center">Center</option>
             <option value="right">Right</option>
           </select>
-                        </div>
-                    </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -1241,7 +1118,7 @@ export default function FooterSection({
             <option value="medium">Medium</option>
             <option value="large">Large</option>
           </select>
-                </div>
+        </div>
         
         <div>
           <label htmlFor="logoSize" className="text-sm block mb-1">
@@ -1258,8 +1135,8 @@ export default function FooterSection({
             <option value="large">Large</option>
           </select>
         </div>
-            </div>
-            
+      </div>
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="transparency" className="text-sm block mb-1">
@@ -1451,7 +1328,14 @@ export default function FooterSection({
           </TabsContent>
           
           {/* Media selector modal */}
-          {showMediaSelector && <MediaSelector />}
+          {showMediaSelector && (
+            <MediaSelector
+              isOpen={showMediaSelector}
+              onClose={() => setShowMediaSelector(false)}
+              onSelect={handleMediaSelection}
+              title="Select Logo"
+            />
+          )}
         </Tabs>
       ) : (
         <div className="max-w-7xl mx-auto px-4">

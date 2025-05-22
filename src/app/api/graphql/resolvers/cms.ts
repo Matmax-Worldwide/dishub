@@ -928,6 +928,8 @@ export const cmsResolvers = {
       input: { 
         name?: string;
         description?: string;
+        backgroundImage?: string;
+        backgroundType?: string;
       } 
     }) => {
       console.log('======== START updateCMSSection resolver ========');
@@ -955,6 +957,8 @@ export const cmsResolvers = {
           data: {
             ...(input.name && { name: input.name }),
             ...(input.description && { description: input.description }),
+            ...(input.backgroundImage !== undefined && { backgroundImage: input.backgroundImage }),
+            ...(input.backgroundType !== undefined && { backgroundType: input.backgroundType }),
             lastUpdated: timestamp,
             updatedAt: timestamp
           }
@@ -1149,6 +1153,39 @@ export const cmsResolvers = {
             message: `No se encontró ninguna página con ID: ${id}`,
             page: null
           };
+        }
+
+        // If title is being updated, also update any menu items that link to this page
+        if (input.title && input.title !== existingPage.title) {
+          console.log(`Updating menu items for page ${id} with new title: ${input.title}`);
+          
+          try {
+            // Find all menu items that reference this page
+            const menuItems = await prisma.menuItem.findMany({
+              where: {
+                pageId: id
+              }
+            });
+            
+            if (menuItems.length > 0) {
+              console.log(`Found ${menuItems.length} menu items referencing page ${id}`);
+              
+              // Update each menu item with the new page title
+              for (const menuItem of menuItems) {
+                await prisma.menuItem.update({
+                  where: { id: menuItem.id },
+                  data: {
+                    title: input.title
+                  }
+                });
+              }
+              
+              console.log(`Updated ${menuItems.length} menu items with new page title`);
+            }
+          } catch (menuUpdateError) {
+            console.error('Error updating menu items:', menuUpdateError);
+            // Continue with page update even if menu update fails
+          }
         }
 
         // Synchronize metaTitle/metaDescription with SEO fields if needed
@@ -1371,6 +1408,8 @@ export const cmsResolvers = {
         sectionId: string;
         name: string;
         description?: string;
+        backgroundImage?: string;
+        backgroundType?: string;
       } 
     }, context: { user?: { id: string } }) => {
       // Registrar la operación
@@ -1416,6 +1455,8 @@ export const cmsResolvers = {
               sectionId: input.sectionId,
               name: input.name,
               description: input.description || '',
+              backgroundImage: input.backgroundImage || null,
+              backgroundType: input.backgroundType || 'gradient',
               lastUpdated: timestamp.toISOString(),
               createdAt: timestamp,
               updatedAt: timestamp,

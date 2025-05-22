@@ -4,6 +4,10 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallbac
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';
 import { cn } from '@/lib/utils';
+import BackgroundSelector from './BackgroundSelector';
+import MediaSelector from './MediaSelector';
+import { MediaItem } from '@/components/cms/media/types';
+import { Palette } from 'lucide-react';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -55,6 +59,11 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
   // Track inspection mode
   const [inspectionMode, setInspectionMode] = useState(false);
+  // Background management state
+  const [sectionBackground, setSectionBackground] = useState<string>('');
+  const [sectionBackgroundType, setSectionBackgroundType] = useState<'image' | 'gradient'>('gradient');
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
 
 
 
@@ -105,6 +114,34 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         const result = await cmsOperations.getSectionComponents(`${normalizedSectionId}?t=${timestamp}`);
         
         console.log(`✅ [${loadId}] Respuesta recibida:`, result);
+        
+        // Also load section background data
+        try {
+          // Get all sections and find the one with matching sectionId
+          const allSections = await cmsOperations.getAllCMSSections();
+          const sectionData = allSections.find(section => section.sectionId === normalizedSectionId) as unknown as {
+            backgroundImage?: string;
+            backgroundType?: string;
+            id: string;
+            sectionId: string;
+          };
+          
+          if (sectionData) {
+            console.log(`✅ [${loadId}] Section background data loaded:`, {
+              backgroundImage: sectionData.backgroundImage,
+              backgroundType: sectionData.backgroundType
+            });
+            
+            if (sectionData.backgroundImage) {
+              setSectionBackground(sectionData.backgroundImage);
+            }
+            if (sectionData.backgroundType) {
+              setSectionBackgroundType(sectionData.backgroundType as 'image' | 'gradient');
+            }
+          }
+        } catch (bgError) {
+          console.warn(`⚠️ [${loadId}] Could not load section background data:`, bgError);
+        }
         
         if (result && Array.isArray(result.components)) {
           if (result.components.length === 0) {
@@ -581,6 +618,53 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     setInspectionMode(!inspectionMode);
   }, [inspectionMode]);
 
+  // Background selection handlers
+  const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
+    console.log('Section background selected:', { background, type });
+    
+    // Immediately update local state for responsive UI
+    setSectionBackground(background);
+    setSectionBackgroundType(type);
+    setShowBackgroundSelector(false);
+    
+    // Save background changes to the section
+    if (normalizedSectionId) {
+      cmsOperations.updateSectionBackground(normalizedSectionId, background, type)
+        .then(result => {
+          if (result.success) {
+            console.log('Section background updated successfully');
+          } else {
+            console.error('Failed to update section background:', result.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating section background:', error);
+        });
+    }
+  }, [normalizedSectionId, sectionName]);
+
+  const handleBackgroundMediaSelect = useCallback((mediaItem: MediaItem) => {
+    setSectionBackground(mediaItem.fileUrl);
+    setSectionBackgroundType('image');
+    setShowMediaSelectorForBackground(false);
+    setShowBackgroundSelector(false);
+    
+    // Save background changes to the section
+    if (normalizedSectionId) {
+      cmsOperations.updateSectionBackground(normalizedSectionId, mediaItem.fileUrl, 'image')
+        .then(result => {
+          if (result.success) {
+            console.log('Section background updated with media successfully');
+          } else {
+            console.error('Failed to update section background with media:', result.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating section background with media:', error);
+        });
+    }
+  }, [normalizedSectionId, sectionName]);
+
   // Handle element inspection
   const handleInspectElement = useCallback((e: MouseEvent) => {
     if (!inspectionMode) return;
@@ -805,37 +889,49 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             </div>
             
             {/* View mode toggle buttons */}
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
+              {/* Background selection button */}
               <button
-                onClick={() => toggleViewMode('edit')}
-                className={`px-3 py-1 text-xs rounded-l-md border ${
-                  viewMode === 'edit' 
-                    ? 'bg-accent text-accent-foreground border-accent' 
-                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                }`}
+                onClick={() => setShowBackgroundSelector(true)}
+                className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
+                title="Change section background"
               >
-                Editor
+                <Palette className="w-3 h-3 mr-1" />
+                Background
               </button>
-              <button
-                onClick={() => toggleViewMode('split')}
-                className={`px-3 py-1 text-xs border-t border-b ${
-                  viewMode === 'split' 
-                    ? 'bg-accent text-accent-foreground border-accent' 
-                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                }`}
-              >
-                Split
-              </button>
-              <button
-                onClick={() => toggleViewMode('preview')}
-                className={`px-3 py-1 text-xs rounded-r-md border ${
-                  viewMode === 'preview' 
-                    ? 'bg-accent text-accent-foreground border-accent' 
-                    : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                }`}
-              >
-                Preview
-              </button>
+              
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => toggleViewMode('edit')}
+                  className={`px-3 py-1 text-xs rounded-l-md border ${
+                    viewMode === 'edit' 
+                      ? 'bg-accent text-accent-foreground border-accent' 
+                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                  }`}
+                >
+                  Editor
+                </button>
+                <button
+                  onClick={() => toggleViewMode('split')}
+                  className={`px-3 py-1 text-xs border-t border-b ${
+                    viewMode === 'split' 
+                      ? 'bg-accent text-accent-foreground border-accent' 
+                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                  }`}
+                >
+                  Split
+                </button>
+                <button
+                  onClick={() => toggleViewMode('preview')}
+                  className={`px-3 py-1 text-xs rounded-r-md border ${
+                    viewMode === 'preview' 
+                      ? 'bg-accent text-accent-foreground border-accent' 
+                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
             </div>
           </div>
           <div className="h-px bg-border w-full mt-2 mb-4"></div>
@@ -952,7 +1048,15 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                         // Desktop view with browser frame
                         <div className="bg-white rounded-md border-2 border-muted/40 shadow-sm overflow-hidden">
                           {/* Desktop content */}
-                          <div className="p-4 bg-white min-h-[300px] overflow-auto">
+                          <div 
+                            className="p-4 min-h-[300px] overflow-auto"
+                            style={{
+                              background: sectionBackground || 'white',
+                              backgroundSize: sectionBackgroundType === 'image' ? 'cover' : undefined,
+                              backgroundPosition: sectionBackgroundType === 'image' ? 'center' : undefined,
+                              backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
+                            }}
+                          >
                             <SectionManager
                               initialComponents={pendingComponents}
                               isEditing={false}
@@ -996,7 +1100,15 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                             </div>
                             
                             {/* Content area */}
-                            <div className="bg-white h-[600px] overflow-hidden">
+                            <div 
+                              className="h-[600px] overflow-hidden"
+                              style={{
+                                background: sectionBackground || 'white',
+                                backgroundSize: sectionBackgroundType === 'image' ? 'cover' : undefined,
+                                backgroundPosition: sectionBackgroundType === 'image' ? 'center' : undefined,
+                                backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
+                              }}
+                            >
                               <div className="h-full overflow-y-auto">
                                 <SectionManager
                                   initialComponents={pendingComponents}
@@ -1046,7 +1158,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
               <div className="relative mx-auto">
                 <div 
                   className="w-full overflow-hidden transition-all duration-300 border rounded-md shadow-sm"
-                  style={{ position: 'relative', zIndex: 1 }}
+                  style={{ 
+                    position: 'relative', 
+                    zIndex: 1,
+                    background: sectionBackground || 'white',
+                    backgroundSize: sectionBackgroundType === 'image' ? 'cover' : undefined,
+                    backgroundPosition: sectionBackgroundType === 'image' ? 'center' : undefined,
+                    backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
+                  }}
                 >
                   <SectionManager
                     initialComponents={pendingComponents}
@@ -1065,6 +1184,27 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           {errorMessage}
         </div>
       )}
+
+      {/* Background Selector */}
+      <BackgroundSelector
+        isOpen={showBackgroundSelector}
+        onClose={() => setShowBackgroundSelector(false)}
+        onSelect={handleBackgroundSelect}
+        currentBackground={sectionBackground}
+        onOpenMediaSelector={() => {
+          setShowBackgroundSelector(false);
+          setShowMediaSelectorForBackground(true);
+        }}
+      />
+
+      {/* Media Selector for Background */}
+      <MediaSelector
+        isOpen={showMediaSelectorForBackground}
+        onClose={() => setShowMediaSelectorForBackground(false)}
+        onSelect={handleBackgroundMediaSelect}
+        title="Select Background Image"
+        initialType="image"
+      />
     </div>
   );
 });
