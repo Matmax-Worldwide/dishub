@@ -508,7 +508,7 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
         onCancel={handleCancelNavigation}
         isSaving={isSaving}
       />
-      <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
+    <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         {/* Titulo y contador de páginas */}
         <div className="flex items-center justify-between mb-3">

@@ -185,8 +185,8 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         onCancel={handleCancelNavigation}
         isSaving={isSaving}
       />
-      <SidebarProvider defaultCollapsed={false}>
-        <Sidebar className="flex flex-col h-full relative">
+    <SidebarProvider defaultCollapsed={false}>
+      <Sidebar className="flex flex-col h-full relative">
         <SidebarHeader className="flex items-center justify-between p-3 pb-2">
           <Link href={`/${locale}/cms`} className="flex items-center">
             <div className="relative h-8 w-8 mr-2">

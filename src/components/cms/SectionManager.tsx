@@ -338,7 +338,7 @@ function SectionManagerBase({
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
-
+  
   // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
 

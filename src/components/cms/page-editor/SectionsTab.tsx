@@ -74,7 +74,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       console.log('[SectionsTab] No sections, showing EmptySectionPlaceholder');
     }
   }, [pageSections]);
-
+  
   // Escuchar evento para abrir el diálogo desde SectionManager
   useEffect(() => {
     const handleRequestAddComponent = () => {
@@ -88,7 +88,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       document.removeEventListener('section:request-add-component', handleRequestAddComponent);
     };
   }, []);
-
+  
   // Handler para crear sección y actualizar
   const handleCreateSectionAndFetch = async () => {
     console.log('[SectionsTab] Starting section creation...');
@@ -112,7 +112,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       }
     } else {
       console.log('[SectionsTab] ❌ Error creando sección');
-    }
+        }
     
     return success;
   };
