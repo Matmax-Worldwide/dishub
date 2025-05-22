@@ -113,6 +113,9 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   // Flag to prevent multiple setups of the global save function
   const globalSaveSetupRef = useRef(false);
   
+  // Flag to prevent automatic saves during initialization
+  const isInitializingRef = useRef(true);
+  
   // New states for section creation
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
@@ -324,6 +327,11 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       });
     } finally {
       setIsLoading(false);
+      // Mark initialization as complete
+      setTimeout(() => {
+        isInitializingRef.current = false;
+        console.log('✅ Page initialization complete - saves now allowed');
+      }, 1000); // Give a small delay to ensure all setup is complete
     }
   };
 
@@ -382,7 +390,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       ...(shouldUpdateSlug ? { slug: generateSlug(newTitle) } : {})
     }));
     
-    setHasUnsavedChanges(true);
+    // Only mark as unsaved if not initializing
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Handle general input changes
@@ -420,13 +431,19 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       }));
     }
     
-    setHasUnsavedChanges(true);
+    // Only mark as unsaved if not initializing
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
     setPageData(prev => ({ ...prev, [name]: value }));
-    setHasUnsavedChanges(true);
+    // Only mark as unsaved if not initializing
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Handle checkbox/switch changes
@@ -442,7 +459,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
     
     setPageData(prev => ({ ...prev, [name]: checked }));
-    setHasUnsavedChanges(true);
+    // Only mark as unsaved if not initializing
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Handle nested SEO property changes
@@ -492,7 +512,10 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
       return updatedState;
     });
     
-    setHasUnsavedChanges(true);
+    // Only mark as unsaved if not initializing
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Add section to page
@@ -524,7 +547,20 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
 
   // Save the entire page
   const handleSavePage = async (): Promise<boolean> => {
+    // Prevent saves during initialization
+    if (isInitializingRef.current) {
+      console.log('⚠️ Save blocked: Component is still initializing');
+      return false;
+    }
+    
+    // Only save if there are actual unsaved changes
+    if (!hasUnsavedChanges) {
+      console.log('ℹ️ No unsaved changes, skipping save');
+      return true;
+    }
+    
     try {
+      console.log('💾 Starting page save...');
       setIsSaving(true);
       
       // First save any section component changes
@@ -719,17 +755,16 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   };
 
-  // Setup global save function when component is ready
+  // Setup global save function - ONLY when explicitly needed
   useEffect(() => {
     if (pageData.id && !globalSaveSetupRef.current) {
       console.log('🔧 Setting up global save function for page:', pageData.id);
       globalSaveSetupRef.current = true;
       
-      // Create a simple wrapper function
-      const saveHandler = () => handleSavePage();
-      setGlobalOnSave(saveHandler);
+      // Set to null initially to prevent auto-execution
+      setGlobalOnSave(null);
     }
-  }, [pageData.id]); // Only setup when we have a valid page ID
+  }, [pageData.id]);
   
   // Handle cancel/back button
   const handleCancel = () => {
