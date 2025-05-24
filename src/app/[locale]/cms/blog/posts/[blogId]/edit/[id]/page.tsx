@@ -2,7 +2,7 @@
 
 import { PostEditForm } from '@/components/cms/blog/post/PostEditForm';
 
-interface PageProps {
+interface PostEditPageProps {
   params: {
     blogId: string;
     id: string;
@@ -10,6 +10,6 @@ interface PageProps {
   }
 }
 
-export default function EditPostPage({ params }: PageProps) {
+export default function EditPostPage({ params }: PostEditPageProps) {
   return <PostEditForm blogId={params.blogId} postId={params.id} locale={params.locale} />;
 } 
