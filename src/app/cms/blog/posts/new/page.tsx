@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Tag input component
 function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
@@ -56,9 +57,19 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[
 
 export default function CreatePostPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [blogs, setBlogs] = useState<Array<{ id: string; title: string }>>([]);
+  
+  // Check if we're still loading session data
+  const isLoadingSession = status === 'loading';
+
+  // Handle unauthorized access
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin?callbackUrl=/cms/blog/posts/new');
+    }
+  }, [status, router]);
   
   // Type guard for session user
   const sessionUser = session?.user as { id?: string; email?: string; name?: string; image?: string } | undefined;
@@ -91,10 +102,12 @@ export default function CreatePostPage() {
     }
   }, [formData.title, formData.slug]);
 
-  // Load blogs on mount
+  // Load blogs on mount, only when session is available
   useEffect(() => {
-    loadBlogs();
-  }, []);
+    if (session) {
+      loadBlogs();
+    }
+  }, [session]);
 
   async function loadBlogs() {
     try {
@@ -118,13 +131,18 @@ export default function CreatePostPage() {
       return;
     }
 
+    if (!sessionUser?.id) {
+      toast.error('You need to be logged in to create a post');
+      return;
+    }
+
     setLoading(true);
     
     try {
       const postData = {
         ...formData,
         status: asDraft ? 'DRAFT' : formData.status,
-        authorId: sessionUser?.id || '',
+        authorId: sessionUser.id,
         publishedAt: formData.status === 'PUBLISHED' && !formData.publishedAt 
           ? new Date().toISOString() 
           : formData.publishedAt || null,
@@ -151,6 +169,23 @@ export default function CreatePostPage() {
     const previewData = encodeURIComponent(JSON.stringify(formData));
     window.open(`/preview/post?data=${previewData}`, '_blank');
   };
+
+  // Show loading state during session check
+  if (isLoadingSession) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-1/3" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If session is not authenticated, don't render form
+  if (status === 'unauthenticated') {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -255,30 +290,26 @@ export default function CreatePostPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="excerpt">Excerpt</Label>
-                    <Textarea
-                      id="excerpt"
-                      value={formData.excerpt}
-                      onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                      placeholder="Brief description of your post"
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div>
                     <Label htmlFor="content">Content*</Label>
                     <Textarea
                       id="content"
                       value={formData.content}
                       onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      placeholder="Write your post content here..."
-                      rows={15}
+                      placeholder="Write your post content here"
+                      className="min-h-[200px]"
                       required
-                      className="font-mono"
                     />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      You can use Markdown for formatting
-                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="excerpt">Excerpt</Label>
+                    <Textarea
+                      id="excerpt"
+                      value={formData.excerpt}
+                      onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                      placeholder="Brief summary of your post"
+                      className="min-h-[100px]"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -290,62 +321,81 @@ export default function CreatePostPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Post Metadata</CardTitle>
-                <CardDescription>Tags, categories, and publishing options</CardDescription>
+                <CardDescription>Additional information about your post</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="featuredImage">Featured Image URL</Label>
-                  <Input
-                    id="featuredImage"
-                    value={formData.featuredImage}
-                    onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-                
-                <div>
-                  <Label>Tags</Label>
-                  <TagInput
-                    tags={formData.tags}
-                    onChange={(tags) => setFormData({ ...formData, tags })}
-                  />
-                </div>
-                
-                <div>
-                  <Label>Categories</Label>
-                  <TagInput
-                    tags={formData.categories}
-                    onChange={(categories) => setFormData({ ...formData, categories })}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
+                <div className="grid gap-4">
                   <div>
-                    <Label htmlFor="status">Status</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="status"
-                    checked={formData.status === 'PUBLISHED'}
-                    onCheckedChange={(checked) => 
-                      setFormData({ ...formData, status: checked ? 'PUBLISHED' : 'DRAFT' })
-                    }
-                  />
-                </div>
-                
-                {formData.status === 'PUBLISHED' && (
-                  <div>
-                    <Label htmlFor="publishedAt">Publish Date</Label>
+                    <Label htmlFor="featuredImage">Featured Image URL</Label>
                     <Input
-                      id="publishedAt"
-                      type="datetime-local"
-                      value={formData.publishedAt}
-                      onChange={(e) => setFormData({ ...formData, publishedAt: e.target.value })}
+                      id="featuredImage"
+                      value={formData.featuredImage}
+                      onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {formData.featuredImage && (
+                      <div className="mt-2 w-full h-40 bg-muted rounded-md overflow-hidden">
+                        <img 
+                          src={formData.featuredImage} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="tags">Tags</Label>
+                    <TagInput 
+                      tags={formData.tags} 
+                      onChange={(tags) => setFormData({ ...formData, tags })}
                     />
                   </div>
-                )}
+                  
+                  <div>
+                    <Label htmlFor="categories">Categories</Label>
+                    <TagInput 
+                      tags={formData.categories} 
+                      onChange={(categories) => setFormData({ ...formData, categories })}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="status" className="block mb-2">Status</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="status"
+                        checked={formData.status === 'PUBLISHED'}
+                        onCheckedChange={(checked) => 
+                          setFormData({ 
+                            ...formData, 
+                            status: checked ? 'PUBLISHED' : 'DRAFT',
+                            publishedAt: checked && !formData.publishedAt ? new Date().toISOString() : formData.publishedAt
+                          })
+                        }
+                      />
+                      <Label htmlFor="status" className="cursor-pointer">
+                        {formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}
+                      </Label>
+                    </div>
+                  </div>
+                  
+                  {formData.status === 'PUBLISHED' && (
+                    <div>
+                      <Label htmlFor="publishedAt">Publish Date</Label>
+                      <Input
+                        id="publishedAt"
+                        type="datetime-local"
+                        value={formData.publishedAt ? new Date(formData.publishedAt).toISOString().slice(0, 16) : ''}
+                        onChange={(e) => setFormData({ ...formData, publishedAt: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                      />
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -358,31 +408,33 @@ export default function CreatePostPage() {
                 <CardDescription>Optimize your post for search engines</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="metaTitle">Meta Title</Label>
-                  <Input
-                    id="metaTitle"
-                    value={formData.metaTitle}
-                    onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
-                    placeholder="SEO optimized title (defaults to post title)"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {formData.metaTitle.length}/60 characters
-                  </p>
-                </div>
-                
-                <div>
-                  <Label htmlFor="metaDescription">Meta Description</Label>
-                  <Textarea
-                    id="metaDescription"
-                    value={formData.metaDescription}
-                    onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-                    placeholder="Brief description for search results"
-                    rows={3}
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {formData.metaDescription.length}/160 characters
-                  </p>
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="metaTitle">Meta Title</Label>
+                    <Input
+                      id="metaTitle"
+                      value={formData.metaTitle}
+                      onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                      placeholder="SEO title (defaults to post title if empty)"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {(formData.metaTitle || formData.title).length}/60 characters
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="metaDescription">Meta Description</Label>
+                    <Textarea
+                      id="metaDescription"
+                      value={formData.metaDescription}
+                      onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                      placeholder="SEO description (defaults to excerpt if empty)"
+                      className="min-h-[100px]"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {(formData.metaDescription || formData.excerpt).length}/160 characters
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
