@@ -2,15 +2,15 @@
 
 import { BlogEditPageContent } from '@/components/cms/blog/BlogEditPageContent';
 
-interface BlogEditPageProps {
-  params: {
+// For client components, params is a regular object, not a Promise
+export default function EditBlogPage({ 
+  params 
+}: { 
+  params: { 
     id: string;
     locale: string;
   }
-}
-
-export default function EditBlogPage({ params }: BlogEditPageProps) {
-  // Use the params directly since they're not a Promise in this context
+}) {
   const blogId = params.id;
   const locale = params.locale;
   
