@@ -195,7 +195,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
         <Card>
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Blog Not Found</h2>
-            <p className="text-muted-foreground mb-4">The blog you're looking for could not be found.</p>
+            <p className="text-muted-foreground mb-4">The blog you&apos;re looking for could not be found.</p>
             <Button onClick={() => router.push(`/${locale}/cms/blog`)}>
               Return to Blogs
             </Button>
