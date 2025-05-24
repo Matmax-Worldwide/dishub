@@ -44,6 +44,7 @@ model User {
   timeEntries     TimeEntry[]
   role            RoleModel?     @relation(fields: [roleId], references: [id])
   settings        UserSettings?
+  posts           Post[]
 }
 
 model Session {
@@ -1047,4 +1048,43 @@ enum SubmissionStatus {
   COMPLETED
   REJECTED
   SPAM
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  slug        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+}
+
+model Post {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String    @db.Text
+  excerpt         String?
+  featuredImage   String?
+  status          PostStatus @default(DRAFT)
+  publishedAt     DateTime?
+  blogId          String
+  authorId        String
+  metaTitle       String?
+  metaDescription String?
+  tags            String[]
+  categories      String[]
+  readTime        Int?      @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  blog            Blog      @relation(fields: [blogId], references: [id])
+  author          User      @relation(fields: [authorId], references: [id])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }

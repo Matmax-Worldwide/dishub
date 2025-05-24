@@ -15,7 +15,8 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
-  LogOut
+  LogOut,
+  BookOpen
 } from 'lucide-react';
 
 import { 
@@ -39,6 +40,7 @@ interface CMSSidebarProps {
       forms: string;
       media: string;
       settings: string;
+      blog: string;
     };
   };
   locale: string;
@@ -83,7 +85,8 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     menus: 'Menus',
     forms: 'Forms',
     media: 'Media',
-    settings: 'Settings'
+    settings: 'Settings',
+    blog: 'Blog'
   };
 
   const navigationItems = [
@@ -106,6 +109,11 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
       name: nav.forms, 
       href: `/${locale}/cms/forms`, 
       icon: <FormInput className="h-4 w-4" /> 
+    },
+    { 
+      name: nav.blog, 
+      href: `/${locale}/cms/blog`, 
+      icon: <BookOpen className="h-4 w-4" /> 
     },
     { 
       name: nav.media, 

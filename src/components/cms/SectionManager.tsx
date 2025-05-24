@@ -27,7 +27,7 @@ interface FooterColumn {
 }
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog';
 
 export interface Component {
   id: string;
@@ -67,6 +67,12 @@ const componentMap = {
   }),
   Form: dynamic(() => import('./sections/FormSection'), {
     loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Form...</div>
+  }),
+  Article: dynamic(() => import('./sections/ArticleSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Article...</div>
+  }),
+  Blog: dynamic(() => import('./sections/BlogSection'), {
+    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Blog...</div>
   }),
 };
 
@@ -428,6 +434,30 @@ function SectionManagerBase({
           backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
           showGrid: true,
           showDots: true,
+        } : type === 'Article' ? {
+          title: 'Article Title',
+          subtitle: 'This is the article subtitle or summary that provides a brief overview',
+          author: 'John Doe',
+          authorImage: '',
+          publishDate: new Date().toISOString().split('T')[0],
+          readTime: '5 min read',
+          content: 'Start writing your article content here...\n\nThis is a new paragraph in your article.',
+          featuredImage: '',
+          featuredImageAlt: '',
+          tags: ['news', 'technology']
+        } : type === 'Blog' ? {
+          title: 'Blog',
+          subtitle: 'Latest articles and insights',
+          posts: [],
+          layout: 'grid',
+          filtersEnabled: true,
+          searchEnabled: true,
+          postsPerPage: 9,
+          showFeaturedImage: true,
+          showAuthor: true,
+          showDate: true,
+          showTags: true,
+          showExcerpt: true
         } : {}),
         componentTitle: `${type} Component`
       }
@@ -756,6 +786,68 @@ function SectionManagerBase({
             <div className="h-6 bg-white border border-purple-200 rounded mb-2"></div>
             <div className="h-6 bg-white border border-purple-200 rounded mb-3"></div>
             <div className="w-1/3 h-8 bg-purple-500 rounded-md self-start"></div>
+          </div>
+        )
+      },
+      {
+        type: 'Article',
+        title: 'Article Component',
+        description: 'Create rich articles with featured images, author info, and tags',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M10 9H9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-cyan-600 bg-cyan-100 border-cyan-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-md">
+            <div className="bg-cyan-200 w-full h-16 rounded-md mb-3"></div>
+            <div className="h-3 bg-cyan-300 rounded w-3/4 mb-2"></div>
+            <div className="h-2 bg-cyan-200 rounded w-1/2 mb-3"></div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-full bg-cyan-300"></div>
+              <div className="h-1.5 bg-cyan-200 rounded w-16"></div>
+            </div>
+            <div className="space-y-1">
+              <div className="h-1.5 bg-cyan-200 rounded"></div>
+              <div className="h-1.5 bg-cyan-200 rounded"></div>
+              <div className="h-1.5 bg-cyan-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        )
+      },
+      {
+        type: 'Blog',
+        title: 'Blog Component',
+        description: 'Display multiple blog posts with filters, search, and different layouts',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        ),
+        color: 'text-purple-600 bg-purple-100 border-purple-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-md">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-purple-200 h-12 rounded"></div>
+              <div className="bg-purple-200 h-12 rounded"></div>
+              <div className="bg-purple-200 h-12 rounded"></div>
+              <div className="bg-purple-200 h-12 rounded"></div>
+            </div>
+            <div className="mt-2 flex justify-center gap-1">
+              <div className="w-2 h-2 bg-purple-300 rounded-full"></div>
+              <div className="w-2 h-2 bg-purple-300 rounded-full"></div>
+              <div className="w-2 h-2 bg-purple-300 rounded-full"></div>
+            </div>
           </div>
         )
       },
@@ -1445,6 +1537,64 @@ function SectionManagerBase({
                   (component.data.backgroundType as 'image' | 'gradient') || 
                   (!isEditing && sectionBackgroundType ? sectionBackgroundType : undefined)
                 }
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Article': {
+          const ArticleComponent = componentMap.Article;
+          return (
+            <div {...containerProps}>
+              <ArticleComponent
+                title={component.data.title as string}
+                subtitle={component.data.subtitle as string}
+                author={component.data.author as string}
+                authorImage={component.data.authorImage as string}
+                publishDate={component.data.publishDate as string}
+                readTime={component.data.readTime as string}
+                content={component.data.content as string || ''}
+                featuredImage={component.data.featuredImage as string}
+                featuredImageAlt={component.data.featuredImageAlt as string}
+                tags={component.data.tags as string[] || []}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Blog': {
+          const BlogComponent = componentMap.Blog;
+          return (
+            <div {...containerProps}>
+              <BlogComponent
+                title={component.data.title as string}
+                subtitle={component.data.subtitle as string}
+                posts={component.data.posts as Array<{
+                  id: string;
+                  title: string;
+                  slug: string;
+                  excerpt?: string;
+                  content?: string;
+                  featuredImage?: string;
+                  author?: { name: string; image?: string };
+                  publishedAt?: string;
+                  readTime?: string;
+                  tags?: string[];
+                  category?: string;
+                }> || []}
+                layout={component.data.layout as 'grid' | 'list' | 'carousel' || 'grid'}
+                filtersEnabled={component.data.filtersEnabled as boolean ?? true}
+                searchEnabled={component.data.searchEnabled as boolean ?? true}
+                postsPerPage={component.data.postsPerPage as number || 9}
+                showFeaturedImage={component.data.showFeaturedImage as boolean ?? true}
+                showAuthor={component.data.showAuthor as boolean ?? true}
+                showDate={component.data.showDate as boolean ?? true}
+                showTags={component.data.showTags as boolean ?? true}
+                showExcerpt={component.data.showExcerpt as boolean ?? true}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />

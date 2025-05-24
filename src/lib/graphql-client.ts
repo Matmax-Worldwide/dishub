@@ -18,6 +18,8 @@ import {
   FormSubmissionStats
 } from '@/types/forms';
 
+import { Blog, Post } from '@/types/blog';
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,
@@ -3271,6 +3273,332 @@ const graphqlClient = {
   updateFieldOrders,
   deleteFormField,
   submitForm,
+
+  // Blog operations
+  async getBlogs() {
+    const query = `
+      query GetBlogs {
+        blogs {
+          id
+          title
+          description
+          slug
+          isActive
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ blogs: Blog[] }>(query);
+      return response.blogs;
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+      return [];
+    }
+  },
+
+  async createBlog(input: {
+    title: string;
+    description?: string | null;
+    slug: string;
+    isActive: boolean;
+  }) {
+    const query = `
+      mutation CreateBlog($input: BlogInput!) {
+        createBlog(input: $input) {
+          success
+          message
+          blog {
+            id
+            title
+            description
+            slug
+            isActive
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        createBlog: {
+          success: boolean;
+          message: string;
+          blog: Blog | null;
+        };
+      }>(query, { input });
+      return response.createBlog;
+    } catch (error) {
+      console.error('Error creating blog:', error);
+      return {
+        success: false,
+        message: 'An error occurred while creating the blog',
+        blog: null
+      };
+    }
+  },
+
+  async deleteBlog(id: string) {
+    const query = `
+      mutation DeleteBlog($id: ID!) {
+        deleteBlog(id: $id) {
+          success
+          message
+        }
+      }
+    `;
+    const response = await gqlRequest<{ deleteBlog: { success: boolean; message: string } }>(query, { id });
+    return response.deleteBlog;
+  },
+
+  async updateBlog(id: string, input: {
+    title?: string;
+    description?: string | null;
+    slug?: string;
+    isActive?: boolean;
+  }) {
+    try {
+      // Try using GraphQL first
+      const query = `
+        mutation UpdateBlog($id: ID!, $input: BlogInput!) {
+          updateBlog(id: $id, input: $input) {
+            success
+            message
+            blog {
+              id
+              title
+              description
+              slug
+              isActive
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+      
+      const response = await gqlRequest<{
+        updateBlog: {
+          success: boolean;
+          message: string;
+          blog: Blog | null;
+        };
+      }>(query, { id, input });
+      
+      return response.updateBlog;
+    } catch (error) {
+      console.error('GraphQL updateBlog error:', error);
+      
+      // Fallback to REST API
+      try {
+        const response = await fetch(`/api/blogs/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(input),
+        });
+        
+        const result = await response.json();
+        return {
+          success: result.success,
+          message: result.message,
+          blog: result.blog
+        };
+      } catch (fallbackError) {
+        console.error('REST fallback error:', fallbackError);
+        return {
+          success: false,
+          message: 'Failed to update blog',
+          blog: null
+        };
+      }
+    }
+  },
+
+  // Post operations
+  async createPost(input: {
+    title: string;
+    slug: string;
+    content: string;
+    excerpt?: string;
+    featuredImage?: string;
+    status: string;
+    blogId: string;
+    authorId: string;
+    publishedAt?: string | null;
+    metaTitle?: string;
+    metaDescription?: string;
+    tags?: string[];
+    categories?: string[];
+  }) {
+    const mutation = `
+      mutation CreatePost($input: CreatePostInput!) {
+        createPost(input: $input) {
+          success
+          message
+          post {
+            id
+            title
+            slug
+            content
+            excerpt
+            featuredImage
+            status
+            blogId
+            authorId
+            publishedAt
+            metaTitle
+            metaDescription
+            tags
+            categories
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+    const response = await gqlRequest<{ createPost: { success: boolean; message: string; post: Post | null } }>(mutation, { input });
+    return response.createPost;
+  },
+
+  async getPosts(filter?: {
+    blogId?: string;
+    status?: string;
+    authorId?: string;
+    tags?: string[];
+    categories?: string[];
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const query = `
+      query GetPosts($filter: PostFilter) {
+        posts(filter: $filter) {
+          id
+          title
+          slug
+          content
+          excerpt
+          featuredImage
+          status
+          blogId
+          authorId
+          publishedAt
+          metaTitle
+          metaDescription
+          tags
+          categories
+          readTime
+          createdAt
+          updatedAt
+          author {
+            id
+            firstName
+            lastName
+            email
+            profileImageUrl
+          }
+          blog {
+            id
+            title
+            slug
+          }
+        }
+      }
+    `;
+    const response = await gqlRequest<{ posts: Post[] }>(query, { filter });
+    return response.posts || [];
+  },
+
+  async getPostBySlug(slug: string) {
+    const query = `
+      query GetPostBySlug($slug: String!) {
+        postBySlug(slug: $slug) {
+          id
+          title
+          slug
+          content
+          excerpt
+          featuredImage
+          status
+          blogId
+          authorId
+          publishedAt
+          metaTitle
+          metaDescription
+          tags
+          categories
+          readTime
+          createdAt
+          updatedAt
+          author {
+            id
+            firstName
+            lastName
+            email
+            profileImageUrl
+          }
+          blog {
+            id
+            title
+            slug
+          }
+        }
+      }
+    `;
+    const response = await gqlRequest<{ postBySlug: Post | null }>(query, { slug });
+    return response.postBySlug;
+  },
+
+  async updatePost(id: string, input: {
+    title?: string;
+    slug?: string;
+    content?: string;
+    excerpt?: string;
+    featuredImage?: string;
+    status?: string;
+    publishedAt?: string | null;
+    metaTitle?: string;
+    metaDescription?: string;
+    tags?: string[];
+    categories?: string[];
+  }) {
+    const mutation = `
+      mutation UpdatePost($id: ID!, $input: UpdatePostInput!) {
+        updatePost(id: $id, input: $input) {
+          success
+          message
+          post {
+            id
+            title
+            slug
+            status
+            updatedAt
+          }
+        }
+      }
+    `;
+    const response = await gqlRequest<{ updatePost: { success: boolean; message: string; post: Post | null } }>(mutation, { id, input });
+    return response.updatePost;
+  },
+
+  async deletePost(id: string) {
+    const mutation = `
+      mutation DeletePost($id: ID!) {
+        deletePost(id: $id) {
+          success
+          message
+        }
+      }
+    `;
+    const response = await gqlRequest<{ deletePost: { success: boolean; message: string } }>(mutation, { id });
+    return response.deletePost;
+  },
 };
 
 // Export all functions
