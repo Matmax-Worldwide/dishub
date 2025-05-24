@@ -63,6 +63,11 @@ export function FormPageContent() {
     router.push(`/cms/forms/edit/${id}`);
   };
 
+  // Handle viewing form submissions
+  const handleViewSubmissions = (id: string) => {
+    router.push(`/cms/forms/submissions/${id}`);
+  };
+
   // Handle form deletion
   const handleDeleteForm = async (id: string) => {
     const form = forms.find(f => f.id === id);
@@ -145,12 +150,14 @@ export function FormPageContent() {
               forms={sortedForms} 
               onEdit={handleEditForm}
               onDelete={handleDeleteForm}
+              onViewSubmissions={handleViewSubmissions}
             />
           ) : (
             <FormsListView 
               forms={sortedForms} 
               onEdit={handleEditForm}
               onDelete={handleDeleteForm}
+              onViewSubmissions={handleViewSubmissions}
               onSort={handleSort}
               sortField={sortField}
               sortDirection={sortDirection}
