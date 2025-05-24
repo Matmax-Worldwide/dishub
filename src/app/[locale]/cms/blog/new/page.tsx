@@ -1,12 +1,6 @@
 'use client';
 
-import { Metadata } from 'next';
 import { BlogNewPageContent } from '@/components/cms/blog/BlogNewPageContent';
-
-export const metadata: Metadata = {
-  title: 'Blog Management | CMS',
-  description: 'Manage blogs and posts',
-};
 
 export default function NewBlogPage({
   params
