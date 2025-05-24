@@ -6,11 +6,11 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-interface PageProps {
+interface ServerPageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function Page(props: PageProps) {
+export default async function Page(props: ServerPageProps) {
   // Next.js doesn't want us to directly access props.params.locale
   // So let's pass it through server-side rendering
   

@@ -3,11 +3,11 @@ import Navbar from '../../../components/Navigation/Navbar';
 import Footer from '../../../components/Footer';
 import { notFound } from 'next/navigation';
 
-interface PageProps {
+interface ServerPageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function Privacy(props: PageProps) {
+export default async function Privacy(props: ServerPageProps) {
   // Await the params object to get locale safely
   const { locale: localeParam } = await props.params;
   

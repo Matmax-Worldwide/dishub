@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { notFound } from 'next/navigation';
 
-interface PageProps {
+interface ServerPageProps {
   params: Promise<{ locale: string }>;
 }
 
@@ -22,7 +22,7 @@ interface ServicesContentProps {
   dictionary: Dictionary;
 }
 
-export default async function ServicesPage(props: PageProps) {
+export default async function ServicesPage(props: ServerPageProps) {
   // Await the params object to get locale safely
   const { locale: localeParam } = await props.params;
   

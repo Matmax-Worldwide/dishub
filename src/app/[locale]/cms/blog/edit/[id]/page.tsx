@@ -2,15 +2,15 @@
 
 import { BlogEditPageContent } from '@/components/cms/blog/BlogEditPageContent';
 
-export default function EditBlogPage({ 
-  params 
-}: { 
-  params: { 
+interface PageProps {
+  params: {
     id: string;
     locale: string;
   }
-}) {
-  // This page uses a hardcoded blog ID as requested in the prompt
+}
+
+export default function EditBlogPage({ params }: PageProps) {
+  // Use the params directly since they're not a Promise in this context
   const blogId = params.id;
   const locale = params.locale;
   
