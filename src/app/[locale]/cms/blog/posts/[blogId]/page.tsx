@@ -1,14 +1,14 @@
-'use client';
 
 import { PostList } from '@/components/cms/blog/post/PostList';
 
-export default function BlogPostsPage({ 
-  params 
-}: { 
-  params: { 
+interface ServerPageProps {
+  params: Promise<{ 
     blogId: string;
     locale: string;
-  }
-}) {
-  return <PostList blogId={params.blogId} locale={params.locale} />;
+  }>;
+}
+
+export default async function BlogPostsPage(props: ServerPageProps) {
+  const { blogId, locale } = await props.params;
+  return <PostList blogId={blogId} locale={locale} />;
 } 

@@ -1,14 +1,14 @@
-'use client';
 
 import { PostCreateForm } from '@/components/cms/blog/post/PostCreateForm';
 
-export default function CreatePostPage({ 
-  params 
-}: { 
-  params: { 
+interface ServerPageProps {
+  params: Promise<{ 
     blogId: string;
     locale: string;
-  }
-}) {
-  return <PostCreateForm blogId={params.blogId} locale={params.locale} />;
+  }>;
+}
+
+export default async function CreatePostPage(props: ServerPageProps) {
+  const { blogId, locale } = await props.params;
+  return <PostCreateForm blogId={blogId} locale={locale} />;
 } 
