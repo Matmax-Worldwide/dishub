@@ -1,4 +1,3 @@
-'use client';
 
 import { Suspense } from 'react';
 import { PostCreateForm } from '@/components/cms/blog/post/PostCreateForm';
@@ -6,14 +5,14 @@ import { SessionProvider } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface PageProps {
-  params: { 
+  params: Promise<{
     blogId: string;
     locale: string;
-  };
+  }>;
 }
 
-export default function CreatePostPage({ params }: PageProps) {
-  const { blogId, locale } = params;
+export default async function CreatePostPage({ params }: PageProps) {
+  const { blogId, locale } = await params;
   
   return (
     <SessionProvider>
