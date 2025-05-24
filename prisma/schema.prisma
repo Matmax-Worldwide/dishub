@@ -484,6 +484,7 @@ model Page {
   updatedAt       DateTime      @updatedAt
   locale          String        @default("en")
   template        String        @default("default")
+  isDefault       Boolean       @default(false)
   forms           Form[]
   menuItems       MenuItem[]
   parent          Page?         @relation("PageToPage", fields: [parentId], references: [id])

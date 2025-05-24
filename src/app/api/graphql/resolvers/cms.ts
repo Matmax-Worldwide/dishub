@@ -452,6 +452,48 @@ export const cmsResolvers = {
         return [];
       }
     },
+
+    // New resolver for getting the default page
+    getDefaultPage: async (_parent: unknown, args: { locale: string }) => {
+      console.log('======== START getDefaultPage resolver ========');
+      try {
+        const { locale } = args;
+        console.log(`Looking for default page with locale: ${locale}`);
+        
+        // Find the page marked as default for the specified locale
+        const page = await prisma.page.findFirst({
+          where: { 
+            isDefault: true,
+            locale,
+            isPublished: true
+          },
+          include: {
+            sections: true,
+            seo: true
+          }
+        });
+        
+        if (!page) {
+          console.log(`No default page found for locale: ${locale}`);
+          return null;
+        }
+        
+        console.log(`Found default page: ${page.title} (${page.slug})`);
+        
+        // Filter out sections with null sectionId to prevent GraphQL errors
+        const filteredPage = {
+          ...page,
+          sections: page.sections.filter(section => 
+            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
+          )
+        };
+        
+        return filteredPage;
+      } catch (error) {
+        console.error('Error in getDefaultPage:', error);
+        return null;
+      }
+    },
   },
   
   Mutation: {
@@ -1132,6 +1174,7 @@ export const cmsResolvers = {
         order?: number;
         pageType?: string;
         locale?: string;
+        isDefault?: boolean;
         seo?: PageSEOInput;
         sectionIds?: string[]; // Lista de IDs de secciones
       } 
@@ -1155,6 +1198,32 @@ export const cmsResolvers = {
             message: `No se encontró ninguna página con ID: ${id}`,
             page: null
           };
+        }
+
+        // If setting this page as default, make sure no other page for the same locale is set as default
+        if (input.isDefault === true) {
+          const localeToUse = input.locale || existingPage.locale;
+          
+          console.log(`Setting page ${id} as default for locale ${localeToUse}`);
+          
+          // Find and update any existing default pages for this locale
+          const existingDefault = await prisma.page.findFirst({
+            where: {
+              locale: localeToUse,
+              isDefault: true,
+              id: { not: id } // Exclude the current page
+            }
+          });
+          
+          if (existingDefault) {
+            console.log(`Found existing default page ${existingDefault.id} (${existingDefault.title}), removing default status`);
+            
+            // Remove default status from the existing default page
+            await prisma.page.update({
+              where: { id: existingDefault.id },
+              data: { isDefault: false }
+            });
+          }
         }
 
         // If title is being updated, also update any menu items that link to this page

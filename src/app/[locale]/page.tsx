@@ -28,5 +28,6 @@ export default async function Page(props: PageProps) {
   // Get dictionary
   const dictionary = await getDictionary(safeLocale as Locale);
   
+  // Return the ClientPage component that will fetch and render the default page
   return <ClientPage locale={safeLocale} dictionary={dictionary} />;
 } 

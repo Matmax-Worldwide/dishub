@@ -10,5 +10,9 @@ export default function EditBlogPage({
     locale: string;
   }
 }) {
-  return <BlogEditPageContent blogId={params.id} locale={params.locale} />;
+  // This page uses a hardcoded blog ID as requested in the prompt
+  const blogId = params.id;
+  const locale = params.locale;
+  
+  return <BlogEditPageContent blogId={blogId} locale={locale} />;
 } 

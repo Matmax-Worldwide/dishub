@@ -613,7 +613,7 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
   
-  # Page type for CMS pages
+  # Full Page type
   type Page {
     id: ID!
     title: String!
@@ -625,15 +625,18 @@ export const typeDefs = gql`
     featuredImage: String
     metaTitle: String
     metaDescription: String
-    parentId: ID
+    parentId: String
     order: Int
     pageType: PageType!
     locale: String
     scrollType: ScrollType
+    isDefault: Boolean
     createdAt: DateTime!
     updatedAt: DateTime!
     sections: [CMSSection!]
     seo: PageSEO
+    parent: Page
+    children: [Page!]
   }
 
   # PageSEO type 
@@ -655,7 +658,7 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
 
-  # Input types for page operations
+  # Input for creating pages
   input CreatePageInput {
     title: String!
     slug: String!
@@ -668,16 +671,18 @@ export const typeDefs = gql`
     metaDescription: String
     parentId: String
     order: Int
-    pageType: String
+    pageType: PageType
     locale: String
-    scrollType: String
-    sections: [String!]
+    scrollType: ScrollType
+    isDefault: Boolean
+    seo: PageSEOInput
+    sections: [ID!]
   }
   
-  # Page creation result
+  # Page result type
   type PageResult {
     success: Boolean!
-    message: String
+    message: String!
     page: Page
   }
 
@@ -826,6 +831,7 @@ export const typeDefs = gql`
     pageType: String
     locale: String
     scrollType: String
+    isDefault: Boolean
     seo: PageSEOInput
     sections: [ID!]
   }
@@ -1173,6 +1179,7 @@ export const typeDefs = gql`
     # Nuevas queries para páginas CMS
     getAllCMSPages: [Page!]!
     getPageBySlug(slug: String!): Page
+    getDefaultPage(locale: String!): Page
     getPagesUsingSectionId(sectionId: ID!): [Page!]!
 
     # Menu queries

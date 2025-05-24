@@ -272,6 +272,7 @@ export interface PageData {
   scrollType?: 'normal' | 'smooth';
   createdAt?: string;
   updatedAt?: string;
+  isDefault?: boolean;
   sections?: Array<{
     id: string;
     sectionId: string;
@@ -292,6 +293,15 @@ export interface PageData {
     canonicalUrl?: string;
     structuredData?: Record<string, unknown>;
   };
+}
+
+export interface SectionData {
+  id: string;
+  title?: string;
+  order: number;
+  components: CMSComponent[];
+  backgroundImage?: string;
+  backgroundType?: string;
 }
 
 // Generic GraphQL response type
@@ -341,6 +351,7 @@ async function getPageBySlug(slug: string): Promise<PageData | null> {
           pageType
           locale
           scrollType
+          isDefault
           createdAt
           updatedAt
           sections {
@@ -496,6 +507,7 @@ async function updatePage(id: string, input: {
   order?: number;
   pageType?: string;
   locale?: string;
+  isDefault?: boolean;
   seo?: {
     title?: string;
     description?: string;
@@ -559,6 +571,7 @@ async function updatePage(id: string, input: {
             metaDescription
             featuredImage
             publishDate
+            isDefault
             updatedAt
             sections {
               id
@@ -2546,6 +2559,9 @@ export const cmsOperations = {
 
   // Expose the clearCache function
   clearCache,
+
+  // Get the default page for a locale
+  getDefaultPage,
 };
 
 // Form Builder API functions
@@ -3603,3 +3619,103 @@ const graphqlClient = {
 
 // Export all functions
 export default graphqlClient;
+
+// Get the default page for a locale
+async function getDefaultPage(locale: string = 'en'): Promise<PageData | null> {
+  try {
+    console.log(`[getDefaultPage] Attempting to fetch default page for locale: "${locale}"`);
+    
+    // Check cache first
+    const cacheKey = `default_page_${locale}`;
+    const cachedPage = getCachedResponse<PageData>(cacheKey);
+    
+    if (cachedPage) {
+      console.log(`[getDefaultPage] Found cached default page: ${cachedPage.title}`);
+      return cachedPage;
+    }
+    
+    const query = `
+      query GetDefaultPage($locale: String!) {
+        getDefaultPage(locale: $locale) {
+          id
+          title
+          slug
+          description
+          template
+          isPublished
+          publishDate
+          featuredImage
+          metaTitle
+          metaDescription
+          parentId
+          order
+          pageType
+          locale
+          scrollType
+          isDefault
+          createdAt
+          updatedAt
+          sections {
+            id
+            sectionId
+            name
+            order
+          }
+          seo {
+            title
+            description
+            keywords
+            ogTitle
+            ogDescription
+            ogImage
+            twitterTitle
+            twitterDescription
+            twitterImage
+            canonicalUrl
+            structuredData
+          }
+        }
+      }
+    `;
+
+    const variables = { locale };
+    
+    console.log(`[getDefaultPage] Executing GraphQL query with variables:`, variables);
+    const result = await gqlRequest<{ 
+      getDefaultPage?: PageData; 
+      data?: { getDefaultPage: PageData };
+      errors?: Array<{ message: string }>
+    }>(query, variables);
+    
+    console.log(`[getDefaultPage] GraphQL result:`, result);
+    
+    // Check for errors in the response
+    if (result.errors && result.errors.length > 0) {
+      console.error(`[getDefaultPage] GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
+      return null;
+    }
+    
+    // Try to extract page data from different possible response structures
+    let page: PageData | null = null;
+    
+    if (result.getDefaultPage) {
+      page = result.getDefaultPage;
+    } else if (result.data?.getDefaultPage) {
+      page = result.data.getDefaultPage;
+    } else {
+      console.log(`[getDefaultPage] No default page found for locale "${locale}"`);
+      return null;
+    }
+    
+    if (page) {
+      // Cache the result for future requests
+      setCachedResponse(cacheKey, page);
+      console.log(`[getDefaultPage] Found and cached default page: ${page.title}`);
+    }
+    
+    return page;
+  } catch (error) {
+    console.error('[getDefaultPage] Error fetching default page:', error);
+    return null;
+  }
+}
