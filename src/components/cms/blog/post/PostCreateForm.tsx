@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ArrowLeft } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PostCreateFormProps {
   blogId: string;
@@ -19,7 +21,21 @@ interface PostCreateFormProps {
 
 export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
+  
+  // Check if we're still loading session data
+  const isLoadingSession = status === 'loading';
+
+  // Handle unauthorized access
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
+    }
+  }, [status, router, locale, blogId]);
+  
+  // Type guard for session user
+  const sessionUser = session?.user as { id?: string; email?: string; name?: string; image?: string } | undefined;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -62,6 +78,12 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
       return;
     }
 
+    // Ensure user is authenticated
+    if (!sessionUser?.id) {
+      toast.error('You need to be logged in to create a post');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -74,7 +96,7 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
         featuredImage: formData.featuredImage.trim() || undefined,
         status: formData.status,
         blogId: blogId,
-        authorId: 'system', // This would normally come from authentication
+        authorId: sessionUser.id, // Use actual user ID from session
         publishedAt: formData.status === 'PUBLISHED' ? new Date().toISOString() : undefined,
         metaTitle: formData.metaTitle.trim() || undefined,
         metaDescription: formData.metaDescription.trim() || undefined,
@@ -95,6 +117,23 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
       setLoading(false);
     }
   };
+
+  // Show loading state during session check
+  if (isLoadingSession) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-1/3" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If session is not authenticated, don't render form
+  if (status === 'unauthenticated') {
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -270,7 +309,7 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
                     placeholder="tag1, tag2, tag3"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Comma-separated list of tags
+                    Separate tags with commas
                   </p>
                 </div>
 
@@ -284,20 +323,20 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
                     placeholder="category1, category2"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Comma-separated list of categories
+                    Separate categories with commas
                   </p>
                 </div>
+
+                {/* Submit Button */}
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating Post...' : 'Create Post'}
+                </Button>
               </CardContent>
             </Card>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !formData.title.trim() || !formData.content.trim()}
-            >
-              {loading ? 'Creating...' : `Save as ${formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}`}
-            </Button>
           </div>
         </div>
       </form>

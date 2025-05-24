@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, SessionProvider } from 'next-auth/react';
 import graphqlClient from '@/lib/graphql-client';
 import { ArrowLeft, Save, Eye, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Suspense } from 'react';
 
 // Tag input component
 function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
@@ -55,7 +56,8 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[
   );
 }
 
-export default function CreatePostPage() {
+// CreatePostForm component
+function CreatePostForm() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
@@ -442,5 +444,23 @@ export default function CreatePostPage() {
         </Tabs>
       </form>
     </div>
+  );
+}
+
+// Main page component with SessionProvider
+export default function CreatePostPage() {
+  return (
+    <SessionProvider>
+      <Suspense fallback={
+        <div className="container mx-auto py-8 px-4 max-w-6xl">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-1/3" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      }>
+        <CreatePostForm />
+      </Suspense>
+    </SessionProvider>
   );
 } 
