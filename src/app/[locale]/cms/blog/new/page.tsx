@@ -1,14 +1,14 @@
-'use client';
 
 import { BlogNewPageContent } from '@/components/cms/blog/BlogNewPageContent';
 
-export default function NewBlogPage({
-  params
-}: {
-  params: { locale: string }
-}) {
-  // If you're seeing errors about "Property 'blog' does not exist on type 'PrismaClient'",
-  // you need to regenerate the Prisma client with:
-  // npx prisma generate
-  return <BlogNewPageContent locale={params.locale} />;
+interface ServerPageProps {
+    params: Promise<{ 
+      locale: string;
+    }>;
+  }
+
+export default async function NewBlogPage(props: ServerPageProps) {
+    const { locale } = await props.params;
+
+  return <BlogNewPageContent locale={locale} />;
 } 
