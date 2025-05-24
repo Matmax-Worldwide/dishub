@@ -10,23 +10,22 @@ import {
   ArrowPathIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 
-interface ServerPageProps {
-  params: Promise<{ locale: string }>;
-}
+
 
 interface WellnessContentProps {
   locale: string;
   dictionary: Dictionary;
 }
 
-export default async function WellnessPage(props: ServerPageProps) {
+export default function WellnessPage() {
   // Await the params object to get locale safely
-  const { locale: localeParam } = await props.params;
+  const params = useParams();
+  const locale = params.locale as string;
   
   // This is needed since we can't use localeParam directly
-  const safeLocale = typeof localeParam === 'string' ? localeParam : 'en';
+  const safeLocale = typeof locale === 'string' ? locale : 'en';
   
   // Validate locale
   if (!locales.includes(safeLocale as Locale)) {
@@ -34,7 +33,7 @@ export default async function WellnessPage(props: ServerPageProps) {
   }
   
   // Get dictionary
-  const dictionary = await getDictionary(safeLocale as Locale);
+  const dictionary = getDictionary(safeLocale as Locale);
   
   return <WellnessContent locale={safeLocale} dictionary={dictionary} />;
 }
