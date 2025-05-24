@@ -1,18 +1,15 @@
-'use client';
-
 import { BlogEditPageContent } from '@/components/cms/blog/BlogEditPageContent';
 
-// For client components, params is a regular object, not a Promise
-export default function EditBlogPage({ 
-  params 
-}: { 
-  params: { 
+interface ServerPageProps {
+  params: Promise<{ 
     id: string;
     locale: string;
-  }
-}) {
-  const blogId = params.id;
-  const locale = params.locale;
+  }>;
+}
+
+export default async function EditBlogPage(props: ServerPageProps) {
+  // Await the params object to get locale and id safely
+  const { id, locale } = await props.params;
   
-  return <BlogEditPageContent blogId={blogId} locale={locale} />;
+  return <BlogEditPageContent blogId={id} locale={locale} />;
 } 

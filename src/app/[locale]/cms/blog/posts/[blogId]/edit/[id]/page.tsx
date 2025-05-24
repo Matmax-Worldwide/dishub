@@ -1,14 +1,16 @@
-'use client';
-
 import { PostEditForm } from '@/components/cms/blog/post/PostEditForm';
-import { useParams } from 'next/navigation';
 
-// For client components, params is a regular object, not a Promise
-export default function EditPostPage() {
-  const params = useParams();
-  const blogId = params.blogId as string;
-  const id = params.id as string;
-  const locale = params.locale as string;
+interface ServerPageProps {
+  params: Promise<{ 
+    blogId: string;
+    id: string;
+    locale: string;
+  }>;
+}
 
+export default async function EditPostPage(props: ServerPageProps) {
+  // Await the params object to get locale, blogId and id safely
+  const { blogId, id, locale } = await props.params;
+  
   return <PostEditForm blogId={blogId} postId={id} locale={locale} />;
 } 
