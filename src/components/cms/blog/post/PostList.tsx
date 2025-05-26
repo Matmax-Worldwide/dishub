@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { gqlRequest } from '@/lib/graphql-client';
 
 interface PostListProps {
   blogId: string;
@@ -60,17 +61,50 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
   async function loadBlogAndPosts() {
     setLoading(true);
     try {
-      // Fetch blog info using GraphQL
-      const blogData = await graphqlClient.getBlogById(blogId);
-      setBlog(blogData);
+      // Fetch blog and posts in a single query using GraphQL
+      const query = `
+        query BlogWithPosts($blogId: ID!) {
+          blog(id: $blogId) {
+            id
+            title
+            description
+            slug
+            isActive
+          }
+          posts(filter: { blogId: $blogId }) {
+            id
+            title
+            slug
+            content
+            excerpt
+            featuredImage
+            status
+            publishedAt
+            blogId
+            authorId
+            metaTitle
+            metaDescription
+            tags
+            categories
+            createdAt
+            updatedAt
+          }
+        }
+      `;
 
-      // Fetch posts using GraphQL client
-      const postsData = await graphqlClient.getPosts({
-        blogId: blogId,
-        limit: 100
-      });
+      const response = await gqlRequest<{ 
+        blog: { title: string; description: string; slug: string; isActive: boolean } | null;
+        posts: Post[] 
+      }>(query, { blogId });
       
-      setPosts(postsData);
+      if (!response.blog) {
+        toast.error('Blog not found');
+        setBlog(null);
+        return;
+      }
+      
+      setBlog(response.blog);
+      setPosts(response.posts || []);
     } catch (error) {
       console.error('Error loading blog posts:', error);
       toast.error('Failed to load blog posts');
@@ -136,14 +170,28 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
     }
     
     try {
-      const result = await graphqlClient.deletePost(postId);
+      const deletePostMutation = `
+        mutation DeletePost($id: ID!) {
+          deletePost(id: $id) {
+            success
+            message
+          }
+        }
+      `;
       
-      if (result.success) {
+      const result = await gqlRequest<{ 
+        deletePost: { 
+          success: boolean; 
+          message: string;
+        }
+      }>(deletePostMutation, { id: postId });
+      
+      if (result.deletePost.success) {
         toast.success('Post deleted successfully');
         // Remove the deleted post from state
         setPosts(posts.filter(post => post.id !== postId));
       } else {
-        toast.error(result.message || 'Failed to delete post');
+        toast.error(result.deletePost.message || 'Failed to delete post');
       }
     } catch (error) {
       console.error('Error deleting post:', error);

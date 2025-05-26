@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { ArrowLeft } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { gqlRequest } from '@/lib/graphql-client';
 
 interface PostCreateFormProps {
   blogId: string;
@@ -21,21 +21,50 @@ interface PostCreateFormProps {
 
 export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null);
   
-  // Check if we're still loading session data
-  const isLoadingSession = status === 'loading';
-
-  // Handle unauthorized access
+  // Check authentication on mount
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    checkAuthentication();
+  }, []);
+
+  async function checkAuthentication() {
+    try {
+      const token = typeof document !== 'undefined' 
+        ? document.cookie.split(';').find(c => c.trim().startsWith('session-token='))?.split('=')[1]
+        : null;
+
+      if (!token) {
+        router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
+        return;
+      }
+
+      // Get current user info
+      const query = `
+        query Me {
+          me {
+            id
+            email
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ me: { id: string; email: string } }>(query);
+      
+      if (response.me) {
+        setCurrentUser(response.me);
+      } else {
+        router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
       router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
+    } finally {
+      setCheckingAuth(false);
     }
-  }, [status, router, locale, blogId]);
-  
-  // Type guard for session user
-  const sessionUser = session?.user as { id?: string; email?: string; name?: string; image?: string } | undefined;
+  }
   
   // Form state
   const [formData, setFormData] = useState({
@@ -79,7 +108,7 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
     }
 
     // Ensure user is authenticated
-    if (!sessionUser?.id) {
+    if (!currentUser?.id) {
       toast.error('You need to be logged in to create a post');
       return;
     }
@@ -96,7 +125,7 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
         featuredImage: formData.featuredImage.trim() || undefined,
         status: formData.status,
         blogId: blogId,
-        authorId: sessionUser.id, // Use actual user ID from session
+        authorId: currentUser.id, // Use actual user ID from our auth
         publishedAt: formData.status === 'PUBLISHED' ? new Date().toISOString() : undefined,
         metaTitle: formData.metaTitle.trim() || undefined,
         metaDescription: formData.metaDescription.trim() || undefined,
@@ -118,8 +147,8 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
     }
   };
 
-  // Show loading state during session check
-  if (isLoadingSession) {
+  // Show loading state during auth check
+  if (checkingAuth) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <div className="space-y-4">
@@ -130,8 +159,8 @@ export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
     );
   }
 
-  // If session is not authenticated, don't render form
-  if (status === 'unauthenticated') {
+  // If not authenticated, don't render form
+  if (!currentUser) {
     return null;
   }
 

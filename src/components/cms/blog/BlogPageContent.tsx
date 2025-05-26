@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Blog } from '@/types/blog';
 import { useRouter } from 'next/navigation';
-import graphqlClient from '@/lib/graphql-client';
+import { gqlRequest } from '@/lib/graphql-client';
 
 import { BlogPageHeader } from './BlogPageHeader';
 import { BlogToolbar } from './BlogToolbar';
@@ -33,8 +33,25 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
   async function loadBlogs() {
     setLoading(true);
     try {
-      const blogsList = await graphqlClient.getBlogs();
-      setBlogs(blogsList);
+      const query = `
+        query GetBlogs {
+          blogs {
+            id
+            title
+            description
+            slug
+            isActive
+            createdAt
+            updatedAt
+            posts {
+              id
+            }
+          }
+        }
+      `;
+      
+      const response = await gqlRequest<{ blogs: Blog[] }>(query);
+      setBlogs(response.blogs || []);
     } catch (error) {
       console.error('Error loading blogs:', error);
     } finally {
@@ -82,12 +99,23 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
     }
 
     try {
-      const result = await graphqlClient.deleteBlog(id);
+      const mutation = `
+        mutation DeleteBlog($id: ID!) {
+          deleteBlog(id: $id) {
+            success
+            message
+          }
+        }
+      `;
       
-      if (result.success) {
+      const result = await gqlRequest<{ 
+        deleteBlog: { success: boolean; message: string } 
+      }>(mutation, { id });
+      
+      if (result.deleteBlog.success) {
         setBlogs(blogs.filter(blog => blog.id !== id));
       } else {
-        alert(`Failed to delete blog: ${result.message}`);
+        alert(`Failed to delete blog: ${result.deleteBlog.message}`);
       }
     } catch (error) {
       console.error('Error deleting blog:', error);

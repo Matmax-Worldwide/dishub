@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import BlogSection from './BlogSection';
-import graphqlClient from '@/lib/graphql-client';
+import { gqlRequest } from '@/lib/graphql-client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface BlogPost {
@@ -56,6 +56,28 @@ interface PostFilter {
   limit?: number;
 }
 
+interface Author {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string;
+}
+
+interface PostResponse {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content: string;
+  featuredImage?: string;
+  status: string;
+  publishedAt?: string;
+  readTime?: string;
+  tags?: string[];
+  categories?: string[];
+  author?: Author;
+}
+
 export default function BlogSectionWrapper({
   // Default values
   title = 'Blog',
@@ -88,6 +110,9 @@ export default function BlogSectionWrapper({
 
   async function fetchPosts() {
     try {
+      setLoading(true);
+      
+      // Build filter object
       const filter: PostFilter = {};
       
       if (blogId) filter.blogId = blogId;
@@ -96,11 +121,36 @@ export default function BlogSectionWrapper({
       if (tags?.length) filter.tags = tags;
       if (categories?.length) filter.categories = categories;
       if (limit) filter.limit = limit;
-
-      const fetchedPosts = await graphqlClient.getPosts(filter);
+      
+      // Create GraphQL query
+      const query = `
+        query GetFilteredPosts($filter: PostFilterInput) {
+          posts(filter: $filter) {
+            id
+            title
+            slug
+            excerpt
+            content
+            featuredImage
+            status
+            publishedAt
+            readTime
+            tags
+            categories
+            author {
+              id
+              firstName
+              lastName
+              profileImageUrl
+            }
+          }
+        }
+      `;
+      
+      const response = await gqlRequest<{ posts: PostResponse[] }>(query, { filter });
       
       // Transform posts to match BlogSection interface
-      const transformedPosts: BlogPost[] = fetchedPosts.map(post => ({
+      const transformedPosts: BlogPost[] = response.posts.map(post => ({
         id: post.id,
         title: post.title,
         slug: post.slug,

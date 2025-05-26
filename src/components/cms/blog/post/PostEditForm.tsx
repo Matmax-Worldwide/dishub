@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import graphqlClient from '@/lib/graphql-client';
+import { gqlRequest } from '@/lib/graphql-client';
 import { Post } from '@/types/blog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,28 +50,53 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
     setLoading(true);
     try {
       // Get the post details using GraphQL client
-      const postData = await graphqlClient.getPostBySlug(postId);
+      // First, we need to get the post by ID, not by slug
+      const query = `
+        query GetPost($id: ID!) {
+          post(id: $id) {
+            id
+            title
+            slug
+            content
+            excerpt
+            featuredImage
+            status
+            publishedAt
+            blogId
+            authorId
+            metaTitle
+            metaDescription
+            tags
+            categories
+            readTime
+            createdAt
+            updatedAt
+          }
+        }
+      `;
       
-      if (!postData) {
+      const postData = await gqlRequest<{ post: Post | null }>(query, { id: postId });
+      
+      if (!postData.post) {
         toast.error('Post not found');
         return;
       }
       
-      setPost(postData);
+      setPost(postData.post);
       
       // Initialize form data
       setFormData({
-        title: postData.title || '',
-        slug: postData.slug || '',
-        content: postData.content || '',
-        excerpt: postData.excerpt || '',
-        featuredImage: postData.featuredImage || '',
-        status: postData.status || 'DRAFT',
-        publishedAt: postData.publishedAt || '',
-        metaTitle: postData.metaTitle || '',
-        metaDescription: postData.metaDescription || '',
-        tags: postData.tags?.join(', ') || '',
-        categories: postData.categories?.join(', ') || ''
+        title: postData.post.title || '',
+        slug: postData.post.slug || '',
+        content: postData.post.content || '',
+        excerpt: postData.post.excerpt || '',
+        featuredImage: postData.post.featuredImage || '',
+        status: postData.post.status || 'DRAFT',
+        publishedAt: postData.post.publishedAt || '',
+        metaTitle: postData.post.metaTitle || '',
+        metaDescription: postData.post.metaDescription || '',
+        tags: postData.post.tags?.join(', ') || '',
+        categories: postData.post.categories?.join(', ') || ''
       });
     } catch (error) {
       console.error('Error loading post:', error);
@@ -118,26 +143,49 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
     setSaving(true);
     
     try {
-      // Update post using GraphQL client
-      const result = await graphqlClient.updatePost(post!.id, {
-        title: formData.title.trim(),
-        slug: formData.slug.trim(),
-        content: formData.content.trim(),
-        excerpt: formData.excerpt.trim() || undefined,
-        featuredImage: formData.featuredImage.trim() || undefined,
-        status: formData.status,
-        publishedAt: formData.status === 'PUBLISHED' && !post?.publishedAt ? new Date().toISOString() : undefined,
-        metaTitle: formData.metaTitle.trim() || undefined,
-        metaDescription: formData.metaDescription.trim() || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
-        categories: formData.categories ? formData.categories.split(',').map(cat => cat.trim()) : []
+      // Update post using GraphQL mutation
+      const updatePostMutation = `
+        mutation UpdatePost($id: ID!, $input: UpdatePostInput!) {
+          updatePost(id: $id, input: $input) {
+            success
+            message
+            post {
+              id
+              title
+              slug
+            }
+          }
+        }
+      `;
+      
+      const result = await gqlRequest<{ 
+        updatePost: { 
+          success: boolean; 
+          message?: string;
+          post: Post | null;
+        }
+      }>(updatePostMutation, { 
+        id: post!.id,
+        input: {
+          title: formData.title.trim(),
+          slug: formData.slug.trim(),
+          content: formData.content.trim(),
+          excerpt: formData.excerpt.trim() || null,
+          featuredImage: formData.featuredImage.trim() || null,
+          status: formData.status,
+          publishedAt: formData.status === 'PUBLISHED' && !post?.publishedAt ? new Date().toISOString() : undefined,
+          metaTitle: formData.metaTitle.trim() || null,
+          metaDescription: formData.metaDescription.trim() || null,
+          tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+          categories: formData.categories ? formData.categories.split(',').map(cat => cat.trim()) : []
+        }
       });
 
-      if (result.success) {
+      if (result.updatePost.success) {
         toast.success('Post updated successfully!');
         router.push(`/${locale}/cms/blog/posts/${blogId}`);
       } else {
-        toast.error(result.message || 'Failed to update post');
+        toast.error(result.updatePost.message || 'Failed to update post');
       }
     } catch (error) {
       console.error('Error updating post:', error);
