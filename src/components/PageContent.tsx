@@ -5,7 +5,6 @@ import Navbar from './Navigation/Navbar';
 import Hero from './Hero';
 import Benefits from './Benefits';
 import Contact from './Contact';
-import Footer from './Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dictionary } from '../app/i18n';
 
@@ -193,13 +192,7 @@ export default function PageContent({ locale, dictionary }: PageContentProps) {
           </motion.section>
         </AnimatePresence>
       </div>
-      
-      {/* Footer solo visible en la última sección */}
-      {activeSection === sections.length - 1 && (
-        <div className="fixed bottom-0 left-0 right-0">
-          <Footer dictionary={dictionary} locale={locale} />
-        </div>
-      )}
+
     </div>
   );
 } 

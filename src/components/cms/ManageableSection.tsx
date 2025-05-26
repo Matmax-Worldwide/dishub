@@ -1071,10 +1071,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                               initialComponents={pendingComponents}
                               isEditing={false}
                               componentClassName={(type) => {
-                                // For headers in preview mode, use relative positioning to keep them within the preview container
-                                if (type.toLowerCase() === 'header') {
-                                  return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
-                                }
+                                // Allow headers to use their own positioning logic (sticky in preview)
                                 return `component-${type.toLowerCase()}`;
                               }}
                               sectionBackground={sectionBackground}
@@ -1132,10 +1129,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                                   initialComponents={pendingComponents}
                                   isEditing={false}
                                   componentClassName={(type) => {
-                                    // For headers in mobile preview mode, use relative positioning to keep them within the mobile frame
-                                    if (type.toLowerCase() === 'header') {
-                                      return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
-                                    }
+                                    // Allow headers to use their own positioning logic (sticky in preview)
                                     return `component-${type.toLowerCase()}`;
                                   }}
                                   sectionBackground={sectionBackground}
@@ -1199,10 +1193,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                     initialComponents={pendingComponents}
                     isEditing={false}
                     componentClassName={(type) => {
-                      // For headers in preview mode, use relative positioning to keep them within the preview container
-                      if (type.toLowerCase() === 'header') {
-                        return `component-${type.toLowerCase()} !relative !top-0 !left-0 !right-0 !z-10 !w-full !position-relative`;
-                      }
+                      // Allow headers to use their own positioning logic (sticky in preview)
                       return `component-${type.toLowerCase()}`;
                     }}
                     sectionBackground={sectionBackground}

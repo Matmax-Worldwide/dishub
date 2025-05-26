@@ -6,7 +6,6 @@ import SectionManager from '@/components/cms/SectionManager';
 import { useParams } from 'next/navigation';
 import NavigationHeader from '@/components/Navigation/NavigationHeader';
 import Sidebar from '@/components/Navigation/Sidebar';
-import Footer from '@/components/Navigation/Footer';
 import { 
   Menu, 
   SectionData, 
@@ -199,25 +198,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
             )}
           </main>
 
-          {/* Footer Menu */}
-          {menus.filter(menu => menu.location === 'FOOTER').map((menu) => (
-            <Footer
-              key={menu.id}
-              menu={menu}
-              logoUrl={sections.flatMap(section => 
-                section.components.filter(comp => 
-                  comp.type.toLowerCase() === 'header' && comp.data?.logoUrl
-                ).map(comp => comp.data.logoUrl as string)
-              )[0] || ''}
-              subtitle={sections.flatMap(section => 
-                section.components.filter(comp => 
-                  comp.type.toLowerCase() === 'header' && comp.data?.subtitle
-                ).map(comp => comp.data.subtitle as string)
-              )[0] || ''}
-              copyright={pageTitle}
-              locale={locale}
-            />
-          ))}
+
         </>
       )}
     </div>

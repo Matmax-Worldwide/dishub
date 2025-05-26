@@ -6,7 +6,6 @@ import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager from '@/components/cms/SectionManager';
 import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 
-import Footer from '@/components/Navigation/Footer';
 import { Menu } from '@/app/api/graphql/types';
 
 // Add the ComponentType type import
@@ -834,26 +833,6 @@ export default function CMSPage() {
           </div>
         )}
       </main>
-
-      {/* Footer Menu */}
-      {menus.filter(menu => menu.location === 'FOOTER').map((menu) => (
-        <Footer
-          key={menu.id}
-          menu={menu as Menu}
-          // Find sections with Header components to extract logo info if available
-          logoUrl={sections.flatMap(section => 
-            section.components.filter(comp => 
-              comp.type.toLowerCase() === 'header' && comp.data?.logoUrl
-            ).map(comp => comp.data.logoUrl as string)
-          )[0] || ''}
-          subtitle={sections.flatMap(section => 
-            section.components.filter(comp => 
-              comp.type.toLowerCase() === 'header' && comp.data?.subtitle
-            ).map(comp => comp.data.subtitle as string)
-          )[0] || ''}
-          copyright={pageData.title}
-        />
-      ))}
     </div>
   );
 }

@@ -117,61 +117,37 @@ export default function HeaderSection({
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
   
-  // Detect if we're in CMS editing context
-  const isInCMSContext = useRef(false);
+  // Detect if we're in edit mode (URL contains /edit)
+  const isInEditMode = useRef(false);
   
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Check if we're in CMS editing context on mount
+  // Check if we're in edit mode on mount and URL changes
   useEffect(() => {
-    // Check if we're in the CMS editor by looking for CMS-specific elements or URL patterns
-    const checkCMSContext = () => {
-      // Check URL for CMS patterns
+    const checkEditMode = () => {
       const url = window.location.pathname;
-      const isCMSUrl = url.includes('/cms/') || url.includes('/editor/') || url.includes('/edit/');
-      
-      // Check for CMS-specific DOM elements
-      const hasCMSElements = document.querySelector('[data-cms-editor]') || 
-                           document.querySelector('.cms-editor') ||
-                           document.querySelector('[data-section-manager]') ||
-                           document.querySelector('.manageable-section');
-      
-      // Check if we're inside a preview container
-      const isInPreview = document.querySelector('.cms-preview') || 
-                         document.querySelector('[data-preview-mode]') ||
-                         document.querySelector('.section-preview');
-      
-      isInCMSContext.current = isCMSUrl || !!hasCMSElements || !!isInPreview || isEditing;
-      
-      console.log('CMS Context Detection:', {
-        isCMSUrl,
-        hasCMSElements: !!hasCMSElements,
-        isInPreview: !!isInPreview,
-        isEditing,
-        finalResult: isInCMSContext.current
+      isInEditMode.current = url.includes('/edit');
+      console.log('Edit Mode Detection:', {
+        url,
+        isInEditMode: isInEditMode.current
       });
     };
     
     // Initial check
-    checkCMSContext();
+    checkEditMode();
     
-    // Re-check when DOM changes (for dynamic content)
-    const observer = new MutationObserver(() => {
-      checkCMSContext();
-    });
+    // Listen for URL changes (for SPA navigation)
+    const handlePopState = () => {
+      checkEditMode();
+    };
     
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-cms-editor', 'data-section-manager', 'data-preview-mode']
-    });
+    window.addEventListener('popstate', handlePopState);
     
     return () => {
-      observer.disconnect();
+      window.removeEventListener('popstate', handlePopState);
     };
-  }, [isEditing]);
+  }, []);
   
   // Load available menus when in editing mode
   useEffect(() => {
@@ -1110,8 +1086,9 @@ export default function HeaderSection({
       ) : (
         <nav
           className={`w-full z-1000 transition-all duration-300 py-4 ${
-            // Only apply fixed positioning if fixedHeader is true AND we're NOT in CMS context
-            fixedHeader && !isInCMSContext.current ? 'fixed top-0 left-0 right-0' : 'relative'
+            // Use sticky positioning in edit mode (preview containers), fixed in real pages
+            isInEditMode.current && fixedHeader ? 'sticky top-0' : 
+            !isEditing && !isInEditMode.current && fixedHeader ? 'fixed top-0 left-0 right-0' : 'relative'
           } ${
             transparentHeader && !scrolled ? 'bg-transparent' : ''
           } ${
@@ -1137,12 +1114,13 @@ export default function HeaderSection({
                 : (backgroundColor || '#ffffff'),
             backdropFilter: advancedOptions?.glassmorphism ? `blur(${advancedOptions?.blur || 5}px)` : undefined,
             color: textColor,
-            // Apply positioning based on fixedHeader configuration and CMS context
-            position: fixedHeader && !isInCMSContext.current ? 'fixed' : 'relative',
-            top: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
-            left: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
-            right: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
-            zIndex: fixedHeader && !isInCMSContext.current ? 1000 : 'auto'
+            // Use sticky positioning in edit mode (preview containers), fixed in real pages
+            position: isInEditMode.current && fixedHeader ? 'sticky' : 
+                     !isEditing && !isInEditMode.current && fixedHeader ? 'fixed' : 'relative',
+            top: (isInEditMode.current && fixedHeader) || (!isEditing && !isInEditMode.current && fixedHeader) ? 0 : 'auto',
+            left: !isEditing && !isInEditMode.current && fixedHeader ? 0 : 'auto',
+            right: !isEditing && !isInEditMode.current && fixedHeader ? 0 : 'auto',
+            zIndex: fixedHeader ? 1000 : 'auto'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
