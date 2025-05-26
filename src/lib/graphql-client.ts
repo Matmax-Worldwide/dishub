@@ -3327,6 +3327,9 @@ const graphqlClient = {
   updateForm,
   deleteForm,
   createFormStep,
+  updateFormStep,
+  deleteFormStep,
+  updateStepOrders,
   createFormField,
   updateFormField,
   updateFieldOrder,
@@ -3765,5 +3768,86 @@ async function getDefaultPage(locale: string = 'en'): Promise<PageData | null> {
   } catch (error) {
     console.error('[getDefaultPage] Error fetching default page:', error);
     return null;
+  }
+}
+
+// Update a form step
+async function updateFormStep(id: string, input: Partial<FormStepInput>): Promise<FormStepResult> {
+  const mutation = `
+    mutation UpdateFormStep($id: ID!, $input: FormStepInput!) {
+      updateFormStep(id: $id, input: $input) {
+        success
+        message
+        step {
+          id
+          formId
+          title
+          description
+          order
+          isVisible
+          validationRules
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  const variables = { id, input };
+
+  try {
+    const response = await gqlRequest<{ updateFormStep: FormStepResult }>(mutation, variables);
+    return response.updateFormStep || { success: false, message: 'Failed to update form step', step: null };
+  } catch (error) {
+    console.error('Error updating form step:', error);
+    return { success: false, message: 'Error updating form step', step: null };
+  }
+}
+
+// Delete a form step
+async function deleteFormStep(id: string): Promise<FormStepResult> {
+  const mutation = `
+    mutation DeleteFormStep($id: ID!) {
+      deleteFormStep(id: $id) {
+        success
+        message
+        step
+      }
+    }
+  `;
+
+  const variables = { id };
+
+  try {
+    const response = await gqlRequest<{ deleteFormStep: FormStepResult }>(mutation, variables);
+    return response.deleteFormStep || { success: false, message: 'Failed to delete form step', step: null };
+  } catch (error) {
+    console.error('Error deleting form step:', error);
+    return { success: false, message: 'Error deleting form step', step: null };
+  }
+}
+
+// Update step orders
+async function updateStepOrders(updates: Array<{ id: string; order: number }>): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const mutation = `
+    mutation UpdateStepOrders($updates: [StepOrderUpdate!]!) {
+      updateStepOrders(updates: $updates) {
+        success
+        message
+      }
+    }
+  `;
+
+  const variables = { updates };
+
+  try {
+    const response = await gqlRequest<{ updateStepOrders: { success: boolean; message: string } }>(mutation, variables);
+    return response.updateStepOrders || { success: false, message: 'Failed to update step orders' };
+  } catch (error) {
+    console.error('Error updating step orders:', error);
+    return { success: false, message: 'Error updating step orders' };
   }
 }

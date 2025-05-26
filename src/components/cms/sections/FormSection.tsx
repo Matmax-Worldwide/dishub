@@ -9,6 +9,7 @@ import { FormConfig, FormCustomConfig } from './FormConfig';
 import { FileText, LayoutPanelTop, FormInput } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import FormRenderer from '@/components/cms/forms/FormRenderer';
+import MultiStepFormRenderer from '@/components/cms/forms/MultiStepFormRenderer';
 import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import IconSelector from '@/components/cms/IconSelector';
@@ -22,11 +23,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { toast } from 'sonner';
 
 interface FormSectionProps {
   title?: string;
   description?: string;
   formId?: string;
+  formSlug?: string;
   styles?: FormStyles;
   customConfig?: FormCustomConfig;
   isEditing?: boolean;
@@ -44,29 +47,14 @@ interface FormSectionProps {
     backgroundImage?: string;
     backgroundType?: 'image' | 'gradient';
   }) => void;
+  className?: string;
 }
-
-const SUBMIT_FORM = `
-  mutation SubmitForm($input: FormSubmissionInput!) {
-    submitForm(input: $input) {
-      success
-      message
-      submission {
-        id
-        formId
-        data
-        metadata
-        status
-        createdAt
-      }
-    }
-  }
-`;
 
 export default function FormSection({
   title: initialTitle = '',
   description: initialDescription = '',
   formId: initialFormId = '',
+  formSlug,
   styles: initialStyles = {},
   customConfig: initialCustomConfig = {},
   isEditing = false,
@@ -74,7 +62,8 @@ export default function FormSection({
   selectedIcon: initialSelectedIcon = 'PaperAirplaneIcon',
   backgroundImage: initialBackgroundImage = '',
   backgroundType: initialBackgroundType = 'gradient',
-  onUpdate
+  onUpdate,
+  className = '',
 }: FormSectionProps) {
   // Local state
   const [title, setTitle] = useState(initialTitle);
@@ -100,56 +89,24 @@ export default function FormSection({
   // Load form data when formId changes or on initial load
   useEffect(() => {
     async function loadFormData() {
-      if (formId) {
+      if (formId || formSlug) {
         setLoading(true);
         try {
-          const form = await graphqlClient.getFormById(formId);
-          if (form) {
-            setSelectedForm(form);
+          let formData: FormBase | null = null;
+
+          if (formId) {
+            formData = await graphqlClient.getFormById(formId);
+          } else if (formSlug) {
+            formData = await graphqlClient.getFormBySlug(formSlug);
+          }
+
+          if (formData) {
+            setSelectedForm(formData);
           } else {
-            // Handle case where form doesn't exist
-            console.warn(`Form with ID ${formId} not found`);
-            if (isEditing) {
-              // In editing mode, we can show empty state
-              setSelectedForm(null);
-            } else {
-              // In viewing mode, create a fallback form
-              setSelectedForm({
-                id: formId,
-                title: title || 'Form unavailable',
-                description: description || 'Sorry, this form is currently unavailable.',
-                fields: [],
-                isMultiStep: false,
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                slug: 'fallback-form',
-                submitButtonText: 'Submit',
-                createdById: 'system'
-              } as FormBase);
-            }
+            console.error('Form not found');
           }
         } catch (error) {
-          console.error('Error loading form data:', error);
-          // Don't break the UI if form data can't be loaded
-          setSelectedForm(null);
-          
-          // Create a fallback form object if needed for rendering
-          if (isEditing === false) {
-            setSelectedForm({
-              id: formId,
-              title: title || 'Form unavailable',
-              description: description || 'Sorry, this form is currently unavailable.',
-              fields: [],
-              isMultiStep: false,
-              isActive: true,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              slug: 'fallback-form',
-              submitButtonText: 'Submit',
-              createdById: 'system'
-            } as FormBase);
-          }
+          console.error('Error loading form:', error);
         } finally {
           setLoading(false);
         }
@@ -160,7 +117,7 @@ export default function FormSection({
     }
     
     loadFormData();
-  }, [formId, title, description, isEditing]);
+  }, [formId, formSlug]);
   
   // Update local state when props change, but only if not currently editing
   useEffect(() => {
@@ -360,37 +317,19 @@ export default function FormSection({
     try {
       setSubmitStatus('submitting');
 
-      const response = await fetch('/api/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const result = await graphqlClient.submitForm({
+        formId: selectedForm.id,
+        data: formData,
+        metadata: {
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          url: window.location.href,
         },
-        body: JSON.stringify({
-          query: SUBMIT_FORM,
-          variables: {
-            input: {
-              formId: selectedForm.id,
-              data: formData,
-              metadata: {
-                submittedAt: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                referrer: document.referrer,
-              }
-            }
-          }
-        })
       });
 
-      const result = await response.json();
-
-      if (result.errors) {
-        console.error('GraphQL errors:', result.errors);
-        setSubmitStatus('error');
-        return;
-      }
-
-      if (result.data?.submitForm?.success) {
+      if (result.success) {
         setSubmitStatus('success');
+        toast.success(result.message || 'Form submitted successfully!');
         
         // If there's a custom redirect URL, redirect after a short delay
         if (customConfig.customRedirectUrl) {
@@ -400,10 +339,12 @@ export default function FormSection({
         }
       } else {
         setSubmitStatus('error');
+        toast.error(result.message || 'Failed to submit form');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
       setSubmitStatus('error');
+      toast.error('An error occurred while submitting the form');
     }
   };
   
@@ -815,7 +756,7 @@ export default function FormSection({
   );
   
   return (
-    <div data-section-id="form">
+    <div data-section-id="form" className={`${getContainerClassNames()} ${className}`}>
       {showBackgroundSelector && (
         <BackgroundSelector
           isOpen={showBackgroundSelector}
@@ -953,15 +894,27 @@ export default function FormSection({
                   className="w-full max-w-2xl mx-auto relative z-[15]"
                 >
                   <div className={getFormWrapperClassNames()}>
-                    <FormRenderer
-                      form={selectedForm}
-                      buttonClassName={getButtonClassNames()}
-                      buttonStyles={getButtonStyles()}
-                      inputClassName={getInputClassNames()}
-                      labelClassName={getLabelClassNames()}
-                      onSubmit={handleFormSubmit}
-                      submitStatus={submitStatus}
-                    />
+                    {selectedForm.isMultiStep ? (
+                      <MultiStepFormRenderer
+                        form={selectedForm}
+                        buttonClassName={getButtonClassNames()}
+                        buttonStyles={getButtonStyles()}
+                        inputClassName={getInputClassNames()}
+                        labelClassName={getLabelClassNames()}
+                        onSubmit={handleFormSubmit}
+                        submitStatus={submitStatus}
+                      />
+                    ) : (
+                      <FormRenderer
+                        form={selectedForm}
+                        buttonClassName={getButtonClassNames()}
+                        buttonStyles={getButtonStyles()}
+                        inputClassName={getInputClassNames()}
+                        labelClassName={getLabelClassNames()}
+                        onSubmit={handleFormSubmit}
+                        submitStatus={submitStatus}
+                      />
+                    )}
                   </div>
                 </motion.div>
               ) : (
