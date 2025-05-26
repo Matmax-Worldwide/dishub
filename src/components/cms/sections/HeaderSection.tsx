@@ -351,13 +351,31 @@ export default function HeaderSection({
   const handleBackgroundColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setBackgroundColor(newValue);
-    handleUpdateField('backgroundColor', newValue);
+    
+    // For color inputs, we want immediate visual feedback without debounce
+    // Only call handleUpdateField on blur or after a longer delay
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      handleUpdateField('backgroundColor', newValue);
+    }, 1000); // Longer delay for color picker
   }, [handleUpdateField]);
 
   const handleTextColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setTextColor(newValue);
-    handleUpdateField('textColor', newValue);
+    
+    // For color inputs, we want immediate visual feedback without debounce
+    // Only call handleUpdateField on blur or after a longer delay
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      handleUpdateField('textColor', newValue);
+    }, 1000); // Longer delay for color picker
   }, [handleUpdateField]);
   
   const handleLogoUrlChange = useCallback((newValue: string) => {
@@ -506,13 +524,45 @@ export default function HeaderSection({
   const handleTransparencyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseInt(e.target.value);
     setTransparency(newValue);
-    handleUpdateField('transparency', newValue.toString());
+    
+    // For range inputs, we want immediate visual feedback without debounce
+    // Only call handleUpdateField after user stops dragging
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      handleUpdateField('transparency', newValue.toString());
+    }, 800); // Shorter delay for range slider
   }, [handleUpdateField]);
   
   const handleHeaderSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as HeaderSize;
     setHeaderSize(newValue);
     handleUpdateField('headerSize', newValue);
+  }, [handleUpdateField]);
+  
+  // Add blur handlers for immediate save when user finishes with color/range inputs
+  const handleBackgroundColorBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    handleUpdateField('backgroundColor', e.target.value);
+  }, [handleUpdateField]);
+
+  const handleTextColorBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    handleUpdateField('textColor', e.target.value);
+  }, [handleUpdateField]);
+
+  const handleTransparencyMouseUp = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    const target = e.target as HTMLInputElement;
+    handleUpdateField('transparency', target.value);
   }, [handleUpdateField]);
   
   // Advanced options handlers
@@ -701,6 +751,7 @@ export default function HeaderSection({
             id="backgroundColor"
             value={backgroundColor}
             onChange={handleBackgroundColorChange}
+            onBlur={handleBackgroundColorBlur}
             className="rounded border border-gray-300 h-8 w-full"
           />
         </div>
@@ -714,6 +765,7 @@ export default function HeaderSection({
             id="textColor"
             value={textColor}
             onChange={handleTextColorChange}
+            onBlur={handleTextColorBlur}
             className="rounded border border-gray-300 h-8 w-full"
           />
         </div>
@@ -815,6 +867,7 @@ export default function HeaderSection({
               max="100"
               value={transparency}
               onChange={handleTransparencyChange}
+              onMouseUp={handleTransparencyMouseUp}
               className="flex-1 mr-2"
             />
             <span className="text-sm">{transparency}%</span>
