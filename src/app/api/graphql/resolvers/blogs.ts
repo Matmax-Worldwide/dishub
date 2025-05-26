@@ -324,6 +324,8 @@ export const blogResolvers = {
     // Create a new post
     createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
       try {
+        console.log('Creating post with input:', JSON.stringify(input, null, 2));
+        
         const post = await prisma.post.create({
           data: {
             title: input.title,
@@ -340,8 +342,14 @@ export const blogResolvers = {
             tags: input.tags || [],
             categories: input.categories || [],
             readTime: input.readTime
+          },
+          include: {
+            author: true,
+            blog: true
           }
         });
+
+        console.log('Post created successfully:', post);
 
         return {
           success: true,
@@ -349,8 +357,13 @@ export const blogResolvers = {
           post
         };
       } catch (error) {
-        console.error('Error creating post:', error);
+        console.error('Error creating post - Full error:', error);
+        console.error('Error creating post - Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Error creating post - Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
         const prismaError = error as PrismaError;
+        console.error('Prisma error code:', prismaError.code);
+        console.error('Prisma error meta:', prismaError.meta);
         
         if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('slug')) {
           return {
@@ -360,9 +373,17 @@ export const blogResolvers = {
           };
         }
         
+        if (prismaError.code === 'P2003') {
+          return {
+            success: false,
+            message: 'Invalid blog ID or author ID provided',
+            post: null
+          };
+        }
+        
         return {
           success: false,
-          message: 'Failed to create post',
+          message: `Failed to create post: ${error instanceof Error ? error.message : 'Unknown error'}`,
           post: null
         };
       }

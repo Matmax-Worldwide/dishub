@@ -126,6 +126,17 @@ export function CreatePostForm() {
   const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
     e.preventDefault();
     
+    // Validation
+    if (!formData.title.trim()) {
+      toast.error('Please enter a post title');
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      toast.error('Please enter post content');
+      return;
+    }
+
     if (!formData.blogId) {
       toast.error('Please select a blog');
       return;
@@ -139,16 +150,31 @@ export function CreatePostForm() {
     setLoading(true);
     
     try {
-      const postData = {
-        ...formData,
-        status: asDraft ? 'DRAFT' : formData.status,
+      // Prepare the post data according to the GraphQL schema
+      const postInput = {
+        title: formData.title.trim(),
+        slug: formData.slug.trim() || formData.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, ''),
+        content: formData.content.trim(),
+        excerpt: formData.excerpt.trim() || undefined,
+        featuredImage: formData.featuredImage.trim() || undefined,
+        status: asDraft ? 'DRAFT' as const : formData.status,
+        blogId: formData.blogId,
         authorId: sessionUser.id,
-        publishedAt: formData.status === 'PUBLISHED' && !formData.publishedAt 
-          ? new Date().toISOString() 
-          : formData.publishedAt || null,
+        publishedAt: (formData.status === 'PUBLISHED' && !asDraft) 
+          ? (formData.publishedAt || new Date().toISOString()) 
+          : undefined,
+        metaTitle: formData.metaTitle.trim() || undefined,
+        metaDescription: formData.metaDescription.trim() || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
+        categories: formData.categories.length > 0 ? formData.categories : undefined,
       };
 
-      const result = await graphqlClient.createPost(postData);
+      console.log('Creating post with data:', postInput);
+
+      const result = await graphqlClient.createPost(postInput);
       
       if (result.success) {
         toast.success(asDraft ? 'Post saved as draft!' : 'Post created successfully!');
@@ -268,6 +294,9 @@ export function CreatePostForm() {
                       onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                       placeholder="post-url-slug"
                     />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      URL: /blog/{formData.slug || 'your-post-slug'}
+                    </p>
                   </div>
 
                   <div>
@@ -287,6 +316,11 @@ export function CreatePostForm() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {blogs.length === 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        No blogs available. Please create a blog first.
+                      </p>
+                    )}
                   </div>
                   
                   <div>
