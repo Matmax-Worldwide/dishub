@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { cmsOperations } from '@/lib/graphql-client';
-import { useTabContext } from '@/app/[locale]/cms/pages/layout';
+import { useTabContext } from '@/contexts/TabContext';
 import {
   PageData as BasePageData,
   AvailableSection,
