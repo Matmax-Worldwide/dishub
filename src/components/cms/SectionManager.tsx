@@ -579,7 +579,7 @@ function SectionManagerBase({
         } : type === 'Blog' ? {
           title: 'Blog',
           subtitle: 'Latest articles and insights',
-          posts: [],
+          blogId: '',
           layout: 'grid',
           filtersEnabled: true,
           searchEnabled: true,
@@ -955,7 +955,7 @@ function SectionManagerBase({
       {
         type: 'Blog',
         title: 'Blog Component',
-        description: 'Display multiple blog posts with filters, search, and different layouts',
+        description: 'Display posts from a selected blog with filters, search, and different layouts',
         icon: (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
@@ -1703,19 +1703,7 @@ function SectionManagerBase({
               <BlogComponent
                 title={component.data.title as string}
                 subtitle={component.data.subtitle as string}
-                posts={component.data.posts as Array<{
-                  id: string;
-                  title: string;
-                  slug: string;
-                  excerpt?: string;
-                  content?: string;
-                  featuredImage?: string;
-                  author?: { name: string; image?: string };
-                  publishedAt?: string;
-                  readTime?: string;
-                  tags?: string[];
-                  category?: string;
-                }> || []}
+                blogId={component.data.blogId as string}
                 layout={component.data.layout as 'grid' | 'list' | 'carousel' || 'grid'}
                 filtersEnabled={component.data.filtersEnabled as boolean ?? true}
                 searchEnabled={component.data.searchEnabled as boolean ?? true}

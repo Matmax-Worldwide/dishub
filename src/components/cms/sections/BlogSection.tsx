@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import StableInput from './StableInput';
 import { Search, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { gqlRequest } from '@/lib/graphql-client';
 
 interface BlogPost {
   id: string;
@@ -26,10 +27,38 @@ interface BlogPost {
   category?: string;
 }
 
+interface Blog {
+  id: string;
+  title: string;
+  description?: string;
+  slug: string;
+  isActive: boolean;
+}
+
+interface PostResponse {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content: string;
+  featuredImage?: string;
+  status: string;
+  publishedAt?: string;
+  readTime?: number;
+  tags?: string[];
+  categories?: string[];
+  author?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl?: string;
+  };
+}
+
 interface BlogSectionProps {
   title?: string;
   subtitle?: string;
-  posts?: BlogPost[];
+  blogId?: string; // ID of the blog to fetch posts from
   layout?: 'grid' | 'list' | 'carousel';
   filtersEnabled?: boolean;
   searchEnabled?: boolean;
@@ -46,7 +75,7 @@ interface BlogSectionProps {
 export default function BlogSection({
   title = 'Blog',
   subtitle = 'Latest articles and insights',
-  posts = [],
+  blogId,
   layout = 'grid',
   filtersEnabled = true,
   searchEnabled = true,
@@ -59,12 +88,115 @@ export default function BlogSection({
   isEditing = false,
   onUpdate
 }: BlogSectionProps) {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+
+  // Fetch available blogs for selection (only in editing mode)
+  useEffect(() => {
+    if (isEditing) {
+      fetchBlogs();
+    }
+  }, [isEditing]);
+
+  // Fetch posts when blogId changes
+  useEffect(() => {
+    if (blogId) {
+      fetchPosts();
+    } else {
+      setPosts([]);
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  async function fetchBlogs() {
+    try {
+      const query = `
+        query GetBlogs {
+          blogs {
+            id
+            title
+            description
+            slug
+            isActive
+          }
+        }
+      `;
+      
+      const response = await gqlRequest<{ blogs: Blog[] }>(query);
+      setBlogs(response.blogs || []);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    }
+  }
+
+  async function fetchPosts() {
+    try {
+      setLoading(true);
+      
+      const query = `
+        query GetBlogPosts($filter: PostFilter) {
+          posts(filter: $filter) {
+            id
+            title
+            slug
+            excerpt
+            content
+            featuredImage
+            status
+            publishedAt
+            readTime
+            tags
+            categories
+            author {
+              id
+              firstName
+              lastName
+              profileImageUrl
+            }
+          }
+        }
+      `;
+      
+      const filter = {
+        blogId: blogId,
+        status: 'PUBLISHED'
+      };
+      
+      const response = await gqlRequest<{ posts: PostResponse[] }>(query, { filter });
+      
+      // Transform posts to match BlogSection interface
+      const transformedPosts: BlogPost[] = response.posts.map(post => ({
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt || undefined,
+        content: post.content,
+        featuredImage: post.featuredImage || undefined,
+        author: post.author ? {
+          name: `${post.author.firstName} ${post.author.lastName}`,
+          image: post.author.profileImageUrl || undefined
+        } : undefined,
+        publishedAt: post.publishedAt || undefined,
+        readTime: post.readTime ? `${post.readTime} min read` : undefined,
+        tags: post.tags || [],
+        category: post.categories?.[0]
+      }));
+
+      setPosts(transformedPosts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Extract unique categories and tags
   const categories = Array.from(new Set(posts.map(p => p.category).filter(Boolean))) as string[];
@@ -265,6 +397,29 @@ export default function BlogSection({
           label="Subtitle"
         />
         
+        {/* Blog Selection */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Select Blog</label>
+          <Select value={blogId || ''} onValueChange={(value) => handleUpdateField('blogId', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose a blog to display posts from..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No blog selected</SelectItem>
+              {blogs.map(blog => (
+                <SelectItem key={blog.id} value={blog.id}>
+                  {blog.title} {!blog.isActive && '(Inactive)'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {blogId && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Posts from the selected blog will be automatically fetched and displayed.
+            </p>
+          )}
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">Layout</label>
@@ -354,13 +509,62 @@ export default function BlogSection({
           </div>
         </div>
         
+        {/* Preview */}
         <div className="p-4 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            Note: Posts will be automatically fetched from the database when the page loads.
-            Configure which posts to display using the CMS settings.
-          </p>
+          <p className="text-sm font-medium mb-2">Preview:</p>
+          {!blogId ? (
+            <p className="text-sm text-muted-foreground">
+              Select a blog to see a preview of the posts that will be displayed.
+            </p>
+          ) : loading ? (
+            <p className="text-sm text-muted-foreground">Loading posts...</p>
+          ) : posts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No published posts found in the selected blog.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {posts.length} published post{posts.length !== 1 ? 's' : ''} will be displayed from the selected blog.
+            </p>
+          )}
         </div>
       </div>
+    );
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <section className="w-full py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            {title && <h2 className="text-4xl font-bold mb-4">{title}</h2>}
+            {subtitle && <p className="text-xl text-muted-foreground">{subtitle}</p>}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show message if no blog is selected
+  if (!blogId) {
+    return (
+      <section className="w-full py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            {title && <h2 className="text-4xl font-bold mb-4">{title}</h2>}
+            {subtitle && <p className="text-xl text-muted-foreground">{subtitle}</p>}
+          </div>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No blog selected. Please configure this section to select a blog.</p>
+          </div>
+        </div>
+      </section>
     );
   }
 
