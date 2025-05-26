@@ -2,16 +2,34 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import StableInput from './StableInput';
+import StyleControls from '../StyleControls';
+import { CmsTabs } from '../CmsTabs';
+import { FileText, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { 
+  ComponentStyling, 
+  ComponentStyleProps, 
+  DEFAULT_STYLING,
+  generateStylesFromStyling,
+  generateClassesFromStyling
+} from '@/types/cms-styling';
 
-interface CardSectionProps {
+interface CardSectionProps extends ComponentStyleProps {
   title: string;
   description: string;
   image?: string;
   link?: string;
   buttonText?: string;
+  styling?: ComponentStyling;
   isEditing?: boolean;
-  onUpdate?: (data: Partial<CardSectionProps>) => void;
+  onUpdate?: (data: { 
+    title: string; 
+    description: string; 
+    image?: string; 
+    link?: string; 
+    buttonText?: string;
+    styling?: ComponentStyling;
+  }) => void;
 }
 
 const CardSection = React.memo(function CardSection({ 
@@ -20,6 +38,7 @@ const CardSection = React.memo(function CardSection({
   image,
   link,
   buttonText = 'Leer más',
+  styling = DEFAULT_STYLING,
   isEditing = false,
   onUpdate
 }: CardSectionProps) {
@@ -29,6 +48,7 @@ const CardSection = React.memo(function CardSection({
   const [localImage, setLocalImage] = useState(image || '');
   const [localLink, setLocalLink] = useState(link || '');
   const [localButtonText, setLocalButtonText] = useState(buttonText);
+  const [localStyling, setLocalStyling] = useState<ComponentStyling>(styling);
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -44,11 +64,14 @@ const CardSection = React.memo(function CardSection({
       if ((image || '') !== localImage) setLocalImage(image || '');
       if ((link || '') !== localLink) setLocalLink(link || '');
       if (buttonText !== localButtonText) setLocalButtonText(buttonText);
+      if (styling && JSON.stringify(styling) !== JSON.stringify(localStyling)) {
+        setLocalStyling(styling);
+      }
     }
-  }, [title, description, image, link, buttonText, localTitle, localDescription, localImage, localLink, localButtonText]);
+  }, [title, description, image, link, buttonText, styling, localTitle, localDescription, localImage, localLink, localButtonText, localStyling]);
   
   // Optimize update handler with useCallback and debouncing
-  const handleUpdateField = useCallback((field: string, value: string) => {
+  const handleUpdateField = useCallback((field: string, value: string | ComponentStyling) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
@@ -58,9 +81,20 @@ const CardSection = React.memo(function CardSection({
         clearTimeout(debounceRef.current);
       }
       
+      // Prepare data to update
+      const updateData = {
+        title: localTitle,
+        description: localDescription,
+        image: localImage,
+        link: localLink,
+        buttonText: localButtonText,
+        styling: localStyling,
+        [field]: value
+      };
+      
       // Set timeout to update parent
       debounceRef.current = setTimeout(() => {
-        onUpdate({ [field]: value });
+        onUpdate(updateData);
         
         // Reset editing flag after a short delay
         setTimeout(() => {
@@ -68,7 +102,7 @@ const CardSection = React.memo(function CardSection({
         }, 500);
       }, 200);
     }
-  }, [onUpdate]);
+  }, [onUpdate, localTitle, localDescription, localImage, localLink, localButtonText, localStyling]);
   
   // Clean up on unmount
   useEffect(() => {
@@ -105,118 +139,155 @@ const CardSection = React.memo(function CardSection({
     handleUpdateField('buttonText', newValue);
   }, [handleUpdateField]);
 
+  const handleStylingChange = useCallback((newStyling: ComponentStyling) => {
+    setLocalStyling(newStyling);
+    handleUpdateField('styling', newStyling);
+  }, [handleUpdateField]);
+
+  // Generate styles and classes from styling
+  const inlineStyles = generateStylesFromStyling(localStyling);
+  const cssClasses = generateClassesFromStyling(localStyling);
+
+  if (isEditing) {
+    return (
+      <div className="w-full">
+        <CmsTabs
+          tabs={[
+            {
+              id: 'content',
+              label: 'Content',
+              icon: <FileText className="w-4 h-4" />,
+              content: (
+                <div className="space-y-4">
+                  <StableInput
+                    value={localTitle}
+                    onChange={handleTitleChange}
+                    placeholder="Título de la tarjeta..."
+                    className="font-medium text-card-foreground"
+                    label="Título"
+                    debounceTime={300}
+                    data-field-id="title"
+                    data-component-type="Card"
+                  />
+                  
+                  <StableInput
+                    value={localDescription}
+                    onChange={handleDescriptionChange}
+                    placeholder="Descripción de la tarjeta..."
+                    isTextArea={true}
+                    rows={3}
+                    className="text-muted-foreground text-sm"
+                    label="Descripción"
+                    debounceTime={300}
+                    data-field-id="description"
+                    data-component-type="Card"
+                  />
+                  
+                  <StableInput
+                    value={localImage}
+                    onChange={handleImageChange}
+                    placeholder="URL de la imagen..."
+                    label="URL de la imagen (opcional)"
+                    debounceTime={300}
+                    data-field-id="image"
+                    data-component-type="Card"
+                  />
+                  
+                  <StableInput
+                    value={localLink}
+                    onChange={handleLinkChange}
+                    placeholder="URL del enlace..."
+                    label="URL del enlace (opcional)"
+                    debounceTime={300}
+                    data-field-id="link"
+                    data-component-type="Card"
+                  />
+                  
+                  <StableInput
+                    value={localButtonText}
+                    onChange={handleButtonTextChange}
+                    placeholder="Texto del botón..."
+                    label="Texto del botón"
+                    debounceTime={300}
+                    data-field-id="buttonText"
+                    data-component-type="Card"
+                  />
+                  
+                  {/* Preview */}
+                  {localImage && (
+                    <div className="mt-4">
+                      <div className="text-xs font-medium text-muted-foreground mb-2">Vista previa de imagen:</div>
+                      <div className="h-40 w-full relative rounded-md overflow-hidden">
+                        <Image
+                          src={localImage}
+                          alt={localTitle}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            },
+            {
+              id: 'styling',
+              label: 'Styling',
+              icon: <Palette className="w-4 h-4" />,
+              content: (
+                <StyleControls
+                  styling={localStyling}
+                  onStylingChange={handleStylingChange}
+                  showAdvanced={true}
+                />
+              )
+            }
+          ]}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={cn(
-      "max-w-md mx-auto rounded-lg",
-      isEditing ? "" : "bg-card shadow-sm overflow-hidden"
-    )}>
-      {isEditing ? (
-        <div className="space-y-4">
-          <StableInput
-            value={localTitle}
-            onChange={handleTitleChange}
-            placeholder="Título de la tarjeta..."
-            className="font-medium text-card-foreground"
-            label="Título"
-            debounceTime={300}
-            data-field-id="title"
-            data-component-type="Card"
-          />
-          
-          <StableInput
-            value={localDescription}
-            onChange={handleDescriptionChange}
-            placeholder="Descripción de la tarjeta..."
-            isTextArea={true}
-            rows={3}
-            className="text-muted-foreground text-sm"
-            label="Descripción"
-            debounceTime={300}
-            data-field-id="description"
-            data-component-type="Card"
-          />
-          
-          <StableInput
-            value={localImage}
-            onChange={handleImageChange}
-            placeholder="URL de la imagen..."
-            label="URL de la imagen (opcional)"
-            debounceTime={300}
-            data-field-id="image"
-            data-component-type="Card"
-          />
-          
-          <StableInput
-            value={localLink}
-            onChange={handleLinkChange}
-            placeholder="URL del enlace..."
-            label="URL del enlace (opcional)"
-            debounceTime={300}
-            data-field-id="link"
-            data-component-type="Card"
-          />
-          
-          <StableInput
-            value={localButtonText}
-            onChange={handleButtonTextChange}
-            placeholder="Texto del botón..."
-            label="Texto del botón"
-            debounceTime={300}
-            data-field-id="buttonText"
-            data-component-type="Card"
-          />
-          
-          {/* Preview */}
-          {localImage && (
-            <div className="mt-4">
-              <div className="text-xs font-medium text-muted-foreground mb-2">Vista previa de imagen:</div>
-              <div className="h-40 w-full relative rounded-md overflow-hidden">
-                <Image
-                  src={localImage}
-                  alt={localTitle}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          {image && (
-            <div className="relative" data-field-type="image" data-component-type="Card">
-              <div className="h-48 w-full relative">
-                <Image
-                  src={image}
-                  alt={title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          )}
-          <div className="p-6">
-            <h3 className="text-lg font-medium text-card-foreground mb-2" data-field-type="title" data-component-type="Card">
-              {title}
-            </h3>
-            <p className="text-muted-foreground text-sm mb-4" data-field-type="description" data-component-type="Card">
-              {description}
-            </p>
-            {link && (
-              <div className="mt-4">
-                <Link
-                  href={link}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
-                  data-field-type="buttonText"
-                  data-component-type="Card"
-                >
-                  {buttonText}
-                </Link>
-              </div>
-            )}
-          </div>
-        </>
+    <div 
+      className={cn(
+        "max-w-md mx-auto rounded-lg bg-card shadow-sm overflow-hidden",
+        cssClasses
       )}
+      style={inlineStyles}
+    >
+      {localImage && (
+        <div className="relative" data-field-type="image" data-component-type="Card">
+          <div className="h-48 w-full relative">
+            <Image
+              src={localImage}
+              alt={localTitle}
+              fill
+              className="object-cover"
+            />
+          </div>
+        </div>
+      )}
+      <div className="p-6">
+        <h3 className="text-lg font-medium text-card-foreground mb-2" data-field-type="title" data-component-type="Card">
+          {localTitle}
+        </h3>
+        <p className="text-muted-foreground text-sm mb-4" data-field-type="description" data-component-type="Card">
+          {localDescription}
+        </p>
+        {localLink && (
+          <div className="mt-4">
+            <Link
+              href={localLink}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
+              data-field-type="buttonText"
+              data-component-type="Card"
+            >
+              {localButtonText}
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 });

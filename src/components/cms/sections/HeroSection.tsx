@@ -7,11 +7,19 @@ import StableInput from './StableInput';
 import { cn } from '@/lib/utils';
 import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/BackgroundSelector';
 import MediaSelector from '@/components/cms/MediaSelector';
+import StyleControls from '../StyleControls';
 import { CmsTabs } from '@/components/cms/CmsTabs';
 import { FileText, Palette, LayoutTemplate, Upload } from 'lucide-react';
 import { MediaItem } from '@/components/cms/media/types';
+import { 
+  ComponentStyling, 
+  ComponentStyleProps, 
+  DEFAULT_STYLING,
+  generateStylesFromStyling,
+  generateClassesFromStyling
+} from '@/types/cms-styling';
 
-interface HeroSectionProps {
+interface HeroSectionProps extends ComponentStyleProps {
   title: string;
   subtitle: string;
   image?: string;
@@ -28,6 +36,7 @@ interface HeroSectionProps {
   badgeText?: string;
   showAnimatedDots?: boolean;
   showIcon?: boolean;
+  styling?: ComponentStyling;
   isEditing?: boolean;
   onUpdate?: (data: Partial<HeroSectionProps>) => void;
 }
@@ -86,6 +95,7 @@ const HeroSection = React.memo(function HeroSection({
   badgeText,
   showAnimatedDots = true,
   showIcon = true,
+  styling = DEFAULT_STYLING,
   isEditing = false,
   onUpdate
 }: HeroSectionProps) {
@@ -95,6 +105,7 @@ const HeroSection = React.memo(function HeroSection({
   const [localImage, setLocalImage] = useState(image || '');
   const [localBackgroundImage, setLocalBackgroundImage] = useState(backgroundImage || '');
   const [localBackgroundType, setLocalBackgroundType] = useState(backgroundType);
+  const [localStyling, setLocalStyling] = useState<ComponentStyling>(styling);
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [localCta, setLocalCta] = useState(cta || { text: '', url: '' });
   const [localSecondaryCta, setLocalSecondaryCta] = useState(secondaryCta || { text: '', url: '' });
@@ -103,6 +114,7 @@ const HeroSection = React.memo(function HeroSection({
   const [localShowIcon, setLocalShowIcon] = useState(showIcon);
   const [isHovered, setIsHovered] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -118,6 +130,9 @@ const HeroSection = React.memo(function HeroSection({
       if (badgeText !== localBadgeText) setLocalBadgeText(badgeText || '');
       if (showAnimatedDots !== localShowAnimatedDots) setLocalShowAnimatedDots(showAnimatedDots);
       if (showIcon !== localShowIcon) setLocalShowIcon(showIcon);
+      if (styling && JSON.stringify(styling) !== JSON.stringify(localStyling)) {
+        setLocalStyling(styling);
+      }
       
       if (cta && JSON.stringify(cta) !== JSON.stringify(localCta)) {
         setLocalCta(cta || { text: '', url: '' });
@@ -127,14 +142,14 @@ const HeroSection = React.memo(function HeroSection({
         setLocalSecondaryCta(secondaryCta || { text: '', url: '' });
       }
     }
-  }, [title, subtitle, image, backgroundImage, backgroundType, cta, secondaryCta, badgeText, showAnimatedDots, showIcon, 
+  }, [title, subtitle, image, backgroundImage, backgroundType, cta, secondaryCta, badgeText, showAnimatedDots, showIcon, styling,
       localTitle, localSubtitle, localImage, localBackgroundImage, localBackgroundType, localCta, localSecondaryCta, localBadgeText, 
-      localShowAnimatedDots, localShowIcon]);
+      localShowAnimatedDots, localShowIcon, localStyling]);
 
   // Optimized update function with debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  const handleUpdateField = useCallback((field: string, value: string | boolean) => {
+  const handleUpdateField = useCallback((field: string, value: string | boolean | ComponentStyling) => {
     if (onUpdate) {
       // Mark that we're in editing mode to prevent useEffect override
       isEditingRef.current = true;
@@ -176,6 +191,12 @@ const HeroSection = React.memo(function HeroSection({
       }, 200);
     }
   }, [onUpdate, cta, secondaryCta]);
+
+  // Add styling change handler
+  const handleStylingChange = useCallback((newStyling: ComponentStyling) => {
+    setLocalStyling(newStyling);
+    handleUpdateField('styling', newStyling);
+  }, [handleUpdateField]);
 
   // Individual change handlers
   const handleTitleChange = useCallback((newValue: string) => {
@@ -399,9 +420,6 @@ const HeroSection = React.memo(function HeroSection({
     </div>
   );
 
-  // Inside the component, replace the activeTab state with:
-  const [showMediaSelector, setShowMediaSelector] = useState(false);
-
   // Add a new media selection handler
   const handleMediaSelect = (mediaItem: MediaItem) => {
     setLocalImage(mediaItem.fileUrl);
@@ -432,6 +450,10 @@ const HeroSection = React.memo(function HeroSection({
       });
     }
   };
+
+  // Generate styles and classes from styling
+  const inlineStyles = generateStylesFromStyling(localStyling);
+  const cssClasses = generateClassesFromStyling(localStyling);
 
   return (
     <>
@@ -471,7 +493,8 @@ const HeroSection = React.memo(function HeroSection({
       <section 
         className={cn(
           "relative w-full overflow-hidden flex items-center min-h-screen",
-          isEditing ? "min-h-[600px] h-auto py-8" : ""
+          isEditing ? "min-h-[600px] h-auto py-8" : "",
+          cssClasses
         )}
         style={{
           ...(localBackgroundType === 'image' && localBackgroundImage ? {
@@ -482,7 +505,8 @@ const HeroSection = React.memo(function HeroSection({
           } : {
             background: localBackgroundImage || 'linear-gradient(to bottom, white, #dbeafe)'
           }),
-          isolation: 'isolate' // Create new stacking context
+          isolation: 'isolate', // Create new stacking context
+          ...inlineStyles
         }}
       >
         {/* Animated background elements */}
@@ -634,9 +658,21 @@ const HeroSection = React.memo(function HeroSection({
                     )
                   },
                   {
-                    id: "style",
-                    label: "Style",
+                    id: "styling",
+                    label: "Styling",
                     icon: <Palette className="w-4 h-4" />,
+                    content: (
+                      <StyleControls
+                        styling={localStyling}
+                        onStylingChange={handleStylingChange}
+                        showAdvanced={true}
+                      />
+                    )
+                  },
+                  {
+                    id: "style",
+                    label: "Background",
+                    icon: <LayoutTemplate className="w-4 h-4" />,
                     content: (
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

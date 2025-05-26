@@ -17,6 +17,7 @@ import {
 import ManageableSection from '@/components/cms/ManageableSection';
 import { Section, ManageableSectionHandle } from '@/types/cms';
 import EmptySectionPlaceholder from './EmptySectionPlaceholder';
+import { DEFAULT_STYLING } from '@/types/cms-styling';
 
 interface SectionsTabProps {
   pageSections: Section[];
@@ -145,21 +146,28 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
     
     // Get initial data for the component type
     const getInitialData = (type: string) => {
+      const baseData = {
+        styling: DEFAULT_STYLING, // Add default styling to all components
+      };
+
       switch (type) {
         case 'header':
           return {
+            ...baseData,
             componentTitle: 'Encabezado',
             title: 'Título principal', 
             subtitle: 'Subtítulo opcional'
           };
         case 'text':
           return {
+            ...baseData,
             componentTitle: 'Bloque de texto',
             title: 'Título del contenido',
             content: 'Edite este contenido para personalizarlo según sus necesidades.'
           };
         case 'image':
           return {
+            ...baseData,
             componentTitle: 'Imagen',
             alt: 'Descripción de la imagen',
             caption: 'Pie de foto',
@@ -167,6 +175,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         case 'card':
           return {
+            ...baseData,
             componentTitle: 'Tarjeta',
             title: 'Título de la tarjeta',
             description: 'Descripción de la tarjeta',
@@ -175,6 +184,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         case 'feature':
           return {
+            ...baseData,
             componentTitle: 'Característica',
             title: 'Título de la característica',
             description: 'Descripción de la característica',
@@ -182,6 +192,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         case 'testimonial':
           return {
+            ...baseData,
             componentTitle: 'Testimonio',
             quote: 'Este es un testimonio de ejemplo.',
             author: 'Nombre del autor',
@@ -189,6 +200,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         case 'hero':
           return {
+            ...baseData,
             componentTitle: 'Banner Hero',
             title: 'Título del Hero', 
             subtitle: 'Subtítulo del Hero',
@@ -197,6 +209,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         case 'benefit':
           return {
+            ...baseData,
             componentTitle: 'Sección Beneficio',
             title: 'Título del Beneficio',
             description: 'Descripción detallada del beneficio que ofrece tu servicio.',
@@ -208,6 +221,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           };
         default:
           return {
+            ...baseData,
             componentTitle: `Nuevo ${type}`,
             title: 'Título del componente'
           };
