@@ -102,11 +102,25 @@ export default function FormSection({
 
           if (formData) {
             setSelectedForm(formData);
+            
+            // Auto-detect multi-step forms and update UI accordingly
+            if (formData.isMultiStep) {
+              console.log('Multi-step form detected:', formData.title);
+              // Update custom config to show multi-step indicators
+              setCustomConfig(prev => ({
+                ...prev,
+                showProgressIndicator: true,
+                enableStepValidation: true,
+                allowStepNavigation: true,
+              }));
+            }
           } else {
             console.error('Form not found');
+            setSelectedForm(null);
           }
         } catch (error) {
           console.error('Error loading form:', error);
+          setSelectedForm(null);
         } finally {
           setLoading(false);
         }
@@ -312,39 +326,64 @@ export default function FormSection({
   
   // Add this function to handle form submission
   const handleFormSubmit = async (formData: Record<string, unknown>) => {
-    if (!selectedForm) return;
+    if (!selectedForm) {
+      toast.error('No form selected');
+      return;
+    }
 
     try {
       setSubmitStatus('submitting');
+      
+      // Enhanced metadata for better tracking
+      const metadata = {
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        formType: selectedForm.isMultiStep ? 'multi-step' : 'single-step',
+        stepCount: selectedForm.isMultiStep ? selectedForm.steps?.length || 0 : 1,
+        locale: document.documentElement.lang || 'en',
+      };
 
       const result = await graphqlClient.submitForm({
         formId: selectedForm.id,
         data: formData,
-        metadata: {
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-          url: window.location.href,
-        },
+        metadata,
       });
 
       if (result.success) {
         setSubmitStatus('success');
-        toast.success(result.message || 'Form submitted successfully!');
         
-        // If there's a custom redirect URL, redirect after a short delay
-        if (customConfig.customRedirectUrl) {
+        // Enhanced success feedback based on form type
+        const successMessage = selectedForm.isMultiStep 
+          ? selectedForm.successMessage || 'Multi-step form completed successfully!'
+          : selectedForm.successMessage || 'Form submitted successfully!';
+          
+        toast.success(successMessage);
+        
+        // Handle redirect if specified
+        if (selectedForm.redirectUrl) {
           setTimeout(() => {
-            window.location.href = customConfig.customRedirectUrl!;
-          }, 1000);
+            window.location.href = selectedForm.redirectUrl!;
+          }, 2000);
         }
+        
+        // Reset form status after successful submission
+        setTimeout(() => {
+          setSubmitStatus('idle');
+        }, 3000);
       } else {
         setSubmitStatus('error');
-        toast.error(result.message || 'Failed to submit form');
+        const errorMessage = result.message || 
+          (selectedForm.isMultiStep ? 'Failed to complete multi-step form' : 'Failed to submit form');
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
       setSubmitStatus('error');
-      toast.error('An error occurred while submitting the form');
+      const errorMessage = selectedForm.isMultiStep 
+        ? 'An error occurred while processing your multi-step form'
+        : 'An error occurred while submitting the form';
+      toast.error(errorMessage);
     }
   };
   
@@ -682,69 +721,109 @@ export default function FormSection({
   // Preview Tab Component
   const PreviewTab = () => (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium mb-3">Form Preview</h3>
+      <h3 className="text-lg font-medium">Form Preview</h3>
+      
       {selectedForm ? (
-        <div 
-          className={getContainerClassNames()}
-          style={{
-            ...getContainerStyles(),
-            ...(backgroundType === 'image' && backgroundImage ? {
-              backgroundImage: `url(${backgroundImage})`,
-              backgroundPosition: 'center',
-              backgroundSize: 'cover',
-              backgroundRepeat: 'no-repeat'
-            } : {})
-          }}
-          data-component-type="Form"
-        >
-          {!customConfig.hideTitle && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7 }}
-                className="mb-6 p-5 bg-white/10 backdrop-blur-sm rounded-full w-min mx-auto border border-white/30 shadow-lg shadow-blue-500/20"
-              >
-                {getIconComponent()}
-              </motion.div>
-
-              <h3 className="text-lg font-medium mb-2 text-white">
-                {selectedForm.title}
-              </h3>
-            </>
-          )}
-          
-          {!customConfig.hideDescription && selectedForm.description && (
-            <p className="text-white/80 mb-4">
-              {selectedForm.description}
-            </p>
-          )}
-          
-          {/* Form fields representation */}
-          <div className="space-y-4 mb-6">
-            {[...Array(Math.min(selectedForm.fields?.length || 3, 3))].map((_, i) => (
-              <div key={i} className="h-10 bg-white/10 rounded-md animate-pulse" />
-            ))}
+        <div className="space-y-4">
+          {/* Form Type Indicator */}
+          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className={`w-3 h-3 rounded-full ${selectedForm.isMultiStep ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
+            <span className="text-sm font-medium">
+              {selectedForm.isMultiStep ? 'Multi-Step Form' : 'Single-Step Form'}
+            </span>
+            {selectedForm.isMultiStep && selectedForm.steps && (
+              <span className="text-xs text-gray-600 ml-2">
+                ({selectedForm.steps.length} steps)
+              </span>
+            )}
           </div>
-          
-          {/* Submit button */}
-          <button
-            type="button"
-            className={getButtonClassNames()}
-            style={getButtonStyles()}
-          >
-            {customConfig.customSubmitText || selectedForm.submitButtonText || "Submit"}
-          </button>
-          
-          {/* Reset button if enabled */}
-          {customConfig.showResetButton && (
-            <button
-              type="button"
-              className="px-4 py-2 bg-white/10 text-white rounded ml-2 hover:bg-white/20 transition-colors"
-            >
-              {customConfig.resetButtonText || "Reset"}
-            </button>
-          )}
+
+          {/* Form Details */}
+          <div className="p-4 border rounded-md bg-gray-50">
+            <h4 className="font-medium text-gray-900 mb-2">{selectedForm.title}</h4>
+            {selectedForm.description && (
+              <p className="text-sm text-gray-600 mb-3">{selectedForm.description}</p>
+            )}
+            
+            {/* Multi-step specific info */}
+            {selectedForm.isMultiStep && selectedForm.steps && (
+              <div className="mt-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Form Steps:</h5>
+                <div className="space-y-2">
+                  {selectedForm.steps.map((step, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-medium">
+                        {index + 1}
+                      </div>
+                      <span className="text-gray-700">{step.title || `Step ${index + 1}`}</span>
+                      <span className="text-xs text-gray-500">
+                        ({step.fields?.length || 0} fields)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Form fields preview for single-step forms */}
+            {!selectedForm.isMultiStep && selectedForm.fields && (
+              <div className="mt-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Form Fields:</h5>
+                <div className="space-y-1">
+                  {selectedForm.fields.slice(0, 5).map((field, index) => (
+                    <div key={index} className="text-sm text-gray-600">
+                      • {field.label} ({field.type})
+                      {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+                    </div>
+                  ))}
+                  {selectedForm.fields.length > 5 && (
+                    <div className="text-xs text-gray-500">
+                      ... and {selectedForm.fields.length - 5} more fields
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Form Actions Preview */}
+          <div className="space-y-2">
+            <h5 className="text-sm font-medium text-gray-700">Form Actions:</h5>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={getButtonClassNames()}
+                style={getButtonStyles()}
+                disabled
+              >
+                {customConfig.customSubmitText || selectedForm.submitButtonText || "Submit"}
+              </button>
+              
+              {/* Reset button if enabled */}
+              {customConfig.showResetButton && (
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-white/10 text-white rounded ml-2 hover:bg-white/20 transition-colors"
+                  disabled
+                >
+                  {customConfig.resetButtonText || "Reset"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Success/Error States Preview */}
+          <div className="space-y-2">
+            <h5 className="text-sm font-medium text-gray-700">Form States:</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div className="p-2 bg-green-50 border border-green-200 rounded">
+                <strong>Success:</strong> {selectedForm.successMessage || 'Form submitted successfully!'}
+              </div>
+              <div className="p-2 bg-red-50 border border-red-200 rounded">
+                <strong>Error:</strong> Failed to submit form
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="p-6 bg-muted/20 rounded-md border border-dashed border-muted text-center">
