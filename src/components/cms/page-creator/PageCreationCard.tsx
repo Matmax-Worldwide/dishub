@@ -20,6 +20,7 @@ interface PageCreationCardProps {
     locale: string;
     metaTitle: string;
     metaDescription: string;
+    isDefault: boolean;
   };
   onChange: (name: string, value: string | boolean) => void;
   onSave: () => void;

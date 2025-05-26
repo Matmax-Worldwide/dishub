@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ interface PageDetailsTabProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onSelectChange: (name: string, value: string) => void;
+  onCheckboxChange?: (name: string, checked: boolean) => void;
   onContinue: () => void;
   onSave?: () => Promise<boolean>;
 }
@@ -43,6 +45,7 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
   onTitleChange,
   onInputChange,
   onSelectChange,
+  onCheckboxChange,
   onContinue,
   onSave,
 }) => {
@@ -114,6 +117,7 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
           locale: pageData.locale,
           metaTitle: pageData.metaTitle || pageData.title,
           metaDescription: pageData.metaDescription || '',
+          isDefault: pageData.isDefault || false,
         });
 
         if (result && result.success) {
@@ -239,6 +243,20 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
               </Select>
               <p className="text-sm text-gray-500 mt-1">
                 Las páginas de tipo &ldquo;Landing Page&rdquo; utilizan un desplazamiento suave estilo TikTok para navegar entre secciones.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isDefault"
+                  checked={pageData.isDefault || false}
+                  onCheckedChange={(checked) => onCheckboxChange?.('isDefault', checked)}
+                />
+                <Label htmlFor="isDefault">Página por defecto</Label>
+              </div>
+              <p className="text-sm text-gray-500">
+                La página por defecto se mostrará en la URL raíz del sitio (/{locale}/)
               </p>
             </div>
           </div>

@@ -32,6 +32,7 @@ interface PageData extends Omit<BasePageData, 'sections'> {
   publishDate?: string;
   // Use CMSSection directly for better type safety and ensure it's initialized as empty array
   sections: CMSSection[];
+  isDefault?: boolean;
   seo?: {
     title?: string;
     description?: string;
@@ -74,6 +75,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     metaDescription: '',
     featuredImage: '',
     publishDate: '',
+    isDefault: false,
     seo: {
       title: '',
       description: '',
@@ -218,6 +220,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         metaDescription: metaDescription,
         featuredImage: response.featuredImage || '',
         publishDate: response.publishDate || '',
+        isDefault: response.isDefault || false,
         seo: seoData
       });
       
@@ -598,6 +601,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         metaDescription: string;
         featuredImage: string;
         publishDate: string;
+        isDefault: boolean;
         seo: {
           title: string;
           description: string;
@@ -624,6 +628,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
         metaDescription: finalMetaDescription,
         featuredImage: pageData.featuredImage || '',
         publishDate: pageData.publishDate || '',
+        isDefault: pageData.isDefault || false,
         // Ensure SEO data is properly formatted and includes all fields
         seo: {
           title: finalSeoTitle,
@@ -1153,6 +1158,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                   onTitleChange={handleTitleChange}
                   onInputChange={handleInputChange}
                   onSelectChange={handleSelectChange}
+                  onCheckboxChange={handleCheckboxChange}
                   onContinue={() => setActiveTab('sections')}
                   onSave={handleSavePage}
                 />

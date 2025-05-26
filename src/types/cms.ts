@@ -34,6 +34,7 @@ export interface PageData {
   metaTitle: string;
   metaDescription: string;
   featuredImage: string;
+  isDefault?: boolean;
   seo?: {
     title?: string;
     description?: string;
@@ -77,6 +78,7 @@ export interface PageResponse {
   metaDescription?: string;
   featuredImage?: string;
   publishDate?: string;
+  isDefault?: boolean;
   seo?: {
     title?: string;
     description?: string;

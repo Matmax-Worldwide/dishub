@@ -1041,6 +1041,7 @@ export const cmsResolvers = {
         order?: number;
         pageType?: string;
         locale?: string;
+        isDefault?: boolean;
         sections?: string[];
       } 
     }) => {
@@ -1066,6 +1067,48 @@ export const cmsResolvers = {
             page: null
           };
         }
+
+        const localeToUse = input.locale || "en";
+        let shouldSetAsDefault = input.isDefault || false;
+
+        // Check if this should be automatically set as default
+        if (!shouldSetAsDefault) {
+          // Count existing pages for this locale
+          const existingPagesCount = await prisma.page.count({
+            where: { locale: localeToUse }
+          });
+          
+          console.log(`Found ${existingPagesCount} existing pages for locale ${localeToUse}`);
+          
+          // If no pages exist for this locale, set this as the default
+          if (existingPagesCount === 0) {
+            shouldSetAsDefault = true;
+            console.log(`Setting page as default since no pages exist for locale ${localeToUse}`);
+          }
+        }
+
+        // If setting this page as default, make sure no other page for the same locale is set as default
+        if (shouldSetAsDefault) {
+          console.log(`Setting page as default for locale ${localeToUse}`);
+          
+          // Find and update any existing default pages for this locale
+          const existingDefault = await prisma.page.findFirst({
+            where: {
+              locale: localeToUse,
+              isDefault: true
+            }
+          });
+          
+          if (existingDefault) {
+            console.log(`Found existing default page ${existingDefault.id} (${existingDefault.title}), removing default status`);
+            
+            // Remove default status from the existing default page
+            await prisma.page.update({
+              where: { id: existingDefault.id },
+              data: { isDefault: false }
+            });
+          }
+        }
         
         const timestamp = new Date();
         
@@ -1084,12 +1127,15 @@ export const cmsResolvers = {
             parentId: input.parentId || null,
             order: input.order !== undefined ? input.order : 0,
             pageType: (input.pageType as PageType) || PageType.CONTENT,
-            locale: input.locale || "en",
+            locale: localeToUse,
+            isDefault: shouldSetAsDefault,
             createdById: "system",
             createdAt: timestamp,
             updatedAt: timestamp
           }
         });
+
+        console.log(`Página creada correctamente: ${newPage.id}${shouldSetAsDefault ? ' (marcada como predeterminada)' : ''}`);
         
         // Si hay secciones, crear relaciones
         if (input.sections && input.sections.length > 0) {
@@ -1124,8 +1170,6 @@ export const cmsResolvers = {
           }
         }
         
-        console.log(`Página creada correctamente: ${newPage.id}`);
-        
         // Obtener la página completa con sus secciones
         const pageWithSections = await prisma.page.findUnique({
           where: { id: newPage.id },
@@ -1144,7 +1188,7 @@ export const cmsResolvers = {
         
         return {
           success: true,
-          message: `Página "${input.title}" creada correctamente`,
+          message: `Página "${input.title}" creada correctamente${shouldSetAsDefault ? ' y marcada como predeterminada' : ''}`,
           page: pageWithSections
         };
       } catch (error) {

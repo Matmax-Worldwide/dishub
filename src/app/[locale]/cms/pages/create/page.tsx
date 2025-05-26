@@ -22,6 +22,7 @@ interface PageInfo {
   metaTitle: string;
   metaDescription: string;
   featuredImage: string;
+  isDefault: boolean;
 }
 
 // Main Component
@@ -43,7 +44,8 @@ export default function CreatePageWithSections() {
     sections: [],
     metaTitle: '',
     metaDescription: '',
-    featuredImage: ''
+    featuredImage: '',
+    isDefault: false
   });
   
   // UI states
@@ -135,7 +137,8 @@ export default function CreatePageWithSections() {
         metaTitle: pageData.metaTitle,
         metaDescription: pageData.metaDescription,
         pageType: pageData.pageType,
-        locale: pageData.locale
+        locale: pageData.locale,
+        isDefault: pageData.isDefault
       });
       
       if (result && result.success && result.page && result.page.id) {

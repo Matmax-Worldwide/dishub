@@ -27,6 +27,7 @@ interface PageFormContentProps {
     locale: string;
     metaTitle: string;
     metaDescription: string;
+    isDefault: boolean;
   };
   onChange: (name: string, value: string | boolean) => void;
   onComplete?: (completed: boolean) => void;
@@ -261,13 +262,23 @@ export function PageFormContent({ pageData, onChange, onComplete }: PageFormCont
           <RocketIcon className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-medium">{t('cms.publication') || 'Publication'}</h3>
         </div>
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="isPublished"
-            checked={pageData.isPublished}
-            onCheckedChange={(checked) => handleCheckboxChange('isPublished', checked)}
-          />
-          <Label htmlFor="isPublished">{t('cms.publishImmediately')}</Label>
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isDefault"
+              checked={pageData.isDefault}
+              onCheckedChange={(checked) => handleCheckboxChange('isDefault', checked)}
+            />
+            <Label htmlFor="isDefault">{t('cms.setAsDefault') || 'Set as default page'}</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isPublished"
+              checked={pageData.isPublished}
+              onCheckedChange={(checked) => handleCheckboxChange('isPublished', checked)}
+            />
+            <Label htmlFor="isPublished">{t('cms.publishImmediately')}</Label>
+          </div>
         </div>
       </div>
 

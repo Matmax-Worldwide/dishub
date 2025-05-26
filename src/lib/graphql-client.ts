@@ -1232,6 +1232,7 @@ export const cmsOperations = {
             pageType
             createdAt
             updatedAt
+            isDefault
             sections {
               id
               sectionId
@@ -1478,6 +1479,7 @@ export const cmsOperations = {
     metaTitle?: string;
     metaDescription?: string;
     featuredImage?: string;
+    isDefault?: boolean;
     sections?: string[];
   }): Promise<{
     success: boolean;
