@@ -1208,6 +1208,12 @@ export const typeDefs = gql`
     post(id: ID!): Post
     posts(filter: PostFilter): [Post!]!
     postBySlug(slug: String!): Post
+
+    # Media queries
+    media: [Media!]!
+    mediaItem(id: ID!): Media
+    mediaByType(fileType: String!): [Media!]!
+    mediaInFolder(folder: String): [Media!]!
   }
 
   # Root Mutation
@@ -1351,6 +1357,13 @@ export const typeDefs = gql`
     createPost(input: CreatePostInput!): PostResult!
     updatePost(id: ID!, input: UpdatePostInput!): PostResult!
     deletePost(id: ID!): PostResult!
+
+    # Media mutations
+    createMedia(input: CreateMediaInput!): MediaResult!
+    updateMedia(id: ID!, input: UpdateMediaInput!): MediaResult!
+    deleteMedia(id: ID!): MediaResult!
+    associateMediaToPost(postId: ID!, mediaId: ID!): PostResult!
+    dissociateMediaFromPost(postId: ID!, mediaId: ID!): PostResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -1517,6 +1530,8 @@ export const typeDefs = gql`
     content: String!
     excerpt: String
     featuredImage: String
+    featuredImageId: String
+    featuredImageMedia: Media
     status: PostStatus!
     publishedAt: DateTime
     blogId: String!
@@ -1530,6 +1545,25 @@ export const typeDefs = gql`
     updatedAt: DateTime!
     blog: Blog
     author: User
+    media: [Media!]!
+  }
+
+  type Media {
+    id: ID!
+    title: String
+    description: String
+    fileUrl: String!
+    fileName: String!
+    fileSize: Int
+    fileType: String
+    altText: String
+    cmsSectionId: String
+    uploadedById: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    cmsSection: CMSSection
+    posts: [Post!]!
+    featuredInPosts: [Post!]!
   }
 
   enum PostStatus {
@@ -1552,6 +1586,7 @@ export const typeDefs = gql`
     content: String!
     excerpt: String
     featuredImage: String
+    featuredImageId: String
     status: PostStatus
     publishedAt: DateTime
     blogId: String!
@@ -1561,6 +1596,7 @@ export const typeDefs = gql`
     tags: [String!]
     categories: [String!]
     readTime: Int
+    mediaIds: [String!]
   }
 
   input UpdatePostInput {
@@ -1569,6 +1605,7 @@ export const typeDefs = gql`
     content: String
     excerpt: String
     featuredImage: String
+    featuredImageId: String
     status: PostStatus
     publishedAt: DateTime
     metaTitle: String
@@ -1576,6 +1613,34 @@ export const typeDefs = gql`
     tags: [String!]
     categories: [String!]
     readTime: Int
+    mediaIds: [String!]
+  }
+
+  input MediaInput {
+    title: String
+    description: String
+    fileUrl: String!
+    fileName: String!
+    fileSize: Int
+    fileType: String
+    altText: String
+  }
+
+  input CreateMediaInput {
+    title: String
+    description: String
+    fileUrl: String!
+    fileName: String!
+    fileSize: Int
+    fileType: String
+    altText: String
+    cmsSectionId: String
+  }
+
+  input UpdateMediaInput {
+    title: String
+    description: String
+    altText: String
   }
 
   input PostFilter {
@@ -1600,5 +1665,12 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
     post: Post
+  }
+
+  # Media result types
+  type MediaResult {
+    success: Boolean!
+    message: String!
+    media: Media
   }
 `; 

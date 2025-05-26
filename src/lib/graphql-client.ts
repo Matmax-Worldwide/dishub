@@ -61,7 +61,14 @@ export async function gqlRequest<T>(
       query.includes('FormStep') ||
       query.includes('FormField') ||
       query.includes('menus') ||
-      query.includes('getAllCMSPages')
+      query.includes('getAllCMSPages') ||
+      query.includes('GetBlogs') ||
+      query.includes('GetBlog') ||
+      query.includes('GetPosts') ||
+      query.includes('GetPostBySlug') ||
+      query.includes('posts') ||
+      query.includes('blog') ||
+      query.includes('postBySlug')
     );
 
     // Get session token from cookies if available and not a public operation
@@ -85,9 +92,27 @@ export async function gqlRequest<T>(
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    // Determine the GraphQL endpoint URL
+    const getGraphQLUrl = () => {
+      // If we're on the server (no window object), use absolute URL
+      if (typeof window === 'undefined') {
+        // In production, use the deployment URL or localhost for development
+        const baseUrl = process.env.VERCEL_URL 
+          ? `https://${process.env.VERCEL_URL}`
+          : process.env.NODE_ENV === 'production'
+          ? 'https://your-domain.com' // Replace with your actual domain
+          : 'http://localhost:3000';
+        return `${baseUrl}/api/graphql`;
+      }
+      // On the client, use relative URL
+      return '/api/graphql';
+    };
+    
+    const graphqlUrl = getGraphQLUrl();
+    
     try {
-      console.log(`🔄 Starting GraphQL request [${requestId}]`);
-      const response = await fetch('/api/graphql', {
+      console.log(`🔄 Starting GraphQL request [${requestId}] to ${graphqlUrl}`);
+      const response = await fetch(graphqlUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify({

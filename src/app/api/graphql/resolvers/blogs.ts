@@ -27,6 +27,7 @@ interface CreatePostInput {
   content: string;
   excerpt?: string;
   featuredImage?: string;
+  featuredImageId?: string;
   status?: PostStatus;
   publishedAt?: string;
   blogId: string;
@@ -36,6 +37,7 @@ interface CreatePostInput {
   tags?: string[];
   categories?: string[];
   readTime?: number;
+  mediaIds?: string[];
 }
 
 interface UpdatePostInput {
@@ -44,6 +46,7 @@ interface UpdatePostInput {
   content?: string;
   excerpt?: string;
   featuredImage?: string;
+  featuredImageId?: string;
   status?: PostStatus;
   publishedAt?: string;
   metaTitle?: string;
@@ -51,6 +54,7 @@ interface UpdatePostInput {
   tags?: string[];
   categories?: string[];
   readTime?: number;
+  mediaIds?: string[];
 }
 
 interface PrismaError extends Error {
@@ -117,7 +121,9 @@ export const blogResolvers = {
                 title: true,
                 slug: true
               }
-            }
+            },
+            media: true,
+            featuredImageMedia: true
           }
         });
       } catch (error) {
@@ -183,7 +189,9 @@ export const blogResolvers = {
                 title: true,
                 slug: true
               }
-            }
+            },
+            media: true,
+            featuredImageMedia: true
           }
         });
       } catch (error) {
@@ -212,7 +220,9 @@ export const blogResolvers = {
                 title: true,
                 slug: true
               }
-            }
+            },
+            media: true,
+            featuredImageMedia: true
           }
         });
       } catch (error) {
@@ -363,6 +373,7 @@ export const blogResolvers = {
             content: input.content,
             excerpt: input.excerpt,
             featuredImage: input.featuredImage,
+            featuredImageId: input.featuredImageId,
             status: input.status || 'DRAFT',
             publishedAt: input.publishedAt ? new Date(input.publishedAt) : null,
             blogId: input.blogId,
@@ -371,11 +382,18 @@ export const blogResolvers = {
             metaDescription: input.metaDescription,
             tags: input.tags || [],
             categories: input.categories || [],
-            readTime: input.readTime
+            readTime: input.readTime,
+            ...(input.mediaIds && input.mediaIds.length > 0 && {
+              media: {
+                connect: input.mediaIds.map(id => ({ id }))
+              }
+            })
           },
           include: {
             author: true,
-            blog: true
+            blog: true,
+            media: true,
+            featuredImageMedia: true
           }
         });
 
@@ -429,6 +447,7 @@ export const blogResolvers = {
         if (input.content) updateData.content = input.content;
         if (input.excerpt !== undefined) updateData.excerpt = input.excerpt;
         if (input.featuredImage !== undefined) updateData.featuredImage = input.featuredImage;
+        if (input.featuredImageId !== undefined) updateData.featuredImageId = input.featuredImageId;
         if (input.status) updateData.status = input.status;
         if (input.publishedAt !== undefined) {
           updateData.publishedAt = input.publishedAt ? new Date(input.publishedAt) : null;
@@ -437,6 +456,7 @@ export const blogResolvers = {
         if (input.metaDescription !== undefined) updateData.metaDescription = input.metaDescription;
         if (input.tags) updateData.tags = input.tags;
         if (input.categories) updateData.categories = input.categories;
+        if (input.mediaIds) updateData.mediaIds = input.mediaIds;
 
         const post = await prisma.post.update({
           where: { id },

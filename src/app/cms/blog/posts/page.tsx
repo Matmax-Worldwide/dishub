@@ -144,7 +144,7 @@ export default function PostsPage() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
+            onClick={() => window.open(`/blog/post/${post.slug}`, '_blank')}
           >
             <Eye className="h-4 w-4" />
           </Button>
@@ -197,7 +197,7 @@ export default function PostsPage() {
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
+          onClick={() => window.open(`/blog/post/${post.slug}`, '_blank')}
         >
           <Eye className="h-4 w-4" />
         </Button>

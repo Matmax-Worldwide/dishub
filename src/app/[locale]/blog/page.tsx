@@ -15,7 +15,7 @@ async function getPublishedPosts(): Promise<Post[]> {
   try {
     const query = `
       query GetPublishedPosts {
-        posts(filter: { status: "PUBLISHED" }) {
+        posts(filter: { status: PUBLISHED }) {
           id
           title
           slug
@@ -72,7 +72,7 @@ export default async function BlogPage({ params }: PageProps) {
         {posts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post) => (
-              <Link key={post.id} href={`/${locale}/blog/${post.slug}`}>
+              <Link key={post.id} href={`/${locale}/blog/post/${post.slug}`}>
                 <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                   {/* Featured Image */}
                   {post.featuredImage && (

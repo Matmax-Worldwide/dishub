@@ -1,374 +1,606 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import graphqlClient from '@/lib/graphql-client';
+import { gqlRequest } from '@/lib/graphql-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
+import { MediaItem } from '@/components/cms/media/types';
+import { 
+  Save, 
+  Eye, 
+  Image, 
+  FileText, 
+  Calendar, 
+  Tag, 
+  Globe, 
+  X,
+  Plus,
+  Upload,
+  Search
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
-import { gqlRequest } from '@/lib/graphql-client';
 
-interface PostCreateFormProps {
-  blogId: string;
-  locale?: string;
+interface Blog {
+  id: string;
+  title: string;
+  slug: string;
 }
 
-export function PostCreateForm({ blogId, locale = 'en' }: PostCreateFormProps) {
+interface PostCreateFormProps {
+  blogId?: string;
+}
+
+export default function PostCreateForm({ blogId }: PostCreateFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
+  const [featuredImage, setFeaturedImage] = useState<MediaItem | null>(null);
+  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+  const [mediaSelectionMode, setMediaSelectionMode] = useState<'featured' | 'content'>('content');
+  const [tagInput, setTagInput] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
   
-  // Check authentication on mount
-  useEffect(() => {
-    checkAuthentication();
-  }, []);
-
-  async function checkAuthentication() {
-    try {
-      const token = typeof document !== 'undefined' 
-        ? document.cookie.split(';').find(c => c.trim().startsWith('session-token='))?.split('=')[1]
-        : null;
-
-      if (!token) {
-        router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
-        return;
-      }
-
-      // Get current user info
-      const query = `
-        query Me {
-          me {
-            id
-            email
-          }
-        }
-      `;
-
-      const response = await gqlRequest<{ me: { id: string; email: string } }>(query);
-      
-      if (response.me) {
-        setCurrentUser(response.me);
-      } else {
-        router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
-      }
-    } catch (error) {
-      console.error('Auth check error:', error);
-      router.push(`/auth/signin?callbackUrl=/${locale}/cms/blog/posts/${blogId}/new`);
-    } finally {
-      setCheckingAuth(false);
-    }
-  }
-  
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
     content: '',
     excerpt: '',
-    featuredImage: '',
-    status: 'DRAFT',
+    status: 'DRAFT' as const,
     publishedAt: '',
+    blogId: blogId || '',
     metaTitle: '',
     metaDescription: '',
-    tags: '',
-    categories: ''
+    tags: [] as string[],
+    categories: [] as string[],
+    readTime: 0
   });
 
+  // Load blogs on component mount
+  useEffect(() => {
+    loadBlogs();
+  }, []);
+
   // Auto-generate slug from title
-  const handleTitleChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      title: value,
-      slug: value
+  useEffect(() => {
+    if (formData.title && !formData.slug) {
+      const slug = formData.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '')
+        .replace(/(^-|-$)/g, '');
+      setFormData(prev => ({ ...prev, slug }));
+    }
+  }, [formData.title, formData.slug]);
+
+  // Auto-generate meta title from title
+  useEffect(() => {
+    if (formData.title && !formData.metaTitle) {
+      setFormData(prev => ({ ...prev, metaTitle: formData.title }));
+    }
+  }, [formData.title, formData.metaTitle]);
+
+  // Calculate read time based on content
+  useEffect(() => {
+    const wordsPerMinute = 200;
+    const wordCount = formData.content.split(/\s+/).length;
+    const readTime = Math.ceil(wordCount / wordsPerMinute);
+    setFormData(prev => ({ ...prev, readTime }));
+  }, [formData.content]);
+
+  const loadBlogs = async () => {
+    try {
+      const query = `
+        query GetBlogs {
+          blogs {
+            id
+            title
+            slug
+          }
+        }
+      `;
+      const response = await gqlRequest<{ blogs: Blog[] }>(query);
+      setBlogs(response.blogs || []);
+    } catch (error) {
+      console.error('Error loading blogs:', error);
+      toast.error('Failed to load blogs');
+    }
+  };
+
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleMediaSelect = (media: MediaItem) => {
+    if (mediaSelectionMode === 'featured') {
+      setFeaturedImage(media);
+      setShowMediaLibrary(false);
+      toast.success('Featured image selected');
+    } else {
+      if (!selectedMedia.find(m => m.id === media.id)) {
+        setSelectedMedia(prev => [...prev, media]);
+        toast.success('Media added to post');
+      }
+      setShowMediaLibrary(false);
+    }
+  };
+
+  const removeMedia = (mediaId: string) => {
+    setSelectedMedia(prev => prev.filter(m => m.id !== mediaId));
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag)
     }));
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title.trim()) {
-      toast.error('Please enter a post title');
-      return;
-    }
-
-    if (!formData.content.trim()) {
-      toast.error('Please enter post content');
-      return;
-    }
-
-    // Ensure user is authenticated
-    if (!currentUser?.id) {
-      toast.error('You need to be logged in to create a post');
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      // Create post using GraphQL client
-      const result = await graphqlClient.createPost({
-        title: formData.title.trim(),
-        slug: formData.slug.trim(),
-        content: formData.content.trim(),
-        excerpt: formData.excerpt.trim() || undefined,
-        featuredImage: formData.featuredImage.trim() || undefined,
-        status: formData.status,
-        blogId: blogId,
-        authorId: currentUser.id, // Use actual user ID from our auth
-        publishedAt: formData.status === 'PUBLISHED' ? new Date().toISOString() : undefined,
-        metaTitle: formData.metaTitle.trim() || undefined,
-        metaDescription: formData.metaDescription.trim() || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
-        categories: formData.categories ? formData.categories.split(',').map(cat => cat.trim()) : []
-      });
-
-      if (result.success) {
-        toast.success('Post created successfully!');
-        router.push(`/${locale}/cms/blog/posts/${blogId}`);
-      } else {
-        toast.error(result.message || 'Failed to create post');
-      }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      toast.error('An error occurred while creating the post');
-    } finally {
-      setLoading(false);
+  const addCategory = () => {
+    if (categoryInput.trim() && !formData.categories.includes(categoryInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        categories: [...prev.categories, categoryInput.trim()]
+      }));
+      setCategoryInput('');
     }
   };
 
-  // Show loading state during auth check
-  if (checkingAuth) {
-    return (
-      <div className="container mx-auto py-8 px-4 max-w-4xl">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-1/3" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </div>
-    );
-  }
+  const removeCategory = (category: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.filter(c => c !== category)
+    }));
+  };
 
-  // If not authenticated, don't render form
-  if (!currentUser) {
-    return null;
-  }
+  const handleSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
+    if (!formData.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+
+    if (!formData.blogId) {
+      toast.error('Please select a blog');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Get current user for authorId
+      const userQuery = `
+        query Me {
+          me {
+            id
+          }
+        }
+      `;
+      const userResponse = await gqlRequest<{ me: { id: string } }>(userQuery);
+      
+      if (!userResponse.me?.id) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const mutation = `
+        mutation CreatePost($input: CreatePostInput!) {
+          createPost(input: $input) {
+            success
+            message
+            post {
+              id
+              title
+              slug
+            }
+          }
+        }
+      `;
+
+      const input = {
+        ...formData,
+        status,
+        authorId: userResponse.me.id,
+        publishedAt: status === 'PUBLISHED' ? new Date().toISOString() : null,
+        featuredImageId: featuredImage?.id || null,
+        mediaIds: selectedMedia.map(m => m.id)
+      };
+
+      const response = await gqlRequest<{
+        createPost: {
+          success: boolean;
+          message: string;
+          post: { id: string; title: string; slug: string };
+        };
+      }>(mutation, { input });
+
+      if (response.createPost.success) {
+        toast.success(response.createPost.message);
+        router.push(`/cms/blog/posts`);
+      } else {
+        toast.error(response.createPost.message);
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePreview = () => {
+    // Open preview in new tab
+    const previewData = {
+      ...formData,
+      featuredImage: featuredImage?.fileUrl,
+      media: selectedMedia
+    };
+    
+    // Store preview data in sessionStorage
+    sessionStorage.setItem('postPreview', JSON.stringify(previewData));
+    window.open('/cms/blog/preview', '_blank');
+  };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => router.push(`/${locale}/cms/blog/posts/${blogId}`)}
-          >
-            <ArrowLeft className="h-4 w-4" />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Create New Post</h1>
+          <p className="text-muted-foreground">Write and publish a new blog post</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePreview} disabled={!formData.title}>
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Create New Post</h1>
-            <p className="text-muted-foreground">Add new content to your blog</p>
-          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => handleSubmit('DRAFT')} 
+            disabled={isLoading}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Draft
+          </Button>
+          <Button 
+            onClick={() => handleSubmit('PUBLISHED')} 
+            disabled={isLoading}
+          >
+            <Globe className="h-4 w-4 mr-2" />
+            Publish
+          </Button>
         </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-3">
-          <div className="md:col-span-2 space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Post Content</CardTitle>
-                <CardDescription>
-                  Enter the main content for your post
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title*</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    placeholder="Enter post title"
-                    required
-                  />
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Post Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="Enter post title..."
+                  className="text-lg"
+                />
+              </div>
 
-                {/* Content */}
-                <div className="space-y-2">
-                  <Label htmlFor="content">Content*</Label>
-                  <Textarea
-                    id="content"
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    placeholder="Enter post content"
-                    rows={12}
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange('slug', e.target.value)}
+                  placeholder="post-url-slug"
+                />
+              </div>
 
-                {/* Excerpt */}
-                <div className="space-y-2">
-                  <Label htmlFor="excerpt">Excerpt</Label>
-                  <Textarea
-                    id="excerpt"
-                    value={formData.excerpt}
-                    onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                    placeholder="Brief summary of the post"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              <div>
+                <Label htmlFor="excerpt">Excerpt</Label>
+                <Textarea
+                  id="excerpt"
+                  value={formData.excerpt}
+                  onChange={(e) => handleInputChange('excerpt', e.target.value)}
+                  placeholder="Brief description of the post..."
+                  rows={3}
+                />
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>SEO</CardTitle>
-                <CardDescription>
-                  Optimize your post for search engines
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Meta Title */}
-                <div className="space-y-2">
-                  <Label htmlFor="metaTitle">Meta Title</Label>
-                  <Input
-                    id="metaTitle"
-                    value={formData.metaTitle}
-                    onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
-                    placeholder="SEO title (defaults to post title if empty)"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="content">Content *</Label>
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => handleInputChange('content', e.target.value)}
+                  placeholder="Write your post content here..."
+                  rows={15}
+                  className="font-mono"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Estimated read time: {formData.readTime} minute{formData.readTime !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-                {/* Meta Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="metaDescription">Meta Description</Label>
-                  <Textarea
-                    id="metaDescription"
-                    value={formData.metaDescription}
-                    onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-                    placeholder="SEO description (defaults to excerpt if empty)"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Publishing</CardTitle>
-                <CardDescription>
-                  Control how your post is published
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Status */}
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="status"
-                      checked={formData.status === 'PUBLISHED'}
-                      onCheckedChange={(checked) => 
-                        setFormData({ 
-                          ...formData, 
-                          status: checked ? 'PUBLISHED' : 'DRAFT' 
-                        })
-                      }
+          {/* Media Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Media
+              </CardTitle>
+              <CardDescription>
+                Add images, videos, and other media to your post
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Featured Image */}
+              <div>
+                <Label>Featured Image</Label>
+                {featuredImage ? (
+                  <div className="relative">
+                    <img
+                      src={featuredImage.fileUrl}
+                      alt={featuredImage.altText || featuredImage.title}
+                      className="w-full h-48 object-cover rounded-lg"
                     />
-                    <Label htmlFor="status">
-                      {formData.status === 'PUBLISHED' ? 'Published' : 'Draft'}
-                    </Label>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => setFeaturedImage(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formData.status === 'PUBLISHED' 
-                      ? 'This post will be visible to readers'
-                      : 'This post will be saved as a draft'
-                    }
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full h-32 border-dashed"
+                    onClick={() => {
+                      setMediaSelectionMode('featured');
+                      setShowMediaLibrary(true);
+                    }}
+                  >
+                    <Upload className="h-6 w-6 mr-2" />
+                    Select Featured Image
+                  </Button>
+                )}
+              </div>
+
+              {/* Content Media */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Content Media</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setMediaSelectionMode('content');
+                      setShowMediaLibrary(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Media
+                  </Button>
+                </div>
+                
+                {selectedMedia.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {selectedMedia.map((media) => (
+                      <div key={media.id} className="relative group">
+                        {media.fileType.startsWith('image/') ? (
+                          <img
+                            src={media.fileUrl}
+                            alt={media.altText || media.title}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-full h-24 bg-muted rounded-lg flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeMedia(media.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                        <p className="text-xs text-center mt-1 truncate">
+                          {media.title}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No media added yet
                   </p>
-                </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-                {/* Slug */}
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Publish Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Publish Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="blog">Blog *</Label>
+                <Select value={formData.blogId} onValueChange={(value) => handleInputChange('blogId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a blog" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {blogs.map((blog) => (
+                      <SelectItem key={blog.id} value={blog.id}>
+                        {blog.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="publishedAt">Publish Date</Label>
+                <Input
+                  id="publishedAt"
+                  type="datetime-local"
+                  value={formData.publishedAt}
+                  onChange={(e) => handleInputChange('publishedAt', e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tags & Categories */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5" />
+                Tags & Categories
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Tags */}
+              <div>
+                <Label>Tags</Label>
+                <div className="flex gap-2 mb-2">
                   <Input
-                    id="slug"
-                    value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    placeholder="url-friendly-slug"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    placeholder="Add tag..."
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    The URL-friendly version of the title
-                  </p>
+                  <Button size="sm" onClick={addTag}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
+                <div className="flex flex-wrap gap-1">
+                  {formData.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                      {tag} <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
 
-                {/* Featured Image */}
-                <div className="space-y-2">
-                  <Label htmlFor="featuredImage">Featured Image URL</Label>
+              {/* Categories */}
+              <div>
+                <Label>Categories</Label>
+                <div className="flex gap-2 mb-2">
                   <Input
-                    id="featuredImage"
-                    value={formData.featuredImage}
-                    onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
+                    value={categoryInput}
+                    onChange={(e) => setCategoryInput(e.target.value)}
+                    placeholder="Add category..."
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
                   />
+                  <Button size="sm" onClick={addCategory}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
-
-                {/* Tags */}
-                <div className="space-y-2">
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="tag1, tag2, tag3"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Separate tags with commas
-                  </p>
+                <div className="flex flex-wrap gap-1">
+                  {formData.categories.map((category) => (
+                    <Badge key={category} variant="outline" className="cursor-pointer" onClick={() => removeCategory(category)}>
+                      {category} <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                {/* Categories */}
-                <div className="space-y-2">
-                  <Label htmlFor="categories">Categories</Label>
-                  <Input
-                    id="categories"
-                    value={formData.categories}
-                    onChange={(e) => setFormData({ ...formData, categories: e.target.value })}
-                    placeholder="category1, category2"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Separate categories with commas
-                  </p>
-                </div>
+          {/* SEO Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                SEO Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="metaTitle">Meta Title</Label>
+                <Input
+                  id="metaTitle"
+                  value={formData.metaTitle}
+                  onChange={(e) => handleInputChange('metaTitle', e.target.value)}
+                  placeholder="SEO title..."
+                />
+              </div>
 
-                {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating Post...' : 'Create Post'}
-                </Button>
-              </CardContent>
-            </Card>
+              <div>
+                <Label htmlFor="metaDescription">Meta Description</Label>
+                <Textarea
+                  id="metaDescription"
+                  value={formData.metaDescription}
+                  onChange={(e) => handleInputChange('metaDescription', e.target.value)}
+                  placeholder="SEO description..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Media Library Modal */}
+      {showMediaLibrary && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl h-[80vh] flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">
+                Select {mediaSelectionMode === 'featured' ? 'Featured Image' : 'Media'}
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowMediaLibrary(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <MediaLibrary
+                onSelect={handleMediaSelect}
+                isSelectionMode={true}
+              />
+            </div>
           </div>
         </div>
-      </form>
+      )}
     </div>
   );
 } 

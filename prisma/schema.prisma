@@ -527,6 +527,8 @@ model Media {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   cmsSection    CMSSection?  @relation(fields: [cmsSectionId], references: [id])
+  posts         Post[]       @relation("PostMedia")
+  featuredInPosts Post[]     @relation("PostFeaturedImage")
 }
 
 model PageSEO {
@@ -1070,6 +1072,7 @@ model Post {
   content         String    @db.Text
   excerpt         String?
   featuredImage   String?
+  featuredImageId String?
   status          PostStatus @default(DRAFT)
   publishedAt     DateTime?
   blogId          String
@@ -1083,6 +1086,8 @@ model Post {
   updatedAt       DateTime  @updatedAt
   blog            Blog      @relation(fields: [blogId], references: [id])
   author          User      @relation(fields: [authorId], references: [id])
+  featuredImageMedia Media? @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
+  media           Media[]   @relation("PostMedia")
 }
 
 enum PostStatus {

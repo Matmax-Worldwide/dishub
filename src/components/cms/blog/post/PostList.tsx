@@ -161,7 +161,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
     const post = posts.find(p => p.id === postId);
     if (post) {
       // Navigate to the public blog post page using the post slug
-      router.push(`/${locale}/blog/${post.slug}`);
+      router.push(`/${locale}/blog/post/${post.slug}`);
     } else {
       toast.error('Post not found');
     }
