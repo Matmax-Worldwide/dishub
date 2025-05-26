@@ -9,7 +9,6 @@ import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import * as LucideIcons from 'lucide-react';
 import { toast } from 'sonner';
-import { Metadata } from 'next';
 
 interface FormPageProps {
   params: Promise<{
@@ -311,38 +310,3 @@ export default function FormPage({ params }: FormPageProps) {
   );
 }
 
-// Generate metadata for SEO
-export async function generateMetadata({ params }: FormPageProps): Promise<Metadata> {
-  try {
-    const resolvedParams = await params;
-    const form = await graphqlClient.getFormBySlug(resolvedParams.slug);
-    
-    if (!form) {
-      return {
-        title: 'Form Not Found',
-        description: 'The requested form could not be found.',
-      };
-    }
-
-    return {
-      title: form.title,
-      description: form.description || `Fill out the ${form.title} form`,
-      openGraph: {
-        title: form.title,
-        description: form.description || `Fill out the ${form.title} form`,
-        type: 'website',
-      },
-      twitter: {
-        card: 'summary',
-        title: form.title,
-        description: form.description || `Fill out the ${form.title} form`,
-      },
-    };
-  } catch (error) {
-    console.error('Error generating metadata:', error);
-    return {
-      title: 'Form',
-      description: 'Fill out this form',
-    };
-  }
-} 
