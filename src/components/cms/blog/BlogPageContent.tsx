@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Blog } from '@/types/blog';
 import { useRouter } from 'next/navigation';
+import graphqlClient from '@/lib/graphql-client';
 
 import { BlogPageHeader } from './BlogPageHeader';
 import { BlogToolbar } from './BlogToolbar';
@@ -32,8 +33,7 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
   async function loadBlogs() {
     setLoading(true);
     try {
-      const response = await fetch('/api/blogs');
-      const blogsList = await response.json();
+      const blogsList = await graphqlClient.getBlogs();
       setBlogs(blogsList);
     } catch (error) {
       console.error('Error loading blogs:', error);
@@ -82,10 +82,7 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
     }
 
     try {
-      const response = await fetch(`/api/blogs/${id}`, {
-        method: 'DELETE',
-      });
-      const result = await response.json();
+      const result = await graphqlClient.deleteBlog(id);
       
       if (result.success) {
         setBlogs(blogs.filter(blog => blog.id !== id));

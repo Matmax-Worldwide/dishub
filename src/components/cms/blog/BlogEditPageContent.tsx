@@ -41,13 +41,12 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
   async function loadBlog() {
     setLoading(true);
     try {
-      // Get the blog details using the REST API
-      const response = await fetch(`/api/blogs/${blogId}`);
-      const blogData = await response.json();
+      // Get the blog details using GraphQL
+      const blogData = await graphqlClient.getBlogById(blogId);
       
-      // If there's an error or blog not found
-      if (!response.ok) {
-        toast.error(blogData.message || 'Failed to load blog');
+      // If blog not found
+      if (!blogData) {
+        toast.error('Blog not found');
         return;
       }
       
@@ -100,7 +99,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
     setSaving(true);
     
     try {
-      // Update blog using GraphQL client (preferred in your request)
+      // Update blog using GraphQL client
       const result = await graphqlClient.updateBlog(blogId, {
         title: formData.title.trim(),
         description: formData.description.trim() || null,
@@ -117,34 +116,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
       }
     } catch (error) {
       console.error('Error updating blog:', error);
-      
-      // Fallback to REST API if GraphQL fails
-      try {
-        const response = await fetch(`/api/blogs/${blogId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: formData.title.trim(),
-            description: formData.description.trim() || null,
-            slug: formData.slug.trim(),
-            isActive: formData.isActive
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          toast.success('Blog updated successfully!');
-          router.push(`/${locale}/cms/blog`);
-        } else {
-          toast.error(result.message || 'Failed to update blog');
-        }
-      } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
-        toast.error('Failed to update blog. Please try again.');
-      }
+      toast.error('Failed to update blog. Please try again.');
     } finally {
       setSaving(false);
     }

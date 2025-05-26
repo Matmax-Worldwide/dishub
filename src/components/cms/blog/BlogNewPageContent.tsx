@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import graphqlClient from '@/lib/graphql-client';
 
 interface BlogNewPageContentProps {
   locale?: string;
@@ -51,20 +52,12 @@ export function BlogNewPageContent({ locale = 'en' }: BlogNewPageContentProps) {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/blogs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: formData.title.trim(),
-          description: formData.description.trim() || null,
-          slug: formData.slug.trim(),
-          isActive: formData.isActive
-        }),
+      const result = await graphqlClient.createBlog({
+        title: formData.title.trim(),
+        description: formData.description.trim() || null,
+        slug: formData.slug.trim(),
+        isActive: formData.isActive
       });
-
-      const result = await response.json();
 
       if (result.success) {
         toast.success('Blog created successfully!');

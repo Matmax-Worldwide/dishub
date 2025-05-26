@@ -1200,6 +1200,12 @@ export const typeDefs = gql`
     formSubmissions(formId: ID!, limit: Int, offset: Int): [FormSubmission!]!
     formSubmission(id: ID!): FormSubmission
     formSubmissionStats(formId: ID!): JSON
+
+    # Blog queries
+    blogs: [Blog!]!
+    blog(id: ID!): Blog
+    posts(filter: PostFilter): [Post!]!
+    postBySlug(slug: String!): Post
   }
 
   # Root Mutation
@@ -1334,6 +1340,15 @@ export const typeDefs = gql`
     submitForm(input: FormSubmissionInput!): FormSubmissionResult!
     updateFormSubmissionStatus(id: ID!, status: SubmissionStatus!): FormSubmissionResult!
     deleteFormSubmission(id: ID!): FormSubmissionResult!
+
+    # Blog mutations
+    createBlog(input: BlogInput!): BlogResult!
+    updateBlog(id: ID!, input: BlogInput!): BlogResult!
+    deleteBlog(id: ID!): BlogResult!
+    
+    createPost(input: CreatePostInput!): PostResult!
+    updatePost(id: ID!, input: UpdatePostInput!): PostResult!
+    deletePost(id: ID!): PostResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -1470,5 +1485,109 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
     footerStyle: FooterStyle
+  }
+
+  # Blog types
+  type Blog {
+    id: ID!
+    title: String!
+    description: String
+    slug: String!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    posts: [Post!]
+  }
+
+  type Post {
+    id: ID!
+    title: String!
+    slug: String!
+    content: String!
+    excerpt: String
+    featuredImage: String
+    status: PostStatus!
+    publishedAt: DateTime
+    blogId: String!
+    authorId: String!
+    metaTitle: String
+    metaDescription: String
+    tags: [String!]!
+    categories: [String!]!
+    readTime: Int
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    blog: Blog
+    author: User
+  }
+
+  enum PostStatus {
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+  }
+
+  # Blog input types
+  input BlogInput {
+    title: String!
+    description: String
+    slug: String!
+    isActive: Boolean
+  }
+
+  input CreatePostInput {
+    title: String!
+    slug: String!
+    content: String!
+    excerpt: String
+    featuredImage: String
+    status: PostStatus
+    publishedAt: DateTime
+    blogId: String!
+    authorId: String!
+    metaTitle: String
+    metaDescription: String
+    tags: [String!]
+    categories: [String!]
+    readTime: Int
+  }
+
+  input UpdatePostInput {
+    title: String
+    slug: String
+    content: String
+    excerpt: String
+    featuredImage: String
+    status: PostStatus
+    publishedAt: DateTime
+    metaTitle: String
+    metaDescription: String
+    tags: [String!]
+    categories: [String!]
+    readTime: Int
+  }
+
+  input PostFilter {
+    blogId: String
+    status: PostStatus
+    authorId: String
+    tags: [String!]
+    categories: [String!]
+    search: String
+    limit: Int
+    offset: Int
+  }
+
+  # Blog result types
+  type BlogResult {
+    success: Boolean!
+    message: String!
+    blog: Blog
+  }
+
+  type PostResult {
+    success: Boolean!
+    message: String!
+    post: Post
   }
 `; 

@@ -3315,6 +3315,30 @@ const graphqlClient = {
     }
   },
 
+  async getBlogById(id: string) {
+    const query = `
+      query GetBlogById($id: ID!) {
+        blog(id: $id) {
+          id
+          title
+          description
+          slug
+          isActive
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ blog: Blog | null }>(query, { id });
+      return response.blog;
+    } catch (error) {
+      console.error('Error fetching blog:', error);
+      return null;
+    }
+  },
+
   async createBlog(input: {
     title: string;
     description?: string | null;
@@ -3377,26 +3401,25 @@ const graphqlClient = {
     slug?: string;
     isActive?: boolean;
   }) {
-    try {
-      // Try using GraphQL first
-      const query = `
-        mutation UpdateBlog($id: ID!, $input: BlogInput!) {
-          updateBlog(id: $id, input: $input) {
-            success
-            message
-            blog {
-              id
-              title
-              description
-              slug
-              isActive
-              createdAt
-              updatedAt
-            }
+    const query = `
+      mutation UpdateBlog($id: ID!, $input: BlogInput!) {
+        updateBlog(id: $id, input: $input) {
+          success
+          message
+          blog {
+            id
+            title
+            description
+            slug
+            isActive
+            createdAt
+            updatedAt
           }
         }
-      `;
-      
+      }
+    `;
+    
+    try {
       const response = await gqlRequest<{
         updateBlog: {
           success: boolean;
@@ -3407,32 +3430,12 @@ const graphqlClient = {
       
       return response.updateBlog;
     } catch (error) {
-      console.error('GraphQL updateBlog error:', error);
-      
-      // Fallback to REST API
-      try {
-        const response = await fetch(`/api/blogs/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(input),
-        });
-        
-        const result = await response.json();
-        return {
-          success: result.success,
-          message: result.message,
-          blog: result.blog
-        };
-      } catch (fallbackError) {
-        console.error('REST fallback error:', fallbackError);
-        return {
-          success: false,
-          message: 'Failed to update blog',
-          blog: null
-        };
-      }
+      console.error('Error updating blog:', error);
+      return {
+        success: false,
+        message: 'Failed to update blog',
+        blog: null
+      };
     }
   },
 

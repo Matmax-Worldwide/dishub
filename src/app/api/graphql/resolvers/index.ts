@@ -16,6 +16,8 @@ import { taskResolvers } from './tasks';
 import { projectResolvers } from './projects';
 import externalLinksResolvers from './externalLinks';
 import { cmsResolvers } from './cms';
+import { blogResolvers } from './blogs';
+import { formResolvers } from './forms';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -457,6 +459,8 @@ const resolvers = {
     ...projectResolvers.Query,
     ...externalLinksResolvers.Query,
     ...cmsResolvers.Query,
+    ...blogResolvers.Query,
+    ...formResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -471,6 +475,8 @@ const resolvers = {
     ...projectResolvers.Mutation,
     ...externalLinksResolvers.Mutation,
     ...cmsResolvers.Mutation,
+    ...blogResolvers.Mutation,
+    ...formResolvers.Mutation,
   }
 };
 

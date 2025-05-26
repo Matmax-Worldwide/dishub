@@ -60,9 +60,8 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
   async function loadBlogAndPosts() {
     setLoading(true);
     try {
-      // Fetch blog info
-      const blogInfo = await fetch(`/api/blogs/${blogId}`);
-      const blogData = await blogInfo.json();
+      // Fetch blog info using GraphQL
+      const blogData = await graphqlClient.getBlogById(blogId);
       setBlog(blogData);
 
       // Fetch posts using GraphQL client
