@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FormBase, FormStepBase, FormFieldBase, FormFieldType } from '@/types/forms';
+import { FormBase, FormStepBase, FormFieldBase } from '@/types/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Edit, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, ArrowUp, ArrowDown, Move } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 
@@ -30,6 +30,20 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
     description: '',
     isVisible: true
   });
+
+  // Get unassigned fields (fields that don't belong to any step)
+  const getUnassignedFields = useCallback(() => {
+    if (!form.fields) return [];
+    
+    const assignedFieldIds = new Set();
+    steps.forEach(step => {
+      step.fields.forEach(field => {
+        assignedFieldIds.add(field.id);
+      });
+    });
+    
+    return form.fields.filter(field => !assignedFieldIds.has(field.id));
+  }, [form.fields, steps]);
 
   const loadFormSteps = useCallback(async () => {
     try {
@@ -92,7 +106,7 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
   };
 
   const handleDeleteStep = async (stepId: string) => {
-    if (!confirm('Are you sure you want to delete this step? All fields in this step will also be deleted.')) {
+    if (!confirm('Are you sure you want to delete this step? Fields will be unassigned but not deleted.')) {
       return;
     }
 
@@ -167,49 +181,81 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
     }
   };
 
-  const handleAddFieldToStep = async (stepId: string, fieldType: FormFieldType) => {
+  const handleAssignFieldToStep = async (fieldId: string, stepId: string) => {
     try {
-      const fieldName = `field_${Date.now()}`;
-      const result = await graphqlClient.createFormField({
-        stepId,
-        label: `New ${fieldType.toLowerCase()} field`,
-        name: fieldName,
-        type: fieldType,
-        isRequired: false,
-        order: 0
-      });
-
-      if (result.success) {
-        toast.success('Field added to step');
-        await loadFormSteps();
-      } else {
-        toast.error(result.message || 'Failed to add field');
+      // Get the current field data first
+      const currentField = form.fields?.find(f => f.id === fieldId);
+      if (!currentField) {
+        toast.error('Field not found');
+        return;
       }
-    } catch (error) {
-      console.error('Error adding field to step:', error);
-      toast.error('Failed to add field');
-    }
-  };
 
-  const handleDeleteField = async (fieldId: string) => {
-    if (!confirm('Are you sure you want to delete this field?')) {
-      return;
-    }
-
-    try {
-      const result = await graphqlClient.deleteFormField(fieldId);
+      const result = await graphqlClient.updateFormField(fieldId, {
+        label: currentField.label,
+        name: currentField.name,
+        type: currentField.type,
+        stepId: stepId,
+        isRequired: currentField.isRequired,
+        order: currentField.order,
+        placeholder: currentField.placeholder,
+        helpText: currentField.helpText,
+        defaultValue: currentField.defaultValue,
+        options: currentField.options,
+        validationRules: currentField.validationRules,
+        styling: currentField.styling,
+        width: currentField.width
+      });
       
       if (result.success) {
-        toast.success('Field deleted successfully');
+        toast.success('Field assigned to step');
         await loadFormSteps();
       } else {
-        toast.error('Failed to delete field');
+        toast.error(result.message || 'Failed to assign field');
       }
     } catch (error) {
-      console.error('Error deleting field:', error);
-      toast.error('Failed to delete field');
+      console.error('Error assigning field to step:', error);
+      toast.error('Failed to assign field');
     }
   };
+
+  const handleUnassignFieldFromStep = async (fieldId: string) => {
+    try {
+      // Get the current field data first
+      const currentField = form.fields?.find(f => f.id === fieldId);
+      if (!currentField) {
+        toast.error('Field not found');
+        return;
+      }
+
+      const result = await graphqlClient.updateFormField(fieldId, {
+        label: currentField.label,
+        name: currentField.name,
+        type: currentField.type,
+        stepId: undefined, // Remove step assignment
+        isRequired: currentField.isRequired,
+        order: currentField.order,
+        placeholder: currentField.placeholder,
+        helpText: currentField.helpText,
+        defaultValue: currentField.defaultValue,
+        options: currentField.options,
+        validationRules: currentField.validationRules,
+        styling: currentField.styling,
+        width: currentField.width
+      });
+      
+      if (result.success) {
+        toast.success('Field unassigned from step');
+        await loadFormSteps();
+      } else {
+        toast.error('Failed to unassign field');
+      }
+    } catch (error) {
+      console.error('Error unassigning field from step:', error);
+      toast.error('Failed to unassign field');
+    }
+  };
+
+  const unassignedFields = getUnassignedFields();
 
   if (!form.isMultiStep) {
     return (
@@ -224,16 +270,70 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
     );
   }
 
+  // Check if there are any form fields created
+  const hasFormFields = form.fields && form.fields.length > 0;
+
   return (
     <div className="space-y-6">
+      {!hasFormFields && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-blue-800">No Form Fields Created</CardTitle>
+            <CardDescription className="text-blue-700">
+              You need to create form fields first before you can assign them to steps. 
+              Go to the <strong>Fields</strong> tab to create your form fields, then return here to organize them into steps.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Form Steps Management</CardTitle>
           <CardDescription>
-            Create and manage steps for your multi-step form. Each step can contain multiple fields.
+            Create and manage steps for your multi-step form. Assign existing form fields to different steps.
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Unassigned Fields Section */}
+          {unassignedFields.length > 0 && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="font-medium text-yellow-800 mb-3">Unassigned Fields</h4>
+              <p className="text-sm text-yellow-700 mb-3">
+                These fields are not assigned to any step. Drag them to a step or use the dropdown to assign them.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {unassignedFields.map((field) => (
+                  <div key={field.id} className="flex items-center justify-between p-2 bg-white border border-yellow-300 rounded">
+                    <div>
+                      <span className="text-sm font-medium">{field.label}</span>
+                      <Badge variant="outline" className="ml-2 text-xs">
+                        {field.type}
+                      </Badge>
+                      {field.isRequired && (
+                        <Badge variant="destructive" className="ml-1 text-xs">
+                          Required
+                        </Badge>
+                      )}
+                    </div>
+                    <Select onValueChange={(stepId) => handleAssignFieldToStep(field.id, stepId)}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Assign to..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {steps.map((step) => (
+                          <SelectItem key={step.id} value={step.id}>
+                            {step.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Create New Step */}
           <div className="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium">Add New Step</h4>
@@ -350,28 +450,26 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
                     {/* Step Fields */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h5 className="text-sm font-medium">Fields ({step.fields.length})</h5>
-                        <Select onValueChange={(value) => handleAddFieldToStep(step.id, value as FormFieldType)}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Add field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={FormFieldType.TEXT}>Text</SelectItem>
-                            <SelectItem value={FormFieldType.EMAIL}>Email</SelectItem>
-                            <SelectItem value={FormFieldType.PHONE}>Phone</SelectItem>
-                            <SelectItem value={FormFieldType.TEXTAREA}>Textarea</SelectItem>
-                            <SelectItem value={FormFieldType.SELECT}>Select</SelectItem>
-                            <SelectItem value={FormFieldType.RADIO}>Radio</SelectItem>
-                            <SelectItem value={FormFieldType.CHECKBOX}>Checkbox</SelectItem>
-                            <SelectItem value={FormFieldType.DATE}>Date</SelectItem>
-                            <SelectItem value={FormFieldType.NUMBER}>Number</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <h5 className="text-sm font-medium">Assigned Fields ({step.fields.length})</h5>
+                        {unassignedFields.length > 0 && (
+                          <Select onValueChange={(fieldId) => handleAssignFieldToStep(fieldId, step.id)}>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Assign field to step" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unassignedFields.map((field) => (
+                                <SelectItem key={field.id} value={field.id}>
+                                  {field.label} ({field.type})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       
                       {step.fields.length === 0 ? (
                         <p className="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-200 rounded">
-                          No fields in this step. Add fields using the dropdown above.
+                          No fields assigned to this step. {unassignedFields.length > 0 ? 'Use the dropdown above to assign fields.' : 'Create fields in the Fields tab first.'}
                         </p>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -391,10 +489,11 @@ export default function FormStepManager({ form }: FormStepManagerProps) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteField(field.id)}
-                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleUnassignFieldFromStep(field.id)}
+                                className="text-orange-600 hover:text-orange-700"
+                                title="Unassign from step"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Move className="w-3 h-3" />
                               </Button>
                             </div>
                           ))}

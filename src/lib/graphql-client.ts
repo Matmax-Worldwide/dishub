@@ -3337,6 +3337,7 @@ const graphqlClient = {
   deleteFormField,
   submitForm,
   updateFormSubmissionStatus,
+  deleteFormSubmission,
 
   // Blog operations
   async getBlogs() {
@@ -3849,5 +3850,28 @@ async function updateStepOrders(updates: Array<{ id: string; order: number }>): 
   } catch (error) {
     console.error('Error updating step orders:', error);
     return { success: false, message: 'Error updating step orders' };
+  }
+}
+
+// Delete a form submission
+async function deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
+  const mutation = `
+    mutation DeleteFormSubmission($id: ID!) {
+      deleteFormSubmission(id: $id) {
+        success
+        message
+        submission
+      }
+    }
+  `;
+
+  const variables = { id };
+
+  try {
+    const response = await gqlRequest<{ deleteFormSubmission: FormSubmissionResult }>(mutation, variables);
+    return response.deleteFormSubmission || { success: false, message: 'Failed to delete form submission', submission: null };
+  } catch (error) {
+    console.error('Error deleting form submission:', error);
+    return { success: false, message: 'Error deleting form submission', submission: null };
   }
 }
