@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { PageEditor } from '@/components/cms/page-editor';
-import { useTabContext } from '@/app/[locale]/cms/pages/layout';
+import { useTabContext } from '@/contexts/TabContext';
 
 interface PageParams {
   locale: string;

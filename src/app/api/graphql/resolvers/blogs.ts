@@ -1,7 +1,64 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
+import { PostStatus } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Define interfaces for input types
+interface BlogInput {
+  title: string;
+  description?: string;
+  slug: string;
+  isActive?: boolean;
+}
+
+interface PostFilter {
+  blogId?: string;
+  status?: PostStatus;
+  authorId?: string;
+  tags?: string[];
+  categories?: string[];
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+interface CreatePostInput {
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  featuredImage?: string;
+  status?: PostStatus;
+  publishedAt?: string;
+  blogId: string;
+  authorId: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  tags?: string[];
+  categories?: string[];
+  readTime?: number;
+}
+
+interface UpdatePostInput {
+  title?: string;
+  slug?: string;
+  content?: string;
+  excerpt?: string;
+  featuredImage?: string;
+  status?: PostStatus;
+  publishedAt?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  tags?: string[];
+  categories?: string[];
+  readTime?: number;
+}
+
+interface PrismaError extends Error {
+  code?: string;
+  meta?: {
+    target?: string[];
+  };
+}
 
 export const blogResolvers = {
   Query: {
@@ -40,9 +97,9 @@ export const blogResolvers = {
     },
 
     // Get all posts with optional filtering
-    posts: async (_: unknown, { filter }: { filter?: any }) => {
+    posts: async (_: unknown, { filter }: { filter?: PostFilter }) => {
       try {
-        const where: any = {};
+        const where: Record<string, unknown> = {};
         
         if (filter?.blogId) {
           where.blogId = filter.blogId;
@@ -137,7 +194,7 @@ export const blogResolvers = {
 
   Mutation: {
     // Create a new blog
-    createBlog: async (_: unknown, { input }: { input: any }) => {
+    createBlog: async (_: unknown, { input }: { input: BlogInput }) => {
       try {
         const blog = await prisma.blog.create({
           data: {
@@ -153,10 +210,11 @@ export const blogResolvers = {
           message: 'Blog created successfully',
           blog
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error creating blog:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('slug')) {
           return {
             success: false,
             message: 'A blog with this slug already exists',
@@ -173,7 +231,7 @@ export const blogResolvers = {
     },
 
     // Update a blog
-    updateBlog: async (_: unknown, { id, input }: { id: string; input: any }) => {
+    updateBlog: async (_: unknown, { id, input }: { id: string; input: BlogInput }) => {
       try {
         const blog = await prisma.blog.update({
           where: { id },
@@ -190,10 +248,11 @@ export const blogResolvers = {
           message: 'Blog updated successfully',
           blog
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error updating blog:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('slug')) {
           return {
             success: false,
             message: 'A blog with this slug already exists',
@@ -201,7 +260,7 @@ export const blogResolvers = {
           };
         }
         
-        if (error.code === 'P2025') {
+        if (prismaError.code === 'P2025') {
           return {
             success: false,
             message: 'Blog not found',
@@ -228,7 +287,8 @@ export const blogResolvers = {
         if (postsCount > 0) {
           return {
             success: false,
-            message: `Cannot delete blog. It has ${postsCount} post(s). Please delete all posts first.`
+            message: `Cannot delete blog. It has ${postsCount} post(s). Please delete all posts first.`,
+            blog: null
           };
         }
 
@@ -238,27 +298,31 @@ export const blogResolvers = {
 
         return {
           success: true,
-          message: 'Blog deleted successfully'
+          message: 'Blog deleted successfully',
+          blog: null
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error deleting blog:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2025') {
+        if (prismaError.code === 'P2025') {
           return {
             success: false,
-            message: 'Blog not found'
+            message: 'Blog not found',
+            blog: null
           };
         }
         
         return {
           success: false,
-          message: 'Failed to delete blog'
+          message: 'Failed to delete blog',
+          blog: null
         };
       }
     },
 
     // Create a new post
-    createPost: async (_: unknown, { input }: { input: any }) => {
+    createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
       try {
         const post = await prisma.post.create({
           data: {
@@ -284,10 +348,11 @@ export const blogResolvers = {
           message: 'Post created successfully',
           post
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error creating post:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('slug')) {
           return {
             success: false,
             message: 'A post with this slug already exists',
@@ -304,9 +369,9 @@ export const blogResolvers = {
     },
 
     // Update a post
-    updatePost: async (_: unknown, { id, input }: { id: string; input: any }) => {
+    updatePost: async (_: unknown, { id, input }: { id: string; input: UpdatePostInput }) => {
       try {
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         
         if (input.title) updateData.title = input.title;
         if (input.slug) updateData.slug = input.slug;
@@ -332,10 +397,11 @@ export const blogResolvers = {
           message: 'Post updated successfully',
           post
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error updating post:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('slug')) {
           return {
             success: false,
             message: 'A post with this slug already exists',
@@ -343,7 +409,7 @@ export const blogResolvers = {
           };
         }
         
-        if (error.code === 'P2025') {
+        if (prismaError.code === 'P2025') {
           return {
             success: false,
             message: 'Post not found',
@@ -368,21 +434,25 @@ export const blogResolvers = {
 
         return {
           success: true,
-          message: 'Post deleted successfully'
+          message: 'Post deleted successfully',
+          post: null
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error deleting post:', error);
+        const prismaError = error as PrismaError;
         
-        if (error.code === 'P2025') {
+        if (prismaError.code === 'P2025') {
           return {
             success: false,
-            message: 'Post not found'
+            message: 'Post not found',
+            post: null
           };
         }
         
         return {
           success: false,
-          message: 'Failed to delete post'
+          message: 'Failed to delete post',
+          post: null
         };
       }
     }

@@ -2,7 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
-import { SearchIcon, PlusIcon, FileTextIcon, FileIcon, HomeIcon, ExternalLinkIcon, CheckIcon, LoaderIcon, AlertCircleIcon, Settings, LayoutIcon, EyeIcon } from 'lucide-react';
+import { 
+  PlusIcon, 
+  SearchIcon, 
+  FileTextIcon, 
+  EyeIcon,
+  ExternalLinkIcon,
+  LayoutIcon,
+  Settings,
+  FileIcon,
+  HomeIcon,
+  CheckIcon,
+  LoaderIcon,
+  AlertCircleIcon
+} from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from "@/components/ui/label";
-import { useTabContext } from '@/app/[locale]/cms/pages/layout';
+import { useTabContext } from '@/contexts/TabContext';
 
 interface PageItem {
   id: string;

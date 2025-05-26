@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useTabContext } from '@/app/[locale]/cms/pages/layout';
+import { useTabContext } from '@/contexts/TabContext';
 
 /**
  * Hook para sincronizar un estado local de tabs con el contexto global de tabs

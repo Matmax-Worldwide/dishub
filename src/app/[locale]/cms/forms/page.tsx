@@ -422,7 +422,7 @@ export default function FormsPage() {
         setFilteredForms(prev => prev.filter(f => f.id !== optimisticForm.id));
         throw new Error(result.message || 'Failed to create form');
       }
-
+      
       // Get the original form's fields
       const originalFormData = await graphqlClient.getFormById(form.id);
       if (originalFormData?.fields && originalFormData.fields.length > 0) {
@@ -965,7 +965,7 @@ export default function FormsPage() {
                             {loadingStates.duplicating === form.id ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Copy className="h-4 w-4" />
+                            <Copy className="h-4 w-4" />
                             )}
                           </button>
                           <button
@@ -977,7 +977,7 @@ export default function FormsPage() {
                             {loadingStates.deleting === form.id ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                             )}
                           </button>
                           <button
@@ -1032,7 +1032,7 @@ export default function FormsPage() {
             {toast.type === 'error' && <XCircle className="h-5 w-5 mr-2" />}
             {toast.type === 'info' && <AlertCircle className="h-5 w-5 mr-2" />}
             <span>{toast.message}</span>
-          </div>
+      </div>
         </motion.div>
       )}
     </motion.div>
