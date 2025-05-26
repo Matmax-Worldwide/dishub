@@ -25,6 +25,7 @@ import { userPermissionResolvers } from './resolvers/userPermissions';
 import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
+import { blogResolvers } from './resolvers/blogs';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -644,6 +645,7 @@ const resolvers = {
     ...((permissionResolvers.Query as object) || {}),
     ...((userPermissionResolvers.Query as object) || {}),
     ...((formResolvers.Query as object) || {}),
+    ...((blogResolvers.Query as object) || {}),
     
     // Add menu queries
     menus: menuResolvers.Query.menus,
@@ -675,6 +677,12 @@ const resolvers = {
     getCMSComponentsByType: cmsResolvers.Query.getCMSComponentsByType,
     getAllCMSPages: cmsResolvers.Query.getAllCMSPages,
     getPagesUsingSectionId: cmsResolvers.Query.getPagesUsingSectionId,
+
+    // Add blog queries
+    blogs: blogResolvers.Query.blogs,
+    blog: blogResolvers.Query.blog,
+    posts: blogResolvers.Query.posts,
+    postBySlug: blogResolvers.Query.postBySlug,
   },
   
   Mutation: {
@@ -849,6 +857,7 @@ const resolvers = {
     ...('Mutation' in permissionResolvers ? (permissionResolvers.Mutation as object) : {}),
     ...('Mutation' in userPermissionResolvers ? (userPermissionResolvers.Mutation as object) : {}),
     ...('Mutation' in formResolvers ? (formResolvers.Mutation as object) : {}),
+    ...('Mutation' in blogResolvers ? (blogResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
     createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
@@ -1113,6 +1122,14 @@ const resolvers = {
     updateMenuItemsOrder: menuResolvers.Mutation.updateMenuItemsOrder,
     updateHeaderStyle: menuResolvers.Mutation.updateHeaderStyle,
     updateFooterStyle: menuResolvers.Mutation.updateFooterStyle,
+
+    // Add blog mutations
+    createBlog: blogResolvers.Mutation.createBlog,
+    updateBlog: blogResolvers.Mutation.updateBlog,
+    deleteBlog: blogResolvers.Mutation.deleteBlog,
+    createPost: blogResolvers.Mutation.createPost,
+    updatePost: blogResolvers.Mutation.updatePost,
+    deletePost: blogResolvers.Mutation.deletePost,
   },
 
   // Include form type resolvers

@@ -29,6 +29,28 @@ console.log('Verificando resolvers CMS importados:', {
   tieneFuncionSave: Boolean(cmsResolvers?.Mutation?.saveSectionComponents)
 });
 
+// Verificar la importación de blogResolvers
+console.log('🔍 Verificando resolvers Blog importados:', {
+  importado: Boolean(blogResolvers),
+  tieneQuery: Boolean(blogResolvers?.Query),
+  tieneMutation: Boolean(blogResolvers?.Mutation),
+  tieneCreateBlog: Boolean(blogResolvers?.Mutation?.createBlog),
+  createBlogType: typeof blogResolvers?.Mutation?.createBlog
+});
+
+// Direct test of the createBlog function
+if (blogResolvers?.Mutation?.createBlog) {
+  console.log('🧪 Testing createBlog function directly...');
+  try {
+    const testResult = blogResolvers.Mutation.createBlog(null, {
+      input: { title: 'Test', slug: 'test', isActive: true }
+    });
+    console.log('🧪 Direct test result:', testResult);
+  } catch (error) {
+    console.log('🧪 Direct test error:', error);
+  }
+}
+
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
@@ -493,6 +515,15 @@ console.log('External links resolver check:', {
   hasCreateFn: Boolean(externalLinksResolvers?.Mutation?.createExternalLink)
 });
 
+// Check if the blog resolvers are properly merged
+console.log('🔍 Blog resolvers merge check:', {
+  hasBlogResolvers: Boolean(blogResolvers),
+  hasBlogMutation: Boolean(blogResolvers?.Mutation),
+  hasCreateBlog: Boolean(blogResolvers?.Mutation?.createBlog),
+  finalResolverHasCreateBlog: Boolean(resolvers.Mutation?.createBlog),
+  createBlogType: typeof resolvers.Mutation?.createBlog
+});
+
 // EMERGENCY FIX: Double-check the mutation is included
 try {
   if (resolvers.Mutation && typeof resolvers.Mutation.createExternalLink !== 'function') {
@@ -501,6 +532,23 @@ try {
   }
 } catch (e) {
   console.error('Error adding resolver directly:', e);
+}
+
+// EMERGENCY FIX: Double-check the createBlog mutation is included
+try {
+  if (resolvers.Mutation && typeof resolvers.Mutation.createBlog !== 'function') {
+    console.log('🚨 WARNING: createBlog resolver missing, adding directly');
+    if (blogResolvers?.Mutation?.createBlog) {
+      resolvers.Mutation.createBlog = blogResolvers.Mutation.createBlog;
+      console.log('✅ createBlog resolver added directly');
+    } else {
+      console.log('❌ blogResolvers.Mutation.createBlog not found');
+    }
+  } else {
+    console.log('✅ createBlog resolver found in final resolvers');
+  }
+} catch (e) {
+  console.error('Error checking/adding createBlog resolver:', e);
 }
 
 export default resolvers; 

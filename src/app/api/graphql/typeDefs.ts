@@ -31,6 +31,7 @@ export const typeDefs = gql`
     firstName: String
     lastName: String
     phoneNumber: String
+    profileImageUrl: String
     role: Role
     isActive: Boolean
     createdAt: String
