@@ -400,12 +400,12 @@ export default function BlogSection({
         {/* Blog Selection */}
         <div>
           <label className="text-sm font-medium mb-2 block">Select Blog</label>
-          <Select value={blogId || ''} onValueChange={(value) => handleUpdateField('blogId', value)}>
+          <Select value={blogId || 'none'} onValueChange={(value) => handleUpdateField('blogId', value === 'none' ? '' : value)}>
             <SelectTrigger>
               <SelectValue placeholder="Choose a blog to display posts from..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No blog selected</SelectItem>
+              <SelectItem value="none">No blog selected</SelectItem>
               {blogs.map(blog => (
                 <SelectItem key={blog.id} value={blog.id}>
                   {blog.title} {!blog.isActive && '(Inactive)'}
