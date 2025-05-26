@@ -124,7 +124,7 @@ export default function BlogSectionWrapper({
       
       // Create GraphQL query
       const query = `
-        query GetFilteredPosts($filter: PostFilterInput) {
+        query GetFilteredPosts($filter: PostFilter) {
           posts(filter: $filter) {
             id
             title

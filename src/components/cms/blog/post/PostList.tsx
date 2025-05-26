@@ -15,7 +15,6 @@ import {
   LayoutGrid, 
   List as ListIcon 
 } from 'lucide-react';
-import graphqlClient from '@/lib/graphql-client';
 import { Post } from '@/types/blog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +62,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
     try {
       // Fetch blog and posts in a single query using GraphQL
       const query = `
-        query BlogWithPosts($blogId: ID!) {
+        query BlogWithPosts($blogId: ID!, $blogIdFilter: String!) {
           blog(id: $blogId) {
             id
             title
@@ -71,7 +70,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
             slug
             isActive
           }
-          posts(filter: { blogId: $blogId }) {
+          posts(filter: { blogId: $blogIdFilter }) {
             id
             title
             slug
@@ -95,7 +94,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
       const response = await gqlRequest<{ 
         blog: { title: string; description: string; slug: string; isActive: boolean } | null;
         posts: Post[] 
-      }>(query, { blogId });
+      }>(query, { blogId, blogIdFilter: blogId });
       
       if (!response.blog) {
         toast.error('Blog not found');
@@ -158,10 +157,14 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
   };
 
   const handleViewPost = (postId: string) => {
-    // This would typically link to the public-facing post
-    toast.info('View functionality not implemented yet');
-    console.log('Viewing post:', postId);
-    // In the future, we could implement: router.push(`/blog/post/${postId}`);
+    // Find the post to get its slug
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      // Navigate to the public blog post page using the post slug
+      router.push(`/${locale}/blog/${post.slug}`);
+    } else {
+      toast.error('Post not found');
+    }
   };
 
   const handleDeletePost = async (postId: string) => {
