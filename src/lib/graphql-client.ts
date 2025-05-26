@@ -3812,7 +3812,6 @@ async function deleteFormStep(id: string): Promise<FormStepResult> {
       deleteFormStep(id: $id) {
         success
         message
-        step
       }
     }
   `;

@@ -3,12 +3,31 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripHorizontal, Minimize2, Maximize2 } from 'lucide-react';
+import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripVertical, Minimize2, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
 import { Button } from '@/components/ui/button';
 import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
+
+// Drag and Drop imports
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Footer types for proper typing
 interface SocialLink {
@@ -233,11 +252,11 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
         <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 rounded-t-md">
           <div className="flex items-center space-x-2">
             <div 
-              className="cursor-ns-resize touch-none p-1 rounded hover:bg-muted/50"
+              className="cursor-grab active:cursor-grabbing touch-none p-1 rounded hover:bg-muted/50 drag-handle"
               title="Arrastrar para reordenar"
               onClick={(e) => e.stopPropagation()}
             >
-              <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
             
             <button
@@ -322,6 +341,75 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   );
 });
 
+// Sortable Component Wrapper
+const SortableComponent = memo(function SortableComponent({
+  component,
+  isEditing,
+  children,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+  isCollapsed,
+  onToggleCollapse,
+  isActive,
+  onComponentClick,
+}: {
+  component: Component;
+  isEditing: boolean;
+  children: React.ReactNode;
+  onRemove: (id: string) => void;
+  onMoveUp?: (id: string) => void;
+  onMoveDown?: (id: string) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
+  isActive?: boolean;
+  onComponentClick?: (componentId: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: component.id,
+    disabled: !isEditing,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <ComponentWrapperMemo
+        component={component}
+        isEditing={isEditing}
+        onRemove={onRemove}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        isFirst={isFirst}
+        isLast={isLast}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        isActive={isActive}
+        onComponentClick={onComponentClick}
+      >
+        <div {...listeners} className="drag-handle-area">
+          {children}
+        </div>
+      </ComponentWrapperMemo>
+    </div>
+  );
+});
+
 // Componente principal memoizado
 function SectionManagerBase({ 
   initialComponents = [], 
@@ -344,6 +432,18 @@ function SectionManagerBase({
   const [pendingUpdate, setPendingUpdate] = useState<{component: Component, data: Record<string, unknown>} | null>(null);
   // Aplicar debounce al pendingUpdate para evitar actualizaciones demasiado frecuentes
   const debouncedPendingUpdate = useDebounce(pendingUpdate, 1000);
+  
+  // Drag and drop state
+  const [draggedComponent, setDraggedComponent] = useState<Component | null>(null);
+  
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
   
   // Creamos un ID único para cada conjunto de componentes para optimizar
   const componentsDataString = useMemo(() => JSON.stringify(components), [components]);
@@ -402,11 +502,42 @@ function SectionManagerBase({
       setPendingUpdate(null);
     }
   }, [debouncedPendingUpdate]); // Only dependency should be the debounced update
-  
+
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const component = components.find(c => c.id === active.id);
+    setDraggedComponent(component || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setDraggedComponent(null);
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = components.findIndex(c => c.id === active.id);
+    const newIndex = components.findIndex(c => c.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newComponents = arrayMove(components, oldIndex, newIndex);
+      setComponents(newComponents);
+      
+      // Notify parent of changes
+      if (onComponentsChange) {
+        setTimeout(() => {
+          onComponentsChange(newComponents);
+        }, 0);
+      }
+    }
+  };
 
   // State for component selector
   const [isComponentSelectorOpen, setIsComponentSelectorOpen] = useState(false);
-  const [activeComponent, setActiveComponent] = useState<ComponentType>('Text');
+  const [activeComponentType, setActiveComponentType] = useState<ComponentType>('Text');
   const [sliderPosition, setSliderPosition] = useState(0);
 
   // Handler for showing component selector
@@ -865,7 +996,7 @@ function SectionManagerBase({
     // Update active component based on slider position
     useEffect(() => {
       if (!availableComponents[sliderPosition].disabled) {
-        setActiveComponent(availableComponents[sliderPosition].type);
+        setActiveComponentType(availableComponents[sliderPosition].type);
       }
     }, [sliderPosition, availableComponents]);
 
@@ -877,7 +1008,7 @@ function SectionManagerBase({
       // Skip if the component is disabled
       if (availableComponents[sliderPosition].disabled) return;
       
-      handleClickAddComponent(activeComponent);
+      handleClickAddComponent(activeComponentType);
       setIsComponentSelectorOpen(false);
     };
 
@@ -1621,24 +1752,32 @@ function SectionManagerBase({
       }
     };
 
-    return (
-      <ComponentWrapperMemo 
-        key={component.id}
-        component={component}
-        isEditing={isEditing}
-        onRemove={removeComponent}
-        onMoveUp={!(isHeader || isFirst) ? handleMoveComponentUp : undefined}
-        onMoveDown={!(isFooter || isLast) ? handleMoveComponentDown : undefined}
-        isFirst={isFirst || isHeader}
-        isLast={isLast || isFooter}
-        isCollapsed={isComponentCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-        isActive={activeComponentId === component.id}
-        onComponentClick={handleComponentClick}
-      >
-        {renderComponentContent()}
-      </ComponentWrapperMemo>
-    );
+    if (isEditing) {
+      return (
+        <SortableComponent 
+          key={component.id}
+          component={component}
+          isEditing={isEditing}
+          onRemove={removeComponent}
+          onMoveUp={!(isHeader || isFirst) ? handleMoveComponentUp : undefined}
+          onMoveDown={!(isFooter || isLast) ? handleMoveComponentDown : undefined}
+          isFirst={isFirst || isHeader}
+          isLast={isLast || isFooter}
+          isCollapsed={isComponentCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+          isActive={activeComponentId === component.id}
+          onComponentClick={handleComponentClick}
+        >
+          {renderComponentContent()}
+        </SortableComponent>
+      );
+    } else {
+      return (
+        <div key={component.id}>
+          {renderComponentContent()}
+        </div>
+      );
+    }
   }, [
     isEditing, 
     handleUpdate, 
@@ -1692,12 +1831,44 @@ function SectionManagerBase({
         </div>
       )}
 
-      {/* Components */}
-      <div className="flex flex-col relative">
-        {components.map((component) => 
-          renderComponent(component)
-        )}
-      </div>
+      {/* Components with Drag and Drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={components.map(c => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col relative">
+            {components.map((component) => 
+              renderComponent(component)
+            )}
+          </div>
+        </SortableContext>
+        
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {draggedComponent ? (
+            <div className="opacity-50 transform rotate-2 shadow-lg">
+              <ComponentWrapperMemo
+                component={draggedComponent}
+                isEditing={isEditing}
+                onRemove={() => {}}
+                isCollapsed={false}
+                onToggleCollapse={() => {}}
+                isActive={false}
+                onComponentClick={() => {}}
+              >
+                <div className="p-4 bg-muted/20 rounded">
+                  <div className="text-sm font-medium">
+                    {(draggedComponent.data.componentTitle as string) || `${draggedComponent.type} Component`}
+                  </div>
+                </div>
+              </ComponentWrapperMemo>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Component Type Selector Modal */}
       {isComponentSelectorOpen && <ComponentSelector />}
