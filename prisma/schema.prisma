@@ -751,6 +751,7 @@ model HeaderStyle {
   mobileMenuPosition String   @default("right")
   transparentHeader  Boolean  @default(false)
   borderBottom       Boolean  @default(false)
+  fixedHeader        Boolean  @default(false)
   advancedOptions    Json?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

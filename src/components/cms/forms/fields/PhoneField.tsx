@@ -4,17 +4,167 @@ import { useState, useEffect } from 'react';
 import { FormFieldBase } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
 
-// Componente de vista previa para campos de teléfono
-export function PhoneFieldPreview({ field }: { field: FormFieldBase }) {
-  return (
-    <BaseFieldPreview field={field}>
+// Country codes data
+const COUNTRY_CODES = [
+  { code: 'ES', name: 'España', dialCode: '+34', flag: '🇪🇸' },
+  { code: 'US', name: 'Estados Unidos', dialCode: '+1', flag: '🇺🇸' },
+  { code: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽' },
+  { code: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴' },
+  { code: 'AR', name: 'Argentina', dialCode: '+54', flag: '🇦🇷' },
+  { code: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱' },
+  { code: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪' },
+  { code: 'VE', name: 'Venezuela', dialCode: '+58', flag: '🇻🇪' },
+  { code: 'EC', name: 'Ecuador', dialCode: '+593', flag: '🇪🇨' },
+  { code: 'BO', name: 'Bolivia', dialCode: '+591', flag: '🇧🇴' },
+  { code: 'UY', name: 'Uruguay', dialCode: '+598', flag: '🇺🇾' },
+  { code: 'PY', name: 'Paraguay', dialCode: '+595', flag: '🇵🇾' },
+  { code: 'BR', name: 'Brasil', dialCode: '+55', flag: '🇧🇷' },
+  { code: 'FR', name: 'Francia', dialCode: '+33', flag: '🇫🇷' },
+  { code: 'DE', name: 'Alemania', dialCode: '+49', flag: '🇩🇪' },
+  { code: 'IT', name: 'Italia', dialCode: '+39', flag: '🇮🇹' },
+  { code: 'GB', name: 'Reino Unido', dialCode: '+44', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canadá', dialCode: '+1', flag: '🇨🇦' },
+];
+
+// Phone input component for actual forms
+interface PhoneInputProps {
+  id: string;
+  name: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  inputClassName?: string;
+  defaultCountry?: string;
+  showCountryCode?: boolean;
+  format?: 'international' | 'national' | 'any';
+}
+
+export function PhoneInput({
+  id,
+  name,
+  value = '',
+  onChange,
+  placeholder = '',
+  required = false,
+  disabled = false,
+  className = '',
+  inputClassName = '',
+  defaultCountry = 'ES',
+  showCountryCode = true,
+  format = 'international'
+}: PhoneInputProps) {
+  const [selectedCountry, setSelectedCountry] = useState(() => {
+    return COUNTRY_CODES.find(country => country.code === defaultCountry) || COUNTRY_CODES[0];
+  });
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Parse existing value on mount
+  useEffect(() => {
+    if (value) {
+      // Try to parse the value to extract country code and number
+      const country = COUNTRY_CODES.find(c => value.startsWith(c.dialCode));
+      if (country) {
+        setSelectedCountry(country);
+        setPhoneNumber(value.substring(country.dialCode.length).trim());
+      } else {
+        setPhoneNumber(value);
+      }
+    }
+  }, [value]);
+
+  const handleCountryChange = (countryCode: string) => {
+    const country = COUNTRY_CODES.find(c => c.code === countryCode);
+    if (country) {
+      setSelectedCountry(country);
+      const fullNumber = format === 'national' ? phoneNumber : `${country.dialCode} ${phoneNumber}`.trim();
+      onChange?.(fullNumber);
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const number = e.target.value;
+    setPhoneNumber(number);
+    
+    let fullNumber = number;
+    if (format === 'international' && showCountryCode) {
+      fullNumber = `${selectedCountry.dialCode} ${number}`.trim();
+    }
+    
+    onChange?.(fullNumber);
+  };
+
+  // Use inputClassName if provided, otherwise fall back to default styling
+  const baseInputClasses = inputClassName || "flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+  const countrySelectClasses = inputClassName ? 
+    inputClassName.replace('rounded-md', 'rounded-l-md rounded-r-none').replace('flex-1', '').replace('w-full', '') + ' border-r-0' :
+    "px-3 py-2 border border-gray-300 border-r-0 rounded-l-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+
+  if (!showCountryCode) {
+    return (
       <input
         type="tel"
+        id={id}
+        name={name}
+        value={phoneNumber}
+        onChange={handlePhoneChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        className={`${inputClassName || 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} ${className}`}
+      />
+    );
+  }
+
+  return (
+    <div className={`flex ${className}`}>
+      <select
+        value={selectedCountry.code}
+        onChange={(e) => handleCountryChange(e.target.value)}
+        disabled={disabled}
+        className={countrySelectClasses}
+        style={{ minWidth: '120px' }}
+      >
+        {COUNTRY_CODES.map((country) => (
+          <option key={country.code} value={country.code}>
+            {country.flag} {country.dialCode}
+          </option>
+        ))}
+      </select>
+      <input
+        type="tel"
+        id={id}
+        name={name}
+        value={phoneNumber}
+        onChange={handlePhoneChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        className={baseInputClasses.replace('w-full', 'flex-1').replace('rounded-md', 'rounded-r-md rounded-l-none')}
+      />
+    </div>
+  );
+}
+
+// Componente de vista previa para campos de teléfono
+export function PhoneFieldPreview({ field }: { field: FormFieldBase }) {
+  const showCountryCode = field.options?.showCountryCode !== false;
+  const defaultCountry = (field.options?.defaultCountry as string) || 'ES';
+  const format = (field.options?.format as string) || 'international';
+
+  return (
+    <BaseFieldPreview field={field}>
+      <PhoneInput
         id={`preview-${field.name}`}
         name={`preview-${field.name}`}
         placeholder={field.placeholder || ''}
-        disabled
-        className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+        disabled={true}
+        defaultCountry={defaultCountry}
+        showCountryCode={showCountryCode}
+        format={format as 'international' | 'national' | 'any'}
+        className="opacity-60"
       />
     </BaseFieldPreview>
   );
@@ -117,7 +267,7 @@ export function PhoneField({ field, onChange, showPreview = true }: FieldProps) 
           value={localField.placeholder || ''}
           onChange={handleChange}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="Ej: +34 600 00 00 00"
+          placeholder="Ej: 600 00 00 00"
         />
       </div>
       
@@ -161,8 +311,8 @@ export function PhoneField({ field, onChange, showPreview = true }: FieldProps) 
           onChange={handleOptionChange}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
-          <option value="international">Internacional (+34 600 00 00 00)</option>
-          <option value="national">Nacional (600 00 00 00)</option>
+          <option value="international">Internacional (con código de país)</option>
+          <option value="national">Nacional (sin código de país)</option>
           <option value="any">Cualquier formato</option>
         </select>
       </div>
@@ -178,14 +328,11 @@ export function PhoneField({ field, onChange, showPreview = true }: FieldProps) 
           onChange={handleOptionChange}
           className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
-          <option value="ES">España (+34)</option>
-          <option value="US">Estados Unidos (+1)</option>
-          <option value="MX">México (+52)</option>
-          <option value="CO">Colombia (+57)</option>
-          <option value="AR">Argentina (+54)</option>
-          <option value="CL">Chile (+56)</option>
-          <option value="PE">Perú (+51)</option>
-          <option value="none">Sin país por defecto</option>
+          {COUNTRY_CODES.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.flag} {country.name} ({country.dialCode})
+            </option>
+          ))}
         </select>
       </div>
       
@@ -194,7 +341,7 @@ export function PhoneField({ field, onChange, showPreview = true }: FieldProps) 
           type="checkbox"
           id="showCountryCode"
           name="showCountryCode"
-          checked={!!(localField.options?.showCountryCode)}
+          checked={localField.options?.showCountryCode !== false}
           onChange={handleOptionChange}
           className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
         />

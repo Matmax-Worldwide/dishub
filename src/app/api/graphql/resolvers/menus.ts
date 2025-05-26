@@ -54,6 +54,7 @@ interface HeaderStyleInput {
   mobileMenuPosition?: 'left' | 'right';
   transparentHeader?: boolean;
   borderBottom?: boolean;
+  fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
 }
 
@@ -471,37 +472,76 @@ export const menuResolvers = {
 
     // Add new resolver for updating just the headerStyle
     updateHeaderStyle: async (_parent: unknown, { menuId, input }: { menuId: string, input: HeaderStyleInput }, context: { req: NextRequest }) => {
+      console.log('🔍 updateHeaderStyle called with:', { menuId, input });
+      
+      // Wrap everything in try-catch to ensure we never throw and always return HeaderStyleResult
       try {
         // Validate authentication
+        console.log('🔐 Checking authentication...');
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         if (!token) {
-          throw new Error('Not authenticated');
+          console.log('❌ No token provided');
+          return {
+            success: false,
+            message: 'Not authenticated - no token provided',
+            headerStyle: null
+          };
         }
         
         // Verify token and get user info
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        console.log('🔑 Verifying token...');
+        let decoded: { userId: string; role?: string };
+        try {
+          decoded = await verifyToken(token) as { userId: string; role?: string };
+          console.log('✅ Token verified for user:', decoded.userId);
+        } catch (tokenError) {
+          console.log('❌ Token verification failed:', tokenError);
+          return {
+            success: false,
+            message: 'Invalid authentication token',
+            headerStyle: null
+          };
+        }
+        
         if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
+          console.log('❌ No user ID in decoded token');
+          return {
+            success: false,
+            message: 'Invalid token - no user ID found',
+            headerStyle: null
+          };
         }
         
         // Check if the menu exists
+        console.log('🔍 Checking if menu exists:', menuId);
         const menu = await prisma.menu.findUnique({
           where: { id: menuId }
         });
         
         if (!menu) {
-          throw new Error(`Menu with ID ${menuId} not found`);
+          console.log('❌ Menu not found:', menuId);
+          return {
+            success: false,
+            message: `Menu with ID ${menuId} not found`,
+            headerStyle: null
+          };
         }
+        console.log('✅ Menu found:', menu.name);
         
         // Extract advancedOptions for proper JSON handling
+        console.log('🔧 Processing input data...');
         const { advancedOptions, ...headerStyleData } = input;
+        console.log('📝 Header style data:', headerStyleData);
+        console.log('⚙️ Advanced options:', advancedOptions);
         
         // Process advancedOptions
         const processedAdvancedOptions = advancedOptions 
           ? JSON.parse(JSON.stringify(advancedOptions)) 
           : undefined;
+        console.log('✅ Processed advanced options:', processedAdvancedOptions);
         
         // Update or create the header style
+        console.log('💾 Performing upsert operation...');
         const headerStyle = await prisma.headerStyle.upsert({
           where: { menuId },
           update: {
@@ -515,10 +555,29 @@ export const menuResolvers = {
           }
         });
         
-        return headerStyle;
+        console.log('✅ Header style upserted successfully:', headerStyle.id);
+        
+        const result = {
+          success: true,
+          message: 'Header style updated successfully',
+          headerStyle
+        };
+        
+        console.log('🎉 Returning success result');
+        return result;
       } catch (error) {
-        console.error('Error updating header style:', error);
-        throw new Error(`Failed to update header style: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('💥 Error in updateHeaderStyle resolver:', error);
+        console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        // Always return a structured response, never throw
+        const errorResult = {
+          success: false,
+          message: `Failed to update header style: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          headerStyle: null
+        };
+        
+        console.log('❌ Returning error result:', errorResult);
+        return errorResult;
       }
     },
 

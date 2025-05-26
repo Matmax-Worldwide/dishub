@@ -18,6 +18,7 @@ import externalLinksResolvers from './externalLinks';
 import { cmsResolvers } from './cms';
 import { blogResolvers } from './blogs';
 import { formResolvers } from './forms';
+import { menuResolvers } from './menus';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -461,6 +462,7 @@ const resolvers = {
     ...cmsResolvers.Query,
     ...blogResolvers.Query,
     ...formResolvers.Query,
+    ...menuResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -477,7 +479,11 @@ const resolvers = {
     ...cmsResolvers.Mutation,
     ...blogResolvers.Mutation,
     ...formResolvers.Mutation,
-  }
+    ...menuResolvers.Mutation,
+  },
+  
+  // Type resolvers
+  MenuItem: menuResolvers.MenuItem,
 };
 
 // Check if the external links resolver exists

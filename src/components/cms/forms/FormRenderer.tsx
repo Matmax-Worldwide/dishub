@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { FormBase, FormFieldType } from '@/types/forms';
+import { PhoneInput } from './fields/PhoneField';
 
 interface FormRendererProps {
   form: FormBase;
@@ -31,8 +32,8 @@ export default function FormRenderer({
     // Validate form
     const newErrors: Record<string, string> = {};
     form.fields?.forEach(field => {
-      if (field.isRequired && !formData[field.id]) {
-        newErrors[field.id] = 'This field is required';
+      if (field.isRequired && !formData[field.name]) {
+        newErrors[field.name] = 'This field is required';
       }
     });
 
@@ -46,16 +47,16 @@ export default function FormRenderer({
     }
   };
 
-  const handleInputChange = (fieldId: string, value: unknown) => {
+  const handleInputChange = (fieldName: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
-      [fieldId]: value
+      [fieldName]: value
     }));
     // Clear error when user starts typing
-    if (errors[fieldId]) {
+    if (errors[fieldName]) {
       setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[fieldId];
+        delete newErrors[fieldName];
         return newErrors;
       });
     }
@@ -76,7 +77,7 @@ export default function FormRenderer({
     <form onSubmit={handleSubmit} className="space-y-6" onKeyDown={handleKeyDown}>
       {form.fields?.map(field => (
         <div key={field.id} className="space-y-2">
-          <label htmlFor={field.id} className={labelClassName}>
+          <label htmlFor={field.name} className={labelClassName}>
             {field.label}
             {field.isRequired && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -84,11 +85,11 @@ export default function FormRenderer({
           {field.type === FormFieldType.TEXT && (
             <input
               type="text"
-              id={field.id}
-              name={field.id}
-              value={formData[field.id] as string || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
               placeholder={field.placeholder}
               required={field.isRequired}
             />
@@ -97,23 +98,101 @@ export default function FormRenderer({
           {field.type === FormFieldType.EMAIL && (
             <input
               type="email"
-              id={field.id}
-              name={field.id}
-              value={formData[field.id] as string || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
               placeholder={field.placeholder}
               required={field.isRequired}
             />
           )}
 
+          {field.type === FormFieldType.PASSWORD && (
+            <input
+              type="password"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.NUMBER && (
+            <input
+              type="number"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.DATE && (
+            <input
+              type="date"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.TIME && (
+            <input
+              type="time"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.DATETIME && (
+            <input
+              type="datetime-local"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
+              required={field.isRequired}
+            />
+          )}
+
+          {field.type === FormFieldType.PHONE && (
+            <PhoneInput
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(value) => handleInputChange(field.name, value)}
+              placeholder={field.placeholder}
+              required={field.isRequired}
+              defaultCountry={(field.options?.defaultCountry as string) || 'ES'}
+              showCountryCode={field.options?.showCountryCode !== false}
+              format={(field.options?.format as 'international' | 'national' | 'any') || 'international'}
+              inputClassName={inputClassName}
+              className={errors[field.name] ? 'border-red-500' : ''}
+            />
+          )}
+
           {field.type === FormFieldType.TEXTAREA && (
             <textarea
-              id={field.id}
-              name={field.id}
-              value={formData[field.id] as string || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`${inputClassName} min-h-[100px] ${errors[field.id] ? 'border-red-500' : ''}`}
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} min-h-[100px] ${errors[field.name] ? 'border-red-500' : ''}`}
               placeholder={field.placeholder}
               required={field.isRequired}
             />
@@ -121,11 +200,11 @@ export default function FormRenderer({
 
           {field.type === FormFieldType.SELECT && (
             <select
-              id={field.id}
-              name={field.id}
-              value={formData[field.id] as string || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`${inputClassName} ${errors[field.id] ? 'border-red-500' : ''}`}
+              id={field.name}
+              name={field.name}
+              value={formData[field.name] as string || ''}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={`${inputClassName} ${errors[field.name] ? 'border-red-500' : ''}`}
               required={field.isRequired}
             >
               <option value="">Select an option</option>
@@ -141,14 +220,14 @@ export default function FormRenderer({
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                id={field.id}
-                name={field.id}
-                checked={formData[field.id] as boolean || false}
-                onChange={(e) => handleInputChange(field.id, e.target.checked)}
+                id={field.name}
+                name={field.name}
+                checked={formData[field.name] as boolean || false}
+                onChange={(e) => handleInputChange(field.name, e.target.checked)}
                 className={`${inputClassName} w-4 h-4`}
                 required={field.isRequired}
               />
-              <label htmlFor={field.id} className={labelClassName}>
+              <label htmlFor={field.name} className={labelClassName}>
                 {field.label}
                 {field.isRequired && <span className="text-red-500 ml-1">*</span>}
               </label>
@@ -161,15 +240,15 @@ export default function FormRenderer({
                 <div key={option.value} className="flex items-center space-x-2">
                   <input
                     type="radio"
-                    id={`${field.id}-${option.value}`}
-                    name={field.id}
+                    id={`${field.name}-${option.value}`}
+                    name={field.name}
                     value={option.value}
-                    checked={formData[field.id] === option.value}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    checked={formData[field.name] === option.value}
+                    onChange={(e) => handleInputChange(field.name, e.target.value)}
                     className={`${inputClassName} w-4 h-4`}
                     required={field.isRequired}
                   />
-                  <label htmlFor={`${field.id}-${option.value}`} className={labelClassName}>
+                  <label htmlFor={`${field.name}-${option.value}`} className={labelClassName}>
                     {option.label}
                   </label>
                 </div>
@@ -177,8 +256,8 @@ export default function FormRenderer({
             </div>
           )}
 
-          {errors[field.id] && (
-            <p className="text-sm text-red-500">{errors[field.id]}</p>
+          {errors[field.name] && (
+            <p className="text-sm text-red-500">{errors[field.name]}</p>
           )}
         </div>
       ))}

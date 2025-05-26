@@ -856,7 +856,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   }, [inspectionMode, handleInspectElement]);
 
   return (
-    <div className="my-6" data-section-id={normalizedSectionId} style={{ zIndex: 1, position: 'relative' }}>
+    <div 
+      className="my-6 manageable-section" 
+      data-section-id={normalizedSectionId} 
+      data-cms-editor={isEditing ? "true" : "false"}
+      data-preview-mode={!isEditing ? "true" : "false"}
+      style={{ zIndex: 1, position: 'relative' }}
+    >
       {isEditing && (
         <div className="mb-4">
           <div className="flex justify-between items-center">

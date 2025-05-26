@@ -1318,7 +1318,7 @@ export const typeDefs = gql`
     updateMenuItemsOrder(items: [MenuItemOrderUpdate!]!): Boolean
 
     # HeaderStyle mutations
-    updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyle
+    updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyleResult!
 
     # FooterStyle mutations
     updateFooterStyle(menuId: ID!, input: FooterStyleInput!): FooterStyleResult!
@@ -1363,6 +1363,7 @@ export const typeDefs = gql`
     mobileMenuPosition: MobileMenuPosition
     transparentHeader: Boolean
     borderBottom: Boolean
+    fixedHeader: Boolean
     advancedOptions: JSON
     createdAt: DateTime
     updatedAt: DateTime
@@ -1467,6 +1468,7 @@ export const typeDefs = gql`
     mobileMenuPosition: MobileMenuPosition
     transparentHeader: Boolean
     borderBottom: Boolean
+    fixedHeader: Boolean
     advancedOptions: JSON
   }
 
@@ -1478,6 +1480,13 @@ export const typeDefs = gql`
     animation: String
     customClass: String
     borderRadius: String
+  }
+
+  # HeaderStyleResult type for updating header style
+  type HeaderStyleResult {
+    success: Boolean!
+    message: String!
+    headerStyle: HeaderStyle
   }
 
   # FooterStyleResult type for updating footer style

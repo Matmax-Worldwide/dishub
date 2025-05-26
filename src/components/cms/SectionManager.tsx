@@ -1463,7 +1463,6 @@ function SectionManagerBase({
               textColor={component.data.textColor as string || "#000000"}
               logoUrl={component.data.logoUrl as string || ""}
               isEditing={isEditing}
-              previewMode={!isEditing}
               onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
             </div>
@@ -1660,13 +1659,12 @@ function SectionManagerBase({
   // If we're editing, render the add component button and component list
   return (
     <div 
-      className="relative"
-      style={!isEditing && sectionBackground ? {
-        background: sectionBackground,
-        backgroundSize: sectionBackgroundType === 'image' ? 'cover' : undefined,
-        backgroundPosition: sectionBackgroundType === 'image' ? 'center' : undefined,
-        backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
-      } : undefined}
+      className={cn(
+        "section-manager w-full",
+        isEditing && "editing-mode"
+      )}
+      data-section-manager="true"
+      data-cms-editor={isEditing ? "true" : "false"}
     >
       {isEditing && (
         <div className="flex justify-between items-center mb-2 top-0 bg-white border-b pb-2">

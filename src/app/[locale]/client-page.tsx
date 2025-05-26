@@ -209,16 +209,6 @@ export default function ClientPage({ locale, dictionary }: ClientPageProps) {
       <>
         <Navbar dictionary={dictionary} locale={locale} />
         <Benefits dictionary={dictionary} locale={locale} />
-        
-        {/* Footer completo (oculto por defecto) */}
-        <div id="main-footer" className="hidden">
-          <Footer dictionary={dictionary} locale={locale} />
-        </div>
-        
-        {/* Footer de copyright (más pequeño, solo muestra al final) */}
-        <div className={`copyright-footer ${showCopyright ? 'visible' : ''}`}>
-          <CopyrightFooter dictionary={dictionary} />
-        </div>
       </>
     );
   }
@@ -253,11 +243,6 @@ export default function ClientPage({ locale, dictionary }: ClientPageProps) {
             )}
           </div>
         ))}
-        
-        {/* Footer de copyright (más pequeño, solo muestra al final) */}
-        <div className={`copyright-footer ${showCopyright ? 'visible' : ''}`}>
-          <CopyrightFooter dictionary={dictionary} />
-        </div>
       </main>
     );
   }

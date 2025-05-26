@@ -99,6 +99,7 @@ export interface HeaderStyle {
   mobileMenuPosition?: MobileMenuPosition;
   transparentHeader?: boolean;
   borderBottom?: boolean;
+  fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
 }
 

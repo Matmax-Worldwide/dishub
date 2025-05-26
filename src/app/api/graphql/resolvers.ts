@@ -191,37 +191,6 @@ async function ensureSystemPermissions() {
   }
 }
 
-// Interface for menu input types
-interface MenuInput {
-  name: string;
-  location?: string | null;
-  headerStyle?: HeaderStyleInput;
-  footerStyle?: FooterStyleInput;
-}
-
-interface HeaderStyleInput {
-  transparency?: number;
-  headerSize?: 'sm' | 'md' | 'lg';
-  menuAlignment?: 'left' | 'center' | 'right';
-  menuButtonStyle?: 'default' | 'filled' | 'outline';
-  mobileMenuStyle?: 'fullscreen' | 'dropdown' | 'sidebar';
-  mobileMenuPosition?: 'left' | 'right';
-  transparentHeader?: boolean;
-  borderBottom?: boolean;
-  advancedOptions?: Record<string, unknown>;
-}
-
-interface FooterStyleInput {
-  transparency?: number;
-  columnLayout?: 'stacked' | 'grid' | 'flex';
-  socialAlignment?: 'left' | 'center' | 'right';
-  borderTop?: boolean;
-  alignment?: 'left' | 'center' | 'right';
-  padding?: 'small' | 'medium' | 'large';
-  width?: 'full' | 'container' | 'narrow';
-  advancedOptions?: Record<string, unknown>;
-}
-
 // Merge all resolvers
 const resolvers = {
   // Add DateTime scalar resolver
@@ -677,66 +646,10 @@ const resolvers = {
     ...((formResolvers.Query as object) || {}),
     
     // Add menu queries
-    menus: async () => {
-      try {
-        const menus = await prisma.menu.findMany({
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true,
-            headerStyle: true,
-            footerStyle: true
-          },
-        });
-        return menus;
-      } catch (error) {
-        console.error('Error fetching menus:', error);
-        return [];
-      }
-    },
-    menu: async (_: unknown, { id }: { id: string }) => {
-      try {
-        return prisma.menu.findUnique({
-          where: { id },
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true,
-            headerStyle: true,
-            footerStyle: true
-          },
-        });
-      } catch (error) {
-        console.error(`Error fetching menu with id ${id}:`, error);
-        return null;
-      }
-    },
-    menuByLocation: async (_: unknown, { location }: { location: string }) => {
-      try {
-        return prisma.menu.findFirst({
-          where: { location },
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true,
-            headerStyle: true,
-            footerStyle: true
-          },
-        });
-      } catch (error) {
-        console.error(`Error fetching menu by location ${location}:`, error);
-        return null;
-      }
-    },
+    menus: menuResolvers.Query.menus,
+    menu: menuResolvers.Query.menu,
+    menuByLocation: menuResolvers.Query.menuByLocation,
+    menuByName: menuResolvers.Query.menuByName,
     pages: menuResolvers.Query.pages,
     
     // Add explicit fallback for projects query to ensure it exists
@@ -1190,149 +1103,16 @@ const resolvers = {
     dissociateSectionFromPage: cmsResolvers.Mutation.dissociateSectionFromPage,
 
     // Add menu mutations
-    createMenu: async (_: unknown, { input }: { input: MenuInput }) => {
-      try {
-        // Extract headerStyle and footerStyle from input if provided
-        const { headerStyle, footerStyle, ...menuData } = input;
-        
-        // Create the menu first
-        const menu = await prisma.menu.create({
-          data: menuData,
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true
-          }
-        });
-        
-        // If headerStyle was provided, create it separately
-        if (headerStyle) {
-          const { advancedOptions, ...headerStyleData } = headerStyle;
-          await prisma.headerStyle.create({
-            data: {
-              ...headerStyleData,
-              menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            }
-          });
-        }
-        
-        // If footerStyle was provided, create it separately
-        if (footerStyle) {
-          const { advancedOptions, ...footerStyleData } = footerStyle;
-          await prisma.footerStyle.create({
-            data: {
-              ...footerStyleData,
-              menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            }
-          });
-        }
-        
-        // Return the full menu with relationships
-        return await prisma.menu.findUnique({
-          where: { id: menu.id },
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true,
-            headerStyle: true,
-            footerStyle: true
-          }
-        });
-      } catch (error) {
-        throw new Error(`Failed to create menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    },
-    updateMenu: async (_: unknown, { id, input }: { id: string; input: MenuInput }) => {
-      try {
-        // Extract headerStyle and footerStyle from input if provided
-        const { headerStyle, footerStyle, ...menuData } = input;
-        
-        // Update the menu
-        const menu = await prisma.menu.update({
-          where: { id },
-          data: menuData,
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true
-          }
-        });
-        
-        // If headerStyle was provided, update or create it
-        if (headerStyle) {
-          const { advancedOptions, ...headerStyleData } = headerStyle;
-          await prisma.headerStyle.upsert({
-            where: { menuId: menu.id },
-            update: {
-              ...headerStyleData,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            },
-            create: {
-              ...headerStyleData,
-              menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            }
-          });
-        }
-        
-        // If footerStyle was provided, update or create it
-        if (footerStyle) {
-          const { advancedOptions, ...footerStyleData } = footerStyle;
-          await prisma.footerStyle.upsert({
-            where: { menuId: menu.id },
-            update: {
-              ...footerStyleData,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            },
-            create: {
-              ...footerStyleData,
-              menuId: menu.id,
-              // Safely convert advancedOptions to JSON
-              ...(advancedOptions && { advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) })
-            }
-          });
-        }
-        
-        // Return the updated menu with all relationships
-        return await prisma.menu.findUnique({
-          where: { id: menu.id },
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
-            items: true,
-            headerStyle: true,
-            footerStyle: true
-          }
-        });
-      } catch (error) {
-        throw new Error(`Failed to update menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    },
+    createMenu: menuResolvers.Mutation.createMenu,
+    updateMenu: menuResolvers.Mutation.updateMenu,
     deleteMenu: menuResolvers.Mutation.deleteMenu,
     createMenuItem: menuResolvers.Mutation.createMenuItem,
     updateMenuItem: menuResolvers.Mutation.updateMenuItem,
     deleteMenuItem: menuResolvers.Mutation.deleteMenuItem,
     updateMenuItemOrder: menuResolvers.Mutation.updateMenuItemOrder,
     updateMenuItemsOrder: menuResolvers.Mutation.updateMenuItemsOrder,
+    updateHeaderStyle: menuResolvers.Mutation.updateHeaderStyle,
+    updateFooterStyle: menuResolvers.Mutation.updateFooterStyle,
   },
 
   // Include form type resolvers

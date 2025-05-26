@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { client } from '@/app/lib/apollo-client';
+import { setGlobalAuthorizationHeader } from '@/lib/auth-header';
 
 // Helper function to set a cookie with better security practices
 function setCookie(name: string, value: string, days: number) {
@@ -56,6 +58,13 @@ export default function LoginPage() {
         // First set the cookie
         const cookieSet = setCookie('session-token', data.token, 7); // 7 days expiry
         console.log('Set session-token cookie:', cookieSet ? 'Success' : 'Failed');
+        
+        // Set authorization header globally for immediate use
+        setGlobalAuthorizationHeader(data.token);
+        console.log('Set authorization header: Success');
+        
+        // Clear Apollo cache and refetch queries to use new token
+        client.clearStore();
         
         // Then update auth context
         login(data.user, data.token);

@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { setGlobalAuthorizationHeader, clearGlobalAuthorizationHeader } from '@/lib/auth-header';
 
 interface AuthUser {
   id: string;
@@ -18,6 +19,14 @@ interface AuthContextType {
   login: (user: AuthUser, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  setAuthorizationHeader: (token: string) => void;
+}
+
+// Extend Window interface to include our custom properties
+declare global {
+  interface Window {
+    __originalFetch?: typeof fetch;
+  }
 }
 
 // Create a context with a default value
@@ -41,6 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           setUser(JSON.parse(storedUser));
           setToken(storedToken);
+          // Set authorization header for stored token
+          setGlobalAuthorizationHeader(storedToken);
         } catch (e) {
           console.error('Failed to parse stored user:', e);
           // Clear invalid data
@@ -61,6 +72,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('auth_user', JSON.stringify(userData));
       localStorage.setItem('auth_token', authToken);
     }
+    
+    // Set global authorization header
+    setGlobalAuthorizationHeader(authToken);
   };
 
   const logout = () => {
@@ -70,7 +84,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isBrowser) {
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_token');
+      // Clear session cookie
+      document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     }
+    
+    // Clear authorization header
+    clearGlobalAuthorizationHeader();
+  };
+
+  const setAuthorizationHeader = (authToken: string) => {
+    setGlobalAuthorizationHeader(authToken);
   };
 
   const value = {
@@ -80,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     logout,
     isAuthenticated: !!user && !!token,
+    setAuthorizationHeader,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

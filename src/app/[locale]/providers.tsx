@@ -6,6 +6,7 @@ import { PermissionProvider } from '@/hooks/usePermission';
 import { NextIntlClientProvider } from 'next-intl';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/app/lib/apollo-client';
+import { AuthInitializer } from '@/components/AuthInitializer';
 
 type ProvidersProps = {
   children: ReactNode;
@@ -19,6 +20,7 @@ export function Providers({ children, locale, messages }: ProvidersProps) {
       <ApolloProvider client={client}>
         <AuthProvider>
           <PermissionProvider>
+            <AuthInitializer />
             {children}
           </PermissionProvider>
         </AuthProvider>

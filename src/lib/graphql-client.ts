@@ -1010,6 +1010,7 @@ export interface HeaderStyleInput {
   mobileMenuPosition?: 'left' | 'right';
   transparentHeader?: boolean;
   borderBottom?: boolean;
+  fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
 }
 
@@ -1902,6 +1903,7 @@ export const cmsOperations = {
         mobileMenuPosition: string;
         transparentHeader: boolean;
         borderBottom: boolean;
+        fixedHeader?: boolean;
         advancedOptions?: Record<string, unknown>;
       };
       footerStyle?: {
@@ -1961,6 +1963,7 @@ export const cmsOperations = {
               mobileMenuPosition
               transparentHeader
               borderBottom
+              fixedHeader
               advancedOptions
             }
             footerStyle {
@@ -2059,6 +2062,7 @@ export const cmsOperations = {
       mobileMenuPosition: string;
       transparentHeader: boolean;
       borderBottom: boolean;
+      fixedHeader: boolean;
       advancedOptions?: Record<string, unknown>;
     };
   }> => {
@@ -2066,19 +2070,24 @@ export const cmsOperations = {
       const mutation = `
         mutation UpdateHeaderStyle($menuId: ID!, $input: HeaderStyleInput!) {
           updateHeaderStyle(menuId: $menuId, input: $input) {
-            id
-            menuId
-            transparency
-            headerSize
-            menuAlignment
-            menuButtonStyle
-            mobileMenuStyle
-            mobileMenuPosition
-            transparentHeader
-            borderBottom
-            advancedOptions
-            createdAt
-            updatedAt
+            success
+            message
+            headerStyle {
+              id
+              menuId
+              transparency
+              headerSize
+              menuAlignment
+              menuButtonStyle
+              mobileMenuStyle
+              mobileMenuPosition
+              transparentHeader
+              borderBottom
+              fixedHeader
+              advancedOptions
+              createdAt
+              updatedAt
+            }
           }
         }
       `;
@@ -2090,19 +2099,24 @@ export const cmsOperations = {
 
       const result = await gqlRequest<{
         updateHeaderStyle: {
-          id: string;
-          menuId: string;
-          transparency: number;
-          headerSize: string;
-          menuAlignment: string;
-          menuButtonStyle: string;
-          mobileMenuStyle: string;
-          mobileMenuPosition: string;
-          transparentHeader: boolean;
-          borderBottom: boolean;
-          advancedOptions?: Record<string, unknown>;
-          createdAt: string;
-          updatedAt: string;
+          success: boolean;
+          message: string;
+          headerStyle: {
+            id: string;
+            menuId: string;
+            transparency: number;
+            headerSize: string;
+            menuAlignment: string;
+            menuButtonStyle: string;
+            mobileMenuStyle: string;
+            mobileMenuPosition: string;
+            transparentHeader: boolean;
+            borderBottom: boolean;
+            fixedHeader: boolean;
+            advancedOptions?: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+          } | null;
         }
       }>(mutation, variables);
 
@@ -2114,9 +2128,9 @@ export const cmsOperations = {
       }
 
       return {
-        success: true,
-        message: 'Header style updated successfully',
-        headerStyle: result.updateHeaderStyle
+        success: result.updateHeaderStyle.success,
+        message: result.updateHeaderStyle.message,
+        headerStyle: result.updateHeaderStyle.headerStyle || undefined
       };
     } catch (error) {
       console.error('Error updating header style:', error);
@@ -2156,6 +2170,7 @@ export const cmsOperations = {
               transparentHeader
               borderBottom
               advancedOptions
+              fixedHeader
             }
           }
         }
@@ -2186,6 +2201,7 @@ export const cmsOperations = {
             mobileMenuPosition: string;
             transparentHeader: boolean;
             borderBottom: boolean;
+            fixedHeader?: boolean;
             advancedOptions?: Record<string, unknown>;
           } | null;
         } | null;
@@ -3166,7 +3182,7 @@ async function deleteFormField(id: string): Promise<{success: boolean; message: 
 }
 
 async function submitForm(input: FormSubmissionInput): Promise<FormSubmissionResult> {
-  const mutation = `
+  const query = `
     mutation SubmitForm($input: FormSubmissionInput!) {
       submitForm(input: $input) {
         success
@@ -3184,14 +3200,40 @@ async function submitForm(input: FormSubmissionInput): Promise<FormSubmissionRes
     }
   `;
 
-  const variables = { input };
-
   try {
-    const response = await gqlRequest<{ submitForm: FormSubmissionResult }>(mutation, variables);
-    return response.submitForm || { success: false, message: 'Failed to submit form', submission: null };
+    const response = await gqlRequest<{ submitForm: FormSubmissionResult }>(query, { input });
+    return response.submitForm;
   } catch (error) {
     console.error('Error submitting form:', error);
-    return { success: false, message: 'Error submitting form', submission: null };
+    throw error;
+  }
+}
+
+async function updateFormSubmissionStatus(id: string, status: string): Promise<FormSubmissionResult> {
+  const query = `
+    mutation UpdateFormSubmissionStatus($id: ID!, $status: SubmissionStatus!) {
+      updateFormSubmissionStatus(id: $id, status: $status) {
+        success
+        message
+        submission {
+          id
+          formId
+          data
+          metadata
+          status
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await gqlRequest<{ updateFormSubmissionStatus: FormSubmissionResult }>(query, { id, status });
+    return response.updateFormSubmissionStatus;
+  } catch (error) {
+    console.error('Error updating form submission status:', error);
+    throw error;
   }
 }
 
@@ -3289,6 +3331,7 @@ const graphqlClient = {
   updateFieldOrders,
   deleteFormField,
   submitForm,
+  updateFormSubmissionStatus,
 
   // Blog operations
   async getBlogs() {

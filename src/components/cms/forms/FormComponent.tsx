@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useFormComponent } from './hooks/useFormComponent';
 import { FormFieldBase, FormSubmissionInput, FormBase, FormSubmissionBase, FieldOption } from '@/types/forms';
 import graphqlClient from '@/lib/graphql-client';
+import { PhoneInput } from './fields/PhoneField';
 
 interface FormComponentProps {
   formId?: string;
@@ -314,7 +315,23 @@ export function FormComponent({
                 </label>
               )}
               
-              {renderField(field)}
+              {field.type === 'PHONE' ? (
+                <PhoneInput
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name] as string || ''}
+                  onChange={(value) => handleInputChange(field.name, value)}
+                  placeholder={field.placeholder}
+                  required={field.isRequired}
+                  defaultCountry={(field.options?.defaultCountry as string) || 'ES'}
+                  showCountryCode={field.options?.showCountryCode !== false}
+                  format={(field.options?.format as 'international' | 'national' | 'any') || 'international'}
+                  inputClassName={`w-full p-2 border ${errors[field.name] ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  className={errors[field.name] ? 'border-red-500' : ''}
+                />
+              ) : (
+                renderField(field)
+              )}
               
               {field.helpText && (
                 <p className="mt-1 text-xs text-gray-500">{field.helpText}</p>

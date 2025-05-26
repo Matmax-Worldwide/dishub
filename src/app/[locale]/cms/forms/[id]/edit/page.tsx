@@ -114,90 +114,108 @@ export default function EditFormPage() {
     if (!form) return;
     
     setError(null);
-    setSaving(true);
     
     try {
-      // Convertir a FormFieldInput para compatibilidad con la API
-      // Eliminar id ya que será generado por el servidor
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, createdAt, updatedAt, ...fieldDataWithoutIdAndDates } = fieldData as FormFieldBase;
-      
-      // Asegurarse que isRequired se haya establecido correctamente
-      console.log('Field data before API call:', fieldDataWithoutIdAndDates);
-      
-      const apiFieldData: FormFieldInput = {
-        ...fieldDataWithoutIdAndDates,
-        formId: form.id,
-        order: form.fields ? form.fields.length : 0,
-      };
-      
       // Create a temporary ID for optimistic UI
-      const tempId = `temp-${Date.now()}`;
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create optimistic field for UI update
+      // Calculate the next order value
+      const nextOrder = form.fields ? form.fields.length : 0;
+      
+      // Create optimistic field for immediate UI update
       const optimisticField: FormFieldBase = {
         ...fieldData,
         id: tempId,
         formId: form.id,
-        order: form.fields ? form.fields.length : 0,
+        order: nextOrder,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      // Apply optimistic update to UI
-      if (form.fields) {
-        setForm({
-          ...form,
-          fields: [...form.fields, optimisticField] as FormFieldBase[]
-        });
-      } else {
-        setForm({
-          ...form,
-          fields: [optimisticField]
-        });
-      }
+      // Apply optimistic update to UI immediately
+      setForm(prevForm => {
+        if (!prevForm) return prevForm;
+        
+        const updatedFields = prevForm.fields ? [...prevForm.fields, optimisticField] : [optimisticField];
+        
+        return {
+          ...prevForm,
+          fields: updatedFields
+        };
+      });
       
       // Show optimistic notification
-      toast.success(`Creando campo "${fieldData.label}"...`);
+      toast.success(`Agregando campo "${fieldData.label}"...`);
       
+      // Prepare data for API call
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, updatedAt, ...fieldDataWithoutIdAndDates } = fieldData as FormFieldBase;
+      
+      const apiFieldData: FormFieldInput = {
+        ...fieldDataWithoutIdAndDates,
+        formId: form.id,
+        order: nextOrder,
+      };
+      
+      console.log('Creating field with data:', apiFieldData);
+      
+      // Make API call
       const result = await createFormField(apiFieldData);
       
       if (result.success && result.field) {
         console.log('Field created successfully:', result.field);
-        // Update optimistic field with server data
-        if (form.fields) {
-          setForm({
-            ...form,
-            fields: form.fields.map(field => 
-              field.id === tempId && result.field ? result.field : field
-            ) as FormFieldBase[]
-          });
-        }
+        
+        // Replace optimistic field with real server data
+        setForm(prevForm => {
+          if (!prevForm || !prevForm.fields) return prevForm;
+          
+          const updatedFields = prevForm.fields.map(field => 
+            field.id === tempId ? result.field! : field
+          );
+          
+          return {
+            ...prevForm,
+            fields: updatedFields as FormFieldBase[]
+          };
+        });
         
         toast.success(`El campo "${result.field.label}" ha sido creado correctamente.`);
       } else {
         // Revert optimistic UI if request failed
-        if (form.fields) {
-          setForm({
-            ...form,
-            fields: form.fields.filter(field => field.id !== tempId) as FormFieldBase[]
-          });
-        }
+        setForm(prevForm => {
+          if (!prevForm || !prevForm.fields) return prevForm;
+          
+          const updatedFields = prevForm.fields.filter(field => field.id !== tempId);
+          
+          return {
+            ...prevForm,
+            fields: updatedFields
+          };
+        });
         
-        setError(result.message || 'Failed to add field');
-        toast.error(result.message || 'Failed to add field');
+        const errorMessage = result.message || 'Failed to add field';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (err) {
-      // Revert any optimistic updates by reloading form
-      loadForm(form.id);
+      console.error('Error adding field:', err);
+      
+      // Revert optimistic updates by reloading form data
+      try {
+        const formData = await loadForm(form.id);
+        if (formData) {
+          setForm(formData as FormBase);
+        }
+      } catch (reloadError) {
+        console.error('Error reloading form after failed field creation:', reloadError);
+      }
       
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError('An unexpected error occurred while adding field');
-      console.error('Error adding field:', err);
-      
       toast.error(errorMessage);
     } finally {
-      setSaving(false);
+      // Don't set saving to false here since we're not using it for this operation
+      // The optimistic UI provides immediate feedback
     }
   };
 
@@ -205,14 +223,34 @@ export default function EditFormPage() {
     if (!form || !fieldData.id) return;
     
     setError(null);
-    setSaving(true);
     
     try {
       // Keep a reference to the original ID
       const fieldId = fieldData.id;
       
+      // Store original field data for potential rollback
+      const originalField = form.fields?.find(field => field.id === fieldId);
+      
+      // Apply optimistic update immediately
+      setForm(prevForm => {
+        if (!prevForm || !prevForm.fields) return prevForm;
+        
+        const updatedFields = prevForm.fields.map(field => 
+          field.id === fieldId ? { ...field, ...fieldData } : field
+        );
+        
+        return {
+          ...prevForm,
+          fields: updatedFields as FormFieldBase[]
+        };
+      });
+      
+      // Show optimistic success notification
+      toast.success(`Actualizando el campo "${fieldData.label}"...`);
+      
       // Remove ID and timestamps from the data object to avoid GraphQL errors
-      const { ...fieldDataWithoutIdAndDates } = fieldData as FormFieldBase;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, updatedAt, ...fieldDataWithoutIdAndDates } = fieldData as FormFieldBase;
       
       const apiFieldData: FormFieldInput = {
         ...fieldDataWithoutIdAndDates,
@@ -221,52 +259,77 @@ export default function EditFormPage() {
       
       console.log('Updating field with ID:', fieldId, 'Data:', apiFieldData);
       
-      // Apply optimistic update immediately
-      if (form.fields) {
-        setForm({
-          ...form,
-          fields: form.fields.map(field => 
-            field.id === fieldId ? { ...field, ...fieldData } : field
-          ) as FormFieldBase[] // Cast to ensure type safety
-        });
-      }
-      
-      // Show optimistic success notification
-      toast.success(`Actualizando el campo "${fieldData.label}"...`);
-      
+      // Make API call
       const result = await updateFormField(fieldId, apiFieldData);
       
       if (result.success && result.field) {
         console.log('Field updated successfully:', result.field);
+        
         // Update the field in the form state with actual server data
-        if (form.fields) {
-          setForm({
-            ...form,
-            fields: form.fields.map(field => 
-              field.id === fieldId && result.field ? result.field : field
-            ) as FormFieldBase[] // Cast to ensure type safety
-          });
-        }
+        setForm(prevForm => {
+          if (!prevForm || !prevForm.fields) return prevForm;
+          
+          const updatedFields = prevForm.fields.map(field => 
+            field.id === fieldId ? result.field! : field
+          );
+          
+          return {
+            ...prevForm,
+            fields: updatedFields as FormFieldBase[]
+          };
+        });
         
         toast.success(`El campo "${result.field.label}" ha sido actualizado correctamente.`);
       } else {
         // Revert optimistic update if the request failed
-        loadForm(form.id);
+        if (originalField) {
+          setForm(prevForm => {
+            if (!prevForm || !prevForm.fields) return prevForm;
+            
+            const updatedFields = prevForm.fields.map(field => 
+              field.id === fieldId ? originalField : field
+            );
+            
+            return {
+              ...prevForm,
+              fields: updatedFields as FormFieldBase[]
+            };
+          });
+        } else {
+          // Fallback: reload form data
+          try {
+            const formData = await loadForm(form.id);
+            if (formData) {
+              setForm(formData as FormBase);
+            }
+          } catch (reloadError) {
+            console.error('Error reloading form after failed field update:', reloadError);
+          }
+        }
         
-        setError(result.message || 'Failed to update field');
-        toast.error(result.message || 'Failed to update field');
+        const errorMessage = result.message || 'Failed to update field';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (err) {
+      console.error('Error updating field:', err);
+      
       // Revert optimistic update if there was an error
-      loadForm(form.id);
+      try {
+        const formData = await loadForm(form.id);
+        if (formData) {
+          setForm(formData as FormBase);
+        }
+      } catch (reloadError) {
+        console.error('Error reloading form after failed field update:', reloadError);
+      }
       
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError('An unexpected error occurred while updating field');
-      console.error('Error updating field:', err);
-      
       toast.error(errorMessage);
     } finally {
-      setSaving(false);
+      // Don't set saving to false here since we're not using it for this operation
+      // The optimistic UI provides immediate feedback
     }
   };
 
@@ -279,43 +342,84 @@ export default function EditFormPage() {
     }
     
     setError(null);
-    setSaving(true);
     
     try {
-      // Apply optimistic update immediately
-      if (form.fields) {
-        // Update UI immediately
-        setForm({
-          ...form,
-          fields: form.fields.filter(field => field.id !== fieldId)
-        });
-        
-        // Show optimistic notification
-        toast.success("Eliminando campo...");
+      // Store the field being deleted for potential rollback
+      const fieldToDelete = form.fields?.find(field => field.id === fieldId);
+      
+      if (!fieldToDelete) {
+        toast.error('Campo no encontrado');
+        return;
       }
       
+      // Apply optimistic update immediately - remove field from UI
+      setForm(prevForm => {
+        if (!prevForm || !prevForm.fields) return prevForm;
+        
+        const updatedFields = prevForm.fields.filter(field => field.id !== fieldId);
+        
+        return {
+          ...prevForm,
+          fields: updatedFields
+        };
+      });
+      
+      // Show optimistic notification
+      toast.success(`Eliminando campo "${fieldToDelete.label}"...`);
+      
+      // Make API call
       const result = await deleteFormField(fieldId);
       
       if (result.success) {
-        toast.success('El campo ha sido eliminado correctamente.');
+        toast.success(`El campo "${fieldToDelete.label}" ha sido eliminado correctamente.`);
       } else {
         // Revert optimistic update if the request failed
-        loadForm(form.id);
+        setForm(prevForm => {
+          if (!prevForm) return prevForm;
+          
+          // Re-insert the field at its original position
+          const updatedFields = prevForm.fields ? [...prevForm.fields] : [];
+          
+          // Find the correct position to insert the field back
+          const insertIndex = updatedFields.findIndex(field => field.order > fieldToDelete.order);
+          
+          if (insertIndex === -1) {
+            // Insert at the end
+            updatedFields.push(fieldToDelete);
+          } else {
+            // Insert at the correct position
+            updatedFields.splice(insertIndex, 0, fieldToDelete);
+          }
+          
+          return {
+            ...prevForm,
+            fields: updatedFields
+          };
+        });
         
-        setError(result.message || 'Failed to delete field');
-        toast.error(result.message || 'Failed to delete field');
+        const errorMessage = result.message || 'Failed to delete field';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (err) {
+      console.error('Error deleting field:', err);
+      
       // Revert optimistic update if there was an error
-      loadForm(form.id);
+      try {
+        const formData = await loadForm(form.id);
+        if (formData) {
+          setForm(formData as FormBase);
+        }
+      } catch (reloadError) {
+        console.error('Error reloading form after failed field deletion:', reloadError);
+      }
       
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError('An unexpected error occurred while deleting field');
-      console.error('Error deleting field:', err);
-      
       toast.error(errorMessage);
     } finally {
-      setSaving(false);
+      // Don't set saving to false here since we're not using it for this operation
+      // The optimistic UI provides immediate feedback
     }
   };
 

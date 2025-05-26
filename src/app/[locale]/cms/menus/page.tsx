@@ -97,6 +97,7 @@ interface Menu {
     mobileMenuPosition: string;
     transparentHeader: boolean;
     borderBottom: boolean;
+    fixedHeader: boolean;
   } | null;
 }
 
@@ -197,6 +198,7 @@ export default function MenusManagerPage() {
                 mobileMenuPosition
                 transparentHeader
                 borderBottom
+                fixedHeader
               }
             }
           }

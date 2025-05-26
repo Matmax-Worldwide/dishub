@@ -35,10 +35,10 @@ interface HeaderSectionProps {
   mobileMenuPosition?: MobileMenuPosition;
   transparentHeader?: boolean;
   borderBottom?: boolean;
+  fixedHeader?: boolean;
   advancedOptions?: HeaderAdvancedOptions;
   menuIcon?: string;
   isEditing?: boolean;
-  previewMode?: boolean;
   onUpdate?: (data: { 
     title?: string; 
     subtitle?: string; 
@@ -54,6 +54,7 @@ interface HeaderSectionProps {
     mobileMenuPosition?: MobileMenuPosition;
     transparentHeader?: boolean;
     borderBottom?: boolean;
+    fixedHeader?: boolean;
     advancedOptions?: HeaderAdvancedOptions;
     menuIcon?: string;
   }) => void;
@@ -74,10 +75,10 @@ export default function HeaderSection({
   mobileMenuPosition: initialMobileMenuPosition = 'right',
   transparentHeader: initialTransparentHeader = false,
   borderBottom: initialBorderBottom = false,
+  fixedHeader: initialFixedHeader = false,
   advancedOptions: initialAdvancedOptions = {},
   menuIcon: initialMenuIcon = 'Menu',
   isEditing = false, 
-  previewMode = false,
   onUpdate 
 }: HeaderSectionProps) {
   // Local state to maintain during typing
@@ -104,6 +105,7 @@ export default function HeaderSection({
   const [mobileMenuPosition, setMobileMenuPosition] = useState<MobileMenuPosition>(initialMobileMenuPosition);
   const [transparentHeader, setTransparentHeader] = useState(initialTransparentHeader);
   const [borderBottom, setBorderBottom] = useState(initialBorderBottom);
+  const [fixedHeader, setFixedHeader] = useState(initialFixedHeader);
   const [advancedOptions, setAdvancedOptions] = useState<HeaderAdvancedOptions>(initialAdvancedOptions);
   
   // Estado para mostrar/ocultar opciones avanzadas en el panel de edición
@@ -115,8 +117,61 @@ export default function HeaderSection({
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
   
+  // Detect if we're in CMS editing context
+  const isInCMSContext = useRef(false);
+  
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Check if we're in CMS editing context on mount
+  useEffect(() => {
+    // Check if we're in the CMS editor by looking for CMS-specific elements or URL patterns
+    const checkCMSContext = () => {
+      // Check URL for CMS patterns
+      const url = window.location.pathname;
+      const isCMSUrl = url.includes('/cms/') || url.includes('/editor/') || url.includes('/edit/');
+      
+      // Check for CMS-specific DOM elements
+      const hasCMSElements = document.querySelector('[data-cms-editor]') || 
+                           document.querySelector('.cms-editor') ||
+                           document.querySelector('[data-section-manager]') ||
+                           document.querySelector('.manageable-section');
+      
+      // Check if we're inside a preview container
+      const isInPreview = document.querySelector('.cms-preview') || 
+                         document.querySelector('[data-preview-mode]') ||
+                         document.querySelector('.section-preview');
+      
+      isInCMSContext.current = isCMSUrl || !!hasCMSElements || !!isInPreview || isEditing;
+      
+      console.log('CMS Context Detection:', {
+        isCMSUrl,
+        hasCMSElements: !!hasCMSElements,
+        isInPreview: !!isInPreview,
+        isEditing,
+        finalResult: isInCMSContext.current
+      });
+    };
+    
+    // Initial check
+    checkCMSContext();
+    
+    // Re-check when DOM changes (for dynamic content)
+    const observer = new MutationObserver(() => {
+      checkCMSContext();
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-cms-editor', 'data-section-manager', 'data-preview-mode']
+    });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [isEditing]);
   
   // Load available menus when in editing mode
   useEffect(() => {
@@ -149,6 +204,7 @@ export default function HeaderSection({
                 setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
                 setTransparentHeader(style.transparentHeader || false);
                 setBorderBottom(style.borderBottom || false);
+                setFixedHeader(style.fixedHeader || false);
                 
                 // Set advanced options if they exist
                 if (style.advancedOptions) {
@@ -231,6 +287,7 @@ export default function HeaderSection({
         mobileMenuPosition,
         transparentHeader,
         borderBottom,
+        fixedHeader,
         advancedOptions,
         menuIcon
       };
@@ -260,6 +317,7 @@ export default function HeaderSection({
     mobileMenuPosition,
     transparentHeader,
     borderBottom,
+    fixedHeader,
     advancedOptions,
     menuIcon,
     onUpdate
@@ -304,6 +362,7 @@ export default function HeaderSection({
       setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
       setTransparentHeader(style.transparentHeader || false);
       setBorderBottom(style.borderBottom || false);
+      setFixedHeader(style.fixedHeader || false);
       
       if (style.advancedOptions) {
         setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
@@ -437,6 +496,12 @@ export default function HeaderSection({
     handleUpdateField('borderBottom', newValue);
   }, [handleUpdateField]);
 
+  const handleFixedHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setFixedHeader(newValue);
+    handleUpdateField('fixedHeader', newValue);
+  }, [handleUpdateField]);
+
   const handleMenuAlignmentChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'center' | 'right';
     setMenuAlignment(newValue);
@@ -518,6 +583,7 @@ export default function HeaderSection({
         mobileMenuPosition,
         transparentHeader,
         borderBottom,
+        fixedHeader,
         advancedOptions: advancedOptions || {} // Ensure advancedOptions is always an object
       };
       
@@ -533,7 +599,7 @@ export default function HeaderSection({
       console.error('Error saving header style:', error);
     }
   }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
-      mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, advancedOptions]);
+      mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, fixedHeader, advancedOptions]);
 
   // Separating components for modularity
   const LogoSelector = () => (
@@ -632,6 +698,19 @@ export default function HeaderSection({
           />
           <label htmlFor="borderBottom" className="text-sm">
             Show border at bottom
+          </label>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="fixedHeader"
+            checked={fixedHeader}
+            onChange={handleFixedHeaderChange}
+            className="rounded border-gray-300 text-blue-600"
+          />
+          <label htmlFor="fixedHeader" className="text-sm">
+            Fixed position (stays at top when scrolling)
           </label>
         </div>
       </div>
@@ -943,9 +1022,11 @@ export default function HeaderSection({
                 )}
               </div>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-              ✓ Posición fija - el header se mantendrá al hacer scroll
-            </div>
+            {fixedHeader && (
+              <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                ✓ Posición fija - el header se mantendrá al hacer scroll
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1028,7 +1109,10 @@ export default function HeaderSection({
         </Tabs>
       ) : (
         <nav
-          className={`w-full z-1000 transition-all duration-300 py-4 ${previewMode ? 'relative' : 'fixed top-0 left-0 right-0'} ${
+          className={`w-full z-1000 transition-all duration-300 py-4 ${
+            // Only apply fixed positioning if fixedHeader is true AND we're NOT in CMS context
+            fixedHeader && !isInCMSContext.current ? 'fixed top-0 left-0 right-0' : 'relative'
+          } ${
             transparentHeader && !scrolled ? 'bg-transparent' : ''
           } ${
             borderBottom ? 'border-b border-gray-200' : ''
@@ -1053,12 +1137,12 @@ export default function HeaderSection({
                 : (backgroundColor || '#ffffff'),
             backdropFilter: advancedOptions?.glassmorphism ? `blur(${advancedOptions?.blur || 5}px)` : undefined,
             color: textColor,
-            // Conditionally apply positioning - relative for preview mode, fixed for live mode
-            position: previewMode ? 'relative' : 'fixed',
-            top: previewMode ? 'auto' : 0,
-            left: previewMode ? 'auto' : 0,
-            right: previewMode ? 'auto' : 0,
-            zIndex: previewMode ? 'auto' : 1000
+            // Apply positioning based on fixedHeader configuration and CMS context
+            position: fixedHeader && !isInCMSContext.current ? 'fixed' : 'relative',
+            top: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
+            left: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
+            right: fixedHeader && !isInCMSContext.current ? 0 : 'auto',
+            zIndex: fixedHeader && !isInCMSContext.current ? 1000 : 'auto'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

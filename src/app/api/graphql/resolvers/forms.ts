@@ -570,20 +570,8 @@ export const formResolvers = {
     },
     
     // Create a form field
-    createFormField: async (_parent: unknown, args: { input: FormFieldInput }, context: { req: NextRequest }) => {
+    createFormField: async (_parent: unknown, args: { input: FormFieldInput }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
         // Make sure we have either formId or stepId
         if (!args.input.formId && !args.input.stepId) {
           return {
@@ -613,20 +601,9 @@ export const formResolvers = {
     },
     
     // Update a form field
-    updateFormField: async (_parent: unknown, args: { id: string, input: FormFieldInput }, context: { req: NextRequest }) => {
+    updateFormField: async (_parent: unknown, args: { id: string, input: FormFieldInput }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
+
         const field = await prisma.formField.update({
           where: { id: args.id },
           data: args.input,
@@ -648,20 +625,8 @@ export const formResolvers = {
     },
     
     // Delete a form field
-    deleteFormField: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    deleteFormField: async (_parent: unknown, args: { id: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
         await prisma.formField.delete({
           where: { id: args.id },
         });
@@ -734,19 +699,8 @@ export const formResolvers = {
     },
     
     // Update form submission status
-    updateFormSubmissionStatus: async (_parent: unknown, args: { id: string, status: SubmissionStatus }, context: { req: NextRequest }) => {
+    updateFormSubmissionStatus: async (_parent: unknown, args: { id: string, status: SubmissionStatus }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
         
         const submission = await prisma.formSubmission.update({
           where: { id: args.id },
