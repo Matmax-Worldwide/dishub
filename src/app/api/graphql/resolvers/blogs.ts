@@ -96,6 +96,36 @@ export const blogResolvers = {
       }
     },
 
+    // Get a single post by ID
+    post: async (_: unknown, { id }: { id: string }) => {
+      try {
+        return await prisma.post.findUnique({
+          where: { id },
+          include: {
+            author: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true
+              }
+            },
+            blog: {
+              select: {
+                id: true,
+                title: true,
+                slug: true
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        throw new GraphQLError('Failed to fetch post');
+      }
+    },
+
     // Get all posts with optional filtering
     posts: async (_: unknown, { filter }: { filter?: PostFilter }) => {
       try {

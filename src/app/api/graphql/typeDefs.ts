@@ -1205,6 +1205,7 @@ export const typeDefs = gql`
     # Blog queries
     blogs: [Blog!]!
     blog(id: ID!): Blog
+    post(id: ID!): Post
     posts(filter: PostFilter): [Post!]!
     postBySlug(slug: String!): Post
   }

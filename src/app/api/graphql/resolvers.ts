@@ -681,6 +681,7 @@ const resolvers = {
     // Add blog queries
     blogs: blogResolvers.Query.blogs,
     blog: blogResolvers.Query.blog,
+    post: blogResolvers.Query.post,
     posts: blogResolvers.Query.posts,
     postBySlug: blogResolvers.Query.postBySlug,
   },
