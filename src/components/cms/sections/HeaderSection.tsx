@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
 import { cmsOperations } from '@/lib/graphql-client';
 import { useParams } from 'next/navigation';
@@ -11,6 +11,8 @@ import { Menu, MenuItem } from '@/app/api/graphql/types';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
 import MediaSelector from '@/components/cms/MediaSelector';
+import ColorSelector from '@/components/cms/ColorSelector';
+import TransparencySelector from '@/components/cms/TransparencySelector';
 import {
   Tabs,
   TabsContent,
@@ -96,7 +98,7 @@ export default function HeaderSection({
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [menuIcon, setMenuIcon] = useState(initialMenuIcon);
   
-  // Nuevos estados para las opciones adicionales
+  // Nuevos estados para las opciones
   const [transparency, setTransparency] = useState(initialTransparency);
   const [headerSize, setHeaderSize] = useState<HeaderSize>(initialHeaderSize);
   const [menuAlignment, setMenuAlignment] = useState<MenuAlignment>(initialMenuAlignment);
@@ -111,6 +113,12 @@ export default function HeaderSection({
   // Estado para mostrar/ocultar opciones avanzadas en el panel de edición
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
+  // Optimistic UI states
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
   const params = useParams();
   const locale = params.locale as string || 'en';
   
@@ -122,6 +130,84 @@ export default function HeaderSection({
   
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-save timeout
+  const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Function to save header style to the database with optimistic UI
+    const saveHeaderStyle = useCallback(async () => {
+      if (!localMenuId) {
+        setSaveStatus('error');
+        setSaveMessage('No menu selected');
+        return;
+      }
+      
+      // Clear auto-save timeout since we're manually saving
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
+      
+      setIsSaving(true);
+      setSaveStatus('saving');
+      setSaveMessage('Saving header style...');
+      
+      try {
+        // Prepare the header style data
+        const headerStyleData = {
+          transparency,
+          headerSize,
+          menuAlignment,
+          menuButtonStyle,
+          mobileMenuStyle,
+          mobileMenuPosition,
+          transparentHeader,
+          borderBottom,
+          fixedHeader,
+          advancedOptions: advancedOptions || {} // Ensure advancedOptions is always an object
+        };
+        
+        // Save the header style using the GraphQL client
+        const result = await cmsOperations.updateHeaderStyle(localMenuId, headerStyleData);
+        
+        if (result.success) {
+          console.log('Header style saved successfully:', result.headerStyle);
+          setSaveStatus('success');
+          setSaveMessage('Header style saved successfully!');
+          setHasUnsavedChanges(false);
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSaveStatus('idle');
+            setSaveMessage('');
+          }, 3000);
+        } else {
+          console.error('Failed to save header style:', result.message);
+          setSaveStatus('error');
+          setSaveMessage(result.message || 'Failed to save header style');
+          
+          // Clear error message after 5 seconds
+          setTimeout(() => {
+            setSaveStatus('idle');
+            setSaveMessage('');
+          }, 5000);
+        }
+      } catch (error) {
+        console.error('Error saving header style:', error);
+        setSaveStatus('error');
+        setSaveMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          setSaveStatus('idle');
+          setSaveMessage('');
+        }, 5000);
+      } finally {
+        setIsSaving(false);
+      }
+    }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
+        mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, fixedHeader, advancedOptions,
+        setSaveStatus, setSaveMessage, setIsSaving, setHasUnsavedChanges]);
+  
   
   // Check if we're in edit mode on mount and URL changes
   useEffect(() => {
@@ -238,11 +324,33 @@ export default function HeaderSection({
     }
   }, [isEditing]);
   
+  // Auto-save functionality
+  useEffect(() => {
+    if (hasUnsavedChanges && localMenuId) {
+      // Clear existing timeout
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
+      
+      // Set new timeout for auto-save
+      autoSaveRef.current = setTimeout(() => {
+        saveHeaderStyle();
+      }, 3000); // Auto-save after 3 seconds of inactivity
+    }
+    
+    return () => {
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
+    };
+  }, [hasUnsavedChanges, localMenuId, saveHeaderStyle]);
+  
   // Optimize update handler with debouncing
   const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown>) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
+      setHasUnsavedChanges(true);
       
       // Clear any pending debounce
       if (debounceRef.current) {
@@ -305,10 +413,13 @@ export default function HeaderSection({
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
     };
   }, []);
   
-  // Individual change handlers
+  // Individual change handlers with optimistic UI
   const handleTitleChange = useCallback((newValue: string) => {
     setLocalTitle(newValue);
     handleUpdateField('title', newValue);
@@ -322,6 +433,7 @@ export default function HeaderSection({
   const handleMenuChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const menuId = e.target.value;
     setLocalMenuId(menuId);
+    setHasUnsavedChanges(true);
     
     // Find selected menu
     const selectedMenu = menus.find(m => m.id === menuId);
@@ -348,38 +460,21 @@ export default function HeaderSection({
     handleUpdateField('menuId', menuId);
   };
 
-  const handleBackgroundColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setBackgroundColor(newValue);
-    
-    // For color inputs, we want immediate visual feedback without debounce
-    // Only call handleUpdateField on blur or after a longer delay
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    debounceRef.current = setTimeout(() => {
-      handleUpdateField('backgroundColor', newValue);
-    }, 1000); // Longer delay for color picker
+  const handleBackgroundColorChange = useCallback((color: string) => {
+    setBackgroundColor(color);
+    setHasUnsavedChanges(true);
+    handleUpdateField('backgroundColor', color);
   }, [handleUpdateField]);
 
-  const handleTextColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setTextColor(newValue);
-    
-    // For color inputs, we want immediate visual feedback without debounce
-    // Only call handleUpdateField on blur or after a longer delay
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    debounceRef.current = setTimeout(() => {
-      handleUpdateField('textColor', newValue);
-    }, 1000); // Longer delay for color picker
+  const handleTextColorChange = useCallback((color: string) => {
+    setTextColor(color);
+    setHasUnsavedChanges(true);
+    handleUpdateField('textColor', color);
   }, [handleUpdateField]);
   
   const handleLogoUrlChange = useCallback((newValue: string) => {
     setLogoUrl(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('logoUrl', newValue);
     setShowMediaSelector(false);
   }, [handleUpdateField]);
@@ -481,88 +576,64 @@ export default function HeaderSection({
   const handleTransparentHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setTransparentHeader(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('transparentHeader', newValue);
   }, [handleUpdateField]);
 
   const handleBorderBottomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setBorderBottom(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('borderBottom', newValue);
   }, [handleUpdateField]);
 
   const handleFixedHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setFixedHeader(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('fixedHeader', newValue);
   }, [handleUpdateField]);
 
   const handleMenuAlignmentChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'center' | 'right';
     setMenuAlignment(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('menuAlignment', newValue);
   }, [handleUpdateField]);
 
   const handleMenuButtonStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'default' | 'filled' | 'outline';
     setMenuButtonStyle(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('menuButtonStyle', newValue);
   }, [handleUpdateField]);
 
   const handleMobileMenuStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'fullscreen' | 'dropdown' | 'sidebar';
     setMobileMenuStyle(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('mobileMenuStyle', newValue);
   }, [handleUpdateField]);
 
   const handleMobileMenuPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'right';
     setMobileMenuPosition(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('mobileMenuPosition', newValue);
   }, [handleUpdateField]);
 
   // Add handlers for transparency and headerSize
-  const handleTransparencyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value);
-    setTransparency(newValue);
-    
-    // For range inputs, we want immediate visual feedback without debounce
-    // Only call handleUpdateField after user stops dragging
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    debounceRef.current = setTimeout(() => {
-      handleUpdateField('transparency', newValue.toString());
-    }, 800); // Shorter delay for range slider
+  const handleTransparencyChange = useCallback((transparency: number) => {
+    setTransparency(transparency);
+    setHasUnsavedChanges(true);
+    handleUpdateField('transparency', transparency.toString());
   }, [handleUpdateField]);
   
   const handleHeaderSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as HeaderSize;
     setHeaderSize(newValue);
+    setHasUnsavedChanges(true);
     handleUpdateField('headerSize', newValue);
-  }, [handleUpdateField]);
-  
-  // Add blur handlers for immediate save when user finishes with color/range inputs
-  const handleBackgroundColorBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    handleUpdateField('backgroundColor', e.target.value);
-  }, [handleUpdateField]);
-
-  const handleTextColorBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    handleUpdateField('textColor', e.target.value);
-  }, [handleUpdateField]);
-
-  const handleTransparencyMouseUp = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    const target = e.target as HTMLInputElement;
-    handleUpdateField('transparency', target.value);
   }, [handleUpdateField]);
   
   // Advanced options handlers
@@ -572,6 +643,7 @@ export default function HeaderSection({
       [key]: value
     };
     setAdvancedOptions(updatedOptions);
+    setHasUnsavedChanges(true);
     // Pass the object directly instead of stringifying it
     handleUpdateField('advancedOptions', updatedOptions);
   }, [advancedOptions, handleUpdateField]);
@@ -594,38 +666,6 @@ export default function HeaderSection({
     return { r, g, b };
   }, []);
 
-  // Function to save header style to the database
-  const saveHeaderStyle = useCallback(async () => {
-    if (!localMenuId) return;
-    
-    try {
-      // Prepare the header style data
-      const headerStyleData = {
-        transparency,
-        headerSize,
-        menuAlignment,
-        menuButtonStyle,
-        mobileMenuStyle,
-        mobileMenuPosition,
-        transparentHeader,
-        borderBottom,
-        fixedHeader,
-        advancedOptions: advancedOptions || {} // Ensure advancedOptions is always an object
-      };
-      
-      // Save the header style using the GraphQL client
-      const result = await cmsOperations.updateHeaderStyle(localMenuId, headerStyleData);
-      
-      if (result.success) {
-        console.log('Header style saved successfully:', result.headerStyle);
-      } else {
-        console.error('Failed to save header style:', result.message);
-      }
-    } catch (error) {
-      console.error('Error saving header style:', error);
-    }
-  }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
-      mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, fixedHeader, advancedOptions]);
 
   // Separating components for modularity
   const LogoSelector = () => (
@@ -698,189 +738,244 @@ export default function HeaderSection({
     </div>
   );
 
+  // Improved StyleOptions component with better organization
   const StyleOptions = () => (
-    <div className="space-y-4">
-      <div className="flex flex-col space-y-2">
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="transparentHeader"
-            checked={transparentHeader}
-            onChange={handleTransparentHeaderChange}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <label htmlFor="transparentHeader" className="text-sm">
-            Transparent background (changes on scroll)
-          </label>
+    <div className="space-y-6">
+      {/* Save Status Banner */}
+      {(saveStatus !== 'idle' || hasUnsavedChanges) && (
+        <div className={`p-3 rounded-md border ${
+          saveStatus === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+          saveStatus === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+          saveStatus === 'saving' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+          'bg-yellow-50 border-yellow-200 text-yellow-800'
+        }`}>
+          <div className="flex items-center space-x-2">
+            {saveStatus === 'success' && <CheckIcon className="h-4 w-4" />}
+            {saveStatus === 'error' && <ExclamationTriangleIcon className="h-4 w-4" />}
+            {saveStatus === 'saving' && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+            )}
+            {hasUnsavedChanges && saveStatus === 'idle' && (
+              <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+            )}
+            <span className="text-sm font-medium">
+              {saveMessage || (hasUnsavedChanges ? 'You have unsaved changes' : '')}
+            </span>
+          </div>
         </div>
+      )}
+
+      {/* Layout & Behavior Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+          Layout & Behavior
+        </h4>
         
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="borderBottom"
-            checked={borderBottom}
-            onChange={handleBorderBottomChange}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <label htmlFor="borderBottom" className="text-sm">
-            Show border at bottom
-          </label>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="fixedHeader"
-            checked={fixedHeader}
-            onChange={handleFixedHeaderChange}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <label htmlFor="fixedHeader" className="text-sm">
-            Fixed position (stays at top when scrolling)
-          </label>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="backgroundColor" className="text-sm block mb-1">
-            Background Color
-          </label>
-          <input
-            type="color"
-            id="backgroundColor"
-            value={backgroundColor}
-            onChange={handleBackgroundColorChange}
-            onBlur={handleBackgroundColorBlur}
-            className="rounded border border-gray-300 h-8 w-full"
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="textColor" className="text-sm block mb-1">
-            Text Color
-          </label>
-          <input
-            type="color"
-            id="textColor"
-            value={textColor}
-            onChange={handleTextColorChange}
-            onBlur={handleTextColorBlur}
-            className="rounded border border-gray-300 h-8 w-full"
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="menuAlignment" className="text-sm block mb-1">
-            Menu Alignment
-          </label>
-          <select
-            id="menuAlignment"
-            value={menuAlignment}
-            onChange={handleMenuAlignmentChange}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
-        </div>
-        
-        <div>
-          <label htmlFor="menuButtonStyle" className="text-sm block mb-1">
-            Menu Button Style
-          </label>
-          <select
-            id="menuButtonStyle"
-            value={menuButtonStyle}
-            onChange={handleMenuButtonStyleChange}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value="default">Default</option>
-            <option value="filled">Filled</option>
-            <option value="outline">Outline</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="mobileMenuStyle" className="text-sm block mb-1">
-            Mobile Menu Style
-          </label>
-          <select
-            id="mobileMenuStyle"
-            value={mobileMenuStyle}
-            onChange={handleMobileMenuStyleChange}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value="dropdown">Dropdown</option>
-            <option value="fullscreen">Fullscreen</option>
-            <option value="sidebar">Sidebar</option>
-          </select>
-        </div>
-        
-        <div>
-          <label htmlFor="mobileMenuPosition" className="text-sm block mb-1">
-            Sidebar Position (mobile)
-          </label>
-          <select
-            id="mobileMenuPosition"
-            value={mobileMenuPosition}
-            onChange={handleMobileMenuPositionChange}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value="left">Left</option>
-            <option value="right">Right</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="headerSize" className="text-sm block mb-1">
-            Header Size
-          </label>
-          <select
-            id="headerSize"
-            value={headerSize}
-            onChange={handleHeaderSizeChange}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value="sm">Small</option>
-            <option value="md">Medium</option>
-            <option value="lg">Large</option>
-          </select>
-        </div>
-        
-        <div>
-          <label htmlFor="transparency" className="text-sm block mb-1">
-            Background Transparency
-          </label>
-          <div className="flex items-center">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex items-center space-x-2">
             <input
-              type="range"
-              id="transparency"
-              min="0"
-              max="100"
+              type="checkbox"
+              id="transparentHeader"
+              checked={transparentHeader}
+              onChange={handleTransparentHeaderChange}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="transparentHeader" className="text-sm font-medium">
+              Transparent background (changes on scroll)
+            </label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="borderBottom"
+              checked={borderBottom}
+              onChange={handleBorderBottomChange}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="borderBottom" className="text-sm font-medium">
+              Show border at bottom
+            </label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="fixedHeader"
+              checked={fixedHeader}
+              onChange={handleFixedHeaderChange}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="fixedHeader" className="text-sm font-medium">
+              Fixed position (stays at top when scrolling)
+            </label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="headerSize" className="text-sm font-medium block mb-2">
+              Header Size
+            </label>
+            <select
+              id="headerSize"
+              value={headerSize}
+              onChange={handleHeaderSizeChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="sm">Small</option>
+              <option value="md">Medium</option>
+              <option value="lg">Large</option>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="transparency" className="text-sm font-medium block mb-2">
+              Background Transparency
+            </label>
+            <TransparencySelector
               value={transparency}
               onChange={handleTransparencyChange}
-              onMouseUp={handleTransparencyMouseUp}
-              className="flex-1 mr-2"
             />
-            <span className="text-sm">{transparency}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Colors Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+          Colors
+        </h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <ColorSelector
+              label="Background Color"
+              value={backgroundColor}
+              onChange={handleBackgroundColorChange}
+            />
+          </div>
+          
+          <div>
+            <ColorSelector
+              label="Text Color"
+              value={textColor}
+              onChange={handleTextColorChange}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Menu Configuration Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+          Menu Configuration
+        </h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="menuAlignment" className="text-sm font-medium block mb-2">
+              Menu Alignment
+            </label>
+            <select
+              id="menuAlignment"
+              value={menuAlignment}
+              onChange={handleMenuAlignmentChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="menuButtonStyle" className="text-sm font-medium block mb-2">
+              Menu Button Style
+            </label>
+            <select
+              id="menuButtonStyle"
+              value={menuButtonStyle}
+              onChange={handleMenuButtonStyleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="default">Default</option>
+              <option value="filled">Filled</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+          Mobile Menu
+        </h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="mobileMenuStyle" className="text-sm font-medium block mb-2">
+              Mobile Menu Style
+            </label>
+            <select
+              id="mobileMenuStyle"
+              value={mobileMenuStyle}
+              onChange={handleMobileMenuStyleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="dropdown">Dropdown</option>
+              <option value="fullscreen">Fullscreen</option>
+              <option value="sidebar">Sidebar</option>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="mobileMenuPosition" className="text-sm font-medium block mb-2">
+              Sidebar Position (mobile)
+            </label>
+            <select
+              id="mobileMenuPosition"
+              value={mobileMenuPosition}
+              onChange={handleMobileMenuPositionChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
           </div>
         </div>
       </div>
       
-      <div className="flex justify-center sm:justify-end">
+      {/* Save Button */}
+      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+        <div className="text-xs text-gray-500">
+          {hasUnsavedChanges ? 'Auto-save in 3 seconds' : 'All changes saved'}
+        </div>
         <button
           onClick={saveHeaderStyle}
-          className="w-full sm:w-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          disabled={isSaving || !localMenuId}
+          className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+            isSaving || !localMenuId
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : hasUnsavedChanges
+                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                : 'bg-green-600 text-white hover:bg-green-700'
+          }`}
         >
-          Save Header Style
+          {isSaving ? (
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Saving...</span>
+            </div>
+          ) : hasUnsavedChanges ? (
+            'Save Changes'
+          ) : (
+            <div className="flex items-center space-x-2">
+              <CheckIcon className="h-4 w-4" />
+              <span>Saved</span>
+            </div>
+          )}
         </button>
       </div>
     </div>
