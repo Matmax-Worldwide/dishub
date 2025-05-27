@@ -584,37 +584,44 @@ export default function FormSection({
     return (
       <div className="space-y-4">
         {/* Title and Description inputs */}
-        <div className="flex items-start space-x-2">
-          <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-          <div className="flex-1">
-            {/* Wrapping StableInput in an isolation div */}
-            <div className="isolate" onClick={(e) => e.stopPropagation()}>
-              <label className="block text-sm font-medium mb-2 text-foreground">
-                Section Title
-              </label>
-              <input
-                type="text"
-                value={localTitle}
-                onChange={(e) => setLocalTitle(e.target.value)}
-                onBlur={handleInputSubmit}
-                placeholder="Form Section Title..."
-                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-medium text-xl"
-              />
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-start space-x-2">
+            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+              {/* Wrapping StableInput in an isolation div */}
+              <div className="isolate" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Section Title
+                </label>
+                <input
+                  type="text"
+                  value={localTitle}
+                  onChange={(e) => setLocalTitle(e.target.value)}
+                  onBlur={handleInputSubmit}
+                  placeholder="Form Section Title..."
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-medium text-xl"
+                />
+              </div>
             </div>
-            
-            {/* Wrapping StableInput in an isolation div */}
-            <div className="isolate mt-4" onClick={(e) => e.stopPropagation()}>
-              <label className="block text-sm font-medium mb-2 text-foreground">
-                Section Description
-              </label>
-              <textarea
-                value={localDescription}
-                onChange={(e) => setLocalDescription(e.target.value)}
-                onBlur={handleInputSubmit}
-                placeholder="Section description..."
-                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground text-muted-foreground"
-                rows={3}
-              />
+          </div>
+          
+          <div className="flex items-start space-x-2">
+            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+              {/* Wrapping StableInput in an isolation div */}
+              <div className="isolate" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Section Description
+                </label>
+                <textarea
+                  value={localDescription}
+                  onChange={(e) => setLocalDescription(e.target.value)}
+                  onBlur={handleInputSubmit}
+                  placeholder="Section description..."
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground text-muted-foreground"
+                  rows={3}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -96,7 +96,7 @@ export const PageEvents = {
 };
 
 // Add ComponentType definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
 
 // Dynamic import for ComponentsGrid
 const ComponentsGrid = dynamic(() => import('./ComponentsGrid'), {

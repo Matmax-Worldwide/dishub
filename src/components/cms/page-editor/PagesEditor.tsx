@@ -3,7 +3,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { PagesSidebar } from './PagesSidebar';
 
 // Component type definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
 
 interface PagesEditorProps {
   children: ReactNode;

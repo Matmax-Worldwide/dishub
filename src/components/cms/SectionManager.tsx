@@ -47,7 +47,7 @@ interface FooterColumn {
 }
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
 
 export interface Component {
   id: string;
@@ -330,6 +330,20 @@ const componentMap = {
             <div className="w-24 h-10 bg-blue-200 rounded animate-pulse"></div>
             <div className="w-6 h-6 bg-gray-200 rounded-full animate-pulse"></div>
           </div>
+        </div>
+      </div>
+    )
+  }),
+  Video: dynamic(() => import('./sections/VideoSection'), {
+    loading: () => (
+      <div className="w-full h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="w-24 h-24 bg-gray-700 rounded-full mx-auto mb-6 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 bg-gray-500 rounded-full animate-pulse"></div>
+          </div>
+          <div className="w-64 h-8 bg-gray-700 rounded mx-auto mb-4 animate-pulse"></div>
+          <div className="w-80 h-6 bg-gray-700 rounded mx-auto mb-4 animate-pulse"></div>
+          <div className="w-96 h-4 bg-gray-700 rounded mx-auto animate-pulse"></div>
         </div>
       </div>
     )
@@ -1255,6 +1269,34 @@ function SectionManagerBase({
           </div>
         )
       },
+      {
+        type: 'Video',
+        title: 'Video Component',
+        description: 'Add a video with customizable options',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M10 8L16 12L10 16V8Z" fill="currentColor"/>
+          </svg>
+        ),
+        color: 'text-red-500 bg-red-100 border-red-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-red-50 to-red-100 rounded-md">
+            <div className="bg-red-200 w-full h-16 rounded-md mb-2 flex items-center justify-center relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-300 to-red-400 rounded-md opacity-60"></div>
+              <div className="relative z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-red-500">
+                  <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                </svg>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="h-2 w-24 bg-red-300 rounded-full"></div>
+            </div>
+          </div>
+        )
+      },
     ];
 
     // Ensure sliderPosition is in bounds
@@ -2084,6 +2126,40 @@ function SectionManagerBase({
                 borderRadius={component.data.borderRadius as number}
                 dropdownLinks={component.data.dropdownLinks as Array<{id: string; label: string; url: string}>}
                 showDropdown={component.data.showDropdown as boolean}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Video': {
+          const VideoComponent = componentMap.Video;
+          return (
+            <div {...containerProps}>
+              <VideoComponent
+                videoUrl={component.data.videoUrl as string}
+                posterUrl={component.data.posterUrl as string}
+                title={component.data.title as string}
+                subtitle={component.data.subtitle as string}
+                description={component.data.description as string}
+                autoplay={component.data.autoplay as boolean ?? false}
+                loop={component.data.loop as boolean ?? false}
+                muted={component.data.muted as boolean ?? true}
+                controls={component.data.controls as boolean ?? true}
+                playsinline={component.data.playsinline as boolean ?? true}
+                overlayEnabled={component.data.overlayEnabled as boolean ?? false}
+                overlayColor={component.data.overlayColor as string ?? '#000000'}
+                overlayOpacity={component.data.overlayOpacity as number ?? 50}
+                textColor={component.data.textColor as string ?? '#ffffff'}
+                textAlignment={component.data.textAlignment as 'left' | 'center' | 'right' ?? 'center'}
+                contentPosition={component.data.contentPosition as 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' ?? 'center'}
+                showPlayButton={component.data.showPlayButton as boolean ?? true}
+                playButtonStyle={component.data.playButtonStyle as 'default' | 'filled' | 'outline' ?? 'filled'}
+                playButtonSize={component.data.playButtonSize as 'sm' | 'md' | 'lg' ?? 'lg'}
+                fullHeight={component.data.fullHeight as boolean ?? true}
+                maxHeight={component.data.maxHeight as string ?? '100vh'}
+                objectFit={component.data.objectFit as 'cover' | 'contain' | 'fill' ?? 'cover'}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
