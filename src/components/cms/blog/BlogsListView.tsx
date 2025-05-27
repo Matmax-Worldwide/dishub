@@ -15,7 +15,7 @@ export function BlogsListView({
   blogs, 
   onEdit, 
   onDelete, 
-  onViewPosts, 
+  onViewPosts,
   onSort, 
   sortField, 
   sortDirection 
@@ -38,13 +38,13 @@ export function BlogsListView({
       {children}
       {sortField === field && (
         sortDirection === 'asc' ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
         )
       )}
     </button>
-  );
+    );
 
   return (
     <div className="overflow-x-auto">
@@ -73,7 +73,7 @@ export function BlogsListView({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {blogs.map((blog) => (
-            <tr key={blog.id} className="hover:bg-gray-50">
+              <tr key={blog.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div>
                   <div className="text-sm font-medium text-gray-900">{blog.title}</div>
@@ -84,7 +84,7 @@ export function BlogsListView({
                   )}
                   <div className="text-xs text-gray-400 mt-1">/{blog.slug}</div>
                 </div>
-              </td>
+                </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   {blog.isActive ? (
@@ -103,19 +103,19 @@ export function BlogsListView({
                     </>
                   )}
                 </div>
-              </td>
+                </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div className="flex items-center">
                   <BookOpen className="h-4 w-4 text-gray-400 mr-2" />
                   {blog.posts?.length || 0} post{(blog.posts?.length || 0) !== 1 ? 's' : ''}
                 </div>
-              </td>
+                </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(blog.updatedAt)}
-              </td>
+                </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(blog.createdAt)}
-              </td>
+                </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex items-center justify-end gap-2">
                   <button
@@ -140,8 +140,8 @@ export function BlogsListView({
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </td>
-            </tr>
+                </td>
+              </tr>
           ))}
         </tbody>
       </table>

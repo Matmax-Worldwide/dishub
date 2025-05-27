@@ -100,6 +100,23 @@ export const blogResolvers = {
       }
     },
 
+    // Get a single blog by slug
+    blogBySlug: async (_: unknown, { slug }: { slug: string }) => {
+      try {
+        return await prisma.blog.findUnique({
+          where: { slug },
+          include: {
+            posts: {
+              select: { id: true }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching blog by slug:', error);
+        throw new GraphQLError('Failed to fetch blog');
+      }
+    },
+
     // Get a single post by ID
     post: async (_: unknown, { id }: { id: string }) => {
       try {

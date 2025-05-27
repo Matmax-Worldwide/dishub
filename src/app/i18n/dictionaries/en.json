@@ -59,6 +59,83 @@
     "seoStepDescription": "Optional: Improve your page's SEO settings",
     "titleAndSlugRequired": "Title and URL slug are required fields"
   },
+  "sections": {
+    "actions": {
+      "backToDetails": "Back to Details",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
+    },
+    "addComponent": {
+      "title": "Add New Component",
+      "description": "Select the type of component you want to add to your section.",
+      "cancel": "Cancel"
+    },
+    "components": {
+      "hero": {
+        "name": "Hero Banner",
+        "description": "Main banner with image",
+        "defaultTitle": "Hero Banner",
+        "defaultHeroTitle": "Hero Title",
+        "defaultHeroSubtitle": "Hero Subtitle",
+        "defaultCtaText": "Action Button"
+      },
+      "benefit": {
+        "name": "Benefit",
+        "description": "Benefit section with icon and animations",
+        "defaultTitle": "Benefit Section",
+        "defaultBenefitTitle": "Benefit Title",
+        "defaultDescription": "Detailed description of the benefit your service offers."
+      },
+      "header": {
+        "name": "Header",
+        "description": "Title and subtitle",
+        "defaultTitle": "Header",
+        "defaultMainTitle": "Main Title",
+        "defaultSubtitle": "Optional Subtitle"
+      },
+      "text": {
+        "name": "Text",
+        "description": "Text content block",
+        "defaultTitle": "Text Block",
+        "defaultContentTitle": "Content Title",
+        "defaultContent": "Edit this content to customize it according to your needs."
+      },
+      "image": {
+        "name": "Image",
+        "description": "Image with description",
+        "defaultTitle": "Image",
+        "defaultAlt": "Image description",
+        "defaultCaption": "Image caption"
+      },
+      "card": {
+        "name": "Card",
+        "description": "Card with title and image",
+        "defaultTitle": "Card",
+        "defaultCardTitle": "Card Title",
+        "defaultDescription": "Card description",
+        "defaultButtonText": "Read More"
+      },
+      "feature": {
+        "name": "Feature",
+        "description": "Highlight a feature",
+        "defaultTitle": "Feature",
+        "defaultFeatureTitle": "Feature Title",
+        "defaultDescription": "Feature description"
+      },
+      "testimonial": {
+        "name": "Testimonial",
+        "description": "Quote with author",
+        "defaultTitle": "Testimonial",
+        "defaultQuote": "This is an example testimonial.",
+        "defaultAuthor": "Author Name",
+        "defaultRole": "Position or Company"
+      },
+      "default": {
+        "title": "New Component",
+        "componentTitle": "Component Title"
+      }
+    }
+  },
   "hero": {
     "tagline": "Translate. Connect. Impact.",
     "title": "Professional Interpretation Opportunities",

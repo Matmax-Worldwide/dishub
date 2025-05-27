@@ -3413,6 +3413,30 @@ const graphqlClient = {
     }
   },
 
+  async getBlogBySlug(slug: string) {
+    const query = `
+      query GetBlogBySlug($slug: String!) {
+        blogBySlug(slug: $slug) {
+          id
+          title
+          description
+          slug
+          isActive
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ blogBySlug: Blog | null }>(query, { slug });
+      return response.blogBySlug;
+    } catch (error) {
+      console.error('Error fetching blog by slug:', error);
+      return null;
+    }
+  },
+
   async createBlog(input: {
     title: string;
     description?: string | null;

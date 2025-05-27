@@ -18,6 +18,7 @@ import ManageableSection from '@/components/cms/ManageableSection';
 import { Section, ManageableSectionHandle } from '@/types/cms';
 import EmptySectionPlaceholder from './EmptySectionPlaceholder';
 import { DEFAULT_STYLING } from '@/types/cms-styling';
+import { useI18n } from '@/hooks/useI18n';
 
 interface SectionsTabProps {
   pageSections: Section[];
@@ -36,16 +37,56 @@ interface SectionsTabProps {
   fetchSections: () => void;
 }
 
-// Tipos de componentes disponibles
+// Available component types with translation keys
 const AVAILABLE_COMPONENTS = [
-  { type: 'hero', displayType: 'Hero', name: 'Banner Hero', description: 'Banner principal con imagen' },
-  { type: 'benefit', displayType: 'Benefit', name: 'Beneficio', description: 'Sección de beneficio con icono y animaciones' },
-  { type: 'header', displayType: 'Header', name: 'Encabezado', description: 'Título y subtítulo' },
-  { type: 'text', displayType: 'Text', name: 'Texto', description: 'Bloque de contenido textual' },
-  { type: 'image', displayType: 'Image', name: 'Imagen', description: 'Imagen con descripción' },
-  { type: 'card', displayType: 'Card', name: 'Tarjeta', description: 'Tarjeta con título e imagen' },
-  { type: 'feature', displayType: 'Feature', name: 'Característica', description: 'Destacar una característica' },
-  { type: 'testimonial', displayType: 'Testimonial', name: 'Testimonio', description: 'Cita con autor' },
+  { 
+    type: 'hero', 
+    displayType: 'Hero', 
+    nameKey: 'sections.components.hero.name',
+    descriptionKey: 'sections.components.hero.description'
+  },
+  { 
+    type: 'benefit', 
+    displayType: 'Benefit', 
+    nameKey: 'sections.components.benefit.name',
+    descriptionKey: 'sections.components.benefit.description'
+  },
+  { 
+    type: 'header', 
+    displayType: 'Header', 
+    nameKey: 'sections.components.header.name',
+    descriptionKey: 'sections.components.header.description'
+  },
+  { 
+    type: 'text', 
+    displayType: 'Text', 
+    nameKey: 'sections.components.text.name',
+    descriptionKey: 'sections.components.text.description'
+  },
+  { 
+    type: 'image', 
+    displayType: 'Image', 
+    nameKey: 'sections.components.image.name',
+    descriptionKey: 'sections.components.image.description'
+  },
+  { 
+    type: 'card', 
+    displayType: 'Card', 
+    nameKey: 'sections.components.card.name',
+    descriptionKey: 'sections.components.card.description'
+  },
+  { 
+    type: 'feature', 
+    displayType: 'Feature', 
+    nameKey: 'sections.components.feature.name',
+    descriptionKey: 'sections.components.feature.description'
+  },
+  { 
+    type: 'testimonial', 
+    displayType: 'Testimonial', 
+    nameKey: 'sections.components.testimonial.name',
+    descriptionKey: 'sections.components.testimonial.description'
+  },
 ];
 
 export const SectionsTab: React.FC<SectionsTabProps> = ({
@@ -64,6 +105,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
   sectionRef,
   fetchSections
 }) => {
+  const { t } = useI18n();
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
   
   // Monitor pageSections prop changes
@@ -76,10 +118,10 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
     }
   }, [pageSections]);
   
-  // Escuchar evento para abrir el diálogo desde SectionManager
+  // Listen for event to open dialog from SectionManager
   useEffect(() => {
     const handleRequestAddComponent = () => {
-      console.log('[SectionsTab] 📣 Recibiendo solicitud para agregar componente');
+      console.log('[SectionsTab] 📣 Receiving request to add component');
       setIsAddComponentOpen(true);
     };
     
@@ -90,43 +132,43 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
     };
   }, []);
   
-  // Handler para crear sección y actualizar
+  // Handler to create section and update
   const handleCreateSectionAndFetch = async () => {
     console.log('[SectionsTab] Starting section creation...');
     
-    // Llamar a la función original para crear sección
+    // Call the original function to create section
     const success = await onCreateSection();
     
     if (success) {
-      console.log('[SectionsTab] ✅ Sección creada con éxito');
+      console.log('[SectionsTab] ✅ Section created successfully');
       
-      // No necesitamos disparar eventos adicionales aquí porque
-      // el PageEditor ya actualiza el estado directamente en handleCreateSection
-      // Solo necesitamos asegurar que el componente se re-renderice
+      // We don't need to dispatch additional events here because
+      // the PageEditor already updates the state directly in handleCreateSection
+      // We just need to ensure the component re-renders
       
-      // Opcional: recargar datos del servidor en segundo plano
+      // Optional: reload data from server in background
       if (fetchSections) {
         console.log('[SectionsTab] Fetching updated sections from server...');
         setTimeout(() => {
           fetchSections();
-        }, 1000); // Dar tiempo para que la UI se actualice primero
+        }, 1000); // Give time for UI to update first
       }
     } else {
-      console.log('[SectionsTab] ❌ Error creando sección');
+      console.log('[SectionsTab] ❌ Error creating section');
         }
     
     return success;
   };
   
-  // Función para agregar un componente
+  // Function to add a component
   const handleAddComponent = (componentType: string, displayType: string) => {
     // Only proceed if we have a section reference
     if (!sectionRef.current) {
-      console.error('[SectionsTab] ❌ No hay sección activa o el ref no está disponible');
+      console.error('[SectionsTab] ❌ No active section or ref not available');
       return;
     }
     
-    console.log(`[SectionsTab] 🛠️ Intentando crear componente: ${componentType}/${displayType}`);
+    console.log(`[SectionsTab] 🛠️ Attempting to create component: ${componentType}/${displayType}`);
     
     // Generate a truly unique ID using crypto if available
     const generateUniqueId = () => {
@@ -135,14 +177,14 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           return crypto.randomUUID();
         }
       } catch (error) {
-        console.error('[SectionsTab] ❌ Error generando UUID:', error);
+        console.error('[SectionsTab] ❌ Error generating UUID:', error);
       }
       return `component-${componentType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     };
     
     // Generate the unique ID
     const componentId = generateUniqueId();
-    console.log(`[SectionsTab] 🔑 ID de componente generado: ${componentId}`);
+    console.log(`[SectionsTab] 🔑 Generated component ID: ${componentId}`);
     
     // Get initial data for the component type
     const getInitialData = (type: string) => {
@@ -154,65 +196,65 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
         case 'header':
           return {
             ...baseData,
-            componentTitle: 'Encabezado',
-            title: 'Título principal', 
-            subtitle: 'Subtítulo opcional'
+            componentTitle: t('sections.components.header.defaultTitle'),
+            title: t('sections.components.header.defaultMainTitle'), 
+            subtitle: t('sections.components.header.defaultSubtitle')
           };
         case 'text':
           return {
             ...baseData,
-            componentTitle: 'Bloque de texto',
-            title: 'Título del contenido',
-            content: 'Edite este contenido para personalizarlo según sus necesidades.'
+            componentTitle: t('sections.components.text.defaultTitle'),
+            title: t('sections.components.text.defaultContentTitle'),
+            content: t('sections.components.text.defaultContent')
           };
         case 'image':
           return {
             ...baseData,
-            componentTitle: 'Imagen',
-            alt: 'Descripción de la imagen',
-            caption: 'Pie de foto',
-            src: '' // URL de la imagen
+            componentTitle: t('sections.components.image.defaultTitle'),
+            alt: t('sections.components.image.defaultAlt'),
+            caption: t('sections.components.image.defaultCaption'),
+            src: '' // URL of the image
           };
         case 'card':
           return {
             ...baseData,
-            componentTitle: 'Tarjeta',
-            title: 'Título de la tarjeta',
-            description: 'Descripción de la tarjeta',
-            buttonText: 'Leer más',
+            componentTitle: t('sections.components.card.defaultTitle'),
+            title: t('sections.components.card.defaultCardTitle'),
+            description: t('sections.components.card.defaultDescription'),
+            buttonText: t('sections.components.card.defaultButtonText'),
             link: '#'
           };
         case 'feature':
           return {
             ...baseData,
-            componentTitle: 'Característica',
-            title: 'Título de la característica',
-            description: 'Descripción de la característica',
+            componentTitle: t('sections.components.feature.defaultTitle'),
+            title: t('sections.components.feature.defaultFeatureTitle'),
+            description: t('sections.components.feature.defaultDescription'),
             icon: 'star'
           };
         case 'testimonial':
           return {
             ...baseData,
-            componentTitle: 'Testimonio',
-            quote: 'Este es un testimonio de ejemplo.',
-            author: 'Nombre del autor',
-            role: 'Cargo o empresa'
+            componentTitle: t('sections.components.testimonial.defaultTitle'),
+            quote: t('sections.components.testimonial.defaultQuote'),
+            author: t('sections.components.testimonial.defaultAuthor'),
+            role: t('sections.components.testimonial.defaultRole')
           };
         case 'hero':
           return {
             ...baseData,
-            componentTitle: 'Banner Hero',
-            title: 'Título del Hero', 
-            subtitle: 'Subtítulo del Hero',
+            componentTitle: t('sections.components.hero.defaultTitle'),
+            title: t('sections.components.hero.defaultHeroTitle'), 
+            subtitle: t('sections.components.hero.defaultHeroSubtitle'),
             image: '',
-            cta: { text: 'Botón de acción', url: '#' }
+            cta: { text: t('sections.components.hero.defaultCtaText'), url: '#' }
           };
         case 'benefit':
           return {
             ...baseData,
-            componentTitle: 'Sección Beneficio',
-            title: 'Título del Beneficio',
-            description: 'Descripción detallada del beneficio que ofrece tu servicio.',
+            componentTitle: t('sections.components.benefit.defaultTitle'),
+            title: t('sections.components.benefit.defaultBenefitTitle'),
+            description: t('sections.components.benefit.defaultDescription'),
             iconType: 'check',
             accentColor: '#01319c',
             backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
@@ -222,8 +264,8 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
         default:
           return {
             ...baseData,
-            componentTitle: `Nuevo ${type}`,
-            title: 'Título del componente'
+            componentTitle: t('sections.components.default.title'),
+            title: t('sections.components.default.componentTitle')
           };
       }
     };
@@ -287,7 +329,7 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
       </CardContent>
       <CardFooter className="px-0 flex justify-between">
         <Button variant="outline" onClick={onBackClick}>
-          Volver a Detalles
+          {t('sections.actions.backToDetails')}
         </Button>
         <Button 
           variant="default" 
@@ -297,24 +339,24 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
           {isSaving ? (
             <>
               <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full mr-1"></span>
-              <span>Guardando...</span>
+              <span>{t('sections.actions.saving')}</span>
             </>
           ) : (
             <>
               <SaveIcon className="h-4 w-4 mr-1" />
-              <span>Guardar cambios</span>
+              <span>{t('sections.actions.saveChanges')}</span>
             </>
           )}
         </Button>
       </CardFooter>
       
-      {/* Diálogo para agregar componentes */}
+      {/* Dialog to add components */}
       <Dialog open={isAddComponentOpen} onOpenChange={setIsAddComponentOpen}>
         <DialogContent className="sm:max-w-md z-[9999]">
           <DialogHeader>
-            <DialogTitle>Agregar nuevo componente</DialogTitle>
+            <DialogTitle>{t('sections.addComponent.title')}</DialogTitle>
             <DialogDescription>
-              Selecciona el tipo de componente que deseas agregar a tu sección.
+              {t('sections.addComponent.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
@@ -325,14 +367,14 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
                 className="h-auto py-4 flex flex-col items-center justify-center text-center"
                 onClick={() => handleAddComponent(component.type, component.displayType)}
               >
-                <span className="font-medium mb-1">{component.name}</span>
-                <span className="text-xs text-gray-500">{component.description}</span>
+                <span className="font-medium mb-1">{t(component.nameKey)}</span>
+                <span className="text-xs text-gray-500">{t(component.descriptionKey)}</span>
               </Button>
             ))}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddComponentOpen(false)}>
-              Cancelar
+              {t('sections.addComponent.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>

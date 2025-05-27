@@ -59,6 +59,83 @@
     "seoStepDescription": "Opcional: Mejora la configuración SEO de tu página",
     "titleAndSlugRequired": "El título y el slug URL son campos obligatorios"
   },
+  "sections": {
+    "actions": {
+      "backToDetails": "Volver a Detalles",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar Cambios"
+    },
+    "addComponent": {
+      "title": "Agregar Nuevo Componente",
+      "description": "Selecciona el tipo de componente que deseas agregar a tu sección.",
+      "cancel": "Cancelar"
+    },
+    "components": {
+      "hero": {
+        "name": "Banner Hero",
+        "description": "Banner principal con imagen",
+        "defaultTitle": "Banner Hero",
+        "defaultHeroTitle": "Título del Hero",
+        "defaultHeroSubtitle": "Subtítulo del Hero",
+        "defaultCtaText": "Botón de Acción"
+      },
+      "benefit": {
+        "name": "Beneficio",
+        "description": "Sección de beneficio con icono y animaciones",
+        "defaultTitle": "Sección Beneficio",
+        "defaultBenefitTitle": "Título del Beneficio",
+        "defaultDescription": "Descripción detallada del beneficio que ofrece tu servicio."
+      },
+      "header": {
+        "name": "Encabezado",
+        "description": "Título y subtítulo",
+        "defaultTitle": "Encabezado",
+        "defaultMainTitle": "Título Principal",
+        "defaultSubtitle": "Subtítulo Opcional"
+      },
+      "text": {
+        "name": "Texto",
+        "description": "Bloque de contenido textual",
+        "defaultTitle": "Bloque de Texto",
+        "defaultContentTitle": "Título del Contenido",
+        "defaultContent": "Edite este contenido para personalizarlo según sus necesidades."
+      },
+      "image": {
+        "name": "Imagen",
+        "description": "Imagen con descripción",
+        "defaultTitle": "Imagen",
+        "defaultAlt": "Descripción de la imagen",
+        "defaultCaption": "Pie de foto"
+      },
+      "card": {
+        "name": "Tarjeta",
+        "description": "Tarjeta con título e imagen",
+        "defaultTitle": "Tarjeta",
+        "defaultCardTitle": "Título de la Tarjeta",
+        "defaultDescription": "Descripción de la tarjeta",
+        "defaultButtonText": "Leer Más"
+      },
+      "feature": {
+        "name": "Característica",
+        "description": "Destacar una característica",
+        "defaultTitle": "Característica",
+        "defaultFeatureTitle": "Título de la Característica",
+        "defaultDescription": "Descripción de la característica"
+      },
+      "testimonial": {
+        "name": "Testimonio",
+        "description": "Cita con autor",
+        "defaultTitle": "Testimonio",
+        "defaultQuote": "Este es un testimonio de ejemplo.",
+        "defaultAuthor": "Nombre del Autor",
+        "defaultRole": "Cargo o Empresa"
+      },
+      "default": {
+        "title": "Nuevo Componente",
+        "componentTitle": "Título del Componente"
+      }
+    }
+  },
   "hero": {
     "tagline": "Traduce. Conecta. Impacta.",
     "title": "Interpretación Profesional en Acción",

@@ -9,7 +9,7 @@ import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Menu } from '@/app/api/graphql/types';
 
 // Add the ComponentType type import
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Form' | 'Footer';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Form' | 'Footer' | 'Article' | 'Blog';
 
 // Match the PageData type to what comes from the GraphQL client
 interface PageData {
@@ -110,7 +110,7 @@ export default function CMSPage() {
       scrollableComponents.length = 0;
       
       // Find all scrollable components
-      const components = document.querySelectorAll('[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"]');
+      const components = document.querySelectorAll('[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"], [data-component-type="Blog"]');
       
       components.forEach((component) => {
         scrollableComponents.push({
@@ -295,7 +295,7 @@ export default function CMSPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isNavigating) return;
       
-      const scrollableComponents = document.querySelectorAll('[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"]');
+      const scrollableComponents = document.querySelectorAll('[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"], [data-component-type="Blog"]');
       if (scrollableComponents.length === 0) return;
       
       // Map components to their position data
@@ -422,7 +422,7 @@ export default function CMSPage() {
       
       // Find scrollable components
       const scrollableComponents = document.querySelectorAll(
-        '[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"]'
+        '[data-component-type="Hero"], [data-component-type="Benefit"], [data-component-type="Form"], [data-component-type="Blog"]'
       );
       
       if (scrollableComponents.length === 0) return;
@@ -627,11 +627,195 @@ export default function CMSPage() {
   
   if (isLoading) {
     return (
-      <div className="container mx-auto py-16 px-4 flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center">
-          <Loader2Icon className="h-12 w-12 text-muted-foreground/60 animate-spin mb-4" />
-          <h2 className="text-xl font-medium text-foreground">Cargando página</h2>
-          <p className="text-muted-foreground mt-2">Por favor espere mientras cargamos el contenido</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header Skeleton */}
+        <div className="w-full bg-white border-b shadow-sm">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="flex items-center space-x-6">
+                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Skeleton - Adaptive based on page type */}
+        <div className="flex-1">
+          {/* Hero Section Skeleton */}
+          <div className="relative min-h-[600px] bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center">
+                <div className="w-20 h-6 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
+                <div className="w-4/5 h-16 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
+                <div className="w-3/4 h-6 bg-gray-200 rounded mx-auto mb-8 animate-pulse"></div>
+                <div className="flex justify-center gap-4">
+                  <div className="w-36 h-12 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-36 h-12 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Floating elements for visual interest */}
+            <div className="absolute top-20 left-10 w-4 h-4 bg-gray-300 rounded-full animate-pulse"></div>
+            <div className="absolute top-40 right-20 w-6 h-6 bg-gray-300 rounded-full animate-pulse"></div>
+            <div className="absolute bottom-20 left-20 w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
+          </div>
+
+          {/* Benefits/Features Section Skeleton */}
+          <div className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-16">
+                <div className="w-56 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+                <div className="w-96 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="text-center group">
+                    <div className="w-20 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full mx-auto mb-6 animate-pulse"></div>
+                    <div className="w-40 h-6 bg-gray-200 rounded mx-auto mb-3 animate-pulse"></div>
+                    <div className="w-56 h-4 bg-gray-200 rounded mx-auto mb-2 animate-pulse"></div>
+                    <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Form/CTA Section Skeleton */}
+          <div className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+            <div className="container mx-auto px-4">
+              <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-12">
+                  <div className="w-64 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+                  <div className="w-80 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+                </div>
+                <div className="bg-white p-8 rounded-xl shadow-lg">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="w-20 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                        <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                      <div>
+                        <div className="w-16 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                        <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="w-24 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                      <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div>
+                      <div className="w-28 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                      <div className="w-full h-32 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="w-40 h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse mx-auto"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Content Sections */}
+          <div className="py-16 bg-gray-50">
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="bg-white p-8 rounded-lg shadow-sm">
+                    <div className="w-full h-48 bg-gray-200 rounded-lg mb-6 animate-pulse"></div>
+                    <div className="w-3/4 h-8 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                    <div className="space-y-3">
+                      <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="w-2/3 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex items-center space-x-4 mt-6">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div>
+                        <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
+                        <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Skeleton */}
+        <div className="bg-gray-900 text-white py-16">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+              <div>
+                <div className="w-32 h-8 bg-gray-700 rounded mb-6 animate-pulse"></div>
+                <div className="w-48 h-4 bg-gray-700 rounded mb-3 animate-pulse"></div>
+                <div className="w-40 h-4 bg-gray-700 rounded animate-pulse"></div>
+              </div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i}>
+                  <div className="w-28 h-6 bg-gray-700 rounded mb-6 animate-pulse"></div>
+                  <div className="space-y-3">
+                    <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-28 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-32 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="w-56 h-4 bg-gray-700 rounded animate-pulse"></div>
+              <div className="flex space-x-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Dots Skeleton for Landing Pages */}
+        <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-50 flex flex-col gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className={`w-3 h-3 rounded-full bg-gray-300 animate-pulse ${
+                i === 0 ? 'w-4 h-4 bg-gray-400' : ''
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Enhanced Loading Indicator */}
+        <div className="fixed bottom-8 right-8 bg-white rounded-2xl shadow-xl p-6 z-50 border border-gray-200">
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <Loader2Icon className="h-8 w-8 text-primary animate-spin" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping"></div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-gray-800">Cargando página</div>
+              <div className="text-xs text-gray-500">Preparando contenido...</div>
+            </div>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="mt-4 w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Shimmer overlay effect */}
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 animate-shimmer"></div>
         </div>
       </div>
     );
@@ -667,6 +851,83 @@ export default function CMSPage() {
     );
   }
   
+  // Function to sort components in a very specific order with detailed priorities
+  const sortComponentsByPriority = (components: Array<{id: string; type: string; data: Record<string, unknown>}>) => {
+    const getComponentPriority = (type: string): number => {
+      const lowercaseType = type.toLowerCase();
+      switch (lowercaseType) {
+        // Navigation and Header (Always first)
+        case 'header': return 1;
+        case 'navbar': return 2;
+        case 'navigation': return 3;
+        
+        // Hero sections (Main landing content)
+        case 'hero': return 10;
+        case 'banner': return 11;
+        case 'landing': return 12;
+        
+        // Benefits and Features (Core value proposition)
+        case 'benefit': return 20;
+        case 'benefits': return 21;
+        case 'feature': return 22;
+        case 'features': return 23;
+        
+        // Content sections (Main content)
+        case 'text': return 30;
+        case 'article': return 31;
+        case 'blog': return 32;
+        case 'content': return 33;
+        
+        // Media and visual elements
+        case 'image': return 40;
+        case 'gallery': return 41;
+        case 'video': return 42;
+        
+        // Interactive elements
+        case 'form': return 50;
+        case 'contact': return 51;
+        case 'newsletter': return 52;
+        case 'subscription': return 53;
+        
+        // Social proof and testimonials
+        case 'testimonial': return 60;
+        case 'testimonials': return 61;
+        case 'review': return 62;
+        case 'reviews': return 63;
+        
+        // Cards and listings
+        case 'card': return 70;
+        case 'cards': return 71;
+        case 'list': return 72;
+        case 'grid': return 73;
+        
+        // Call-to-action elements
+        case 'cta': return 80;
+        case 'button': return 81;
+        case 'action': return 82;
+        
+        // Footer elements (Always last)
+        case 'footer': return 90;
+        case 'copyright': return 91;
+        
+        // Any other components get medium priority
+        default: return 75;
+      }
+    };
+
+    return [...components].sort((a, b) => {
+      const priorityA = getComponentPriority(a.type);
+      const priorityB = getComponentPriority(b.type);
+      
+      // If priorities are the same, maintain original order
+      if (priorityA === priorityB) {
+        return 0;
+      }
+      
+      return priorityA - priorityB;
+    });
+  };
+
   // Function to convert component type to proper case for SectionManager
   const formatComponentType = (type: string): ComponentType => {
     // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.
@@ -674,6 +935,12 @@ export default function CMSPage() {
     // Handle special cases for our custom types
     if (lowercaseType === 'benefit' || lowercaseType === 'benefits') {
       return 'Benefit' as ComponentType;
+    }
+    if (lowercaseType === 'blog' || lowercaseType === 'blogs') {
+      return 'Blog' as ComponentType;
+    }
+    if (lowercaseType === 'article' || lowercaseType === 'articles') {
+      return 'Article' as ComponentType;
     }
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
@@ -779,7 +1046,7 @@ export default function CMSPage() {
                   {section.components.length > 0 ? (
                     <div className={pageData.pageType === 'LANDING' ? 'w-full flex flex-col snap-y snap-mandatory' : 'w-full'}>
                       <SectionManager 
-                        initialComponents={section.components.map(comp => ({
+                        initialComponents={sortComponentsByPriority(section.components).map(comp => ({
                           id: comp.id,
                           // Convert component types like 'hero' to 'Hero' for SectionManager
                           type: formatComponentType(comp.type),
@@ -789,7 +1056,7 @@ export default function CMSPage() {
                         sectionBackground={section.backgroundImage}
                         sectionBackgroundType={section.backgroundType as 'image' | 'gradient'}
                         componentClassName={(type: string) => {
-                          const isScrollable = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit' || type.toLowerCase() === 'form';
+                          const isScrollable = type.toLowerCase() === 'hero' || type.toLowerCase() === 'benefit' || type.toLowerCase() === 'form' || type.toLowerCase() === 'blog';
                           const isFixedHeader = type.toLowerCase() === 'header' && 
                             section.components.some(c => 
                               c.type.toLowerCase() === 'header' && 

@@ -55,43 +55,279 @@ export interface Component {
   subtitle?: string;
 }
 
-// Dynamic imports for components - fallback to a loading state
+// Dynamic imports for components - fallback to skeleton loading states
 const componentMap = {
   Header: dynamic(() => import('./sections/HeaderSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Header...</div>
+    loading: () => (
+      <div className="w-full bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="flex items-center space-x-6">
+              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Hero: dynamic(() => import('./sections/HeroSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Hero...</div>
+    loading: () => (
+      <div className="relative min-h-[500px] bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="container mx-auto px-4 py-20">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="w-16 h-6 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
+            <div className="w-3/4 h-12 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
+            <div className="w-2/3 h-6 bg-gray-200 rounded mx-auto mb-8 animate-pulse"></div>
+            <div className="flex justify-center gap-4">
+              <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Benefit: dynamic(() => import('./sections/BenefitSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Benefit...</div>
+    loading: () => (
+      <div className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="w-48 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+            <div className="w-96 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
+                <div className="w-32 h-6 bg-gray-200 rounded mx-auto mb-2 animate-pulse"></div>
+                <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }),
   Text: dynamic(() => import('./sections/TextSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Text...</div>
+    loading: () => (
+      <div className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="w-64 h-8 bg-gray-200 rounded mb-6 animate-pulse"></div>
+            <div className="space-y-4">
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-5/6 h-4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Image: dynamic(() => import('./sections/ImageSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Image...</div>
+    loading: () => (
+      <div className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="w-full h-64 bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+            <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Feature: dynamic(() => import('./sections/FeatureSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Feature...</div>
+    loading: () => (
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse flex-shrink-0"></div>
+                <div className="flex-1">
+                  <div className="w-32 h-5 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-full h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
+                  <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }),
   Testimonial: dynamic(() => import('./sections/TestimonialSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Testimonial...</div>
+    loading: () => (
+      <div className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="bg-white p-6 rounded-lg shadow-sm">
+                  <div className="w-full h-20 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div>
+                      <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
+                      <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Card: dynamic(() => import('./sections/CardSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Card...</div>
+    loading: () => (
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
+                <div className="p-6">
+                  <div className="w-3/4 h-6 bg-gray-200 rounded mb-3 animate-pulse"></div>
+                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-5/6 h-4 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                  <div className="w-24 h-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }),
   Footer: dynamic(() => import('./sections/FooterSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Footer...</div>
+    loading: () => (
+      <div className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="w-32 h-8 bg-gray-700 rounded mb-4 animate-pulse"></div>
+              <div className="w-48 h-4 bg-gray-700 rounded animate-pulse"></div>
+            </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i}>
+                <div className="w-24 h-5 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-700 pt-8 flex justify-between items-center">
+            <div className="w-48 h-4 bg-gray-700 rounded animate-pulse"></div>
+            <div className="flex space-x-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-6 h-6 bg-gray-700 rounded animate-pulse"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Form: dynamic(() => import('./sections/FormSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Form...</div>
+    loading: () => (
+      <div className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="w-48 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+              <div className="w-64 h-5 bg-gray-200 rounded mx-auto animate-pulse"></div>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <div className="space-y-6">
+                <div>
+                  <div className="w-20 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div>
+                  <div className="w-16 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div>
+                  <div className="w-24 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-full h-24 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="w-32 h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Article: dynamic(() => import('./sections/ArticleSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Article...</div>
+    loading: () => (
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="w-full h-64 bg-gray-200 rounded-lg mb-8 animate-pulse"></div>
+            <div className="max-w-3xl mx-auto">
+              <div className="w-3/4 h-10 bg-gray-200 rounded mb-4 animate-pulse"></div>
+              <div className="w-1/2 h-6 bg-gray-200 rounded mb-6 animate-pulse"></div>
+              <div className="flex items-center space-x-4 mb-8">
+                <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
+                <div>
+                  <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
+                  <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+                <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }),
   Blog: dynamic(() => import('./sections/BlogSection'), {
-    loading: () => <div className="flex items-center justify-center p-8 h-32 bg-muted/20 rounded-md animate-pulse">Cargando Blog...</div>
+    loading: () => (
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="w-32 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+            <div className="w-64 h-5 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white border rounded-lg overflow-hidden shadow-sm">
+                <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
+                <div className="p-6">
+                  <div className="w-3/4 h-6 bg-gray-200 rounded mb-3 animate-pulse"></div>
+                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-5/6 h-4 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                  <div className="flex items-center justify-between">
+                    <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }),
 };
 

@@ -195,8 +195,8 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
       
       if (!userResponse.me?.id) {
         toast.error('Authentication required');
-        return;
-      }
+      return;
+    }
 
       const mutation = `
         mutation CreatePost($input: CreatePostInput!) {
@@ -291,24 +291,24 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Information */}
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Post Content
               </CardTitle>
-            </CardHeader>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
+                  <Input
+                    id="title"
+                    value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="Enter post title..."
                   className="text-lg"
-                />
-              </div>
+                  />
+                </div>
 
               <div>
                 <Label htmlFor="slug">Slug</Label>
@@ -317,19 +317,19 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                   value={formData.slug}
                   onChange={(e) => handleInputChange('slug', e.target.value)}
                   placeholder="post-url-slug"
-                />
-              </div>
+                  />
+                </div>
 
               <div>
-                <Label htmlFor="excerpt">Excerpt</Label>
-                <Textarea
-                  id="excerpt"
-                  value={formData.excerpt}
+                  <Label htmlFor="excerpt">Excerpt</Label>
+                  <Textarea
+                    id="excerpt"
+                    value={formData.excerpt}
                   onChange={(e) => handleInputChange('excerpt', e.target.value)}
                   placeholder="Brief description of the post..."
-                  rows={3}
-                />
-              </div>
+                    rows={3}
+                  />
+                </div>
 
               <div>
                 <Label htmlFor="content">Content *</Label>
@@ -345,20 +345,20 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                   Estimated read time: {formData.readTime} minute{formData.readTime !== 1 ? 's' : ''}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
           {/* Media Section */}
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Image className="h-5 w-5" />
                 Media
               </CardTitle>
-              <CardDescription>
+                <CardDescription>
                 Add images, videos, and other media to your post
-              </CardDescription>
-            </CardHeader>
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-4">
               {/* Featured Image */}
               <div>
@@ -410,7 +410,7 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                     Add Media
                   </Button>
                 </div>
-                
+
                 {selectedMedia.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {selectedMedia.map((media) => (
@@ -445,21 +445,21 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                     No media added yet
                   </p>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Publish Settings */}
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Publish Settings
               </CardTitle>
-            </CardHeader>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="blog">Blog *</Label>
@@ -475,17 +475,17 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+                </div>
 
               <div>
                 <Label htmlFor="publishedAt">Publish Date</Label>
-                <Input
+                  <Input
                   id="publishedAt"
                   type="datetime-local"
                   value={formData.publishedAt}
                   onChange={(e) => handleInputChange('publishedAt', e.target.value)}
-                />
-              </div>
+                  />
+                </div>
             </CardContent>
           </Card>
 
@@ -519,9 +519,9 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                     </Badge>
                   ))}
                 </div>
-              </div>
+                </div>
 
-              {/* Categories */}
+                {/* Categories */}
               <div>
                 <Label>Categories</Label>
                 <div className="flex gap-2 mb-2">
@@ -563,7 +563,7 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                   onChange={(e) => handleInputChange('metaTitle', e.target.value)}
                   placeholder="SEO title..."
                 />
-              </div>
+                </div>
 
               <div>
                 <Label htmlFor="metaDescription">Meta Description</Label>
@@ -575,8 +575,8 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
                   rows={3}
                 />
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </div>
       </div>
 

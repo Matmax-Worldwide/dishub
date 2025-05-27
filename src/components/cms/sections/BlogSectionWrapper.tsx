@@ -7,7 +7,7 @@ interface BlogSectionWrapperProps {
   // Section configuration
   title?: string;
   subtitle?: string;
-  layout?: 'grid' | 'list' | 'carousel';
+  layout?: 'grid' | 'list' | 'carousel' | 'masonry';
   filtersEnabled?: boolean;
   searchEnabled?: boolean;
   postsPerPage?: number;
@@ -16,6 +16,17 @@ interface BlogSectionWrapperProps {
   showDate?: boolean;
   showTags?: boolean;
   showExcerpt?: boolean;
+  topPadding?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  bottomPadding?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  backgroundColor?: 'transparent' | 'white' | 'gray' | 'dark';
+  imageAspectRatio?: '16:9' | '4:3' | '1:1' | '3:2';
+  showImageOverlay?: boolean;
+  fixedHeaderHeight?: number;
+  maxHeight?: 'none' | 'screen' | 'half-screen' | 'custom';
+  customMaxHeight?: number;
+  enableVirtualization?: boolean;
+  backgroundImage?: string;
+  backgroundGradient?: string;
   // Filter configuration
   blogId?: string;
   status?: 'PUBLISHED' | 'DRAFT';

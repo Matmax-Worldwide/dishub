@@ -167,17 +167,17 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
       }>(updatePostMutation, { 
         id: post!.id,
         input: {
-          title: formData.title.trim(),
-          slug: formData.slug.trim(),
-          content: formData.content.trim(),
+        title: formData.title.trim(),
+        slug: formData.slug.trim(),
+        content: formData.content.trim(),
           excerpt: formData.excerpt.trim() || null,
           featuredImage: formData.featuredImage.trim() || null,
-          status: formData.status,
-          publishedAt: formData.status === 'PUBLISHED' && !post?.publishedAt ? new Date().toISOString() : undefined,
+        status: formData.status,
+        publishedAt: formData.status === 'PUBLISHED' && !post?.publishedAt ? new Date().toISOString() : undefined,
           metaTitle: formData.metaTitle.trim() || null,
           metaDescription: formData.metaDescription.trim() || null,
-          tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
-          categories: formData.categories ? formData.categories.split(',').map(cat => cat.trim()) : []
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+        categories: formData.categories ? formData.categories.split(',').map(cat => cat.trim()) : []
         }
       });
 
