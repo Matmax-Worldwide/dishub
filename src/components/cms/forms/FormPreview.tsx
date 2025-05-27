@@ -203,9 +203,7 @@ export default function FormPreview({ form }: FormPreviewProps) {
                   form={form}
                   onSubmit={handlePreviewSubmit}
                   submitStatus={isSubmitting ? 'submitting' : 'idle'}
-                  buttonClassName="w-full px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
-                  inputClassName="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  labelClassName="block text-sm font-medium text-gray-700 mb-1"
+                  designType="modern"
                 />
               ) : (
                 <FormRenderer

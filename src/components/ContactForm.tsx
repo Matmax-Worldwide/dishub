@@ -177,7 +177,7 @@ export default function ContactSection({ dictionary, onSubmit }: ContactSectionP
             transition={{ duration: 0.7, delay: 0.2 }}
             className="w-full"
           >
-            <div className="bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10">
+            <div className="w-full max-w-2xl mx-auto">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-white mb-1">

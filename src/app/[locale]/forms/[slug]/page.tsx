@@ -282,8 +282,8 @@ export default function FormPage({ params }: FormPageProps) {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="w-full max-w-2xl mx-auto"
           >
-            <div className="bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10">
-              {form.isMultiStep ? (
+          
+            {form.isMultiStep ? (
                 <MultiStepFormRenderer
                   form={form}
                   onSubmit={handleFormSubmit}
@@ -300,7 +300,7 @@ export default function FormPage({ params }: FormPageProps) {
                   submitStatus={submitStatus}
                 />
               )}
-            </div>
+            
           </motion.div>
         </div>
       </div>

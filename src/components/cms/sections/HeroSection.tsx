@@ -549,8 +549,8 @@ const HeroSection = React.memo(function HeroSection({
       
       <section 
         className={cn(
-          "relative w-full overflow-hidden flex items-center min-h-screen",
-          isEditing ? "min-h-[600px] h-auto py-8 bg-white" : "",
+          "relative w-full h-full overflow-hidden flex items-center",
+          isEditing ? "min-h-[600px] bg-white" : "min-h-screen",
           !isEditing ? cssClasses : ""
         )}
         style={isEditing ? { 
@@ -614,9 +614,9 @@ const HeroSection = React.memo(function HeroSection({
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full flex items-center justify-center">
+        <div className="w-full h-full relative z-10 flex items-center justify-center">
           {isEditing ? (
-            <div className="w-full max-w-6xl">
+            <div className="w-full h-full p-6">
               <CmsTabs
                 tabs={[
                   {

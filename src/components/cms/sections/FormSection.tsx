@@ -687,7 +687,7 @@ export default function FormSection({
   // Generate class names for form wrapper
   const getFormWrapperClassNames = () => {
     if (template === 'DEFAULT') {
-      return 'bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10';
+      return 'w-full max-w-2xl mx-auto'; // Solo posicionamiento y ancho, sin estilos visuales
     }
     return '';
   };

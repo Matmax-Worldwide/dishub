@@ -3,8 +3,8 @@ export interface ComponentStyling {
   textColor?: string;
   backgroundTransparency?: number;
   textTransparency?: number;
-  padding?: 'small' | 'medium' | 'large';
-  margin?: 'small' | 'medium' | 'large';
+  padding?: 'none' | 'small' | 'medium' | 'large';
+  margin?: 'none' | 'small' | 'medium' | 'large';
   borderRadius?: 'none' | 'small' | 'medium' | 'large' | 'full';
   shadow?: 'none' | 'small' | 'medium' | 'large';
   border?: {
@@ -26,8 +26,8 @@ export const DEFAULT_STYLING: ComponentStyling = {
   textColor: '#000000',
   backgroundTransparency: 0,
   textTransparency: 0,
-  padding: 'medium',
-  margin: 'medium',
+  padding: 'none',
+  margin: 'none',
   borderRadius: 'medium',
   shadow: 'none',
   border: {
@@ -40,12 +40,14 @@ export const DEFAULT_STYLING: ComponentStyling = {
 };
 
 export const PADDING_OPTIONS = [
+  { value: 'none', label: 'None (0px)', class: 'p-0' },
   { value: 'small', label: 'Small (8px)', class: 'p-2' },
   { value: 'medium', label: 'Medium (16px)', class: 'p-4' },
   { value: 'large', label: 'Large (32px)', class: 'p-8' }
 ] as const;
 
 export const MARGIN_OPTIONS = [
+  { value: 'none', label: 'None (0px)', class: 'm-0' },
   { value: 'small', label: 'Small (8px)', class: 'm-2' },
   { value: 'medium', label: 'Medium (16px)', class: 'm-4' },
   { value: 'large', label: 'Large (32px)', class: 'm-8' }
