@@ -511,10 +511,48 @@ export default function CMSPage() {
         const optimizedPageData = await optimizedQueries.loadPage(slug);
         
         if (!optimizedPageData.page) {
-          console.error(`Page not found: ${slug}`);
-          setError('Página no encontrada');
-          setIsLoading(false);
-          return;
+          console.warn(`Page not found with optimized query: ${slug}, trying fallback...`);
+          
+          // Immediately try fallback method instead of showing error
+          const pageData = await cmsOperations.getPageBySlug(slug);
+          
+          if (pageData) {
+            console.log('Found page using fallback method:', pageData.title);
+            setPageData(pageData as unknown as PageData);
+            
+            // Load sections using traditional method
+            const pageSectionsData: SectionData[] = [];
+            
+            if (pageData.sections && pageData.sections.length > 0) {
+              for (const section of pageData.sections) {
+                try {
+                  const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
+                  
+                  if (componentResult && componentResult.components) {
+                    pageSectionsData.push({
+                      id: section.id,
+                      order: section.order || 0,
+                      title: section.name,
+                      components: componentResult.components
+                    });
+                  }
+                } catch (error) {
+                  console.error(`Error al cargar componentes para sección ${section.id}:`, error);
+                }
+              }
+              
+              pageSectionsData.sort((a, b) => a.order - b.order);
+            }
+            
+            setSections(pageSectionsData);
+            setIsLoading(false);
+            return; // Exit early since we found the page
+          } else {
+            console.error(`Page not found with any method: ${slug}`);
+            setError('Página no encontrada');
+            setIsLoading(false);
+            return;
+          }
         }
         
         // Set page data

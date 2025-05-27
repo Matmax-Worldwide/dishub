@@ -6,6 +6,9 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { ShieldXIcon } from 'lucide-react';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 export default function AccessDeniedPage() {
   const { locale } = useParams();
   const { user, isAuthenticated } = useAuth();

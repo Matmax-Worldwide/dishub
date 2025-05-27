@@ -41,6 +41,7 @@ class GraphQLOptimizer {
             id
             sectionId
             order
+            name
           }
         }
       }
