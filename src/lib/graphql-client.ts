@@ -236,6 +236,7 @@ export interface CMSPageDB {
   metaTitle?: string;
   metaDescription?: string;
   pageType: string;
+  locale?: string; // Add locale property
   createdAt: string;
   updatedAt: string;
   sections?: Array<{id: string; order?: number}>;
@@ -1255,6 +1256,7 @@ export const cmsOperations = {
             description
             isPublished
             pageType
+            locale
             createdAt
             updatedAt
             isDefault

@@ -485,6 +485,30 @@ export default function HeaderSection({
       [itemId]: !prev[itemId]
     }));
   }, []);
+
+  // Handle navigation with instant loading
+  const handleNavigation = useCallback((e: React.MouseEvent, targetHref: string) => {
+    // Only handle internal navigation
+    if (targetHref.startsWith('/') && !targetHref.startsWith('//')) {
+      e.preventDefault();
+      
+      // Extract slug from href
+      const pathParts = targetHref.split('/').filter(Boolean);
+      if (pathParts.length >= 2) {
+        const targetLocale = pathParts[0];
+        const targetSlug = pathParts[1];
+        
+        // Use global navigation function for instant loading
+        if (typeof window !== 'undefined' && window.navigateToPage) {
+          window.navigateToPage(targetSlug, targetLocale);
+        } else {
+          // Fallback to normal navigation
+          window.location.href = targetHref;
+        }
+      }
+    }
+    // For external links, let the default behavior happen
+  }, []);
   
   // Render menu items recursively
   const renderMenuItems = (items: MenuItem[], level = 0) => {
@@ -544,12 +568,13 @@ export default function HeaderSection({
               ) : null}
             </div>
           ) : (
-            <Link
+            <a
               href={href}
               target={item.target || "_self"}
               className={`text-sm font-medium block ${linkStyles}`}
               style={{ color: textColor }}
-              onClick={() => {
+              onClick={(e) => {
+                handleNavigation(e, href);
                 // Close mobile menu when clicking on a link
                 if (isDropdownOpen.mobileMenu) {
                   setIsDropdownOpen(prev => ({...prev, mobileMenu: false}));
@@ -557,7 +582,7 @@ export default function HeaderSection({
               }}
             >
               {item.title}
-            </Link>
+            </a>
           )}
         </li>
       );
@@ -1461,14 +1486,15 @@ export default function HeaderSection({
                                     }
                                     
                                     return (
-                                      <Link
+                                      <a
                                         key={child.id}
                                         href={childHref}
                                         target={child.target || "_self"}
                                         className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
                                           mobileMenuStyle === 'fullscreen' ? 'text-lg' : 'text-sm'
                                         }`}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          handleNavigation(e, childHref);
                                           // Close dropdown and mobile menu when clicking a link
                                           setIsDropdownOpen(prev => ({
                                             ...prev,
@@ -1478,26 +1504,27 @@ export default function HeaderSection({
                                         }}
                                       >
                                         {child.title}
-                                      </Link>
+                                      </a>
                                     );
                                   })}
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <Link
+                            <a
                               href={href}
                               target={item.target || "_self"}
                               className={`block px-3 py-2 hover:bg-gray-100 rounded-md ${
                                 mobileMenuStyle === 'fullscreen' ? 'text-xl font-medium' : 'text-base'
                               }`}
-                              onClick={() => {
+                              onClick={(e) => {
+                                handleNavigation(e, href);
                                 // Close mobile menu when clicking a link
                                 setIsDropdownOpen(prev => ({...prev, mobileMenu: false}));
                               }}
                             >
                               {item.title}
-                            </Link>
+                            </a>
                           )}
                         </li>
                       );

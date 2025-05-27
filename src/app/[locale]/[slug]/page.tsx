@@ -1,14 +1,38 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { cmsOperations } from '@/lib/graphql-client';
+import { useParams, useRouter } from 'next/navigation';
+import { cmsOperations, CMSPageDB } from '@/lib/graphql-client';
 import { optimizedQueries } from '@/lib/graphql-optimizations';
 import SectionManager from '@/components/cms/SectionManager';
-import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, AlertTriangle } from 'lucide-react';
+import ModernLoader from '@/components/ui/ModernLoader';
 
 import { Menu } from '@/app/api/graphql/types';
 import { ComponentType } from '@/types/cms';
+
+// Global cache for preloaded pages
+const globalPageCache = new Map<string, {
+  page: PageData;
+  sections: SectionData[];
+  timestamp: number;
+}>();
+
+// Global cache for all pages list
+let allPagesCache: Array<{ slug: string; locale: string; title: string }> | null = null;
+
+// Navigation function type
+interface NavigationFunction {
+  (targetSlug: string, targetLocale?: string): void;
+}
+
+// Extend window interface for navigation function
+declare global {
+  interface Window {
+    navigateToPage?: NavigationFunction;
+  }
+}
+
 // Match the PageData type to what comes from the GraphQL client
 interface PageData {
   id: string;
@@ -42,6 +66,7 @@ interface SectionData {
 
 export default function CMSPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const locale = params.locale as string;
   
@@ -51,8 +76,271 @@ export default function CMSPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState(0);
   const [menus, setMenus] = useState<Menu[]>([]);
+  const [preloadProgress, setPreloadProgress] = useState(0);
+  const [isPreloading, setIsPreloading] = useState(true);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const isScrolling = useRef<boolean>(false);
+  const hasPreloaded = useRef<boolean>(false);
+  
+  // Preload all pages function
+  const preloadAllPages = async () => {
+    if (hasPreloaded.current) return;
+    
+    try {
+      setIsPreloading(true);
+      setPreloadProgress(0);
+      
+      console.log('🚀 Iniciando precarga de todas las páginas...');
+      
+      // Get all pages first
+      if (!allPagesCache) {
+        const allPages = await cmsOperations.getAllPages() as CMSPageDB[];
+        allPagesCache = allPages.map(page => ({
+          slug: page.slug,
+          locale: page.locale || 'en', // Handle missing locale property
+          title: page.title
+        }));
+      }
+      
+      const totalPages = allPagesCache.length;
+      let loadedPages = 0;
+      
+      // Preload pages in batches for better performance
+      const batchSize = 3;
+      for (let i = 0; i < allPagesCache.length; i += batchSize) {
+        const batch = allPagesCache.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (pageInfo) => {
+            try {
+              const cacheKey = `${pageInfo.locale}-${pageInfo.slug}`;
+              
+              // Skip if already cached
+              if (globalPageCache.has(cacheKey)) {
+                loadedPages++;
+                return;
+              }
+              
+              // Load page with optimized query
+              const optimizedPageData = await optimizedQueries.loadPage(pageInfo.slug);
+              
+              if (optimizedPageData.page) {
+                // Process sections data
+                const pageSectionsData: SectionData[] = [];
+                
+                if (optimizedPageData.sections && optimizedPageData.sections.length > 0) {
+                  (optimizedPageData.sections as Array<{ components: Array<{ id: string; type: string; data: Record<string, unknown> }> }>).forEach((sectionData, index: number) => {
+                    const pageSection = (optimizedPageData.page as { sections: { id: string; order: number; name: string }[] }).sections[index];
+                    
+                    if (sectionData && sectionData.components) {
+                      pageSectionsData.push({
+                        id: pageSection.id,
+                        order: pageSection.order || 0,
+                        title: pageSection.name,
+                        components: sectionData.components
+                      });
+                    }
+                  });
+                  
+                  pageSectionsData.sort((a, b) => a.order - b.order);
+                }
+                
+                // Cache the page
+                globalPageCache.set(cacheKey, {
+                  page: optimizedPageData.page as unknown as PageData,
+                  sections: pageSectionsData,
+                  timestamp: Date.now()
+                });
+                
+                console.log(`✅ Página precargada: ${pageInfo.title} (${pageInfo.slug})`);
+              }
+              
+              loadedPages++;
+              setPreloadProgress(Math.round((loadedPages / totalPages) * 100));
+              
+            } catch (error) {
+              console.warn(`⚠️ Error precargando página ${pageInfo.slug}:`, error);
+              loadedPages++;
+            }
+          })
+        );
+        
+        // Small delay between batches to prevent overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      hasPreloaded.current = true;
+      console.log(`🎉 Precarga completada: ${loadedPages}/${totalPages} páginas`);
+      
+      // Preload videos if any
+      const allVideoSections: string[] = [];
+      globalPageCache.forEach(({ sections }) => {
+        sections.forEach(section => {
+          const hasVideo = section.components.some(comp => 
+            comp.type.toLowerCase() === 'video' || comp.type.toLowerCase() === 'videosection'
+          );
+          if (hasVideo) {
+            allVideoSections.push(section.id);
+          }
+        });
+      });
+      
+      if (allVideoSections.length > 0) {
+        console.log(`🎬 Precargando ${allVideoSections.length} secciones de video...`);
+        optimizedQueries.preloadVideos(allVideoSections).catch(console.warn);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en precarga general:', error);
+    } finally {
+      setIsPreloading(false);
+    }
+  };
+  
+  // Load current page from cache or fetch
+  const loadCurrentPage = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const cacheKey = `${locale}-${slug}`;
+      
+      // Check if page is in cache
+      if (globalPageCache.has(cacheKey)) {
+        const cached = globalPageCache.get(cacheKey)!;
+        console.log(`⚡ Cargando página desde caché: ${slug}`);
+        
+        setPageData(cached.page);
+        setSections(cached.sections);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If not in cache, load normally
+      console.log(`📥 Cargando página desde servidor: ${slug}`);
+      
+      const optimizedPageData = await optimizedQueries.loadPage(slug);
+      
+      if (!optimizedPageData.page) {
+        // Try fallback method
+        const pageData = await cmsOperations.getPageBySlug(slug);
+        
+        if (pageData) {
+          console.log('Found page using fallback method:', pageData.title);
+          setPageData(pageData as unknown as PageData);
+          
+          // Load sections using traditional method
+          const pageSectionsData: SectionData[] = [];
+          
+          if (pageData.sections && pageData.sections.length > 0) {
+            for (const section of pageData.sections) {
+              try {
+                const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
+                
+                if (componentResult && componentResult.components) {
+                  pageSectionsData.push({
+                    id: section.id,
+                    order: section.order || 0,
+                    title: section.name,
+                    components: componentResult.components
+                  });
+                }
+              } catch (error) {
+                console.error(`Error al cargar componentes para sección ${section.id}:`, error);
+              }
+            }
+            
+            pageSectionsData.sort((a, b) => a.order - b.order);
+          }
+          
+          setSections(pageSectionsData);
+          
+          // Cache for future use
+          globalPageCache.set(cacheKey, {
+            page: pageData as unknown as PageData,
+            sections: pageSectionsData,
+            timestamp: Date.now()
+          });
+          
+        } else {
+          console.error(`Page not found with any method: ${slug}`);
+          setError('Página no encontrada');
+        }
+      } else {
+        // Process optimized page data
+        setPageData(optimizedPageData.page as unknown as PageData);
+        
+        const pageSectionsData: SectionData[] = [];
+        
+        if (optimizedPageData.sections && optimizedPageData.sections.length > 0) {
+          (optimizedPageData.sections as Array<{ components: Array<{ id: string; type: string; data: Record<string, unknown> }> }>).forEach((sectionData, index: number) => {
+            const pageSection = (optimizedPageData.page as { sections: { id: string; order: number; name: string }[] }).sections[index];
+            
+            if (sectionData && sectionData.components) {
+              pageSectionsData.push({
+                id: pageSection.id,
+                order: pageSection.order || 0,
+                title: pageSection.name,
+                components: sectionData.components
+              });
+            }
+          });
+          
+          pageSectionsData.sort((a, b) => a.order - b.order);
+        }
+        
+        setSections(pageSectionsData);
+        
+        // Cache for future use
+        globalPageCache.set(cacheKey, {
+          page: optimizedPageData.page as unknown as PageData,
+          sections: pageSectionsData,
+          timestamp: Date.now()
+        });
+        
+        // Preload videos if any video sections were detected
+        if (optimizedPageData.videoSections && optimizedPageData.videoSections.length > 0) {
+          optimizedQueries.preloadVideos(optimizedPageData.videoSections).catch(console.warn);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error al cargar la página:', error);
+      setError('Error al cargar la página');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Navigation function for instant page switching
+  const navigateToPage = (targetSlug: string, targetLocale: string = locale) => {
+    const cacheKey = `${targetLocale}-${targetSlug}`;
+    
+    if (globalPageCache.has(cacheKey)) {
+      // Instant navigation using Next.js router
+      router.push(`/${targetLocale}/${targetSlug}`);
+    } else {
+      // If not cached, still navigate but it will load normally
+      router.push(`/${targetLocale}/${targetSlug}`);
+    }
+  };
+
+  // Expose navigation function globally for HeaderSection
+  useEffect(() => {
+    window.navigateToPage = navigateToPage;
+    return () => {
+      delete window.navigateToPage;
+    };
+  }, [navigateToPage]);
+  
+  // Initial preload and current page load
+  useEffect(() => {
+    preloadAllPages();
+  }, []);
+  
+  useEffect(() => {
+    loadCurrentPage();
+  }, [slug, locale]);
   
   // Load menus for the page
   useEffect(() => {
@@ -500,349 +788,15 @@ export default function CMSPage() {
     };
   }, [pageData, sections.length, setActiveSection]);
   
-  useEffect(() => {
-    async function loadPage() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        console.log(`Cargando página con slug: ${slug} en locale: ${locale}`);
-        
-        // Use optimized page loading with video detection
-        const optimizedPageData = await optimizedQueries.loadPage(slug);
-        
-        if (!optimizedPageData.page) {
-          console.warn(`Page not found with optimized query: ${slug}, trying fallback...`);
-          
-          // Immediately try fallback method instead of showing error
-          const pageData = await cmsOperations.getPageBySlug(slug);
-          
-          if (pageData) {
-            console.log('Found page using fallback method:', pageData.title);
-            setPageData(pageData as unknown as PageData);
-            
-            // Load sections using traditional method
-            const pageSectionsData: SectionData[] = [];
-            
-            if (pageData.sections && pageData.sections.length > 0) {
-              for (const section of pageData.sections) {
-                try {
-                  const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
-                  
-                  if (componentResult && componentResult.components) {
-                    pageSectionsData.push({
-                      id: section.id,
-                      order: section.order || 0,
-                      title: section.name,
-                      components: componentResult.components
-                    });
-                  }
-                } catch (error) {
-                  console.error(`Error al cargar componentes para sección ${section.id}:`, error);
-                }
-              }
-              
-              pageSectionsData.sort((a, b) => a.order - b.order);
-            }
-            
-            setSections(pageSectionsData);
-            setIsLoading(false);
-            return; // Exit early since we found the page
-          } else {
-            console.error(`Page not found with any method: ${slug}`);
-            setError('Página no encontrada');
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // Set page data
-        setPageData(optimizedPageData.page as unknown as PageData);
-        console.log('Page data retrieved:', optimizedPageData.page);
-        
-        // Process sections data
-        const pageSectionsData: SectionData[] = [];
-        
-        if (optimizedPageData.sections && optimizedPageData.sections.length > 0) {
-          console.log(`Procesando ${optimizedPageData.sections.length} secciones optimizadas`);
-          
-          // Process each section from optimized data
-          (optimizedPageData.sections as Array<{ components: Array<{ id: string; type: string; data: Record<string, unknown> }> }>).forEach((sectionData, index: number) => {
-            const pageSection = (optimizedPageData.page as { sections: { id: string; order: number; name: string }[] }).sections[index];
-            
-            if (sectionData && sectionData.components) {
-              pageSectionsData.push({
-                id: pageSection.id,
-                order: pageSection.order || 0,
-                title: pageSection.name,
-                components: sectionData.components
-              });
-            }
-          });
-          
-          // Sort sections by order
-          pageSectionsData.sort((a, b) => a.order - b.order);
-          
-          console.log(`${pageSectionsData.length} secciones procesadas y ordenadas con optimización`);
-        }
-        
-        setSections(pageSectionsData);
-        
-        // Preload videos if any video sections were detected
-        if (optimizedPageData.videoSections && optimizedPageData.videoSections.length > 0) {
-          console.log(`Pre-cargando videos de ${optimizedPageData.videoSections.length} secciones`);
-          
-          // Start video preloading in background
-          optimizedQueries.preloadVideos(optimizedPageData.videoSections).then(() => {
-            console.log('Videos pre-cargados exitosamente');
-          }).catch((error) => {
-            console.warn('Error al pre-cargar videos:', error);
-          });
-        }
-        
-      } catch (pageError) {
-        console.error('Error al cargar la página:', pageError);
-        setError('Error al cargar la página');
-        
-        // Fallback to original loading method
-        try {
-          console.log('Intentando método de carga tradicional como respaldo...');
-          const pageData = await cmsOperations.getPageBySlug(slug);
-          
-          if (pageData) {
-            setPageData(pageData as unknown as PageData);
-            
-            // Load sections using traditional method
-            const pageSectionsData: SectionData[] = [];
-            
-            if (pageData.sections && pageData.sections.length > 0) {
-              for (const section of pageData.sections) {
-                try {
-                  const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
-                  
-                  if (componentResult && componentResult.components) {
-                    pageSectionsData.push({
-                      id: section.id,
-                      order: section.order || 0,
-                      title: section.name,
-                      components: componentResult.components
-                    });
-                  }
-                } catch (error) {
-                  console.error(`Error al cargar componentes para sección ${section.id}:`, error);
-                }
-              }
-              
-              pageSectionsData.sort((a, b) => a.order - b.order);
-            }
-            
-            setSections(pageSectionsData);
-            setError(null); // Clear error if fallback succeeds
-          }
-        } catch (fallbackError) {
-          console.error('Error en método de respaldo:', fallbackError);
-          setError('Error al cargar la página');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadPage();
-  }, [slug, locale]);
-  
-  if (isLoading) {
+  // Show modern Apple-style loader during initial preload or page load
+  if (isLoading || isPreloading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Header Skeleton */}
-        <div className="w-full bg-white border-b shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-                <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-              <div className="flex items-center space-x-6">
-                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Skeleton - Adaptive based on page type */}
-        <div className="flex-1">
-          {/* Hero Section Skeleton */}
-          <div className="relative min-h-[600px] bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto text-center">
-                <div className="w-20 h-6 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
-                <div className="w-4/5 h-16 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
-                <div className="w-3/4 h-6 bg-gray-200 rounded mx-auto mb-8 animate-pulse"></div>
-                <div className="flex justify-center gap-4">
-                  <div className="w-36 h-12 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="w-36 h-12 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Floating elements for visual interest */}
-            <div className="absolute top-20 left-10 w-4 h-4 bg-gray-300 rounded-full animate-pulse"></div>
-            <div className="absolute top-40 right-20 w-6 h-6 bg-gray-300 rounded-full animate-pulse"></div>
-            <div className="absolute bottom-20 left-20 w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
-          </div>
-
-          {/* Benefits/Features Section Skeleton */}
-          <div className="py-20 bg-white">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-16">
-                <div className="w-56 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
-                <div className="w-96 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="text-center group">
-                    <div className="w-20 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full mx-auto mb-6 animate-pulse"></div>
-                    <div className="w-40 h-6 bg-gray-200 rounded mx-auto mb-3 animate-pulse"></div>
-                    <div className="w-56 h-4 bg-gray-200 rounded mx-auto mb-2 animate-pulse"></div>
-                    <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Form/CTA Section Skeleton */}
-          <div className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
-            <div className="container mx-auto px-4">
-              <div className="max-w-2xl mx-auto">
-                <div className="text-center mb-12">
-                  <div className="w-64 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
-                  <div className="w-80 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
-                </div>
-                <div className="bg-white p-8 rounded-xl shadow-lg">
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="w-20 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                        <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                      <div>
-                        <div className="w-16 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                        <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="w-24 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                      <div className="w-full h-12 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div>
-                      <div className="w-28 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                      <div className="w-full h-32 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div className="w-40 h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse mx-auto"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Content Sections */}
-          <div className="py-16 bg-gray-50">
-            <div className="container mx-auto px-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {[...Array(2)].map((_, i) => (
-                  <div key={i} className="bg-white p-8 rounded-lg shadow-sm">
-                    <div className="w-full h-48 bg-gray-200 rounded-lg mb-6 animate-pulse"></div>
-                    <div className="w-3/4 h-8 bg-gray-200 rounded mb-4 animate-pulse"></div>
-                    <div className="space-y-3">
-                      <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="w-2/3 h-4 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div className="flex items-center space-x-4 mt-6">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
-                      <div>
-                        <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                        <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Skeleton */}
-        <div className="bg-gray-900 text-white py-16">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-              <div>
-                <div className="w-32 h-8 bg-gray-700 rounded mb-6 animate-pulse"></div>
-                <div className="w-48 h-4 bg-gray-700 rounded mb-3 animate-pulse"></div>
-                <div className="w-40 h-4 bg-gray-700 rounded animate-pulse"></div>
-              </div>
-              {[...Array(3)].map((_, i) => (
-                <div key={i}>
-                  <div className="w-28 h-6 bg-gray-700 rounded mb-6 animate-pulse"></div>
-                  <div className="space-y-3">
-                    <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
-                    <div className="w-28 h-4 bg-gray-700 rounded animate-pulse"></div>
-                    <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
-                    <div className="w-32 h-4 bg-gray-700 rounded animate-pulse"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="w-56 h-4 bg-gray-700 rounded animate-pulse"></div>
-              <div className="flex space-x-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Dots Skeleton for Landing Pages */}
-        <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-50 flex flex-col gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className={`w-3 h-3 rounded-full bg-gray-300 animate-pulse ${
-                i === 0 ? 'w-4 h-4 bg-gray-400' : ''
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Enhanced Loading Indicator */}
-        <div className="fixed bottom-8 right-8 bg-white rounded-2xl shadow-xl p-6 z-50 border border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Loader2Icon className="h-8 w-8 text-primary animate-spin" />
-              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping"></div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-gray-800">Cargando página</div>
-              <div className="text-xs text-gray-500">Preparando contenido...</div>
-            </div>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="mt-4 w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Shimmer overlay effect */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 animate-shimmer"></div>
-        </div>
-      </div>
+      <ModernLoader 
+        variant="apple"
+        message={isPreloading ? `Cargando aplicación... ${preloadProgress}%` : "Cargando página..."}
+        progress={isPreloading ? preloadProgress : undefined}
+        showProgress={isPreloading}
+      />
     );
   }
   
