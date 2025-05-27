@@ -83,6 +83,7 @@ export default function FormSection({
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [isDesignChanging, setIsDesignChanging] = useState(false);
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -147,10 +148,11 @@ export default function FormSection({
       if (JSON.stringify(initialCustomConfig) !== JSON.stringify(customConfig)) setCustomConfig(initialCustomConfig);
       if (initialBackgroundImage !== backgroundImage) setBackgroundImage(initialBackgroundImage);
       if (initialBackgroundType !== backgroundType) setBackgroundType(initialBackgroundType);
+      if (initialFormDesign !== formDesign) setFormDesign(initialFormDesign);
     }
   }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig, 
-      initialBackgroundImage, initialBackgroundType, title, description, formId, styles, customConfig,
-      backgroundImage, backgroundType]);
+      initialBackgroundImage, initialBackgroundType, initialFormDesign, title, description, formId, styles, customConfig,
+      backgroundImage, backgroundType, formDesign]);
   
   // Update parent with changes
   const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig, event?: React.SyntheticEvent) => {
@@ -752,6 +754,7 @@ export default function FormSection({
             key={design.value}
             type="button"
             onClick={() => {
+              setIsDesignChanging(true);
               setFormDesign(design.value as FormDesignType);
               if (onUpdate) {
                 onUpdate({
@@ -766,8 +769,10 @@ export default function FormSection({
                   formDesign: design.value as FormDesignType
                 });
               }
+              // Reset the changing state after a brief delay
+              setTimeout(() => setIsDesignChanging(false), 300);
             }}
-            className={`p-3 rounded-lg border-2 text-left transition-all ${
+            className={`p-3 rounded-lg border-2 text-left transition-all relative ${
               formDesign === design.value
                 ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -795,6 +800,9 @@ export default function FormSection({
             </div>
             <div className="font-medium text-xs mb-1">{design.label}</div>
             <div className="text-xs text-gray-500 leading-tight">{design.description}</div>
+            {formDesign === design.value && (
+              <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+            )}
           </button>
         ))}
       </div>
@@ -856,10 +864,15 @@ export default function FormSection({
   // Preview Tab Component
   const PreviewTab = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Form Preview</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Form Preview</h3>
+        <div className="text-sm text-gray-500">
+          Design: <span className="font-medium capitalize">{formDesign}</span>
+        </div>
+      </div>
       
       {selectedForm ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Form Type Indicator */}
           <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div className={`w-3 h-3 rounded-full ${selectedForm.isMultiStep ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
@@ -871,6 +884,56 @@ export default function FormSection({
                 ({selectedForm.steps.length} steps)
               </span>
             )}
+          </div>
+
+          {/* Live Form Preview with Selected Design */}
+          <div className="border rounded-lg overflow-hidden bg-gray-50">
+            <div className="p-4 bg-white border-b">
+              <h4 className="font-medium text-gray-900 mb-1">Live Preview</h4>
+              <p className="text-sm text-gray-600">This is how your form will appear to visitors</p>
+            </div>
+            
+            <div className="p-6 bg-gray-50">
+              <div className="max-w-2xl mx-auto">
+                {isDesignChanging ? (
+                  <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center min-h-[200px]">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Updating design preview...</p>
+                    </div>
+                  </div>
+                ) : selectedForm.isMultiStep ? (
+                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <MultiStepFormRenderer
+                      key={`preview-multi-${formDesign}-${selectedForm.id}`}
+                      form={selectedForm}
+                      onSubmit={async () => {
+                        // Preview mode - no actual submission
+                        console.log('Preview mode - form submission disabled');
+                      }}
+                      submitStatus="idle"
+                      designType={formDesign}
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <FormRenderer
+                      key={`preview-single-${formDesign}-${selectedForm.id}`}
+                      form={selectedForm}
+                      buttonClassName={getButtonClassNames()}
+                      buttonStyles={getButtonStyles()}
+                      inputClassName={getInputClassNames()}
+                      labelClassName={getLabelClassNames()}
+                      onSubmit={async () => {
+                        // Preview mode - no actual submission
+                        console.log('Preview mode - form submission disabled');
+                      }}
+                      submitStatus="idle"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Form Details */}
@@ -919,6 +982,22 @@ export default function FormSection({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Design Information */}
+          <div className="p-4 border rounded-md bg-blue-50">
+            <h5 className="text-sm font-medium text-blue-900 mb-2">Current Design: {formDesign}</h5>
+            <div className="text-xs text-blue-700">
+              {formDesign === 'modern' && 'Blue gradients with smooth animations and modern styling'}
+              {formDesign === 'elegant' && 'Warm amber tones with sophisticated design elements'}
+              {formDesign === 'futuristic' && 'Dark theme with cyan neon accents and sci-fi styling'}
+              {formDesign === 'minimal' && 'Clean and simple black & white design'}
+              {formDesign === 'corporate' && 'Professional blue corporate styling'}
+              {formDesign === 'gradient' && 'Colorful pink to purple gradients with vibrant styling'}
+              {formDesign === 'glassmorphism' && 'Transparent glass effect with blur and modern aesthetics'}
+              {formDesign === 'neon' && 'Dark cyberpunk theme with bright neon colors'}
+              {formDesign === 'retro' && 'Vintage orange and yellow tones with retro styling'}
+            </div>
           </div>
 
           {/* Form Actions Preview */}
