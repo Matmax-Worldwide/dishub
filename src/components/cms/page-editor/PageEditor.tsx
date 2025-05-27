@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
@@ -26,6 +26,9 @@ import {
 } from '@/components/cms/page-editor';
 import { Button } from '@/components/ui/button';
 import { PageEvents } from './PagesSidebar';
+
+// Component type definition
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
 
 // Extend PageData to include SEO properties
 interface PageData extends Omit<BasePageData, 'sections'> {
@@ -345,7 +348,76 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     }
   }, [slug, locale]);
 
+  // Handle component selection from ComponentsGrid with optimistic UI
+  const handleComponentSelect = useCallback(async (componentType: ComponentType) => {
+    console.log(`[PageEditor] Component selected: ${componentType}`);
+    
+    // If we don't have any sections, create one first
+    if (pageSections.length === 0) {
+      console.log('[PageEditor] No sections exist, creating default section first...');
+      setNewSectionName('Main Section');
+      const sectionCreated = await handleCreateSection();
+      if (!sectionCreated) {
+        console.error('[PageEditor] Failed to create section for component');
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    const targetSection = pageSections[0];
+    if (!targetSection) {
+      console.error('[PageEditor] No target section available for component');
+      return;
+    }
+    
+    // Generate component ID
+    const componentId = typeof crypto !== 'undefined' && 'randomUUID' in crypto 
+      ? crypto.randomUUID()
+      : `component-${componentType.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create component data
+    const componentData = { componentTitle: `${componentType} Component` };
+    const newComponent = { id: componentId, type: componentType, data: componentData };
+    
+    try {
+      // Dispatch optimistic UI update
+      document.dispatchEvent(new CustomEvent('component:add', { detail: newComponent }));
+      
+      // Save to backend
+      const existingComponents = await cmsOperations.loadSectionComponentsForEdit(targetSection.sectionId);
+      const updatedComponents = [...existingComponents.components, newComponent];
+      const saveResult = await cmsOperations.saveSectionComponents(targetSection.sectionId, updatedComponents);
+      
+      if (!saveResult || !saveResult.success) {
+        // Revert on failure
+        document.dispatchEvent(new CustomEvent('component:remove', { detail: { componentId } }));
+        throw new Error(saveResult?.message || 'Failed to save component');
+      }
+      
+      setNotification({ type: 'success', message: `${componentType} component added successfully` });
+      setHasUnsavedChanges(true);
+      setTimeout(() => setNotification(null), 3000);
+      
+    } catch (error) {
+      // Revert on error
+      document.dispatchEvent(new CustomEvent('component:remove', { detail: { componentId } }));
+      setNotification({ type: 'error', message: error instanceof Error ? error.message : 'Failed to create component' });
+      setTimeout(() => setNotification(null), 5000);
+    }
+  }, [pageSections, setNewSectionName, setHasUnsavedChanges, setNotification]);
 
+  // Listen for component selection events from sidebar
+  useEffect(() => {
+    const handleSidebarComponentSelect = (event: Event) => {
+      const customEvent = event as CustomEvent<{ componentType: ComponentType }>;
+      if (customEvent.detail?.componentType) {
+        handleComponentSelect(customEvent.detail.componentType);
+      }
+    };
+
+    document.addEventListener('sidebar:component-selected', handleSidebarComponentSelect);
+    return () => document.removeEventListener('sidebar:component-selected', handleSidebarComponentSelect);
+  }, [handleComponentSelect]);
 
   // Sync local unsaved changes with global context
   useEffect(() => {

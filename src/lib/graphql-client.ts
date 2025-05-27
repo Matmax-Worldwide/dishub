@@ -3631,6 +3631,7 @@ const graphqlClient = {
     const response = await gqlRequest<{ posts: Post[] }>(query, { filter });
     return response.posts || [];
   },
+  
 
   async getPostBySlug(slug: string) {
     const query = `

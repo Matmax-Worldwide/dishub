@@ -3,29 +3,23 @@
 import React, { useState } from 'react';
 import { FormBase, FormStepBase, FormFieldBase, FormFieldType } from '@/types/forms';
 import { PhoneInput } from './fields/PhoneField';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Sparkles, Zap, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+export type FormDesignType = 'modern' | 'elegant' | 'futuristic' | 'minimal' | 'corporate';
 
 interface MultiStepFormRendererProps {
   form: FormBase;
-  buttonClassName?: string;
-  buttonStyles?: React.CSSProperties;
-  inputClassName?: string;
-  labelClassName?: string;
   onSubmit?: (formData: Record<string, unknown>) => Promise<void>;
   submitStatus?: 'idle' | 'submitting' | 'success' | 'error';
+  designType?: FormDesignType;
 }
 
 export default function MultiStepFormRenderer({
   form,
-  buttonClassName = 'w-full px-6 py-3 text-white bg-primary hover:bg-primary/90 rounded-md transition-colors',
-  buttonStyles,
-  inputClassName = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50',
-  labelClassName = 'block text-sm font-medium text-gray-700 mb-1',
   onSubmit,
-  submitStatus = 'idle'
+  submitStatus = 'idle',
+  designType = 'modern'
 }: MultiStepFormRendererProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -128,10 +122,110 @@ export default function MultiStepFormRenderer({
     }
   };
 
-  // Render form field
+  // Design-specific styles and components
+  const getDesignStyles = () => {
+    switch (designType) {
+      case 'modern':
+        return {
+          container: 'bg-white rounded-2xl shadow-xl border border-gray-100',
+          progressBar: 'bg-gradient-to-r from-blue-500 to-purple-600',
+          progressBg: 'bg-gray-100',
+          stepIndicator: {
+            active: 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg',
+            completed: 'bg-green-500 text-white shadow-lg',
+            inactive: 'bg-gray-200 text-gray-600'
+          },
+          input: 'w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300',
+          label: 'block text-sm font-semibold text-gray-700 mb-2',
+          button: {
+            primary: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300',
+            secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-xl font-semibold transition-all duration-300'
+          }
+        };
+      
+      case 'elegant':
+        return {
+          container: 'bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-2xl border border-gray-200',
+          progressBar: 'bg-gradient-to-r from-amber-400 to-orange-500',
+          progressBg: 'bg-gray-200',
+          stepIndicator: {
+            active: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-xl',
+            completed: 'bg-emerald-500 text-white shadow-xl',
+            inactive: 'bg-white text-gray-500 border-2 border-gray-300'
+          },
+          input: 'w-full px-5 py-4 border border-gray-300 rounded-2xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 bg-white/80 backdrop-blur-sm transition-all duration-300',
+          label: 'block text-sm font-medium text-gray-800 mb-3',
+          button: {
+            primary: 'bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white px-10 py-4 rounded-2xl font-medium shadow-xl hover:shadow-2xl transition-all duration-300',
+            secondary: 'bg-white hover:bg-gray-50 text-gray-700 px-10 py-4 rounded-2xl font-medium border-2 border-gray-300 hover:border-gray-400 transition-all duration-300'
+          }
+        };
+      
+      case 'futuristic':
+        return {
+          container: 'bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl shadow-2xl border border-cyan-500/20',
+          progressBar: 'bg-gradient-to-r from-cyan-400 to-blue-500',
+          progressBg: 'bg-slate-700',
+          stepIndicator: {
+            active: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-900 shadow-xl shadow-cyan-500/30',
+            completed: 'bg-green-400 text-slate-900 shadow-xl shadow-green-400/30',
+            inactive: 'bg-slate-700 text-slate-400 border border-slate-600'
+          },
+          input: 'w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 text-white placeholder-slate-400 transition-all duration-300',
+          label: 'block text-sm font-medium text-cyan-300 mb-2',
+          button: {
+            primary: 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-900 px-8 py-3 rounded-xl font-bold shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300',
+            secondary: 'bg-slate-700 hover:bg-slate-600 text-cyan-300 px-8 py-3 rounded-xl font-bold border border-slate-600 hover:border-slate-500 transition-all duration-300'
+          }
+        };
+      
+      case 'minimal':
+        return {
+          container: 'bg-white rounded-lg shadow-md border border-gray-200',
+          progressBar: 'bg-gray-900',
+          progressBg: 'bg-gray-200',
+          stepIndicator: {
+            active: 'bg-gray-900 text-white',
+            completed: 'bg-gray-700 text-white',
+            inactive: 'bg-gray-100 text-gray-500 border border-gray-300'
+          },
+          input: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:border-gray-900 focus:ring-2 focus:ring-gray-100 transition-all duration-200',
+          label: 'block text-sm font-medium text-gray-900 mb-1',
+          button: {
+            primary: 'bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-md font-medium transition-all duration-200',
+            secondary: 'bg-white hover:bg-gray-50 text-gray-900 px-6 py-2 rounded-md font-medium border border-gray-300 hover:border-gray-400 transition-all duration-200'
+          }
+        };
+      
+      case 'corporate':
+        return {
+          container: 'bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-xl border border-blue-200',
+          progressBar: 'bg-gradient-to-r from-blue-600 to-indigo-600',
+          progressBg: 'bg-blue-100',
+          stepIndicator: {
+            active: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg',
+            completed: 'bg-green-600 text-white shadow-lg',
+            inactive: 'bg-white text-blue-600 border-2 border-blue-200'
+          },
+          input: 'w-full px-4 py-3 border border-blue-200 rounded-lg focus:border-blue-600 focus:ring-3 focus:ring-blue-100 bg-white transition-all duration-300',
+          label: 'block text-sm font-semibold text-blue-900 mb-2',
+          button: {
+            primary: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300',
+            secondary: 'bg-white hover:bg-blue-50 text-blue-600 px-8 py-3 rounded-lg font-semibold border-2 border-blue-200 hover:border-blue-300 transition-all duration-300'
+          }
+        };
+      
+      default:
+        return getDesignStyles(); // fallback to modern
+    }
+  };
+
+  const styles = getDesignStyles();
+
+  // Render form field with design-specific styling
   const renderField = (field: FormFieldBase) => {
     const fieldError = errors[field.name];
-    const fieldClassName = `${inputClassName} ${fieldError ? 'border-red-500' : ''}`;
+    const fieldClassName = `${styles.input} ${fieldError ? 'border-red-500 ring-red-100' : ''}`;
 
     switch (field.type) {
       case FormFieldType.TEXT:
@@ -241,7 +335,7 @@ export default function MultiStepFormRenderer({
             defaultCountry={(field.options?.defaultCountry as string) || 'ES'}
             showCountryCode={field.options?.showCountryCode !== false}
             format={(field.options?.format as 'international' | 'national' | 'any') || 'international'}
-            inputClassName={inputClassName}
+            inputClassName={styles.input}
             className={fieldError ? 'border-red-500' : ''}
           />
         );
@@ -253,7 +347,7 @@ export default function MultiStepFormRenderer({
             name={field.name}
             value={formData[field.name] as string || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
-            className={`${fieldClassName} min-h-[100px]`}
+            className={`${fieldClassName} min-h-[120px] resize-none`}
             placeholder={field.placeholder}
             required={field.isRequired}
             rows={field.options?.rows as number || 4}
@@ -281,20 +375,20 @@ export default function MultiStepFormRenderer({
 
       case FormFieldType.RADIO:
         return (
-          <div className={`space-y-2 ${field.options?.layout === 'horizontal' ? 'flex space-x-4 space-y-0' : ''}`}>
+          <div className={`space-y-3 ${field.options?.layout === 'horizontal' ? 'flex space-x-6 space-y-0' : ''}`}>
             {field.options?.items?.map((option: { value: string; label: string; disabled?: boolean }) => (
-              <label key={option.value} className="flex items-center space-x-2">
+              <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="radio"
                   name={field.name}
                   value={option.value}
                   checked={formData[field.name] === option.value}
                   onChange={(e) => handleInputChange(field.name, e.target.value)}
-                  className="text-primary focus:ring-primary"
+                  className={`w-4 h-4 ${designType === 'futuristic' ? 'text-cyan-400 focus:ring-cyan-400' : designType === 'elegant' ? 'text-amber-500 focus:ring-amber-400' : 'text-blue-500 focus:ring-blue-400'}`}
                   required={field.isRequired}
                   disabled={option.disabled}
                 />
-                <span className="text-sm">{option.label}</span>
+                <span className={`text-sm ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-700'}`}>{option.label}</span>
               </label>
             ))}
           </div>
@@ -302,16 +396,16 @@ export default function MultiStepFormRenderer({
 
       case FormFieldType.CHECKBOX:
         return (
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
               name={field.name}
               checked={formData[field.name] as boolean || false}
               onChange={(e) => handleInputChange(field.name, e.target.checked)}
-              className="text-primary focus:ring-primary"
+              className={`w-4 h-4 rounded ${designType === 'futuristic' ? 'text-cyan-400 focus:ring-cyan-400' : designType === 'elegant' ? 'text-amber-500 focus:ring-amber-400' : 'text-blue-500 focus:ring-blue-400'}`}
               required={field.isRequired}
             />
-            <span className="text-sm">{field.label}</span>
+            <span className={`text-sm ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-700'}`}>{field.label}</span>
           </label>
         );
 
@@ -335,53 +429,104 @@ export default function MultiStepFormRenderer({
 
   if (!form.isMultiStep || totalSteps === 0) {
     return (
-      <div className="text-center p-6 bg-gray-50 rounded-lg">
+      <div className="text-center p-8 bg-gray-50 rounded-2xl border border-gray-200">
         <p className="text-gray-600">This form is not configured for multi-step or has no steps.</p>
       </div>
     );
   }
 
+  // Design-specific icons
+  const getDesignIcon = () => {
+    switch (designType) {
+      case 'modern':
+        return <Circle className="w-4 h-4" />;
+      case 'elegant':
+        return <Sparkles className="w-4 h-4" />;
+      case 'futuristic':
+        return <Zap className="w-4 h-4" />;
+      default:
+        return <Circle className="w-4 h-4" />;
+    }
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">
+    <div className={`w-full max-w-4xl mx-auto p-8 ${styles.container}`}>
+      {/* Design-specific background effects */}
+      {designType === 'futuristic' && (
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5" />
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-cyan-400/30 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [1, 1.5, 1],
+              }}
+              transition={{
+                duration: 2 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Progress Section */}
+      <div className="mb-10 relative z-10">
+        <div className="flex justify-between items-center mb-4">
+          <span className={`text-sm font-semibold ${designType === 'futuristic' ? 'text-cyan-300' : designType === 'elegant' ? 'text-amber-600' : 'text-blue-600'}`}>
             Step {currentStep + 1} of {totalSteps}
           </span>
-          <span className="text-sm text-gray-500">
+          <span className={`text-sm ${designType === 'futuristic' ? 'text-slate-400' : 'text-gray-500'}`}>
             {Math.round(progressPercentage)}% Complete
           </span>
         </div>
-        <Progress value={progressPercentage} className="h-2" />
+        
+        {/* Custom Progress Bar */}
+        <div className={`w-full h-3 ${styles.progressBg} rounded-full overflow-hidden`}>
+          <motion.div
+            className={`h-full ${styles.progressBar} rounded-full`}
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercentage}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        </div>
       </div>
 
       {/* Step Indicators */}
-      <div className="flex justify-center mb-8">
-        <div className="flex space-x-4">
+      <div className="flex justify-center mb-12 relative z-10">
+        <div className="flex items-center space-x-4">
           {visibleSteps.map((step, index) => (
             <div key={step.id} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+              <motion.div
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                   index < currentStep || completedSteps.has(index)
-                    ? 'bg-green-500 text-white'
+                    ? styles.stepIndicator.completed
                     : index === currentStep
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    ? styles.stepIndicator.active
+                    : styles.stepIndicator.inactive
                 }`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {index < currentStep || completedSteps.has(index) ? (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-5 h-5" />
                 ) : (
-                  index + 1
+                  <span>{index + 1}</span>
                 )}
-              </div>
+              </motion.div>
               {index < totalSteps - 1 && (
                 <div
-                  className={`w-12 h-0.5 mx-2 transition-colors ${
+                  className={`w-16 h-1 mx-4 rounded-full transition-all duration-500 ${
                     index < currentStep || completedSteps.has(index)
-                      ? 'bg-green-500'
-                      : 'bg-gray-200'
+                      ? styles.progressBar
+                      : styles.progressBg
                   }`}
                 />
               )}
@@ -391,33 +536,50 @@ export default function MultiStepFormRenderer({
       </div>
 
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
+            initial={{ opacity: 0, x: 50, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -50, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="space-y-8"
           >
             {/* Step Title and Description */}
             {currentStepData && (
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <div className="text-center mb-10">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-4"
+                >
+                  {getDesignIcon()}
+                </motion.div>
+                <h3 className={`text-2xl font-bold mb-4 ${designType === 'futuristic' ? 'text-white' : designType === 'elegant' ? 'text-gray-800' : 'text-gray-900'}`}>
                   {currentStepData.title}
                 </h3>
                 {currentStepData.description && (
-                  <p className="text-gray-600">{currentStepData.description}</p>
+                  <p className={`text-lg ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-600'} max-w-2xl mx-auto`}>
+                    {currentStepData.description}
+                  </p>
                 )}
               </div>
             )}
 
             {/* Step Fields */}
-            {currentStepData?.fields?.map(field => (
-              <div key={field.id} className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {currentStepData?.fields?.map((field, index) => (
+                <motion.div
+                  key={field.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className={`space-y-3 ${field.type === FormFieldType.TEXTAREA ? 'md:col-span-2' : ''}`}
+                >
                 {field.type !== FormFieldType.CHECKBOX && (
-                  <label htmlFor={field.name} className={labelClassName}>
+                    <label htmlFor={field.name} className={styles.label}>
                     {field.label}
                     {field.isRequired && <span className="text-red-500 ml-1">*</span>}
                   </label>
@@ -426,76 +588,111 @@ export default function MultiStepFormRenderer({
                 {renderField(field)}
                 
                 {errors[field.name] && (
-                  <p className="text-red-500 text-sm">{errors[field.name]}</p>
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-red-500 text-sm font-medium"
+                    >
+                      {errors[field.name]}
+                    </motion.p>
                 )}
                 
                 {field.helpText && (
-                  <p className="text-gray-500 text-sm">{field.helpText}</p>
+                    <p className={`text-sm ${designType === 'futuristic' ? 'text-slate-400' : 'text-gray-500'}`}>
+                      {field.helpText}
+                    </p>
                 )}
+                </motion.div>
+              ))}
               </div>
-            ))}
           </motion.div>
         </AnimatePresence>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between pt-6">
-          <Button
+        <div className="flex justify-between items-center pt-8 relative z-10">
+          <motion.button
             type="button"
-            variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 0}
-            className="flex items-center space-x-2"
+            className={`${styles.button.secondary} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            whileHover={{ scale: currentStep === 0 ? 1 : 1.05 }}
+            whileTap={{ scale: currentStep === 0 ? 1 : 0.95 }}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
             <span>Previous</span>
-          </Button>
+          </motion.button>
 
           {currentStep === totalSteps - 1 ? (
-            <Button
+            <motion.button
               type="submit"
               disabled={submitStatus === 'submitting'}
-              className={buttonClassName}
-              style={buttonStyles}
+              className={`${styles.button.primary} disabled:opacity-50 disabled:cursor-not-allowed`}
+              whileHover={{ scale: submitStatus === 'submitting' ? 1 : 1.05 }}
+              whileTap={{ scale: submitStatus === 'submitting' ? 1 : 0.95 }}
             >
-              {submitStatus === 'submitting' ? 'Submitting...' : form.submitButtonText || 'Submit'}
-            </Button>
+              {submitStatus === 'submitting' ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>Submitting...</span>
+                </div>
+              ) : (
+                form.submitButtonText || 'Submit'
+              )}
+            </motion.button>
           ) : (
-            <Button
+            <motion.button
               type="button"
               onClick={handleNext}
-              className="flex items-center space-x-2"
+              className={`${styles.button.primary} flex items-center space-x-2`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <span>Next</span>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+              <ChevronRight className="w-5 h-5" />
+            </motion.button>
           )}
         </div>
       </form>
 
       {/* Submit Status Messages */}
+      <AnimatePresence>
       {submitStatus === 'success' && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md"
-        >
-          <p className="text-green-800 text-center">
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`mt-8 p-6 rounded-2xl border-2 ${
+              designType === 'futuristic' 
+                ? 'bg-green-400/10 border-green-400/30 text-green-300' 
+                : 'bg-green-50 border-green-200 text-green-800'
+            }`}
+          >
+            <div className="flex items-center justify-center space-x-3">
+              <Check className="w-6 h-6" />
+              <p className="font-semibold text-center">
             {form.successMessage || 'Form submitted successfully!'}
           </p>
+            </div>
         </motion.div>
       )}
 
       {submitStatus === 'error' && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md"
-        >
-          <p className="text-red-800 text-center">
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`mt-8 p-6 rounded-2xl border-2 ${
+              designType === 'futuristic' 
+                ? 'bg-red-400/10 border-red-400/30 text-red-300' 
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}
+          >
+            <p className="font-semibold text-center">
             There was an error submitting the form. Please try again.
           </p>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 } 

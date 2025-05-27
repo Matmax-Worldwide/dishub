@@ -10,7 +10,8 @@ import {
   SettingsIcon,
   ArrowRightIcon,
   AlertCircleIcon,
-  ClipboardList
+  ClipboardList,
+  NewspaperIcon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import graphqlClient from '@/lib/graphql-client';
@@ -21,6 +22,7 @@ type CMSModule = {
   icon: React.ComponentType<{ className?: string }>;
   href: string;
   count?: number;
+  posts?: number;
   color: string;
   disabled: boolean;
 };
@@ -30,6 +32,8 @@ export default function CMSDashboard() {
   const [pageCount, setPageCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
   const [formCount, setFormCount] = useState(0);
+  const [blogCount, setBlogCount] = useState(0);
+  const [postsCount, setPostsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -52,6 +56,15 @@ export default function CMSDashboard() {
         const formsData = await graphqlClient.getForms();
         console.log('Formularios obtenidos:', formsData);
         setFormCount(Array.isArray(formsData) ? formsData.length : 0);
+
+        // Obtener publicaciones desde GraphQL
+        const blogData = await graphqlClient.getBlogs();
+        console.log('Publicaciones obtenidas:', blogData);
+        setBlogCount(Array.isArray(blogData) ? blogData.length : 0);
+
+        const postsData = await graphqlClient.getPosts();
+        console.log('Publicaciones obtenidas:', postsData);
+        setPostsCount(Array.isArray(postsData) ? postsData.length : 0);
       } catch (error) {
         console.error('Error fetching CMS data:', error);
       } finally {
@@ -88,6 +101,17 @@ export default function CMSDashboard() {
       href: `/${locale}/cms/forms`,
       count: formCount,
       color: 'bg-amber-500',
+      disabled: false
+    },
+
+    {
+      title: 'Blog',
+      description: 'Gestionar publicaciones y categorías del blog',
+      icon: NewspaperIcon,
+      href: `/${locale}/cms/blog`,
+      count: blogCount,
+      posts: postsCount,
+      color: 'bg-indigo-500',
       disabled: false
     },
     {
@@ -138,6 +162,7 @@ export default function CMSDashboard() {
             {module.count !== undefined && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                 {isLoading ? '...' : module.count}
+                {module.title === 'Blog' && ` (${module.posts} publicaciones)`}
               </span>
             )}
           </div>
@@ -161,7 +186,7 @@ export default function CMSDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-12">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Sistema de Gestión de Contenido</h1>
       </div>

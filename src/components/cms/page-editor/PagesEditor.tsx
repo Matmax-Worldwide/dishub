@@ -2,6 +2,9 @@ import React, { ReactNode } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { PagesSidebar } from './PagesSidebar';
 
+// Component type definition
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
+
 interface PagesEditorProps {
   children: ReactNode;
 }
@@ -16,11 +19,22 @@ const PagesEditor: React.FC<PagesEditorProps> = ({ children }) => {
       router.push(`/${locale}/cms/pages/edit/${slug}`);
   };
 
+  // Handle component selection from ComponentsGrid
+  const handleComponentSelect = (componentType: ComponentType) => {
+    console.log(`[PagesEditor] Component selected: ${componentType}`);
+    
+    // Dispatch a custom event that PageEditor can listen to
+    document.dispatchEvent(new CustomEvent('sidebar:component-selected', {
+      detail: { componentType }
+    }));
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Pages Sidebar - This is the main focus of this component now */}
           <PagesSidebar 
-            onPageSelect={handlePageSelect} 
+            onPageSelect={handlePageSelect}
+            onComponentSelect={handleComponentSelect}
           />
         
       {/* Main content area - now renders children instead of placeholder */}

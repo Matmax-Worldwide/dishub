@@ -9,6 +9,7 @@ import ComponentTitleInput from './ComponentTitleInput';
 import { Button } from '@/components/ui/button';
 import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
+import { FormDesignType } from './forms/MultiStepFormRenderer';
 
 // Drag and Drop imports
 import {
@@ -46,7 +47,7 @@ interface FooterColumn {
 }
 
 // Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog';
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
 
 export interface Component {
   id: string;
@@ -69,7 +70,6 @@ const componentMap = {
             <div className="flex items-center space-x-6">
               <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
             </div>
           </div>
@@ -79,37 +79,21 @@ const componentMap = {
   }),
   Hero: dynamic(() => import('./sections/HeroSection'), {
     loading: () => (
-      <div className="relative min-h-[500px] bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="w-16 h-6 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
-            <div className="w-3/4 h-12 bg-gray-200 rounded mx-auto mb-6 animate-pulse"></div>
-            <div className="w-2/3 h-6 bg-gray-200 rounded mx-auto mb-8 animate-pulse"></div>
-            <div className="flex justify-center gap-4">
-              <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
-              <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }),
-  Benefit: dynamic(() => import('./sections/BenefitSection'), {
-    loading: () => (
-      <div className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="w-48 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
-            <div className="w-96 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="text-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
-                <div className="w-32 h-6 bg-gray-200 rounded mx-auto mb-2 animate-pulse"></div>
-                <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="w-20 h-6 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-full h-16 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-3/4 h-6 bg-gray-200 rounded animate-pulse"></div>
+              <div className="flex gap-4">
+                <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
               </div>
-            ))}
+            </div>
+            <div className="flex justify-center">
+              <div className="w-80 h-80 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -117,16 +101,14 @@ const componentMap = {
   }),
   Text: dynamic(() => import('./sections/TextSection'), {
     loading: () => (
-      <div className="py-12 bg-white">
+      <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="w-64 h-8 bg-gray-200 rounded mb-6 animate-pulse"></div>
-            <div className="space-y-4">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="w-2/3 h-10 bg-gray-200 rounded animate-pulse"></div>
+            <div className="space-y-3">
               <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
-              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-              <div className="w-5/6 h-4 bg-gray-200 rounded animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -135,11 +117,10 @@ const componentMap = {
   }),
   Image: dynamic(() => import('./sections/ImageSection'), {
     loading: () => (
-      <div className="py-12 bg-white">
+      <div className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="w-full h-64 bg-gray-200 rounded-lg animate-pulse mb-4"></div>
-            <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
+            <div className="w-full h-96 bg-gray-200 rounded-lg animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -147,17 +128,18 @@ const componentMap = {
   }),
   Feature: dynamic(() => import('./sections/FeatureSection'), {
     loading: () => (
-      <div className="py-16 bg-white">
+      <div className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse flex-shrink-0"></div>
-                <div className="flex-1">
-                  <div className="w-32 h-5 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-full h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                  <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
-                </div>
+          <div className="text-center mb-16">
+            <div className="w-64 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+            <div className="w-96 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto animate-pulse"></div>
+                <div className="w-32 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+                <div className="w-48 h-4 bg-gray-200 rounded mx-auto animate-pulse"></div>
               </div>
             ))}
           </div>
@@ -167,23 +149,12 @@ const componentMap = {
   }),
   Testimonial: dynamic(() => import('./sections/TestimonialSection'), {
     loading: () => (
-      <div className="py-16 bg-gray-50">
+      <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="bg-white p-6 rounded-lg shadow-sm">
-                  <div className="w-full h-20 bg-gray-200 rounded mb-4 animate-pulse"></div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
-                    <div>
-                      <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                      <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto animate-pulse"></div>
+            <div className="w-3/4 h-8 bg-gray-200 rounded mx-auto animate-pulse"></div>
+            <div className="w-48 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -193,16 +164,12 @@ const componentMap = {
     loading: () => (
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
-                <div className="p-6">
-                  <div className="w-3/4 h-6 bg-gray-200 rounded mb-3 animate-pulse"></div>
-                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-5/6 h-4 bg-gray-200 rounded mb-4 animate-pulse"></div>
-                  <div className="w-24 h-8 bg-gray-200 rounded animate-pulse"></div>
-                </div>
+              <div key={i} className="bg-white rounded-lg shadow-md p-6 space-y-4">
+                <div className="w-full h-48 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-3/4 h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
               </div>
             ))}
           </div>
@@ -210,33 +177,22 @@ const componentMap = {
       </div>
     )
   }),
-  Footer: dynamic(() => import('./sections/FooterSection'), {
+  Benefit: dynamic(() => import('./sections/BenefitSection'), {
     loading: () => (
-      <div className="bg-gray-900 text-white py-12">
+      <div className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="w-32 h-8 bg-gray-700 rounded mb-4 animate-pulse"></div>
-              <div className="w-48 h-4 bg-gray-700 rounded animate-pulse"></div>
-            </div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i}>
-                <div className="w-24 h-5 bg-gray-700 rounded mb-4 animate-pulse"></div>
-                <div className="space-y-2">
-                  <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
-                  <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
-                  <div className="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
-                </div>
+          <div className="text-center mb-16">
+            <div className="w-56 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+            <div className="w-80 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl p-6 shadow-lg space-y-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="w-3/4 h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
               </div>
             ))}
-          </div>
-          <div className="border-t border-gray-700 pt-8 flex justify-between items-center">
-            <div className="w-48 h-4 bg-gray-700 rounded animate-pulse"></div>
-            <div className="flex space-x-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-6 h-6 bg-gray-700 rounded animate-pulse"></div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -244,29 +200,84 @@ const componentMap = {
   }),
   Form: dynamic(() => import('./sections/FormSection'), {
     loading: () => (
-      <div className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
+      <div className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="w-48 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
-              <div className="w-64 h-5 bg-gray-200 rounded mx-auto animate-pulse"></div>
+            <div className="text-center mb-12">
+              <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-6 animate-pulse"></div>
+              <div className="w-64 h-10 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+              <div className="w-80 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
             </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <div className="space-y-6">
-                <div>
-                  <div className="w-20 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
+            
+            {/* Multi-step form skeleton */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
+              {/* Progress bar */}
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-                <div>
-                  <div className="w-16 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-                <div>
-                  <div className="w-24 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-full h-24 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-                <div className="w-32 h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-full h-3 bg-gray-200 rounded-full animate-pulse"></div>
               </div>
+              
+              {/* Step indicators */}
+              <div className="flex justify-center space-x-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center">
+                    <div className={`w-12 h-12 rounded-full animate-pulse ${i === 0 ? 'bg-blue-200' : 'bg-gray-200'}`}></div>
+                    {i < 2 && <div className="w-16 h-1 bg-gray-200 mx-4 animate-pulse"></div>}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Form fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="w-full h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Navigation buttons */}
+              <div className="flex justify-between pt-6">
+                <div className="w-24 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                <div className="w-24 h-12 bg-blue-200 rounded-xl animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }),
+  Footer: dynamic(() => import('./sections/FooterSection'), {
+    loading: () => (
+      <div className="bg-gray-900 text-white py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="w-32 h-8 bg-gray-700 rounded mb-6 animate-pulse"></div>
+              <div className="w-48 h-4 bg-gray-700 rounded mb-3 animate-pulse"></div>
+              <div className="w-40 h-4 bg-gray-700 rounded animate-pulse"></div>
+            </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i}>
+                <div className="w-28 h-6 bg-gray-700 rounded mb-6 animate-pulse"></div>
+                <div className="space-y-3">
+                  <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-28 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-700 pt-8 flex justify-between items-center">
+            <div className="w-56 h-4 bg-gray-700 rounded animate-pulse"></div>
+            <div className="flex space-x-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+              ))}
             </div>
           </div>
         </div>
@@ -277,53 +288,47 @@ const componentMap = {
     loading: () => (
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="w-full h-64 bg-gray-200 rounded-lg mb-8 animate-pulse"></div>
-            <div className="max-w-3xl mx-auto">
-              <div className="w-3/4 h-10 bg-gray-200 rounded mb-4 animate-pulse"></div>
-              <div className="w-1/2 h-6 bg-gray-200 rounded mb-6 animate-pulse"></div>
-              <div className="flex items-center space-x-4 mb-8">
-                <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
-                <div>
-                  <div className="w-24 h-4 bg-gray-200 rounded mb-1 animate-pulse"></div>
-                  <div className="w-32 h-3 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-                ))}
-                <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse"></div>
-              </div>
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="w-3/4 h-12 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-full h-64 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+              ))}
             </div>
           </div>
         </div>
       </div>
     )
   }),
-  Blog: dynamic(() => import('./sections/BlogSection'), {
+  Blog: dynamic(() => import('./sections/BlogSectionWrapper'), {
     loading: () => (
-      <div className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="w-32 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
-            <div className="w-64 h-5 bg-gray-200 rounded mx-auto animate-pulse"></div>
+      <div className="w-full bg-white border rounded-lg shadow-sm">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white border rounded-lg overflow-hidden shadow-sm">
-                <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
-                <div className="p-6">
-                  <div className="w-3/4 h-6 bg-gray-200 rounded mb-3 animate-pulse"></div>
-                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="w-5/6 h-4 bg-gray-200 rounded mb-4 animate-pulse"></div>
-                  <div className="flex items-center justify-between">
-                    <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="border rounded-lg p-4">
+                <div className="w-full h-32 bg-gray-200 rounded mb-3 animate-pulse"></div>
+                <div className="w-3/4 h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                <div className="w-1/2 h-3 bg-gray-200 rounded animate-pulse"></div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    )
+  }),
+  CtaButton: dynamic(() => import('./sections/CtaButtonSection'), {
+    loading: () => (
+      <div className="w-full bg-white border rounded-lg shadow-sm">
+        <div className="p-6 flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-24 h-10 bg-blue-200 rounded animate-pulse"></div>
+            <div className="w-6 h-6 bg-gray-200 rounded-full animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -825,6 +830,14 @@ function SectionManagerBase({
           showDate: true,
           showTags: true,
           showExcerpt: true
+        } : type === 'CtaButton' ? {
+          buttonText: 'Get Started',
+          buttonUrl: '#',
+          backgroundColor: '#3B82F6',
+          textColor: '#FFFFFF',
+          borderRadius: 8,
+          dropdownLinks: [],
+          showDropdown: false
         } : {}),
         componentTitle: `${type} Component`
       }
@@ -1218,6 +1231,30 @@ function SectionManagerBase({
           </div>
         )
       },
+      {
+        type: 'CtaButton',
+        title: 'CtaButton Component',
+        description: 'Add call-to-action buttons with dropdown links',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="8" width="18" height="8" rx="4" stroke="currentColor" strokeWidth="2"/>
+            <path d="M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M14 10l2 2-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-green-500 bg-green-100 border-green-200',
+        disabled: false,
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-md">
+            <div className="flex items-center justify-center">
+              <div className="flex items-center bg-green-500 text-white px-4 py-2 rounded-lg">
+                <div className="w-12 h-2 bg-white/80 rounded mr-2"></div>
+                <div className="w-3 h-3 border-l border-b border-white/80 transform rotate-45"></div>
+              </div>
+            </div>
+          </div>
+        )
+      },
     ];
 
     // Ensure sliderPosition is in bounds
@@ -1575,6 +1612,84 @@ function SectionManagerBase({
     };
   }, [onComponentsChange]);
 
+  // Add event listener for component:add to handle optimistic UI updates
+  useEffect(() => {
+    const handleComponentAdd = (e: Event) => {
+      const customEvent = e as CustomEvent<Component>;
+      
+      if (customEvent.detail) {
+        const newComponent = customEvent.detail;
+        console.log(`[SectionManager] 🚀 Adding component optimistically:`, newComponent);
+
+        setComponents(prev => {
+          // Check if component already exists to avoid duplicates
+          const existingIndex = prev.findIndex(c => c.id === newComponent.id);
+          if (existingIndex !== -1) {
+            console.log(`[SectionManager] ⚠️ Component ${newComponent.id} already exists, skipping`);
+            return prev;
+          }
+
+          // Add the new component to the end of the list
+          const newComponents = [...prev, newComponent];
+          
+          console.log(`[SectionManager] ✅ Component added optimistically. Total components: ${newComponents.length}`);
+          
+          // Notify parent component of changes
+          if (onComponentsChange) {
+            setTimeout(() => {
+              onComponentsChange(newComponents);
+            }, 100);
+          }
+          
+          return newComponents;
+        });
+      } else {
+        console.error('[SectionManager] ❌ component:add event received without data');
+      }
+    };
+
+    document.addEventListener('component:add', handleComponentAdd);
+    
+    return () => {
+      document.removeEventListener('component:add', handleComponentAdd);
+    };
+  }, [onComponentsChange]);
+
+  // Add event listener for component:remove to handle reverting optimistic UI updates
+  useEffect(() => {
+    const handleComponentRemove = (e: Event) => {
+      const customEvent = e as CustomEvent<{ componentId: string }>;
+      
+      if (customEvent.detail && customEvent.detail.componentId) {
+        const { componentId } = customEvent.detail;
+        console.log(`[SectionManager] 🗑️ Removing component optimistically:`, componentId);
+
+        setComponents(prev => {
+          const newComponents = prev.filter(c => c.id !== componentId);
+          
+          console.log(`[SectionManager] ✅ Component removed optimistically. Total components: ${newComponents.length}`);
+          
+          // Notify parent component of changes
+          if (onComponentsChange) {
+            setTimeout(() => {
+              onComponentsChange(newComponents);
+            }, 100);
+          }
+          
+          return newComponents;
+        });
+      } else {
+        console.error('[SectionManager] ❌ component:remove event received without componentId');
+      }
+    };
+
+    document.addEventListener('component:remove', handleComponentRemove);
+    
+    return () => {
+      document.removeEventListener('component:remove', handleComponentRemove);
+    };
+  }, [onComponentsChange]);
+
   // Remove a component without triggering a full re-render of the section
   const removeComponent = useCallback((id: string) => {
     setComponents(prevComponents => {
@@ -1894,6 +2009,7 @@ function SectionManagerBase({
                 formId={component.data.formId as string}
                 styles={component.data.styles as FormStyles}
                 customConfig={component.data.customConfig as FormCustomConfig}
+                formDesign={component.data.formDesign as FormDesignType || 'modern'}
                 // Use component's own background if it exists, otherwise use section background
                 backgroundImage={
                   (component.data.backgroundImage as string) || 
@@ -1949,6 +2065,25 @@ function SectionManagerBase({
                 showDate={component.data.showDate as boolean ?? true}
                 showTags={component.data.showTags as boolean ?? true}
                 showExcerpt={component.data.showExcerpt as boolean ?? true}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'CtaButton': {
+          const CtaButtonComponent = componentMap.CtaButton;
+          return (
+            <div {...containerProps}>
+              <CtaButtonComponent
+                buttonText={component.data.buttonText as string}
+                buttonUrl={component.data.buttonUrl as string}
+                backgroundColor={component.data.backgroundColor as string}
+                textColor={component.data.textColor as string}
+                borderRadius={component.data.borderRadius as number}
+                dropdownLinks={component.data.dropdownLinks as Array<{id: string; label: string; url: string}>}
+                showDropdown={component.data.showDropdown as boolean}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />

@@ -1082,7 +1082,7 @@ export default function BlogSection({
                     onChange={(e) => handleUpdateField('showImageOverlay', e.target.checked)}
                   />
                   <span className="text-sm">Image Hover Overlay</span>
-                </label>
+            </label>
           </div>
         </div>
           </TabsContent>

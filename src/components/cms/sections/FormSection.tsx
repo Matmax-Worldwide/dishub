@@ -6,10 +6,10 @@ import { FormBase } from '@/types/forms';
 import { FormPreview } from './FormPreview';
 import { FormStyleConfig, FormStyles } from './FormStyleConfig';
 import { FormConfig, FormCustomConfig } from './FormConfig';
-import { FileText, LayoutPanelTop, FormInput } from 'lucide-react';
+import { FileText, LayoutPanelTop, FormInput, Palette } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import FormRenderer from '@/components/cms/forms/FormRenderer';
-import MultiStepFormRenderer from '@/components/cms/forms/MultiStepFormRenderer';
+import MultiStepFormRenderer, { FormDesignType } from '@/components/cms/forms/MultiStepFormRenderer';
 import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import IconSelector from '@/components/cms/IconSelector';
@@ -37,6 +37,7 @@ interface FormSectionProps {
   selectedIcon?: string;
   backgroundImage?: string;
   backgroundType?: 'image' | 'gradient';
+  formDesign?: FormDesignType;
   onUpdate?: (data: {
     title?: string;
     description?: string;
@@ -46,6 +47,7 @@ interface FormSectionProps {
     selectedIcon?: string;
     backgroundImage?: string;
     backgroundType?: 'image' | 'gradient';
+    formDesign?: FormDesignType;
   }) => void;
   className?: string;
 }
@@ -62,6 +64,7 @@ export default function FormSection({
   selectedIcon: initialSelectedIcon = 'PaperAirplaneIcon',
   backgroundImage: initialBackgroundImage = '',
   backgroundType: initialBackgroundType = 'gradient',
+  formDesign: initialFormDesign = 'modern',
   onUpdate,
   className = '',
 }: FormSectionProps) {
@@ -75,6 +78,7 @@ export default function FormSection({
   const [selectedIcon, setSelectedIcon] = useState(initialSelectedIcon);
   const [backgroundImage, setBackgroundImage] = useState(initialBackgroundImage);
   const [backgroundType, setBackgroundType] = useState<'image' | 'gradient'>(initialBackgroundType);
+  const [formDesign, setFormDesign] = useState<FormDesignType>(initialFormDesign);
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -667,53 +671,100 @@ export default function FormSection({
   const StylesTab = () => (
     <div className="space-y-4">
       <h3 className="text-sm font-medium mb-2 flex items-center">
-        <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-        Form Display Options
+        <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
+        Form Design Style
       </h3>
       
-      <div className="space-y-4">
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-medium">Background</h4>
-          
-          <div 
-            className="h-32 mb-3 rounded-md border border-gray-200 overflow-hidden relative"
-            style={{
-              ...(backgroundType === 'image' && backgroundImage ? {
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundPosition: 'center',
-                backgroundSize: 'cover',
-                backgroundRepeat: 'no-repeat'
-              } : {
-                background: backgroundImage || BACKGROUND_TEMPLATES[0].value
-              })
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        {[
+          { value: 'modern', label: 'Modern', description: 'Blue gradients with smooth animations', color: 'from-blue-500 to-purple-600' },
+          { value: 'elegant', label: 'Elegant', description: 'Warm amber tones with sophistication', color: 'from-amber-400 to-orange-500' },
+          { value: 'futuristic', label: 'Futuristic', description: 'Dark theme with cyan neon accents', color: 'from-cyan-400 to-blue-500' },
+          { value: 'minimal', label: 'Minimal', description: 'Clean and simple black & white', color: 'from-gray-700 to-gray-900' },
+          { value: 'corporate', label: 'Corporate', description: 'Professional blue corporate style', color: 'from-blue-600 to-indigo-600' }
+        ].map((design) => (
+          <button
+            key={design.value}
+            type="button"
+            onClick={() => {
+              setFormDesign(design.value as FormDesignType);
+              if (onUpdate) {
+                onUpdate({
+                  title,
+                  description,
+                  formId,
+                  styles,
+                  customConfig,
+                  selectedIcon,
+                  backgroundImage,
+                  backgroundType,
+                  formDesign: design.value as FormDesignType
+                });
+              }
             }}
+            className={`p-3 rounded-lg border-2 text-left transition-all ${
+              formDesign === design.value
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
           >
-            {(!backgroundImage) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
-                {template === 'DEFAULT' ? 'Using default template background' : 'No background selected'}
-              </div>
-            )}
+            <div className={`w-full h-8 rounded mb-2 bg-gradient-to-r ${design.color}`}></div>
+            <div className="font-medium text-xs">{design.label}</div>
+            <div className="text-xs text-gray-500 mt-1 leading-tight">{design.description}</div>
+          </button>
+        ))}
+      </div>
+      
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium mb-2 flex items-center">
+          <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+          Background & Styling
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <h4 className="text-sm font-medium">Background</h4>
+            
+            <div 
+              className="h-32 mb-3 rounded-md border border-gray-200 overflow-hidden relative"
+              style={{
+                ...(backgroundType === 'image' && backgroundImage ? {
+                  backgroundImage: `url(${backgroundImage})`,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                  backgroundRepeat: 'no-repeat'
+                } : {
+                  background: backgroundImage || BACKGROUND_TEMPLATES[0].value
+                })
+              }}
+            >
+              {(!backgroundImage) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
+                  {template === 'DEFAULT' ? 'Using default template background' : 'No background selected'}
+                </div>
+              )}
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setShowBackgroundSelector(true)}
+              className="bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+            >
+              Select Background
+            </button>
           </div>
           
-          <button
-            type="button"
-            onClick={() => setShowBackgroundSelector(true)}
-            className="bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-          >
-            Select Background
-          </button>
+          <FormStyleConfig 
+            initialStyles={styles}
+            onChange={handleStyleChange}
+          />
+          
+          <FormConfig
+            form={selectedForm}
+            initialConfig={customConfig}
+            onCustomConfigChange={handleCustomConfigChange}
+          />
         </div>
-        
-        <FormStyleConfig 
-          initialStyles={styles}
-          onChange={handleStyleChange}
-        />
-        
-        <FormConfig
-          form={selectedForm}
-          initialConfig={customConfig}
-          onCustomConfigChange={handleCustomConfigChange}
-        />
       </div>
     </div>
   );
@@ -976,12 +1027,9 @@ export default function FormSection({
                     {selectedForm.isMultiStep ? (
                       <MultiStepFormRenderer
                         form={selectedForm}
-                        buttonClassName={getButtonClassNames()}
-                        buttonStyles={getButtonStyles()}
-                        inputClassName={getInputClassNames()}
-                        labelClassName={getLabelClassNames()}
                         onSubmit={handleFormSubmit}
                         submitStatus={submitStatus}
+                        designType={formDesign}
                       />
                     ) : (
                       <FormRenderer

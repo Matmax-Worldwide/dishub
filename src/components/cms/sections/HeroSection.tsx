@@ -18,6 +18,8 @@ import {
   generateStylesFromStyling,
   generateClassesFromStyling
 } from '@/types/cms-styling';
+import ColorSelector from '@/components/cms/ColorSelector';
+import TransparencySelector from '@/components/cms/TransparencySelector';
 
 interface HeroSectionProps extends ComponentStyleProps {
   title: string;
@@ -116,6 +118,11 @@ const HeroSection = React.memo(function HeroSection({
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   
+  // Add text color and transparency controls
+  const [textColor, setTextColor] = useState(localStyling.textColor || '#111827');
+  const [backgroundColor, setBackgroundColor] = useState(localStyling.backgroundColor || '#ffffff');
+  const [transparency, setTransparency] = useState(0);
+
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
 
@@ -249,6 +256,29 @@ const HeroSection = React.memo(function HeroSection({
     handleUpdateField('showIcon', newValue);
   }, [handleUpdateField]);
   
+  // Add color and transparency handlers
+  const handleTextColorChange = useCallback((color: string) => {
+    setTextColor(color);
+    const newStyling = { ...localStyling, textColor: color };
+    setLocalStyling(newStyling);
+    handleUpdateField('styling', newStyling);
+  }, [localStyling, handleUpdateField]);
+
+  const handleBackgroundColorChange = useCallback((color: string) => {
+    setBackgroundColor(color);
+    const newStyling = { ...localStyling, backgroundColor: color };
+    setLocalStyling(newStyling);
+    handleUpdateField('styling', newStyling);
+  }, [localStyling, handleUpdateField]);
+
+  const handleTransparencyChange = useCallback((value: number) => {
+    setTransparency(value);
+    // Apply transparency to background color
+    const newStyling = { ...localStyling, transparency: value };
+    setLocalStyling(newStyling);
+    handleUpdateField('styling', newStyling);
+  }, [localStyling, handleUpdateField]);
+  
   // Handle background selection with immediate local update and debounced parent update
   const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
     console.log('Background selected:', { background, type });
@@ -318,16 +348,27 @@ const HeroSection = React.memo(function HeroSection({
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.8 }}
             className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
+            style={{ color: localStyling.textColor || undefined }}
             data-field-type="badgeText"
             data-component-type="Hero"
           >
             {localBadgeText}
           </motion.div>
         )}
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight" data-field-type="title" data-component-type="Hero">
+        <h1 
+          className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" 
+          style={{ color: localStyling.textColor || '#111827' }}
+          data-field-type="title" 
+          data-component-type="Hero"
+        >
           {localTitle}
         </h1>
-        <p className="mt-6 text-xl text-gray-600" data-field-type="subtitle" data-component-type="Hero">
+        <p 
+          className="mt-6 text-xl" 
+          style={{ color: localStyling.textColor ? `${localStyling.textColor}CC` : '#4B5563' }}
+          data-field-type="subtitle" 
+          data-component-type="Hero"
+        >
           {localSubtitle}
         </p>
         
@@ -341,6 +382,10 @@ const HeroSection = React.memo(function HeroSection({
             <Link
               href={localCta.url || '#'}
               className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
+              style={{ 
+                backgroundColor: localStyling.backgroundColor || undefined,
+                color: '#ffffff'
+              }}
               data-field-type="cta.text"
               data-component-type="Hero"
             >
@@ -351,7 +396,11 @@ const HeroSection = React.memo(function HeroSection({
           {localSecondaryCta && localSecondaryCta.text && (
             <Link
               href={localSecondaryCta.url || '#'}
-              className="border-2 border-gray-300 text-gray-700 text-lg px-6 py-3 rounded-lg hover:bg-gray-50 transform transition-all duration-300 hover:-translate-y-1"
+              className="border-2 text-lg px-6 py-3 rounded-lg hover:bg-gray-50 transform transition-all duration-300 hover:-translate-y-1"
+              style={{ 
+                borderColor: localStyling.textColor || '#D1D5DB',
+                color: localStyling.textColor || '#374151'
+              }}
               data-field-type="secondaryCta.text"
               data-component-type="Hero"
             >
@@ -377,12 +426,18 @@ const HeroSection = React.memo(function HeroSection({
             animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <InterpretationSVG className="w-full h-auto max-w-md" />
+            <InterpretationSVG 
+              className="w-full h-auto max-w-md" 
+              style={{ 
+                filter: localStyling.textColor ? `hue-rotate(${localStyling.textColor === '#ffffff' ? '180deg' : '0deg'})` : undefined 
+              }}
+            />
           </motion.div>
           
           {/* Interactive elements */}
           <motion.div
-            className="absolute -top-8 -right-8 w-16 h-16 bg-primary-200 rounded-full z-0"
+            className="absolute -top-8 -right-8 w-16 h-16 rounded-full z-0"
+            style={{ backgroundColor: localStyling.backgroundColor || '#DBEAFE' }}
             animate={{
               y: [0, -10, 0],
             }}
@@ -393,7 +448,8 @@ const HeroSection = React.memo(function HeroSection({
             }}
           />
           <motion.div
-            className="absolute bottom-10 -left-8 w-12 h-12 bg-indigo-300 rounded-full z-0"
+            className="absolute bottom-10 -left-8 w-12 h-12 rounded-full z-0"
+            style={{ backgroundColor: localStyling.textColor || '#C7D2FE' }}
             animate={{
               y: [0, 10, 0],
             }}
@@ -405,7 +461,8 @@ const HeroSection = React.memo(function HeroSection({
           />
           
           <motion.div
-            className="absolute -bottom-4 right-12 w-8 h-8 bg-primary-300 rounded-md rotate-12 z-0"
+            className="absolute -bottom-4 right-12 w-8 h-8 rounded-md rotate-12 z-0"
+            style={{ backgroundColor: localStyling.borderColor || '#A5B4FC' }}
             animate={{
               rotate: [12, 45, 12],
             }}
@@ -493,10 +550,13 @@ const HeroSection = React.memo(function HeroSection({
       <section 
         className={cn(
           "relative w-full overflow-hidden flex items-center min-h-screen",
-          isEditing ? "min-h-[600px] h-auto py-8" : "",
-          cssClasses
+          isEditing ? "min-h-[600px] h-auto py-8 bg-white" : "",
+          !isEditing ? cssClasses : ""
         )}
-        style={{
+        style={isEditing ? { 
+          isolation: 'isolate',
+          backgroundColor: '#ffffff' // Always white background in editor
+        } : {
           ...(localBackgroundType === 'image' && localBackgroundImage ? {
             backgroundImage: `url(${localBackgroundImage})`,
             backgroundPosition: 'center',
@@ -505,7 +565,10 @@ const HeroSection = React.memo(function HeroSection({
           } : {
             background: localBackgroundImage || 'linear-gradient(to bottom, white, #dbeafe)'
           }),
-          isolation: 'isolate', // Create new stacking context
+          isolation: 'isolate',
+          backgroundColor: transparency > 0 ? 
+            `rgba(${parseInt(backgroundColor.slice(1, 3), 16)}, ${parseInt(backgroundColor.slice(3, 5), 16)}, ${parseInt(backgroundColor.slice(5, 7), 16)}, ${(100 - transparency) / 100})` :
+            backgroundColor,
           ...inlineStyles
         }}
       >
@@ -662,11 +725,50 @@ const HeroSection = React.memo(function HeroSection({
                     label: "Styling",
                     icon: <Palette className="w-4 h-4" />,
                     content: (
-                      <StyleControls
-                        styling={localStyling}
-                        onStylingChange={handleStylingChange}
-                        showAdvanced={true}
-                      />
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Colors</h3>
+                            
+                            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                              <div>
+                                <ColorSelector
+                                  label="Text Color"
+                                  value={textColor}
+                                  onChange={handleTextColorChange}
+                                />
+                              </div>
+                              
+                              <div>
+                                <ColorSelector
+                                  label="Background Color"
+                                  value={backgroundColor}
+                                  onChange={handleBackgroundColorChange}
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Background Transparency
+                                </label>
+                                <TransparencySelector
+                                  value={transparency}
+                                  onChange={handleTransparencyChange}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Styling</h3>
+                            <StyleControls
+                              styling={localStyling}
+                              onStylingChange={handleStylingChange}
+                              showAdvanced={true}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     )
                   },
                   {

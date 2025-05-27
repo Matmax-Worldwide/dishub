@@ -927,7 +927,7 @@ export default function CMSPage() {
       return priorityA - priorityB;
     });
   };
-
+  
   // Function to convert component type to proper case for SectionManager
   const formatComponentType = (type: string): ComponentType => {
     // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.

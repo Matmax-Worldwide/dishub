@@ -2,19 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import dynamic from 'next/dynamic';
 import { 
   PlusIcon, 
   SearchIcon, 
   FileTextIcon, 
   EyeIcon,
   ExternalLinkIcon,
-  LayoutIcon,
-  Settings,
   FileIcon,
   HomeIcon,
   CheckIcon,
   LoaderIcon,
-  AlertCircleIcon
+  AlertCircleIcon,
+  Grid3X3Icon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from "@/components/ui/label";
-import { useTabContext } from '@/contexts/TabContext';
 
 interface PageItem {
   id: string;
@@ -37,6 +36,7 @@ interface PageItem {
 // Simplified props - no currentPageId required
 interface PagesSidebarProps {
   onPageSelect?: (slug: string) => void;
+  onComponentSelect?: (componentType: ComponentType) => void;
 }
 
 // Mejorar los tipos para el bus de eventos definiendo interfaces específicas
@@ -95,7 +95,24 @@ export const PageEvents = {
   }
 };
 
-export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
+// Add ComponentType definition
+type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton';
+
+// Dynamic import for ComponentsGrid
+const ComponentsGrid = dynamic(() => import('./ComponentsGrid'), {
+  loading: () => (
+    <div className="space-y-2 p-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="grid grid-cols-2 gap-2">
+          <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      ))}
+    </div>
+  )
+});
+
+export function PagesSidebar({ onPageSelect, onComponentSelect }: PagesSidebarProps) {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [filteredPages, setFilteredPages] = useState<PageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +123,12 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
   const [quickTitle, setQuickTitle] = useState('');
   const [quickCreateLoading, setQuickCreateLoading] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
+  
+  // Add component search state
+  const [componentSearchQuery, setComponentSearchQuery] = useState('');
+  
+  // Add state for toggling between pages and components
+  const [showComponents, setShowComponents] = useState(false);
   
   // Unsaved changes context
   const {
@@ -119,14 +142,14 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
     setShowUnsavedAlert,
   } = useUnsavedChanges();
   
-  // Obtener el contexto directamente en cada renderizado
-  const { activeTab, setActiveTab } = useTabContext();
-  
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string || 'en';
   // Get current slug from URL params
   const currentSlug = params.slug as string;
+  
+  // Check if we're editing a specific page (has slug) or just on the general edit route
+  const isEditingSpecificPage = Boolean(currentSlug && currentSlug.trim() !== '');
 
   // Handle dialog open state changes
   const handleDialogOpenChange = React.useCallback((open: boolean) => {
@@ -138,6 +161,13 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
       setQuickCreateError(null);
     }
   }, []);
+
+  // Reset components view when not editing a specific page
+  useEffect(() => {
+    if (!isEditingSpecificPage && showComponents) {
+      setShowComponents(false);
+    }
+  }, [isEditingSpecificPage, showComponents]);
 
   // Keyboard shortcut for quick create
   useEffect(() => {
@@ -523,10 +553,17 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
       />
     <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden h-full">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        {/* Titulo y contador de páginas */}
+        {/* Titulo y contador */}
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-medium">Pages</h3>
-          <span className="text-xs text-gray-500">{filteredPages.length} {filteredPages.length === 1 ? 'page' : 'pages'}</span>
+          <h3 className="text-lg font-medium">
+            {showComponents ? 'Components' : 'Pages'}
+          </h3>
+          <span className="text-xs text-gray-500">
+            {showComponents 
+              ? 'Add to page' 
+              : `${filteredPages.length} ${filteredPages.length === 1 ? 'page' : 'pages'}`
+            }
+          </span>
         </div>
         
         {/* Buscador */}
@@ -534,158 +571,141 @@ export function PagesSidebar({ onPageSelect }: PagesSidebarProps) {
           <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search pages..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={showComponents ? "Search components..." : "Search pages..."}
+            value={showComponents ? componentSearchQuery : searchQuery}
+            onChange={(e) => showComponents ? setComponentSearchQuery(e.target.value) : setSearchQuery(e.target.value)}
             className="pl-8 py-1 h-9 text-sm"
           />
         </div>
         
-        {/* Tabs de navegación */}
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-1 w-full">
+        {/* Toggle Button - Only show when editing a specific page */}
+        {isEditingSpecificPage && (
+          <div className="flex justify-center mb-3">
             <Button 
-              variant={activeTab === 'details' ? "secondary" : "ghost"}
+              variant={showComponents ? "default" : "outline"}
               size="sm" 
-              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
-              title="Detalles"
-              onClick={() => {
-                console.log('Sidebar: Clicking details tab, current:', activeTab);
-                setActiveTab('details');
-              }}
+              className="w-full flex items-center justify-center gap-2" 
+              onClick={() => setShowComponents(!showComponents)}
             >
-              <span className="text-xs">Detalles</span>
-              <Settings className="h-3.5 w-3.5" />
+              <Grid3X3Icon className="h-4 w-4" />
+              <span className="text-sm">
+                {showComponents ? 'Back to Pages' : 'Browse Components'}
+              </span>
             </Button>
-            <Button 
-              variant={activeTab === 'sections' ? "secondary" : "ghost"}
-              size="sm" 
-              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
-              title="Secciones"
-              onClick={() => {
-                console.log('Sidebar: Clicking sections tab, current:', activeTab);
-                setActiveTab('sections');
-              }}
-            >
-              <span className="text-xs">Secciones</span>
-              <LayoutIcon className="h-3.5 w-3.5" />
-            </Button>
-            <Button 
-              variant={activeTab === 'seo' ? "secondary" : "ghost"}
-              size="sm" 
-              className="h-7 px-2 flex-1 flex items-center justify-center gap-1" 
-              title="SEO"
-              onClick={() => {
-                console.log('Sidebar: Clicking SEO tab, current:', activeTab);
-                setActiveTab('seo');
-              }}
-            >
-              <span className="text-xs">SEO</span>
-              <SearchIcon className="h-3.5 w-3.5" />
-            </Button>
-            
           </div>
-        </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
         <div className="py-2 px-2">
-          {isLoading ? (
-            <div className="space-y-2 p-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-2">
-                  <Skeleton className="h-4 w-4 rounded-full" />
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="p-4 text-center">
-              <div className="text-red-500 text-sm mb-3 flex flex-col items-center">
-                <AlertCircleIcon className="h-8 w-8 mb-2" />
-                <span>{error}</span>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReload}
-                className="mt-2"
-              >
-                Intentar de nuevo
-              </Button>
-            </div>
-          ) : filteredPages.length === 0 ? (
-            <div className="p-4 text-gray-500 text-center text-sm">
-              {searchQuery ? 'No pages found' : 'No pages available'}
-            </div>
+          {showComponents && isEditingSpecificPage ? (
+            <ComponentsGrid 
+              searchQuery={componentSearchQuery}
+              onSearchChange={setComponentSearchQuery}
+              onComponentSelect={onComponentSelect}
+            />
           ) : (
-            <ul className="space-y-1">
-              {filteredPages.map(page => (
-                <li 
-                  key={page.id}
-                  className={`rounded-md transition-colors cursor-pointer hover:bg-gray-100 ${page.slug === currentSlug ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
-                  onClick={() => handlePageClick(page.slug)}
-                >
-                  <div className="flex items-center justify-between p-2">
-                    <div className="flex items-center min-w-0">
-                      {getPageIcon(page.pageType)}
-                      <span className={`ml-2 text-sm font-medium truncate ${page.slug === currentSlug ? 'text-blue-800' : 'text-gray-700'}`}>{page.title}</span>
+            <>
+              {isLoading ? (
+                <div className="space-y-2 p-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-2">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-4 w-full" />
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        title="Preview page"
-                        onClick={(e) => handlePreviewPage(e, page.slug)}
-                      >
-                        <EyeIcon className="h-3.5 w-3.5 text-gray-500 hover:text-blue-500" />
-                      </Button>
-                      {page.isPublished && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">
-                          <CheckIcon className="h-3 w-3 mr-1" />
-                          Live
-                        </Badge>
-                      )}
-                    </div>
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="p-4 text-center">
+                  <div className="text-red-500 text-sm mb-3 flex flex-col items-center">
+                    <AlertCircleIcon className="h-8 w-8 mb-2" />
+                    <span>{error}</span>
                   </div>
-                </li>
-              ))}
-            </ul>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleReload}
+                    className="mt-2"
+                  >
+                    Intentar de nuevo
+                  </Button>
+                </div>
+              ) : filteredPages.length === 0 ? (
+                <div className="p-4 text-gray-500 text-center text-sm">
+                  {searchQuery ? 'No pages found' : 'No pages available'}
+                </div>
+              ) : (
+                <ul className="space-y-1">
+                  {filteredPages.map(page => (
+                    <li 
+                      key={page.id}
+                      className={`rounded-md transition-colors cursor-pointer hover:bg-gray-100 ${page.slug === currentSlug ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                      onClick={() => handlePageClick(page.slug)}
+                    >
+                      <div className="flex items-center justify-between p-2">
+                        <div className="flex items-center min-w-0">
+                          {getPageIcon(page.pageType)}
+                          <span className={`ml-2 text-sm font-medium truncate ${page.slug === currentSlug ? 'text-blue-800' : 'text-gray-700'}`}>{page.title}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            title="Preview page"
+                            onClick={(e) => handlePreviewPage(e, page.slug)}
+                          >
+                            <EyeIcon className="h-3.5 w-3.5 text-gray-500 hover:text-blue-500" />
+                          </Button>
+                          {page.isPublished && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">
+                              <CheckIcon className="h-3 w-3 mr-1" />
+                              Live
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-gray-200 space-y-2">
-        <Button 
-          onClick={() => handleDialogOpenChange(true)}
-          className="w-full flex items-center justify-center gap-2"
-          size="sm"
-          variant="outline"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Quick Create <span className="ml-1 text-xs opacity-70">Ctrl+N</span>
-        </Button>
-        
-        <Button 
-          onClick={handleCreatePage}
-          className="w-full flex items-center justify-center gap-2"
-          size="sm"
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <>
-              <LoaderIcon className="h-4 w-4 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            <>
-              <PlusIcon className="h-4 w-4" />
-              Advanced Create
-            </>
-          )}
-        </Button>
-      </div>
+      {!showComponents && (
+        <div className="p-4 border-t border-gray-200 space-y-2">
+          <Button 
+            onClick={() => handleDialogOpenChange(true)}
+            className="w-full flex items-center justify-center gap-2"
+            size="sm"
+            variant="outline"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Quick Create <span className="ml-1 text-xs opacity-70">Ctrl+N</span>
+          </Button>
+          
+          <Button 
+            onClick={handleCreatePage}
+            className="w-full flex items-center justify-center gap-2"
+            size="sm"
+            disabled={isCreating}
+          >
+            {isCreating ? (
+              <>
+                <LoaderIcon className="h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <PlusIcon className="h-4 w-4" />
+                Advanced Create
+              </>
+            )}
+          </Button>
+        </div>
+      )}
       
       {/* Quick Create Form */}
       {showQuickCreate && (
