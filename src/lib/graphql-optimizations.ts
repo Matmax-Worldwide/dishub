@@ -61,11 +61,11 @@ class GraphQLOptimizer {
       }
     `,
 
-    // Batch multiple sections at once
-    getMultipleSections: `
-      query GetMultipleSections($sectionIds: [ID!]!) {
-        getMultipleSections(sectionIds: $sectionIds) {
-          sectionId
+    // Batch multiple sections at once - REMOVED: getMultipleSections doesn't exist
+    // Using individual getSectionComponents calls instead
+    getSectionComponents: `
+      query GetSectionComponents($sectionId: ID!) {
+        getSectionComponents(sectionId: $sectionId) {
           components {
             id
             type
@@ -76,21 +76,14 @@ class GraphQLOptimizer {
       }
     `,
 
-    // Video-specific data only
+    // Video-specific data only - Updated to use getSectionComponents
     getVideoComponents: `
-      query GetVideoComponents($sectionIds: [ID!]!) {
-        getMultipleSections(sectionIds: $sectionIds) {
-          sectionId
+      query GetVideoComponents($sectionId: ID!) {
+        getSectionComponents(sectionId: $sectionId) {
           components {
             id
             type
-            data {
-              videoUrl
-              posterUrl
-              autoplay
-              muted
-              controls
-            }
+            data
           }
         }
       }
@@ -374,37 +367,51 @@ class GraphQLOptimizer {
     };
   }
 
-  // Preload videos from video sections
+  // Preload video sections for faster playback
   async preloadVideoSections(videoSectionIds: string[]): Promise<void> {
-    if (videoSectionIds.length === 0) return;
+    if (!videoSectionIds.length) return;
 
     try {
-      const videoData = await this.executeQuery(
-        this.OPTIMIZED_QUERIES.getVideoComponents,
-        { sectionIds: videoSectionIds },
-        { cache: true, ttl: 15 * 60 * 1000 }
-      );
+      console.log('🎬 Preloading video sections:', videoSectionIds);
 
-      const sections = (videoData as { getMultipleSections: unknown[] }).getMultipleSections;
+      // Process each section individually since there's no batch query
       const videoUrls: string[] = [];
 
-      sections.forEach((section: unknown) => {
-        const sectionData = section as { components: { type: string; data: { videoUrl?: string } }[] };
-        sectionData.components.forEach(comp => {
-          if (comp.type.toLowerCase() === 'video' && comp.data.videoUrl) {
-            videoUrls.push(comp.data.videoUrl);
-          }
-        });
-      });
+      for (const sectionId of videoSectionIds) {
+        try {
+          const videoData = await this.executeQuery(
+            this.OPTIMIZED_QUERIES.getVideoComponents,
+            { sectionId },
+            { cache: true, ttl: 15 * 60 * 1000 }
+          );
 
-      // Preload videos using video preloader
-      if (videoUrls.length > 0) {
-        const { videoPreloader } = await import('./video-preloader');
-        await videoPreloader.preloadVideos(videoUrls, 'high');
+          const sectionData = (videoData as { getSectionComponents: { components: { type: string; data: Record<string, unknown> }[] } }).getSectionComponents;
+          
+          sectionData.components.forEach(comp => {
+            if (comp.type.toLowerCase() === 'video' && comp.data && typeof comp.data === 'object') {
+              const videoUrl = (comp.data as { videoUrl?: string }).videoUrl;
+              if (videoUrl) {
+                videoUrls.push(videoUrl);
+              }
+            }
+          });
+        } catch (error) {
+          console.warn(`Failed to preload video section ${sectionId}:`, error);
+        }
       }
 
+      // Preload video files
+      if (videoUrls.length > 0) {
+        const { videoPreloader } = await import('./video-preloader');
+        
+        await Promise.allSettled(
+          videoUrls.map(url => videoPreloader.preloadVideo(url))
+        );
+        
+        console.log(`🎬 Preloaded ${videoUrls.length} videos`);
+      }
     } catch (error) {
-      console.error('Failed to preload video sections:', error);
+      console.error('Error preloading video sections:', error);
     }
   }
 
