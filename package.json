@@ -51,6 +51,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/react-beautiful-dnd": "^13.1.8",
     "apollo-server-micro": "^3.13.0",
+    "babel-plugin-react-compiler": "^19.1.0-rc.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",

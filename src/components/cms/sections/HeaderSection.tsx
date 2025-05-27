@@ -666,6 +666,12 @@ export default function HeaderSection({
     return { r, g, b };
   }, []);
 
+  // Debug logging for logo URL
+  useEffect(() => {
+    if (logoUrl) {
+      console.log('HeaderSection: Logo URL updated:', logoUrl);
+    }
+  }, [logoUrl]);
 
   // Separating components for modularity
   const LogoSelector = () => (

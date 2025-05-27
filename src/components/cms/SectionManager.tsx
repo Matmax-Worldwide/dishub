@@ -347,6 +347,23 @@ const componentMap = {
       </div>
     )
   }),
+  Gallery: dynamic(() => import('./sections/GallerySection'), {
+    loading: () => (
+      <div className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="w-48 h-8 bg-gray-200 rounded mx-auto mb-4 animate-pulse"></div>
+            <div className="w-64 h-6 bg-gray-200 rounded mx-auto animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }),
 };
 
 // Props for the SectionManager component
@@ -1293,6 +1310,31 @@ function SectionManagerBase({
           </div>
         )
       },
+      {
+        type: 'Gallery',
+        title: 'Gallery Component',
+        description: 'Display multiple images in a grid format',
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+            <path d="M21 15L16 10L9 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
+        color: 'text-emerald-500 bg-emerald-100 border-emerald-200',
+        preview: (
+          <div className="flex flex-col p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-md">
+            <div className="bg-emerald-200 w-full h-20 rounded-md flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-emerald-400">
+                <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <path d="M21 15L16 10L9 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="h-2 bg-emerald-200 rounded w-1/2 mt-2 mx-auto"></div>
+          </div>
+        )
+      },
     ];
 
     // Ensure sliderPosition is in bounds
@@ -2194,6 +2236,36 @@ function SectionManagerBase({
                 fullHeight={component.data.fullHeight as boolean ?? true}
                 maxHeight={component.data.maxHeight as string ?? '100vh'}
                 objectFit={component.data.objectFit as 'cover' | 'contain' | 'fill' ?? 'cover'}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Gallery': {
+          const GalleryComponent = componentMap.Gallery;
+          return (
+            <div {...containerProps}>
+              <GalleryComponent
+                title={component.data.title as string}
+                subtitle={component.data.subtitle as string}
+                images={component.data.images as Array<{id: string; url: string; alt: string; caption?: string; title?: string}> || []}
+                layout={component.data.layout as 'grid' | 'masonry' | 'carousel' | 'lightbox' || 'grid'}
+                columns={component.data.columns as 2 | 3 | 4 | 5 || 3}
+                spacing={component.data.spacing as 'none' | 'small' | 'medium' | 'large' || 'medium'}
+                aspectRatio={component.data.aspectRatio as 'square' | 'landscape' | 'portrait' | 'auto' || 'square'}
+                showCaptions={component.data.showCaptions as boolean ?? true}
+                showTitles={component.data.showTitles as boolean ?? false}
+                enableLightbox={component.data.enableLightbox as boolean ?? true}
+                backgroundColor={component.data.backgroundColor as string || '#ffffff'}
+                textColor={component.data.textColor as string || '#000000'}
+                borderRadius={component.data.borderRadius as number || 8}
+                showImageCount={component.data.showImageCount as boolean ?? false}
+                autoplay={component.data.autoplay as boolean ?? false}
+                autoplaySpeed={component.data.autoplaySpeed as number || 3000}
+                showNavigation={component.data.showNavigation as boolean ?? true}
+                showDots={component.data.showDots as boolean ?? true}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />

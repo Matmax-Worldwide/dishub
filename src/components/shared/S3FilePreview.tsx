@@ -52,6 +52,8 @@ const S3FilePreview = ({
     // No hacer nada si no hay URL
     if (!src) return;
     
+    console.log('S3FilePreview: Processing src:', src);
+    
     // Reset error state on src change
     setImageError(false);
     
@@ -196,7 +198,7 @@ const S3FilePreview = ({
   
   // Handler for image error
   const handleImageError = () => {
-    console.error("Error loading image:", src);
+    console.error("S3FilePreview: Error loading image:", { src, isS3Url, s3Key, finalUrl: getFileUrl() });
     setImageError(true);
   };
   
@@ -230,9 +232,13 @@ const S3FilePreview = ({
   // Obtener la URL de visualización
   const getFileUrl = (): string => {
     if (isS3Url && s3Key) {
-      return `/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`;
+      const apiUrl = `/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`;
+      console.log('S3FilePreview: Converting S3 URL to API route:', { original: src, s3Key, apiUrl });
+      return apiUrl;
     }
-    return getSafeUrl(src);
+    const safeUrl = getSafeUrl(src);
+    console.log('S3FilePreview: Using direct URL:', { original: src, safeUrl });
+    return safeUrl;
   };
   
   // Mostrar nada si no hay URL
@@ -286,6 +292,22 @@ const S3FilePreview = ({
       );
     }
     
+    // For S3 files served through our API, use regular img tag instead of Next.js Image
+    // This avoids issues with Next.js Image optimization and our custom API route
+    if (isS3Url && s3Key) {
+      return (
+        <img 
+          src={imageUrl} 
+          alt={alt}
+          className={`object-contain ${className}`}
+          width={width} 
+          height={height}
+          onError={handleImageError}
+          loading="lazy"
+        />
+      );
+    }
+    
     if (isSvg) {
       // Los SVG los renderizamos como imagenes normales para evitar inyección XSS
       return (
@@ -296,10 +318,12 @@ const S3FilePreview = ({
           width={width} 
           height={height}
           onError={handleImageError}
+          loading="lazy"
         />
       );
     }
     
+    // For non-S3 images, use Next.js Image component
     return (
       <Image 
         src={imageUrl}

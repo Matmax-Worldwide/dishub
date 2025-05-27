@@ -129,6 +129,9 @@ const HeroSection = React.memo(function HeroSection({
   const [localBorderRadius, setLocalBorderRadius] = useState(borderRadius || 'medium');
   const [localShadowSize, setLocalShadowSize] = useState(shadowSize || 'none');
   
+  // Add state for tracking design changes
+  const [isDesignChanging, setIsDesignChanging] = useState(false);
+  
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
 
@@ -258,18 +261,27 @@ const HeroSection = React.memo(function HeroSection({
   
   // Add design template handlers
   const handleDesignTemplateChange = useCallback((template: string) => {
-    setLocalDesignTemplate(template as typeof localDesignTemplate);
-    
-    // Update with design template and all layout properties to ensure proper saving
-    if (onUpdate) {
-      onUpdate({
-        designTemplate: template as typeof localDesignTemplate,
-        padding: localPadding,
-        borderRadius: localBorderRadius,
-        shadowSize: localShadowSize
-      });
+    try {
+      setIsDesignChanging(true);
+      setLocalDesignTemplate(template as typeof localDesignTemplate);
+      
+      // Update with design template and all layout properties to ensure proper saving
+      if (onUpdate) {
+        onUpdate({
+          designTemplate: template as typeof localDesignTemplate,
+          padding: localPadding,
+          borderRadius: localBorderRadius,
+          shadowSize: localShadowSize
+        });
+      }
+      
+      // Reset the changing state after a brief delay
+      setTimeout(() => setIsDesignChanging(false), 300);
+    } catch (error) {
+      console.error('Error changing design template:', error);
+      setIsDesignChanging(false);
     }
-  }, [handleUpdateField, localPadding, localBorderRadius, localShadowSize]);
+  }, [onUpdate, localPadding, localBorderRadius, localShadowSize]);
 
   const handlePaddingChange = useCallback((value: string) => {
     setLocalPadding(value as typeof localPadding);
@@ -463,6 +475,8 @@ const HeroSection = React.memo(function HeroSection({
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      // Reset any pending state changes
+      setIsDesignChanging(false);
     };
   }, []);
 
@@ -1145,90 +1159,187 @@ const HeroSection = React.memo(function HeroSection({
                           </div>
                         </div>
                         
-                        {/* Live Preview */}
+                        {/* Live Hero Preview */}
                         <div className="border rounded-lg overflow-hidden bg-gray-50">
                           <div className="p-4 bg-white border-b">
                             <h4 className="font-medium text-gray-900 mb-1">Live Preview</h4>
                             <p className="text-sm text-gray-600">This is how your hero section will appear to visitors</p>
                           </div>
                           
-                          <div className="p-6 bg-gray-50">
-                            <div 
-                              className={`relative w-full h-64 overflow-hidden flex items-center justify-center ${getLayoutClasses()}`}
-                              style={{
-                                ...getDesignTemplateStyles(),
-                                ...getLayoutStyles()
-                              }}
-                            >
-                              <div className="text-center z-10 relative">
-                                {localBadgeText && (
-                                  <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium mb-4">
-                                    {localBadgeText}
-                                  </div>
-                                )}
-                                <h1 className="text-2xl font-bold mb-2">
-                                  {localTitle || 'Your Hero Title'}
-                                </h1>
-                                <p className="text-sm opacity-80 mb-4 max-w-md">
-                                  {localSubtitle || 'Your hero subtitle will appear here'}
-                                </p>
-                                <div className="flex gap-2 justify-center">
-                                  {localCta.text && (
-                                    <button className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-md text-xs font-medium">
-                                      {localCta.text}
-                                    </button>
-                                  )}
-                                  {localSecondaryCta.text && (
-                                    <button className="px-4 py-2 border border-white/30 rounded-md text-xs font-medium">
-                                      {localSecondaryCta.text}
-                                    </button>
-                                  )}
+                          <div className="relative">
+                            {isDesignChanging ? (
+                              <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center min-h-[400px]">
+                                <div className="text-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                  <p className="text-sm text-gray-600">Updating design preview...</p>
                                 </div>
                               </div>
-                              
-                              {/* Template-specific effects */}
-                              {localDesignTemplate === 'neon' && (
-                                <>
-                                  <div className="absolute top-2 left-2 w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                                  <div className="absolute bottom-2 right-2 w-1 h-1 bg-pink-400 rounded-full animate-pulse"></div>
-                                </>
-                              )}
-                              
-                              {localDesignTemplate === 'glassmorphism' && (
-                                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                              )}
-                              
-                              {localDesignTemplate === 'retro' && (
-                                <div className="absolute top-2 right-2 w-4 h-4 bg-orange-400 transform rotate-45"></div>
-                              )}
-                            </div>
+                            ) : (
+                              <div 
+                                key={`preview-${localDesignTemplate}-${localPadding}-${localBorderRadius}-${localShadowSize}`}
+                                className={cn(
+                                  "relative w-full overflow-hidden flex items-center min-h-[400px]",
+                                  !isEditing ? cssClasses : "",
+                                  !isEditing ? getLayoutClasses() : ""
+                                )}
+                                style={{
+                                  ...(localBackgroundType === 'image' && localBackgroundImage ? {
+                                    backgroundImage: `url(${localBackgroundImage})`,
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'cover',
+                                    backgroundRepeat: 'no-repeat'
+                                  } : localBackgroundImage ? {
+                                    backgroundImage: localBackgroundImage
+                                  } : {
+                                    backgroundImage: 'linear-gradient(to bottom, white, #dbeafe)'
+                                  }),
+                                  isolation: 'isolate',
+                                  ...getDesignTemplateStyles(),
+                                  ...getLayoutStyles()
+                                }}
+                              >
+                                {/* Animated background elements */}
+                                {localShowAnimatedDots && (
+                                  <div className="absolute inset-0 overflow-hidden pointer-events-none z-1">
+                                    <motion.div 
+                                      className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary-100 opacity-60"
+                                      animate={{
+                                        x: [0, 30, 0],
+                                        y: [0, 40, 0],
+                                      }}
+                                      transition={{
+                                        duration: 15,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                      }}
+                                    />
+                                    <motion.div 
+                                      className="absolute top-40 right-20 w-32 h-32 rounded-full bg-indigo-100 opacity-60"
+                                      animate={{
+                                        x: [0, -40, 0],
+                                        y: [0, 30, 0],
+                                      }}
+                                      transition={{
+                                        duration: 18,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="w-full h-full relative z-10 flex items-center justify-center p-8">
+                                  <div className="text-center max-w-4xl mx-auto">
+                                    {localBadgeText && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6 }}
+                                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary mb-4"
+                                      >
+                                        {localBadgeText}
+                                      </motion.div>
+                                    )}
+                                    
+                                    {localTitle && (
+                                      <motion.h1
+                                        initial={{ opacity: 0, y: 30 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.8 }}
+                                        className="text-4xl md:text-6xl font-bold mb-6 leading-tight"
+                                        style={{ color: localStyling.textColor || '#111827' }}
+                                      >
+                                        {localTitle}
+                                      </motion.h1>
+                                    )}
+                                    
+                                    {localSubtitle && (
+                                      <motion.p
+                                        initial={{ opacity: 0, y: 30 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.8, delay: 0.2 }}
+                                        className="text-xl md:text-2xl mb-8 opacity-90"
+                                        style={{ color: localStyling.textColor || '#6B7280' }}
+                                      >
+                                        {localSubtitle}
+                                      </motion.p>
+                                    )}
+                                    
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 30 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ duration: 0.8, delay: 0.4 }}
+                                      className="flex flex-col sm:flex-row gap-4 justify-center"
+                                    >
+                                      {localCta.text && (
+                                        <button
+                                          type="button"
+                                          className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                                          disabled
+                                        >
+                                          {localCta.text}
+                                        </button>
+                                      )}
+                                      
+                                      {localSecondaryCta.text && (
+                                        <button
+                                          type="button"
+                                          className="px-8 py-3 border border-primary text-primary rounded-lg font-semibold hover:bg-primary/10 transition-colors"
+                                          disabled
+                                        >
+                                          {localSecondaryCta.text}
+                                        </button>
+                                      )}
+                                    </motion.div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Template Information */}
+                        {/* Design Information */}
                         <div className="p-4 border rounded-md bg-blue-50">
-                          <h5 className="text-sm font-medium text-blue-900 mb-2">Current Template: {localDesignTemplate}</h5>
+                          <h5 className="text-sm font-medium text-blue-900 mb-2">Current Design: {localDesignTemplate}</h5>
                           <div className="text-xs text-blue-700">
                             {localDesignTemplate === 'modern' && 'Blue gradients with smooth animations and modern styling'}
                             {localDesignTemplate === 'elegant' && 'Warm pink tones with sophisticated design elements'}
                             {localDesignTemplate === 'futuristic' && 'Dark theme with cyan neon accents and sci-fi styling'}
                             {localDesignTemplate === 'minimal' && 'Clean and simple light theme design'}
                             {localDesignTemplate === 'corporate' && 'Professional blue corporate styling'}
-                            {localDesignTemplate === 'gradient' && 'Colorful pink to purple gradients with vibrant styling'}
-                            {localDesignTemplate === 'glassmorphism' && 'Transparent glass effect with blur and modern aesthetics'}
+                            {localDesignTemplate === 'gradient' && 'Soft pink gradient background with modern aesthetics'}
+                            {localDesignTemplate === 'glassmorphism' && 'Modern glassmorphism effect with transparency and blur'}
                             {localDesignTemplate === 'neon' && 'Dark cyberpunk theme with bright neon colors'}
-                            {localDesignTemplate === 'retro' && 'Vintage orange and yellow tones with retro styling'}
+                            {localDesignTemplate === 'retro' && 'Vintage 80s inspired design with retro styling'}
                           </div>
                         </div>
 
                         {/* Layout Settings Summary */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="p-3 bg-gray-50 rounded-md">
                             <h6 className="text-xs font-medium text-gray-700 mb-2">Layout Settings</h6>
                             <div className="space-y-1 text-xs text-gray-600">
                               <div>Padding: <span className="font-medium">{localPadding}</span></div>
                               <div>Border Radius: <span className="font-medium">{localBorderRadius}</span></div>
                               <div>Shadow: <span className="font-medium">{localShadowSize}</span></div>
+                            </div>
+                          </div>
+                          
+                          <div className="p-3 bg-gray-50 rounded-md">
+                            <h6 className="text-xs font-medium text-gray-700 mb-2">Content</h6>
+                            <div className="space-y-1 text-xs text-gray-600">
+                              <div>Title: <span className="font-medium">{localTitle ? 'Set' : 'Not set'}</span></div>
+                              <div>Subtitle: <span className="font-medium">{localSubtitle ? 'Set' : 'Not set'}</span></div>
+                              <div>Badge: <span className="font-medium">{localBadgeText ? 'Set' : 'Not set'}</span></div>
+                            </div>
+                          </div>
+                          
+                          <div className="p-3 bg-gray-50 rounded-md">
+                            <h6 className="text-xs font-medium text-gray-700 mb-2">Actions</h6>
+                            <div className="space-y-1 text-xs text-gray-600">
+                              <div>Primary CTA: <span className="font-medium">{localCta.text ? 'Set' : 'Not set'}</span></div>
+                              <div>Secondary CTA: <span className="font-medium">{localSecondaryCta.text ? 'Set' : 'Not set'}</span></div>
+                              <div>Animated Dots: <span className="font-medium">{localShowAnimatedDots ? 'Enabled' : 'Disabled'}</span></div>
                             </div>
                           </div>
                         </div>
