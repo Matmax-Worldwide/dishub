@@ -2,10 +2,10 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
 import { ChevronDownIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
 import { cmsOperations } from '@/lib/graphql-client';
-import { useParams } from 'next/navigation';
 import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
 import { Menu, MenuItem } from '@/app/api/graphql/types';
 import { MediaItem } from '@/components/cms/media/types';
@@ -120,6 +120,7 @@ export default function HeaderSection({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const params = useParams();
+  const router = useRouter();
   const locale = params.locale as string || 'en';
   
   // Track if we're actively editing to prevent props from overriding local state
@@ -492,23 +493,11 @@ export default function HeaderSection({
     if (targetHref.startsWith('/') && !targetHref.startsWith('//')) {
       e.preventDefault();
       
-      // Extract slug from href
-      const pathParts = targetHref.split('/').filter(Boolean);
-      if (pathParts.length >= 2) {
-        const targetLocale = pathParts[0];
-        const targetSlug = pathParts[1];
-        
-        // Use global navigation function for instant loading
-        if (typeof window !== 'undefined' && window.navigateToPage) {
-          window.navigateToPage(targetSlug, targetLocale);
-        } else {
-          // Fallback to normal navigation
-          window.location.href = targetHref;
-        }
-      }
+      // Use Next.js router for navigation
+      router.push(targetHref);
     }
     // For external links, let the default behavior happen
-  }, []);
+  }, [router]);
   
   // Render menu items recursively
   const renderMenuItems = (items: MenuItem[], level = 0) => {
