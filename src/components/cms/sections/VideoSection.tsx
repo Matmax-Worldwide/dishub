@@ -413,55 +413,163 @@ const VideoSection = React.memo(function VideoSection({
     // Removed loading state updates for instant display
   };
 
+  // Enhanced video format detection with codec support
+  const getVideoFormatsAndCodecs = useCallback((url: string) => {
+    if (!url) return [];
+    
+    const extension = url.split('.').pop()?.toLowerCase();
+    const formats = [];
+    
+    switch (extension) {
+      case 'mp4':
+      case 'm4v':
+        formats.push(
+          { src: url, type: 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"' },
+          { src: url, type: 'video/mp4; codecs="avc1.4D401E,mp4a.40.2"' },
+          { src: url, type: 'video/mp4; codecs="avc1.64001E,mp4a.40.2"' },
+          { src: url, type: 'video/mp4' }
+        );
+        break;
+      case 'webm':
+        formats.push(
+          { src: url, type: 'video/webm; codecs="vp9,opus"' },
+          { src: url, type: 'video/webm; codecs="vp8,vorbis"' },
+          { src: url, type: 'video/webm' }
+        );
+        break;
+      case 'ogg':
+      case 'ogv':
+        formats.push(
+          { src: url, type: 'video/ogg; codecs="theora,vorbis"' },
+          { src: url, type: 'video/ogg' }
+        );
+        break;
+      default:
+        // For unknown formats, try multiple common codecs
+        formats.push(
+          { src: url, type: 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"' },
+          { src: url, type: 'video/mp4' },
+          { src: url, type: 'video/webm; codecs="vp9,opus"' },
+          { src: url, type: 'video/webm' }
+        );
+    }
+    
+    return formats;
+  }, []);
+
+  // Enhanced browser compatibility check
+  const checkVideoSupport = useCallback(() => {
+    const video = document.createElement('video');
+    const support = {
+      mp4: {
+        basic: video.canPlayType('video/mp4') !== '',
+        h264: video.canPlayType('video/mp4; codecs="avc1.42E01E,mp4a.40.2"') !== '',
+        h264High: video.canPlayType('video/mp4; codecs="avc1.64001E,mp4a.40.2"') !== ''
+      },
+      webm: {
+        basic: video.canPlayType('video/webm') !== '',
+        vp8: video.canPlayType('video/webm; codecs="vp8,vorbis"') !== '',
+        vp9: video.canPlayType('video/webm; codecs="vp9,opus"') !== ''
+      },
+      ogg: {
+        basic: video.canPlayType('video/ogg') !== '',
+        theora: video.canPlayType('video/ogg; codecs="theora,vorbis"') !== ''
+      }
+    };
+    
+    console.log('🎬 Browser video support:', support);
+    return support;
+  }, []);
+
+  // Enhanced error handling with retry mechanism
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.currentTarget;
     const error = video.error;
     
-    // Only log if there's actually an error to avoid empty error objects
+    console.log('🎬 Video error event:', {
+      url: localVideoUrl,
+      error: error ? {
+        code: error.code,
+        message: error.message
+      } : 'No error object',
+      networkState: video.networkState,
+      readyState: video.readyState,
+      currentSrc: video.currentSrc
+    });
+    
+    // Check browser support when error occurs
+    const support = checkVideoSupport();
+    
     if (error && error.code) {
-      console.warn('Video error details:', {
-        url: localVideoUrl,
-        errorCode: error.code,
-        errorMessage: error.message || 'No error message',
-        networkState: video.networkState,
-        readyState: video.readyState
-      });
-      
-      // Provide user-friendly error messages
       let errorMessage = 'Video playback error';
+      let shouldRetry = false;
+      
       switch (error.code) {
         case MediaError.MEDIA_ERR_ABORTED:
-          errorMessage = 'Video playback was aborted';
+          errorMessage = 'Video loading was cancelled';
+          shouldRetry = true;
           break;
         case MediaError.MEDIA_ERR_NETWORK:
           errorMessage = 'Network error while loading video';
+          shouldRetry = true;
           break;
         case MediaError.MEDIA_ERR_DECODE:
-          errorMessage = 'Video format not supported or corrupted';
+          errorMessage = 'Video format error or file corrupted';
+          console.warn('🎬 Decode error - trying different format/codec');
+          shouldRetry = true;
           break;
         case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-          errorMessage = 'Video format not supported by browser';
+          errorMessage = 'Video format not supported by this browser';
+          console.warn('🎬 Format not supported:', {
+            url: localVideoUrl,
+            browserSupport: support
+          });
+          shouldRetry = true;
           break;
         default:
           errorMessage = 'Unknown video error';
+          shouldRetry = true;
       }
       
-      // Use console.warn instead of console.error to avoid Next.js error overlay
-      console.warn(`Video Warning: ${errorMessage}`);
+      console.warn(`🎬 Video Error: ${errorMessage}`);
       
-      // Update error state for UI feedback
+      // Try to recover by reloading with different settings
+      if (shouldRetry && !hasVideoError) {
+        console.log('🎬 Attempting video recovery...');
+        setHasVideoError(false);
+        
+        setTimeout(() => {
+          if (video && localVideoUrl) {
+            // Try with different preload settings
+            video.preload = 'metadata';
+            video.load();
+            
+            // If still fails, try without crossOrigin
+            setTimeout(() => {
+              if (video.error) {
+                video.crossOrigin = '';
+                video.load();
+              }
+            }, 1000);
+          }
+        }, 500);
+        
+        return; // Don't set error state yet, give recovery a chance
+      }
+      
       setHasVideoError(true);
       setVideoErrorMessage(errorMessage);
-      
-      // Optionally show user-friendly message in UI
-      if (isEditing && onUpdate) {
-        // Could trigger a notification or update state to show error in UI
-      }
     } else {
-      // Silent handling for cases where error object is empty
-      console.log('Video error event triggered but no error details available');
+      console.log('🎬 Video error event without error details');
       setHasVideoError(true);
-      setVideoErrorMessage('Video failed to load');
+      setVideoErrorMessage('Video failed to load - trying recovery...');
+      
+      // Attempt recovery for unknown errors
+      setTimeout(() => {
+        if (video && localVideoUrl) {
+          video.load();
+        }
+      }, 1000);
     }
   };
 
@@ -567,36 +675,6 @@ const VideoSection = React.memo(function VideoSection({
       videoCache.current.clear();
       videoBlobCache.current.clear();
     };
-  }, []);
-
-  // Helper function to detect video format and MIME type
-  const getVideoMimeType = useCallback((url: string): string => {
-    if (!url) return 'video/mp4';
-    
-    const extension = url.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'mp4':
-      case 'm4v':
-        return 'video/mp4';
-      case 'webm':
-        return 'video/webm';
-      case 'ogg':
-      case 'ogv':
-        return 'video/ogg';
-      case 'avi':
-        return 'video/x-msvideo';
-      case 'mov':
-        return 'video/quicktime';
-      case 'wmv':
-        return 'video/x-ms-wmv';
-      case 'flv':
-        return 'video/x-flv';
-      case 'mkv':
-        return 'video/x-matroska';
-      default:
-        // Default to mp4 for unknown extensions or S3 URLs without clear extensions
-        return 'video/mp4';
-    }
   }, []);
 
   // Helper function to convert S3 URLs to API routes with caching
@@ -740,79 +818,119 @@ const VideoSection = React.memo(function VideoSection({
     }
   }, []);
 
+  // Enhanced video loading with better compatibility
+  const setupVideoElement = useCallback((video: HTMLVideoElement, url: string) => {
+    if (!video || !url) return;
+    
+    // Reset error state
+    setHasVideoError(false);
+    setVideoErrorMessage('');
+    
+    // Enhanced video attributes for better compatibility
+    video.preload = 'auto';
+    video.crossOrigin = 'anonymous';
+    video.playsInline = true;
+    
+    // Mobile optimizations
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      video.muted = true; // Required for autoplay on mobile
+      video.playsInline = true;
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('x-webkit-airplay', 'allow');
+    }
+    
+    // Hardware acceleration
+    video.style.willChange = 'transform';
+    video.style.transform = 'translateZ(0)';
+    
+    // Set video properties
+    video.muted = localMuted;
+    video.loop = localLoop;
+    video.controls = localControls;
+    
+    // Enhanced loading strategy
+    const processedUrl = convertS3UrlToApiRoute(url);
+    
+    // Clear any existing sources
+    while (video.firstChild) {
+      video.removeChild(video.firstChild);
+    }
+    
+    // Add multiple source formats for better compatibility
+    const formats = getVideoFormatsAndCodecs(processedUrl);
+    
+    formats.forEach(format => {
+      const source = document.createElement('source');
+      source.src = format.src;
+      source.type = format.type;
+      video.appendChild(source);
+    });
+    
+    // Set poster if available
+    if (localPosterUrl) {
+      video.poster = convertS3UrlToApiRoute(localPosterUrl);
+    }
+    
+    // Load the video
+    video.load();
+    
+    console.log('🎬 Video setup complete:', {
+      url: processedUrl,
+      formats: formats.length,
+      poster: video.poster,
+      muted: video.muted,
+      autoplay: localAutoplay
+    });
+    
+  }, [localVideoUrl, localPosterUrl, localMuted, localLoop, localControls, convertS3UrlToApiRoute, getVideoFormatsAndCodecs]);
+
   // Enhanced video loading with immediate playback and pre-rendering support
   useEffect(() => {
     if (localVideoUrl && videoRef.current && !isEditing) {
       const video = videoRef.current;
-      const processedVideoUrl = convertS3UrlToApiRoute(localVideoUrl);
       
-      // Check if video is already preloaded from page-level cache
-      const isPreloaded = document.querySelector(`video[src="${processedVideoUrl}"]`);
+      // Setup video with enhanced compatibility
+      setupVideoElement(video, localVideoUrl);
       
-      if (isPreloaded) {
-        // Use preloaded video for instant loading
-        video.src = processedVideoUrl;
-        console.log('🎬 Using preloaded video for instant playback');
-      } else {
-        // Check if we have a preloaded URL in browser cache
-        const cachedUrl = videoCache.current.get(localVideoUrl);
-        
-        if (cachedUrl) {
-          // Use cached URL for immediate loading
-          video.src = cachedUrl;
-          console.log('🎬 Using cached video URL for instant loading');
-        } else {
-          // Check for ultra-fast pre-rendered video from page cache
-          const ultraCacheKey = `ultra-video-${localVideoUrl}`;
-          const preRenderedVideo = sessionStorage.getItem(ultraCacheKey);
-          
-          if (preRenderedVideo) {
-            try {
-              const videoData = JSON.parse(preRenderedVideo);
-              if (videoData.objectUrl && videoData.readyState >= 2) {
-                video.src = videoData.objectUrl;
-                console.log('🚀 Using ultra-fast pre-rendered video for instant playback');
-              } else {
-                video.src = processedVideoUrl;
-              }
-            } catch (error) {
-              console.warn('Failed to parse pre-rendered video data:', error);
-              video.src = processedVideoUrl;
-            }
-          } else {
-            // Use original URL with optimizations
-            video.src = processedVideoUrl;
-          }
-        }
-      }
-
-      // Apply all optimizations
+      // Apply optimizations
       optimizeVideoForFastLoading(video);
       optimizeVideo(video);
       
-      // Set up video properties
-      video.muted = localMuted;
-      video.loop = localLoop;
-      video.playsInline = localPlaysinline;
-      
-      // Immediate load attempt with priority
-      video.load();
-      
-      // Auto-play with error handling
+      // Auto-play with enhanced error handling
       if (localAutoplay) {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log('Autoplay prevented by browser:', error);
-            // Fallback: show play button
+        const attemptAutoplay = async () => {
+          try {
+            await video.play();
+            console.log('🎬 Autoplay successful');
+          } catch (error) {
+            console.log('🎬 Autoplay prevented:', error);
+            // Show play button as fallback
             setLocalShowPlayButton(true);
-          });
+            
+            // Try muted autoplay as fallback
+            if (!video.muted) {
+              video.muted = true;
+              try {
+                await video.play();
+                console.log('🎬 Muted autoplay successful');
+              } catch (mutedError) {
+                console.log('🎬 Muted autoplay also failed:', mutedError);
+              }
+            }
+          }
+        };
+        
+        // Wait for video to be ready
+        if (video.readyState >= 2) {
+          attemptAutoplay();
+        } else {
+          video.addEventListener('canplay', attemptAutoplay, { once: true });
         }
       }
     }
-  }, [localVideoUrl, localAutoplay, localMuted, localLoop, localPlaysinline, isEditing, convertS3UrlToApiRoute, optimizeVideoForFastLoading, optimizeVideo]);
+  }, [localVideoUrl, localAutoplay, localMuted, localLoop, localPlaysinline, isEditing, setupVideoElement, optimizeVideoForFastLoading, optimizeVideo]);
 
-  // Render video content with instant loading and animated elements
+  // Render video content with enhanced error handling and multiple source support
   const renderVideoContent = () => {
     // Use optimized URLs when available, fallback to converted S3 URLs
     const processedVideoUrl = videoSrc ? convertS3UrlToApiRoute(videoSrc) : convertS3UrlToApiRoute(localVideoUrl);
@@ -822,7 +940,7 @@ const VideoSection = React.memo(function VideoSection({
       <div className="relative w-full h-full flex items-center justify-center">
         {processedVideoUrl ? (
           hasVideoError ? (
-            // Error state with modern design
+            // Enhanced error state with recovery options
             <motion.div 
               className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 text-red-800"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -858,31 +976,53 @@ const VideoSection = React.memo(function VideoSection({
                 >
                   {videoErrorMessage}
                 </motion.p>
-                {isEditing && (
+                <div className="space-y-3">
                   <motion.button
                     onClick={() => {
                       setHasVideoError(false);
                       setVideoErrorMessage('');
-                      if (videoRef.current) {
-                        videoRef.current.load();
+                      if (videoRef.current && localVideoUrl) {
+                        setupVideoElement(videoRef.current, localVideoUrl);
                       }
                     }}
-                    className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                    className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium w-full"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    Retry
+                    Retry Video
                   </motion.button>
-                )}
+                  
+                  {/* Fallback: Direct download link */}
+                  <motion.a
+                    href={processedVideoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium text-center"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    Download Video
+                  </motion.a>
+                </div>
+                
+                {/* Browser compatibility info */}
+                <motion.div
+                  className="mt-4 text-xs text-gray-600 bg-gray-100 p-3 rounded"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                >
+                  Try updating your browser or use a different browser for better video support.
+                </motion.div>
               </div>
             </motion.div>
           ) : (
-            // Instant video display without loading overlay
+            // Enhanced video element with multiple sources
             <>
-              {/* Video element - shows immediately */}
               <motion.video
                 ref={videoRef}
                 className="w-full h-full"
@@ -902,7 +1042,6 @@ const VideoSection = React.memo(function VideoSection({
                 poster={processedPosterUrl}
                 x-webkit-airplay="allow"
                 webkit-playsinline="true"
-                buffered="true"
                 onPlay={handleVideoPlay}
                 onPause={handleVideoPause}
                 onError={handleVideoError}
@@ -910,35 +1049,29 @@ const VideoSection = React.memo(function VideoSection({
                 onProgress={handleVideoProgress}
                 onLoadedData={handleVideoLoadedData}
                 onCanPlay={handleVideoCanPlay}
-                initial={{ opacity: 1 }} // Start fully visible
-                animate={{ opacity: 1 }} // Always visible
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 data-field-type="videoUrl"
                 data-component-type="Video"
               >
-                <source src={processedVideoUrl} type={getVideoMimeType(processedVideoUrl)} />
-                {processedVideoUrl.includes('.mp4') && (
-                  <>
-                    <source src={processedVideoUrl} type="video/mp4; codecs=avc1.42E01E,mp4a.40.2" />
-                    <source src={processedVideoUrl} type="video/mp4" />
-                  </>
-                )}
-                {processedVideoUrl.includes('.webm') && (
-                  <>
-                    <source src={processedVideoUrl} type="video/webm; codecs=vp9,opus" />
-                    <source src={processedVideoUrl} type="video/webm; codecs=vp8,vorbis" />
-                    <source src={processedVideoUrl} type="video/webm" />
-                  </>
-                )}
-                {processedVideoUrl.includes('.ogg') && (
-                  <source src={processedVideoUrl} type="video/ogg; codecs=theora,vorbis" />
-                )}
-                <p className="text-white text-center p-4">
-                  Your browser does not support the video tag. 
-                  <a href={processedVideoUrl} className="underline ml-1" target="_blank" rel="noopener noreferrer">
-                    Download the video
+                {/* Multiple source elements for better compatibility */}
+                {getVideoFormatsAndCodecs(processedVideoUrl).map((format, index) => (
+                  <source key={index} src={format.src} type={format.type} />
+                ))}
+                
+                {/* Fallback content */}
+                <div className="text-white text-center p-4 bg-black/50 rounded">
+                  <p className="mb-2">Your browser does not support the video tag.</p>
+                  <a 
+                    href={processedVideoUrl} 
+                    className="underline hover:text-blue-300 transition-colors" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    Download the video file
                   </a>
-                </p>
+                </div>
               </motion.video>
               
               {/* Overlay - shows immediately */}
