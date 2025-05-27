@@ -12,6 +12,8 @@ import ColorSelector from '@/components/cms/ColorSelector';
 import TransparencySelector from '@/components/cms/TransparencySelector';
 import { CmsTabs } from '@/components/cms/CmsTabs';
 import { FileText, Palette, Video, Eye } from 'lucide-react';
+import { useOptimizedVideo, useOptimizedImage } from '@/hooks/useOptimizedMedia';
+import { videoPreloader } from '@/lib/video-preloader';
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -66,6 +68,24 @@ const VideoSection = React.memo(function VideoSection({
   isEditing = false,
   onUpdate
 }: VideoSectionProps) {
+  // Use optimized video hook for better performance
+  const optimizedVideo = useOptimizedVideo(initialVideoUrl, {
+    enableLazyLoading: !isEditing,
+    enablePreloading: true,
+    quality: 'auto',
+    rootMargin: '300px',
+    threshold: 0.1
+  });
+
+  // Use optimized image hook for poster
+  const optimizedPoster = useOptimizedImage(initialPosterUrl, {
+    enableLazyLoading: !isEditing,
+    enablePreloading: true,
+    quality: 'high',
+    enableWebP: true,
+    enableAVIF: true
+  });
+
   // Local state for CMS editing
   const [localVideoUrl, setLocalVideoUrl] = useState(initialVideoUrl);
   const [localPosterUrl, setLocalPosterUrl] = useState(initialPosterUrl);
@@ -108,6 +128,22 @@ const VideoSection = React.memo(function VideoSection({
   const videoBlobCache = useRef<Map<string, Blob>>(new Map());
   const intersectionObserverRef = useRef<IntersectionObserver | null>(null);
   const preloadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get optimized URLs for rendering (fallback to original if not loaded)
+  const videoSrc = optimizedVideo.src || localVideoUrl;
+  const posterSrc = optimizedPoster.src || localPosterUrl;
+  const isVideoOptimized = optimizedVideo.isLoaded;
+  const videoLoadingProgress = optimizedVideo.progress;
+
+  // Preload video when component mounts or URL changes
+  useEffect(() => {
+    if (localVideoUrl && !isEditing) {
+      videoPreloader.preloadVideo(localVideoUrl, {
+        preloadAmount: 3, // 3MB
+        quality: 'auto'
+      });
+    }
+  }, [localVideoUrl, isEditing]);
 
   // Update local state when props change but only if not currently editing
   useEffect(() => {
@@ -813,10 +849,13 @@ const VideoSection = React.memo(function VideoSection({
 
   // Render video content with progressive loading and animated elements
   const renderVideoContent = () => {
-    // Convert S3 URLs to API routes for proper access
-    const processedVideoUrl = convertS3UrlToApiRoute(localVideoUrl);
-    const processedPosterUrl = convertS3UrlToApiRoute(localPosterUrl);
+    // Use optimized URLs when available, fallback to converted S3 URLs
+    const processedVideoUrl = videoSrc ? convertS3UrlToApiRoute(videoSrc) : convertS3UrlToApiRoute(localVideoUrl);
+    const processedPosterUrl = posterSrc ? convertS3UrlToApiRoute(posterSrc) : convertS3UrlToApiRoute(localPosterUrl);
     
+    // Use optimized loading progress when available
+    const currentLoadProgress = isVideoOptimized ? videoLoadingProgress : videoLoadProgress;
+
     return (
       <div className="relative w-full h-full flex items-center justify-center">
         {processedVideoUrl ? (
@@ -1045,7 +1084,7 @@ const VideoSection = React.memo(function VideoSection({
                       <motion.div 
                         className="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${videoLoadProgress}%` }}
+                        animate={{ width: `${currentLoadProgress}%` }}
                         transition={{ duration: 0.3 }}
                       />
                     </motion.div>
@@ -1056,7 +1095,7 @@ const VideoSection = React.memo(function VideoSection({
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.5, delay: 1.4 }}
                     >
-                      Loading video... {Math.round(videoLoadProgress)}%
+                      Loading video... {Math.round(currentLoadProgress)}%
                     </motion.p>
                   </div>
                 </motion.div>

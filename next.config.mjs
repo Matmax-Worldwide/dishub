@@ -214,8 +214,8 @@ const nextConfig = {
     // Enable modern bundling for better performance
     optimizePackageImports: ['framer-motion', 'lucide-react', '@heroicons/react'],
     // Enable server components optimization
-    // Enable optimized CSS loading
-    optimizeCss: true,
+    // Disable optimized CSS loading to fix prerendering issues
+    // optimizeCss: true,
     // Enable turbo mode for faster builds
     turbo: {
       rules: {
@@ -226,8 +226,8 @@ const nextConfig = {
       },
     },
 
-    // Enable React compiler for better performance
-    reactCompiler: true,
+    // Disable React compiler to fix prerendering issues
+    // reactCompiler: true,
   },
   
   // Optimized webpack configuration for video and performance

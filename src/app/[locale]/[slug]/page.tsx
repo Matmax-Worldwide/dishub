@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
+import { optimizedQueries } from '@/lib/graphql-optimizations';
 import SectionManager from '@/components/cms/SectionManager';
 import { Loader2Icon, AlertCircle, AlertTriangle } from 'lucide-react';
 
@@ -506,114 +507,103 @@ export default function CMSPage() {
         setError(null);
         console.log(`Cargando página con slug: ${slug} en locale: ${locale}`);
         
-        // Fetch the page data from API
-        const pageData = await cmsOperations.getPageBySlug(slug);
+        // Use optimized page loading with video detection
+        const optimizedPageData = await optimizedQueries.loadPage(slug);
         
-        if (!pageData) {
+        if (!optimizedPageData.page) {
           console.error(`Page not found: ${slug}`);
           setError('Página no encontrada');
           setIsLoading(false);
           return;
         }
         
-        // Use type assertion to handle type mismatch
-        setPageData(pageData as unknown as PageData);
-        console.log('Page data retrieved:', pageData);
+        // Set page data
+        setPageData(optimizedPageData.page as unknown as PageData);
+        console.log('Page data retrieved:', optimizedPageData.page);
         
-        try {
-          // Create array to store section data for rendering
-          const pageSectionsData: SectionData[] = [];
+        // Process sections data
+        const pageSectionsData: SectionData[] = [];
+        
+        if (optimizedPageData.sections && optimizedPageData.sections.length > 0) {
+          console.log(`Procesando ${optimizedPageData.sections.length} secciones optimizadas`);
           
-          if (pageData.sections && pageData.sections.length > 0) {
-            console.log(`Procesando ${pageData.sections.length} secciones`);
+          // Process each section from optimized data
+          (optimizedPageData.sections as Array<{ components: Array<{ id: string; type: string; data: Record<string, unknown> }> }>).forEach((sectionData, index: number) => {
+            const pageSection = (optimizedPageData.page as { sections: { id: string; order: number; name: string }[] }).sections[index];
             
-            // Process each section
-            for (const section of pageData.sections) {
-              try {
-                console.log(`Cargando componentes para sección: ${section.sectionId}`);
-                
-                // Load components for this section from the CMS
-                const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
-                
-                // Get section background data
-                let sectionBackgroundImage;
-                let sectionBackgroundType;
-                
-                try {
-                  // Get all sections and find this one to get its background
-                  const allSections = await cmsOperations.getAllCMSSections();
-                  const sectionData = allSections.find(s => s.sectionId === section.sectionId) as unknown as {
-                    backgroundImage?: string;
-                    backgroundType?: string;
-                  };
-                  
-                  if (sectionData) {
-                    sectionBackgroundImage = sectionData.backgroundImage;
-                    sectionBackgroundType = sectionData.backgroundType;
-                    console.log(`Found background for section ${section.sectionId}:`, { 
-                      backgroundImage: sectionBackgroundImage, 
-                      backgroundType: sectionBackgroundType 
-                    });
-                  }
-                } catch (bgError) {
-                  console.warn(`Could not load background for section ${section.sectionId}:`, bgError);
-                }
-                
-                if (componentResult && componentResult.components) {
-                  console.log(`Recibidos ${componentResult.components.length} componentes para ${section.name || section.id}`);
-                  
-                  // Add section with its components to our rendering data
-                  pageSectionsData.push({
-                    id: section.id,
-                    order: section.order || 0,
-                    title: section.name,
-                    // Include background data from the section
-                    backgroundImage: sectionBackgroundImage,
-                    backgroundType: sectionBackgroundType,
-                    components: componentResult.components
-                  });
-                } else {
-                  console.warn(`No se encontraron componentes para la sección: ${section.sectionId}`);
-                  pageSectionsData.push({
-                    id: section.id,
-                    order: section.order || 0,
-                    title: section.name,
-                    backgroundImage: sectionBackgroundImage,
-                    backgroundType: sectionBackgroundType,
-                    components: []
-                  });
-                }
-              } catch (error) {
-                console.error(`Error al cargar componentes para sección ${section.id}:`, error);
-                // Still add the section, but with empty components
-                pageSectionsData.push({
-                  id: section.id,
-                  order: section.order || 0,
-                  title: section.name,
-                  backgroundImage: undefined,
-                  backgroundType: undefined,
-                  components: []
-                });
-              }
+            if (sectionData && sectionData.components) {
+              pageSectionsData.push({
+                id: pageSection.id,
+                order: pageSection.order || 0,
+                title: pageSection.name,
+                components: sectionData.components
+              });
             }
-            
-            // Sort sections by order
-            pageSectionsData.sort((a, b) => a.order - b.order);
-            
-            // Log summary
-            console.log(`${pageSectionsData.length} secciones procesadas y ordenadas`);
-          }
+          });
           
-          setSections(pageSectionsData);
-        } catch (sectionsError) {
-          console.error('Error al cargar las secciones de la página:', sectionsError);
-          setError('Error al cargar las secciones de la página');
-          // Continue with empty sections instead of failing completely
-          setSections([]);
+          // Sort sections by order
+          pageSectionsData.sort((a, b) => a.order - b.order);
+          
+          console.log(`${pageSectionsData.length} secciones procesadas y ordenadas con optimización`);
         }
+        
+        setSections(pageSectionsData);
+        
+        // Preload videos if any video sections were detected
+        if (optimizedPageData.videoSections && optimizedPageData.videoSections.length > 0) {
+          console.log(`Pre-cargando videos de ${optimizedPageData.videoSections.length} secciones`);
+          
+          // Start video preloading in background
+          optimizedQueries.preloadVideos(optimizedPageData.videoSections).then(() => {
+            console.log('Videos pre-cargados exitosamente');
+          }).catch((error) => {
+            console.warn('Error al pre-cargar videos:', error);
+          });
+        }
+        
       } catch (pageError) {
         console.error('Error al cargar la página:', pageError);
         setError('Error al cargar la página');
+        
+        // Fallback to original loading method
+        try {
+          console.log('Intentando método de carga tradicional como respaldo...');
+          const pageData = await cmsOperations.getPageBySlug(slug);
+          
+          if (pageData) {
+            setPageData(pageData as unknown as PageData);
+            
+            // Load sections using traditional method
+            const pageSectionsData: SectionData[] = [];
+            
+            if (pageData.sections && pageData.sections.length > 0) {
+              for (const section of pageData.sections) {
+                try {
+                  const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
+                  
+                  if (componentResult && componentResult.components) {
+                    pageSectionsData.push({
+                      id: section.id,
+                      order: section.order || 0,
+                      title: section.name,
+                      components: componentResult.components
+                    });
+                  }
+                } catch (error) {
+                  console.error(`Error al cargar componentes para sección ${section.id}:`, error);
+                }
+              }
+              
+              pageSectionsData.sort((a, b) => a.order - b.order);
+            }
+            
+            setSections(pageSectionsData);
+            setError(null); // Clear error if fallback succeeds
+          }
+        } catch (fallbackError) {
+          console.error('Error en método de respaldo:', fallbackError);
+          setError('Error al cargar la página');
+        }
       } finally {
         setIsLoading(false);
       }
