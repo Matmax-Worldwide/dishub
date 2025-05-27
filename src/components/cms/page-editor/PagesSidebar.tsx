@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from "@/components/ui/label";
+import { ComponentType } from '@/types/cms';
 
 interface PageItem {
   id: string;
@@ -94,9 +95,6 @@ export const PageEvents = {
     };
   }
 };
-
-// Add ComponentType definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
 
 // Dynamic import for ComponentsGrid
 const ComponentsGrid = dynamic(() => import('./ComponentsGrid'), {

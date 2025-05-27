@@ -930,3 +930,203 @@ p[data-field-type="description"] {
     border-radius: 0.375rem;
   }
 }
+
+/* Video component specific styles */
+.video-component {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  background: transparent; /* Remove black background */
+}
+
+.video-component video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: transparent; /* Remove black background */
+}
+
+/* Ensure video components work properly in preview modes */
+[data-component-type="Video"] {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  overflow: hidden;
+  background: transparent; /* Remove black background */
+}
+
+[data-component-type="Video"] video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: transparent; /* Remove black background */
+}
+
+/* Video section specific styling */
+.video-section {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: transparent; /* Remove black background */
+}
+
+.video-section video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: transparent; /* Remove black background */
+}
+
+/* Ensure video plays properly in mobile preview */
+.video-component video,
+[data-component-type="Video"] video,
+.video-section video {
+  -webkit-playsinline: true;
+  playsinline: true;
+}
+
+/* Fix for video controls in preview mode */
+.video-component video::-webkit-media-controls,
+[data-component-type="Video"] video::-webkit-media-controls {
+  display: flex !important;
+}
+
+/* Ensure video overlay content is properly positioned */
+.video-component .absolute,
+[data-component-type="Video"] .absolute {
+  pointer-events: none;
+}
+
+.video-component .absolute button,
+[data-component-type="Video"] .absolute button {
+  pointer-events: auto;
+}
+
+/* Video loading state - improved with gradient instead of black */
+.video-component video[data-loading="true"],
+[data-component-type="Video"] video[data-loading="true"] {
+  background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+  background-size: 200% 200%;
+  animation: shimmer 2s infinite;
+}
+
+/* Video error state styling */
+.video-component .video-error,
+[data-component-type="Video"] .video-error {
+  background: #7f1d1d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
+}
+
+/* Ensure video components maintain aspect ratio */
+.video-component,
+[data-component-type="Video"] {
+  aspect-ratio: 16/9;
+  min-height: 300px;
+}
+
+/* Full height video sections for landing pages */
+.video-section.full-height,
+[data-component-type="Video"].full-height {
+  height: 100vh;
+  min-height: 100vh;
+  aspect-ratio: unset;
+}
+
+/* Video source fallback styling */
+.video-component video source,
+[data-component-type="Video"] video source {
+  display: none; /* Sources are not visible elements */
+}
+
+/* Improve video controls visibility */
+.video-component video::-webkit-media-controls-panel,
+[data-component-type="Video"] video::-webkit-media-controls-panel {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Video poster image styling */
+.video-component video[poster],
+[data-component-type="Video"] video[poster] {
+  object-fit: cover;
+  background-size: cover;
+  background-position: center;
+  background-color: transparent; /* Remove black background from poster */
+}
+
+/* Video loading overlay styles */
+.video-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Video loading spinner */
+.video-loading-spinner {
+  width: 4rem;
+  height: 4rem;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Video progress bar */
+.video-progress-bar {
+  width: 12rem;
+  height: 0.5rem;
+  background-color: #e2e8f0;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.video-progress-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+/* Optimize video rendering performance */
+.video-component video,
+[data-component-type="Video"] video,
+.video-section video {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Preload optimization */
+.video-component video[preload="auto"],
+[data-component-type="Video"] video[preload="auto"],
+.video-section video[preload="auto"] {
+  /* Browser will start downloading the video immediately */
+  /* This helps with faster playback start */
+}
+
+/* Cache optimization for video elements */
+.video-component video,
+[data-component-type="Video"] video,
+.video-section video {
+  /* Enable hardware acceleration for better performance */
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}

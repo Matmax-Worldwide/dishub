@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
 import { FormDesignType } from './forms/MultiStepFormRenderer';
+import { ComponentType } from '@/types/cms';
 
 // Drag and Drop imports
 import {
@@ -45,9 +46,6 @@ interface FooterColumn {
     url: string;
   }>;
 }
-
-// Type for available components
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
 
 export interface Component {
   id: string;

@@ -26,10 +26,7 @@ import {
 } from '@/components/cms/page-editor';
 import { Button } from '@/components/ui/button';
 import { PageEvents } from './PagesSidebar';
-
-// Component type definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
-
+import { ComponentType } from '@/types/cms';
 // Extend PageData to include SEO properties
 interface PageData extends Omit<BasePageData, 'sections'> {
   publishDate?: string;

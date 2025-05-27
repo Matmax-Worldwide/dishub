@@ -4,9 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { SearchIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-// Component type definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
+import { ComponentType } from '@/types/cms';
 
 interface ComponentsGridProps {
   searchQuery: string;

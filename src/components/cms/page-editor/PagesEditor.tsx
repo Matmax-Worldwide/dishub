@@ -1,9 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { PagesSidebar } from './PagesSidebar';
-
-// Component type definition
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Footer' | 'Form' | 'Article' | 'Blog' | 'CtaButton' | 'Video';
+import { ComponentType } from '@/types/cms';
 
 interface PagesEditorProps {
   children: ReactNode;

@@ -9,14 +9,12 @@ import { Dictionary } from '../i18n';
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager from '@/components/cms/SectionManager';
 import { Loader2Icon } from 'lucide-react';
+import { ComponentType } from '@/types/cms';
 
 interface ClientPageProps {
   locale: string;
   dictionary: Dictionary;
 }
-
-// Define component type for SectionManager
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Form' | 'Footer' | 'Article' | 'Blog';
 
 // Define types for page data
 interface PageData {
@@ -180,83 +178,6 @@ export default function ClientPage({ locale, dictionary }: ClientPageProps) {
     };
   }, []);
   
-  // Function to sort components in a very specific order with detailed priorities
-  const sortComponentsByPriority = (components: Array<{id: string; type: string; data: Record<string, unknown>}>) => {
-    const getComponentPriority = (type: string): number => {
-      const lowercaseType = type.toLowerCase();
-      switch (lowercaseType) {
-        // Navigation and Header (Always first)
-        case 'header': return 1;
-        case 'navbar': return 2;
-        case 'navigation': return 3;
-        
-        // Hero sections (Main landing content)
-        case 'hero': return 10;
-        case 'banner': return 11;
-        case 'landing': return 12;
-        
-        // Benefits and Features (Core value proposition)
-        case 'benefit': return 20;
-        case 'benefits': return 21;
-        case 'feature': return 22;
-        case 'features': return 23;
-        
-        // Content sections (Main content)
-        case 'text': return 30;
-        case 'article': return 31;
-        case 'blog': return 32;
-        case 'content': return 33;
-        
-        // Media and visual elements
-        case 'image': return 40;
-        case 'gallery': return 41;
-        case 'video': return 42;
-        
-        // Interactive elements
-        case 'form': return 50;
-        case 'contact': return 51;
-        case 'newsletter': return 52;
-        case 'subscription': return 53;
-        
-        // Social proof and testimonials
-        case 'testimonial': return 60;
-        case 'testimonials': return 61;
-        case 'review': return 62;
-        case 'reviews': return 63;
-        
-        // Cards and listings
-        case 'card': return 70;
-        case 'cards': return 71;
-        case 'list': return 72;
-        case 'grid': return 73;
-        
-        // Call-to-action elements
-        case 'cta': return 80;
-        case 'button': return 81;
-        case 'action': return 82;
-        
-        // Footer elements (Always last)
-        case 'footer': return 90;
-        case 'copyright': return 91;
-        
-        // Any other components get medium priority
-        default: return 75;
-      }
-    };
-
-    return [...components].sort((a, b) => {
-      const priorityA = getComponentPriority(a.type);
-      const priorityB = getComponentPriority(b.type);
-      
-      // If priorities are the same, maintain original order
-      if (priorityA === priorityB) {
-        return 0;
-      }
-      
-      return priorityA - priorityB;
-    });
-  };
-  
   // Function to convert component type to proper case for SectionManager
   const formatComponentType = (type: string): ComponentType => {
     // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.
@@ -414,13 +335,25 @@ export default function ClientPage({ locale, dictionary }: ClientPageProps) {
           >
             {section.components.length > 0 ? (
               <div className="w-full">
-                <SectionManager 
-                  initialComponents={sortComponentsByPriority(section.components).map(comp => ({
-                    id: comp.id,
-                    type: formatComponentType(comp.type),
-                    data: comp.data || {}
+                {/* Render components for this section */}
+                <SectionManager
+                  key={`section-${section.id}-${section.components.length}`}
+                  initialComponents={section.components.map(component => ({
+                    id: component.id,
+                    type: formatComponentType(component.type),
+                    data: component.data
                   }))}
                   isEditing={false}
+                  componentClassName={(type) => {
+                    const baseClasses = "w-full";
+                    
+                    // Add specific classes based on component type
+                    if (type === 'Header' || type === 'Footer') {
+                      return `${baseClasses} sticky top-0 z-40`;
+                    }
+                    
+                    return baseClasses;
+                  }}
                 />
               </div>
             ) : (

@@ -11,9 +11,7 @@ import {
   SectionData, 
   PageType
 } from '@/app/api/graphql/types';
-
-// Type for SectionManager's component type
-type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit';
+import { ComponentType } from '@/types/cms';
 
 interface PagePreviewProps {
   sections: SectionData[];
@@ -63,6 +61,12 @@ const PagePreview: React.FC<PagePreviewProps> = ({
     if (lowercaseType === 'testimonial') return 'Testimonial';
     if (lowercaseType === 'header') return 'Header';
     if (lowercaseType === 'card') return 'Card';
+    if (lowercaseType === 'video') return 'Video';
+    if (lowercaseType === 'form') return 'Form';
+    if (lowercaseType === 'footer') return 'Footer';
+    if (lowercaseType === 'article') return 'Article';
+    if (lowercaseType === 'blog') return 'Blog';
+    if (lowercaseType === 'ctabutton') return 'CtaButton';
     
     // Default fallback
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
@@ -171,10 +175,16 @@ const PagePreview: React.FC<PagePreviewProps> = ({
                             (c.data?.transparentHeader === true || c.data?.transparentHeader === 'true')
                           );
                         
+                        const isVideoComponent = type.toLowerCase() === 'video';
+                        
                         let classNames = `w-full component-${type.toLowerCase()}`;
                         
                         if (isFixedHeader) {
                           classNames += ' fixed-header z-50';
+                        }
+                        
+                        if (isVideoComponent) {
+                          classNames += ' video-component';
                         }
                         
                         return classNames;

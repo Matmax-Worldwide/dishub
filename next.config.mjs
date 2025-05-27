@@ -68,7 +68,59 @@ const nextConfig = {
           },
         ],
       },
+      // Optimized caching for video files
+      {
+        source: '/api/media/download',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800', // 1 day cache, 1 week stale
+          },
+          {
+            key: 'Accept-Ranges',
+            value: 'bytes', // Enable range requests for video streaming
+          },
+        ],
+      },
+      // Cache video files served directly
+      {
+        source: '/:path*.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, immutable', // 1 week cache for video files
+          },
+          {
+            key: 'Accept-Ranges',
+            value: 'bytes',
+          },
+        ],
+      },
     ];
+  },
+  
+  // Experimental features for better performance
+  experimental: {
+    // Enable modern bundling for better performance
+    optimizePackageImports: ['framer-motion', 'lucide-react'],
+  },
+  
+  // Webpack configuration for video optimization
+  webpack: (config) => {
+    // Add support for video files in webpack
+    config.module.rules.push({
+      test: /\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)$/,
+      use: {
+        loader: 'file-loader',
+        options: {
+          publicPath: '/_next/static/videos/',
+          outputPath: 'static/videos/',
+          name: '[name].[hash].[ext]',
+        },
+      },
+    });
+
+    return config;
   },
 };
 

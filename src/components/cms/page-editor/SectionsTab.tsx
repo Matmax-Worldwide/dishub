@@ -87,6 +87,36 @@ const AVAILABLE_COMPONENTS = [
     nameKey: 'sections.components.testimonial.name',
     descriptionKey: 'sections.components.testimonial.description'
   },
+  { 
+    type: 'form', 
+    displayType: 'Form', 
+    nameKey: 'sections.components.form.name',
+    descriptionKey: 'sections.components.form.description'
+  },
+  { 
+    type: 'article', 
+    displayType: 'Article', 
+    nameKey: 'sections.components.article.name',
+    descriptionKey: 'sections.components.article.description'
+  },
+  { 
+    type: 'blog', 
+    displayType: 'Blog', 
+    nameKey: 'sections.components.blog.name',
+    descriptionKey: 'sections.components.blog.description'
+  },
+  { 
+    type: 'cta', 
+    displayType: 'CtaButton', 
+    nameKey: 'sections.components.cta.name',
+    descriptionKey: 'sections.components.cta.description'
+  },
+  { 
+    type: 'video', 
+    displayType: 'Video', 
+    nameKey: 'sections.components.video.name',
+    descriptionKey: 'sections.components.video.description'
+  },
 ];
 
 export const SectionsTab: React.FC<SectionsTabProps> = ({
