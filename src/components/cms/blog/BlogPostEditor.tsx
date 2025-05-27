@@ -3,20 +3,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { gqlRequest } from '@/lib/graphql-client';
-import { useI18n } from '@/hooks/useI18n';
 import { 
   Save, 
   Eye, 
   EyeOff,
   Image, 
   FileText, 
-  Calendar, 
   Tag, 
   Globe, 
   X,
   Plus,
   Upload,
-  Search,
   Settings,
   Monitor,
   Smartphone,
@@ -24,20 +21,15 @@ import {
   Clock,
   User,
   CheckCircle,
-  AlertCircle,
-  Zap,
-  Target,
   TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -83,7 +75,6 @@ interface BlogPostEditorProps {
 }
 
 export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditorProps) {
-  const { t } = useI18n();
   const router = useRouter();
   
   // State management
@@ -108,8 +99,7 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  const [showSEOPanel, setShowSEOPanel] = useState(false);
-  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+
   const [autoSave, setAutoSave] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
@@ -122,9 +112,8 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
   const [newTag, setNewTag] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
-  // Load initial data
+  // Load initial datahis field is required
   useEffect(() => {
     loadInitialData();
   }, [postId]);
@@ -218,32 +207,19 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
 
   async function loadTagsAndCategories() {
     try {
-      const [tagsResponse, categoriesResponse] = await Promise.all([
-        gqlRequest<{ posts: Array<{ tags: string[] }> }>(`
-          query GetAllTags {
-            posts {
-              tags
-            }
+      const tagsResponse = await gqlRequest<{ posts: Array<{ tags: string[] }> }>(`
+        query GetAllTags {
+          posts {
+            tags
           }
-        `),
-        gqlRequest<{ posts: Array<{ categories: string[] }> }>(`
-          query GetAllCategories {
-            posts {
-              categories
-            }
-          }
-        `)
-      ]);
+        }
+      `);
 
       const allTags = Array.from(new Set(
         tagsResponse.posts.flatMap(p => p.tags || [])
       ));
-      const allCategories = Array.from(new Set(
-        categoriesResponse.posts.flatMap(p => p.categories || [])
-      ));
 
       setAvailableTags(allTags);
-      setAvailableCategories(allCategories);
     } catch (error) {
       console.error('Error loading tags and categories:', error);
     }
@@ -783,7 +759,6 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => setShowMediaLibrary(true)}
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Image

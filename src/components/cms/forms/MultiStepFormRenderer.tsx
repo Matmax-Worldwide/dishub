@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormBase, FormStepBase, FormFieldBase, FormFieldType } from '@/types/forms';
 import { PhoneInput } from './fields/PhoneField';
 import { ChevronLeft, ChevronRight, Check, Sparkles, Zap, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export type FormDesignType = 'modern' | 'elegant' | 'futuristic' | 'minimal' | 'corporate';
+export type FormDesignType = 'modern' | 'elegant' | 'futuristic' | 'minimal' | 'corporate' | 'gradient' | 'glassmorphism' | 'neon' | 'retro';
 
 interface MultiStepFormRendererProps {
   form: FormBase;
@@ -32,6 +32,18 @@ export default function MultiStepFormRenderer({
 
   // Calculate progress percentage
   const progressPercentage = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+
+  // Emit initial progress event when component mounts
+  useEffect(() => {
+    const progressEvent = new CustomEvent('multistep-form-progress', {
+      detail: {
+        step: currentStep,
+        totalSteps,
+        completed: Array.from(completedSteps)
+      }
+    });
+    window.dispatchEvent(progressEvent);
+  }, [currentStep, totalSteps, completedSteps]);
 
   // Get current step data
   const getCurrentStep = (): FormStepBase | null => {
@@ -77,18 +89,44 @@ export default function MultiStepFormRenderer({
 
   // Handle next step
   const handleNext = () => {
-    if (validateCurrentStep()) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
-      if (currentStep < totalSteps - 1) {
-        setCurrentStep(currentStep + 1);
-      }
+    // Don't validate when moving to next step, just move forward
+    const newCompletedSteps = new Set([...completedSteps, currentStep]);
+    setCompletedSteps(newCompletedSteps);
+    
+    if (currentStep < totalSteps - 1) {
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      
+      // Clear any existing errors when moving to next step
+      setErrors({});
+      
+      // Emit progress event for FormSection to listen
+      const progressEvent = new CustomEvent('multistep-form-progress', {
+        detail: {
+          step: newStep,
+          totalSteps,
+          completed: Array.from(newCompletedSteps)
+        }
+      });
+      window.dispatchEvent(progressEvent);
     }
   };
 
   // Handle previous step
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      
+      // Emit progress event for FormSection to listen
+      const progressEvent = new CustomEvent('multistep-form-progress', {
+        detail: {
+          step: newStep,
+          totalSteps,
+          completed: Array.from(completedSteps)
+        }
+      });
+      window.dispatchEvent(progressEvent);
     }
   };
 
@@ -212,6 +250,78 @@ export default function MultiStepFormRenderer({
           button: {
             primary: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300',
             secondary: 'bg-white hover:bg-blue-50 text-blue-600 px-8 py-3 rounded-lg font-semibold border-2 border-blue-200 hover:border-blue-300 transition-all duration-300'
+          }
+        };
+      
+      case 'gradient':
+        return {
+          container: 'bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 rounded-3xl shadow-2xl border border-purple-200',
+          progressBar: 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500',
+          progressBg: 'bg-white/50',
+          stepIndicator: {
+            active: 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-xl',
+            completed: 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-xl',
+            inactive: 'bg-white/80 text-purple-600 border-2 border-purple-200'
+          },
+          input: 'w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-300',
+          label: 'block text-sm font-semibold text-purple-800 mb-2',
+          button: {
+            primary: 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white px-8 py-3 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300',
+            secondary: 'bg-white/80 backdrop-blur-sm hover:bg-white text-purple-600 px-8 py-3 rounded-2xl font-semibold border-2 border-purple-200 hover:border-purple-300 transition-all duration-300'
+          }
+        };
+      
+      case 'glassmorphism':
+        return {
+          container: 'bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30',
+          progressBar: 'bg-gradient-to-r from-white/60 to-white/80',
+          progressBg: 'bg-white/20',
+          stepIndicator: {
+            active: 'bg-white/30 backdrop-blur-md text-gray-800 shadow-xl border border-white/40',
+            completed: 'bg-green-400/80 backdrop-blur-md text-white shadow-xl',
+            inactive: 'bg-white/10 backdrop-blur-md text-gray-600 border border-white/20'
+          },
+          input: 'w-full px-4 py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl focus:border-white/50 focus:ring-4 focus:ring-white/20 text-gray-800 placeholder-gray-600 transition-all duration-300',
+          label: 'block text-sm font-semibold text-gray-800 mb-2',
+          button: {
+            primary: 'bg-white/30 backdrop-blur-md hover:bg-white/40 text-gray-800 px-8 py-3 rounded-2xl font-semibold shadow-xl hover:shadow-2xl border border-white/40 transition-all duration-300',
+            secondary: 'bg-white/10 backdrop-blur-md hover:bg-white/20 text-gray-700 px-8 py-3 rounded-2xl font-semibold border border-white/20 hover:border-white/30 transition-all duration-300'
+          }
+        };
+      
+      case 'neon':
+        return {
+          container: 'bg-black rounded-3xl shadow-2xl border border-cyan-500/50 relative overflow-hidden',
+          progressBar: 'bg-gradient-to-r from-cyan-400 to-pink-400',
+          progressBg: 'bg-gray-800',
+          stepIndicator: {
+            active: 'bg-cyan-400 text-black shadow-xl shadow-cyan-400/50 border-2 border-cyan-400',
+            completed: 'bg-green-400 text-black shadow-xl shadow-green-400/50',
+            inactive: 'bg-gray-800 text-cyan-400 border-2 border-cyan-400/30'
+          },
+          input: 'w-full px-4 py-3 bg-gray-900 border-2 border-cyan-400/50 rounded-xl focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 text-cyan-100 placeholder-cyan-400/50 transition-all duration-300 shadow-inner',
+          label: 'block text-sm font-bold text-cyan-400 mb-2 uppercase tracking-wide',
+          button: {
+            primary: 'bg-gradient-to-r from-cyan-400 to-pink-400 hover:from-cyan-300 hover:to-pink-300 text-black px-8 py-3 rounded-xl font-bold shadow-xl shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 uppercase tracking-wide',
+            secondary: 'bg-gray-800 hover:bg-gray-700 text-cyan-400 px-8 py-3 rounded-xl font-bold border-2 border-cyan-400/50 hover:border-cyan-400 transition-all duration-300 uppercase tracking-wide'
+          }
+        };
+      
+      case 'retro':
+        return {
+          container: 'bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl shadow-xl border-4 border-orange-300',
+          progressBar: 'bg-gradient-to-r from-orange-400 to-red-400',
+          progressBg: 'bg-orange-200',
+          stepIndicator: {
+            active: 'bg-orange-400 text-white shadow-lg border-4 border-orange-600',
+            completed: 'bg-green-500 text-white shadow-lg border-4 border-green-700',
+            inactive: 'bg-yellow-200 text-orange-800 border-4 border-orange-300'
+          },
+          input: 'w-full px-4 py-3 bg-yellow-50 border-4 border-orange-300 rounded-lg focus:border-orange-500 focus:ring-4 focus:ring-orange-200 text-orange-900 placeholder-orange-500 transition-all duration-300 font-mono',
+          label: 'block text-sm font-bold text-orange-800 mb-2 uppercase tracking-wider',
+          button: {
+            primary: 'bg-gradient-to-r from-orange-400 to-red-400 hover:from-orange-500 hover:to-red-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl border-4 border-orange-600 transition-all duration-300 uppercase tracking-wide',
+            secondary: 'bg-yellow-200 hover:bg-yellow-300 text-orange-800 px-8 py-3 rounded-lg font-bold border-4 border-orange-300 hover:border-orange-400 transition-all duration-300 uppercase tracking-wide'
           }
         };
       
@@ -450,7 +560,7 @@ export default function MultiStepFormRenderer({
   };
 
   return (
-    <div className={`w-full max-w-4xl mx-auto p-8 ${styles.container}`}>
+    <div className={`w-full p-4 lg:p-8 ${styles.container}`}>
       {/* Design-specific background effects */}
       {designType === 'futuristic' && (
         <div className="absolute inset-0 overflow-hidden rounded-3xl">
@@ -476,10 +586,104 @@ export default function MultiStepFormRenderer({
           ))}
         </div>
       )}
+      
+      {/* Neon design effects */}
+      {designType === 'neon' && (
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          {/* Neon grid background */}
+          <div className="absolute inset-0 opacity-20">
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <pattern id="neonGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="cyan" strokeWidth="0.5" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#neonGrid)" />
+            </svg>
+          </div>
+          
+          {/* Floating neon particles */}
+          {Array.from({ length: 15 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: i % 2 === 0 ? '#00ffff' : '#ff00ff',
+                boxShadow: `0 0 10px ${i % 2 === 0 ? '#00ffff' : '#ff00ff'}`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                opacity: [0.2, 0.8, 0.2],
+                scale: [0.5, 1.2, 0.5],
+                y: [0, -20, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 3,
+              }}
+            />
+          ))}
+          
+          {/* Neon border glow */}
+          <div className="absolute inset-0 rounded-3xl border border-cyan-400/50 shadow-[0_0_20px_rgba(0,255,255,0.3)]"></div>
+        </div>
+      )}
+      
+      {/* Glassmorphism effects */}
+      {designType === 'glassmorphism' && (
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-32 h-32 rounded-full bg-white/5 backdrop-blur-sm"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: 4 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Retro effects */}
+      {designType === 'retro' && (
+        <div className="absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-yellow-50/50" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-4 h-4 bg-orange-300/30 transform rotate-45"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                rotate: [45, 225, 45],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{
+                duration: 4 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Progress Section */}
-      <div className="mb-10 relative z-10">
-        <div className="flex justify-between items-center mb-4">
+      {/* Progress Section - Compact for mobile, detailed for desktop */}
+      <div className="mb-6 lg:mb-10 relative z-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
           <span className={`text-sm font-semibold ${designType === 'futuristic' ? 'text-cyan-300' : designType === 'elegant' ? 'text-amber-600' : 'text-blue-600'}`}>
             Step {currentStep + 1} of {totalSteps}
           </span>
@@ -489,7 +693,7 @@ export default function MultiStepFormRenderer({
         </div>
         
         {/* Custom Progress Bar */}
-        <div className={`w-full h-3 ${styles.progressBg} rounded-full overflow-hidden`}>
+        <div className={`w-full h-2 lg:h-3 ${styles.progressBg} rounded-full overflow-hidden`}>
           <motion.div
             className={`h-full ${styles.progressBar} rounded-full`}
             initial={{ width: 0 }}
@@ -499,13 +703,13 @@ export default function MultiStepFormRenderer({
         </div>
       </div>
 
-      {/* Step Indicators */}
-      <div className="flex justify-center mb-12 relative z-10">
-        <div className="flex items-center space-x-4">
+      {/* Step Indicators - Hidden on mobile to save space */}
+      <div className="hidden md:flex justify-center mb-8 lg:mb-12 relative z-10">
+        <div className="flex items-center space-x-2 lg:space-x-4">
           {visibleSteps.map((step, index) => (
             <div key={step.id} className="flex items-center">
               <motion.div
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-xs lg:text-sm font-bold transition-all duration-300 ${
                   index < currentStep || completedSteps.has(index)
                     ? styles.stepIndicator.completed
                     : index === currentStep
@@ -516,14 +720,14 @@ export default function MultiStepFormRenderer({
                 whileTap={{ scale: 0.95 }}
               >
                 {index < currentStep || completedSteps.has(index) ? (
-                  <Check className="w-5 h-5" />
+                  <Check className="w-3 h-3 lg:w-5 lg:h-5" />
                 ) : (
                   <span>{index + 1}</span>
                 )}
               </motion.div>
               {index < totalSteps - 1 && (
                 <div
-                  className={`w-16 h-1 mx-4 rounded-full transition-all duration-500 ${
+                  className={`w-8 lg:w-16 h-1 mx-2 lg:mx-4 rounded-full transition-all duration-500 ${
                     index < currentStep || completedSteps.has(index)
                       ? styles.progressBar
                       : styles.progressBg
@@ -536,7 +740,7 @@ export default function MultiStepFormRenderer({
       </div>
 
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+      <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -544,11 +748,11 @@ export default function MultiStepFormRenderer({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -50, scale: 0.95 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="space-y-8"
+            className="space-y-6 lg:space-y-8"
           >
             {/* Step Title and Description */}
             {currentStepData && (
-              <div className="text-center mb-10">
+              <div className="text-center mb-6 lg:mb-10">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -557,26 +761,30 @@ export default function MultiStepFormRenderer({
                 >
                   {getDesignIcon()}
                 </motion.div>
-                <h3 className={`text-2xl font-bold mb-4 ${designType === 'futuristic' ? 'text-white' : designType === 'elegant' ? 'text-gray-800' : 'text-gray-900'}`}>
+                <h3 className={`text-xl lg:text-2xl font-bold mb-4 ${designType === 'futuristic' ? 'text-white' : designType === 'elegant' ? 'text-gray-800' : 'text-gray-900'}`}>
                   {currentStepData.title}
                 </h3>
                 {currentStepData.description && (
-                  <p className={`text-lg ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-600'} max-w-2xl mx-auto`}>
+                  <p className={`text-base lg:text-lg ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-600'} max-w-xl mx-auto`}>
                     {currentStepData.description}
                   </p>
                 )}
               </div>
             )}
 
-            {/* Step Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Step Fields - Flexible direction layout */}
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 lg:gap-6">
               {currentStepData?.fields?.map((field, index) => (
                 <motion.div
                   key={field.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
-                  className={`space-y-3 ${field.type === FormFieldType.TEXTAREA ? 'md:col-span-2' : ''}`}
+                  className={`space-y-3 ${
+                    field.type === FormFieldType.TEXTAREA 
+                      ? 'w-full' 
+                      : 'w-full lg:w-[calc(50%-12px)]'
+                  }`}
                 >
                 {field.type !== FormFieldType.CHECKBOX && (
                     <label htmlFor={field.name} className={styles.label}>
@@ -608,25 +816,27 @@ export default function MultiStepFormRenderer({
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between items-center pt-8 relative z-10">
-          <motion.button
+        {/* Navigation Buttons - Responsive layout */}
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-6 lg:pt-8 relative z-10 gap-4 sm:gap-0">
+          <motion.div
             type="button"
             onClick={handlePrevious}
             disabled={currentStep === 0}
-            className={`${styles.button.secondary} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`${styles.button.secondary} flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center sm:justify-start`}
             whileHover={{ scale: currentStep === 0 ? 1 : 1.05 }}
             whileTap={{ scale: currentStep === 0 ? 1 : 0.95 }}
           >
-            <ChevronLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </motion.button>
+            <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start">
+              <ChevronLeft className="w-5 h-5" />
+              <span>Previous</span>
+            </div>
+          </motion.div>
 
           {currentStep === totalSteps - 1 ? (
             <motion.button
               type="submit"
               disabled={submitStatus === 'submitting'}
-              className={`${styles.button.primary} disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${styles.button.primary} flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
               whileHover={{ scale: submitStatus === 'submitting' ? 1 : 1.05 }}
               whileTap={{ scale: submitStatus === 'submitting' ? 1 : 0.95 }}
             >
@@ -640,16 +850,16 @@ export default function MultiStepFormRenderer({
               )}
             </motion.button>
           ) : (
-            <motion.button
+            <motion.div
               type="button"
               onClick={handleNext}
-              className={`${styles.button.primary} flex items-center space-x-2`}
+              className={`${styles.button.primary} flex items-center justify-center space-x-2 w-full sm:w-auto`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <span>Next</span>
               <ChevronRight className="w-5 h-5" />
-            </motion.button>
+            </motion.div>
           )}
         </div>
       </form>

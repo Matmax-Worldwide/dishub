@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FormSelector } from '@/components/cms/forms/FormSelector';
 import { FormBase } from '@/types/forms';
 import { FormPreview } from './FormPreview';
@@ -85,10 +85,10 @@ export default function FormSection({
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   
   // Track if we're actively editing to prevent props from overriding local state
-  const isEditingRef = React.useRef(false);
+  const isEditingRef = useRef(false);
   
   // Debounce updates
-  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
   // Load form data when formId changes or on initial load
   useEffect(() => {
@@ -394,10 +394,10 @@ export default function FormSection({
   // Generate class names for form container based on styles and template
   const getContainerClassNames = () => {
     if (template === 'DEFAULT') {
-      return 'relative overflow-hidden h-screen';
+      return 'relative overflow-hidden min-h-screen w-full';
     }
 
-    const classes = ['rounded-md'];
+    const classes = ['w-full', 'rounded-md'];
     
     // Padding
     if (styles.padding === 'small') classes.push('p-3');
@@ -405,8 +405,8 @@ export default function FormSection({
     else if (styles.padding === 'large') classes.push('p-8');
     
     // Alignment
-    if (styles.alignment === 'center') classes.push('text-center mx-auto');
-    else if (styles.alignment === 'right') classes.push('ml-auto text-right');
+    if (styles.alignment === 'center') classes.push('text-center');
+    else if (styles.alignment === 'right') classes.push('text-right');
     
     // Container styles
     if (styles.containerStyles) {
@@ -682,13 +682,71 @@ export default function FormSection({
         Form Design Style
       </h3>
       
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { value: 'modern', label: 'Modern', description: 'Blue gradients with smooth animations', color: 'from-blue-500 to-purple-600' },
-          { value: 'elegant', label: 'Elegant', description: 'Warm amber tones with sophistication', color: 'from-amber-400 to-orange-500' },
-          { value: 'futuristic', label: 'Futuristic', description: 'Dark theme with cyan neon accents', color: 'from-cyan-400 to-blue-500' },
-          { value: 'minimal', label: 'Minimal', description: 'Clean and simple black & white', color: 'from-gray-700 to-gray-900' },
-          { value: 'corporate', label: 'Corporate', description: 'Professional blue corporate style', color: 'from-blue-600 to-indigo-600' }
+          { 
+            value: 'modern', 
+            label: 'Modern', 
+            description: 'Blue gradients with smooth animations', 
+            color: 'from-blue-500 to-purple-600',
+            preview: 'bg-gradient-to-r from-blue-500 to-purple-600'
+          },
+          { 
+            value: 'elegant', 
+            label: 'Elegant', 
+            description: 'Warm amber tones with sophistication', 
+            color: 'from-amber-400 to-orange-500',
+            preview: 'bg-gradient-to-r from-amber-400 to-orange-500'
+          },
+          { 
+            value: 'futuristic', 
+            label: 'Futuristic', 
+            description: 'Dark theme with cyan neon accents', 
+            color: 'from-cyan-400 to-blue-500',
+            preview: 'bg-gradient-to-r from-slate-800 to-slate-900'
+          },
+          { 
+            value: 'minimal', 
+            label: 'Minimal', 
+            description: 'Clean and simple black & white', 
+            color: 'from-gray-700 to-gray-900',
+            preview: 'bg-gradient-to-r from-gray-200 to-gray-300'
+          },
+          { 
+            value: 'corporate', 
+            label: 'Corporate', 
+            description: 'Professional blue corporate style', 
+            color: 'from-blue-600 to-indigo-600',
+            preview: 'bg-gradient-to-r from-blue-100 to-indigo-100'
+          },
+          { 
+            value: 'gradient', 
+            label: 'Gradient', 
+            description: 'Colorful pink to purple gradients', 
+            color: 'from-pink-500 to-purple-500',
+            preview: 'bg-gradient-to-r from-pink-100 via-purple-50 to-indigo-100'
+          },
+          { 
+            value: 'glassmorphism', 
+            label: 'Glass', 
+            description: 'Transparent glass effect with blur', 
+            color: 'from-white to-gray-100',
+            preview: 'bg-gradient-to-r from-white/60 to-gray-100/60 backdrop-blur-sm border border-white/30'
+          },
+          { 
+            value: 'neon', 
+            label: 'Neon', 
+            description: 'Dark cyberpunk with neon colors', 
+            color: 'from-cyan-400 to-pink-400',
+            preview: 'bg-black border border-cyan-400/50'
+          },
+          { 
+            value: 'retro', 
+            label: 'Retro', 
+            description: 'Vintage orange and yellow tones', 
+            color: 'from-orange-400 to-yellow-400',
+            preview: 'bg-gradient-to-r from-orange-100 to-yellow-100 border-2 border-orange-300'
+          }
         ].map((design) => (
           <button
             key={design.value}
@@ -711,13 +769,32 @@ export default function FormSection({
             }}
             className={`p-3 rounded-lg border-2 text-left transition-all ${
               formDesign === design.value
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <div className={`w-full h-8 rounded mb-2 bg-gradient-to-r ${design.color}`}></div>
-            <div className="font-medium text-xs">{design.label}</div>
-            <div className="text-xs text-gray-500 mt-1 leading-tight">{design.description}</div>
+            <div className={`w-full h-12 rounded mb-2 ${design.preview} relative overflow-hidden`}>
+              {design.value === 'futuristic' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-blue-500/20"></div>
+              )}
+              {design.value === 'neon' && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/30 to-pink-400/30"></div>
+                  <div className="absolute top-1 left-1 w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                  <div className="absolute bottom-1 right-1 w-1 h-1 bg-pink-400 rounded-full animate-pulse"></div>
+                </>
+              )}
+              {design.value === 'glassmorphism' && (
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+              )}
+              {design.value === 'retro' && (
+                <div className="absolute top-1 right-1 w-3 h-3 bg-orange-400 transform rotate-45"></div>
+              )}
+              <div className="absolute bottom-1 right-1 w-6 h-2 bg-white/80 rounded-sm"></div>
+              <div className="absolute bottom-1 left-1 w-4 h-2 bg-white/60 rounded-sm"></div>
+            </div>
+            <div className="font-medium text-xs mb-1">{design.label}</div>
+            <div className="text-xs text-gray-500 leading-tight">{design.description}</div>
           </button>
         ))}
       </div>
@@ -893,7 +970,7 @@ export default function FormSection({
   );
   
   return (
-    <div data-section-id="form" className={`${getContainerClassNames()} ${className}`}>
+    <div data-section-id="form" className={`w-full ${getContainerClassNames()} ${className}`}>
       {showBackgroundSelector && (
         <BackgroundSelector
           isOpen={showBackgroundSelector}
@@ -919,32 +996,34 @@ export default function FormSection({
 
       {isEditing ? (
         // Editor mode UI with tabs
-        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
-            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
-          </TabsList>
+        <div className="w-full p-6">
+          <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
+            <TabsList className="flex flex-wrap space-x-2 w-full">
+              <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
+              <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
+              <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+            </TabsList>
 
-          {/* DETAILS TAB */}
-          <TabsContent value="details" className="space-y-4">
-            <DetailsTab />
-          </TabsContent>
+            {/* DETAILS TAB */}
+            <TabsContent value="details" className="space-y-4">
+              <DetailsTab />
+            </TabsContent>
 
-          {/* STYLES TAB */}
-          <TabsContent value="styles" className="space-y-4">
-            <StylesTab />
-          </TabsContent>
+            {/* STYLES TAB */}
+            <TabsContent value="styles" className="space-y-4">
+              <StylesTab />
+            </TabsContent>
 
-          {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-4">
-            <PreviewTab />
-          </TabsContent>
-        </Tabs>
+            {/* PREVIEW TAB */}
+            <TabsContent value="preview" className="space-y-4">
+              <PreviewTab />
+            </TabsContent>
+          </Tabs>
+        </div>
       ) : (
         // Visitor-facing UI with actual form here
         <div
-          className={`${getContainerClassNames()}`}
+          className={`w-full ${getContainerClassNames()}`}
           style={{
             ...getContainerStyles(),
             isolation: 'isolate' // Create new stacking context
@@ -989,7 +1068,7 @@ export default function FormSection({
             </>
           )}
 
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[10] flex-1 flex flex-col justify-center">
+          <div className="w-full px-4 sm:px-6 lg:px-8 relative z-[10] flex-1 flex flex-col justify-center">
             <div className="w-full flex flex-col items-center justify-center">
               {title && !customConfig.hideTitle && (
                 <motion.div
@@ -1032,12 +1111,22 @@ export default function FormSection({
                 >
                   <div className={getFormWrapperClassNames()}>
                     {selectedForm.isMultiStep ? (
-                      <MultiStepFormRenderer
-                        form={selectedForm}
-                        onSubmit={handleFormSubmit}
-                        submitStatus={submitStatus}
-                        designType={formDesign}
-                      />
+                      <div className="w-full">
+                        {/* Multi-step form with improved layout */}
+                        <div className="flex flex-col lg:flex-row gap-8 items-start">
+                          {/* Left side - Form content */}
+                          <div className="flex-1 w-full lg:w-2/3">
+                            <MultiStepFormRenderer
+                              form={selectedForm}
+                              onSubmit={handleFormSubmit}
+                              submitStatus={submitStatus}
+                              designType={formDesign}
+                            />
+                          </div>
+                          
+  
+                        </div>
+                      </div>
                     ) : (
                       <FormRenderer
                         form={selectedForm}
