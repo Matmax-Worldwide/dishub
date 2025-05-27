@@ -22,6 +22,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  DraggableSyntheticListeners,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -390,7 +391,8 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isCollapsed = false,
   onToggleCollapse,
   isActive = false,
-  onComponentClick
+  onComponentClick,
+  dragListeners
 }: { 
   component: Component; 
   isEditing: boolean; 
@@ -404,11 +406,10 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
   isActive?: boolean;
   onComponentClick?: (componentId: string) => void;
+  dragListeners?: DraggableSyntheticListeners;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   
-  // Get component title from component data if it exists
   const title = (component.data.componentTitle as string) || `${component.type} Component`;
   
   const handleRemoveClick = () => {
@@ -423,70 +424,59 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   const handleCancelRemove = () => {
     setConfirmOpen(false);
   };
-
-  const handleMoveUp = useCallback((e: React.MouseEvent) => {
+  
+  const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onMoveUp) onMoveUp(component.id);
-  }, [component.id, onMoveUp]);
-
-  const handleMoveDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onMoveDown) onMoveDown(component.id);
-  }, [component.id, onMoveDown]);
-
-  const handleToggle = useCallback((e?: React.MouseEvent) => {
-    // Always stop propagation to prevent conflict with component click
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
     if (onToggleCollapse) {
-      // Pass the current collapse state to the parent
-      // The parent will invert it (expand if collapsed, collapse if expanded)
       onToggleCollapse(component.id, isCollapsed);
     }
-  }, [component.id, isCollapsed, onToggleCollapse]);
-
-  const handleClick = useCallback(() => {
-    
+  };
+  
+  const handleMoveUp = () => {
+    if (onMoveUp) {
+      onMoveUp(component.id);
+    }
+  };
+  
+  const handleMoveDown = () => {
+    if (onMoveDown) {
+      onMoveDown(component.id);
+    }
+  };
+  
+  const handleComponentClick = () => {
     if (onComponentClick) {
       onComponentClick(component.id);
-      
-      // We're no longer auto-expanding the component when clicked
-      // This will allow our toggle button to work independently
     }
-  }, [component.id, onComponentClick]);
+  };
 
   return (
     <div 
       className={cn(
-        "component-wrapper relative group transition-all",
-        isEditing ? "border-border bg-card/50 hover:border-foreground/20" : "",
-        isActive && isEditing ? "border-primary border-2 ring-0 outline-none bg-primary/5" : "",
-        !isEditing && "",
-        isHovered && isEditing && "bg-accent/5",
-        isEditing && "cursor-pointer"
+        "component-wrapper relative border border-border/30 rounded-md mb-4 transition-all duration-200 hover:border-border/50 group",
+        isActive && "active-component border-primary/50 bg-primary/5",
+        isCollapsed && "component-collapsed"
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       data-component-id={component.id}
-      onClick={handleClick}
+      onClick={handleComponentClick}
     >
-
-      {/* Confirmation dialog for component removal */}
-      {isEditing && confirmOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-background rounded-lg shadow-lg sm:max-w-[425px] w-full mx-4">
-            <div className="p-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">¿Eliminar componente?</h2>
-                <p className="text-muted-foreground text-sm">
-                  Esta acción eliminará el componente &quot;{title}&quot; y no se puede deshacer.
-                </p>
+      {/* Confirmation Modal */}
+      {confirmOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
               </div>
+              
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Eliminar Componente
+              </h3>
+              
+              <p className="text-sm text-gray-500 mb-6">
+                ¿Estás seguro de que quieres eliminar este componente? Esta acción no se puede deshacer.
+              </p>
               
               <div className="flex justify-end gap-2 mt-6">
                 <Button variant="outline" onClick={handleCancelRemove}>
@@ -505,9 +495,15 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
         <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 rounded-t-md">
           <div className="flex items-center space-x-2">
             <div 
-              className="cursor-grab active:cursor-grabbing touch-none p-1 rounded hover:bg-muted/50 drag-handle"
-              title="Arrastrar para reordenar"
+              className={cn(
+                "p-1 rounded hover:bg-muted/50",
+                isCollapsed && dragListeners 
+                  ? "cursor-grab active:cursor-grabbing touch-none drag-handle" 
+                  : "cursor-default opacity-50"
+              )}
+              title={isCollapsed ? "Arrastrar para reordenar" : "Solo se puede arrastrar cuando está colapsado"}
               onClick={(e) => e.stopPropagation()}
+              {...(isCollapsed && dragListeners ? dragListeners : {})}
             >
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -627,16 +623,15 @@ const SortableComponent = memo(function SortableComponent({
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({
     id: component.id,
-    disabled: !isEditing,
+    disabled: !isEditing || !isCollapsed, // Only enable dragging when collapsed
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : 'transform 200ms ease-in-out, opacity 150ms ease-in-out',
     opacity: isDragging ? 0.5 : 1,
   };
 
@@ -654,10 +649,9 @@ const SortableComponent = memo(function SortableComponent({
         onToggleCollapse={onToggleCollapse}
         isActive={isActive}
         onComponentClick={onComponentClick}
+        dragListeners={isCollapsed ? listeners : undefined} // Only pass drag listeners when collapsed
       >
-        <div {...listeners} className="drag-handle-area">
-          {children}
-        </div>
+        {children}
       </ComponentWrapperMemo>
     </div>
   );
@@ -688,6 +682,8 @@ function SectionManagerBase({
   
   // Drag and drop state
   const [draggedComponent, setDraggedComponent] = useState<Component | null>(null);
+  const isDraggingRef = useRef(false);
+  const isMovingRef = useRef(false); // Track if we're in the middle of a move operation
   
   // Drag and drop sensors
   const sensors = useSensors(
@@ -761,12 +757,14 @@ function SectionManagerBase({
     const { active } = event;
     const component = components.find(c => c.id === active.id);
     setDraggedComponent(component || null);
+    isDraggingRef.current = true;
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
     setDraggedComponent(null);
+    isDraggingRef.current = false;
     
     if (!over || active.id === over.id) {
       return;
@@ -779,11 +777,11 @@ function SectionManagerBase({
       const newComponents = arrayMove(components, oldIndex, newIndex);
       setComponents(newComponents);
       
-      // Notify parent of changes
+      // Notify parent of changes with a delay to ensure smooth animation
       if (onComponentsChange) {
         setTimeout(() => {
           onComponentsChange(newComponents);
-        }, 0);
+        }, 150); // Slightly longer delay for smoother experience
       }
     }
   };
@@ -1774,11 +1772,30 @@ function SectionManagerBase({
       return;
     }
     
+    // Set moving flag to prevent unwanted activations
+    isMovingRef.current = true;
+    
     setComponents(prevComponents => {
       const newComponents = [...prevComponents];
       const temp = newComponents[index];
       newComponents[index] = newComponents[index - 1];
       newComponents[index - 1] = temp;
+      
+      // Notify parent with delay for smooth transition
+      if (onComponentsChange) {
+        setTimeout(() => {
+          onComponentsChange(newComponents);
+          // Reset moving flag after operation completes
+          setTimeout(() => {
+            isMovingRef.current = false;
+          }, 100);
+        }, 200);
+      } else {
+        // Reset moving flag if no parent callback
+        setTimeout(() => {
+          isMovingRef.current = false;
+        }, 300);
+      }
       
       return newComponents;
     });
@@ -1788,7 +1805,7 @@ function SectionManagerBase({
       // Just return the same set - no changes to collapsed state during reordering
       return new Set(prev);
     });
-  }, [components]);
+  }, [components, onComponentsChange]);
 
   // Manejar el movimiento de componentes hacia abajo
   const handleMoveComponentDown = useCallback((componentId: string) => {
@@ -1809,6 +1826,9 @@ function SectionManagerBase({
       return;
     }
     
+    // Set moving flag to prevent unwanted activations
+    isMovingRef.current = true;
+    
     setComponents(prevComponents => {
       const index = prevComponents.findIndex(component => component.id === componentId);
       if (index < 0 || index >= prevComponents.length - 1) return prevComponents;
@@ -1819,6 +1839,22 @@ function SectionManagerBase({
       newComponents[index] = newComponents[index + 1];
       newComponents[index + 1] = temp;
       
+      // Notify parent with delay for smooth transition
+      if (onComponentsChange) {
+        setTimeout(() => {
+          onComponentsChange(newComponents);
+          // Reset moving flag after operation completes
+          setTimeout(() => {
+            isMovingRef.current = false;
+          }, 100);
+        }, 200);
+      } else {
+        // Reset moving flag if no parent callback
+        setTimeout(() => {
+          isMovingRef.current = false;
+        }, 300);
+      }
+      
       return newComponents;
     });
     
@@ -1827,7 +1863,7 @@ function SectionManagerBase({
       // Just return the same set - no changes to collapsed state during reordering
       return new Set(prev);
     });
-  }, [components]);
+  }, [components, onComponentsChange]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -2282,22 +2318,16 @@ function SectionManagerBase({
         {/* Drag Overlay */}
         <DragOverlay>
           {draggedComponent ? (
-            <div className="opacity-50 transform rotate-2 shadow-lg">
-              <ComponentWrapperMemo
-                component={draggedComponent}
-                isEditing={isEditing}
-                onRemove={() => {}}
-                isCollapsed={false}
-                onToggleCollapse={() => {}}
-                isActive={false}
-                onComponentClick={() => {}}
-              >
-                <div className="p-4 bg-muted/20 rounded">
-                  <div className="text-sm font-medium">
-                    {(draggedComponent.data.componentTitle as string) || `${draggedComponent.type} Component`}
-                  </div>
+            <div className="bg-white border-2 border-primary/50 rounded-lg shadow-lg p-4 opacity-90 transform rotate-1">
+              <div className="flex items-center space-x-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <div className="text-sm font-medium text-foreground">
+                  {(draggedComponent.data.componentTitle as string) || `${draggedComponent.type} Component`}
                 </div>
-              </ComponentWrapperMemo>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Moving {draggedComponent.type} component...
+              </div>
             </div>
           ) : null}
         </DragOverlay>

@@ -95,7 +95,7 @@ export default function MultiStepFormRenderer({
     const newCompletedSteps = new Set([...completedSteps, currentStep]);
     setCompletedSteps(newCompletedSteps);
     
-    if (currentStep < totalSteps - 1) {
+      if (currentStep < totalSteps - 1) {
       const newStep = currentStep + 1;
       setCurrentStep(newStep);
       
@@ -276,8 +276,8 @@ export default function MultiStepFormRenderer({
       case 'glassmorphism':
         return {
           container: 'bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30',
-          progressBar: 'bg-gradient-to-r from-white/60 to-white/80',
-          progressBg: 'bg-white/20',
+          progressBar: 'bg-gradient-to-r from-blue-500/80 to-purple-500/80 backdrop-blur-sm',
+          progressBg: 'bg-white/30 backdrop-blur-sm',
           stepIndicator: {
             active: 'bg-white/30 backdrop-blur-md text-gray-800 shadow-xl border border-white/40',
             completed: 'bg-green-400/80 backdrop-blur-md text-white shadow-xl',
@@ -562,27 +562,28 @@ export default function MultiStepFormRenderer({
   };
 
   return (
-    <div className={`w-full p-4 lg:p-8 ${styles.container}`}>
+    <div className={`w-full p-4 lg:p-8 ${styles.container} relative`}>
       {/* Design-specific background effects */}
       {designType === 'futuristic' && (
-        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+        <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5" />
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 bg-cyan-400/30 rounded-full"
+              className="absolute w-1 h-1 bg-cyan-400/20 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${10 + Math.random() * 80}%`,
+                top: `${10 + Math.random() * 80}%`,
               }}
               animate={{
-                opacity: [0.3, 1, 0.3],
-                scale: [1, 1.5, 1],
+                opacity: [0.2, 0.6, 0.2],
+                scale: [1, 1.2, 1],
               }}
               transition={{
-                duration: 2 + Math.random() * 2,
+                duration: 3 + Math.random() * 2,
                 repeat: Infinity,
                 delay: Math.random() * 2,
+                ease: "easeInOut"
               }}
             />
           ))}
@@ -742,54 +743,55 @@ export default function MultiStepFormRenderer({
       </div>
 
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8 relative z-10">
+      <div className="space-y-6 lg:space-y-8 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 50, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -50, scale: 0.95 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="space-y-6 lg:space-y-8"
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -50, scale: 0.95 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="space-y-6 lg:space-y-8"
           >
             {/* Step Title and Description */}
-            {currentStepData && showStepTitle && (
-              <div className="text-center mb-6 lg:mb-10">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-4"
-                >
-                  {getDesignIcon()}
-                </motion.div>
-                <h3 className={`text-xl lg:text-2xl font-bold mb-4 ${designType === 'futuristic' ? 'text-white' : designType === 'elegant' ? 'text-gray-800' : 'text-gray-900'}`}>
+              {currentStepData && showStepTitle && (
+                <div className="text-center mb-6 lg:mb-10">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mb-4"
+                  >
+                    {getDesignIcon()}
+                  </motion.div>
+                  <h3 className={`text-xl lg:text-2xl font-bold mb-4 ${designType === 'futuristic' ? 'text-white' : designType === 'elegant' ? 'text-gray-800' : 'text-gray-900'}`}>
                   {currentStepData.title}
                 </h3>
                 {currentStepData.description && (
-                  <p className={`text-base lg:text-lg ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-600'} max-w-xl mx-auto`}>
-                    {currentStepData.description}
-                  </p>
+                    <p className={`text-base lg:text-lg ${designType === 'futuristic' ? 'text-slate-300' : 'text-gray-600'} max-w-xl mx-auto`}>
+                      {currentStepData.description}
+                    </p>
                 )}
               </div>
             )}
 
-            {/* Step Fields - Flexible direction layout */}
-            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 lg:gap-6">
-              {currentStepData?.fields?.map((field, index) => (
-                <motion.div
-                  key={field.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                  className={`space-y-3 ${
-                    field.type === FormFieldType.TEXTAREA 
-                      ? 'w-full' 
-                      : 'w-full lg:w-[calc(50%-12px)]'
-                  }`}
-                >
+              {/* Step Fields - Flexible direction layout */}
+              <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 lg:gap-6">
+                {currentStepData?.fields?.map((field, index) => (
+                  <motion.div
+                    key={field.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    className={`space-y-3 ${
+                      field.type === FormFieldType.TEXTAREA 
+                        ? 'w-full' 
+                        : 'w-full lg:w-[calc(50%-12px)]'
+                    }`}
+                  >
                 {field.type !== FormFieldType.CHECKBOX && (
-                    <label htmlFor={field.name} className={styles.label}>
+                      <label htmlFor={field.name} className={styles.label}>
                     {field.label}
                     {field.isRequired && <span className="text-red-500 ml-1">*</span>}
                   </label>
@@ -798,29 +800,39 @@ export default function MultiStepFormRenderer({
                 {renderField(field)}
                 
                 {errors[field.name] && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 text-sm font-medium"
-                    >
-                      {errors[field.name]}
-                    </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-red-500 text-sm font-medium"
+                      >
+                        {errors[field.name]}
+                      </motion.p>
                 )}
                 
                 {field.helpText && (
-                    <p className={`text-sm ${designType === 'futuristic' ? 'text-slate-400' : 'text-gray-500'}`}>
-                      {field.helpText}
-                    </p>
+                      <p className={`text-sm ${designType === 'futuristic' ? 'text-slate-400' : 'text-gray-500'}`}>
+                        {field.helpText}
+                      </p>
                 )}
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
               </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation Buttons - Responsive layout */}
+          {/* Hidden submit button for final step */}
+          {currentStep === totalSteps - 1 && (
+            <button
+              type="submit"
+              style={{ display: 'none' }}
+              id="hidden-submit-button"
+            />
+          )}
+        </form>
+
+        {/* Navigation Buttons - Outside form to prevent validation conflicts */}
         <div className="flex flex-col sm:flex-row justify-between items-center pt-6 lg:pt-8 relative z-10 gap-4 sm:gap-0">
-          <motion.div
+          <motion.button
             type="button"
             onClick={handlePrevious}
             disabled={currentStep === 0}
@@ -830,13 +842,20 @@ export default function MultiStepFormRenderer({
           >
             <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start">
               <ChevronLeft className="w-5 h-5" />
-              <span>Previous</span>
+            <span>Previous</span>
             </div>
-          </motion.div>
+          </motion.button>
 
           {currentStep === totalSteps - 1 ? (
             <motion.button
-              type="submit"
+              type="button"
+              onClick={() => {
+                // Trigger the hidden submit button
+                const hiddenSubmit = document.getElementById('hidden-submit-button') as HTMLButtonElement;
+                if (hiddenSubmit) {
+                  hiddenSubmit.click();
+                }
+              }}
               disabled={submitStatus === 'submitting'}
               className={`${styles.button.primary} flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
               whileHover={{ scale: submitStatus === 'submitting' ? 1 : 1.05 }}
@@ -852,7 +871,7 @@ export default function MultiStepFormRenderer({
               )}
             </motion.button>
           ) : (
-            <motion.div
+            <motion.button
               type="button"
               onClick={handleNext}
               className={`${styles.button.primary} flex items-center justify-center space-x-2 w-full sm:w-auto`}
@@ -861,10 +880,10 @@ export default function MultiStepFormRenderer({
             >
               <span>Next</span>
               <ChevronRight className="w-5 h-5" />
-            </motion.div>
+            </motion.button>
           )}
         </div>
-      </form>
+      </div>
 
       {/* Submit Status Messages */}
       <AnimatePresence>

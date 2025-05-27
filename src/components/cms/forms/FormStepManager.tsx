@@ -77,11 +77,12 @@ function DraggableField({ field, onUnassign, showUnassignButton = false }: Dragg
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+          title="Drag to reorder"
         >
           <GripVertical className="h-4 w-4" />
         </div>
-        <div>
+        <div className="cursor-default">
           <div className="font-medium text-sm">{field.label}</div>
           <div className="text-xs text-gray-500">
             {field.name} • {field.type}
