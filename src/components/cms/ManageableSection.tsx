@@ -961,16 +961,19 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           {viewMode === 'split' && (
             <div className="w-full flex flex-row">
               {/* Editor section */}
-              <div className="w-1/2 pr-4 border-r">
-                              <SectionManager
-                initialComponents={pendingComponents}
-                isEditing={true}
-                onComponentsChange={handleComponentsChange}
-                activeComponentId={activeComponentId}
-                onClickComponent={setActiveComponentId}
-                sectionBackground={sectionBackground}
-                sectionBackgroundType={sectionBackgroundType}
-              />
+              <div className={cn(
+                "w-1/2 pr-4 border-r",
+                activeComponentId ? "overflow-y-auto" : ""
+              )}>
+                <SectionManager
+                  initialComponents={pendingComponents}
+                  isEditing={true}
+                  onComponentsChange={handleComponentsChange}
+                  activeComponentId={activeComponentId}
+                  onClickComponent={setActiveComponentId}
+                  sectionBackground={sectionBackground}
+                  sectionBackgroundType={sectionBackgroundType}
+                />
               </div>
               
               {/* Preview section */}
@@ -1177,7 +1180,11 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-muted-foreground">Modo Editor</h3>
               </div>
-                              <SectionManager
+              <div className={cn(
+                "w-full",
+                activeComponentId ? "max-h-screen overflow-y-auto" : ""
+              )}>
+                <SectionManager
                   initialComponents={pendingComponents}
                   isEditing={true}
                   onComponentsChange={handleComponentsChange}
@@ -1185,6 +1192,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   sectionBackground={sectionBackground}
                   sectionBackgroundType={sectionBackgroundType}
                 />
+              </div>
             </div>
           )}
 

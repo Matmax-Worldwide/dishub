@@ -7,9 +7,8 @@ import StableInput from './StableInput';
 import { cn } from '@/lib/utils';
 import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/BackgroundSelector';
 import MediaSelector from '@/components/cms/MediaSelector';
-import StyleControls from '../StyleControls';
 import { CmsTabs } from '@/components/cms/CmsTabs';
-import { FileText, Palette, LayoutTemplate, Upload } from 'lucide-react';
+import { FileText, Palette, LayoutTemplate, Upload, Eye } from 'lucide-react';
 import { MediaItem } from '@/components/cms/media/types';
 import { 
   ComponentStyling, 
@@ -18,8 +17,6 @@ import {
   generateStylesFromStyling,
   generateClassesFromStyling
 } from '@/types/cms-styling';
-import ColorSelector from '@/components/cms/ColorSelector';
-import TransparencySelector from '@/components/cms/TransparencySelector';
 
 interface HeroSectionProps extends ComponentStyleProps {
   title: string;
@@ -39,6 +36,10 @@ interface HeroSectionProps extends ComponentStyleProps {
   showAnimatedDots?: boolean;
   showIcon?: boolean;
   styling?: ComponentStyling;
+  designTemplate?: 'modern' | 'elegant' | 'futuristic' | 'minimal' | 'corporate' | 'gradient' | 'glassmorphism' | 'neon' | 'retro';
+  padding?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  borderRadius?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  shadowSize?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
   isEditing?: boolean;
   onUpdate?: (data: Partial<HeroSectionProps>) => void;
 }
@@ -98,6 +99,10 @@ const HeroSection = React.memo(function HeroSection({
   showAnimatedDots = true,
   showIcon = true,
   styling = DEFAULT_STYLING,
+  designTemplate,
+  padding,
+  borderRadius,
+  shadowSize,
   isEditing = false,
   onUpdate
 }: HeroSectionProps) {
@@ -118,11 +123,12 @@ const HeroSection = React.memo(function HeroSection({
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   
-  // Add text color and transparency controls
-  const [textColor, setTextColor] = useState(localStyling.textColor || '#111827');
-  const [backgroundColor, setBackgroundColor] = useState(localStyling.backgroundColor || '#ffffff');
-  const [transparency, setTransparency] = useState(0);
-
+  // Add design template and layout state
+  const [localDesignTemplate, setLocalDesignTemplate] = useState(designTemplate || 'modern');
+  const [localPadding, setLocalPadding] = useState(padding || 'medium');
+  const [localBorderRadius, setLocalBorderRadius] = useState(borderRadius || 'medium');
+  const [localShadowSize, setLocalShadowSize] = useState(shadowSize || 'none');
+  
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
 
@@ -199,12 +205,6 @@ const HeroSection = React.memo(function HeroSection({
     }
   }, [onUpdate, cta, secondaryCta]);
 
-  // Add styling change handler
-  const handleStylingChange = useCallback((newStyling: ComponentStyling) => {
-    setLocalStyling(newStyling);
-    handleUpdateField('styling', newStyling);
-  }, [handleUpdateField]);
-
   // Individual change handlers
   const handleTitleChange = useCallback((newValue: string) => {
     setLocalTitle(newValue);
@@ -256,29 +256,162 @@ const HeroSection = React.memo(function HeroSection({
     handleUpdateField('showIcon', newValue);
   }, [handleUpdateField]);
   
-  // Add color and transparency handlers
-  const handleTextColorChange = useCallback((color: string) => {
-    setTextColor(color);
-    const newStyling = { ...localStyling, textColor: color };
-    setLocalStyling(newStyling);
-    handleUpdateField('styling', newStyling);
-  }, [localStyling, handleUpdateField]);
+  // Add design template handlers
+  const handleDesignTemplateChange = useCallback((template: string) => {
+    setLocalDesignTemplate(template as typeof localDesignTemplate);
+    
+    // Update with design template and all layout properties to ensure proper saving
+    if (onUpdate) {
+      onUpdate({
+        designTemplate: template as typeof localDesignTemplate,
+        padding: localPadding,
+        borderRadius: localBorderRadius,
+        shadowSize: localShadowSize
+      });
+    }
+  }, [handleUpdateField, localPadding, localBorderRadius, localShadowSize]);
 
-  const handleBackgroundColorChange = useCallback((color: string) => {
-    setBackgroundColor(color);
-    const newStyling = { ...localStyling, backgroundColor: color };
-    setLocalStyling(newStyling);
-    handleUpdateField('styling', newStyling);
-  }, [localStyling, handleUpdateField]);
+  const handlePaddingChange = useCallback((value: string) => {
+    setLocalPadding(value as typeof localPadding);
+    
+    // Update with all layout properties to ensure proper saving
+    if (onUpdate) {
+      onUpdate({
+        padding: value as typeof localPadding,
+        borderRadius: localBorderRadius,
+        shadowSize: localShadowSize
+      });
+    }
+  }, [handleUpdateField, localBorderRadius, localShadowSize]);
 
-  const handleTransparencyChange = useCallback((value: number) => {
-    setTransparency(value);
-    // Apply transparency to background color
-    const newStyling = { ...localStyling, transparency: value };
-    setLocalStyling(newStyling);
-    handleUpdateField('styling', newStyling);
-  }, [localStyling, handleUpdateField]);
-  
+  const handleBorderRadiusChange = useCallback((value: string) => {
+    setLocalBorderRadius(value as typeof localBorderRadius);
+    
+    // Update with all layout properties to ensure proper saving
+    if (onUpdate) {
+      onUpdate({
+        padding: localPadding,
+        borderRadius: value as typeof localBorderRadius,
+        shadowSize: localShadowSize
+      });
+    }
+  }, [handleUpdateField, localPadding, localShadowSize]);
+
+  const handleShadowSizeChange = useCallback((value: string) => {
+    setLocalShadowSize(value as typeof localShadowSize);
+    
+    // Update with all layout properties to ensure proper saving
+    if (onUpdate) {
+      onUpdate({
+        padding: localPadding,
+        borderRadius: localBorderRadius,
+        shadowSize: value as typeof localShadowSize
+      });
+    }
+  }, [handleUpdateField, localPadding, localBorderRadius]);
+
+  // Utility functions for styling
+  const getDesignTemplateStyles = useCallback(() => {
+    const baseStyles: React.CSSProperties = {};
+    
+    switch (localDesignTemplate) {
+      case 'modern':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        };
+      case 'elegant':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        };
+      case 'futuristic':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+          color: '#00ffff',
+        };
+      case 'minimal':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
+          color: '#333333',
+        };
+      case 'corporate':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+          color: '#ffffff',
+        };
+      case 'gradient':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)',
+        };
+      case 'glassmorphism':
+        return {
+          ...baseStyles,
+          background: 'rgba(255, 255, 255, 0.25)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+        };
+      case 'neon':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #000000 0%, #1a1a2e 100%)',
+          color: '#00ffff',
+          boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
+        };
+      case 'retro':
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
+          color: '#2c2c54',
+        };
+      default:
+        return baseStyles;
+    }
+  }, [localDesignTemplate]);
+
+  const getLayoutClasses = useCallback(() => {
+    const classes = [];
+    
+    // Padding classes
+    switch (localPadding) {
+      case 'none': classes.push('p-0'); break;
+      case 'small': classes.push('p-4'); break;
+      case 'medium': classes.push('p-8'); break;
+      case 'large': classes.push('p-12'); break;
+      case 'extra-large': classes.push('p-16'); break;
+    }
+    
+    // Border radius classes
+    switch (localBorderRadius) {
+      case 'none': classes.push('rounded-none'); break;
+      case 'small': classes.push('rounded-sm'); break;
+      case 'medium': classes.push('rounded-md'); break;
+      case 'large': classes.push('rounded-lg'); break;
+      case 'extra-large': classes.push('rounded-xl'); break;
+    }
+    
+    // Shadow classes
+    switch (localShadowSize) {
+      case 'none': break;
+      case 'small': classes.push('shadow-sm'); break;
+      case 'medium': classes.push('shadow-md'); break;
+      case 'large': classes.push('shadow-lg'); break;
+      case 'extra-large': classes.push('shadow-xl'); break;
+    }
+    
+    return classes.join(' ');
+  }, [localPadding, localBorderRadius, localShadowSize]);
+
+  const getLayoutStyles = useCallback(() => {
+    const styles: React.CSSProperties = {};
+    
+    return styles;
+  }, []);
+
   // Handle background selection with immediate local update and debounced parent update
   const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
     console.log('Background selected:', { background, type });
@@ -551,7 +684,8 @@ const HeroSection = React.memo(function HeroSection({
         className={cn(
           "relative w-full h-full overflow-hidden flex items-center",
           isEditing ? "min-h-[600px] bg-white" : "min-h-screen",
-          !isEditing ? cssClasses : ""
+          !isEditing ? cssClasses : "",
+          !isEditing ? getLayoutClasses() : ""
         )}
         style={isEditing ? { 
           isolation: 'isolate',
@@ -562,14 +696,15 @@ const HeroSection = React.memo(function HeroSection({
             backgroundPosition: 'center',
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat'
+          } : localBackgroundImage ? {
+            backgroundImage: localBackgroundImage
           } : {
-            background: localBackgroundImage || 'linear-gradient(to bottom, white, #dbeafe)'
+            backgroundImage: 'linear-gradient(to bottom, white, #dbeafe)'
           }),
           isolation: 'isolate',
-          backgroundColor: transparency > 0 ? 
-            `rgba(${parseInt(backgroundColor.slice(1, 3), 16)}, ${parseInt(backgroundColor.slice(3, 5), 16)}, ${parseInt(backgroundColor.slice(5, 7), 16)}, ${(100 - transparency) / 100})` :
-            backgroundColor,
-          ...inlineStyles
+          ...inlineStyles,
+          ...getDesignTemplateStyles(),
+          ...getLayoutStyles()
         }}
       >
         {/* Animated background elements */}
@@ -726,46 +861,156 @@ const HeroSection = React.memo(function HeroSection({
                     icon: <Palette className="w-4 h-4" />,
                     content: (
                       <div className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Colors</h3>
-                            
-                            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                              <div>
-                                <ColorSelector
-                                  label="Text Color"
-                                  value={textColor}
-                                  onChange={handleTextColorChange}
-                                />
+                        {/* Design Templates Section */}
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium mb-2 flex items-center">
+                            <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Design Templates
+                          </h3>
+                          
+                          <div className="grid grid-cols-3 gap-3 mb-6">
+                            {[
+                              { 
+                                value: 'modern', 
+                                label: 'Modern', 
+                                description: 'Blue gradients with smooth animations',
+                                preview: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                              },
+                              { 
+                                value: 'elegant', 
+                                label: 'Elegant', 
+                                description: 'Warm pink tones with sophistication',
+                                preview: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                              },
+                              { 
+                                value: 'futuristic', 
+                                label: 'Futuristic', 
+                                description: 'Dark theme with cyan neon accents',
+                                preview: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)'
+                              },
+                              { 
+                                value: 'minimal', 
+                                label: 'Minimal', 
+                                description: 'Clean and simple light theme',
+                                preview: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)'
+                              },
+                              { 
+                                value: 'corporate', 
+                                label: 'Corporate', 
+                                description: 'Professional blue business theme',
+                                preview: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
+                              },
+                              { 
+                                value: 'gradient', 
+                                label: 'Gradient', 
+                                description: 'Soft pink gradient background',
+                                preview: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)'
+                              },
+                              { 
+                                value: 'glassmorphism', 
+                                label: 'Glass', 
+                                description: 'Modern glassmorphism effect',
+                                preview: 'rgba(255, 255, 255, 0.25)'
+                              },
+                              { 
+                                value: 'neon', 
+                                label: 'Neon', 
+                                description: 'Dark background with neon effects',
+                                preview: 'linear-gradient(135deg, #000000 0%, #1a1a2e 100%)'
+                              },
+                              { 
+                                value: 'retro', 
+                                label: 'Retro', 
+                                description: 'Vintage 80s inspired design',
+                                preview: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%)'
+                              }
+                            ].map((design) => (
+                              <button
+                                key={design.value}
+                                onClick={() => handleDesignTemplateChange(design.value)}
+                                className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                                  localDesignTemplate === design.value 
+                                    ? 'border-blue-500 shadow-lg' 
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <div 
+                                  className="w-full h-12 rounded-md mb-2"
+                                  style={{ 
+                                    background: design.preview,
+                                    backdropFilter: design.value === 'glassmorphism' ? 'blur(10px)' : undefined,
+                                    border: design.value === 'glassmorphism' ? '1px solid rgba(255, 255, 255, 0.18)' : undefined
+                                  }}
+                                >
+                                  {design.value === 'neon' && (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="font-medium text-xs mb-1">{design.label}</div>
+                                <div className="text-xs text-gray-500 leading-tight">{design.description}</div>
+                                {localDesignTemplate === design.value && (
+                                  <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Layout & Styling Section */}
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium mb-2">Layout & Styling</h3>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Padding</label>
+                                <select
+                                  value={localPadding}
+                                  onChange={(e) => handlePaddingChange(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="none">None</option>
+                                  <option value="small">Small</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="large">Large</option>
+                                  <option value="extra-large">Extra Large</option>
+                                </select>
                               </div>
-                              
-                              <div>
-                                <ColorSelector
-                                  label="Background Color"
-                                  value={backgroundColor}
-                                  onChange={handleBackgroundColorChange}
-                                />
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Background Transparency
-                                </label>
-                                <TransparencySelector
-                                  value={transparency}
-                                  onChange={handleTransparencyChange}
-                                />
+
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Border Radius</label>
+                                <select
+                                  value={localBorderRadius}
+                                  onChange={(e) => handleBorderRadiusChange(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="none">None</option>
+                                  <option value="small">Small</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="large">Large</option>
+                                  <option value="extra-large">Extra Large</option>
+                                </select>
                               </div>
                             </div>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Styling</h3>
-                            <StyleControls
-                              styling={localStyling}
-                              onStylingChange={handleStylingChange}
-                              showAdvanced={true}
-                            />
+
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Shadow</label>
+                                <select
+                                  value={localShadowSize}
+                                  onChange={(e) => handleShadowSizeChange(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="none">None</option>
+                                  <option value="small">Small</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="large">Large</option>
+                                  <option value="extra-large">Extra Large</option>
+                                </select>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -890,28 +1135,101 @@ const HeroSection = React.memo(function HeroSection({
                   {
                     id: "preview",
                     label: "Preview",
-                    icon: <LayoutTemplate className="w-4 h-4" />,
+                    icon: <Eye className="w-4 h-4" />,
                     content: (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
-                          <span className="text-sm text-gray-500">This is how your hero section will look</span>
+                          <h3 className="text-lg font-medium">Hero Section Preview</h3>
+                          <div className="text-sm text-gray-500">
+                            Template: <span className="font-medium capitalize">{localDesignTemplate}</span>
+                          </div>
                         </div>
-                        <div 
-                          className="border rounded-lg overflow-hidden min-h-96"
-                          style={{
-                            ...(localBackgroundType === 'image' && localBackgroundImage ? {
-                              backgroundImage: `url(${localBackgroundImage})`,
-                              backgroundPosition: 'center',
-                              backgroundSize: 'cover',
-                              backgroundRepeat: 'no-repeat'
-                            } : {
-                              background: localBackgroundImage || 'linear-gradient(to bottom, white, #dbeafe)'
-                            })
-                          }}
-                        >
-                          <div className="relative p-8">
-                            {renderHeroContent()}
+                        
+                        {/* Live Preview */}
+                        <div className="border rounded-lg overflow-hidden bg-gray-50">
+                          <div className="p-4 bg-white border-b">
+                            <h4 className="font-medium text-gray-900 mb-1">Live Preview</h4>
+                            <p className="text-sm text-gray-600">This is how your hero section will appear to visitors</p>
+                          </div>
+                          
+                          <div className="p-6 bg-gray-50">
+                            <div 
+                              className={`relative w-full h-64 overflow-hidden flex items-center justify-center ${getLayoutClasses()}`}
+                              style={{
+                                ...getDesignTemplateStyles(),
+                                ...getLayoutStyles()
+                              }}
+                            >
+                              <div className="text-center z-10 relative">
+                                {localBadgeText && (
+                                  <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium mb-4">
+                                    {localBadgeText}
+                                  </div>
+                                )}
+                                <h1 className="text-2xl font-bold mb-2">
+                                  {localTitle || 'Your Hero Title'}
+                                </h1>
+                                <p className="text-sm opacity-80 mb-4 max-w-md">
+                                  {localSubtitle || 'Your hero subtitle will appear here'}
+                                </p>
+                                <div className="flex gap-2 justify-center">
+                                  {localCta.text && (
+                                    <button className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-md text-xs font-medium">
+                                      {localCta.text}
+                                    </button>
+                                  )}
+                                  {localSecondaryCta.text && (
+                                    <button className="px-4 py-2 border border-white/30 rounded-md text-xs font-medium">
+                                      {localSecondaryCta.text}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Template-specific effects */}
+                              {localDesignTemplate === 'neon' && (
+                                <>
+                                  <div className="absolute top-2 left-2 w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                                  <div className="absolute bottom-2 right-2 w-1 h-1 bg-pink-400 rounded-full animate-pulse"></div>
+                                </>
+                              )}
+                              
+                              {localDesignTemplate === 'glassmorphism' && (
+                                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                              )}
+                              
+                              {localDesignTemplate === 'retro' && (
+                                <div className="absolute top-2 right-2 w-4 h-4 bg-orange-400 transform rotate-45"></div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Template Information */}
+                        <div className="p-4 border rounded-md bg-blue-50">
+                          <h5 className="text-sm font-medium text-blue-900 mb-2">Current Template: {localDesignTemplate}</h5>
+                          <div className="text-xs text-blue-700">
+                            {localDesignTemplate === 'modern' && 'Blue gradients with smooth animations and modern styling'}
+                            {localDesignTemplate === 'elegant' && 'Warm pink tones with sophisticated design elements'}
+                            {localDesignTemplate === 'futuristic' && 'Dark theme with cyan neon accents and sci-fi styling'}
+                            {localDesignTemplate === 'minimal' && 'Clean and simple light theme design'}
+                            {localDesignTemplate === 'corporate' && 'Professional blue corporate styling'}
+                            {localDesignTemplate === 'gradient' && 'Colorful pink to purple gradients with vibrant styling'}
+                            {localDesignTemplate === 'glassmorphism' && 'Transparent glass effect with blur and modern aesthetics'}
+                            {localDesignTemplate === 'neon' && 'Dark cyberpunk theme with bright neon colors'}
+                            {localDesignTemplate === 'retro' && 'Vintage orange and yellow tones with retro styling'}
+                          </div>
+                        </div>
+
+                        {/* Layout Settings Summary */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 bg-gray-50 rounded-md">
+                            <h6 className="text-xs font-medium text-gray-700 mb-2">Layout Settings</h6>
+                            <div className="space-y-1 text-xs text-gray-600">
+                              <div>Padding: <span className="font-medium">{localPadding}</span></div>
+                              <div>Border Radius: <span className="font-medium">{localBorderRadius}</span></div>
+                              <div>Shadow: <span className="font-medium">{localShadowSize}</span></div>
+                            </div>
                           </div>
                         </div>
                       </div>
