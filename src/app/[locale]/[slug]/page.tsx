@@ -968,7 +968,7 @@ export default function CMSPage() {
                 >
                   {section.components.length > 0 ? (
                     <div className={pageData.pageType === 'LANDING' ? 'w-full flex flex-col snap-y snap-mandatory' : 'w-full'}>
-                      <SectionManager
+                      <SectionManager 
                         key={`section-${section.id}-${section.components.length}`}
                         initialComponents={section.components.map(component => ({
                           id: component.id,

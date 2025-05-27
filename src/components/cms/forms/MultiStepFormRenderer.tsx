@@ -13,13 +13,15 @@ interface MultiStepFormRendererProps {
   onSubmit?: (formData: Record<string, unknown>) => Promise<void>;
   submitStatus?: 'idle' | 'submitting' | 'success' | 'error';
   designType?: FormDesignType;
+  showStepTitle?: boolean;
 }
 
 export default function MultiStepFormRenderer({
   form,
   onSubmit,
   submitStatus = 'idle',
-  designType = 'modern'
+  designType = 'modern',
+  showStepTitle = true
 }: MultiStepFormRendererProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -751,7 +753,7 @@ export default function MultiStepFormRenderer({
             className="space-y-6 lg:space-y-8"
           >
             {/* Step Title and Description */}
-            {currentStepData && (
+            {currentStepData && showStepTitle && (
               <div className="text-center mb-6 lg:mb-10">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

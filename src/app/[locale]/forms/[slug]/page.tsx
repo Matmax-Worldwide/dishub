@@ -286,11 +286,9 @@ export default function FormPage({ params }: FormPageProps) {
               {form.isMultiStep ? (
                 <MultiStepFormRenderer
                   form={form}
-                  buttonClassName="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
-                  inputClassName="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
-                  labelClassName="block text-sm font-medium text-white mb-1"
                   onSubmit={handleFormSubmit}
                   submitStatus={submitStatus}
+                  designType="modern"
                 />
               ) : (
                 <FormRenderer

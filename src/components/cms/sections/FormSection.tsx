@@ -38,6 +38,11 @@ interface FormSectionProps {
   backgroundImage?: string;
   backgroundType?: 'image' | 'gradient';
   formDesign?: FormDesignType;
+  showStepTitle?: boolean;
+  formPadding?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  formMargin?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+  showBorder?: boolean;
+  borderRadius?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
   onUpdate?: (data: {
     title?: string;
     description?: string;
@@ -48,6 +53,11 @@ interface FormSectionProps {
     backgroundImage?: string;
     backgroundType?: 'image' | 'gradient';
     formDesign?: FormDesignType;
+    showStepTitle?: boolean;
+    formPadding?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+    formMargin?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
+    showBorder?: boolean;
+    borderRadius?: 'none' | 'small' | 'medium' | 'large' | 'extra-large';
   }) => void;
   className?: string;
 }
@@ -65,6 +75,11 @@ export default function FormSection({
   backgroundImage: initialBackgroundImage = '',
   backgroundType: initialBackgroundType = 'gradient',
   formDesign: initialFormDesign = 'modern',
+  showStepTitle: initialShowStepTitle = false,
+  formPadding: initialFormPadding = 'medium',
+  formMargin: initialFormMargin = 'medium',
+  showBorder: initialShowBorder = true,
+  borderRadius: initialBorderRadius = 'medium',
   onUpdate,
   className = '',
 }: FormSectionProps) {
@@ -79,6 +94,11 @@ export default function FormSection({
   const [backgroundImage, setBackgroundImage] = useState(initialBackgroundImage);
   const [backgroundType, setBackgroundType] = useState<'image' | 'gradient'>(initialBackgroundType);
   const [formDesign, setFormDesign] = useState<FormDesignType>(initialFormDesign);
+  const [showStepTitle, setShowStepTitle] = useState(initialShowStepTitle);
+  const [formPadding, setFormPadding] = useState(initialFormPadding);
+  const [formMargin, setFormMargin] = useState(initialFormMargin);
+  const [showBorder, setShowBorder] = useState(initialShowBorder);
+  const [borderRadius, setBorderRadius] = useState(initialBorderRadius);
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,10 +169,14 @@ export default function FormSection({
       if (initialBackgroundImage !== backgroundImage) setBackgroundImage(initialBackgroundImage);
       if (initialBackgroundType !== backgroundType) setBackgroundType(initialBackgroundType);
       if (initialFormDesign !== formDesign) setFormDesign(initialFormDesign);
+      if (initialShowStepTitle !== showStepTitle) setShowStepTitle(initialShowStepTitle);
+      if (initialFormPadding !== formPadding) setFormPadding(initialFormPadding);
+      if (initialFormMargin !== formMargin) setFormMargin(initialFormMargin);
+      if (initialShowBorder !== showBorder) setShowBorder(initialShowBorder);
+      if (initialBorderRadius !== borderRadius) setBorderRadius(initialBorderRadius);
     }
   }, [initialTitle, initialDescription, initialFormId, initialStyles, initialCustomConfig, 
-      initialBackgroundImage, initialBackgroundType, initialFormDesign, title, description, formId, styles, customConfig,
-      backgroundImage, backgroundType, formDesign]);
+      initialBackgroundImage, initialBackgroundType, initialFormDesign, initialShowStepTitle, initialFormPadding, initialFormMargin, initialShowBorder, initialBorderRadius]);
   
   // Update parent with changes
   const handleUpdateField = useCallback((field: string, value: string | FormStyles | FormCustomConfig, event?: React.SyntheticEvent) => {
@@ -245,6 +269,130 @@ export default function FormSection({
     handleUpdateField('selectedIcon', iconName);
   }, [handleUpdateField]);
   
+  // Handle design change
+  const handleDesignChange = useCallback((newDesign: FormDesignType) => {
+    try {
+      setIsDesignChanging(true);
+      setFormDesign(newDesign);
+      
+      if (onUpdate) {
+        // Mark that we're in editing mode
+        isEditingRef.current = true;
+        
+        // Clear any pending debounce
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        
+        // Set up a debounced update
+        debounceRef.current = setTimeout(() => {
+          try {
+            onUpdate({
+              title,
+              description,
+              formId,
+              styles,
+              customConfig,
+              selectedIcon,
+              backgroundImage,
+              backgroundType,
+              formDesign: newDesign,
+              showStepTitle,
+              formPadding,
+              formMargin,
+              showBorder,
+              borderRadius
+            });
+            
+            // Reset editing flag after update
+            setTimeout(() => {
+              isEditingRef.current = false;
+            }, 500);
+          } catch (error) {
+            console.error('Error updating design:', error);
+            isEditingRef.current = false;
+          }
+        }, 300);
+      }
+      
+      // Reset the changing state after a brief delay
+      setTimeout(() => setIsDesignChanging(false), 300);
+    } catch (error) {
+      console.error('Error changing design:', error);
+      setIsDesignChanging(false);
+      isEditingRef.current = false;
+    }
+  }, [onUpdate, title, description, formId, styles, customConfig, selectedIcon, backgroundImage, backgroundType, showStepTitle, formPadding, formMargin, showBorder, borderRadius]);
+  
+  // Handle visual configuration changes
+  const handleVisualConfigChange = useCallback((field: string, value: boolean | string) => {
+    try {
+      // Update local state
+      switch (field) {
+        case 'showStepTitle':
+          setShowStepTitle(value as boolean);
+          break;
+        case 'formPadding':
+          setFormPadding(value as 'none' | 'small' | 'medium' | 'large' | 'extra-large');
+          break;
+        case 'formMargin':
+          setFormMargin(value as 'none' | 'small' | 'medium' | 'large' | 'extra-large');
+          break;
+        case 'showBorder':
+          setShowBorder(value as boolean);
+          break;
+        case 'borderRadius':
+          setBorderRadius(value as 'none' | 'small' | 'medium' | 'large' | 'extra-large');
+          break;
+      }
+
+      if (onUpdate) {
+        // Mark that we're in editing mode
+        isEditingRef.current = true;
+        
+        // Clear any pending debounce
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        
+        // Set up a debounced update
+        debounceRef.current = setTimeout(() => {
+          try {
+            const updateData = {
+              title,
+              description,
+              formId,
+              styles,
+              customConfig,
+              selectedIcon,
+              backgroundImage,
+              backgroundType,
+              formDesign,
+              showStepTitle: field === 'showStepTitle' ? (value as boolean) : showStepTitle,
+              formPadding: field === 'formPadding' ? (value as 'none' | 'small' | 'medium' | 'large' | 'extra-large') : formPadding,
+              formMargin: field === 'formMargin' ? (value as 'none' | 'small' | 'medium' | 'large' | 'extra-large') : formMargin,
+              showBorder: field === 'showBorder' ? (value as boolean) : showBorder,
+              borderRadius: field === 'borderRadius' ? (value as 'none' | 'small' | 'medium' | 'large' | 'extra-large') : borderRadius,
+            };
+            
+            onUpdate(updateData);
+            
+            // Reset editing flag after update
+            setTimeout(() => {
+              isEditingRef.current = false;
+            }, 500);
+          } catch (error) {
+            console.error('Error updating visual config:', error);
+            isEditingRef.current = false;
+          }
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error changing visual config:', error);
+      isEditingRef.current = false;
+    }
+  }, [onUpdate, title, description, formId, styles, customConfig, selectedIcon, backgroundImage, backgroundType, formDesign, showStepTitle, formPadding, formMargin, showBorder, borderRadius]);
+  
   // Handle background selection with immediate local update and debounced parent update
   const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
     console.log('Background selected:', { background, type });
@@ -276,7 +424,12 @@ export default function FormSection({
           customConfig,
           selectedIcon,
           backgroundImage: background,
-          backgroundType: type
+          backgroundType: type,
+          showStepTitle,
+          formPadding,
+          formMargin,
+          showBorder,
+          borderRadius
         });
         
         // Reset editing flag after update
@@ -285,7 +438,7 @@ export default function FormSection({
         }, 500);
       }, 300); // Shorter debounce for background changes
     }
-  }, [onUpdate, title, description, formId, styles, customConfig, selectedIcon]);
+  }, [onUpdate, title, description, formId, styles, customConfig, selectedIcon, showStepTitle, formPadding, formMargin, showBorder, borderRadius]);
 
   // Handler for background media selection
   const handleBackgroundMediaSelect = (mediaItem: MediaItem) => {
@@ -304,7 +457,12 @@ export default function FormSection({
         customConfig,
         selectedIcon,
         backgroundImage: mediaItem.fileUrl,
-        backgroundType: 'image'
+        backgroundType: 'image',
+        showStepTitle,
+        formPadding,
+        formMargin,
+        showBorder,
+        borderRadius
       });
     }
   };
@@ -327,6 +485,9 @@ export default function FormSection({
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      // Reset any pending state changes
+      setIsDesignChanging(false);
+      isEditingRef.current = false;
     };
   }, []);
   
@@ -529,6 +690,75 @@ export default function FormSection({
       return 'bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10';
     }
     return '';
+  };
+
+  // Get form container classes based on visual configuration
+  const getFormContainerClasses = () => {
+    const classes = ['w-full'];
+    
+    // Padding classes
+    switch (formPadding) {
+      case 'none':
+        classes.push('p-0');
+        break;
+      case 'small':
+        classes.push('p-2');
+        break;
+      case 'medium':
+        classes.push('p-6');
+        break;
+      case 'large':
+        classes.push('p-8');
+        break;
+      case 'extra-large':
+        classes.push('p-12');
+        break;
+    }
+    
+    // Margin classes
+    switch (formMargin) {
+      case 'none':
+        classes.push('m-0');
+        break;
+      case 'small':
+        classes.push('m-2');
+        break;
+      case 'medium':
+        classes.push('m-4');
+        break;
+      case 'large':
+        classes.push('m-6');
+        break;
+      case 'extra-large':
+        classes.push('m-8');
+        break;
+    }
+    
+    // Border classes
+    if (showBorder) {
+      classes.push('border border-white/20');
+    }
+    
+    // Border radius classes
+    switch (borderRadius) {
+      case 'none':
+        classes.push('rounded-none');
+        break;
+      case 'small':
+        classes.push('rounded-sm');
+        break;
+      case 'medium':
+        classes.push('rounded-md');
+        break;
+      case 'large':
+        classes.push('rounded-lg');
+        break;
+      case 'extra-large':
+        classes.push('rounded-xl');
+        break;
+    }
+    
+    return classes.join(' ');
   };
   
   // Memoized Form Preview Component to prevent unnecessary re-renders
@@ -754,23 +984,7 @@ export default function FormSection({
             key={design.value}
             type="button"
             onClick={() => {
-              setIsDesignChanging(true);
-              setFormDesign(design.value as FormDesignType);
-              if (onUpdate) {
-                onUpdate({
-                  title,
-                  description,
-                  formId,
-                  styles,
-                  customConfig,
-                  selectedIcon,
-                  backgroundImage,
-                  backgroundType,
-                  formDesign: design.value as FormDesignType
-                });
-              }
-              // Reset the changing state after a brief delay
-              setTimeout(() => setIsDesignChanging(false), 300);
+              handleDesignChange(design.value as FormDesignType);
             }}
             className={`p-3 rounded-lg border-2 text-left transition-all relative ${
               formDesign === design.value
@@ -845,6 +1059,81 @@ export default function FormSection({
               Select Background
             </button>
           </div>
+
+          {/* Nueva sección de configuración visual */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <h4 className="text-sm font-medium">Form Appearance</h4>
+            
+            {/* Show Step Title */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">Show Step Title</label>
+              <input
+                type="checkbox"
+                checked={showStepTitle}
+                onChange={(e) => handleVisualConfigChange('showStepTitle', e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Form Padding */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Form Padding</label>
+              <select
+                value={formPadding}
+                onChange={(e) => handleVisualConfigChange('formPadding', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="extra-large">Extra Large</option>
+              </select>
+            </div>
+
+            {/* Form Margin */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Form Margin</label>
+              <select
+                value={formMargin}
+                onChange={(e) => handleVisualConfigChange('formMargin', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="extra-large">Extra Large</option>
+              </select>
+            </div>
+
+            {/* Show Border */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">Show Border</label>
+              <input
+                type="checkbox"
+                checked={showBorder}
+                onChange={(e) => handleVisualConfigChange('showBorder', e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Border Radius */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Border Radius</label>
+              <select
+                value={borderRadius}
+                onChange={(e) => handleVisualConfigChange('borderRadius', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="extra-large">Extra Large</option>
+              </select>
+            </div>
+          </div>
           
           <FormStyleConfig 
             initialStyles={styles}
@@ -913,6 +1202,7 @@ export default function FormSection({
                       }}
                       submitStatus="idle"
                       designType={formDesign}
+                      showStepTitle={showStepTitle}
                     />
                   </div>
                 ) : (
@@ -1188,7 +1478,7 @@ export default function FormSection({
                   transition={{ duration: 0.7, delay: 0.2 }}
                   className="w-full max-w-2xl mx-auto relative z-[15]"
                 >
-                  <div className={getFormWrapperClassNames()}>
+                  <div className={`${getFormWrapperClassNames()} ${getFormContainerClasses()}`}>
                     {selectedForm.isMultiStep ? (
                       <div className="w-full">
                         {/* Multi-step form with improved layout */}
@@ -1200,10 +1490,11 @@ export default function FormSection({
                               onSubmit={handleFormSubmit}
                               submitStatus={submitStatus}
                               designType={formDesign}
+                              showStepTitle={showStepTitle}
                             />
                           </div>
                           
-  
+
                         </div>
                       </div>
                     ) : (
