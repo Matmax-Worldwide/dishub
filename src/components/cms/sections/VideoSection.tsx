@@ -70,16 +70,16 @@ const VideoSection = React.memo(function VideoSection({
 }: VideoSectionProps) {
   // Use optimized video hook for better performance
   const optimizedVideo = useOptimizedVideo(initialVideoUrl, {
-    enableLazyLoading: !isEditing,
+    enableLazyLoading: false, // Disable lazy loading for instant display
     enablePreloading: true,
     quality: 'auto',
-    rootMargin: '300px',
-    threshold: 0.1
+    rootMargin: '0px', // Load immediately when in viewport
+    threshold: 0
   });
 
   // Use optimized image hook for poster
   const optimizedPoster = useOptimizedImage(initialPosterUrl, {
-    enableLazyLoading: !isEditing,
+    enableLazyLoading: false, // Disable lazy loading for instant display
     enablePreloading: true,
     quality: 'high',
     enableWebP: true,
@@ -117,8 +117,6 @@ const VideoSection = React.memo(function VideoSection({
   const [isHovered, setIsHovered] = useState(false);
   const [hasVideoError, setHasVideoError] = useState(false);
   const [videoErrorMessage, setVideoErrorMessage] = useState('');
-  const [isVideoLoading, setIsVideoLoading] = useState(true);
-  const [videoLoadProgress, setVideoLoadProgress] = useState(0);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -132,8 +130,6 @@ const VideoSection = React.memo(function VideoSection({
   // Get optimized URLs for rendering (fallback to original if not loaded)
   const videoSrc = optimizedVideo.src || localVideoUrl;
   const posterSrc = optimizedPoster.src || localPosterUrl;
-  const isVideoOptimized = optimizedVideo.isLoaded;
-  const videoLoadingProgress = optimizedVideo.progress;
 
   // Preload video when component mounts or URL changes
   useEffect(() => {
@@ -392,34 +388,17 @@ const VideoSection = React.memo(function VideoSection({
   const handleVideoPause = () => setIsPlaying(false);
   
   const handleVideoLoadStart = () => {
-    setIsVideoLoading(true);
-    setVideoLoadProgress(0);
+    // Don't show loading for instant display - removed loading state updates
     setHasVideoError(false);
     setVideoErrorMessage('');
   };
 
   const handleVideoProgress = () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      if (video.buffered.length > 0) {
-        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-        const duration = video.duration;
-        if (duration > 0) {
-          const progress = (bufferedEnd / duration) * 100;
-          setVideoLoadProgress(Math.min(progress, 100));
-          
-          // Early loading completion for faster perceived performance
-          if (bufferedEnd > 3 || progress > 5) {
-            setIsVideoLoading(false);
-          }
-        }
-      }
-    }
+    // Always show as fully loaded for instant display - removed loading state updates
   };
 
   const handleVideoCanPlay = () => {
-    setIsVideoLoading(false);
-    setVideoLoadProgress(100);
+    // Removed loading state updates for instant display
     if (localAutoplay && !isEditing && videoRef.current) {
       videoRef.current.play().catch((error) => {
         console.log('Autoplay prevented by browser:', error);
@@ -431,15 +410,12 @@ const VideoSection = React.memo(function VideoSection({
     console.log('Video loaded successfully:', convertS3UrlToApiRoute(localVideoUrl));
     setHasVideoError(false);
     setVideoErrorMessage('');
-    setIsVideoLoading(false);
-    setVideoLoadProgress(100);
+    // Removed loading state updates for instant display
   };
 
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.currentTarget;
     const error = video.error;
-    
-    setIsVideoLoading(false);
     
     // Only log if there's actually an error to avoid empty error objects
     if (error && error.code) {
@@ -550,7 +526,6 @@ const VideoSection = React.memo(function VideoSection({
           if (videoElement.buffered.length > 0) {
             const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
             if (bufferedEnd > 2) { // 2 seconds of buffer is enough for smooth playback
-              setIsVideoLoading(false);
               setIsOptimized(true);
             }
           }
@@ -655,8 +630,6 @@ const VideoSection = React.memo(function VideoSection({
     if (localVideoUrl) {
       setHasVideoError(false);
       setVideoErrorMessage('');
-      setIsVideoLoading(true);
-      setVideoLoadProgress(0);
     }
   }, [localVideoUrl]);
 
@@ -758,11 +731,8 @@ const VideoSection = React.memo(function VideoSection({
           const duration = videoElement.duration;
           if (duration > 0) {
             const progress = (bufferedEnd / duration) * 100;
-            setVideoLoadProgress(Math.min(progress, 100));
-            
-            // Hide loading when we have enough buffer (5 seconds or 10%)
             if (bufferedEnd > 5 || progress > 10) {
-              setIsVideoLoading(false);
+              setIsOptimized(true);
             }
           }
         }
@@ -782,8 +752,6 @@ const VideoSection = React.memo(function VideoSection({
       if (isPreloaded) {
         // Use preloaded video for instant loading
         video.src = processedVideoUrl;
-        setIsVideoLoading(false);
-        setVideoLoadProgress(100);
         console.log('🎬 Using preloaded video for instant playback');
       } else {
         // Check if we have a preloaded URL in browser cache
@@ -792,7 +760,6 @@ const VideoSection = React.memo(function VideoSection({
         if (cachedUrl) {
           // Use cached URL for immediate loading
           video.src = cachedUrl;
-          setIsVideoLoading(false);
           console.log('🎬 Using cached video URL for instant loading');
         } else {
           // Check for ultra-fast pre-rendered video from page cache
@@ -804,8 +771,6 @@ const VideoSection = React.memo(function VideoSection({
               const videoData = JSON.parse(preRenderedVideo);
               if (videoData.objectUrl && videoData.readyState >= 2) {
                 video.src = videoData.objectUrl;
-                setIsVideoLoading(false);
-                setVideoLoadProgress(100);
                 console.log('🚀 Using ultra-fast pre-rendered video for instant playback');
               } else {
                 video.src = processedVideoUrl;
@@ -847,15 +812,12 @@ const VideoSection = React.memo(function VideoSection({
     }
   }, [localVideoUrl, localAutoplay, localMuted, localLoop, localPlaysinline, isEditing, convertS3UrlToApiRoute, optimizeVideoForFastLoading, optimizeVideo]);
 
-  // Render video content with progressive loading and animated elements
+  // Render video content with instant loading and animated elements
   const renderVideoContent = () => {
     // Use optimized URLs when available, fallback to converted S3 URLs
     const processedVideoUrl = videoSrc ? convertS3UrlToApiRoute(videoSrc) : convertS3UrlToApiRoute(localVideoUrl);
     const processedPosterUrl = posterSrc ? convertS3UrlToApiRoute(posterSrc) : convertS3UrlToApiRoute(localPosterUrl);
     
-    // Use optimized loading progress when available
-    const currentLoadProgress = isVideoOptimized ? videoLoadingProgress : videoLoadProgress;
-
     return (
       <div className="relative w-full h-full flex items-center justify-center">
         {processedVideoUrl ? (
@@ -901,7 +863,6 @@ const VideoSection = React.memo(function VideoSection({
                     onClick={() => {
                       setHasVideoError(false);
                       setVideoErrorMessage('');
-                      setIsVideoLoading(true);
                       if (videoRef.current) {
                         videoRef.current.load();
                       }
@@ -919,9 +880,9 @@ const VideoSection = React.memo(function VideoSection({
               </div>
             </motion.div>
           ) : (
-            // Progressive loading with animated content
+            // Instant video display without loading overlay
             <>
-              {/* Video element - loads in background */}
+              {/* Video element - shows immediately */}
               <motion.video
                 ref={videoRef}
                 className="w-full h-full"
@@ -949,18 +910,9 @@ const VideoSection = React.memo(function VideoSection({
                 onProgress={handleVideoProgress}
                 onLoadedData={handleVideoLoadedData}
                 onCanPlay={handleVideoCanPlay}
-                onLoadedMetadata={() => {
-                  if (videoRef.current && videoRef.current.readyState >= 1) {
-                    setIsVideoLoading(false);
-                  }
-                }}
-                onCanPlayThrough={() => {
-                  setIsVideoLoading(false);
-                  setVideoLoadProgress(100);
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isVideoLoading ? 0.3 : 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                initial={{ opacity: 1 }} // Start fully visible
+                animate={{ opacity: 1 }} // Always visible
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 data-field-type="videoUrl"
                 data-component-type="Video"
               >
@@ -989,193 +941,79 @@ const VideoSection = React.memo(function VideoSection({
                 </p>
               </motion.video>
               
-              {/* Modern loading overlay with progressive content reveal */}
-              {isVideoLoading && (
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-sm z-10"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {/* Animated background pattern */}
-                  <div className="absolute inset-0 overflow-hidden">
-                    {Array.from({ length: 20 }).map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute w-1 h-1 bg-white/20 rounded-full"
-                        style={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                          opacity: [0.2, 0.8, 0.2],
-                          scale: [1, 1.5, 1],
-                        }}
-                        transition={{
-                          duration: 2 + Math.random() * 2,
-                          repeat: Infinity,
-                          delay: Math.random() * 2,
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Progressive content loading */}
-                  <div className="relative z-20 h-full flex flex-col items-center justify-center p-8">
-                    {/* Loading indicator */}
-                    <motion.div
-                      className="mb-8"
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <div className="relative">
-                        <div className="w-16 h-16 border-4 border-white/20 rounded-full"></div>
-                        <motion.div
-                          className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-white rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        />
-                      </div>
-                    </motion.div>
-
-                    {/* Progressive text content - appears while video loads */}
-                    {localTitle && (
-                      <motion.h1 
-                        className="text-2xl md:text-4xl font-bold text-white mb-4 text-center max-w-4xl"
-                        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                      >
-                        {localTitle}
-                      </motion.h1>
-                    )}
-                    
-                    {localSubtitle && (
-                      <motion.h2 
-                        className="text-lg md:text-xl text-white/90 mb-6 text-center max-w-2xl"
-                        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-                      >
-                        {localSubtitle}
-                      </motion.h2>
-                    )}
-                    
-                    {localDescription && (
-                      <motion.p 
-                        className="text-white/80 text-center max-w-xl leading-relaxed mb-8"
-                        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.9, ease: "easeOut" }}
-                      >
-                        {localDescription}
-                      </motion.p>
-                    )}
-
-                    {/* Loading progress */}
-                    <motion.div 
-                      className="w-64 h-1 bg-white/20 rounded-full overflow-hidden"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, delay: 1.2 }}
-                    >
-                      <motion.div 
-                        className="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${currentLoadProgress}%` }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </motion.div>
-                    
-                    <motion.p 
-                      className="text-white/60 text-sm mt-4"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 1.4 }}
-                    >
-                      Loading video... {Math.round(currentLoadProgress)}%
-                    </motion.p>
-                  </div>
-                </motion.div>
-              )}
-              
-              {/* Overlay */}
-              {localOverlayEnabled && !isVideoLoading && (
+              {/* Overlay - shows immediately */}
+              {localOverlayEnabled && (
                 <motion.div 
                   className="absolute inset-0 pointer-events-none"
                   style={{ 
                     backgroundColor: hexToRgba(localOverlayColor, localOverlayOpacity)
                   }}
-                  initial={{ opacity: 0 }}
+                  initial={{ opacity: 1 }} // Start visible
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 0.5 }}
+                  transition={{ duration: 0.3 }}
                 />
               )}
               
-              {/* Content overlay - appears after video loads */}
-              {!isVideoLoading && (
-                <motion.div 
-                  className={`absolute inset-0 flex ${getContentPositionClasses()} p-6 sm:p-12 pointer-events-none`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-                >
-                  <div className={`text-${localTextAlignment} max-w-4xl`} style={{ color: localTextColor }}>
-                    {localTitle && (
-                      <motion.h1 
-                        className="text-4xl sm:text-6xl font-bold mb-6 leading-tight"
-                        initial={{ opacity: 0, y: 20, filter: "blur(5px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.5 }}
-                        data-field-type="title"
-                        data-component-type="Video"
-                      >
-                        {localTitle}
-                      </motion.h1>
-                    )}
-                    {localSubtitle && (
-                      <motion.h2 
-                        className="text-xl sm:text-2xl mb-6 opacity-90"
-                        initial={{ opacity: 0, y: 20, filter: "blur(5px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.7 }}
-                        data-field-type="subtitle"
-                        data-component-type="Video"
-                      >
-                        {localSubtitle}
-                      </motion.h2>
-                    )}
-                    {localDescription && (
-                      <motion.p 
-                        className="text-lg sm:text-xl opacity-80 leading-relaxed"
-                        initial={{ opacity: 0, y: 20, filter: "blur(5px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ duration: 0.8, delay: 0.9 }}
-                        data-field-type="description"
-                        data-component-type="Video"
-                      >
-                        {localDescription}
-                      </motion.p>
-                    )}
-                  </div>
-                </motion.div>
-              )}
+              {/* Content overlay - appears immediately */}
+              <motion.div 
+                className={`absolute inset-0 flex ${getContentPositionClasses()} p-6 sm:p-12 pointer-events-none`}
+                initial={{ opacity: 1, y: 0 }} // Start in final position
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
+                <div className={`text-${localTextAlignment} max-w-4xl`} style={{ color: localTextColor }}>
+                  {localTitle && (
+                    <motion.h1 
+                      className="text-4xl sm:text-6xl font-bold mb-6 leading-tight"
+                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.5 }}
+                      data-field-type="title"
+                      data-component-type="Video"
+                    >
+                      {localTitle}
+                    </motion.h1>
+                  )}
+                  {localSubtitle && (
+                    <motion.h2 
+                      className="text-xl sm:text-2xl mb-6 opacity-90"
+                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                      data-field-type="subtitle"
+                      data-component-type="Video"
+                    >
+                      {localSubtitle}
+                    </motion.h2>
+                  )}
+                  {localDescription && (
+                    <motion.p 
+                      className="text-lg sm:text-xl opacity-80 leading-relaxed"
+                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      data-field-type="description"
+                      data-component-type="Video"
+                    >
+                      {localDescription}
+                    </motion.p>
+                  )}
+                </div>
+              </motion.div>
               
-              {/* Play button */}
-              {localShowPlayButton && !localControls && !isVideoLoading && (
+              {/* Play button - shows immediately */}
+              {localShowPlayButton && !localControls && (
                 <motion.button
                   onClick={togglePlayPause}
                   className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${getPlayButtonSizeClasses()} ${getPlayButtonStyleClasses()} rounded-full flex items-center justify-center transition-all duration-200 pointer-events-auto z-10 backdrop-blur-sm`}
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
-                  initial={{ opacity: 0, scale: 0.5 }}
+                  initial={{ opacity: 1, scale: 1 }} // Start visible
                   animate={{ 
                     opacity: 1, 
                     scale: isHovered ? 1.1 : 1 
                   }}
-                  transition={{ duration: 0.3, delay: 1.2 }}
+                  transition={{ duration: 0.3 }}
                   whileHover={{ scale: 1.15 }}
                   whileTap={{ scale: 0.95 }}
                 >
