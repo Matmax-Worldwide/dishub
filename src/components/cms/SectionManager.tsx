@@ -865,6 +865,12 @@ function SectionManagerBase({
           borderRadius: 8,
           dropdownLinks: [],
           showDropdown: false
+        } : type === 'Gallery' ? {
+          title: 'Gallery',
+          subtitle: 'Latest images and videos',
+          images: [],
+          layout: 'grid',
+          columns: 3,
         } : {}),
         componentTitle: `${type} Component`
       }

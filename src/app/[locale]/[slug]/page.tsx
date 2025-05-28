@@ -847,6 +847,9 @@ export default function CMSPage() {
     if (lowercaseType === 'video') {
       return 'Video' as ComponentType;
     }
+    if (lowercaseType === 'gallery') {
+      return 'Gallery' as ComponentType;
+    }
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
   

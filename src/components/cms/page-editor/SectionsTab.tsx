@@ -117,6 +117,12 @@ const AVAILABLE_COMPONENTS = [
     nameKey: 'sections.components.video.name',
     descriptionKey: 'sections.components.video.description'
   },
+  {
+    type: 'gallery',
+    displayType: 'Gallery',
+    nameKey: 'sections.components.gallery.name',
+    descriptionKey: 'sections.components.gallery.description'
+  }
 ];
 
 export const SectionsTab: React.FC<SectionsTabProps> = ({
@@ -290,6 +296,13 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
             backgroundColor: 'from-[#ffffff] to-[#f0f9ff]',
             showGrid: true,
             showDots: true
+          };
+        case 'gallery':
+          return {
+            ...baseData,
+            componentTitle: t('sections.components.gallery.defaultTitle'),
+            title: t('sections.components.gallery.defaultGalleryTitle'),
+            images: [],
           };
         default:
           return {
