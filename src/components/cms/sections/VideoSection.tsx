@@ -13,6 +13,7 @@ import { CmsTabs } from '@/components/cms/CmsTabs';
 import { FileText, Palette, Video, Eye } from 'lucide-react';
 import { useOptimizedVideo, useOptimizedImage } from '@/hooks/useOptimizedMedia';
 import { videoPreloader } from '@/lib/video-preloader';
+import { RichStableInput } from '@/components/cms/sections/RichStableInput';
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -1093,66 +1094,75 @@ const VideoSection = React.memo(function VideoSection({
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 <div 
-                  className={`${isMobilePreview ? 'max-w-full' : 'max-w-5xl'} w-full space-y-3 sm:space-y-4 ${localTextAlignment === 'center' ? 'text-center' : localTextAlignment === 'left' ? 'text-left' : 'text-right'}`} 
+                  className={`${isMobilePreview ? 'max-w-full' : 'max-w-5xl'} w-full ${localTextAlignment === 'center' ? 'text-center' : localTextAlignment === 'left' ? 'text-left' : 'text-right'}`} 
                   style={{ color: localTextColor }}
                 >
-                  {localTitle && (
-                    <motion.h1 
-                      className={isMobilePreview 
-                        ? "text-2xl font-black leading-tight tracking-tight drop-shadow-2xl" 
-                        : "text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight drop-shadow-2xl"
-                      }
-                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      transition={{ duration: 0.5 }}
-                      data-field-type="title"
-                      data-component-type="Video"
-                      style={{ 
-                        textShadow: '0 4px 8px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)',
-                        fontWeight: 900
-                      }}
-                    >
-                      {localTitle}
-                    </motion.h1>
-                  )}
-                  {localSubtitle && (
-                    <motion.h2 
-                      className={isMobilePreview 
-                        ? "text-lg font-bold opacity-95 leading-tight drop-shadow-lg" 
-                        : "text-2xl sm:text-3xl lg:text-4xl font-bold opacity-95 leading-tight drop-shadow-lg"
-                      }
-                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                      data-field-type="subtitle"
-                      data-component-type="Video"
-                      style={{ 
-                        textShadow: '0 2px 4px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
-                        fontWeight: 700
-                      }}
-                    >
-                      {localSubtitle}
-                    </motion.h2>
-                  )}
-                  {localDescription && (
-                    <motion.p 
-                      className={isMobilePreview 
-                        ? "text-sm font-medium opacity-90 leading-relaxed drop-shadow-md" 
-                        : "text-lg sm:text-xl lg:text-2xl font-medium opacity-90 leading-relaxed drop-shadow-md"
-                      }
-                      initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                      data-field-type="description"
-                      data-component-type="Video"
-                      style={{ 
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
-                        fontWeight: 500
-                      }}
-                    >
-                      {localDescription}
-                    </motion.p>
-                  )}
+                  {/* Container with consistent spacing - no individual margins */}
+                  <div className="space-y-3 sm:space-y-4">
+                    {localTitle && (
+                      <motion.div
+                        initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.5 }}
+                        data-field-type="title"
+                        data-component-type="Video"
+                      >
+                        <h1 
+                          className={isMobilePreview 
+                            ? "text-2xl font-black leading-tight tracking-tight drop-shadow-2xl" 
+                            : "text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight drop-shadow-2xl"
+                          }
+                          style={{ 
+                            textShadow: '0 4px 8px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)',
+                            fontWeight: 900
+                          }}
+                          dangerouslySetInnerHTML={{ __html: localTitle }}
+                        />
+                      </motion.div>
+                    )}
+                    {localSubtitle && (
+                      <motion.div
+                        initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        data-field-type="subtitle"
+                        data-component-type="Video"
+                      >
+                        <h2 
+                          className={isMobilePreview 
+                            ? "text-lg font-bold opacity-95 leading-tight drop-shadow-lg" 
+                            : "text-2xl sm:text-3xl lg:text-4xl font-bold opacity-95 leading-tight drop-shadow-lg"
+                          }
+                          style={{ 
+                            textShadow: '0 2px 4px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
+                            fontWeight: 700
+                          }}
+                          dangerouslySetInnerHTML={{ __html: localSubtitle }}
+                        />
+                      </motion.div>
+                    )}
+                    {localDescription && (
+                      <motion.div
+                        initial={{ opacity: 1, y: 0, filter: "blur(0px)" }} // Start visible
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        data-field-type="description"
+                        data-component-type="Video"
+                      >
+                        <div 
+                          className={isMobilePreview 
+                            ? "text-sm font-medium opacity-90 leading-relaxed drop-shadow-md" 
+                            : "text-lg sm:text-xl lg:text-2xl font-medium opacity-90 leading-relaxed drop-shadow-md"
+                          }
+                          style={{ 
+                            textShadow: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
+                            fontWeight: 500
+                          }}
+                          dangerouslySetInnerHTML={{ __html: localDescription }}
+                        />
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
               
@@ -1230,25 +1240,6 @@ const VideoSection = React.memo(function VideoSection({
     const [localSubtitleState, setLocalSubtitleState] = useState(localSubtitle);
     const [localDescriptionState, setLocalDescriptionState] = useState(localDescription);
     
-    // Manejador de submit para los inputs
-    const handleInputSubmit = useCallback(() => {
-      // Solo actualizar si los valores han cambiado
-      if (localTitleState !== localTitle) {
-        setLocalTitle(localTitleState);
-        handleUpdateField('title', localTitleState);
-      }
-      
-      if (localSubtitleState !== localSubtitle) {
-        setLocalSubtitle(localSubtitleState);
-        handleUpdateField('subtitle', localSubtitleState);
-      }
-      
-      if (localDescriptionState !== localDescription) {
-        setLocalDescription(localDescriptionState);
-        handleUpdateField('description', localDescriptionState);
-      }
-    }, [localTitleState, localSubtitleState, localDescriptionState, localTitle, localSubtitle, localDescription]);
-
     // Actualizar estado local cuando cambian las props
     useEffect(() => {
       setLocalTitleState(localTitle);
@@ -1266,15 +1257,20 @@ const VideoSection = React.memo(function VideoSection({
               <label className="block text-sm font-medium mb-2 text-foreground">
                 Title
               </label>
-              <input
-                type="text"
+              <RichStableInput
                 value={localTitleState}
-                onChange={(e) => setLocalTitleState(e.target.value)}
-                onBlur={handleInputSubmit}
+                onChange={(value) => {
+                  setLocalTitleState(value);
+                  setLocalTitle(value);
+                  handleUpdateField('title', value);
+                }}
                 placeholder="Video title..."
-                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-bold text-xl"
+                enableRichText={true}
+                toolbar="basic"
+                height="80px"
                 data-field-id="title"
                 data-component-type="Video"
+                className="font-bold text-xl"
               />
             </div>
             
@@ -1282,13 +1278,17 @@ const VideoSection = React.memo(function VideoSection({
               <label className="block text-sm font-medium mb-2 text-foreground">
                 Subtitle
               </label>
-              <input
-                type="text"
+              <RichStableInput
                 value={localSubtitleState}
-                onChange={(e) => setLocalSubtitleState(e.target.value)}
-                onBlur={handleInputSubmit}
+                onChange={(value) => {
+                  setLocalSubtitleState(value);
+                  setLocalSubtitle(value);
+                  handleUpdateField('subtitle', value);
+                }}
                 placeholder="Video subtitle..."
-                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground"
+                enableRichText={true}
+                toolbar="basic"
+                height="80px"
                 data-field-id="subtitle"
                 data-component-type="Video"
               />
@@ -1298,15 +1298,20 @@ const VideoSection = React.memo(function VideoSection({
               <label className="block text-sm font-medium mb-2 text-foreground">
                 Description
               </label>
-              <textarea
+              <RichStableInput
                 value={localDescriptionState}
-                onChange={(e) => setLocalDescriptionState(e.target.value)}
-                onBlur={handleInputSubmit}
+                onChange={(value) => {
+                  setLocalDescriptionState(value);
+                  setLocalDescription(value);
+                  handleUpdateField('description', value);
+                }}
                 placeholder="Enter video description..."
-                className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground"
-                rows={4}
+                enableRichText={true}
+                toolbar="full"
+                height="150px"
                 data-field-id="description"
                 data-component-type="Video"
+                isTextArea={true}
               />
             </div>
           </div>

@@ -104,6 +104,7 @@ export default function FormSection({
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [isDesignChanging, setIsDesignChanging] = useState(false);
+  const [formKey, setFormKey] = useState(0); // Add form key for forcing re-render to clear inputs
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -521,28 +522,48 @@ export default function FormSection({
         setSubmitStatus('success');
         
         // Enhanced success feedback based on form type
-        const successMessage = selectedForm.isMultiStep 
-          ? selectedForm.successMessage || 'Multi-step form completed successfully!'
-          : selectedForm.successMessage || 'Form submitted successfully!';
+        const successMessage = customConfig.customSuccessMessage || 
+          (selectedForm.isMultiStep 
+            ? selectedForm.successMessage || 'Multi-step form completed successfully!'
+            : selectedForm.successMessage || 'Form submitted successfully!');
           
         toast.success(successMessage);
         
-        // Handle redirect if specified
-        if (selectedForm.redirectUrl) {
+        // Clear form inputs by forcing re-render after a short delay
+        setTimeout(() => {
+          setFormKey(prev => prev + 1);
+        }, 1000);
+        
+        // Handle redirect - prioritize custom redirect URL
+        const redirectUrl = customConfig.customRedirectUrl || selectedForm.redirectUrl;
+        if (redirectUrl) {
           setTimeout(() => {
-            window.location.href = selectedForm.redirectUrl!;
+            if (redirectUrl.startsWith('http')) {
+              // External URL - open in new tab
+              window.open(redirectUrl, '_blank');
+            } else {
+              // Internal page - navigate in same tab
+              window.location.href = redirectUrl;
+            }
           }, 2000);
         }
         
-        // Reset form status after successful submission
+        // Reset form status after successful submission and clear inputs
         setTimeout(() => {
           setSubmitStatus('idle');
-        }, 3000);
+          // Force form re-render to clear all inputs
+          setFormKey(prev => prev + 1);
+        }, redirectUrl ? 4000 : 3000); // Wait longer if redirecting
       } else {
         setSubmitStatus('error');
         const errorMessage = result.message || 
           (selectedForm.isMultiStep ? 'Failed to complete multi-step form' : 'Failed to submit form');
         toast.error(errorMessage);
+        
+        // Reset error status after 5 seconds
+        setTimeout(() => {
+          setSubmitStatus('idle');
+        }, 5000);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -551,6 +572,11 @@ export default function FormSection({
         ? 'An error occurred while processing your multi-step form'
         : 'An error occurred while submitting the form';
       toast.error(errorMessage);
+      
+      // Reset error status after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 5000);
     }
   };
   
@@ -774,6 +800,42 @@ export default function FormSection({
     // Estado local para los inputs
     const [localTitle, setLocalTitle] = useState(title);
     const [localDescription, setLocalDescription] = useState(description);
+    const [availablePages, setAvailablePages] = useState<Array<{ id: string; title: string; slug: string }>>([]);
+    const [loadingPages, setLoadingPages] = useState(false);
+    
+    // Fetch available pages for redirect URL selection
+    useEffect(() => {
+      const fetchPages = async () => {
+        setLoadingPages(true);
+        try {
+          // TODO: Fix GraphQL query for getAllCMSPages
+          // Temporarily disabled to avoid errors
+          // const query = `
+          //   query GetAllCMSPages {
+          //     getAllCMSPages {
+          //       id
+          //       title
+          //       slug
+          //     }
+          //   }
+          // `;
+
+          // const response = await gqlRequest<{ getAllCMSPages: Array<{ id: string; title: string; slug: string }> }>(query);
+          // if (response && response.getAllCMSPages) {
+          //   setAvailablePages(response.getAllCMSPages);
+          // }
+          
+          // For now, set empty array
+          setAvailablePages([]);
+        } catch (err) {
+          console.error('Error fetching pages:', err);
+        } finally {
+          setLoadingPages(false);
+        }
+      };
+
+      fetchPages();
+    }, []);
     
     // Manejador de submit para los inputs
     const handleInputSubmit = useCallback(() => {
@@ -887,6 +949,116 @@ export default function FormSection({
               className="mb-4"
             />
           </div>
+          
+          {/* Form Configuration */}
+          {selectedForm && (
+            <div className="mt-6 space-y-4 border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-700">Form Configuration</h4>
+              
+              {/* Custom Success Message */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Custom Success Message
+                </label>
+                <textarea
+                  value={customConfig.customSuccessMessage || ''}
+                  onChange={(e) => {
+                    const newConfig = { ...customConfig, customSuccessMessage: e.target.value };
+                    setCustomConfig(newConfig);
+                    handleUpdateField('customConfig', newConfig);
+                  }}
+                  placeholder={selectedForm.successMessage || "Form submitted successfully!"}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Override the default success message from the form
+                </p>
+              </div>
+              
+              {/* Redirect URL Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Redirect After Success
+                </label>
+                <div className="space-y-2">
+                  <select
+                    value={customConfig.customRedirectUrl?.startsWith('/') ? customConfig.customRedirectUrl.substring(1) : ''}
+                    onChange={(e) => {
+                      const selectedSlug = e.target.value;
+                      const redirectUrl = selectedSlug ? `/${selectedSlug}` : '';
+                      const newConfig = { ...customConfig, customRedirectUrl: redirectUrl };
+                      setCustomConfig(newConfig);
+                      handleUpdateField('customConfig', newConfig);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={loadingPages}
+                  >
+                    <option value="">Select a page...</option>
+                    {availablePages.map((page) => (
+                      <option key={page.id} value={page.slug}>
+                        {page.title} (/{page.slug})
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="text-xs text-gray-500 text-center">or</div>
+                  
+                  <input
+                    type="url"
+                    placeholder="Enter custom URL (e.g., https://example.com)"
+                    value={customConfig.customRedirectUrl?.startsWith('http') ? customConfig.customRedirectUrl : ''}
+                    onChange={(e) => {
+                      const newConfig = { ...customConfig, customRedirectUrl: e.target.value };
+                      setCustomConfig(newConfig);
+                      handleUpdateField('customConfig', newConfig);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose a page from your site or enter a custom URL
+                </p>
+              </div>
+              
+              {/* Form Display Options */}
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="hideTitle"
+                    checked={customConfig.hideTitle || false}
+                    onChange={(e) => {
+                      const newConfig = { ...customConfig, hideTitle: e.target.checked };
+                      setCustomConfig(newConfig);
+                      handleUpdateField('customConfig', newConfig);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 mr-2"
+                  />
+                  <label htmlFor="hideTitle" className="text-sm">
+                    Hide section title
+                  </label>
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="hideDescription"
+                    checked={customConfig.hideDescription || false}
+                    onChange={(e) => {
+                      const newConfig = { ...customConfig, hideDescription: e.target.checked };
+                      setCustomConfig(newConfig);
+                      handleUpdateField('customConfig', newConfig);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 mr-2"
+                  />
+                  <label htmlFor="hideDescription" className="text-sm">
+                    Hide section description
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Separated Form Preview to prevent re-renders affecting inputs */}
           <div className="mt-4">
@@ -1479,35 +1651,179 @@ export default function FormSection({
                   className="w-full max-w-2xl mx-auto relative z-[15]"
                 >
                   <div className={`${getFormWrapperClassNames()} ${getFormContainerClasses()}`}>
-                    {selectedForm.isMultiStep ? (
-                      <div className="w-full">
-                        {/* Multi-step form with improved layout */}
-                        <div className="flex flex-col lg:flex-row gap-8 items-start">
-                          {/* Left side - Form content */}
-                          <div className="flex-1 w-full lg:w-2/3">
-                            <MultiStepFormRenderer
-                              form={selectedForm}
-                              onSubmit={handleFormSubmit}
-                              submitStatus={submitStatus}
-                              designType={formDesign}
-                              showStepTitle={showStepTitle}
-                            />
-                          </div>
+                    {/* Success Message Overlay - Full Container Coverage */}
+                    {submitStatus === 'success' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center"
+                        style={{
+                          background: formDesign === 'futuristic' 
+                            ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)'
+                            : formDesign === 'elegant'
+                            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%)'
+                            : formDesign === 'minimal'
+                            ? 'rgba(255, 255, 255, 0.95)'
+                            : formDesign === 'corporate'
+                            ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%)'
+                            : formDesign === 'gradient'
+                            ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)'
+                            : formDesign === 'glassmorphism'
+                            ? 'rgba(255, 255, 255, 0.1)'
+                            : formDesign === 'neon'
+                            ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)'
+                            : formDesign === 'retro'
+                            ? 'linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(252, 211, 77, 0.1) 100%)'
+                            : 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)',
+                          backdropFilter: formDesign === 'glassmorphism' ? 'blur(10px)' : 'blur(5px)',
+                          borderRadius: 'inherit'
+                        }}
+                      >
+                        <div className="text-center p-8 max-w-md">
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            className="mb-6"
+                          >
+                            <div 
+                              className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
+                                formDesign === 'futuristic' 
+                                  ? 'bg-cyan-500/20 border-2 border-cyan-400'
+                                  : formDesign === 'elegant'
+                                  ? 'bg-amber-500/20 border-2 border-amber-400'
+                                  : formDesign === 'minimal'
+                                  ? 'bg-gray-100 border-2 border-gray-300'
+                                  : formDesign === 'corporate'
+                                  ? 'bg-blue-500/20 border-2 border-blue-400'
+                                  : formDesign === 'gradient'
+                                  ? 'bg-pink-500/20 border-2 border-pink-400'
+                                  : formDesign === 'glassmorphism'
+                                  ? 'bg-white/20 border-2 border-white/30'
+                                  : formDesign === 'neon'
+                                  ? 'bg-cyan-500/20 border-2 border-cyan-400 shadow-lg shadow-cyan-500/50'
+                                  : formDesign === 'retro'
+                                  ? 'bg-orange-500/20 border-2 border-orange-400'
+                                  : 'bg-green-500/20 border-2 border-green-400'
+                              }`}
+                            >
+                              <svg 
+                                className={`w-10 h-10 ${
+                                  formDesign === 'futuristic' ? 'text-cyan-400'
+                                  : formDesign === 'elegant' ? 'text-amber-500'
+                                  : formDesign === 'minimal' ? 'text-gray-600'
+                                  : formDesign === 'corporate' ? 'text-blue-500'
+                                  : formDesign === 'gradient' ? 'text-pink-500'
+                                  : formDesign === 'glassmorphism' ? 'text-white'
+                                  : formDesign === 'neon' ? 'text-cyan-400'
+                                  : formDesign === 'retro' ? 'text-orange-500'
+                                  : 'text-green-500'
+                                }`} 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          </motion.div>
                           
-
+                          <motion.h3 
+                            className={`text-2xl font-bold mb-4 ${
+                              formDesign === 'futuristic' ? 'text-cyan-300'
+                              : formDesign === 'elegant' ? 'text-amber-800'
+                              : formDesign === 'minimal' ? 'text-gray-800'
+                              : formDesign === 'corporate' ? 'text-blue-800'
+                              : formDesign === 'gradient' ? 'text-pink-800'
+                              : formDesign === 'glassmorphism' ? 'text-white'
+                              : formDesign === 'neon' ? 'text-cyan-300'
+                              : formDesign === 'retro' ? 'text-orange-800'
+                              : 'text-green-800'
+                            }`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.4 }}
+                          >
+                            Success!
+                          </motion.h3>
+                          
+                          <motion.p 
+                            className={`text-lg mb-6 ${
+                              formDesign === 'futuristic' ? 'text-cyan-200'
+                              : formDesign === 'elegant' ? 'text-amber-700'
+                              : formDesign === 'minimal' ? 'text-gray-600'
+                              : formDesign === 'corporate' ? 'text-blue-700'
+                              : formDesign === 'gradient' ? 'text-pink-700'
+                              : formDesign === 'glassmorphism' ? 'text-white/90'
+                              : formDesign === 'neon' ? 'text-cyan-200'
+                              : formDesign === 'retro' ? 'text-orange-700'
+                              : 'text-green-700'
+                            }`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.6 }}
+                          >
+                            {customConfig.customSuccessMessage || selectedForm.successMessage || 'Form submitted successfully!'}
+                          </motion.p>
+                          
+                          {(customConfig.customRedirectUrl || selectedForm.redirectUrl) && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.5, delay: 0.8 }}
+                            >
+                              <p className={`text-sm ${
+                                formDesign === 'futuristic' ? 'text-cyan-300'
+                                : formDesign === 'elegant' ? 'text-amber-600'
+                                : formDesign === 'minimal' ? 'text-gray-500'
+                                : formDesign === 'corporate' ? 'text-blue-600'
+                                : formDesign === 'gradient' ? 'text-pink-600'
+                                : formDesign === 'glassmorphism' ? 'text-white/80'
+                                : formDesign === 'neon' ? 'text-cyan-300'
+                                : formDesign === 'retro' ? 'text-orange-600'
+                                : 'text-green-600'
+                              }`}>
+                                Redirecting in a moment...
+                              </p>
+                            </motion.div>
+                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <FormRenderer
-                        form={selectedForm}
-                        buttonClassName={getButtonClassNames()}
-                        buttonStyles={getButtonStyles()}
-                        inputClassName={getInputClassNames()}
-                        labelClassName={getLabelClassNames()}
-                        onSubmit={handleFormSubmit}
-                        submitStatus={submitStatus}
-                      />
+                      </motion.div>
                     )}
+
+                    {/* Form Content - Hidden when success */}
+                    <div className={submitStatus === 'success' ? 'opacity-0 pointer-events-none' : 'opacity-100'}>
+                      {selectedForm.isMultiStep ? (
+                        <div className="w-full">
+                          {/* Multi-step form with improved layout */}
+                          <div className="flex flex-col lg:flex-row gap-8 items-start">
+                            {/* Left side - Form content */}
+                            <div className="flex-1 w-full lg:w-2/3">
+                              <MultiStepFormRenderer
+                                key={`multi-step-form-${formKey}`}
+                                form={selectedForm}
+                                onSubmit={handleFormSubmit}
+                                submitStatus={submitStatus}
+                                designType={formDesign}
+                                showStepTitle={showStepTitle}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <FormRenderer
+                          key={`single-form-${formKey}`}
+                          form={selectedForm}
+                          buttonClassName={getButtonClassNames()}
+                          buttonStyles={getButtonStyles()}
+                          inputClassName={getInputClassNames()}
+                          labelClassName={getLabelClassNames()}
+                          onSubmit={handleFormSubmit}
+                          submitStatus={submitStatus}
+                        />
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ) : (
