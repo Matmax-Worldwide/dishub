@@ -3,7 +3,15 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { PlusCircle, ChevronDown, ChevronUp, Trash2, GripVertical, Minimize2, Maximize2 } from 'lucide-react';
+import { 
+  PlusCircle, 
+  Trash2, 
+  GripVertical, 
+  Maximize,
+  Minimize,
+  ChevronsUp,
+  ChevronsDown
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ComponentTitleInput from './ComponentTitleInput';
 import { Button } from '@/components/ui/button';
@@ -401,10 +409,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   isEditing, 
   children, 
   onRemove,
-  onMoveUp,
-  onMoveDown,
-  isFirst = false,
-  isLast = false,
   isCollapsed = false,
   onToggleCollapse,
   isActive = false,
@@ -417,8 +421,6 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   onRemove: (id: string) => void;
   onMoveUp?: (id: string) => void;
   onMoveDown?: (id: string) => void;
-  isFirst?: boolean;
-  isLast?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: (id: string, isCollapsed: boolean) => void;
   isActive?: boolean;
@@ -449,18 +451,7 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       onToggleCollapse(component.id, isCollapsed);
     }
   };
-  
-  const handleMoveUp = () => {
-    if (onMoveUp) {
-      onMoveUp(component.id);
-    }
-  };
-  
-  const handleMoveDown = () => {
-    if (onMoveDown) {
-      onMoveDown(component.id);
-    }
-  };
+
   
   const handleComponentClick = () => {
     if (onComponentClick) {
@@ -471,8 +462,9 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
   return (
     <div 
       className={cn(
-        "component-wrapper relative border border-border/30 rounded-md mb-4 transition-all duration-200 hover:border-border/50 group",
-        isActive && "active-component border-primary/50 bg-primary/5",
+        "component-wrapper relative border-2 rounded-lg mb-6 transition-all duration-300 hover:shadow-md group bg-white",
+        isActive && "active-component border-blue-400 bg-blue-50/30 shadow-lg shadow-blue-100",
+        !isActive && "border-slate-200 hover:border-slate-300",
         isCollapsed && "component-collapsed"
       )}
       data-component-id={component.id}
@@ -509,20 +501,20 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
       )}
       
       {isEditing && (
-        <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 rounded-t-md">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 rounded-t-lg">
+          <div className="flex items-center space-x-3">
             <div 
               className={cn(
-                "p-1 rounded hover:bg-muted/50",
+                "p-1.5 rounded-md hover:bg-slate-200/70 transition-all duration-200",
                 isCollapsed && dragListeners 
-                  ? "cursor-grab active:cursor-grabbing touch-none drag-handle" 
-                  : "cursor-default opacity-50"
+                  ? "cursor-grab active:cursor-grabbing touch-none drag-handle text-slate-600 hover:text-slate-800" 
+                  : "cursor-default opacity-40 text-slate-400"
               )}
               title={isCollapsed ? "Arrastrar para reordenar" : "Solo se puede arrastrar cuando está colapsado"}
               onClick={(e) => e.stopPropagation()}
               {...(isCollapsed && dragListeners ? dragListeners : {})}
             >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
+              <GripVertical className="h-4 w-4" />
             </div>
             
             <button
@@ -532,10 +524,10 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
                 handleToggle(e);
               }}
               className={cn(
-                "p-1.5 rounded transition-all small-toggle-button",
+                "p-2 rounded-lg transition-all duration-200 shadow-sm border",
                 isCollapsed 
-                  ? "bg-primary/10 hover:bg-primary/20 text-primary expand-button" 
-                  : "bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground collapse-button"
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-200" 
+                  : "bg-orange-500 hover:bg-orange-600 text-white border-orange-600 shadow-orange-200"
               )}
               title={isCollapsed ? "Expandir componente" : "Colapsar componente"}
               aria-label={isCollapsed ? "Expandir componente" : "Colapsar componente"}
@@ -544,13 +536,13 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
               type="button"
             >
               {isCollapsed ? (
-                <Maximize2 className="h-4 w-4" />
+                <Maximize className="h-4 w-4" />
               ) : (
-                <Minimize2 className="h-4 w-4" />
+                <Minimize className="h-4 w-4" />
               )}
             </button>
             
-            <div className="text-sm font-medium text-foreground flex-1 min-w-0">
+            <div className="text-sm font-semibold text-slate-700 flex-1 min-w-0">
               {isEditing ? (
                 <ComponentTitleInput
                   componentId={component.id}
@@ -564,42 +556,23 @@ const ComponentWrapperMemo = memo(function ComponentWrapper({
           </div>
           
           {isEditing && (
-            <div className="flex items-center space-x-1">
-              {onMoveUp && !isFirst && (
-                <div 
-                  onClick={handleMoveUp}
-                  className="cursor-pointer p-1 rounded hover:bg-muted/50"
-                  title="Mover arriba"
-                >
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              
-              {onMoveDown && !isLast && (
-                <div 
-                  onClick={handleMoveDown}
-                  className="cursor-pointer p-1 rounded hover:bg-muted/50"
-                  title="Mover abajo"
-                >
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              
-              <div 
+            <div className="flex items-center space-x-2">
+          
+              <button
                 onClick={handleRemoveClick}
-                className="opacity-60 hover:opacity-100 transition-opacity duration-200 p-1 bg-destructive hover:bg-destructive/90 rounded-full cursor-pointer"
+                className="p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all duration-200 shadow-sm border border-red-600"
                 aria-label="Eliminar componente"
                 title="Eliminar componente"
               >
-                <Trash2 className="h-3.5 w-3.5 text-white" />
-              </div>
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           )}
         </div>
       )}
       
       <div className={cn(
-        isEditing ? (!isCollapsed ? 'block p-4' : 'hidden') : 'block'
+        isEditing ? (!isCollapsed ? 'block p-6 bg-slate-50/30' : 'hidden') : 'block'
       )}>
         {children}
       </div>
@@ -615,8 +588,6 @@ const SortableComponent = memo(function SortableComponent({
   onRemove,
   onMoveUp,
   onMoveDown,
-  isFirst,
-  isLast,
   isCollapsed,
   onToggleCollapse,
   isActive,
@@ -660,8 +631,6 @@ const SortableComponent = memo(function SortableComponent({
         onRemove={onRemove}
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
-        isFirst={isFirst}
-        isLast={isLast}
         isCollapsed={isCollapsed}
         onToggleCollapse={onToggleCollapse}
         isActive={isActive}
@@ -717,7 +686,42 @@ function SectionManagerBase({
   // Efecto para inicializar componentes iniciales
   useEffect(() => {
     if (initialComponents.length > 0) {
+      // Store current collapse state before updating components
+      const previousCollapsedState = new Set(collapsedComponents);
+      const previousUserCollapsedState = new Set(userCollapsedComponents);
+      
       setComponents(initialComponents);
+      
+      // If this is the first load (no previous state), collapse all components
+      if (previousCollapsedState.size === 0) {
+        const allComponentIds = new Set(initialComponents.map(c => c.id));
+        setCollapsedComponents(allComponentIds);
+        setUserCollapsedComponents(new Set());
+      } else {
+        // After loading components (e.g., after save), preserve existing collapse state
+        // Only collapse NEW components that weren't in the previous state
+        const newComponentIds = new Set<string>();
+        
+        initialComponents.forEach(component => {
+          // If this component was previously collapsed, keep it collapsed
+          if (previousCollapsedState.has(component.id)) {
+            newComponentIds.add(component.id);
+          }
+          // If this component was previously expanded, keep it expanded
+          else if (components.some(c => c.id === component.id)) {
+            // Component exists and was expanded, don't add to collapsed set
+          }
+          // If this is a completely new component, collapse it by default
+          else {
+            newComponentIds.add(component.id);
+          }
+        });
+        
+        // Set collapsed components: preserve previous state + collapse new components
+        setCollapsedComponents(newComponentIds);
+        // Preserve user collapsed preferences
+        setUserCollapsedComponents(previousUserCollapsedState);
+      }
     }
   }, [initialComponents]);
   
@@ -791,8 +795,16 @@ function SectionManagerBase({
     const newIndex = components.findIndex(c => c.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
+      // Preserve current collapse state before reordering
+      const currentCollapsedState = new Set(collapsedComponents);
+      const currentUserCollapsedState = new Set(userCollapsedComponents);
+      
       const newComponents = arrayMove(components, oldIndex, newIndex);
       setComponents(newComponents);
+      
+      // Maintain collapse state after drag and drop - don't expand any components
+      setCollapsedComponents(currentCollapsedState);
+      setUserCollapsedComponents(currentUserCollapsedState);
       
       // Notify parent of changes with a delay to ensure smooth animation
       if (onComponentsChange) {
@@ -920,6 +932,13 @@ function SectionManagerBase({
     
     // Update components array
     setComponents(updatedComponents);
+    
+    // Automatically collapse the new component for better editing experience
+    setCollapsedComponents(prev => {
+      const newSet = new Set(prev);
+      newSet.add(newComponent.id);
+      return newSet;
+    });
     
     // Notify parent of changes if callback exists - MOVED OUTSIDE setState
     if (onComponentsChange) {
@@ -1550,44 +1569,38 @@ function SectionManagerBase({
 
   // Initialize components as collapsed by default
   useEffect(() => {
-    // When components are loaded initially, only collapse some by default
+    // When components are loaded initially, collapse ALL components by default for better editing experience
     if (components.length > 0 && collapsedComponents.size === 0) {
-      // Start with only non-active components collapsed
-      const nonActiveComponentIds = new Set<string>();
+      // Collapse ALL components by default - this provides a cleaner editing experience
+      const allComponentIds = new Set(components.map(c => c.id));
+      setCollapsedComponents(allComponentIds);
+      // Clear user collapsed components to start fresh
+      setUserCollapsedComponents(new Set());
       
-      components.forEach(component => {
-        // If there's an activeComponentId, don't collapse it initially
-        if (activeComponentId && component.id === activeComponentId) {
-          return;
-        }
-        
-        // Don't collapse the first component by default for better UX
-        if (components.indexOf(component) === 0) {
-          return;
-        }
-        
-        // Collapse all other components
-        nonActiveComponentIds.add(component.id);
-      });
-      
-      setCollapsedComponents(nonActiveComponentIds);
+      // Clear active component to ensure no component has the blue border outline
+      if (onClickComponent) {
+        onClickComponent(''); // Clear active component by setting empty string
       }
-  }, [componentsDataString, activeComponentId, components]);
+    }
+  }, [componentsDataString, components, onClickComponent]);
 
   // Auto-expand active component (but respect user's explicit collapse actions)
   useEffect(() => {
-    if (activeComponentId && collapsedComponents.has(activeComponentId)) {
-      // Only auto-expand if the user didn't explicitly collapse it
-      if (!userCollapsedComponents.has(activeComponentId)) {
-        // Expand the active component if it's collapsed
-        setCollapsedComponents(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(activeComponentId);
-          return newSet;
-        });
-      }
+    // Only auto-expand if there's an active component AND the user didn't explicitly collapse it
+    // AND we're not in the initial load state AND the activeComponentId is not empty
+    if (activeComponentId && 
+        activeComponentId !== '' &&
+        collapsedComponents.has(activeComponentId) && 
+        !userCollapsedComponents.has(activeComponentId) &&
+        collapsedComponents.size < components.length) { // Not in initial load state
+      // Expand the active component if it's collapsed
+      setCollapsedComponents(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(activeComponentId);
+        return newSet;
+      });
     }
-  }, [activeComponentId, collapsedComponents, userCollapsedComponents]);
+  }, [activeComponentId, collapsedComponents, userCollapsedComponents, components.length]);
 
   // Handle collapsing/expanding components - ONLY called by explicit collapse toggle button
   const handleToggleCollapse = useCallback((componentId: string, isCollapsed: boolean) => {
@@ -1634,7 +1647,11 @@ function SectionManagerBase({
     setCollapsedComponents(allComponentIds);
     setUserCollapsedComponents(allComponentIds);
     
-  }, [components]);
+    // Clear active component for cleaner experience
+    if (onClickComponent) {
+      onClickComponent('');
+    }
+  }, [components, onClickComponent]);
 
   // Function to expand all components
   const expandAllComponents = useCallback(() => {
@@ -1642,7 +1659,11 @@ function SectionManagerBase({
     setCollapsedComponents(new Set());
     setUserCollapsedComponents(new Set());
     
-  }, []);
+    // Clear active component for cleaner experience
+    if (onClickComponent) {
+      onClickComponent('');
+    }
+  }, [onClickComponent]);
 
   // Agregar de vuelta el event listener para component:update-title
   useEffect(() => {
@@ -1823,6 +1844,10 @@ function SectionManagerBase({
     // Set moving flag to prevent unwanted activations
     isMovingRef.current = true;
     
+    // Preserve current collapse state before moving
+    const currentCollapsedState = new Set(collapsedComponents);
+    const currentUserCollapsedState = new Set(userCollapsedComponents);
+    
     setComponents(prevComponents => {
       const newComponents = [...prevComponents];
       const temp = newComponents[index];
@@ -1848,12 +1873,10 @@ function SectionManagerBase({
       return newComponents;
     });
     
-    // Preserve expanded state during reordering
-    setCollapsedComponents(prev => {
-      // Just return the same set - no changes to collapsed state during reordering
-      return new Set(prev);
-    });
-  }, [components, onComponentsChange]);
+    // Preserve collapse state during reordering - don't expand any components
+    setCollapsedComponents(currentCollapsedState);
+    setUserCollapsedComponents(currentUserCollapsedState);
+  }, [components, onComponentsChange, collapsedComponents, userCollapsedComponents]);
 
   // Manejar el movimiento de componentes hacia abajo
   const handleMoveComponentDown = useCallback((componentId: string) => {
@@ -1876,6 +1899,10 @@ function SectionManagerBase({
     
     // Set moving flag to prevent unwanted activations
     isMovingRef.current = true;
+    
+    // Preserve current collapse state before moving
+    const currentCollapsedState = new Set(collapsedComponents);
+    const currentUserCollapsedState = new Set(userCollapsedComponents);
     
     setComponents(prevComponents => {
       const index = prevComponents.findIndex(component => component.id === componentId);
@@ -1906,12 +1933,10 @@ function SectionManagerBase({
       return newComponents;
     });
     
-    // Preserve expanded state during reordering
-    setCollapsedComponents(prev => {
-      // Just return the same set - no changes to collapsed state during reordering
-      return new Set(prev);
-    });
-  }, [components, onComponentsChange]);
+    // Preserve collapse state during reordering - don't expand any components
+    setCollapsedComponents(currentCollapsedState);
+    setUserCollapsedComponents(currentUserCollapsedState);
+  }, [components, onComponentsChange, collapsedComponents, userCollapsedComponents]);
 
   // Render each component - usamos una función memoizada
   const renderComponent = useCallback((component: Component) => {
@@ -2134,6 +2159,12 @@ function SectionManagerBase({
                 styles={component.data.styles as FormStyles}
                 customConfig={component.data.customConfig as FormCustomConfig}
                 formDesign={component.data.formDesign as FormDesignType || 'modern'}
+                showStepTitle={component.data.showStepTitle as boolean}
+                formPadding={component.data.formPadding as 'none' | 'small' | 'medium' | 'large' | 'extra-large' || 'medium'}
+                formMargin={component.data.formMargin as 'none' | 'small' | 'medium' | 'large' | 'extra-large' || 'medium'}
+                showBorder={component.data.showBorder as boolean ?? true}
+                borderRadius={component.data.borderRadius as 'none' | 'small' | 'medium' | 'large' | 'extra-large' || 'medium'}
+                selectedIcon={component.data.selectedIcon as string}
                 // Use component's own background if it exists, otherwise use section background
                 backgroundImage={
                   (component.data.backgroundImage as string) || 
@@ -2353,24 +2384,24 @@ function SectionManagerBase({
       data-cms-editor={isEditing ? "true" : "false"}
     >
       {isEditing && (
-        <div className="flex justify-between items-center mb-2 top-0 bg-white border-b pb-2">
+        <div className="flex justify-between items-center mb-4 p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
           <div className="flex items-center">
-            <h2 className="text-lg font-medium text-gray-900 mr-4">Page Components</h2>
-            <div className="flex space-x-2">
+            <h2 className="text-xl font-bold text-slate-800 mr-6">Page Components</h2>
+            <div className="flex space-x-3">
               <button
                 onClick={collapseAllComponents}
-                className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors collapse-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                className="flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg border border-orange-600"
                 title="Colapsar todos los componentes"
               >
-                <ChevronDown className="h-3.5 w-3.5 inline-block mr-1" />
+                <ChevronsUp className="h-4 w-4 mr-2" />
                 Colapsar todos
               </button>
               <button
                 onClick={expandAllComponents}
-                className="text-xs px-2 py-1 rounded border border-muted hover:bg-muted/30 transition-colors expand-button-global bg-gradient-to-r from-blue-500 to-sky-400 text-white"
+                className="flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg border border-emerald-600"
                 title="Expandir todos los componentes"
               >
-                <ChevronUp className="h-3.5 w-3.5 inline-block mr-1" />
+                <ChevronsDown className="h-4 w-4 mr-2" />
                 Expandir todos
               </button>
             </div>
@@ -2415,17 +2446,18 @@ function SectionManagerBase({
       {isComponentSelectorOpen && <ComponentSelector />}
 
       {isEditing && (
-        <div className="mb-6 mt-2">
+        <div className="mb-8 mt-4">
           <button
             onClick={handleAddButtonClick}
             className={cn(
-              "flex items-center justify-center w-full py-2 px-4 rounded-md border-2 border-dashed",
-              "transition-colors hover:border-primary/60 hover:bg-primary/5 group",
-              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+              "flex items-center justify-center w-full py-4 px-6 rounded-xl border-2 border-dashed border-slate-300",
+              "transition-all duration-300 hover:border-blue-400 hover:bg-blue-50/50 group",
+              "focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-400",
+              "bg-white shadow-sm hover:shadow-md"
             )}
           >
-            <PlusCircle className="h-5 w-5 mr-2 text-muted-foreground group-hover:text-primary" />
-            <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">
+            <PlusCircle className="h-6 w-6 mr-3 text-slate-500 group-hover:text-blue-500 transition-colors duration-300" />
+            <span className="text-base font-semibold text-slate-600 group-hover:text-blue-600 transition-colors duration-300">
               Add Component
             </span>
           </button>

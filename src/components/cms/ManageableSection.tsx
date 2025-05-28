@@ -55,6 +55,8 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const previewContainerRef = useRef<HTMLDivElement>(null);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
+  // Track saving state for optimistic UI
+  const [isSaving, setIsSaving] = useState(false);
   // Estado para gestionar componentes colapsados
   const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
   // Track inspection mode
@@ -189,14 +191,23 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
           
           console.log(`✅ [${loadId}] Componentes mapeados:`, mappedComponents.length);
           setPendingComponents(mappedComponents);
+          
+          // Clear active component to ensure no component appears selected/focused on load
+          setActiveComponentId(null);
         } else {
           // Initialize with empty array to avoid undefined issues
           console.warn(`⚠️ [${loadId}] No se recibieron componentes válidos. Inicializando con array vacío.`);
           setPendingComponents([]);
+          
+          // Clear active component
+          setActiveComponentId(null);
         }
       } catch (error) {
         console.error(`❌ [${loadId}] Error fetching components:`, error);
         setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        
+        // Clear active component on error as well
+        setActiveComponentId(null);
       } finally {
         setIsLoading(false);
         console.log(`⏳ [${loadId}] FINALIZADA CARGA de componentes para sección '${normalizedSectionId}'`);
@@ -317,115 +328,137 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     };
   }, []);
 
-  // Save components to the server - memoizado para evitar recreaciones
+  // Save components to the server - OPTIMISTIC UI implementation
   const handleSave = useCallback(async (componentsToSave: Component[], skipLoadingState = false): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        // Store current active element to restore focus after save
-        const activeElement = document.activeElement as HTMLElement;
-        const activeElementId = activeElement?.id || '';
-        const activeElementSelector = activeElement?.tagName && activeElement.tagName.toLowerCase() !== 'body' 
-          ? `${activeElement.tagName.toLowerCase()}${activeElement.id ? `#${activeElement.id}` : ''}`
-          : '';
+        // Store current UI state to preserve it after save (OPTIMISTIC UI)
+        const currentActiveElement = document.activeElement as HTMLElement;
+        const currentActiveElementId = currentActiveElement?.id || '';
+        const currentActiveComponentId = activeComponentId;
+        const currentCollapsedState = { ...collapsedComponents };
+        const currentViewMode = viewMode;
+        const currentDevicePreview = devicePreview;
+        const currentInspectionMode = inspectionMode;
         
-        // Only show loading state if not skipped
+        // Store selection state for text inputs
+        let selectionStart: number | null = null;
+        let selectionEnd: number | null = null;
+        if (currentActiveElement && 
+            (currentActiveElement.tagName === 'INPUT' || currentActiveElement.tagName === 'TEXTAREA')) {
+          const inputElement = currentActiveElement as HTMLInputElement | HTMLTextAreaElement;
+          if ('selectionStart' in inputElement && 'selectionEnd' in inputElement) {
+            selectionStart = inputElement.selectionStart;
+            selectionEnd = inputElement.selectionEnd;
+          }
+        }
+        
+        console.log(`🚀 OPTIMISTIC UI: Saving ${componentsToSave.length} components while preserving UI state`);
+        
+        // Show subtle saving indicator without disrupting the UI
         if (!skipLoadingState) {
-          setIsLoading(true);
+          // Instead of setIsLoading(true), show a subtle indicator
+          setIsSaving(true);
+          console.log('💾 Saving changes...');
         }
         
         // Before saving, ensure all component titles are preserved in their data
         const componentsWithTitles = componentsToSave.map(comp => {
-          // Create a new object to avoid reference issues
           const processedComponent = { ...comp };
           
-          // Create/update the data field if it doesn't exist
           if (!processedComponent.data) {
             processedComponent.data = {};
           }
           
-          // Make sure the component title is in the data
           if (processedComponent.data.componentTitle) {
-            // If componentTitle already exists, keep it
             processedComponent.data.componentTitle = processedComponent.data.componentTitle;
           }
           
           return processedComponent;
         });
         
-        console.log(`Saving ${componentsWithTitles.length} components for section ${sectionId}`);
-          
-        // Guardar los componentes en la API
+        // Save to API in background without affecting UI
         const result = await cmsOperations.saveSectionComponents(
           sectionId, 
           componentsWithTitles
         );
         
-        console.log('Save result:', result);
+        console.log('✅ OPTIMISTIC UI: Save result:', result);
         
-        // Actualizar el estado solo si la operación fue exitosa
         if (result.success) {
-          // Marcar como que ya no hay cambios sin guardar
+          // Mark as saved without reloading anything
           setHasUnsavedChanges(false);
+          console.log('✅ OPTIMISTIC UI: Changes saved successfully, UI state preserved');
+        } else {
+          console.warn('⚠️ OPTIMISTIC UI: Save failed, but UI state preserved');
         }
         
-        // Restaurar focus al elemento que lo tenía antes de guardar
+        // Restore all UI state immediately (OPTIMISTIC UI)
         setTimeout(() => {
           try {
-            const elementToFocus = activeElementId
-              ? document.getElementById(activeElementId)
-              : document.querySelector(activeElementSelector);
-              
-            if (elementToFocus && 'focus' in elementToFocus) {
-              // Check input type before focusing to avoid selection issues with color inputs
-              const inputElement = elementToFocus as HTMLInputElement;
-              if (inputElement.tagName === 'INPUT' && 
-                  ['color', 'checkbox', 'radio', 'range', 'file', 'submit', 'button', 'reset'].includes(inputElement.type)) {
-                // For inputs that don't support selection, just focus
-                inputElement.focus();
-              } else if (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA') {
-                // For text-like inputs, restore cursor position if it was stored
-                inputElement.focus();
+            // Restore active component
+            if (currentActiveComponentId) {
+              setActiveComponentId(currentActiveComponentId);
+            }
+            
+            // Restore collapsed state
+            setCollapsedComponents(currentCollapsedState);
+            
+            // Restore view mode
+            if (currentViewMode !== viewMode) {
+              setViewMode(currentViewMode);
+            }
+            
+            // Restore device preview
+            if (currentDevicePreview !== devicePreview) {
+              setDevicePreview(currentDevicePreview);
+            }
+            
+            // Restore inspection mode
+            if (currentInspectionMode !== inspectionMode) {
+              setInspectionMode(currentInspectionMode);
+            }
+            
+            // Restore focus and selection
+            if (currentActiveElementId) {
+              const elementToFocus = document.getElementById(currentActiveElementId);
+              if (elementToFocus) {
+                elementToFocus.focus();
                 
-                // Try to restore selection if the element supports it
-                const selectionStart = inputElement.getAttribute('data-selection-start');
-                const selectionEnd = inputElement.getAttribute('data-selection-end');
-                
-                if (selectionStart && selectionEnd && 'setSelectionRange' in inputElement) {
-                  try {
-                    // Only apply selection if the input type supports it
-                    const inputType = inputElement.getAttribute('type');
-                    const isSelectable = !inputType || ['text', 'textarea', 'email', 'password', 'tel', 'url', 'search', 'number'].includes(inputType);
-                    
-                    if (isSelectable) {
-                      inputElement.setSelectionRange(parseInt(selectionStart), parseInt(selectionEnd));
+                // Restore text selection if applicable
+                if (selectionStart !== null && selectionEnd !== null &&
+                    (elementToFocus.tagName === 'INPUT' || elementToFocus.tagName === 'TEXTAREA')) {
+                  const inputElement = elementToFocus as HTMLInputElement | HTMLTextAreaElement;
+                  if ('setSelectionRange' in inputElement) {
+                    try {
+                      inputElement.setSelectionRange(selectionStart, selectionEnd);
+                    } catch (selectionError) {
+                      console.warn('Could not restore text selection:', selectionError);
                     }
-                  } catch (selectionError) {
-                    console.warn('Could not restore selection:', selectionError);
                   }
                 }
-              } else {
-                // Other focusable elements
-                (elementToFocus as HTMLElement).focus();
               }
             }
-          } catch (focusError) {
-            console.warn('Error restoring focus:', focusError);
+            
+            console.log('✅ OPTIMISTIC UI: All UI state restored successfully');
+          } catch (restoreError) {
+            console.warn('⚠️ OPTIMISTIC UI: Error restoring UI state:', restoreError);
           }
         }, 0);
         
-        // Desactivar estado de carga
-        setIsLoading(false);
-          
-          resolve();
+        // Clear saving indicator
+        setIsSaving(false);
+        
+        resolve();
       } catch (error) {
-        console.error('Error al guardar sección:', error);
-        setIsLoading(false);
+        console.error('❌ OPTIMISTIC UI: Error saving section:', error);
+        setIsSaving(false);
         setErrorMessage('Error al guardar la sección. Por favor intenta de nuevo.');
         setTimeout(() => setErrorMessage(''), 5000);
         reject(error);
       }
     });
-  }, [sectionId]);
+  }, [sectionId, activeComponentId, collapsedComponents, viewMode, devicePreview, inspectionMode]);
 
   // Function to toggle view mode
   const toggleViewMode = useCallback((mode: 'split' | 'edit' | 'preview') => {
@@ -898,6 +931,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             
             {/* View mode toggle buttons */}
             <div className="flex items-center space-x-2">
+              {/* Subtle saving indicator */}
+              {isSaving && (
+                <div className="flex items-center px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded-md border border-blue-200">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent mr-1"></div>
+                  Saving...
+                </div>
+              )}
+              
               {/* Background selection button */}
               <button
                 onClick={() => setShowBackgroundSelector(true)}
