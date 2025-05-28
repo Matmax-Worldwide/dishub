@@ -1438,7 +1438,7 @@ export default function FormSection({
           )}
 
           <div className="w-full px-4 sm:px-6 lg:px-8 relative z-[10] flex-1 flex flex-col justify-center">
-            <div className="w-full flex flex-col items-center justify-center">
+            <div className="w-full flex flex-col md:flex-row items-center justify-center">
               {title && !customConfig.hideTitle && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}

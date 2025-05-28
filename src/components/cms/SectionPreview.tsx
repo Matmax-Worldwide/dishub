@@ -184,6 +184,7 @@ const SectionPreview: React.FC<SectionPreviewProps> = ({
                   <SectionManager
                     initialComponents={pendingComponents}
                     isEditing={false}
+                    isMobilePreview={false}
                     componentClassName={(type) => {
                       // Allow headers to use their own positioning logic (sticky in preview)
                       const isVideoComponent = type.toLowerCase() === 'video';
@@ -249,6 +250,7 @@ const SectionPreview: React.FC<SectionPreviewProps> = ({
                       <SectionManager
                         initialComponents={pendingComponents}
                         isEditing={false}
+                        isMobilePreview={true}
                         componentClassName={(type) => {
                           // Allow headers to use their own positioning logic (sticky in preview)
                           const isVideoComponent = type.toLowerCase() === 'video';

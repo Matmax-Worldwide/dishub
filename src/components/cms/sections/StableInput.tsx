@@ -44,25 +44,41 @@ export default function StableInput({
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
   // Reference to input/textarea element
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Reference to track if we're currently editing
   const isEditingRef = useRef(false);
   
+  // Reference to track if we have focus
+  const hasFocusRef = useRef(false);
+  
   // Flag to know if the component has mounted
   const hasMountedRef = useRef(false);
+  
+  // Track the last external value to avoid unnecessary updates
+  const lastExternalValueRef = useRef(value);
   
   // Update local state when prop value changes (only if different and not editing)
   useEffect(() => {
     // Skip the first update to avoid unexpected behavior
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
+      lastExternalValueRef.current = value;
       return;
     }
     
-    // Only update if we're not actively editing AND the value actually changed
-    if (!isEditingRef.current && value !== localValue) {
+    // Only update if:
+    // 1. We're not actively editing
+    // 2. We don't have focus
+    // 3. The value actually changed from the last external value
+    // 4. The new value is different from our local value
+    if (!isEditingRef.current && 
+        !hasFocusRef.current && 
+        value !== lastExternalValueRef.current && 
+        value !== localValue) {
       setLocalValue(value);
+      lastExternalValueRef.current = value;
     }
   }, [value, localValue]);
   
@@ -87,13 +103,14 @@ export default function StableInput({
     // Set new timeout to notify parent only after debounce time
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
+      // Don't reset editing flag here - let blur handle it
     }, debounceTime);
   }, [onChange, debounceTime]);
 
   // Handle keydown to ensure special key combinations work and prevent form submission
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     // Prevent enter key from submitting the form
-    if (e.key === 'Enter' && !isTextArea) {
+    if (e.key === 'Enter' && !isTextArea && !multiline) {
       e.preventDefault();
     }
     
@@ -102,38 +119,42 @@ export default function StableInput({
     
     // Mark that we're editing
     isEditingRef.current = true;
-  }, [isTextArea]);
+  }, [isTextArea, multiline]);
   
   // Handle focus events
-  const handleFocus = useCallback(() => {
+  const handleFocus = useCallback((e: React.FocusEvent) => {
+    e.stopPropagation();
+    
     isEditingRef.current = true;
+    hasFocusRef.current = true;
     
     // Ensure input is selected on focus
-    if (inputRef.current) {
+    const currentElement = (isTextArea || multiline) ? textareaRef.current : inputRef.current;
+    if (currentElement) {
       // Use requestAnimationFrame to ensure the selection happens after focus
       requestAnimationFrame(() => {
-        if (inputRef.current) {
-          // Only try to set selection for text inputs and textareas
-          const inputType = inputRef.current.getAttribute('type');
-          const isSelectable = !inputType || ['text', 'textarea', 'email', 'password', 'tel', 'url'].includes(inputType);
-          
-          if (isSelectable) {
-            // For textareas, position cursor at end
-            if (isTextArea && inputRef.current instanceof HTMLTextAreaElement) {
-              const length = inputRef.current.value.length;
-              inputRef.current.setSelectionRange(length, length);
-            }
+        if (currentElement && hasFocusRef.current) {
+          // For textareas, position cursor at end
+          if ((isTextArea || multiline) && currentElement instanceof HTMLTextAreaElement) {
+            const length = currentElement.value.length;
+            currentElement.setSelectionRange(length, length);
           }
         }
       });
     }
-  }, [isTextArea]);
+  }, [isTextArea, multiline]);
   
-  const handleBlur = useCallback(() => {
-    // Reset editing state only when user completely leaves the input
+  const handleBlur = useCallback((e: React.FocusEvent) => {
+    e.stopPropagation();
+    
+    hasFocusRef.current = false;
+    
+    // Reset editing state after a delay to ensure any pending changes are processed
     setTimeout(() => {
-      isEditingRef.current = false;
-    }, 300);
+      if (!hasFocusRef.current) {
+        isEditingRef.current = false;
+      }
+    }, 100);
   }, []);
   
   // Stop all event propagation
@@ -141,9 +162,18 @@ export default function StableInput({
     e.stopPropagation();
   }, []);
   
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
   // Render textarea or input based on configuration
   const renderInput = () => {
-    const commonProps = {
+    const baseProps = {
       value: localValue,
       onChange: handleChange,
       onKeyDown: handleKeyDown,
@@ -160,23 +190,26 @@ export default function StableInput({
         "disabled:cursor-not-allowed disabled:opacity-50",
         className
       ),
+      // Prevent the input from losing focus due to parent re-renders
+      autoComplete: "off" as const,
+      spellCheck: false,
     };
     
     if (isTextArea || multiline) {
       return (
         <textarea
-          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+          ref={textareaRef}
           rows={rows}
-          {...commonProps}
+          {...baseProps}
         />
       );
     }
     
     return (
       <input
-        ref={inputRef as React.RefObject<HTMLInputElement>}
+        ref={inputRef}
         type="text"
-        {...commonProps}
+        {...baseProps}
       />
     );
   };
