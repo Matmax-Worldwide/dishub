@@ -1074,6 +1074,7 @@ model Post {
   content         String    @db.Text
   excerpt         String?
   featuredImage   String?
+  
   featuredImageId String?
   status          PostStatus @default(DRAFT)
   publishedAt     DateTime?

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { StaffScheduleInput, DayOfWeek, ScheduleType } from '@/types/calendar'; // Assuming these types/enums are defined
+import { CalendarStaffScheduleInput as StaffScheduleInput, PrismaDayOfWeek as DayOfWeek, PrismaScheduleType as ScheduleType } from '@/types/calendar'; // Assuming these types/enums are defined
 
 // Local DayOfWeek enum for UI iteration if not easily importable for client-side
 const OrderedDays: DayOfWeek[] = [
@@ -24,17 +24,17 @@ const formatDayName = (day: DayOfWeek): string => {
 
 interface WeeklyScheduleEditorProps {
   initialSchedule?: Partial<StaffScheduleInput>[]; // Allows partial data initially
-  onChange: (schedule: StaffScheduleInput[]) => void;
+  onChange: (schedule: Partial<StaffScheduleInput>[]) => void; // Change to Partial to handle missing staffProfileId
   disabled?: boolean;
 }
 
 const defaultTime = { startTime: "09:00", endTime: "17:00" };
 
 export default function WeeklyScheduleEditor({ initialSchedule, onChange, disabled = false }: WeeklyScheduleEditorProps) {
-  const [schedule, setSchedule] = useState<StaffScheduleInput[]>([]);
+  const [schedule, setSchedule] = useState<Partial<StaffScheduleInput>[]>([]);
 
   const initializeSchedule = useCallback(() => {
-    const newSchedule: StaffScheduleInput[] = OrderedDays.map(day => {
+    const newSchedule: Partial<StaffScheduleInput>[] = OrderedDays.map(day => {
       const existingDaySchedule = initialSchedule?.find(s => s.dayOfWeek === day && s.scheduleType === ScheduleType.REGULAR_HOURS);
       if (existingDaySchedule) {
         return {
@@ -75,7 +75,13 @@ export default function WeeklyScheduleEditor({ initialSchedule, onChange, disabl
         : s
     );
     setSchedule(newSchedule);
-    onChange(newSchedule);
+    onChange(newSchedule.map(s => ({
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      isAvailable: s.isAvailable,
+      scheduleType: s.scheduleType,
+    })));
   };
 
   const handleTimeChange = (day: DayOfWeek, timeType: 'startTime' | 'endTime', value: string) => {
@@ -83,7 +89,13 @@ export default function WeeklyScheduleEditor({ initialSchedule, onChange, disabl
       s.dayOfWeek === day ? { ...s, [timeType]: value } : s
     );
     setSchedule(newSchedule);
-    onChange(newSchedule);
+    onChange(newSchedule.map(s => ({
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      isAvailable: s.isAvailable,
+      scheduleType: s.scheduleType,
+    })));
   };
 
   return (
@@ -142,38 +154,4 @@ export default function WeeklyScheduleEditor({ initialSchedule, onChange, disabl
       </p>
     </div>
   );
-}
-
-// Ensure types/enums are declared if not imported (for standalone dev/testing)
-// These should match what's in your actual @/types/calendar or Prisma-generated types
-declare module '@/types/calendar' {
-  export enum DayOfWeek {
-    MONDAY = "MONDAY",
-    TUESDAY = "TUESDAY",
-    WEDNESDAY = "WEDNESDAY",
-    THURSDAY = "THURSDAY",
-    FRIDAY = "FRIDAY",
-    SATURDAY = "SATURDAY",
-    SUNDAY = "SUNDAY",
-  }
-
-  export enum ScheduleType {
-    REGULAR_HOURS = "REGULAR_HOURS",
-    OVERRIDE_HOURS = "OVERRIDE_HOURS",
-    BREAK = "BREAK",
-    TIME_OFF = "TIME_OFF",
-    SPECIAL_EVENT = "SPECIAL_EVENT",
-    BLACKOUT_DATE = "BLACKOUT_DATE",
-  }
-
-  export interface StaffScheduleInput {
-    dayOfWeek: DayOfWeek;
-    startTime: string;
-    endTime: string;
-    isAvailable: boolean;
-    scheduleType: ScheduleType; // Should default to REGULAR_HOURS here
-    date?: string | null; // For overrides, not used by this editor
-    locationId?: string | null; // Not directly managed here
-    notes?: string | null;
-  }
 }

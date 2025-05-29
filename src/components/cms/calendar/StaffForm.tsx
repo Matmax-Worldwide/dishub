@@ -8,24 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch'; // For multi-select items if needed
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
-import { StaffProfile, User, Service, Location, StaffScheduleInput, DayOfWeek as PrismaDayOfWeek, ScheduleType as PrismaScheduleType } from '@/types/calendar'; // Assuming types
+import { CalendarStaffProfile as StaffProfile, CalendarUser as User, CalendarService as Service, CalendarLocation as Location, CalendarStaffScheduleInput as StaffScheduleInput, PrismaDayOfWeek, PrismaScheduleType } from '@/types/calendar'; // Assuming types
 import WeeklyScheduleEditor from './WeeklyScheduleEditor';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// Re-define enums if not directly usable from @/types/calendar in this context
-enum DayOfWeek {
-    MONDAY = "MONDAY", TUESDAY = "TUESDAY", WEDNESDAY = "WEDNESDAY",
-    THURSDAY = "THURSDAY", FRIDAY = "FRIDAY", SATURDAY = "SATURDAY", SUNDAY = "SUNDAY",
-}
-enum ScheduleType { REGULAR_HOURS = "REGULAR_HOURS" }
-
-
 interface StaffFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { staffProfileData: Partial<StaffProfile>; scheduleData: StaffScheduleInput[] }) => Promise<void>;
-  initialData?: Partial<StaffProfile> & { schedules?: StaffScheduleInput[] }; // StaffProfile might include schedules
+  onSave: (data: { staffProfileData: Partial<StaffProfile>; scheduleData: Partial<StaffScheduleInput>[] }) => Promise<void>;
+  initialData?: Partial<StaffProfile> & { schedules?: Partial<StaffScheduleInput>[] }; // StaffProfile might include schedules
   allUsersForSelect?: Partial<User>[]; // Users not yet staff
   allServices?: Service[];
   allLocations?: Location[];
@@ -52,26 +44,25 @@ export default function StaffForm({
 }: StaffFormProps) {
   const [formData, setFormData] = useState<Partial<StaffProfile>>(defaultStaffValues);
   const [specializationsStr, setSpecializationsStr] = useState('');
-  const [scheduleData, setScheduleData] = useState<StaffScheduleInput[]>([]);
+  const [scheduleData, setScheduleData] = useState<Partial<StaffScheduleInput>[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
   const getInitialSchedule = useCallback(() => {
-    const regularHours = initialData?.schedules?.filter(s => s.scheduleType === ScheduleType.REGULAR_HOURS) || [];
+    const regularHours = initialData?.schedules?.filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
     // Ensure all days are present, using defaults for missing ones
     return OrderedDays.map(day => {
         const existing = regularHours.find(s => s.dayOfWeek === day);
         if (existing) return existing;
-        const isWeekend = day === DayOfWeek.SATURDAY || day === DayOfWeek.SUNDAY;
+        const isWeekend = day === PrismaDayOfWeek.SATURDAY || day === PrismaDayOfWeek.SUNDAY;
         return {
-            dayOfWeek: day as unknown as PrismaDayOfWeek, // Cast needed if local DayOfWeek is different
+            dayOfWeek: day,
             startTime: "09:00",
             endTime: "17:00",
             isAvailable: !isWeekend,
-            scheduleType: ScheduleType.REGULAR_HOURS as unknown as PrismaScheduleType,
+            scheduleType: PrismaScheduleType.REGULAR_HOURS,
         };
     });
   }, [initialData?.schedules]);
-
 
   useEffect(() => {
     if (isOpen) {
@@ -120,7 +111,7 @@ export default function StaffForm({
     setFormData(prev => ({ ...prev, specializations: e.target.value.split(',').map(s => s.trim()).filter(s => s) }));
   };
 
-  const handleScheduleUpdate = (newSchedule: StaffScheduleInput[]) => {
+  const handleScheduleUpdate = (newSchedule: Partial<StaffScheduleInput>[]) => {
     setScheduleData(newSchedule);
   };
 
@@ -146,8 +137,9 @@ export default function StaffForm({
     await onSave({ staffProfileData, scheduleData });
   };
   
-  const OrderedDays: DayOfWeek[] = [ // Local enum for UI iteration
-    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+  const OrderedDays: PrismaDayOfWeek[] = [
+    PrismaDayOfWeek.MONDAY, PrismaDayOfWeek.TUESDAY, PrismaDayOfWeek.WEDNESDAY, 
+    PrismaDayOfWeek.THURSDAY, PrismaDayOfWeek.FRIDAY, PrismaDayOfWeek.SATURDAY, PrismaDayOfWeek.SUNDAY
   ];
 
   return (

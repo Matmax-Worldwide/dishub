@@ -1,3 +1,6 @@
+// Export Prisma-generated enums with different names to avoid conflicts
+export { DayOfWeek as PrismaDayOfWeek, ScheduleType as PrismaScheduleType } from '@prisma/client';
+
 export interface StaffMember {
   id: string;
   name: string;
@@ -109,6 +112,12 @@ export interface CalendarStaffProfile {
   specializations: string[];
   createdAt: Date;
   updatedAt: Date;
+  // Additional properties for form handling
+  assignedServiceIds?: string[]; // Used in form state
+  assignedLocationIds?: string[]; // Used in form state
+  assignedServices?: CalendarService[]; // For initialData mapping
+  locationAssignments?: CalendarLocation[]; // For initialData mapping
+  schedules?: CalendarStaffSchedule[]; // For schedule data
 }
 
 export interface CalendarStaffSchedule {
