@@ -45,6 +45,8 @@ model User {
   role            RoleModel?     @relation(fields: [roleId], references: [id])
   settings        UserSettings?
   posts           Post[]
+  staffProfile    StaffProfile? // Relation to StaffProfile for booking module
+  bookings        Booking[]     // Bookings made by this user as a customer
 }
 
 model Session {
@@ -1095,3 +1097,233 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
 }
+
+// --------------- BOOKING MODULE ENUMS ---------------
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum CommunicationMethod {
+  EMAIL
+  SMS
+  PHONE
+  WHATSAPP
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ScheduleType {
+  REGULAR_HOURS
+  OVERRIDE_HOURS
+  BREAK
+  TIME_OFF
+  SPECIAL_EVENT
+  BLACKOUT_DATE
+}
+// --------------- END BOOKING MODULE ENUMS ---------------
+
+// --------------- BOOKING MODULE MODELS ---------------
+model Location {
+  id               String    @id @default(cuid())
+  name             String
+  address          String?
+  phone            String?
+  operatingHours   Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  services         LocationService[]
+  staffAssignments StaffLocationAssignment[]
+  bookings         Booking[]
+  schedules        StaffSchedule[] // Staff schedules specific to this location
+  bookingRules     BookingRule[]   // Booking rules specific to this location
+}
+
+model ServiceCategory {
+  id           String   @id @default(cuid())
+  name         String   @unique // Added unique constraint based on common practice for category names
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  services        Service[]
+  parentId        String?
+  parentCategory  ServiceCategory?  @relation("ServiceCategoryToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
+
+  @@map("ServiceCategories") 
+}
+
+model Service {
+  id                          String   @id @default(cuid())
+  name                        String
+  description                 String?
+  durationMinutes             Int
+  price                       Float
+  bufferTimeBeforeMinutes     Int      @default(0)
+  bufferTimeAfterMinutes      Int      @default(0)
+  preparationTimeMinutes      Int      @default(0) 
+  cleanupTimeMinutes          Int      @default(0) 
+  maxDailyBookingsPerService  Int?     
+  isActive                    Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  serviceCategoryId String
+  serviceCategory   ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
+
+  locations LocationService[] 
+  staff     StaffService[]    
+  bookings  Booking[]
+}
+
+model StaffProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique 
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  specializations String[]  @default([]) 
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  schedules           StaffSchedule[]
+  assignedServices    StaffService[]
+  locationAssignments StaffLocationAssignment[]
+  bookings            Booking[]             @relation("StaffBookings")
+}
+
+model StaffSchedule {
+  id             String        @id @default(cuid())
+  staffProfileId String
+  staffProfile   StaffProfile  @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  
+  locationId     String?       
+  location       Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  date           DateTime?     
+  dayOfWeek      DayOfWeek?    
+  
+  startTime      String        // Format "HH:MM"
+  endTime        String        // Format "HH:MM"
+  
+  scheduleType   ScheduleType  
+  isAvailable    Boolean       @default(true) 
+  notes          String?
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([staffProfileId, date])
+  @@index([staffProfileId, dayOfWeek])
+}
+
+model Booking {
+  id           String   @id @default(cuid())
+  customerId   String   
+  customer     User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id])
+  
+  staffProfileId String?  
+  staffProfile   StaffProfile? @relation("StaffBookings", fields: [staffProfileId], references: [id], onDelete: SetNull)
+  
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  
+  bookingDate  DateTime 
+  startTime    DateTime 
+  endTime      DateTime 
+  durationMinutes Int   
+
+  status       BookingStatus @default(PENDING)
+  notes        String?       
+  
+  communicationPreferences CommunicationMethod[] @default([])
+  reminderSentAt         DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([serviceId])
+  @@index([staffProfileId])
+  @@index([locationId])
+  @@index([bookingDate])
+  @@index([startTime])
+}
+
+model BookingRule {
+  id            String  @id @default(cuid())
+  locationId    String? @unique 
+  // serviceId  String? // Potentially rules per service too
+  
+  advanceBookingHoursMin Int     
+  advanceBookingDaysMax  Int     
+  sameDayCutoffTime      String? 
+  
+  bufferBetweenAppointmentsMinutes Int @default(0) 
+  maxAppointmentsPerDayPerStaff  Int?
+  bookingSlotIntervalMinutes     Int     @default(15) 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location  Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model LocationService {
+  locationId String
+  serviceId  String
+  isActive   Boolean  @default(true) 
+
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([locationId, serviceId])
+  @@map("LocationServices")
+}
+
+model StaffService {
+  staffProfileId String
+  serviceId      String
+
+  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@id([staffProfileId, serviceId])
+  @@map("StaffServices")
+}
+
+model StaffLocationAssignment {
+  staffProfileId String
+  locationId     String
+
+  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([staffProfileId, locationId])
+  @@map("StaffLocationAssignments")
+}
+// --------------- END BOOKING MODULE MODELS ---------------

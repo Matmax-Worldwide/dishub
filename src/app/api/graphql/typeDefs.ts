@@ -24,6 +24,27 @@ export const typeDefs = gql`
     SMOOTH
   }
 
+  # --------------- BOOKING MODULE ENUMS (Moved here for better organization) --- V1 ---
+  enum DayOfWeek {
+    MONDAY
+    TUESDAY
+    WEDNESDAY
+    THURSDAY
+    FRIDAY
+    SATURDAY
+    SUNDAY
+  }
+
+  enum ScheduleType {
+    REGULAR_HOURS
+    OVERRIDE_HOURS # For specific date overrides
+    BREAK
+    TIME_OFF # For vacations, sick leave etc.
+    SPECIAL_EVENT
+    BLACKOUT_DATE # For location-wide or general blackout
+  }
+  # --------------- END BOOKING MODULE ENUMS --- V1 ---
+
   # User related types
   type User {
     id: ID!
@@ -38,7 +59,32 @@ export const typeDefs = gql`
     updatedAt: String
     notifications: [Notification!]
     settings: UserSettings
+    # For Booking Module
+    staffProfile: StaffProfile # Link to their staff specific profile
+    bookings: [Booking!] # Bookings made by this user as a customer
   }
+
+  # --------------- BOOKING MODULE PLACEHOLDER TYPES (some will be replaced) --- V1 ---
+  # type Service { id: ID! } # Now fully defined below
+  # type StaffProfile { id: ID! } # Will be fully defined below
+  # type StaffSchedule { id: ID! } # Will be fully defined below
+  
+  type StaffLocationAssignment { # This might be implicitly handled by M2M relations or need specific fields if it's more than a join
+    id: ID! 
+    # staffProfileId: ID!
+    # locationId: ID!
+    # location: Location! # Example if it had more fields
+    # staff: StaffProfile! 
+  }
+  type Booking { # Placeholder for now
+    id: ID!
+    # status: String! 
+  }
+   type BookingRule { # Placeholder for now
+    id: ID!
+    # advanceBookingDaysMax: Int
+  }
+  # --------------- END BOOKING MODULE PLACEHOLDER TYPES --- V1 ---
 
   # Role and Permission related types
   type Role {
@@ -245,7 +291,7 @@ export const typeDefs = gql`
     description: String
     startTime: String!
     endTime: String!
-    location: String
+    location: String # This might refer to a simple string location, or a Location ID from Booking module
     isVirtual: Boolean
     meetingUrl: String
     userId: ID!
@@ -389,15 +435,15 @@ export const typeDefs = gql`
   # Settings types
   type UserSettings {
     id: ID!
-    userId: ID! # Assuming this maps to the User ID
-    user: User # Relation to User
+    userId: ID! 
+    user: User 
     emailNotifications: Boolean!
     theme: String!
     language: String!
     timeFormat: String!
     dateFormat: String!
-    createdAt: String! # Using String for DateTime as per existing pattern
-    updatedAt: String! # Using String for DateTime
+    createdAt: String! 
+    updatedAt: String! 
   }
 
   input UpdateUserSettingsInput {
@@ -430,12 +476,12 @@ export const typeDefs = gql`
     metaDescription: String
     metaTitle: String
     ogImage: String
-    socialLinks: String # Using String for JSON as per existing pattern (JSON scalar exists but example uses String)
+    socialLinks: String 
     supportedLocales: [String!]!
     twitterCardType: String
     twitterHandle: String
-    createdAt: String! # Using String for DateTime
-    updatedAt: String! # Using String for DateTime
+    createdAt: String! 
+    updatedAt: String! 
   }
 
   input UpdateSiteSettingsInput {
@@ -459,7 +505,7 @@ export const typeDefs = gql`
     metaDescription: String
     metaTitle: String
     ogImage: String
-    socialLinks: String # Input for JSON field
+    socialLinks: String 
     supportedLocales: [String!]
     twitterCardType: String
     twitterHandle: String
@@ -631,7 +677,6 @@ export const typeDefs = gql`
     lastUpdated: String
   }
   
-  # Definición del tipo CMSSection para respuestas
   type CMSSection {
     id: ID!
     sectionId: String!
@@ -647,7 +692,6 @@ export const typeDefs = gql`
     order: Int
   }
 
-  # Definición del componente de sección
   type SectionComponent {
     id: ID!
     sectionId: String!
@@ -657,7 +701,6 @@ export const typeDefs = gql`
     component: CMSComponent
   }
 
-  # Definición del tipo de componente
   type CMSComponent {
     id: ID!
     name: String!
@@ -671,7 +714,6 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
   
-  # Full Page type
   type Page {
     id: ID!
     title: String!
@@ -697,7 +739,6 @@ export const typeDefs = gql`
     children: [Page!]
   }
 
-  # PageSEO type 
   type PageSEO {
     id: ID!
     pageId: ID!
@@ -716,7 +757,6 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
 
-  # Input for creating pages
   input CreatePageInput {
     title: String!
     slug: String!
@@ -737,14 +777,12 @@ export const typeDefs = gql`
     sections: [ID!]
   }
   
-  # Page result type
   type PageResult {
     success: Boolean!
     message: String!
     page: Page
   }
 
-  # Menu types
   type Menu {
     id: ID!
     name: String!
@@ -781,7 +819,6 @@ export const typeDefs = gql`
     page: PageBasic
   }
 
-  # Basic page type for use in menu items
   type PageBasic {
     id: ID!
     title: String!
@@ -808,7 +845,6 @@ export const typeDefs = gql`
     parentId: String
   }
 
-  # Resultado de operaciones con componentes
   type CMSComponentResult {
     success: Boolean!
     message: String
@@ -826,7 +862,6 @@ export const typeDefs = gql`
     components: [ComponentInput!]!
   }
 
-  # Input para crear un componente CMS
   input CreateCMSComponentInput {
     name: String!
     slug: String!
@@ -836,7 +871,6 @@ export const typeDefs = gql`
     icon: String
   }
 
-  # Input para actualizar un componente CMS
   input UpdateCMSComponentInput {
     name: String
     description: String
@@ -846,7 +880,6 @@ export const typeDefs = gql`
     isActive: Boolean
   }
 
-  # Input para actualizar una sección CMS
   input UpdateCMSSectionInput {
     name: String
     description: String
@@ -855,7 +888,6 @@ export const typeDefs = gql`
     gridDesign: String
   }
 
-  # Input for creating a CMS section
   input CreateCMSSectionInput {
     sectionId: String!
     name: String!
@@ -865,15 +897,12 @@ export const typeDefs = gql`
     gridDesign: String
   }
 
-  # Result type for CMS section operations
   type CMSSectionResult {
     success: Boolean!
     message: String!
     section: CMSSection
   }
 
-
-  # Input for updating pages
   input UpdatePageInput {
     title: String
     slug: String
@@ -914,7 +943,6 @@ export const typeDefs = gql`
     page: Page
   }
 
-  # Form Builder types
   enum FormFieldType {
     TEXT
     TEXTAREA
@@ -1024,7 +1052,6 @@ export const typeDefs = gql`
     form: Form!
   }
 
-  # Form Builder input types
   input FormInput {
     title: String!
     description: String
@@ -1146,7 +1173,6 @@ export const typeDefs = gql`
     order: Int!
   }
 
-  # Root Query
   type Query {
     # User queries
     me: User
@@ -1230,25 +1256,21 @@ export const typeDefs = gql`
     getSectionComponents(sectionId: ID!): SectionData
     getAllCMSSections: [CMSSection!]!
     
-    # Nuevas queries para componentes CMS
     getAllCMSComponents: [CMSComponent!]!
     getCMSComponent(id: ID!): CMSComponent
     getCMSComponentsByType(type: String!): [CMSComponent!]!
     
-    # Nuevas queries para páginas CMS
     getAllCMSPages: [Page!]!
     getPageBySlug(slug: String!): Page
     getDefaultPage(locale: String!): Page
     getPagesUsingSectionId(sectionId: ID!): [Page!]!
 
-    # Menu queries
     menus: [Menu!]!
     menu(id: ID!): Menu
     menuByName(name: String!): Menu
     menuByLocation(location: String!): Menu
-    pages: [PageBasic!]! # New query to get pages for menu items
+    pages: [PageBasic!]! 
 
-    # Form Builder queries
     forms: [Form!]!
     form(id: ID!): Form
     formBySlug(slug: String!): Form
@@ -1260,7 +1282,6 @@ export const typeDefs = gql`
     formSubmission(id: ID!): FormSubmission
     formSubmissionStats(formId: ID!): JSON
 
-    # Blog queries
     blogs: [Blog!]!
     blog(id: ID!): Blog
     blogBySlug(slug: String!): Blog
@@ -1268,81 +1289,74 @@ export const typeDefs = gql`
     posts(filter: PostFilter): [Post!]!
     postBySlug(slug: String!): Post
 
-    # Media queries
     media: [Media!]!
     mediaItem(id: ID!): Media
     mediaByType(fileType: String!): [Media!]!
     mediaInFolder(folder: String): [Media!]!
+
+    # Booking Module Queries - V1
+    location(id: ID!): Location
+    locations: [Location!]!
+    serviceCategory(id: ID!): ServiceCategory
+    serviceCategories: [ServiceCategory!]!
+    service(id: ID!): Service
+    services: [Service!]!
   }
 
-  # Root Mutation
   type Mutation {
     # Auth mutations
     login(email: String!, password: String!): AuthPayload!
     register(email: String!, password: String!, firstName: String!, lastName: String!, phoneNumber: String): AuthPayload!
     
-    # Contact form mutation
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
-    # User mutations
     createUser(input: CreateUserInput!): User
     updateUser(id: ID!, input: UpdateUserInput!): User
     deleteUser(id: ID!): Boolean
     updateUserProfile(input: UpdateUserProfileInput!): User
     
-    # Document mutations
     createDocument(input: CreateDocumentInput!): Document!
     updateDocument(id: ID!, input: UpdateDocumentInput!): Document!
     deleteDocument(id: ID!): Boolean!
     
-    # Time entry mutations
     createTimeEntry(input: CreateTimeEntryInput!): TimeEntry!
     updateTimeEntry(id: ID!, input: UpdateTimeEntryInput!): TimeEntry!
     deleteTimeEntry(id: ID!): Boolean!
     
-    # Appointment mutations
     createAppointment(input: CreateAppointmentInput!): Appointment!
     updateAppointment(id: ID!, input: UpdateAppointmentInput!): Appointment!
     deleteAppointment(id: ID!): Boolean!
     
-    # Task mutations
     createTask(input: CreateTaskInput!): Task!
     updateTask(id: ID!, input: UpdateTaskInput!): Task!
     deleteTask(id: ID!): Boolean!
     
-    # Project mutations
     createProject(input: CreateProjectInput!): Project!
     updateProject(id: ID!, input: UpdateProjectInput!): Project!
     deleteProject(id: ID!): Boolean!
 
-    # Performance mutations
     createPerformance(input: CreatePerformanceInput!): Performance!
     updatePerformance(id: ID!, input: UpdatePerformanceInput!): Performance!
     deletePerformance(id: ID!): Boolean!
     
-    # Notification mutations
     createNotification(input: CreateNotificationInput!): Notification!
     updateNotification(id: ID!, input: UpdateNotificationInput!): Notification!
     markAllNotificationsAsRead: Boolean
     deleteNotification(id: ID!): Boolean
     deleteMultipleNotifications(ids: [ID!]!): Int
     
-    # Settings mutations
     updateUserSettings(input: UpdateUserSettingsInput!): UserSettings!
     updateSiteSettings(input: UpdateSiteSettingsInput!): SiteSettings
     
-    # Help mutations
     createHelpArticle(input: CreateHelpArticleInput!): HelpArticle!
     updateHelpArticle(id: ID!, input: UpdateHelpArticleInput!): HelpArticle!
     deleteHelpArticle(id: ID!): Boolean!
 
-    # External Link mutations
     createExternalLink(input: ExternalLinkInput!): ExternalLink
     updateExternalLink(id: ID!, input: ExternalLinkInput!): ExternalLink
     deleteExternalLink(id: ID!): Boolean
     updateLinkAccess(id: ID!, accessControl: AccessControlInput!): ExternalLink
     
-    # Role and permission mutations
     createRole(input: RoleCreateInput!): Role
     updateRole(id: ID!, input: RoleCreateInput!): Role
     deleteRole(id: ID!): Boolean
@@ -1350,48 +1364,38 @@ export const typeDefs = gql`
     assignPermissionToRole(roleId: ID!, permissionId: ID!): Permission
     removePermissionFromRole(roleId: ID!, permissionId: ID!): Boolean
 
-    # Gestionar permisos específicos de usuario
     setUserPermission(input: UserPermissionInput!): UserPermission!
 
-    # CMS Mutations
     saveSectionComponents(input: SaveSectionInput!): SaveSectionResult
     deleteCMSSection(sectionId: ID!): SaveSectionResult
     updateCMSSection(sectionId: ID!, input: UpdateCMSSectionInput!): SaveSectionResult
     
-    # Nuevas mutations para componentes CMS
     createCMSComponent(input: CreateCMSComponentInput!): CMSComponentResult
     updateCMSComponent(id: ID!, input: UpdateCMSComponentInput!): CMSComponentResult
     deleteCMSComponent(id: ID!): SaveSectionResult
     
-    # Page mutations
     createPage(input: CreatePageInput!): PageResult
     updatePage(id: ID!, input: UpdatePageInput!): PageResult
     deletePage(id: ID!): PageResult
     
-    # Section mutations
     createCMSSection(input: CreateCMSSectionInput!): CMSSectionResult
     associateSectionToPage(pageId: ID!, sectionId: ID!, order: Int!): PageResult
     dissociateSectionFromPage(pageId: ID!, sectionId: ID!): PageResult
 
-    # Menu mutations
     createMenu(input: MenuInput!): Menu
     updateMenu(id: ID!, input: MenuInput!): Menu
     deleteMenu(id: ID!): Boolean
     
-    # MenuItem mutations
     createMenuItem(input: MenuItemInput!): MenuItem
     updateMenuItem(id: ID!, input: MenuItemInput!): MenuItem
     deleteMenuItem(id: ID!): Boolean
     updateMenuItemOrder(id: ID!, input: MenuItemOrderInput!): MenuItem
     updateMenuItemsOrder(items: [MenuItemOrderUpdate!]!): Boolean
 
-    # HeaderStyle mutations
     updateHeaderStyle(menuId: ID!, input: HeaderStyleInput!): HeaderStyleResult!
 
-    # FooterStyle mutations
     updateFooterStyle(menuId: ID!, input: FooterStyleInput!): FooterStyleResult!
 
-    # Form Builder mutations
     createForm(input: FormInput!): FormResult!
     updateForm(id: ID!, input: UpdateFormInput!): FormResult!
     deleteForm(id: ID!): FormResult!
@@ -1409,7 +1413,6 @@ export const typeDefs = gql`
     updateFormSubmissionStatus(id: ID!, status: SubmissionStatus!): FormSubmissionResult!
     deleteFormSubmission(id: ID!): FormSubmissionResult!
 
-    # Blog mutations
     createBlog(input: BlogInput!): BlogResult!
     updateBlog(id: ID!, input: BlogInput!): BlogResult!
     deleteBlog(id: ID!): BlogResult!
@@ -1418,15 +1421,26 @@ export const typeDefs = gql`
     updatePost(id: ID!, input: UpdatePostInput!): PostResult!
     deletePost(id: ID!): PostResult!
 
-    # Media mutations
     createMedia(input: CreateMediaInput!): MediaResult!
     updateMedia(id: ID!, input: UpdateMediaInput!): MediaResult!
     deleteMedia(id: ID!): MediaResult!
     associateMediaToPost(postId: ID!, mediaId: ID!): PostResult!
     dissociateMediaFromPost(postId: ID!, mediaId: ID!): PostResult!
+
+    # Booking Module Mutations - V1
+    createLocation(input: CreateLocationInput!): Location!
+    updateLocation(id: ID!, input: UpdateLocationInput!): Location!
+    deleteLocation(id: ID!): Location 
+
+    createServiceCategory(input: CreateServiceCategoryInput!): ServiceCategory!
+    updateServiceCategory(id: ID!, input: UpdateServiceCategoryInput!): ServiceCategory!
+    deleteServiceCategory(id: ID!): ServiceCategory 
+
+    createService(input: CreateServiceInput!): Service!
+    updateService(id: ID!, input: UpdateServiceInput!): Service!
+    deleteService(id: ID!): Service 
   }
 
-  # HeaderStyle type for storing header configuration
   type HeaderStyle {
     id: ID!
     menuId: String!
@@ -1444,7 +1458,6 @@ export const typeDefs = gql`
     updatedAt: DateTime
   }
 
-  # FooterStyle type for storing footer configuration
   type FooterStyle {
     id: ID!
     menuId: String!
@@ -1460,7 +1473,6 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # Enum types for footer customization
   enum FooterColumnLayout {
     stacked
     grid
@@ -1491,7 +1503,6 @@ export const typeDefs = gql`
     narrow
   }
 
-  # Input for footer style
   input FooterStyleInput {
     transparency: Int
     columnLayout: String
@@ -1503,7 +1514,6 @@ export const typeDefs = gql`
     advancedOptions: JSON
   }
 
-  # Enum types for header customization
   enum HeaderSize {
     sm
     md
@@ -1533,7 +1543,6 @@ export const typeDefs = gql`
     right
   }
 
-  # Input for header style
   input HeaderStyleInput {
     transparency: Int
     headerSize: HeaderSize
@@ -1547,7 +1556,6 @@ export const typeDefs = gql`
     advancedOptions: JSON
   }
 
-  # Input for header advanced options
   input HeaderAdvancedOptionsInput {
     glassmorphism: Boolean
     blur: Int
@@ -1557,21 +1565,18 @@ export const typeDefs = gql`
     borderRadius: String
   }
 
-  # HeaderStyleResult type for updating header style
   type HeaderStyleResult {
     success: Boolean!
     message: String!
     headerStyle: HeaderStyle
   }
 
-  # FooterStyleResult type for updating footer style
   type FooterStyleResult {
     success: Boolean!
     message: String!
     footerStyle: FooterStyle
   }
 
-  # Blog types
   type Blog {
     id: ID!
     title: String!
@@ -1632,7 +1637,6 @@ export const typeDefs = gql`
     ARCHIVED
   }
 
-  # Blog input types
   input BlogInput {
     title: String!
     description: String
@@ -1714,7 +1718,6 @@ export const typeDefs = gql`
     offset: Int
   }
 
-  # Blog result types
   type BlogResult {
     success: Boolean!
     message: String!
@@ -1727,10 +1730,129 @@ export const typeDefs = gql`
     post: Post
   }
 
-  # Media result types
+  type MediaResult {
+    success: Boolean!
+    message: String!
   type MediaResult {
     success: Boolean!
     message: String!
     media: Media
   }
+
+  # --------------- LOCATION (Booking Module) --- V1 ---
+  type Location {
+    id: ID!
+    name: String!
+    address: String
+    phone: String
+    operatingHours: JSON 
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    
+    services: [Service!] 
+    staffAssignments: [StaffLocationAssignment!] 
+    bookings: [Booking!] 
+    schedules: [StaffSchedule!]
+    bookingRules: [BookingRule!]
+  }
+
+  input CreateLocationInput {
+    name: String!
+    address: String
+    phone: String
+    operatingHours: JSON
+  }
+
+  input UpdateLocationInput {
+    name: String
+    address: String
+    phone: String
+    operatingHours: JSON
+  }
+  # --------------- END LOCATION --- V1 ---
+
+  # --------------- SERVICE CATEGORY (Booking Module) --- V1 ---
+  type ServiceCategory {
+    id: ID!
+    name: String! # Made unique in Prisma schema, good for GQL too
+    description: String
+    displayOrder: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    
+    services: [Service!] 
+    parentCategory: ServiceCategory
+    childCategories: [ServiceCategory!]
+  }
+
+  input CreateServiceCategoryInput {
+    name: String!
+    description: String
+    displayOrder: Int
+    parentId: ID # For creating subcategories
+  }
+
+  input UpdateServiceCategoryInput {
+    name: String
+    description: String
+    displayOrder: Int
+    parentId: ID
+  }
+  # --------------- END SERVICE CATEGORY --- V1 ---
+
+  # --------------- SERVICE (Booking Module) --- V1 ---
+  type Service {
+    id: ID!
+    name: String!
+    description: String
+    durationMinutes: Int!
+    price: Float!
+    bufferTimeBeforeMinutes: Int # Defaults to 0 in Prisma
+    bufferTimeAfterMinutes: Int # Defaults to 0 in Prisma
+    preparationTimeMinutes: Int # Defaults to 0 in Prisma
+    cleanupTimeMinutes: Int # Defaults to 0 in Prisma
+    maxDailyBookingsPerService: Int
+    isActive: Boolean! # Defaults to true in Prisma
+    createdAt: DateTime!
+    updatedAt: DateTime!
+
+    serviceCategoryId: ID! 
+    serviceCategory: ServiceCategory!
+    
+    locations: [Location!]! 
+    # staff: [StaffProfile!]! # Add when StaffProfile is fully defined
+  }
+
+  input CreateServiceInput {
+    name: String!
+    description: String
+    durationMinutes: Int!
+    price: Float!
+    bufferTimeBeforeMinutes: Int
+    bufferTimeAfterMinutes: Int
+    preparationTimeMinutes: Int
+    cleanupTimeMinutes: Int
+    maxDailyBookingsPerService: Int
+    isActive: Boolean
+    serviceCategoryId: ID!
+    locationIds: [ID!] # IDs of Locations to associate with
+  }
+
+  input UpdateServiceInput {
+    name: String
+    description: String
+    durationMinutes: Int
+    price: Float
+    bufferTimeBeforeMinutes: Int
+    bufferTimeAfterMinutes: Int
+    preparationTimeMinutes: Int
+    cleanupTimeMinutes: Int
+    maxDailyBookingsPerService: Int
+    isActive: Boolean
+    serviceCategoryId: ID
+    locationIds: [ID!] # Send the full list of desired location IDs for M2M update
+  }
+  # --------------- END SERVICE --- V1 ---
 `; 
+
+[end of src/app/api/graphql/typeDefs.ts]

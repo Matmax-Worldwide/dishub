@@ -19,6 +19,7 @@ import { cmsResolvers } from './cms';
 import { blogResolvers } from './blogs';
 import { formResolvers } from './forms';
 import { menuResolvers } from './menus';
+import { calendarResolvers } from './calendarResolvers'; 
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -485,6 +486,7 @@ const resolvers = {
     ...blogResolvers.Query,
     ...formResolvers.Query,
     ...menuResolvers.Query,
+    ...calendarResolvers.Query, // Add calendar queries
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -502,10 +504,16 @@ const resolvers = {
     ...blogResolvers.Mutation,
     ...formResolvers.Mutation,
     ...menuResolvers.Mutation,
+    ...calendarResolvers.Mutation, // Add calendar mutations
   },
   
   // Type resolvers
   MenuItem: menuResolvers.MenuItem,
+  ServiceCategory: calendarResolvers.ServiceCategory, 
+  Location: calendarResolvers.Location, 
+  Service: calendarResolvers.Service,
+  StaffProfile: calendarResolvers.StaffProfile, // Add StaffProfile type resolver
+  StaffSchedule: calendarResolvers.StaffSchedule, // Add StaffSchedule type resolver
 };
 
 // Check if the external links resolver exists
