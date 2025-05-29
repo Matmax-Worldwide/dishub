@@ -2865,6 +2865,8 @@ export const cmsOperations = {
 
   // Get the default page for a locale
   getDefaultPage,
+
+  // Settings operations
 };
 
 // Form Builder API functions
@@ -4148,6 +4150,107 @@ const graphqlClient = {
       clearCache('posts');
     }
     return response.deletePost;
+  },
+
+  // Settings operations
+  async getSiteSettings(): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetSiteSettings {
+        getSiteSettings {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getSiteSettings;
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      return null;
+    }
   },
 };
 
