@@ -78,7 +78,7 @@ export default function LocationForm({ isOpen, onClose, onSave, initialData, isS
       if (operatingHoursStr.trim() !== '') {
         parsedOperatingHours = JSON.parse(operatingHoursStr);
       }
-    } catch (error) {
+    } catch {
       setFormError('Operating hours JSON is invalid. Please check the format.');
       toast.error('Operating hours JSON is invalid.');
       return;
@@ -179,7 +179,7 @@ declare module '@/types/calendar' {
     name: string;
     address?: string | null;
     phone?: string | null;
-    operatingHours?: any | null; // Prisma Json can be any
+    operatingHours?: Record<string, unknown> | null; // Prisma Json can be any
     createdAt?: string | Date;
     updatedAt?: string | Date;
   }

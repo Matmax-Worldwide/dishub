@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 export default function CategoryManager() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -49,10 +50,10 @@ export default function CategoryManager() {
     try {
       const response = await graphqlClient.serviceCategories(); 
       setCategories(response || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch categories:', err);
-      setError(`Failed to load categories: ${err.message || 'Unknown error'}`);
-      toast.error(`Failed to load categories: ${err.message || 'Unknown error'}`);
+      setError(`Failed to load categories: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to load categories: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -84,9 +85,9 @@ export default function CategoryManager() {
       await graphqlClient.deleteServiceCategory({ id: categoryToDelete.id });
       toast.success(`Category "${categoryToDelete.name}" deleted successfully.`);
       fetchCategories(); 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete category:', err);
-      toast.error(`Failed to delete category: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to delete category: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
       setShowDeleteConfirm(false);
@@ -109,9 +110,9 @@ export default function CategoryManager() {
       fetchCategories(); 
       setIsFormOpen(false);
       setEditingCategory(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save category:', err);
-      const errorMsg = `Failed to save category: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to save category: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -232,7 +233,7 @@ export default function CategoryManager() {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the category
-                "{categoryToDelete.name}". Associated services might also be affected.
+                &quot;{categoryToDelete.name}&quot;. Associated services might also be affected.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

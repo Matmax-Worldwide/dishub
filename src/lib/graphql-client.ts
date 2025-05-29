@@ -25,7 +25,6 @@ import { Blog, Post } from '@/types/blog';
 import {
   CalendarStaffProfile,
   CalendarUser,
-  CalendarService,
   CalendarLocation,
   CalendarStaffScheduleInput,
   StaffProfileInput
@@ -3295,42 +3294,6 @@ export const cmsOperations = {
     }
   },
 
-  async services(): Promise<CalendarService[]> {
-    try {
-      const query = `
-        query GetServices {
-          services {
-            id
-            name
-            description
-            durationMinutes
-            price
-            bufferTimeBeforeMinutes
-            bufferTimeAfterMinutes
-            preparationTimeMinutes
-            cleanupTimeMinutes
-            maxDailyBookingsPerService
-            isActive
-            createdAt
-            updatedAt
-            serviceCategoryId
-            serviceCategory {
-              id
-              name
-              description
-              displayOrder
-            }
-          }
-        }
-      `;
-
-      const response = await gqlRequest<{ services: CalendarService[] }>(query);
-      return response.services || [];
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      return [];
-    }
-  },
 
   async locations(): Promise<CalendarLocation[]> {
     try {
@@ -3521,9 +3484,9 @@ export const cmsOperations = {
     input: {
       advanceBookingHoursMin: number;
       advanceBookingDaysMax: number;
-      sameDayCutoffTime?: string;
+      sameDayCutoffTime?: string | null;
       bufferBetweenAppointmentsMinutes: number;
-      maxAppointmentsPerDayPerStaff?: number;
+      maxAppointmentsPerDayPerStaff?: number | null;
       bookingSlotIntervalMinutes: number;
     }
   }): Promise<{
@@ -3560,6 +3523,434 @@ export const cmsOperations = {
     } }>(mutation, { input });
     
     return result.upsertGlobalBookingRules;
+  },
+
+  // Calendar service categories
+  async serviceCategories(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query ServiceCategories {
+        serviceCategories {
+          id
+          name
+          description
+          displayOrder
+          parentId
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ serviceCategories: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query);
+    
+    return result.serviceCategories || [];
+  },
+
+  // Delete service category
+  async deleteServiceCategory({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteServiceCategory($id: ID!) {
+        deleteServiceCategory(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Service category deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting service category:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete service category'
+      };
+    }
+  },
+
+  // Create service category
+  async createServiceCategory({ input }: { 
+    input: {
+      name?: string;
+      description?: string | null;
+      displayOrder?: number;
+      parentId?: string | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+  }> {
+    const mutation = `
+      mutation CreateServiceCategory($input: ServiceCategoryInput!) {
+        createServiceCategory(input: $input) {
+          id
+          name
+          description
+          displayOrder
+          parentId
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createServiceCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+    } }>(mutation, { input });
+    
+    return result.createServiceCategory;
+  },
+
+  // Update service category
+  async updateServiceCategory({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      displayOrder?: number;
+      parentId?: string | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+  }> {
+    const mutation = `
+      mutation UpdateServiceCategory($id: ID!, $input: ServiceCategoryInput!) {
+        updateServiceCategory(id: $id, input: $input) {
+          id
+          name
+          description
+          displayOrder
+          parentId
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateServiceCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+    } }>(mutation, { id, input });
+    
+    return result.updateServiceCategory;
+  },
+
+  // Services
+  async services(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    bufferTimeBeforeMinutes: number;
+    bufferTimeAfterMinutes: number;
+    preparationTimeMinutes: number;
+    cleanupTimeMinutes: number;
+    maxDailyBookingsPerService?: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    serviceCategoryId: string;
+    serviceCategory?: { id: string; name: string };
+    locations?: Array<{ id: string; name: string }>;
+  }>> {
+    const query = `
+      query Services {
+        services {
+          id
+          name
+          description
+          durationMinutes
+          price
+          bufferTimeBeforeMinutes
+          bufferTimeAfterMinutes
+          preparationTimeMinutes
+          cleanupTimeMinutes
+          maxDailyBookingsPerService
+          isActive
+          createdAt
+          updatedAt
+          serviceCategoryId
+          serviceCategory {
+            id
+            name
+          }
+          locations {
+            id
+            name
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ services: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      bufferTimeBeforeMinutes: number;
+      bufferTimeAfterMinutes: number;
+      preparationTimeMinutes: number;
+      cleanupTimeMinutes: number;
+      maxDailyBookingsPerService?: number;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+      serviceCategoryId: string;
+      serviceCategory?: { id: string; name: string };
+      locations?: Array<{ id: string; name: string }>;
+    }> }>(query);
+    
+    // Transform string dates to Date objects to match CalendarService type
+    const transformedServices = (result.services || []).map(service => ({
+      ...service,
+      createdAt: new Date(service.createdAt),
+      updatedAt: new Date(service.updatedAt)
+    }));
+    
+    return transformedServices;
+  },
+
+  async createService({ input }: { input: {
+    name?: string;
+    description?: string | null;
+    durationMinutes?: number;
+    price?: number;
+    isActive?: boolean;
+    serviceCategoryId?: string;
+    locationIds?: string[];
+  }}): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    isActive: boolean;
+  }> {
+    const mutation = `
+      mutation CreateService($input: ServiceInput!) {
+        createService(input: $input) {
+          id
+          name
+          description
+          durationMinutes
+          price
+          isActive
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createService: {
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      isActive: boolean;
+    } }>(mutation, { input });
+    
+    return result.createService;
+  },
+
+  async updateService({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      durationMinutes?: number;
+      price?: number;
+      isActive?: boolean;
+      serviceCategoryId?: string;
+      locationIds?: string[];
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    isActive: boolean;
+  }> {
+    const mutation = `
+      mutation UpdateService($id: ID!, $input: ServiceInput!) {
+        updateService(id: $id, input: $input) {
+          id
+          name
+          description
+          durationMinutes
+          price
+          isActive
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateService: {
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      isActive: boolean;
+    } }>(mutation, { id, input });
+    
+    return result.updateService;
+  },
+
+  async deleteService({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteService($id: ID!) {
+        deleteService(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Service deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete service'
+      };
+    }
+  },
+
+  async createLocation({ input }: { input: {
+    name?: string;
+    address?: string | null;
+    phone?: string | null;
+    operatingHours?: Record<string, unknown> | null;
+  }}): Promise<{
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  }> {
+    const mutation = `
+      mutation CreateLocation($input: LocationInput!) {
+        createLocation(input: $input) {
+          id
+          name
+          address
+          phone
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createLocation: {
+      id: string;
+      name: string;
+      address?: string;
+      phone?: string;
+    } }>(mutation, { input });
+    
+    return result.createLocation;
+  },
+
+  async updateLocation({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      address?: string | null;
+      phone?: string | null;
+      operatingHours?: Record<string, unknown> | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  }> {
+    const mutation = `
+      mutation UpdateLocation($id: ID!, $input: LocationInput!) {
+        updateLocation(id: $id, input: $input) {
+          id
+          name
+          address
+          phone
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateLocation: {
+      id: string;
+      name: string;
+      address?: string;
+      phone?: string;
+    } }>(mutation, { id, input });
+    
+    return result.updateLocation;
+  },
+
+  async deleteLocation({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteLocation($id: ID!) {
+        deleteLocation(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Location deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete location'
+      };
+    }
   }
 };
 
@@ -5265,42 +5656,6 @@ const graphqlClient = {
     }
   },
 
-  async services(): Promise<CalendarService[]> {
-    try {
-      const query = `
-        query GetServices {
-          services {
-            id
-            name
-            description
-            durationMinutes
-            price
-            bufferTimeBeforeMinutes
-            bufferTimeAfterMinutes
-            preparationTimeMinutes
-            cleanupTimeMinutes
-            maxDailyBookingsPerService
-            isActive
-            createdAt
-            updatedAt
-            serviceCategoryId
-            serviceCategory {
-              id
-              name
-              description
-              displayOrder
-            }
-          }
-        }
-      `;
-
-      const response = await gqlRequest<{ services: CalendarService[] }>(query);
-      return response.services || [];
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      return [];
-    }
-  },
 
   async locations(): Promise<CalendarLocation[]> {
     try {

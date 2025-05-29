@@ -5,6 +5,7 @@ import graphqlClient from '@/lib/graphql-client';
 import { Service, ServiceCategory, Location } from '@/types/calendar';
 import ServiceForm from './ServiceForm';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -31,7 +32,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from '@/components/ui/badge';
 
 export default function ServiceManager() {
   const [services, setServices] = useState<Service[]>([]);
@@ -64,9 +64,9 @@ export default function ServiceManager() {
       setServices(servicesData || []);
       setAllCategories(categoriesData || []);
       setAllLocations(locationsData || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch data:', err);
-      const errorMsg = `Failed to load data: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -102,9 +102,9 @@ export default function ServiceManager() {
       await graphqlClient.deleteService({ id: serviceToDelete.id });
       toast.success(`Service "${serviceToDelete.name}" deleted successfully.`);
       fetchData(); // Refresh all data as services might affect other things indirectly
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete service:', err);
-      toast.error(`Failed to delete service: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to delete service: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
       setShowDeleteConfirm(false);
@@ -130,9 +130,9 @@ export default function ServiceManager() {
       fetchData(); 
       setIsFormOpen(false);
       setEditingService(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save service:', err);
-      const errorMsg = `Failed to save service: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to save service: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -249,7 +249,7 @@ export default function ServiceManager() {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the service
-                "{serviceToDelete.name}".
+                &quot;{serviceToDelete.name}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

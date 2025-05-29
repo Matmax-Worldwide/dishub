@@ -63,7 +63,7 @@ export default function StaffManager() {
       ]);
       setStaffMembers(staffData || []);
       setAllUsers(usersData || []);
-      setAllServices(servicesData || []);
+      setAllServices(servicesData as Service[] || []);
       setAllLocations(locationsData || []);
       if(showToasts) toast.success("Staff data refreshed");
     } catch (err: unknown) {
