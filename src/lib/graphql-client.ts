@@ -4252,6 +4252,131 @@ const graphqlClient = {
       return null;
     }
   },
+
+  async updateSiteSettings(input: {
+    siteName?: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale?: string;
+    footerText?: string;
+    maintenanceMode?: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales?: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+  }): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateSiteSettings($input: UpdateSiteSettingsInput!) {
+        updateSiteSettings(input: $input) {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateSiteSettings;
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      throw error;
+    }
+  },
 };
 
 // Export all functions
