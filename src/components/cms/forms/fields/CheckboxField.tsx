@@ -19,20 +19,7 @@ interface CheckboxOption {
 // Componente de vista previa para Checkbox (grupo)
 export function CheckboxFieldPreview({ field }: { field: FormFieldBase }) {
   const options = (field.options?.items || []) as CheckboxOption[];
-  let defaultValues: string[] = [];
-  
-  // Parse defaultValue from string to array
-  if (field.defaultValue) {
-    try {
-      const parsed = JSON.parse(field.defaultValue);
-      if (Array.isArray(parsed)) {
-        defaultValues = parsed;
-      }
-    } catch {
-      // If parsing fails, treat as empty array
-      defaultValues = [];
-    }
-  }
+  const defaultValues = (Array.isArray(field.defaultValue) ? field.defaultValue : []) as string[];
 
   return (
     <BaseFieldPreview field={field}>
@@ -59,32 +46,32 @@ export function CheckboxFieldPreview({ field }: { field: FormFieldBase }) {
 
 // Componente de edición para Checkbox (grupo)
 export function CheckboxField({ field, onChange, showPreview = true }: FieldProps) {
-  // Parse defaultValue properly from field
-  const parseDefaultValue = (value: string | string[] | undefined): string => {
-    if (Array.isArray(value)) return JSON.stringify(value);
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? value : '[]';
-      } catch {
-        return '[]';
-      }
-    }
-    return '[]';
-  };
-
   const [localField, setLocalField] = useState<FormFieldBase>({
-    id: field?.id || '',
     type: FormFieldType.CHECKBOX,
     label: 'Checkbox Group',
     name: 'checkboxGroupField',
     helpText: '',
     isRequired: false,
-    order: 0,
+    defaultValue: [], 
     width: 100,
+    options: { items: [] },
     ...field, // Apply incoming field props
-    // Override with properly parsed values
-    defaultValue: parseDefaultValue(field?.defaultValue),
+    // Ensure defaultValue is correctly parsed from string to array if needed, or initialized
+    defaultValue: (() => {
+        if (Array.isArray(field?.defaultValue)) return field.defaultValue;
+        if (typeof field?.defaultValue === 'string') {
+            try {
+                const parsed = JSON.parse(field.defaultValue);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                // If it's a non-JSON string, it might be from an old single checkbox.
+                // For a group, this is likely not a valid default, so clear it or handle specific migration.
+                // For now, treat non-JSON string as empty for group.
+                return []; 
+            }
+        }
+        return [];
+    })(),
     options: { items: [], ...field?.options },
   });
 
@@ -92,10 +79,26 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
   const [newOption, setNewOption] = useState<{ label: string; value: string }>({ label: '', value: '' });
 
   useEffect(() => {
+    let initialDefaultValue: string[] = [];
+    if (Array.isArray(field?.defaultValue)) {
+        initialDefaultValue = field.defaultValue;
+    } else if (typeof field?.defaultValue === 'string') {
+        try {
+            const parsed = JSON.parse(field.defaultValue);
+            if (Array.isArray(parsed)) {
+                initialDefaultValue = parsed;
+            }
+        } catch (e) {
+            // Not a JSON string, could be legacy single checkbox value.
+            // For group, this is not a valid default selection array.
+            console.warn("CheckboxField: Could not parse defaultValue string as array:", field.defaultValue);
+        }
+    }
+
     setLocalField(prev => ({
       ...prev,
       ...field,
-      defaultValue: parseDefaultValue(field?.defaultValue),
+      defaultValue: initialDefaultValue, // This is kept as an array internally
       options: { items: [], ...prev.options, ...field?.options },
     }));
     setOptions((field?.options?.items || []) as CheckboxOption[]);
@@ -103,27 +106,22 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
 
   if (!localField) return null;
 
-  // Helper function to get current default values as array
-  const getCurrentDefaultValues = (): string[] => {
-    try {
-      const parsed = JSON.parse(localField.defaultValue || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
-
   // Centralized function to prepare data for onChange prop
   const dispatchChanges = (updatedLocalField: FormFieldBase) => {
-    onChange(updatedLocalField);
+    const fieldToDispatch: Partial<FormFieldBase> = {
+        ...updatedLocalField,
+        // Always stringify defaultValue array before sending it up
+        defaultValue: JSON.stringify(updatedLocalField.defaultValue || []),
+    };
+    onChange(fieldToDispatch);
   };
 
   const handleMainInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.preventDefault(); e.stopPropagation();
     const { name, value } = e.target;
     setLocalField(prev => {
-        const updated = {...prev, [name]: value};
-        dispatchChanges(updated);
+        const updated = { ...prev, [name]: value };
+        dispatchChanges(updated); // Use centralized dispatch
         return updated;
     });
   };
@@ -131,8 +129,8 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
   const handleIsRequiredChange = (checked: boolean | 'indeterminate') => {
     const isChecked = checked === true;
     setLocalField(prev => {
-        const updated = {...prev, isRequired: isChecked};
-        dispatchChanges(updated);
+        const updated = { ...prev, isRequired: isChecked };
+        dispatchChanges(updated); // Use centralized dispatch
         return updated;
     });
   };
@@ -162,7 +160,7 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
     setOptions(updatedOptions);
     const updatedField = { ...localField, options: { ...localField.options, items: updatedOptions } };
     setLocalField(updatedField);
-    dispatchChanges(updatedField);
+    dispatchChanges(updatedField); // Use centralized dispatch
     setNewOption({ label: '', value: '' });
   };
 
@@ -172,30 +170,30 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
     const updatedOptions = options.filter((_, i) => i !== index);
     setOptions(updatedOptions);
     
-    const currentDefault = getCurrentDefaultValues();
+    const currentDefault = Array.isArray(localField.defaultValue) ? localField.defaultValue : [];
     const newDefault = currentDefault.filter(val => val !== removedOptionValue);
 
     const updatedField = { 
         ...localField, 
         options: { ...localField.options, items: updatedOptions },
-        defaultValue: JSON.stringify(newDefault)
+        defaultValue: newDefault 
     };
     setLocalField(updatedField);
-    dispatchChanges(updatedField);
+    dispatchChanges(updatedField); // Use centralized dispatch
   };
 
   const handleDefaultValueChange = (optionValue: string, checked: boolean) => {
-    let currentDefault = getCurrentDefaultValues();
+    let currentInternalDefault = Array.isArray(localField.defaultValue) ? [...localField.defaultValue] : [];
     if (checked) {
-      if (!currentDefault.includes(optionValue)) {
-        currentDefault.push(optionValue);
+      if (!currentInternalDefault.includes(optionValue)) {
+        currentInternalDefault.push(optionValue);
       }
     } else {
-      currentDefault = currentDefault.filter(val => val !== optionValue);
+      currentInternalDefault = currentInternalDefault.filter(val => val !== optionValue);
     }
     setLocalField(prev => {
-        const updated = { ...prev, defaultValue: JSON.stringify(currentDefault) };
-        dispatchChanges(updated);
+        const updated = { ...prev, defaultValue: currentInternalDefault };
+        dispatchChanges(updated); // Use centralized dispatch
         return updated;
     });
   };
@@ -229,7 +227,7 @@ export function CheckboxField({ field, onChange, showPreview = true }: FieldProp
                 <div className="flex-1 flex items-center gap-2">
                     <UiCheckbox 
                         id={`default-${option.value}`}
-                        checked={getCurrentDefaultValues().includes(option.value)}
+                        checked={(Array.isArray(localField.defaultValue) ? localField.defaultValue : []).includes(option.value)}
                         onCheckedChange={(checked) => handleDefaultValueChange(option.value, checked === true)}
                     />
                     <Label htmlFor={`default-${option.value}`} className="text-sm font-normal flex-grow cursor-pointer">

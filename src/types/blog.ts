@@ -15,9 +15,7 @@ export interface Post {
   slug: string;
   content: string;
   excerpt?: string;
-  // featuredImage?: string; // Field removed
-  featuredImageId?: string; // Added to match GQL schema & PostEditForm usage
-  featuredImageMedia?: { fileUrl: string };
+  featuredImage?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt?: string;
   blogId: string;

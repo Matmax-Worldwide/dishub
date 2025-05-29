@@ -15,31 +15,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 interface SiteSettingsData {
   id?: string; // ID might not be present for initial empty state
   siteName: string;
-  siteDescription?: string;
-  logoUrl?: string;
-  faviconUrl?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string; // Added from task description
-  googleAnalyticsId?: string;
-  facebookPixelId?: string;
-  customCss?: string;
-  customJs?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  address?: string;
+  siteDescription: string;
+  logoUrl: string;
+  faviconUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string; // Added from task description
+  googleAnalyticsId: string;
+  facebookPixelId: string;
+  customCss: string;
+  customJs: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
   defaultLocale: string;
   supportedLocales: string[]; // Stored as array, converted for input
-  footerText?: string;
+  footerText: string;
   maintenanceMode: boolean;
-  metaTitle?: string;
-  metaDescription?: string;
-  ogImage?: string;
-  socialLinks?: string; // Stored as JSON string
-  twitterCardType?: string;
-  twitterHandle?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage: string;
+  socialLinks: string; // Stored as JSON string
+  twitterCardType: string;
+  twitterHandle: string;
 }
 
 const initialSiteSettings: SiteSettingsData = {
@@ -95,14 +93,13 @@ export default function SiteSettingsSection() {
         setSettings(initialSiteSettings); // Use defaults if no settings in DB
         setInitialFetchedSettings(initialSiteSettings);
         setSupportedLocalesStr(initialSiteSettings.supportedLocales.join(', '));
-        setSocialLinksJson(initialSiteSettings.socialLinks || '{}');
+        setSocialLinksJson(initialSiteSettings.socialLinks);
         toast.info('No site settings found. Displaying default values.');
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to load site settings: ${errorMessage}`);
+    } catch (err: any) {
+      setError(`Failed to load site settings: ${err.message || 'Unknown error'}`);
       console.error(err);
-      toast.error(`Failed to load site settings: ${errorMessage}`);
+      toast.error(`Failed to load site settings: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +134,7 @@ export default function SiteSettingsSection() {
       } else {
         parsedSocialLinks = '{}'; // Default to empty JSON object if textarea is empty
       }
-    } catch {
+    } catch (e) {
       setError('Social Links JSON is invalid. Please correct it.');
       toast.error('Social Links JSON is invalid.');
       setIsSaving(false);
@@ -159,20 +156,19 @@ export default function SiteSettingsSection() {
     
     // Remove id field if it's part of the state but not needed for input (depends on GQL schema for UpdateSiteSettingsInput)
     // Typically, ID is not part of the input for update, it's used in 'where' clause by resolver
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, createdAt, updatedAt, ...inputData } = inputToSave; 
+    const { id, ...inputData } = inputToSave; 
 
 
     // Only send changed data
-    const changes: Record<string, unknown> = {};
+    const changes: Partial<SiteSettingsData> = {};
     let hasChanges = false;
     for (const key in inputData) {
-        const K = key as keyof typeof inputData;
+        const K = key as keyof SiteSettingsData;
         if (inputData[K] !== initialFetchedSettings[K]) {
             // Special handling for arrays like supportedLocales for proper comparison
             if (K === 'supportedLocales' && initialFetchedSettings.supportedLocales) {
                  if (JSON.stringify(inputData.supportedLocales?.sort()) !== JSON.stringify(initialFetchedSettings.supportedLocales?.sort())) {
-                    changes[K] = inputData[K];
+                    (changes as any)[K] = inputData[K];
                     hasChanges = true;
                  }
             } else if (K === 'socialLinks') {
@@ -181,16 +177,16 @@ export default function SiteSettingsSection() {
                     const currentSocial = JSON.stringify(JSON.parse(inputData.socialLinks || '{}'));
                     const initialSocial = JSON.stringify(JSON.parse(initialFetchedSettings.socialLinks || '{}'));
                     if (currentSocial !== initialSocial) {
-                        changes[K] = inputData[K];
+                        (changes as any)[K] = inputData[K];
                         hasChanges = true;
                     }
                 } catch { // if parsing fails, assume it's different or handle error
-                    changes[K] = inputData[K];
+                    (changes as any)[K] = inputData[K];
                     hasChanges = true;
                 }
             }
             else if (inputData[K] !== initialFetchedSettings[K]) {
-                changes[K] = inputData[K];
+                (changes as any)[K] = inputData[K];
                 hasChanges = true;
             }
         }
@@ -204,7 +200,7 @@ export default function SiteSettingsSection() {
 
 
     try {
-      const responseData = await graphqlClient.updateSiteSettings(hasChanges || !settings.id ? changes : inputData);
+      const responseData = await graphqlClient.updateSiteSettings({ input: hasChanges || !settings.id ? changes : inputData }); // Send only changes if not first save
       if (responseData) {
         setSettings(responseData);
         setInitialFetchedSettings(responseData); // Update initial settings
@@ -214,11 +210,10 @@ export default function SiteSettingsSection() {
       } else {
          throw new Error('No data returned from update operation');
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to save site settings: ${errorMessage}`);
+    } catch (err: any) {
+      setError(`Failed to save site settings: ${err.message || 'Unknown error'}`);
       console.error(err);
-      toast.error(`Failed to save site settings: ${errorMessage}`);
+      toast.error(`Failed to save site settings: ${err.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }

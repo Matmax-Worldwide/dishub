@@ -27,14 +27,12 @@ export function NumberFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de número
 export function NumberField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
-    id: field?.id || '',
     type: FormFieldType.NUMBER,
     label: 'Number Input',
     name: 'numberField',
     placeholder: '',
     helpText: '',
     isRequired: false,
-    order: field?.order || 0,
     defaultValue: '',
     width: 100,
     options: {}, // For min, max, step if needed later

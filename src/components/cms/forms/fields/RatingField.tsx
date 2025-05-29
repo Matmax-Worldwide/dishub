@@ -11,9 +11,9 @@ import { StarIcon, HeartIcon, CircleIcon } from 'lucide-react'; // Example icons
 
 // Componente de vista previa para campos de Calificación (Rating)
 export function RatingFieldPreview({ field }: { field: FormFieldBase }) {
-  const maxRating = Number(field.options?.maxRating) || 5;
+  const maxRating = field.options?.maxRating as number || 5;
   const currentRating = field.defaultValue !== undefined ? Number(field.defaultValue) : 0;
-  const iconType = String(field.options?.icon || 'star');
+  const iconType = field.options?.icon || 'star';
 
   const renderStars = () => {
     const stars = [];
@@ -45,21 +45,21 @@ export function RatingFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de Calificación (Rating)
 export function RatingField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
-    id: field?.id || '',
     type: FormFieldType.RATING,
     label: 'Rating Input',
     name: 'ratingField',
     helpText: '',
     isRequired: false,
-    order: field?.order || 0,
+    defaultValue: 0,
     width: 100,
+    options: { maxRating: 5, icon: 'star' },
     ...field,
-    // Override with processed values
-    defaultValue: field?.defaultValue !== undefined ? String(field.defaultValue) : '0',
+    defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : 0,
     options: {
+        maxRating: 5, icon: 'star',
+        ...field?.options,
         maxRating: field?.options?.maxRating !== undefined ? Number(field.options.maxRating) : 5,
         icon: field?.options?.icon || 'star',
-        ...field?.options,
     },
   });
 
@@ -67,11 +67,13 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
      setLocalField(prev => ({ 
         ...prev, 
         ...field,
-        defaultValue: field?.defaultValue !== undefined ? String(field.defaultValue) : '0',
+        defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : 0,
         options: {
-            maxRating: field?.options?.maxRating !== undefined ? Number(field.options.maxRating) : 5,
-            icon: field?.options?.icon || 'star',
+            maxRating: 5, icon: 'star',
+            ...prev.options,
             ...field?.options,
+            maxRating: field?.options?.maxRating !== undefined ? Number(field.options.maxRating) : (prev.options?.maxRating !== undefined ? Number(prev.options.maxRating) : 5),
+            icon: field?.options?.icon || (prev.options?.icon || 'star'),
         }
     }));
   }, [field]);
@@ -84,12 +86,9 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
     const { name, value, type } = e.target;
     let val: string | number = value;
     if (type === 'number') {
-      if (name === 'defaultValue') {
-        const numVal = value === '' ? 0 : parseFloat(value);
-        const maxRating = Number(localField.options?.maxRating) || 5;
-        val = String(Math.min(Math.max(numVal, 0), maxRating));
-      } else {
-        val = value === '' ? '' : parseFloat(value);
+      val = value === '' ? '' : parseFloat(value);
+      if (name === 'defaultValue' && localField.options?.maxRating) {
+        val = Math.min(Math.max(val as number, 0), localField.options.maxRating as number);
       }
     }
     
@@ -109,7 +108,7 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
         const updated = { ...prev, options: { ...prev.options, [name]: numValue } };
         // Adjust defaultValue if it exceeds new maxRating
         if (name === 'maxRating' && prev.defaultValue !== undefined && Number(prev.defaultValue) > numValue) {
-            updated.defaultValue = String(numValue);
+            updated.defaultValue = numValue;
         }
         onChange(updated);
         return updated;
@@ -159,11 +158,11 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="options.maxRating">Max Rating (e.g., 5 for 5 stars)</Label>
-          <Input type="number" name="maxRating" id="options.maxRating" value={String(localField.options?.maxRating || 5)} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="1" />
+          <Input type="number" name="maxRating" id="options.maxRating" value={localField.options?.maxRating || 5} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="1" />
         </div>
         <div>
           <Label htmlFor="options.icon">Icon Type</Label>
-          <Select name="options.icon" value={String(localField.options?.icon || 'star')} onValueChange={(value) => handleSelectChange('options.icon', value)}>
+          <Select name="options.icon" value={localField.options?.icon || 'star'} onValueChange={(value) => handleSelectChange('options.icon', value)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="star">Star</SelectItem>
@@ -175,7 +174,7 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
       </div>
       <div>
         <Label htmlFor="defaultValue">Default Value (Rating)</Label>
-        <Input type="number" id="defaultValue" name="defaultValue" value={localField.defaultValue || '0'} onChange={handleInputChange} onKeyDown={handleKeyDown} min="0" max={String(localField.options?.maxRating || 5)} />
+        <Input type="number" id="defaultValue" name="defaultValue" value={localField.defaultValue || 0} onChange={handleInputChange} onKeyDown={handleKeyDown} min="0" max={localField.options?.maxRating as number || 5} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox id="isRequired" name="isRequired" checked={localField.isRequired || false} onCheckedChange={handleCheckboxChange} onClick={(e) => e.stopPropagation()} />
