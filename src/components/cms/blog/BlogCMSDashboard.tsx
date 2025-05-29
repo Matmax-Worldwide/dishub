@@ -47,7 +47,13 @@ interface Post {
   title: string;
   slug: string;
   excerpt?: string;
-  featuredImage?: string;
+  featuredImageId?: string;
+  featuredImageMedia?: {
+    id: string;
+    fileUrl: string;
+    altText?: string;
+    title?: string;
+  };
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt?: string;
   createdAt?: string;
@@ -96,9 +102,9 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
   }, []);
 
   async function loadDashboardData() {
-    setLoading(true);
     try {
-      // Load blogs and posts in parallel
+      setLoading(true);
+      
       const [blogsResponse, postsResponse] = await Promise.all([
         gqlRequest<{ blogs: Blog[] }>(`
           query GetBlogs {
@@ -110,10 +116,6 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
               isActive
               createdAt
               updatedAt
-              posts {
-                id
-                status
-              }
             }
           }
         `),
@@ -124,7 +126,13 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
               title
               slug
               excerpt
-              featuredImage
+              featuredImageId
+              featuredImageMedia {
+                id
+                fileUrl
+                altText
+                title
+              }
               status
               publishedAt
               readTime
@@ -256,11 +264,11 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
   // Post card component
   const PostCard = ({ post }: { post: Post }) => (
     <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer">
-      {post.featuredImage && (
+      {post.featuredImageMedia && (
         <div className="aspect-video overflow-hidden rounded-t-lg">
           <img
-            src={post.featuredImage}
-            alt={post.title}
+            src={post.featuredImageMedia.fileUrl}
+            alt={post.featuredImageMedia.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
         </div>

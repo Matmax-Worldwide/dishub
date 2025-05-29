@@ -54,8 +54,13 @@ interface PostData {
   slug: string;
   content: string;
   excerpt: string;
-  featuredImage?: string;
   featuredImageId?: string;
+  featuredImageMedia?: {
+    id: string;
+    fileUrl: string;
+    altText?: string;
+    title?: string;
+  };
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt?: string;
   blogId: string;
@@ -173,8 +178,13 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
               slug
               content
               excerpt
-              featuredImage
               featuredImageId
+              featuredImageMedia {
+                id
+                fileUrl
+                altText
+                title
+              }
               status
               publishedAt
               blogId
@@ -243,7 +253,7 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
     if (title.length >= 30 && title.length <= 60) seoPoints += 20;
     if (metaDescription.length >= 120 && metaDescription.length <= 160) seoPoints += 20;
     if (content.length >= 300) seoPoints += 20;
-    if (postData.featuredImage) seoPoints += 15;
+    if (postData.featuredImageMedia) seoPoints += 15;
     if (postData.tags.length >= 3) seoPoints += 15;
     if (content.includes(title.toLowerCase())) seoPoints += 10;
     
@@ -264,7 +274,7 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
       .trim();
   }
 
-  const handleFieldChange = useCallback((field: keyof PostData, value: string | string[] | number | boolean) => {
+  const handleFieldChange = useCallback((field: keyof PostData, value: string | string[] | number | boolean | null | PostData['featuredImageMedia']) => {
     setPostData(prev => {
       const updated = { ...prev, [field]: value };
       
@@ -507,9 +517,9 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
             {/* Preview Content */}
             <div className={`${previewDeviceClasses[previewDevice]} bg-white rounded-lg shadow-lg overflow-hidden`}>
               <article className="p-8">
-                {postData.featuredImage && (
+                {postData.featuredImageMedia && (
                   <img
-                    src={postData.featuredImage}
+                    src={postData.featuredImageMedia.fileUrl}
                     alt={postData.title}
                     className="w-full h-64 object-cover rounded-lg mb-8"
                   />
@@ -740,17 +750,17 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {postData.featuredImage ? (
+                  {postData.featuredImageMedia ? (
                     <div className="space-y-4">
                       <img
-                        src={postData.featuredImage}
+                        src={postData.featuredImageMedia.fileUrl}
                         alt="Featured"
                         className="w-full h-32 object-cover rounded-lg"
                       />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleFieldChange('featuredImage', '')}
+                        onClick={() => handleFieldChange('featuredImageId', '')}
                       >
                         Remove Image
                       </Button>

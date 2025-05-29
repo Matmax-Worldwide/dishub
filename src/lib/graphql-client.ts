@@ -1336,14 +1336,14 @@ export const cmsOperations = {
       
       console.log(`Starting saveSectionComponents mutation for section ${sectionId} with ${components.length} components`);
       
-      // Use a longer timeout for saving components - increase from 15s to 30s
+      // Use a longer timeout for saving components - reduced from 30s to 15s after optimization
       const result = await gqlRequest<{ 
         saveSectionComponents: { 
           success: boolean; 
           message: string; 
           lastUpdated: string | null;
         }
-      }>(mutation, { input }, 30000);
+      }>(mutation, { input }, 15000);
       
       if (!result) {
         console.error('No result from GraphQL request in saveSectionComponents');

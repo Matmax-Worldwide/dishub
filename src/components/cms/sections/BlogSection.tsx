@@ -51,7 +51,13 @@ interface PostResponse {
   slug: string;
   excerpt?: string;
   content: string;
-  featuredImage?: string;
+  featuredImageId?: string;
+  featuredImageMedia?: {
+    id: string;
+    fileUrl: string;
+    altText?: string;
+    title?: string;
+  };
   status: string;
   publishedAt?: string;
   readTime?: number;
@@ -444,7 +450,13 @@ export default function BlogSection({
             slug
             excerpt
             content
-            featuredImage
+            featuredImageId
+            featuredImageMedia {
+              id
+              fileUrl
+              altText
+              title
+            }
             status
             publishedAt
             readTime
@@ -474,7 +486,7 @@ export default function BlogSection({
         slug: post.slug,
         excerpt: post.excerpt || undefined,
         content: post.content,
-        featuredImage: post.featuredImage || undefined,
+        featuredImage: post.featuredImageMedia?.fileUrl || undefined,
         author: post.author ? {
           name: `${post.author.firstName} ${post.author.lastName}`,
           image: post.author.profileImageUrl || undefined

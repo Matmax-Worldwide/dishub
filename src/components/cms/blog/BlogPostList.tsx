@@ -49,7 +49,13 @@ interface BlogPost {
   title: string;
   slug: string;
   excerpt?: string;
-  featuredImage?: string;
+  featuredImageId?: string;
+  featuredImageMedia?: {
+    id: string;
+    fileUrl: string;
+    altText?: string;
+    title?: string;
+  };
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt?: string;
   createdAt: string;
@@ -105,21 +111,13 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
   }, [selectedBlog, selectedStatus, selectedAuthor, sortBy]);
 
   async function loadPosts() {
-    setLoading(true);
     try {
-      const filter: any = {};
+      setLoading(true);
       
-      if (selectedBlog !== 'all') {
-        filter.blogId = selectedBlog;
-      }
-      
-      if (selectedStatus !== 'all') {
-        filter.status = selectedStatus;
-      }
-      
-      if (selectedAuthor !== 'all') {
-        filter.authorId = selectedAuthor;
-      }
+      const filter: Record<string, unknown> = {};
+      if (blogId) filter.blogId = blogId;
+      if (selectedBlog && selectedBlog !== 'all') filter.blogId = selectedBlog;
+      if (selectedStatus && selectedStatus !== 'all') filter.status = selectedStatus;
 
       const query = `
         query GetPosts($filter: PostFilter, $sort: PostSort) {
@@ -128,7 +126,13 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
             title
             slug
             excerpt
-            featuredImage
+            featuredImageId
+            featuredImageMedia {
+              id
+              fileUrl
+              altText
+              title
+            }
             status
             publishedAt
             createdAt
@@ -377,7 +381,7 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
             </Select>
 
             {/* Sort */}
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as 'newest' | 'oldest' | 'title' | 'views')}>
               <SelectTrigger>
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -414,10 +418,10 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   {/* Featured Image */}
-                  {post.featuredImage && (
+                  {post.featuredImageMedia && (
                     <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
                       <Image
-                        src={post.featuredImage}
+                        src={post.featuredImageMedia.fileUrl}
                         alt={post.title}
                         width={96}
                         height={96}
@@ -614,7 +618,7 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Post</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{postToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to delete &ldquo;{postToDelete?.title}&rdquo;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

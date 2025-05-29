@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma, PageType } from '@prisma/client';
-import crypto from 'crypto';
 
 // Tipo para los componentes de una sección
 type SectionComponentWithRelation = {
@@ -590,164 +589,117 @@ export const cmsResolvers = {
         
         const timestamp = new Date();
         
-        // Guardar en la base de datos utilizando Prisma
+        // Optimized database operations using transactions and batch queries
         try {
-          // Buscar si ya existe la sección
-          const existingSection = await prisma.cMSSection.findUnique({
-            where: { sectionId }
-          });
-          
-          if (existingSection) {
-            // Actualizar la sección existente
-            console.log('Updating existing section in database:', sectionId);
+          // Use a transaction to ensure data consistency and improve performance
+          const result = await prisma.$transaction(async (tx) => {
+            // 1. Find or create the section
+            let section = await tx.cMSSection.findUnique({
+              where: { sectionId }
+            });
             
-            // 1. Eliminar las relaciones existentes para recrearlas
-            await prisma.$executeRaw(
-              Prisma.sql`DELETE FROM "SectionComponent" WHERE "sectionId" = ${existingSection.id}`
+            if (!section) {
+              console.log('Creating new section in database:', sectionId);
+              section = await tx.cMSSection.create({
+                data: {
+                  sectionId,
+                  name: sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  description: `Sección "${sectionId}"`,
+                  lastUpdated: timestamp,
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              });
+            } else {
+              console.log('Updating existing section in database:', sectionId);
+              section = await tx.cMSSection.update({
+                where: { id: section.id },
+                data: {
+                  lastUpdated: timestamp,
+                  updatedAt: timestamp
+                }
+              });
+            }
+            
+            // 2. Get unique component types to batch-check existing components
+            const uniqueTypes = [...new Set(validComponents.map(c => c.type))];
+            console.log('Unique component types:', uniqueTypes);
+            
+            // 3. Batch-find existing components
+            const existingComponents = await tx.cMSComponent.findMany({
+              where: {
+                slug: { in: uniqueTypes }
+              }
+            });
+            
+            const existingComponentMap = new Map(
+              existingComponents.map(comp => [comp.slug, comp])
             );
             
-            // 2. Actualizar la sección
-            const updatedSection = await prisma.cMSSection.update({
-              where: { id: existingSection.id },
-              data: {
-                lastUpdated: timestamp,
-                updatedAt: timestamp
-              }
-            });
-            
-            // 3. Crear nuevas relaciones con componentes
-            if (validComponents.length > 0) {
-              // Por cada componente, buscar si existe o crearlo
-              for (let i = 0; i < validComponents.length; i++) {
-                const component = validComponents[i];
-                
-                // Buscar el componente por tipo o crearlo si no existe
-                let cmsComponent = await prisma.cMSComponent.findFirst({
-                  where: { slug: component.type }
-                });
-                
-                if (!cmsComponent) {
-                  // Crear el componente si no existe
-                  cmsComponent = await prisma.cMSComponent.create({
-                    data: {
-                      name: component.type,
-                      slug: component.type,
-                      description: `Componente tipo ${component.type}`,
-                      schema: {}, // Schema vacío por defecto
-                      isActive: true,
-                      createdAt: timestamp,
-                      updatedAt: timestamp
-                    }
-                  });
+            // 4. Batch-create missing components
+            const missingTypes = uniqueTypes.filter(type => !existingComponentMap.has(type));
+            if (missingTypes.length > 0) {
+              console.log('Creating missing component types:', missingTypes);
+              await tx.cMSComponent.createMany({
+                data: missingTypes.map(type => ({
+                  name: type,
+                  slug: type,
+                  description: `Componente tipo ${type}`,
+                  schema: {},
+                  isActive: true,
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }))
+              });
+              
+              // Fetch the newly created components to add to our map
+              const createdComponents = await tx.cMSComponent.findMany({
+                where: {
+                  slug: { in: missingTypes }
                 }
-                
-                console.log(`Creating relationship for component ${component.id || 'new'} (type: ${component.type})`);
-                
-                // Use provided component ID if it exists, otherwise generate a new one
-                const componentId = component.id || crypto.randomUUID();
-                
-                // Crear la relación entre sección y componente
-                await prisma.$executeRaw(
-                  Prisma.sql`
-                  INSERT INTO "SectionComponent" 
-                  ("id", "sectionId", "componentId", "order", "data", "createdAt", "updatedAt") 
-                  VALUES (
-                    ${componentId}, 
-                    ${updatedSection.id}, 
-                    ${cmsComponent.id}, 
-                    ${i}, 
-                    ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`}, 
-                    ${timestamp}, 
-                    ${timestamp}
-                  )
-                  ON CONFLICT ("sectionId", "componentId", "order") 
-                  DO UPDATE SET 
-                    "data" = ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`},
-                    "updatedAt" = ${timestamp}
-                  `
-                );
-              }
+              });
+              
+              createdComponents.forEach(comp => {
+                existingComponentMap.set(comp.slug, comp);
+              });
             }
             
-            console.log('Section updated successfully with new components');
-          } else {
-            // Crear una nueva sección
-            console.log('Creating new section in database:', sectionId);
-            
-            // 1. Crear la sección
-            const newSection = await prisma.cMSSection.create({
-              data: {
-                sectionId,
-                name: sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                description: `Sección "${sectionId}"`,
-                lastUpdated: timestamp,
-                createdAt: timestamp,
-                updatedAt: timestamp
-              }
+            // 5. Delete existing section components to replace them
+            await tx.sectionComponent.deleteMany({
+              where: { sectionId: section.id }
             });
             
-            // 2. Crear relaciones con componentes
+            // 6. Batch-create new section components
             if (validComponents.length > 0) {
-              // Por cada componente, buscar si existe o crearlo
-              for (let i = 0; i < validComponents.length; i++) {
-                const component = validComponents[i];
-                
-                // Buscar el componente por tipo o crearlo si no existe
-                let cmsComponent = await prisma.cMSComponent.findFirst({
-                  where: { slug: component.type }
-                });
-                
+              const sectionComponentsData = validComponents.map((component, index) => {
+                const cmsComponent = existingComponentMap.get(component.type);
                 if (!cmsComponent) {
-                  // Crear el componente si no existe
-                  cmsComponent = await prisma.cMSComponent.create({
-                    data: {
-                      name: component.type,
-                      slug: component.type,
-                      description: `Componente tipo ${component.type}`,
-                      schema: {}, // Schema vacío por defecto
-                      isActive: true,
-                      createdAt: timestamp,
-                      updatedAt: timestamp
-                    }
-                  });
+                  throw new Error(`Component type ${component.type} not found after creation`);
                 }
                 
-                console.log(`Creating relationship for component ${component.id || 'new'} (type: ${component.type})`);
-                
-                // Use provided component ID if it exists, otherwise generate a new one
-                const componentId = component.id || crypto.randomUUID();
-                
-                // Crear la relación entre sección y componente
-                await prisma.$executeRaw(
-                  Prisma.sql`
-                  INSERT INTO "SectionComponent" 
-                  ("id", "sectionId", "componentId", "order", "data", "createdAt", "updatedAt") 
-                  VALUES (
-                    ${componentId}, 
-                    ${newSection.id}, 
-                    ${cmsComponent.id}, 
-                    ${i}, 
-                    ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`}, 
-                    ${timestamp}, 
-                    ${timestamp}
-                  )
-                  ON CONFLICT ("sectionId", "componentId", "order") 
-                  DO UPDATE SET 
-                    "data" = ${Prisma.sql`${JSON.stringify(component.data || {})}::jsonb`},
-                    "updatedAt" = ${timestamp}
-                  `
-                );
-              }
+                return {
+                  id: component.id,
+                  sectionId: section.id,
+                  componentId: cmsComponent.id,
+                  order: index,
+                  data: component.data as Prisma.InputJsonValue || {},
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                };
+              });
+              
+              console.log(`Creating ${sectionComponentsData.length} section component relationships`);
+              await tx.sectionComponent.createMany({
+                data: sectionComponentsData
+              });
             }
             
-            console.log('New section created successfully with components');
-          }
-          
-          const result = {
-            success: true,
-            message: 'Components saved successfully',
-            lastUpdated: timestamp.toISOString(),
-          };
+            return {
+              success: true,
+              message: 'Components saved successfully',
+              lastUpdated: timestamp.toISOString(),
+            };
+          });
           
           console.log('Save result:', result);
           console.log('========================================');
