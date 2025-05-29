@@ -30,18 +30,17 @@ export function SignatureFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de Firma (Signature)
 export function SignatureField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.SIGNATURE,
     label: 'Signature Pad',
     name: 'signatureField',
     helpText: 'Please sign in the box above.',
     isRequired: false,
+    defaultValue: '',
+    order: 0,
     width: 100,
     options: { canvasHeight: 150, canvasWidth: 300, lineColor: '#000000' },
     ...field,
-    options: {
-        canvasHeight: 150, canvasWidth: 300, lineColor: '#000000',
-        ...field?.options,
-    }
   });
 
   useEffect(() => {
@@ -49,7 +48,9 @@ export function SignatureField({ field, onChange, showPreview = true }: FieldPro
         ...prev, 
         ...field,
         options: {
-            canvasHeight: 150, canvasWidth: 300, lineColor: '#000000',
+            canvasHeight: 150, 
+            canvasWidth: 300, 
+            lineColor: '#000000',
             ...prev.options,
             ...field?.options,
         }
@@ -119,16 +120,16 @@ export function SignatureField({ field, onChange, showPreview = true }: FieldPro
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="options.canvasHeight">Canvas Height (px)</Label>
-          <Input type="number" name="canvasHeight" id="options.canvasHeight" value={localField.options?.canvasHeight || 150} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="50" />
+          <Input type="number" name="canvasHeight" id="options.canvasHeight" value={(localField.options?.canvasHeight as number) || 150} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="50" />
         </div>
         <div>
           <Label htmlFor="options.canvasWidth">Canvas Width (px)</Label>
-          <Input type="number" name="canvasWidth" id="options.canvasWidth" value={localField.options?.canvasWidth || 300} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="100" />
+          <Input type="number" name="canvasWidth" id="options.canvasWidth" value={(localField.options?.canvasWidth as number) || 300} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="100" />
         </div>
       </div>
        <div>
           <Label htmlFor="options.lineColor">Signature Color</Label>
-          <Input type="color" name="lineColor" id="options.lineColor" value={localField.options?.lineColor || '#000000'} onChange={handleOptionsChange} className="h-10" />
+          <Input type="color" name="lineColor" id="options.lineColor" value={(localField.options?.lineColor as string) || '#000000'} onChange={handleOptionsChange} className="h-10" />
         </div>
       <div>
         <Label htmlFor="width">Overall Width (%)</Label>

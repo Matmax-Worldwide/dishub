@@ -26,6 +26,7 @@ export function TimeFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de hora
 export function TimeField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.TIME,
     label: 'Time Input',
     name: 'timeField',
@@ -34,6 +35,7 @@ export function TimeField({ field, onChange, showPreview = true }: FieldProps) {
     isRequired: false,
     defaultValue: '', // Should be in HH:MM format if pre-filled
     width: 100,
+    order: 0,
     ...field,
   });
 

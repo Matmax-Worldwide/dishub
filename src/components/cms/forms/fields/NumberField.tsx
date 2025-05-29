@@ -27,6 +27,7 @@ export function NumberFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de número
 export function NumberField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.NUMBER,
     label: 'Number Input',
     name: 'numberField',
@@ -35,7 +36,8 @@ export function NumberField({ field, onChange, showPreview = true }: FieldProps)
     isRequired: false,
     defaultValue: '',
     width: 100,
-    options: {}, // For min, max, step if needed later
+    order: 0,
+    options: {},
     ...field,
   });
 
