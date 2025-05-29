@@ -15,7 +15,7 @@ export function CaptchaFieldPreview({ field }: { field: FormFieldBase }) {
       <div className="p-4 bg-gray-100 border border-dashed border-gray-300 rounded-md text-center flex flex-col items-center justify-center h-24">
         <ShieldCheck className="h-8 w-8 text-gray-400 mb-2" />
         <p className="text-sm text-gray-600">
-          CAPTCHA ({(field.options?.captchaType as string) || 'Not configured'})
+          CAPTCHA ({field.options?.captchaType || 'Not configured'})
         </p>
         <p className="text-xs text-gray-500">Verification challenge will appear here.</p>
       </div>
@@ -26,19 +26,16 @@ export function CaptchaFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de CAPTCHA
 export function CaptchaField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
-    id: field?.id || '',
     type: FormFieldType.CAPTCHA,
     label: 'CAPTCHA Verification', // Admin label
     name: 'captchaField',
-    isRequired: false,
-    order: 0,
     width: 100, // Typically full width
-    options: { 
-      captchaType: 'reCAPTCHA_v2', 
-      siteKey: '',
-      ...field?.options,
-    },
+    options: { captchaType: 'reCAPTCHA_v2', siteKey: '' },
     ...field,
+    options: {
+        captchaType: 'reCAPTCHA_v2', siteKey: '',
+        ...field?.options,
+    }
   });
 
   useEffect(() => {
@@ -110,7 +107,7 @@ export function CaptchaField({ field, onChange, showPreview = true }: FieldProps
         <Label htmlFor="options.captchaType">CAPTCHA Type</Label>
         <Select
           name="options.captchaType"
-          value={(localField.options?.captchaType as string) || 'reCAPTCHA_v2'}
+          value={localField.options?.captchaType || 'reCAPTCHA_v2'}
           onValueChange={(value) => handleSelectChange('options.captchaType', value)}
         >
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -127,7 +124,7 @@ export function CaptchaField({ field, onChange, showPreview = true }: FieldProps
         <Input 
             id="options.siteKey" 
             name="siteKey" // Corresponds to key in options
-            value={(localField.options?.siteKey as string) || ''} 
+            value={localField.options?.siteKey || ''} 
             onChange={handleOptionsChange} 
             onKeyDown={handleKeyDown} 
             placeholder="Enter CAPTCHA Site Key" 

@@ -29,8 +29,7 @@ interface BlogPost {
   slug: string;
   excerpt?: string;
   content?: string;
-  // featuredImage?: string; // Field removed
-  featuredImageMedia?: { fileUrl: string };
+  featuredImage?: string;
   author?: {
     name: string;
     image?: string;
@@ -63,8 +62,7 @@ interface PostResponse {
   slug: string;
   excerpt?: string;
   content: string;
-  // featuredImage?: string; // Field removed
-  featuredImageMedia?: { fileUrl: string };
+  featuredImage?: string;
   status: string;
   publishedAt?: string;
   readTime?: number;
@@ -219,10 +217,7 @@ export default function BlogSectionEnhanced({
             slug
             excerpt
             content
-            # featuredImage // Field removed
-            featuredImageMedia {
-              fileUrl
-            }
+            featuredImage
             status
             publishedAt
             readTime
@@ -252,8 +247,7 @@ export default function BlogSectionEnhanced({
         slug: post.slug,
         excerpt: post.excerpt || undefined,
         content: post.content,
-        // featuredImage: post.featuredImage || undefined, // Field removed
-        featuredImageMedia: post.featuredImageMedia || undefined,
+        featuredImage: post.featuredImage || undefined,
         author: post.author ? {
           name: `${post.author.firstName} ${post.author.lastName}`,
           image: post.author.profileImageUrl || undefined
@@ -355,10 +349,10 @@ export default function BlogSectionEnhanced({
   // Enhanced Post Card Component
   const PostCard = ({ post }: { post: BlogPost }) => (
     <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer group">
-      {showFeaturedImage && post.featuredImageMedia?.fileUrl && (
+      {showFeaturedImage && post.featuredImage && (
         <div className="w-full h-48 overflow-hidden rounded-t-lg relative">
           <img
-            src={post.featuredImageMedia.fileUrl}
+            src={post.featuredImage}
             alt={post.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
 import { Label } from '@/components/ui/label';
@@ -31,12 +31,9 @@ export function HeadingFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de encabezado
 export function HeadingField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
-    id: field?.id || '',
     type: FormFieldType.HEADING,
     label: 'New Heading',
     name: 'headingField',
-    isRequired: false,
-    order: field?.order || 0,
     options: { level: 'h2' },
     width: 100,
     ...field, // Override defaults with incoming field props
@@ -47,7 +44,7 @@ export function HeadingField({ field, onChange, showPreview = true }: FieldProps
     setLocalField(prev => ({
         ...prev,
         ...field,
-        options: { level: 'h2', ...prev.options, ...field?.options },
+        options: { level: 'h2', ...field?.options, ...prev.options  },
     }));
   }, [field]);
 
@@ -81,17 +78,12 @@ export function HeadingField({ field, onChange, showPreview = true }: FieldProps
     }
   };
 
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
     }
-  };
-
-  // Get the current level value safely
-  const getCurrentLevel = (): string => {
-    const level = localField.options?.level;
-    return typeof level === 'string' ? level : 'h2';
   };
 
   const editorContent = (
@@ -125,7 +117,7 @@ export function HeadingField({ field, onChange, showPreview = true }: FieldProps
         <Label htmlFor="options.level">Heading Level</Label>
         <Select
           name="options.level"
-          value={getCurrentLevel()}
+          value={localField.options?.level || 'h2'}
           onValueChange={(value) => handleSelectChange('options.level', value)}
         >
           <SelectTrigger><SelectValue /></SelectTrigger>

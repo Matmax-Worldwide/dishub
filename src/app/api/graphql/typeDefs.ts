@@ -999,7 +999,6 @@ export const typeDefs = gql`
     getCMSComponentsByType(type: String!): [CMSComponent!]!
     
     getAllCMSPages: [Page!]!
-    page(id: ID!): Page
     getPageBySlug(slug: String!): Page
     getDefaultPage(locale: String!): Page
     getPagesUsingSectionId(sectionId: ID!): [Page!]!
@@ -1281,7 +1280,7 @@ export const typeDefs = gql`
     slug: String!
     content: String!
     excerpt: String
-    # featuredImage: String, // Field removed, use featuredImageMedia.fileUrl
+    featuredImage: String
     featuredImageId: String
     featuredImageMedia: Media
     status: PostStatus!
@@ -1328,7 +1327,7 @@ export const typeDefs = gql`
     slug: String!
     content: String!
     excerpt: String
-    # featuredImage: String, // Field removed, use featuredImageId
+    featuredImage: String
     featuredImageId: String
     status: PostStatus
     publishedAt: DateTime
@@ -1346,7 +1345,7 @@ export const typeDefs = gql`
     slug: String
     content: String
     excerpt: String
-    # featuredImage: String, // Field removed, use featuredImageId
+    featuredImage: String
     featuredImageId: String
     status: PostStatus
     publishedAt: DateTime

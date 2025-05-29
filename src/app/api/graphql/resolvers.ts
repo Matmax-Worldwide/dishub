@@ -676,9 +676,6 @@ const resolvers = {
     getCMSComponent: cmsResolvers.Query.getCMSComponent,
     getCMSComponentsByType: cmsResolvers.Query.getCMSComponentsByType,
     getAllCMSPages: cmsResolvers.Query.getAllCMSPages,
-    page: cmsResolvers.Query.page,
-    getPageBySlug: cmsResolvers.Query.getPageBySlug,
-    getDefaultPage: cmsResolvers.Query.getDefaultPage,
     getPagesUsingSectionId: cmsResolvers.Query.getPagesUsingSectionId,
 
     // Add blog queries

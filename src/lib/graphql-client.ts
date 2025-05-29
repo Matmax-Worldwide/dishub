@@ -2865,8 +2865,6 @@ export const cmsOperations = {
 
   // Get the default page for a locale
   getDefaultPage,
-
-  // Settings operations
 };
 
 // Form Builder API functions
@@ -3920,8 +3918,7 @@ const graphqlClient = {
     slug: string;
     content: string;
     excerpt?: string;
-    // featuredImage?: string; // Field removed, use featuredImageId
-    featuredImageId?: string; // Ensure this is part of the input type if not already
+    featuredImage?: string;
     status: string;
     blogId: string;
     authorId: string;
@@ -3942,10 +3939,7 @@ const graphqlClient = {
             slug
             content
             excerpt
-            # featuredImage // Field removed
-            featuredImageMedia {
-              fileUrl
-            }
+            featuredImage
             status
             blogId
             authorId
@@ -3997,10 +3991,7 @@ const graphqlClient = {
           slug
           content
           excerpt
-          # featuredImage // Field removed
-          featuredImageMedia {
-            fileUrl
-          }
+          featuredImage
           status
           blogId
           authorId
@@ -4041,10 +4032,7 @@ const graphqlClient = {
           slug
           content
           excerpt
-          # featuredImage // Field removed
-          featuredImageMedia {
-            fileUrl
-          }
+          featuredImage
           status
           blogId
           authorId
@@ -4080,8 +4068,7 @@ const graphqlClient = {
     slug?: string;
     content?: string;
     excerpt?: string;
-    // featuredImage?: string; // Field removed, use featuredImageId
-    featuredImageId?: string; // Ensure this is part of the input type if not already
+    featuredImage?: string;
     status?: string;
     publishedAt?: string | null;
     metaTitle?: string;
@@ -4150,331 +4137,6 @@ const graphqlClient = {
       clearCache('posts');
     }
     return response.deletePost;
-  },
-
-  // Settings operations
-  async getSiteSettings(): Promise<{
-    id: string;
-    siteName: string;
-    siteDescription?: string;
-    logoUrl?: string;
-    faviconUrl?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    googleAnalyticsId?: string;
-    facebookPixelId?: string;
-    customCss?: string;
-    customJs?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    address?: string;
-    accentColor?: string;
-    defaultLocale: string;
-    footerText?: string;
-    maintenanceMode: boolean;
-    metaDescription?: string;
-    metaTitle?: string;
-    ogImage?: string;
-    socialLinks?: string;
-    supportedLocales: string[];
-    twitterCardType?: string;
-    twitterHandle?: string;
-    createdAt: string;
-    updatedAt: string;
-  } | null> {
-    const query = `
-      query GetSiteSettings {
-        getSiteSettings {
-          id
-          siteName
-          siteDescription
-          logoUrl
-          faviconUrl
-          primaryColor
-          secondaryColor
-          googleAnalyticsId
-          facebookPixelId
-          customCss
-          customJs
-          contactEmail
-          contactPhone
-          address
-          accentColor
-          defaultLocale
-          footerText
-          maintenanceMode
-          metaDescription
-          metaTitle
-          ogImage
-          socialLinks
-          supportedLocales
-          twitterCardType
-          twitterHandle
-          createdAt
-          updatedAt
-        }
-      }
-    `;
-
-    try {
-      const response = await gqlRequest<{ getSiteSettings: {
-        id: string;
-        siteName: string;
-        siteDescription?: string;
-        logoUrl?: string;
-        faviconUrl?: string;
-        primaryColor?: string;
-        secondaryColor?: string;
-        googleAnalyticsId?: string;
-        facebookPixelId?: string;
-        customCss?: string;
-        customJs?: string;
-        contactEmail?: string;
-        contactPhone?: string;
-        address?: string;
-        accentColor?: string;
-        defaultLocale: string;
-        footerText?: string;
-        maintenanceMode: boolean;
-        metaDescription?: string;
-        metaTitle?: string;
-        ogImage?: string;
-        socialLinks?: string;
-        supportedLocales: string[];
-        twitterCardType?: string;
-        twitterHandle?: string;
-        createdAt: string;
-        updatedAt: string;
-      } | null }>(query);
-      return response.getSiteSettings;
-    } catch (error) {
-      console.error('Error fetching site settings:', error);
-      return null;
-    }
-  },
-
-  async updateSiteSettings(input: {
-    siteName?: string;
-    siteDescription?: string;
-    logoUrl?: string;
-    faviconUrl?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    googleAnalyticsId?: string;
-    facebookPixelId?: string;
-    customCss?: string;
-    customJs?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    address?: string;
-    accentColor?: string;
-    defaultLocale?: string;
-    footerText?: string;
-    maintenanceMode?: boolean;
-    metaDescription?: string;
-    metaTitle?: string;
-    ogImage?: string;
-    socialLinks?: string;
-    supportedLocales?: string[];
-    twitterCardType?: string;
-    twitterHandle?: string;
-  }): Promise<{
-    id: string;
-    siteName: string;
-    siteDescription?: string;
-    logoUrl?: string;
-    faviconUrl?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    googleAnalyticsId?: string;
-    facebookPixelId?: string;
-    customCss?: string;
-    customJs?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    address?: string;
-    accentColor?: string;
-    defaultLocale: string;
-    footerText?: string;
-    maintenanceMode: boolean;
-    metaDescription?: string;
-    metaTitle?: string;
-    ogImage?: string;
-    socialLinks?: string;
-    supportedLocales: string[];
-    twitterCardType?: string;
-    twitterHandle?: string;
-    createdAt: string;
-    updatedAt: string;
-  } | null> {
-    const mutation = `
-      mutation UpdateSiteSettings($input: UpdateSiteSettingsInput!) {
-        updateSiteSettings(input: $input) {
-          id
-          siteName
-          siteDescription
-          logoUrl
-          faviconUrl
-          primaryColor
-          secondaryColor
-          googleAnalyticsId
-          facebookPixelId
-          customCss
-          customJs
-          contactEmail
-          contactPhone
-          address
-          accentColor
-          defaultLocale
-          footerText
-          maintenanceMode
-          metaDescription
-          metaTitle
-          ogImage
-          socialLinks
-          supportedLocales
-          twitterCardType
-          twitterHandle
-          createdAt
-          updatedAt
-        }
-      }
-    `;
-
-    try {
-      const response = await gqlRequest<{ updateSiteSettings: {
-        id: string;
-        siteName: string;
-        siteDescription?: string;
-        logoUrl?: string;
-        faviconUrl?: string;
-        primaryColor?: string;
-        secondaryColor?: string;
-        googleAnalyticsId?: string;
-        facebookPixelId?: string;
-        customCss?: string;
-        customJs?: string;
-        contactEmail?: string;
-        contactPhone?: string;
-        address?: string;
-        accentColor?: string;
-        defaultLocale: string;
-        footerText?: string;
-        maintenanceMode: boolean;
-        metaDescription?: string;
-        metaTitle?: string;
-        ogImage?: string;
-        socialLinks?: string;
-        supportedLocales: string[];
-        twitterCardType?: string;
-        twitterHandle?: string;
-        createdAt: string;
-        updatedAt: string;
-      } | null }>(mutation, { input });
-      return response.updateSiteSettings;
-    } catch (error) {
-      console.error('Error updating site settings:', error);
-      throw error;
-    }
-  },
-
-  // User Settings operations
-  async getUserSettings(): Promise<{
-    id: string;
-    userId: string;
-    emailNotifications: boolean;
-    theme: string;
-    language: string;
-    timeFormat: string;
-    dateFormat: string;
-    createdAt: string;
-    updatedAt: string;
-  } | null> {
-    const query = `
-      query GetUserSettings {
-        getUserSettings {
-          id
-          userId
-          emailNotifications
-          theme
-          language
-          timeFormat
-          dateFormat
-          createdAt
-          updatedAt
-        }
-      }
-    `;
-
-    try {
-      const response = await gqlRequest<{ getUserSettings: {
-        id: string;
-        userId: string;
-        emailNotifications: boolean;
-        theme: string;
-        language: string;
-        timeFormat: string;
-        dateFormat: string;
-        createdAt: string;
-        updatedAt: string;
-      } | null }>(query);
-      return response.getUserSettings;
-    } catch (error) {
-      console.error('Error fetching user settings:', error);
-      return null;
-    }
-  },
-
-  async updateUserSettings(input: {
-    emailNotifications?: boolean;
-    theme?: string;
-    language?: string;
-    timeFormat?: string;
-    dateFormat?: string;
-  }): Promise<{
-    id: string;
-    userId: string;
-    emailNotifications: boolean;
-    theme: string;
-    language: string;
-    timeFormat: string;
-    dateFormat: string;
-    createdAt: string;
-    updatedAt: string;
-  } | null> {
-    const mutation = `
-      mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
-        updateUserSettings(input: $input) {
-          id
-          userId
-          emailNotifications
-          theme
-          language
-          timeFormat
-          dateFormat
-          createdAt
-          updatedAt
-        }
-      }
-    `;
-
-    try {
-      const response = await gqlRequest<{ updateUserSettings: {
-        id: string;
-        userId: string;
-        emailNotifications: boolean;
-        theme: string;
-        language: string;
-        timeFormat: string;
-        dateFormat: string;
-        createdAt: string;
-        updatedAt: string;
-      } | null }>(mutation, { input });
-      return response.updateUserSettings;
-    } catch (error) {
-      console.error('Error updating user settings:', error);
-      throw error;
-    }
   },
 };
 

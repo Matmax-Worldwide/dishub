@@ -4,11 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  List, ListOrdered, Link, Unlink, Undo, Redo, Palette, Highlighter, Code, RotateCcw, ChevronDown
+  List, ListOrdered, Link, Unlink, Undo, Redo, Type, Palette, Highlighter,
+  Code, RotateCcw, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToolbarConfig, EditorState, LinkData } from './types';
-import { FONT_SIZES, COLOR_PALETTES, BACKGROUND_COLORS } from './constants';
+import { FONT_SIZES, HEADING_TYPES, COLOR_PALETTES, BACKGROUND_COLORS } from './constants';
 import { EditorUtils } from './utils';
 
 interface ToolbarProps {
@@ -263,21 +264,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   }, []);
 
   const handleCommand = (command: string, value?: string) => {
-    // Ejecutar comando inmediatamente
     onCommand(command, value);
-    
-    // Actualizar estado después de un breve delay para permitir que el comando se ejecute
-    setTimeout(() => {
-      onStateChange();
-    }, 50);
+    onStateChange();
   };
 
   const handleLinkSubmit = (linkData: LinkData) => {
     EditorUtils.insertLink(linkData.url, linkData.text);
-    // Actualizar estado después de insertar el link
-    setTimeout(() => {
-      onStateChange();
-    }, 50);
+    onStateChange();
   };
 
   const allTextColors = COLOR_PALETTES.flatMap(palette => palette.colors);
@@ -314,35 +307,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Encabezados */}
         {config.headings && (
           <>
-            <div className="relative">
-              <select
-                value={editorState.currentTag}
-                onChange={(e) => onCommand('formatBlock', e.target.value)}
-                disabled={disabled}
-                className={cn(
-                  "px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-                  "min-w-[120px] max-w-[140px] appearance-none cursor-pointer",
-                  "relative z-50", // Alto z-index para aparecer por encima
-                  disabled && "opacity-50 cursor-not-allowed"
-                )}
-                style={{ 
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.5rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.5em 1.5em',
-                  paddingRight: '2.5rem'
-                }}
-              >
-                <option value="p">Párrafo</option>
-                <option value="h1">Título 1</option>
-                <option value="h2">Título 2</option>
-                <option value="h3">Título 3</option>
-                <option value="h4">Título 4</option>
-                <option value="h5">Título 5</option>
-                <option value="h6">Título 6</option>
-              </select>
-            </div>
+            <ToolbarDropdown
+              trigger={
+                <div className="flex items-center">
+                  <Type className="w-4 h-4" />
+                  <span className="ml-1 text-sm">
+                    {HEADING_TYPES.find(h => h.tag === editorState.currentTag)?.label || 'Párrafo'}
+                  </span>
+                </div>
+              }
+              title="Tipo de texto"
+              disabled={disabled}
+            >
+              <div className="py-1">
+                {HEADING_TYPES.map((heading) => (
+                  <button
+                    key={heading.tag}
+                    onClick={() => {
+                      handleCommand('formatBlock', heading.tag);
+                    }}
+                    className={cn(
+                      "w-full px-3 py-2 text-left hover:bg-gray-100 transition-colors",
+                      editorState.currentTag === heading.tag && "bg-blue-100 text-blue-600"
+                    )}
+                  >
+                    <span className={heading.className}>{heading.label}</span>
+                  </button>
+                ))}
+              </div>
+            </ToolbarDropdown>
             
             <div className="w-px h-6 bg-gray-300 mx-1" />
           </>

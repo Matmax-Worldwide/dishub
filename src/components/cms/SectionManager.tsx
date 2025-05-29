@@ -1007,6 +1007,14 @@ function SectionManagerBase({
     }
   }, [components]);
 
+  // Efecto para enviar cambios al padre
+  useEffect(() => {
+    // Notificar al padre cuando los componentes cambian, si hay un callback
+    if (onComponentsChange && components !== initialComponents) {
+      onComponentsChange(components);
+    }
+  }, [components, onComponentsChange, initialComponents]);
+
   // Initialize components as collapsed by default
   useEffect(() => {
     // When components are loaded initially, collapse ALL components by default for better editing experience
