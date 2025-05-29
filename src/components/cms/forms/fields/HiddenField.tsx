@@ -15,7 +15,7 @@ export function HiddenFieldPreview({ field }: { field: FormFieldBase }) {
           Hidden Field: <strong>{field.name}</strong>
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          Default Value: "{field.defaultValue || ''}"
+          Default Value: &ldquo;{field.defaultValue || ''}&rdquo;
         </p>
       </div>
     </BaseFieldPreview>
@@ -25,9 +25,12 @@ export function HiddenFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos ocultos
 export function HiddenField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.HIDDEN,
     label: 'Hidden Field', // Admin label
     name: 'hiddenField',
+    isRequired: false,
+    order: field?.order || 0,
     defaultValue: '',
     width: 100, // Not visually relevant, but part of base type
     ...field,
