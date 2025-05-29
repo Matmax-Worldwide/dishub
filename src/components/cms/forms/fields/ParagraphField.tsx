@@ -12,7 +12,7 @@ export function ParagraphFieldPreview({ field }: { field: FormFieldBase }) {
   return (
     <BaseFieldPreview field={{...field, label: field.label || "Paragraph Preview" }}>
       <p className="text-sm text-gray-700 whitespace-pre-wrap">
-        {field.options?.content || "This is a sample paragraph."}
+        {String(field.options?.content || "This is a sample paragraph.")}
       </p>
     </BaseFieldPreview>
   );
@@ -21,9 +21,12 @@ export function ParagraphFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de párrafo
 export function ParagraphField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.PARAGRAPH,
     label: 'Paragraph Block', // Admin label
     name: 'paragraphField',
+    isRequired: false,
+    order: field?.order || 0,
     options: { content: '' },
     width: 100,
     ...field,
@@ -108,7 +111,7 @@ export function ParagraphField({ field, onChange, showPreview = true }: FieldPro
         <Textarea
           id="content"
           name="content" // This name will be used in handleOptionsChange
-          value={localField.options?.content || ''}
+          value={String(localField.options?.content || '')}
           onChange={handleOptionsChange}
           onKeyDown={handleKeyDown}
           placeholder="Enter paragraph text here..."

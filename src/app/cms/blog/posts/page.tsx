@@ -95,10 +95,10 @@ export default function PostsPage() {
 
   const PostCard = ({ post }: { post: Post }) => (
     <Card className="hover:shadow-lg transition-shadow">
-      {post.featuredImage && (
+      {post.featuredImageMedia?.fileUrl && (
         <div className="w-full h-48 overflow-hidden rounded-t-lg">
           <img
-            src={post.featuredImage}
+            src={post.featuredImageMedia.fileUrl}
             alt={post.title}
             className="w-full h-full object-cover"
           />

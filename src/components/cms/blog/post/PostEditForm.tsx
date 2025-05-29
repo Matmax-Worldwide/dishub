@@ -59,7 +59,11 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
             slug
             content
             excerpt
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageId
+            featuredImageMedia {
+              fileUrl
+            }
             status
             publishedAt
             blogId
@@ -90,7 +94,8 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
         slug: postData.post.slug || '',
         content: postData.post.content || '',
         excerpt: postData.post.excerpt || '',
-        featuredImage: postData.post.featuredImage || '',
+        // featuredImage: postData.post.featuredImage || '', // This was for the direct URL
+        featuredImage: postData.post.featuredImageId || '', // Repurpose formData.featuredImage to hold featuredImageId
         status: postData.post.status || 'DRAFT',
         publishedAt: postData.post.publishedAt || '',
         metaTitle: postData.post.metaTitle || '',
@@ -171,7 +176,8 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
         slug: formData.slug.trim(),
         content: formData.content.trim(),
           excerpt: formData.excerpt.trim() || null,
-          featuredImage: formData.featuredImage.trim() || null,
+          // featuredImage: formData.featuredImage.trim() || null, // This was for the direct URL
+          featuredImageId: formData.featuredImage.trim() || null, // Assuming formData.featuredImage now holds featuredImageId
         status: formData.status,
         publishedAt: formData.status === 'PUBLISHED' && !post?.publishedAt ? new Date().toISOString() : undefined,
           metaTitle: formData.metaTitle.trim() || null,
@@ -418,13 +424,23 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
 
                 {/* Featured Image */}
                 <div className="space-y-2">
-                  <Label htmlFor="featuredImage">Featured Image URL</Label>
+                  <Label htmlFor="featuredImageId">Featured Image ID</Label>
+                  {/* Display current image URL if available, for context */}
+                  {post?.featuredImageMedia?.fileUrl && (
+                    <div className="mt-2">
+                      <img src={post.featuredImageMedia.fileUrl} alt="Current featured image" className="max-h-40 rounded border" />
+                      <p className="text-xs text-muted-foreground mt-1">Current image URL: {post.featuredImageMedia.fileUrl}</p>
+                    </div>
+                  )}
                   <Input
-                    id="featuredImage"
-                    value={formData.featuredImage}
-                    onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
+                    id="featuredImageId" // Changed ID
+                    value={formData.featuredImage} // This now holds featuredImageId
+                    onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })} // Update the ID
+                    placeholder="Enter Media ID for featured image"
                   />
+                   <p className="text-sm text-muted-foreground">
+                    (Note: This should ideally be a media picker)
+                  </p>
                 </div>
 
                 {/* Tags */}

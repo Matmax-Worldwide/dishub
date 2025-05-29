@@ -198,73 +198,142 @@ export class EditorUtils {
    * Limpia HTML manteniendo solo tags seguros
    */
   static sanitizeHTML(html: string): string {
+    if (!html) return '';
+    
+    // Lista de tags permitidos para formateo básico
     const allowedTags = [
-      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'strike', 's', 'del',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'ul', 'ol', 'li',
       'a', 'span', 'div',
       'blockquote', 'code', 'pre'
     ];
     
-    const allowedAttributes = ['href', 'target', 'style', 'class'];
+    // Atributos permitidos
+    const allowedAttributes = {
+      'a': ['href', 'target', 'rel'],
+      'span': ['style'],
+      'div': ['style'],
+      'p': ['style'],
+      'h1': ['style'], 'h2': ['style'], 'h3': ['style'], 
+      'h4': ['style'], 'h5': ['style'], 'h6': ['style']
+    };
     
-    // Crear un elemento temporal para parsear el HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
+    // Estilos CSS permitidos
+    const allowedStyles = [
+      'color', 'background-color', 'font-weight', 'font-style', 
+      'text-decoration', 'font-size', 'text-align'
+    ];
     
-    // Función recursiva para limpiar elementos
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    
     const cleanElement = (element: Element): void => {
       const tagName = element.tagName.toLowerCase();
       
-      // Si el tag no está permitido, reemplazar con span
+      // Si el tag no está permitido, reemplazar con span o eliminar
       if (!allowedTags.includes(tagName)) {
-        const span = document.createElement('span');
-        span.innerHTML = element.innerHTML;
-        element.parentNode?.replaceChild(span, element);
+        if (element.textContent) {
+          const span = document.createElement('span');
+          span.textContent = element.textContent;
+          element.parentNode?.replaceChild(span, element);
+        } else {
+          element.remove();
+        }
         return;
       }
       
       // Limpiar atributos
-      const attributes = Array.from(element.attributes);
-      attributes.forEach(attr => {
-        if (!allowedAttributes.includes(attr.name)) {
-          element.removeAttribute(attr.name);
-        }
-      });
+      const allowedAttrs = allowedAttributes[tagName as keyof typeof allowedAttributes] || [];
+      const attributesToRemove: string[] = [];
       
-      // Limpiar hijos recursivamente
-      Array.from(element.children).forEach(child => {
-        cleanElement(child);
-      });
+      for (let i = 0; i < element.attributes.length; i++) {
+        const attr = element.attributes[i];
+        if (!allowedAttrs.includes(attr.name)) {
+          attributesToRemove.push(attr.name);
+        }
+      }
+      
+      attributesToRemove.forEach(attr => element.removeAttribute(attr));
+      
+      // Limpiar estilos inline
+      if (element.hasAttribute('style')) {
+        const style = element.getAttribute('style') || '';
+        const cleanedStyles: string[] = [];
+        
+        style.split(';').forEach(styleRule => {
+          const [property, value] = styleRule.split(':').map(s => s.trim());
+          if (property && value && allowedStyles.includes(property)) {
+            // Validar valores de color
+            if (property === 'color' || property === 'background-color') {
+              if (/^#[0-9A-Fa-f]{6}$|^#[0-9A-Fa-f]{3}$|^rgb\(|^rgba\(|^hsl\(|^hsla\(/.test(value)) {
+                cleanedStyles.push(`${property}: ${value}`);
+              }
+            } else {
+              cleanedStyles.push(`${property}: ${value}`);
+            }
+          }
+        });
+        
+        if (cleanedStyles.length > 0) {
+          element.setAttribute('style', cleanedStyles.join('; '));
+        } else {
+          element.removeAttribute('style');
+        }
+      }
+      
+      // Procesar elementos hijos
+      Array.from(element.children).forEach(child => cleanElement(child));
     };
     
-    Array.from(temp.children).forEach(child => {
-      cleanElement(child);
-    });
+    Array.from(div.children).forEach(child => cleanElement(child));
     
-    return temp.innerHTML;
+    return div.innerHTML;
   }
 
   /**
-   * Convierte texto plano a HTML
+   * Convierte texto plano a HTML básico
    */
   static textToHTML(text: string): string {
+    if (!text) return '';
+    
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
-      .replace(/\n/g, '<br>');
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map(line => `<p>${this.escapeHTML(line)}</p>`)
+      .join('');
   }
 
   /**
-   * Convierte HTML a texto plano
+   * Convierte HTML a texto plano preservando estructura básica
    */
   static htmlToText(html: string): string {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
+    if (!html) return '';
+    
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    
+    // Reemplazar elementos de bloque con saltos de línea
+    const blockElements = div.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, br');
+    blockElements.forEach(el => {
+      if (el.tagName === 'BR') {
+        el.replaceWith('\n');
+      } else {
+        el.insertAdjacentText('afterend', '\n');
+      }
+    });
+    
+    return div.textContent?.trim() || '';
+  }
+
+  /**
+   * Escapa caracteres HTML especiales
+   */
+  static escapeHTML(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   /**

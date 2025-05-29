@@ -18,7 +18,7 @@ interface UserSettingsData {
   dateFormat: string;
 }
 
-// For the response from graphqlClient.userSettings()
+// For the response from graphqlClient.getUserSettings()
 interface UserSettingsResponse extends UserSettingsData {
   id?: string; // and other fields from UserSettings if needed
 }
@@ -44,10 +44,10 @@ export default function UserSettingsSection() {
     setIsLoading(true);
     setError(null);
     try {
-      // The actual response from graphqlClient.userSettings() might be directly the settings object,
+      // The actual response from graphqlClient.getUserSettings() might be directly the settings object,
       // or it could be nested, e.g. { userSettings: { ... } }.
       // The provided graphql-client.ts usually returns the direct data object.
-      const responseData = await graphqlClient.userSettings() as UserSettingsResponse; 
+      const responseData = await graphqlClient.getUserSettings() as UserSettingsResponse; 
       
       if (responseData) {
         const relevantSettings: UserSettingsData = {
@@ -74,10 +74,11 @@ export default function UserSettingsSection() {
         setInitialSettings(defaultSettings);
         console.warn('No user settings returned, using frontend defaults.');
       }
-    } catch (err: any) {
-      setError(`Failed to load user settings: ${err.message || 'Unknown error'}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load user settings: ${errorMessage}`);
       console.error(err);
-      toast.error(`Failed to load user settings: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to load user settings: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +96,7 @@ export default function UserSettingsSection() {
     // Only include changed fields in the input
     (Object.keys(settings) as Array<keyof UserSettingsData>).forEach(key => {
       if (settings[key] !== initialSettings[key]) {
-        (changes as any)[key] = settings[key];
+        (changes as Record<string, unknown>)[key] = settings[key];
       }
     });
 
@@ -106,7 +107,7 @@ export default function UserSettingsSection() {
     }
 
     try {
-      const responseData = await graphqlClient.updateUserSettings({ input: changes });
+      const responseData = await graphqlClient.updateUserSettings(changes);
       if (responseData) {
         const updatedRelevantSettings: UserSettingsData = {
             emailNotifications: responseData.emailNotifications,
@@ -121,10 +122,11 @@ export default function UserSettingsSection() {
       } else {
         throw new Error('No data returned from update operation');
       }
-    } catch (err: any) {
-      setError(`Failed to save settings: ${err.message || 'Unknown error'}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to save settings: ${errorMessage}`);
       console.error(err);
-      toast.error(`Failed to save settings: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to save settings: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

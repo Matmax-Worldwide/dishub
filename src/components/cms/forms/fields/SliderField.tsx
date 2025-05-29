@@ -39,25 +39,25 @@ export function SliderFieldPreview({ field }: { field: FormFieldBase }) {
   );
 }
 
-// Componente de edición para campos de Slider
+// Componente de edición para campos de Deslizador (Slider)
 export function SliderField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.SLIDER,
     label: 'Slider Input',
     name: 'sliderField',
     helpText: '',
     isRequired: false,
-    defaultValue: 50,
+    order: field?.order || 0,
     width: 100,
-    options: { min: 0, max: 100, step: 1 },
     ...field,
-    defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : 50,
-    options: { 
-        min: 0, max: 100, step: 1, 
-        ...field?.options,
+    // Override with processed values
+    defaultValue: field?.defaultValue !== undefined ? String(field.defaultValue) : String((Number(field?.options?.min || 0) + Number(field?.options?.max || 100)) / 2),
+    options: {
         min: field?.options?.min !== undefined ? Number(field.options.min) : 0,
         max: field?.options?.max !== undefined ? Number(field.options.max) : 100,
         step: field?.options?.step !== undefined ? Number(field.options.step) : 1,
+        ...field?.options,
     },
   });
 
@@ -65,14 +65,12 @@ export function SliderField({ field, onChange, showPreview = true }: FieldProps)
      setLocalField(prev => ({ 
         ...prev, 
         ...field,
-        defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : ( (Number(field?.options?.min || 0) + Number(field?.options?.max || 100)) / 2 ),
+        defaultValue: field?.defaultValue !== undefined ? String(field.defaultValue) : String((Number(field?.options?.min || 0) + Number(field?.options?.max || 100)) / 2),
         options: {
-            min: 0, max: 100, step: 1,
-            ...prev.options, // keep local options if field.options is partial
+            min: field?.options?.min !== undefined ? Number(field.options.min) : 0,
+            max: field?.options?.max !== undefined ? Number(field.options.max) : 100,
+            step: field?.options?.step !== undefined ? Number(field.options.step) : 1,
             ...field?.options,
-             min: field?.options?.min !== undefined ? Number(field.options.min) : (prev.options?.min !== undefined ? Number(prev.options.min) : 0),
-             max: field?.options?.max !== undefined ? Number(field.options.max) : (prev.options?.max !== undefined ? Number(prev.options.max) : 100),
-             step: field?.options?.step !== undefined ? Number(field.options.step) : (prev.options?.step !== undefined ? Number(prev.options.step) : 1),
         }
     }));
   }, [field]);
@@ -83,7 +81,14 @@ export function SliderField({ field, onChange, showPreview = true }: FieldProps)
     e.preventDefault();
     e.stopPropagation();
     const { name, value, type } = e.target;
-    const val = type === 'number' ? (value === '' ? '' : parseFloat(value)) : value;
+    let val: string | number = value;
+    if (type === 'number') {
+      if (name === 'defaultValue') {
+        val = value; // Keep as string for FormFieldBase
+      } else {
+        val = value === '' ? '' : parseFloat(value);
+      }
+    }
     
     setLocalField(prev => {
         const updated = {...prev, [name]: val};
@@ -142,15 +147,15 @@ export function SliderField({ field, onChange, showPreview = true }: FieldProps)
       <div className="grid grid-cols-3 gap-4">
         <div>
           <Label htmlFor="options.min">Min Value</Label>
-          <Input type="number" name="min" id="options.min" value={localField.options?.min || 0} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
+          <Input type="number" name="min" id="options.min" value={String(localField.options?.min || 0)} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
         </div>
         <div>
           <Label htmlFor="options.max">Max Value</Label>
-          <Input type="number" name="max" id="options.max" value={localField.options?.max || 100} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
+          <Input type="number" name="max" id="options.max" value={String(localField.options?.max || 100)} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
         </div>
         <div>
           <Label htmlFor="options.step">Step</Label>
-          <Input type="number" name="step" id="options.step" value={localField.options?.step || 1} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
+          <Input type="number" name="step" id="options.step" value={String(localField.options?.step || 1)} onChange={handleOptionsChange} onKeyDown={handleKeyDown} />
         </div>
       </div>
       <div>

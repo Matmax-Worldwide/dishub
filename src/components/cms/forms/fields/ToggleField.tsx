@@ -15,7 +15,7 @@ export function ToggleFieldPreview({ field }: { field: FormFieldBase }) {
       <div className="flex items-center space-x-2">
         <Switch
           id={`preview-${field.name}`}
-          checked={field.defaultValue === 'true' || field.defaultValue === true} // defaultValue might be string from backend
+          checked={field.defaultValue === 'true'} // defaultValue is string from FormFieldBase
           disabled
           className="cursor-not-allowed"
         />
@@ -30,23 +30,24 @@ export function ToggleFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de Toggle (Switch)
 export function ToggleField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.TOGGLE,
     label: 'Toggle Switch',
     name: 'toggleField',
     helpText: '',
     isRequired: false, // Usually toggles always have a value (true/false)
-    defaultValue: false, // Store as boolean
+    order: field?.order || 0,
     width: 100,
     ...field,
-    // Ensure defaultValue is boolean for local state consistency
-    defaultValue: field?.defaultValue === 'true' || field?.defaultValue === true,
+    // Ensure defaultValue is string for FormFieldBase consistency
+    defaultValue: field?.defaultValue === 'true' ? 'true' : 'false',
   });
 
   useEffect(() => {
      setLocalField(prev => ({
         ...prev,
         ...field,
-        defaultValue: field?.defaultValue === 'true' || field?.defaultValue === true,
+        defaultValue: field?.defaultValue === 'true' ? 'true' : 'false',
     }));
   }, [field]);
 
@@ -64,7 +65,7 @@ export function ToggleField({ field, onChange, showPreview = true }: FieldProps)
   };
   
   const handleSwitchDefaultChange = (checked: boolean | 'indeterminate') => {
-    const newDefaultValue = checked === true;
+    const newDefaultValue = checked === true ? 'true' : 'false';
     setLocalField(prev => {
         const updated = {...prev, defaultValue: newDefaultValue };
         onChange(updated);
@@ -109,7 +110,7 @@ export function ToggleField({ field, onChange, showPreview = true }: FieldProps)
       <div className="flex items-center space-x-2">
         <Checkbox
           id="defaultValueToggle" // Changed ID to avoid conflict if isRequired is also present
-          checked={localField.defaultValue === true}
+          checked={localField.defaultValue === 'true'}
           onCheckedChange={handleSwitchDefaultChange}
           onClick={(e) => e.stopPropagation()}
         />

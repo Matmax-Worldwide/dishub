@@ -26,12 +26,14 @@ export function DateFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de fecha
 export function DateField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.DATE,
     label: 'Date Input',
     name: 'dateField',
     placeholder: '',
     helpText: '',
     isRequired: false,
+    order: field?.order || 0,
     defaultValue: '', // Should be in YYYY-MM-DD format if pre-filled
     width: 100,
     ...field,

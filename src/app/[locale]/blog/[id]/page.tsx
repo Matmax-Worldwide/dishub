@@ -28,7 +28,8 @@ interface BlogPost {
   slug: string;
   content: string;
   excerpt: string;
-  featuredImage?: string;
+  // featuredImage?: string; // Field removed
+  featuredImageMedia?: { fileUrl: string };
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt?: string;
   createdAt: string;
@@ -62,7 +63,8 @@ interface RelatedPost {
   title: string;
   slug: string;
   excerpt: string;
-  featuredImage?: string;
+  // featuredImage?: string; // Field removed
+  featuredImageMedia?: { fileUrl: string };
   publishedAt: string;
   readTime?: number;
   author: {
@@ -97,7 +99,10 @@ export default function BlogPostPage() {
             slug
             content
             excerpt
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageMedia {
+              fileUrl
+            }
             status
             publishedAt
             createdAt
@@ -163,7 +168,10 @@ export default function BlogPostPage() {
             title
             slug
             excerpt
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageMedia {
+              fileUrl
+            }
             publishedAt
             readTime
             author {
@@ -355,7 +363,7 @@ export default function BlogPostPage() {
           </motion.header>
 
           {/* Featured Image */}
-          {post.featuredImage && (
+          {post.featuredImageMedia?.fileUrl && (
             <motion.div 
               className="mb-8"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -364,7 +372,7 @@ export default function BlogPostPage() {
             >
               <div className="relative h-64 md:h-96 rounded-xl overflow-hidden">
                 <Image
-                  src={post.featuredImage}
+                  src={post.featuredImageMedia.fileUrl}
                   alt={post.title}
                   fill
                   className="object-cover"
@@ -441,10 +449,10 @@ export default function BlogPostPage() {
                   <Card key={relatedPost.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-0">
                       <Link href={`/${locale}/blog/post/${relatedPost.slug}`}>
-                        {relatedPost.featuredImage && (
+                        {relatedPost.featuredImageMedia?.fileUrl && (
                           <div className="relative h-48 w-full">
                             <Image
-                              src={relatedPost.featuredImage}
+                              src={relatedPost.featuredImageMedia.fileUrl}
                               alt={relatedPost.title}
                               fill
                               className="object-cover rounded-t-lg"
