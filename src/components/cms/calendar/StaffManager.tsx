@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 // Local DayOfWeek enum for UI iteration if not easily importable for client-side
+// This should align with the Prisma enums used in types/calendar if possible
 enum DayOfWeek {
     MONDAY = "MONDAY", TUESDAY = "TUESDAY", WEDNESDAY = "WEDNESDAY",
     THURSDAY = "THURSDAY", FRIDAY = "FRIDAY", SATURDAY = "SATURDAY", SUNDAY = "SUNDAY",
@@ -61,22 +62,23 @@ export default function StaffManager() {
     setIsLoadingData(true);
     setError(null);
     try {
+      // Ensure GraphQL queries are named correctly as per schema
       const [staffData, usersData, servicesData, locationsData] = await Promise.all([
-        graphqlClient.staffProfiles(), // Ensure this fetches user {firstName, lastName, email} and schedules
-        graphqlClient.users(),      // Ensure this fetches basic user list for select
-        graphqlClient.services(),   // For assignment
-        graphqlClient.locations(),  // For assignment
+        graphqlClient.staffProfiles(), 
+        graphqlClient.users(),      
+        graphqlClient.services(),   
+        graphqlClient.locations(),  
       ]);
       setStaffMembers(staffData || []);
       setAllUsers(usersData || []);
       setAllServices(servicesData || []);
       setAllLocations(locationsData || []);
-      if (showToasts) toast.success("Staff data refreshed");
+      if(showToasts) toast.success("Staff data refreshed");
     } catch (err: any) {
       console.error('Failed to fetch staff management data:', err);
       const errorMsg = `Failed to load data: ${err.message || 'Unknown error'}`;
       setError(errorMsg);
-      if (showToasts) toast.error(errorMsg);
+      if(showToasts) toast.error(errorMsg);
     } finally {
       setIsLoadingData(false);
     }
@@ -87,7 +89,7 @@ export default function StaffManager() {
   }, [fetchData]);
 
   const usersAvailableForStaffAssignment = allUsers.filter(
-    user => !staffMembers.some(staff => staff.userId === user.id)
+    user => user.id && !staffMembers.some(staff => staff.userId === user.id)
   );
 
   const handleAddNew = () => {
@@ -96,17 +98,15 @@ export default function StaffManager() {
   };
 
   const handleEdit = (staffMember: StaffProfile) => {
-    // Prepare initialData for StaffForm, especially schedules
     const regularSchedules = (staffMember.schedules || [])
-        .filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS)
-        .map(s => ({ // Map to StaffScheduleInput
-            dayOfWeek: s.dayOfWeek,
+        .filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS || s.scheduleType === ScheduleType.REGULAR_HOURS) // Handle both Prisma and local enum if different
+        .map(s => ({ 
+            dayOfWeek: s.dayOfWeek as unknown as PrismaDayOfWeek, // Cast to Prisma enum if necessary
             startTime: s.startTime,
             endTime: s.endTime,
             isAvailable: s.isAvailable,
-            scheduleType: PrismaScheduleType.REGULAR_HOURS, // Ensure this is correctly typed/mapped
+            scheduleType: PrismaScheduleType.REGULAR_HOURS, 
         }));
-
     setEditingStaffMember({ ...staffMember, schedules: regularSchedules });
     setIsFormOpen(true);
   };
@@ -139,17 +139,27 @@ export default function StaffManager() {
 
     try {
       let savedProfile: StaffProfile;
-      if (editingStaffMember?.id) { // Editing
-        savedProfile = await graphqlClient.updateStaffProfile({ id: editingStaffMember.id, input: staffProfileData });
+      const profileInput = {
+          userId: staffProfileData.userId,
+          bio: staffProfileData.bio,
+          specializations: staffProfileData.specializations || [],
+          assignedServiceIds: staffProfileData.assignedServiceIds || [],
+          assignedLocationIds: staffProfileData.assignedLocationIds || [],
+      };
+
+      if (editingStaffMember?.id) { 
+        savedProfile = await graphqlClient.updateStaffProfile({ id: editingStaffMember.id, input: profileInput });
         toast.success(`Staff member "${savedProfile.user?.firstName}" updated.`);
-      } else { // Creating
-        savedProfile = await graphqlClient.createStaffProfile({ input: staffProfileData });
+      } else { 
+        savedProfile = await graphqlClient.createStaffProfile({ input: profileInput });
         toast.success(`Staff member "${savedProfile.user?.firstName}" created.`);
       }
 
       if (savedProfile && savedProfile.id && scheduleData) {
-        // Ensure scheduleData items have scheduleType set to REGULAR_HOURS
-        const typedScheduleData = scheduleData.map(s => ({...s, scheduleType: PrismaScheduleType.REGULAR_HOURS}));
+        const typedScheduleData = scheduleData.map(s => ({
+            ...s, 
+            scheduleType: PrismaScheduleType.REGULAR_HOURS // Ensure correct enum value
+        }));
         await graphqlClient.updateStaffSchedule({ staffProfileId: savedProfile.id, schedule: typedScheduleData });
         toast.success(`Schedule updated for ${savedProfile.user?.firstName}.`);
       }
@@ -166,7 +176,6 @@ export default function StaffManager() {
     }
   };
 
-
   if (isLoadingData && staffMembers.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -180,9 +189,12 @@ export default function StaffManager() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>{/* Placeholder for filters */}</div>
-        <Button onClick={handleAddNew} disabled={isLoadingData}>
+        <Button onClick={handleAddNew} disabled={isLoadingData || allUsersForSelect.length === 0}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Staff
         </Button>
+         {allUsersForSelect.length === 0 && !isLoadingData && (
+          <p className="text-sm text-muted-foreground">All users are already staff or no users available.</p>
+        )}
       </div>
 
       {error && !isLoadingData && (
@@ -282,21 +294,4 @@ export default function StaffManager() {
       )}
     </div>
   );
-}
-
-// Extend types for props if they are not fully defined globally
-// This helps Manager and Form to agree on the shape of data
-declare module '@/types/calendar' {
-    export interface StaffProfile {
-        // Ensure these are arrays of objects with at least an ID for mapping in form
-        assignedServices?: { id: string; name?: string; }[]; 
-        locationAssignments?: { id: string; name?: string; }[]; 
-        schedules?: StaffScheduleInput[]; // For passing to form
-    }
-     export interface User { // For allUsersForSelect prop
-        id: string;
-        firstName?: string | null;
-        lastName?: string | null;
-        email: string;
-    }
 }

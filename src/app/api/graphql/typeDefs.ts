@@ -7,43 +7,17 @@ export const typeDefs = gql`
 
   # Enum types for Page
   enum PageType {
-    CONTENT
-    LANDING
-    BLOG
-    PRODUCT
-    CATEGORY
-    TAG
-    HOME
-    CONTACT
-    ABOUT
-    CUSTOM
+    CONTENT LANDING BLOG PRODUCT CATEGORY TAG HOME CONTACT ABOUT CUSTOM
   }
+  enum ScrollType { NORMAL SMOOTH }
 
-  enum ScrollType {
-    NORMAL
-    SMOOTH
-  }
-
-  # --------------- BOOKING MODULE ENUMS (Moved here for better organization) --- V1 ---
-  enum DayOfWeek {
-    MONDAY
-    TUESDAY
-    WEDNESDAY
-    THURSDAY
-    FRIDAY
-    SATURDAY
-    SUNDAY
-  }
-
-  enum ScheduleType {
-    REGULAR_HOURS
-    OVERRIDE_HOURS # For specific date overrides
-    BREAK
-    TIME_OFF # For vacations, sick leave etc.
-    SPECIAL_EVENT
-    BLACKOUT_DATE # For location-wide or general blackout
-  }
+  # --------------- BOOKING MODULE ENUMS --- V1 ---
+  enum DayOfWeek { MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY }
+  enum ScheduleType { REGULAR_HOURS OVERRIDE_HOURS BREAK TIME_OFF SPECIAL_EVENT BLACKOUT_DATE }
   # --------------- END BOOKING MODULE ENUMS --- V1 ---
+
+  # Forward declaration for StaffProfile for User type
+  type StaffProfile
 
   # User related types
   type User {
@@ -55,36 +29,57 @@ export const typeDefs = gql`
     profileImageUrl: String
     role: Role
     isActive: Boolean
-    createdAt: String
-    updatedAt: String
+    createdAt: String 
+    updatedAt: String 
     notifications: [Notification!]
     settings: UserSettings
     # For Booking Module
-    staffProfile: StaffProfile # Link to their staff specific profile
-    bookings: [Booking!] # Bookings made by this user as a customer
+    staffProfile: StaffProfile 
+    bookings: [Booking!] 
   }
 
-  # --------------- BOOKING MODULE PLACEHOLDER TYPES (some will be replaced) --- V1 ---
-  # type Service { id: ID! } # Now fully defined below
-  # type StaffProfile { id: ID! } # Will be fully defined below
-  # type StaffSchedule { id: ID! } # Will be fully defined below
+  # --------------- BOOKING MODULE TYPES (Placeholders and Full Defs) --- V1 ---
+  # Placeholder for StaffLocationAssignment (if it's only a join table without extra fields, it might not need a GQL type)
+  # type StaffLocationAssignment { id: ID! } 
   
-  type StaffLocationAssignment { # This might be implicitly handled by M2M relations or need specific fields if it's more than a join
-    id: ID! 
-    # staffProfileId: ID!
-    # locationId: ID!
-    # location: Location! # Example if it had more fields
-    # staff: StaffProfile! 
-  }
   type Booking { # Placeholder for now
     id: ID!
     # status: String! 
   }
-   type BookingRule { # Placeholder for now
+  type BookingRule { # Placeholder for now
     id: ID!
     # advanceBookingDaysMax: Int
   }
-  # --------------- END BOOKING MODULE PLACEHOLDER TYPES --- V1 ---
+
+  type StaffSchedule {
+    id: ID!
+    location: Location # Optional, if schedule is location-specific
+    date: DateTime # For specific date overrides/time-off
+    dayOfWeek: DayOfWeek # For recurring weekly schedules
+    startTime: String! # Format "HH:MM"
+    endTime: String! # Format "HH:MM"
+    scheduleType: ScheduleType! 
+    isAvailable: Boolean!
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type StaffProfile {
+    id: ID!
+    userId: ID!
+    user: User! 
+    bio: String
+    specializations: [String!]! 
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    schedules: [StaffSchedule!] 
+    assignedServices: [Service!]! 
+    locationAssignments: [Location!]! # Resolves to [Location!] via StaffLocationAssignment table
+    # bookings: [Booking!] 
+  }
+  # --------------- END BOOKING MODULE TYPES --- V1 ---
+
 
   # Role and Permission related types
   type Role {
@@ -115,7 +110,6 @@ export const typeDefs = gql`
     updatedAt: String
   }
 
-  # ContactFormSubmission type
   type ContactFormSubmission {
     id: ID!
     firstName: String!
@@ -123,14 +117,12 @@ export const typeDefs = gql`
     email: String!
     createdAt: String!
   }
-
   input ContactFormSubmissionInput {
     firstName: String!
     lastName: String!
     email: String!
   }
 
-  # User input types for CRUD operations
   input CreateUserInput {
     email: String!
     password: String!
@@ -139,7 +131,6 @@ export const typeDefs = gql`
     phoneNumber: String
     role: String!
   }
-
   input UpdateUserInput {
     email: String
     firstName: String
@@ -150,7 +141,6 @@ export const typeDefs = gql`
     roleId: ID
     isActive: Boolean
   }
-
   input ProfileUpdateInput {
     firstName: String
     lastName: String
@@ -159,7 +149,6 @@ export const typeDefs = gql`
     currentPassword: String
     newPassword: String
   }
-
   input UpdateUserProfileInput {
     firstName: String
     lastName: String
@@ -169,7 +158,6 @@ export const typeDefs = gql`
     department: String
   }
 
-  # Document related types
   type Document {
     id: ID!
     title: String!
@@ -181,26 +169,14 @@ export const typeDefs = gql`
     userId: ID!
     user: User
   }
-
-  enum DocumentStatus {
-    DRAFT
-    PENDING_REVIEW
-    APPROVED
-    REJECTED
-  }
-
-  type DocumentStatusCount {
-    status: String!
-    count: Int!
-  }
-
+  enum DocumentStatus { DRAFT PENDING_REVIEW APPROVED REJECTED }
+  type DocumentStatusCount { status: String! count: Int! }
   input CreateDocumentInput {
     title: String!
     description: String
     fileUrl: String
     status: DocumentStatus
   }
-
   input UpdateDocumentInput {
     title: String
     description: String
@@ -208,7 +184,6 @@ export const typeDefs = gql`
     status: DocumentStatus
   }
 
-  # Time entry related types
   type TimeEntry {
     id: ID!
     date: String!
@@ -221,19 +196,13 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
-  type DailyTimeEntry {
-    day: String!
-    hours: Float!
-  }
-
+  type DailyTimeEntry { day: String! hours: Float! }
   input CreateTimeEntryInput {
     date: String!
     hours: Float!
     description: String!
     projectId: ID
   }
-
   input UpdateTimeEntryInput {
     date: String
     hours: Float
@@ -241,7 +210,6 @@ export const typeDefs = gql`
     projectId: ID
   }
 
-  # Project related types
   type Project {
     id: ID!
     name: String!
@@ -252,20 +220,13 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
-  enum ProjectStatus {
-    ACTIVE
-    COMPLETED
-    ON_HOLD
-  }
-
+  enum ProjectStatus { ACTIVE COMPLETED ON_HOLD }
   input CreateProjectInput {
     name: String!
     description: String
     status: ProjectStatus
     clientId: ID
   }
-
   input UpdateProjectInput {
     name: String
     description: String
@@ -273,7 +234,6 @@ export const typeDefs = gql`
     clientId: ID
   }
 
-  # Client related types
   type Client {
     id: ID!
     name: String!
@@ -284,14 +244,13 @@ export const typeDefs = gql`
     updatedAt: String!
   }
 
-  # Appointment related types
   type Appointment {
     id: ID!
     title: String!
     description: String
     startTime: String!
     endTime: String!
-    location: String # This might refer to a simple string location, or a Location ID from Booking module
+    location: String 
     isVirtual: Boolean
     meetingUrl: String
     userId: ID!
@@ -301,7 +260,6 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
   input CreateAppointmentInput {
     title: String!
     description: String
@@ -312,7 +270,6 @@ export const typeDefs = gql`
     meetingUrl: String
     clientId: ID
   }
-
   input UpdateAppointmentInput {
     title: String
     description: String
@@ -324,7 +281,6 @@ export const typeDefs = gql`
     clientId: ID
   }
 
-  # Task related types
   type Task {
     id: ID!
     title: String!
@@ -338,19 +294,8 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
-  enum TaskStatus {
-    NOT_STARTED
-    IN_PROGRESS
-    COMPLETED
-    CANCELLED
-  }
-
-  type TaskStatusCount {
-    status: String!
-    count: Int!
-  }
-
+  enum TaskStatus { NOT_STARTED IN_PROGRESS COMPLETED CANCELLED }
+  type TaskStatusCount { status: String! count: Int! }
   input CreateTaskInput {
     title: String!
     description: String
@@ -358,7 +303,6 @@ export const typeDefs = gql`
     status: TaskStatus
     projectId: ID
   }
-
   input UpdateTaskInput {
     title: String
     description: String
@@ -367,7 +311,6 @@ export const typeDefs = gql`
     projectId: ID
   }
 
-  # Performance types
   type Performance {
     id: ID!
     userId: ID!
@@ -380,7 +323,6 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
   input CreatePerformanceInput {
     period: String!
     completedTasks: Int!
@@ -388,7 +330,6 @@ export const typeDefs = gql`
     efficiency: Float
     notes: String
   }
-
   input UpdatePerformanceInput {
     period: String
     completedTasks: Int
@@ -397,7 +338,6 @@ export const typeDefs = gql`
     notes: String
   }
 
-  # Notification types
   type Notification {
     id: ID!
     userId: ID!
@@ -411,14 +351,7 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
-  enum NotificationType {
-    DOCUMENT
-    TASK
-    APPOINTMENT
-    SYSTEM
-  }
-
+  enum NotificationType { DOCUMENT TASK APPOINTMENT SYSTEM }
   input CreateNotificationInput {
     userId: ID!
     type: String!
@@ -427,12 +360,8 @@ export const typeDefs = gql`
     relatedItemId: String
     relatedItemType: String
   }
+  input UpdateNotificationInput { isRead: Boolean }
 
-  input UpdateNotificationInput {
-    isRead: Boolean
-  }
-
-  # Settings types
   type UserSettings {
     id: ID!
     userId: ID! 
@@ -445,7 +374,6 @@ export const typeDefs = gql`
     createdAt: String! 
     updatedAt: String! 
   }
-
   input UpdateUserSettingsInput {
     emailNotifications: Boolean
     theme: String
@@ -483,7 +411,6 @@ export const typeDefs = gql`
     createdAt: String! 
     updatedAt: String! 
   }
-
   input UpdateSiteSettingsInput {
     siteName: String
     siteDescription: String
@@ -511,7 +438,6 @@ export const typeDefs = gql`
     twitterHandle: String
   }
 
-  # Help types
   type HelpArticle {
     id: ID!
     title: String!
@@ -521,14 +447,12 @@ export const typeDefs = gql`
     createdAt: String!
     updatedAt: String!
   }
-
   input CreateHelpArticleInput {
     title: String!
     content: String!
     category: String!
     tags: [String!]
   }
-
   input UpdateHelpArticleInput {
     title: String
     content: String
@@ -536,7 +460,6 @@ export const typeDefs = gql`
     tags: [String!]
   }
 
-  # External Link types
   type ExternalLink {
     id: ID!
     name: String!
@@ -553,21 +476,13 @@ export const typeDefs = gql`
     allowedUsers: [ID]
     deniedUsers: [ID]
   }
-
-  enum AccessControlType {
-    PUBLIC
-    ROLES
-    USERS
-    MIXED
-  }
-
+  enum AccessControlType { PUBLIC ROLES USERS MIXED }
   type AccessControl {
     type: AccessControlType!
     allowedRoles: [String]
     allowedUsers: [ID]
     deniedUsers: [ID]
   }
-
   type LinkAccessStatus {
     linkId: ID!
     linkName: String!
@@ -577,14 +492,12 @@ export const typeDefs = gql`
     isInAllowedUsers: Boolean
     isInDeniedUsers: Boolean
   }
-
   input AccessControlInput {
     type: AccessControlType!
     allowedRoles: [String]
     allowedUsers: [ID]
     deniedUsers: [ID]
   }
-
   input ExternalLinkInput {
     name: String!
     url: String!
@@ -594,7 +507,6 @@ export const typeDefs = gql`
     order: Int
     accessControl: AccessControlInput
   }
-
   input CreateExternalLinkInput {
     name: String!
     url: String!
@@ -603,7 +515,6 @@ export const typeDefs = gql`
     isActive: Boolean
     order: Int
   }
-
   input UpdateExternalLinkInput {
     name: String
     url: String
@@ -613,7 +524,6 @@ export const typeDefs = gql`
     order: Int
   }
 
-  # Dashboard stats type
   type DashboardStats {
     totalDocuments: Int!
     documentsThisMonth: Int!
@@ -625,25 +535,11 @@ export const typeDefs = gql`
     hoursLoggedThisWeek: Float!
   }
 
-  # Auth type
-  type AuthPayload {
-    token: String!
-    user: User!
-  }
+  type AuthPayload { token: String! user: User! }
 
-  # Role and Permission input types
-  input RoleCreateInput {
-    name: String!
-    description: String
-  }
+  input RoleCreateInput { name: String! description: String }
+  input PermissionInput { name: String! description: String roleId: ID }
 
-  input PermissionInput {
-    name: String!
-    description: String
-    roleId: ID
-  }
-
-  # Permisos específicos de usuario
   type UserPermission {
     id: ID!
     userId: String!
@@ -652,30 +548,15 @@ export const typeDefs = gql`
     createdAt: DateTime!
     updatedAt: DateTime!
   }
-
   input UserPermissionInput {
     userId: ID!
     permissionName: String!
     granted: Boolean
   }
 
-  # CMS Section types
-  type SectionData {
-    components: [Component!]!
-    lastUpdated: String
-  }
-  
-  type Component {
-    id: ID!
-    type: String!
-    data: JSON!
-  }
-  
-  type SaveSectionResult {
-    success: Boolean!
-    message: String
-    lastUpdated: String
-  }
+  type SectionData { components: [Component!]! lastUpdated: String }
+  type Component { id: ID! type: String! data: JSON! }
+  type SaveSectionResult { success: Boolean! message: String lastUpdated: String }
   
   type CMSSection {
     id: ID!
@@ -691,7 +572,6 @@ export const typeDefs = gql`
     components: [SectionComponent!]
     order: Int
   }
-
   type SectionComponent {
     id: ID!
     sectionId: String!
@@ -700,7 +580,6 @@ export const typeDefs = gql`
     data: JSON
     component: CMSComponent
   }
-
   type CMSComponent {
     id: ID!
     name: String!
@@ -738,7 +617,6 @@ export const typeDefs = gql`
     parent: Page
     children: [Page!]
   }
-
   type PageSEO {
     id: ID!
     pageId: ID!
@@ -756,7 +634,6 @@ export const typeDefs = gql`
     createdAt: DateTime
     updatedAt: DateTime
   }
-
   input CreatePageInput {
     title: String!
     slug: String!
@@ -776,12 +653,7 @@ export const typeDefs = gql`
     seo: PageSEOInput
     sections: [ID!]
   }
-  
-  type PageResult {
-    success: Boolean!
-    message: String!
-    page: Page
-  }
+  type PageResult { success: Boolean! message: String! page: Page }
 
   type Menu {
     id: ID!
@@ -793,14 +665,12 @@ export const typeDefs = gql`
     headerStyle: HeaderStyle
     footerStyle: FooterStyle
   }
-
   input MenuInput {
     name: String!
     location: String
     headerStyle: HeaderStyleInput
     footerStyle: FooterStyleInput
   }
-
   type MenuItem {
     id: ID!
     menuId: String!
@@ -818,13 +688,7 @@ export const typeDefs = gql`
     menu: Menu
     page: PageBasic
   }
-
-  type PageBasic {
-    id: ID!
-    title: String!
-    slug: String!
-  }
-
+  type PageBasic { id: ID! title: String! slug: String! }
   input MenuItemInput {
     menuId: String!
     parentId: String
@@ -834,34 +698,12 @@ export const typeDefs = gql`
     target: String
     icon: String
   }
+  input MenuItemOrderInput { newOrder: Int! }
+  input MenuItemOrderUpdate { id: ID! order: Int! parentId: String }
 
-  input MenuItemOrderInput {
-    newOrder: Int!
-  }
-
-  input MenuItemOrderUpdate {
-    id: ID!
-    order: Int!
-    parentId: String
-  }
-
-  type CMSComponentResult {
-    success: Boolean!
-    message: String
-    component: CMSComponent
-  }
-  
-  input ComponentInput {
-    id: ID!
-    type: String!
-    data: JSON!
-  }
-  
-  input SaveSectionInput {
-    sectionId: ID!
-    components: [ComponentInput!]!
-  }
-
+  type CMSComponentResult { success: Boolean! message: String component: CMSComponent }
+  input ComponentInput { id: ID! type: String! data: JSON! }
+  input SaveSectionInput { sectionId: ID! components: [ComponentInput!]! }
   input CreateCMSComponentInput {
     name: String!
     slug: String!
@@ -870,7 +712,6 @@ export const typeDefs = gql`
     schema: JSON
     icon: String
   }
-
   input UpdateCMSComponentInput {
     name: String
     description: String
@@ -879,7 +720,6 @@ export const typeDefs = gql`
     icon: String
     isActive: Boolean
   }
-
   input UpdateCMSSectionInput {
     name: String
     description: String
@@ -887,7 +727,6 @@ export const typeDefs = gql`
     backgroundType: String
     gridDesign: String
   }
-
   input CreateCMSSectionInput {
     sectionId: String!
     name: String!
@@ -896,13 +735,7 @@ export const typeDefs = gql`
     backgroundType: String
     gridDesign: String
   }
-
-  type CMSSectionResult {
-    success: Boolean!
-    message: String!
-    section: CMSSection
-  }
-
+  type CMSSectionResult { success: Boolean! message: String! section: CMSSection }
   input UpdatePageInput {
     title: String
     slug: String
@@ -922,7 +755,6 @@ export const typeDefs = gql`
     seo: PageSEOInput
     sections: [ID!]
   }
-
   input PageSEOInput {
     title: String
     description: String
@@ -936,50 +768,12 @@ export const typeDefs = gql`
     canonicalUrl: String
     structuredData: JSON
   }
-
-  type PageMutationResponse {
-    success: Boolean!
-    message: String!
-    page: Page
-  }
+  type PageMutationResponse { success: Boolean! message: String! page: Page }
 
   enum FormFieldType {
-    TEXT
-    TEXTAREA
-    EMAIL
-    PASSWORD
-    NUMBER
-    PHONE
-    DATE
-    TIME
-    DATETIME
-    SELECT
-    MULTISELECT
-    RADIO
-    CHECKBOX
-    TOGGLE
-    SLIDER
-    RATING
-    FILE
-    HIDDEN
-    HEADING
-    PARAGRAPH
-    DIVIDER
-    SPACER
-    HTML
-    CAPTCHA
-    SIGNATURE
-    AUTOCOMPLETE
-    ADDRESS
+    TEXT TEXTAREA EMAIL PASSWORD NUMBER PHONE DATE TIME DATETIME SELECT MULTISELECT RADIO CHECKBOX TOGGLE SLIDER RATING FILE HIDDEN HEADING PARAGRAPH DIVIDER SPACER HTML CAPTCHA SIGNATURE AUTOCOMPLETE ADDRESS
   }
-
-  enum SubmissionStatus {
-    RECEIVED
-    PROCESSING
-    COMPLETED
-    REJECTED
-    SPAM
-  }
+  enum SubmissionStatus { RECEIVED PROCESSING COMPLETED REJECTED SPAM }
 
   type Form {
     id: ID!
@@ -1004,7 +798,6 @@ export const typeDefs = gql`
     submissions: [FormSubmission!]
     page: Page
   }
-
   type FormStep {
     id: ID!
     formId: String!
@@ -1018,7 +811,6 @@ export const typeDefs = gql`
     form: Form!
     fields: [FormField!]
   }
-
   type FormField {
     id: ID!
     formId: String
@@ -1027,11 +819,11 @@ export const typeDefs = gql`
     name: String!
     type: FormFieldType!
     placeholder: String
-    defaultValue: String
+    defaultValue: String # For Checkbox group, this will be a JSON string array
     helpText: String
     isRequired: Boolean!
     order: Int!
-    options: JSON
+    options: JSON # For select, multiselect, radio, checkbox group items, slider min/max, etc.
     validationRules: JSON
     styling: JSON
     width: Int
@@ -1040,7 +832,6 @@ export const typeDefs = gql`
     form: Form
     step: FormStep
   }
-
   type FormSubmission {
     id: ID!
     formId: String!
@@ -1066,7 +857,6 @@ export const typeDefs = gql`
     styling: JSON
     pageId: String
   }
-
   input FormStepInput {
     formId: String!
     title: String!
@@ -1075,7 +865,6 @@ export const typeDefs = gql`
     isVisible: Boolean
     validationRules: JSON
   }
-
   input FormFieldInput {
     formId: String
     stepId: String
@@ -1083,7 +872,7 @@ export const typeDefs = gql`
     name: String!
     type: FormFieldType!
     placeholder: String
-    defaultValue: String
+    defaultValue: String # For Checkbox group, send JSON string array
     helpText: String
     isRequired: Boolean
     order: Int
@@ -1092,13 +881,7 @@ export const typeDefs = gql`
     styling: JSON
     width: Int
   }
-
-  input FormSubmissionInput {
-    formId: String!
-    data: JSON!
-    metadata: JSON
-  }
-
+  input FormSubmissionInput { formId: String! data: JSON! metadata: JSON }
   input UpdateFormInput {
     title: String
     description: String
@@ -1113,7 +896,6 @@ export const typeDefs = gql`
     styling: JSON
     pageId: String
   }
-
   input UpdateFormStepInput {
     title: String
     description: String
@@ -1121,7 +903,6 @@ export const typeDefs = gql`
     isVisible: Boolean
     validationRules: JSON
   }
-
   input UpdateFormFieldInput {
     formId: String
     stepId: String
@@ -1129,7 +910,7 @@ export const typeDefs = gql`
     name: String
     type: FormFieldType
     placeholder: String
-    defaultValue: String
+    defaultValue: String # For Checkbox group, send JSON string array
     helpText: String
     isRequired: Boolean
     order: Int
@@ -1139,120 +920,77 @@ export const typeDefs = gql`
     width: Int
   }
 
-  type FormResult {
-    success: Boolean!
-    message: String
-    form: Form
-  }
+  type FormResult { success: Boolean! message: String form: Form }
+  type FormStepResult { success: Boolean! message: String step: FormStep }
+  type FormFieldResult { success: Boolean! message: String field: FormField }
+  type FormSubmissionResult { success: Boolean! message: String submission: FormSubmission }
+  type FormFieldOrderResult { success: Boolean! message: String }
+  input FieldOrderUpdate { id: ID! order: Int! }
 
-  type FormStepResult {
-    success: Boolean!
-    message: String
-    step: FormStep
-  }
-
-  type FormFieldResult {
-    success: Boolean!
-    message: String
-    field: FormField
-  }
-
-  type FormSubmissionResult {
-    success: Boolean!
-    message: String
-    submission: FormSubmission
-  }
-
-  type FormFieldOrderResult {
-    success: Boolean!
-    message: String
-  }
-
-  input FieldOrderUpdate {
-    id: ID!
-    order: Int!
-  }
-
+  # Root Query
   type Query {
-    # User queries
     me: User
     user(id: ID!): User
     users: [User!]
     
-    # Role and permission queries
     roles: [Role]
     role(id: ID!): Role
     rolesWithCounts: [RoleWithCounts]
     permissions: [Permission]
     rolePermissions(roleId: ID!): [Permission]
     
-    # Contact form queries
     contactFormSubmissions: [ContactFormSubmission!]
     
-    # Dashboard queries
     dashboardStats: DashboardStats
     documentsByStatus: [DocumentStatusCount!]
     timeEntriesByDay: [DailyTimeEntry!]
     tasksByStatus: [TaskStatusCount!]
     
-    # Document queries
     documents: [Document!]
     document(id: ID!): Document
     documentStatusCounts: [DocumentStatusCount!]
     
-    # Time entry queries
     timeEntries: [TimeEntry!]
     timeEntry(id: ID!): TimeEntry
     
-    # Appointment queries
     appointments: [Appointment!]
     appointment(id: ID!): Appointment
     upcomingAppointments(count: Int): [Appointment!]
     
-    # Task queries
     tasks: [Task!]
     task(id: ID!): Task
     
-    # Project queries
     projects: [Project!]
     project(id: ID!): Project
     
-    # Client queries
     clients: [Client!]
     client(id: ID!): Client
 
-    # Performance queries
     performances: [Performance!]
     performance(id: ID!): Performance
     currentPerformance: Performance
     
-    # Notification queries
     notifications: [Notification!]
     notification(id: ID!): Notification
     unreadNotificationsCount: Int
     allNotifications: [Notification!]
     
-    # Settings queries
     userSettings: UserSettings
     getSiteSettings: SiteSettings
     
-    # Help queries
     helpArticles: [HelpArticle!]
     helpArticle(id: ID!): HelpArticle
     helpArticlesByCategory(category: String!): [HelpArticle!]
     searchHelpArticles(query: String!): [HelpArticle!]
 
-    # External Link queries
     externalLinks: [ExternalLink]
     externalLink(id: ID!): ExternalLink
     activeExternalLinks: [ExternalLink]
     activeExternalLinksAs(roleId: String!): [ExternalLink]
     userLinkAccessStatus: [LinkAccessStatus]
 
-    # Permisos específicos de usuario
     userSpecificPermissions(userId: ID!): [UserPermission!]!
 
-    # CMS Queries
     getSectionComponents(sectionId: ID!): SectionData
     getAllCMSSections: [CMSSection!]!
     
@@ -1301,10 +1039,11 @@ export const typeDefs = gql`
     serviceCategories: [ServiceCategory!]!
     service(id: ID!): Service
     services: [Service!]!
+    staffProfile(id: ID!): StaffProfile # New
+    staffProfiles: [StaffProfile!]!   # New
   }
 
   type Mutation {
-    # Auth mutations
     login(email: String!, password: String!): AuthPayload!
     register(email: String!, password: String!, firstName: String!, lastName: String!, phoneNumber: String): AuthPayload!
     
@@ -1439,6 +1178,12 @@ export const typeDefs = gql`
     createService(input: CreateServiceInput!): Service!
     updateService(id: ID!, input: UpdateServiceInput!): Service!
     deleteService(id: ID!): Service 
+
+    # Staff Mutations
+    createStaffProfile(input: CreateStaffProfileInput!): StaffProfile!
+    updateStaffProfile(id: ID!, input: UpdateStaffProfileInput!): StaffProfile!
+    deleteStaffProfile(id: ID!): StaffProfile 
+    updateStaffSchedule(staffProfileId: ID!, schedule: [StaffScheduleInput!]!): [StaffSchedule!]!
   }
 
   type HeaderStyle {
@@ -1473,35 +1218,11 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  enum FooterColumnLayout {
-    stacked
-    grid
-    flex
-  }
-
-  enum SocialAlignment {
-    left
-    center
-    right
-  }
-
-  enum FooterAlignment {
-    left
-    center
-    right
-  }
-
-  enum FooterPadding {
-    small
-    medium
-    large
-  }
-
-  enum FooterWidth {
-    full
-    container
-    narrow
-  }
+  enum FooterColumnLayout { stacked grid flex }
+  enum SocialAlignment { left center right }
+  enum FooterAlignment { left center right }
+  enum FooterPadding { small medium large }
+  enum FooterWidth { full container narrow }
 
   input FooterStyleInput {
     transparency: Int
@@ -1514,34 +1235,11 @@ export const typeDefs = gql`
     advancedOptions: JSON
   }
 
-  enum HeaderSize {
-    sm
-    md
-    lg
-  }
-
-  enum MenuAlignment {
-    left
-    center
-    right
-  }
-
-  enum MenuButtonStyle {
-    default
-    filled
-    outline
-  }
-
-  enum MobileMenuStyle {
-    fullscreen
-    dropdown
-    sidebar
-  }
-
-  enum MobileMenuPosition {
-    left
-    right
-  }
+  enum HeaderSize { sm md lg }
+  enum MenuAlignment { left center right }
+  enum MenuButtonStyle { default filled outline }
+  enum MobileMenuStyle { fullscreen dropdown sidebar }
+  enum MobileMenuPosition { left right }
 
   input HeaderStyleInput {
     transparency: Int
@@ -1555,7 +1253,6 @@ export const typeDefs = gql`
     fixedHeader: Boolean
     advancedOptions: JSON
   }
-
   input HeaderAdvancedOptionsInput {
     glassmorphism: Boolean
     blur: Int
@@ -1564,18 +1261,8 @@ export const typeDefs = gql`
     customClass: String
     borderRadius: String
   }
-
-  type HeaderStyleResult {
-    success: Boolean!
-    message: String!
-    headerStyle: HeaderStyle
-  }
-
-  type FooterStyleResult {
-    success: Boolean!
-    message: String!
-    footerStyle: FooterStyle
-  }
+  type HeaderStyleResult { success: Boolean! message: String! headerStyle: HeaderStyle }
+  type FooterStyleResult { success: Boolean! message: String! footerStyle: FooterStyle }
 
   type Blog {
     id: ID!
@@ -1587,7 +1274,6 @@ export const typeDefs = gql`
     updatedAt: DateTime!
     posts: [Post!]
   }
-
   type Post {
     id: ID!
     title: String!
@@ -1612,7 +1298,6 @@ export const typeDefs = gql`
     author: User
     media: [Media!]!
   }
-
   type Media {
     id: ID!
     title: String
@@ -1630,20 +1315,13 @@ export const typeDefs = gql`
     posts: [Post!]!
     featuredInPosts: [Post!]!
   }
-
-  enum PostStatus {
-    DRAFT
-    PUBLISHED
-    ARCHIVED
-  }
-
+  enum PostStatus { DRAFT PUBLISHED ARCHIVED }
   input BlogInput {
     title: String!
     description: String
     slug: String!
     isActive: Boolean
   }
-
   input CreatePostInput {
     title: String!
     slug: String!
@@ -1662,7 +1340,6 @@ export const typeDefs = gql`
     readTime: Int
     mediaIds: [String!]
   }
-
   input UpdatePostInput {
     title: String
     slug: String
@@ -1679,7 +1356,6 @@ export const typeDefs = gql`
     readTime: Int
     mediaIds: [String!]
   }
-
   input MediaInput {
     title: String
     description: String
@@ -1689,7 +1365,6 @@ export const typeDefs = gql`
     fileType: String
     altText: String
   }
-
   input CreateMediaInput {
     title: String
     description: String
@@ -1700,13 +1375,11 @@ export const typeDefs = gql`
     altText: String
     cmsSectionId: String
   }
-
   input UpdateMediaInput {
     title: String
     description: String
     altText: String
   }
-
   input PostFilter {
     blogId: String
     status: PostStatus
@@ -1717,27 +1390,9 @@ export const typeDefs = gql`
     limit: Int
     offset: Int
   }
-
-  type BlogResult {
-    success: Boolean!
-    message: String!
-    blog: Blog
-  }
-
-  type PostResult {
-    success: Boolean!
-    message: String!
-    post: Post
-  }
-
-  type MediaResult {
-    success: Boolean!
-    message: String!
-  type MediaResult {
-    success: Boolean!
-    message: String!
-    media: Media
-  }
+  type BlogResult { success: Boolean! message: String! blog: Blog }
+  type PostResult { success: Boolean! message: String! post: Post }
+  type MediaResult { success: Boolean! message: String! media: Media }
 
   # --------------- LOCATION (Booking Module) --- V1 ---
   type Location {
@@ -1748,21 +1403,18 @@ export const typeDefs = gql`
     operatingHours: JSON 
     createdAt: DateTime!
     updatedAt: DateTime!
-    
     services: [Service!] 
-    staffAssignments: [StaffLocationAssignment!] 
+    staffAssignments: [StaffLocationAssignment!] # Placeholder for now
     bookings: [Booking!] 
     schedules: [StaffSchedule!]
     bookingRules: [BookingRule!]
   }
-
   input CreateLocationInput {
     name: String!
     address: String
     phone: String
     operatingHours: JSON
   }
-
   input UpdateLocationInput {
     name: String
     address: String
@@ -1774,24 +1426,21 @@ export const typeDefs = gql`
   # --------------- SERVICE CATEGORY (Booking Module) --- V1 ---
   type ServiceCategory {
     id: ID!
-    name: String! # Made unique in Prisma schema, good for GQL too
+    name: String! 
     description: String
     displayOrder: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
-    
     services: [Service!] 
     parentCategory: ServiceCategory
     childCategories: [ServiceCategory!]
   }
-
   input CreateServiceCategoryInput {
     name: String!
     description: String
     displayOrder: Int
-    parentId: ID # For creating subcategories
+    parentId: ID 
   }
-
   input UpdateServiceCategoryInput {
     name: String
     description: String
@@ -1807,22 +1456,19 @@ export const typeDefs = gql`
     description: String
     durationMinutes: Int!
     price: Float!
-    bufferTimeBeforeMinutes: Int # Defaults to 0 in Prisma
-    bufferTimeAfterMinutes: Int # Defaults to 0 in Prisma
-    preparationTimeMinutes: Int # Defaults to 0 in Prisma
-    cleanupTimeMinutes: Int # Defaults to 0 in Prisma
+    bufferTimeBeforeMinutes: Int 
+    bufferTimeAfterMinutes: Int 
+    preparationTimeMinutes: Int 
+    cleanupTimeMinutes: Int 
     maxDailyBookingsPerService: Int
-    isActive: Boolean! # Defaults to true in Prisma
+    isActive: Boolean! 
     createdAt: DateTime!
     updatedAt: DateTime!
-
     serviceCategoryId: ID! 
     serviceCategory: ServiceCategory!
-    
     locations: [Location!]! 
-    # staff: [StaffProfile!]! # Add when StaffProfile is fully defined
+    assignedStaff: [StaffProfile!]! # Staff who can perform this service
   }
-
   input CreateServiceInput {
     name: String!
     description: String
@@ -1835,9 +1481,8 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID!
-    locationIds: [ID!] # IDs of Locations to associate with
+    locationIds: [ID!] 
   }
-
   input UpdateServiceInput {
     name: String
     description: String
@@ -1850,9 +1495,63 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID
-    locationIds: [ID!] # Send the full list of desired location IDs for M2M update
+    locationIds: [ID!] 
   }
   # --------------- END SERVICE --- V1 ---
-`; 
 
-[end of src/app/api/graphql/typeDefs.ts]
+  # --------------- STAFF (Booking Module) --- V1 ---
+  type StaffProfile {
+    id: ID!
+    userId: ID!
+    user: User! 
+    bio: String
+    specializations: [String!]! 
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    schedules: [StaffSchedule!] 
+    assignedServices: [Service!]! 
+    locationAssignments: [Location!]! 
+    # bookings: [Booking!] 
+  }
+
+  type StaffSchedule {
+    id: ID!
+    location: Location 
+    date: DateTime 
+    dayOfWeek: DayOfWeek 
+    startTime: String! 
+    endTime: String! 
+    scheduleType: ScheduleType! 
+    isAvailable: Boolean!
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input CreateStaffProfileInput {
+    userId: ID!
+    bio: String
+    specializations: [String!]
+    assignedServiceIds: [ID!] 
+    assignedLocationIds: [ID!] 
+  }
+
+  input UpdateStaffProfileInput {
+    bio: String
+    specializations: [String!]
+    assignedServiceIds: [ID!]
+    assignedLocationIds: [ID!]
+  }
+
+  input StaffScheduleInput {
+    dayOfWeek: DayOfWeek!
+    startTime: String!
+    endTime: String!
+    isAvailable: Boolean!
+    scheduleType: ScheduleType! 
+    locationId: ID 
+    date: DateTime 
+    notes: String 
+  }
+  # --------------- END STAFF --- V1 ---
+`;
