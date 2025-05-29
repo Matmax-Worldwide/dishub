@@ -196,44 +196,128 @@ const VideoSection = React.memo(function VideoSection({
       // Log the update for debugging
       console.log(`🎬 VideoSection updating field: ${field} =`, value);
       
-      // Set up a debounced update
+      // Immediately update the parent with the new value to prevent data loss
+      const updateData: Partial<VideoSectionProps> = {};
+      // @ts-expect-error: Dynamic field assignment
+      updateData[field] = value;
+      
+      console.log(`🎬 VideoSection sending immediate update to CMS:`, updateData);
+      
+      try {
+        onUpdate(updateData);
+        console.log(`✅ VideoSection immediate update sent successfully for field: ${field}`);
+      } catch (error) {
+        console.error(`❌ VideoSection immediate update failed for field: ${field}`, error);
+      }
+      
+      // Set up a debounced final update for any cleanup
       debounceRef.current = setTimeout(() => {
-        const updateData: Partial<VideoSectionProps> = {};
-        
-        // @ts-expect-error: Dynamic field assignment
-        updateData[field] = value;
-        
-        console.log(`🎬 VideoSection sending update to CMS:`, updateData);
-        
+        // Send a final update to ensure everything is saved
         try {
           onUpdate(updateData);
-          console.log(`✅ VideoSection update sent successfully for field: ${field}`);
+          console.log(`✅ VideoSection debounced update sent successfully for field: ${field}`);
         } catch (error) {
-          console.error(`❌ VideoSection update failed for field: ${field}`, error);
+          console.error(`❌ VideoSection debounced update failed for field: ${field}`, error);
         }
         
         // Reset the editing ref after a short delay
         setTimeout(() => {
           isEditingRef.current = false;
-        }, 300);
-      }, 300);
+        }, 100);
+      }, 500);
     } else {
       console.warn(`⚠️ VideoSection: onUpdate function not provided, cannot update field: ${field}`);
     }
   }, [onUpdate]);
 
-  // Individual change handlers
-  const handleVideoUrlChange = useCallback((newValue: string) => {
-    setLocalVideoUrl(newValue);
-    handleUpdateField('videoUrl', newValue);
-    setShowVideoSelector(false);
-  }, [handleUpdateField]);
+  // Enhanced bulk update function for multiple fields
+  const handleBulkUpdate = useCallback((updates: Partial<VideoSectionProps>) => {
+    if (onUpdate) {
+      console.log(`🎬 VideoSection sending bulk update to CMS:`, updates);
+      
+      try {
+        onUpdate(updates);
+        console.log(`✅ VideoSection bulk update sent successfully`);
+      } catch (error) {
+        console.error(`❌ VideoSection bulk update failed`, error);
+      }
+    }
+  }, [onUpdate]);
 
-  const handlePosterUrlChange = useCallback((newValue: string) => {
-    setLocalPosterUrl(newValue);
-    handleUpdateField('posterUrl', newValue);
+  // Media selection handlers
+  const handleVideoSelection = (mediaItem: MediaItem) => {
+    // For S3 files, use the API route instead of direct S3 URL
+    let videoUrl = mediaItem.fileUrl;
+    
+    // Check if this is an S3 file and convert to API route
+    if (mediaItem.s3Key) {
+      videoUrl = `/api/media/download?key=${encodeURIComponent(mediaItem.s3Key)}&view=true`;
+      console.log('Using S3 API route for video:', { s3Key: mediaItem.s3Key, apiUrl: videoUrl });
+    } else {
+      console.log('Using direct URL for video:', { fileUrl: videoUrl });
+    }
+    
+    console.log('Selected video:', { mediaItem, finalVideoUrl: videoUrl });
+    
+    // Update local state and save immediately
+    setLocalVideoUrl(videoUrl);
+    setShowVideoSelector(false);
+    setHasVideoError(false);
+    setVideoErrorMessage('');
+    
+    // Send immediate update to prevent data loss
+    handleUpdateField('videoUrl', videoUrl);
+    
+    // Also send a bulk update with current configuration to ensure everything is saved
+    const currentConfig = {
+      videoUrl: videoUrl,
+      posterUrl: localPosterUrl,
+      title: localTitle,
+      subtitle: localSubtitle,
+      description: localDescription,
+      autoplay: localAutoplay,
+      loop: localLoop,
+      muted: localMuted,
+      controls: localControls,
+      playsinline: localPlaysinline,
+      overlayEnabled: localOverlayEnabled,
+      overlayColor: localOverlayColor,
+      overlayOpacity: localOverlayOpacity,
+      textColor: localTextColor,
+      textAlignment: localTextAlignment,
+      contentPosition: localContentPosition,
+      showPlayButton: localShowPlayButton,
+      playButtonStyle: localPlayButtonStyle,
+      playButtonSize: localPlayButtonSize,
+      fullHeight: localFullHeight,
+      maxHeight: localMaxHeight,
+      objectFit: localObjectFit
+    };
+    
+    handleBulkUpdate(currentConfig);
+  };
+
+  const handlePosterSelection = (mediaItem: MediaItem) => {
+    // For S3 files, use the API route instead of direct S3 URL
+    let posterUrl = mediaItem.fileUrl;
+    
+    // Check if this is an S3 file and convert to API route
+    if (mediaItem.s3Key) {
+      posterUrl = `/api/media/download?key=${encodeURIComponent(mediaItem.s3Key)}&view=true`;
+      console.log('Using S3 API route for poster:', { s3Key: mediaItem.s3Key, apiUrl: posterUrl });
+    } else {
+      console.log('Using direct URL for poster:', { fileUrl: posterUrl });
+    }
+    
+    console.log('Selected poster:', { mediaItem, finalPosterUrl: posterUrl });
+    
+    // Update local state and save immediately
+    setLocalPosterUrl(posterUrl);
     setShowPosterSelector(false);
-  }, [handleUpdateField]);
+    
+    // Send immediate update to prevent data loss
+    handleUpdateField('posterUrl', posterUrl);
+  };
 
   // Video control handlers
   const handleAutoplayChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,39 +420,6 @@ const VideoSection = React.memo(function VideoSection({
     setLocalObjectFit(newValue);
     handleUpdateField('objectFit', newValue);
   }, [handleUpdateField]);
-
-  // Media selection handlers
-  const handleVideoSelection = (mediaItem: MediaItem) => {
-    // For S3 files, use the API route instead of direct S3 URL
-    let videoUrl = mediaItem.fileUrl;
-    
-    // Check if this is an S3 file and convert to API route
-    if (mediaItem.s3Key) {
-      videoUrl = `/api/media/download?key=${encodeURIComponent(mediaItem.s3Key)}&view=true`;
-      console.log('Using S3 API route for video:', { s3Key: mediaItem.s3Key, apiUrl: videoUrl });
-    } else {
-      console.log('Using direct URL for video:', { fileUrl: videoUrl });
-    }
-    
-    console.log('Selected video:', { mediaItem, finalVideoUrl: videoUrl });
-    handleVideoUrlChange(videoUrl);
-  };
-
-  const handlePosterSelection = (mediaItem: MediaItem) => {
-    // For S3 files, use the API route instead of direct S3 URL
-    let posterUrl = mediaItem.fileUrl;
-    
-    // Check if this is an S3 file and convert to API route
-    if (mediaItem.s3Key) {
-      posterUrl = `/api/media/download?key=${encodeURIComponent(mediaItem.s3Key)}&view=true`;
-      console.log('Using S3 API route for poster:', { s3Key: mediaItem.s3Key, apiUrl: posterUrl });
-    } else {
-      console.log('Using direct URL for poster:', { fileUrl: posterUrl });
-    }
-    
-    console.log('Selected poster:', { mediaItem, finalPosterUrl: posterUrl });
-    handlePosterUrlChange(posterUrl);
-  };
 
   // Video play/pause handler
   const togglePlayPause = useCallback(() => {
@@ -652,29 +703,70 @@ const VideoSection = React.memo(function VideoSection({
     }
   }, [isOptimized]);
 
-  // Clean up on unmount
+  // Comprehensive save function for component unmount
+  const saveAllConfiguration = useCallback(() => {
+    if (onUpdate) {
+      const completeConfig: Partial<VideoSectionProps> = {
+        videoUrl: localVideoUrl,
+        posterUrl: localPosterUrl,
+        title: localTitle,
+        subtitle: localSubtitle,
+        description: localDescription,
+        autoplay: localAutoplay,
+        loop: localLoop,
+        muted: localMuted,
+        controls: localControls,
+        playsinline: localPlaysinline,
+        overlayEnabled: localOverlayEnabled,
+        overlayColor: localOverlayColor,
+        overlayOpacity: localOverlayOpacity,
+        textColor: localTextColor,
+        textAlignment: localTextAlignment,
+        contentPosition: localContentPosition,
+        showPlayButton: localShowPlayButton,
+        playButtonStyle: localPlayButtonStyle,
+        playButtonSize: localPlayButtonSize,
+        fullHeight: localFullHeight,
+        maxHeight: localMaxHeight,
+        objectFit: localObjectFit
+      };
+      
+      console.log('🎬 VideoSection saving complete configuration:', completeConfig);
+      
+      try {
+        onUpdate(completeConfig);
+        console.log('✅ VideoSection complete configuration saved successfully');
+      } catch (error) {
+        console.error('❌ VideoSection failed to save complete configuration:', error);
+      }
+    }
+  }, [
+    onUpdate, localVideoUrl, localPosterUrl, localTitle, localSubtitle, localDescription,
+    localAutoplay, localLoop, localMuted, localControls, localPlaysinline,
+    localOverlayEnabled, localOverlayColor, localOverlayOpacity, localTextColor,
+    localTextAlignment, localContentPosition, localShowPlayButton, localPlayButtonStyle,
+    localPlayButtonSize, localFullHeight, localMaxHeight, localObjectFit
+  ]);
+
+  // Save configuration when component unmounts or when editing ends
   useEffect(() => {
     return () => {
+      // Save all configuration when component unmounts
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-      // Reset any pending state changes
-      setIsOptimized(false);
+      saveAllConfiguration();
     };
-  }, []);
+  }, [saveAllConfiguration]);
 
-  // Cleanup blob URLs to prevent memory leaks
+  // Save configuration when switching out of edit mode
   useEffect(() => {
-    return () => {
-      videoCache.current.forEach((url) => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-      videoCache.current.clear();
-      videoBlobCache.current.clear();
-    };
-  }, []);
+    if (!isEditing && isEditingRef.current) {
+      console.log('🎬 VideoSection exiting edit mode, saving configuration');
+      saveAllConfiguration();
+      isEditingRef.current = false;
+    }
+  }, [isEditing, saveAllConfiguration]);
 
   // Helper function to convert S3 URLs to API routes with caching
   const convertS3UrlToApiRoute = useCallback((url: string): string => {
@@ -1698,6 +1790,42 @@ const VideoSection = React.memo(function VideoSection({
       </div>
     </div>
   );
+
+  // Individual change handlers for removing media
+  const handleVideoUrlChange = useCallback((newValue: string) => {
+    setLocalVideoUrl(newValue);
+    handleUpdateField('videoUrl', newValue);
+    
+    // Reset video error state when URL changes
+    setHasVideoError(false);
+    setVideoErrorMessage('');
+  }, [handleUpdateField]);
+
+  const handlePosterUrlChange = useCallback((newValue: string) => {
+    setLocalPosterUrl(newValue);
+    handleUpdateField('posterUrl', newValue);
+  }, [handleUpdateField]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      // Reset any pending state changes
+      setIsOptimized(false);
+    };
+  }, []);
+
+  // Cleanup blob URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      videoCache.current.forEach((url) => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      videoCache.current.clear();
+      videoBlobCache.current.clear();
+    };
+  }, []);
 
   return (
     <>

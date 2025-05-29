@@ -600,8 +600,8 @@ export default function FormRenderer({
                 {field.label}
                 {field.isRequired && <span className="text-red-500 ml-1">*</span>}
               </label>
-            )}
-            
+          )}
+
             {renderField(field)}
             
             {field.helpText && (
