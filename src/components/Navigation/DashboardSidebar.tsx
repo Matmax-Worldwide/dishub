@@ -599,7 +599,6 @@ export function DashboardSidebar() {
     if (showAsUser && pathname && 
         (pathname.includes('/dashboard') || 
          pathname.includes('/admin') || 
-         pathname.includes('/cms') ||
          pathname.includes('/manager'))) {
       // Obtener el primer enlace externo disponible para redirigir al usuario
       const firstExternalLink = externalLinks && externalLinks.length > 0 

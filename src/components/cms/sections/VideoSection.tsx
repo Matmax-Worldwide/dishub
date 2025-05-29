@@ -196,9 +196,7 @@ const VideoSection = React.memo(function VideoSection({
       // Log the update for debugging
       console.log(`🎬 VideoSection updating field: ${field} =`, value);
       
-      // Set up a debounced update with longer delay for text fields
-      const debounceTime = (field === 'title' || field === 'subtitle' || field === 'description') ? 800 : 300;
-      
+      // Set up a debounced update
       debounceRef.current = setTimeout(() => {
         const updateData: Partial<VideoSectionProps> = {};
         
@@ -214,11 +212,11 @@ const VideoSection = React.memo(function VideoSection({
           console.error(`❌ VideoSection update failed for field: ${field}`, error);
         }
         
-        // Reset the editing ref after a longer delay for text fields
+        // Reset the editing ref after a short delay
         setTimeout(() => {
           isEditingRef.current = false;
-        }, 500);
-      }, debounceTime);
+        }, 300);
+      }, 300);
     } else {
       console.warn(`⚠️ VideoSection: onUpdate function not provided, cannot update field: ${field}`);
     }
@@ -1110,12 +1108,10 @@ const VideoSection = React.memo(function VideoSection({
                         data-component-type="Video"
                       >
                         <h1 
-                          className={cn(
-                            "rich-content",
-                            isMobilePreview 
-                              ? "text-2xl font-black leading-tight tracking-tight drop-shadow-2xl" 
-                              : "text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight drop-shadow-2xl"
-                          )}
+                          className={isMobilePreview 
+                            ? "text-2xl font-black leading-tight tracking-tight drop-shadow-2xl" 
+                            : "text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight drop-shadow-2xl"
+                          }
                           style={{ 
                             textShadow: '0 4px 8px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)',
                             fontWeight: 900
@@ -1133,12 +1129,10 @@ const VideoSection = React.memo(function VideoSection({
                         data-component-type="Video"
                       >
                         <h2 
-                          className={cn(
-                            "rich-content",
-                            isMobilePreview 
-                              ? "text-lg font-bold opacity-95 leading-tight drop-shadow-lg" 
-                              : "text-2xl sm:text-3xl lg:text-4xl font-bold opacity-95 leading-tight drop-shadow-lg"
-                          )}
+                          className={isMobilePreview 
+                            ? "text-lg font-bold opacity-95 leading-tight drop-shadow-lg" 
+                            : "text-2xl sm:text-3xl lg:text-4xl font-bold opacity-95 leading-tight drop-shadow-lg"
+                          }
                           style={{ 
                             textShadow: '0 2px 4px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
                             fontWeight: 700
@@ -1156,12 +1150,10 @@ const VideoSection = React.memo(function VideoSection({
                         data-component-type="Video"
                       >
                         <div 
-                          className={cn(
-                            "rich-content",
-                            isMobilePreview 
-                              ? "text-sm font-medium opacity-90 leading-relaxed drop-shadow-md" 
-                              : "text-lg sm:text-xl lg:text-2xl font-medium opacity-90 leading-relaxed drop-shadow-md"
-                          )}
+                          className={isMobilePreview 
+                            ? "text-sm font-medium opacity-90 leading-relaxed drop-shadow-md" 
+                            : "text-lg sm:text-xl lg:text-2xl font-medium opacity-90 leading-relaxed drop-shadow-md"
+                          }
                           style={{ 
                             textShadow: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
                             fontWeight: 500
@@ -1248,78 +1240,16 @@ const VideoSection = React.memo(function VideoSection({
     const [localSubtitleState, setLocalSubtitleState] = useState(localSubtitle);
     const [localDescriptionState, setLocalDescriptionState] = useState(localDescription);
     
-    // Refs for debouncing individual field updates
-    const titleUpdateRef = useRef<NodeJS.Timeout | null>(null);
-    const subtitleUpdateRef = useRef<NodeJS.Timeout | null>(null);
-    const descriptionUpdateRef = useRef<NodeJS.Timeout | null>(null);
-    
     // Actualizar estado local cuando cambian las props
     useEffect(() => {
-      if (!isEditingRef.current) {
-        setLocalTitleState(localTitle);
-        setLocalSubtitleState(localSubtitle);
-        setLocalDescriptionState(localDescription);
-      }
+      setLocalTitleState(localTitle);
+      setLocalSubtitleState(localSubtitle);
+      setLocalDescriptionState(localDescription);
     }, [localTitle, localSubtitle, localDescription]);
-    
-    // Debounced update functions for each field
-    const handleTitleChange = useCallback((value: string) => {
-      setLocalTitleState(value);
-      setLocalTitle(value);
-      
-      // Clear existing timeout
-      if (titleUpdateRef.current) {
-        clearTimeout(titleUpdateRef.current);
-      }
-      
-      // Set new timeout for update
-      titleUpdateRef.current = setTimeout(() => {
-        handleUpdateField('title', value);
-      }, 1000); // 1 second delay for text fields
-    }, [handleUpdateField]);
-    
-    const handleSubtitleChange = useCallback((value: string) => {
-      setLocalSubtitleState(value);
-      setLocalSubtitle(value);
-      
-      // Clear existing timeout
-      if (subtitleUpdateRef.current) {
-        clearTimeout(subtitleUpdateRef.current);
-      }
-      
-      // Set new timeout for update
-      subtitleUpdateRef.current = setTimeout(() => {
-        handleUpdateField('subtitle', value);
-      }, 1000); // 1 second delay for text fields
-    }, [handleUpdateField]);
-    
-    const handleDescriptionChange = useCallback((value: string) => {
-      setLocalDescriptionState(value);
-      setLocalDescription(value);
-      
-      // Clear existing timeout
-      if (descriptionUpdateRef.current) {
-        clearTimeout(descriptionUpdateRef.current);
-      }
-      
-      // Set new timeout for update
-      descriptionUpdateRef.current = setTimeout(() => {
-        handleUpdateField('description', value);
-      }, 1000); // 1 second delay for text fields
-    }, [handleUpdateField]);
-    
-    // Cleanup timeouts on unmount
-    useEffect(() => {
-      return () => {
-        if (titleUpdateRef.current) clearTimeout(titleUpdateRef.current);
-        if (subtitleUpdateRef.current) clearTimeout(subtitleUpdateRef.current);
-        if (descriptionUpdateRef.current) clearTimeout(descriptionUpdateRef.current);
-      };
-    }, []);
     
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Text Content</h3>
             
@@ -1329,44 +1259,114 @@ const VideoSection = React.memo(function VideoSection({
               </label>
               <RichStableInput
                 value={localTitleState}
-                onChange={handleTitleChange}
+                onChange={(value) => {
+                  setLocalTitleState(value);
+                  setLocalTitle(value);
+                  handleUpdateField('title', value);
+                }}
                 placeholder="Video title..."
+                enableRichText={true}
                 toolbar="basic"
                 height="80px"
-                className="text-lg font-semibold"
+                data-field-id="title"
+                data-component-type="Video"
+                className="font-bold text-xl"
               />
             </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+            <div className="isolate" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-sm font-medium mb-2 text-foreground">
                 Subtitle
               </label>
               <RichStableInput
                 value={localSubtitleState}
-                onChange={handleSubtitleChange}
+                onChange={(value) => {
+                  setLocalSubtitleState(value);
+                  setLocalSubtitle(value);
+                  handleUpdateField('subtitle', value);
+                }}
                 placeholder="Video subtitle..."
+                enableRichText={true}
                 toolbar="basic"
                 height="80px"
-                className="text-base"
+                data-field-id="subtitle"
+                data-component-type="Video"
               />
             </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+            <div className="isolate" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-sm font-medium mb-2 text-foreground">
                 Description
               </label>
               <RichStableInput
                 value={localDescriptionState}
-                onChange={handleDescriptionChange}
-                placeholder="Video description..."
+                onChange={(value) => {
+                  setLocalDescriptionState(value);
+                  setLocalDescription(value);
+                  handleUpdateField('description', value);
+                }}
+                placeholder="Enter video description..."
+                enableRichText={true}
                 toolbar="full"
-                height="120px"
-                className="text-sm"
+                height="150px"
+                data-field-id="description"
+                data-component-type="Video"
+                isTextArea={true}
               />
             </div>
           </div>
           
-
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Settings</h3>
+            
+            <div>
+              <ColorSelector
+                label="Text Color"
+                value={localTextColor}
+                onChange={handleTextColorChange}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="textAlignment" className="text-sm font-medium block mb-2">
+                  Text Alignment
+                </label>
+                <select
+                  id="textAlignment"
+                  value={localTextAlignment}
+                  onChange={handleTextAlignmentChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="contentPosition" className="text-sm font-medium block mb-2">
+                  Content Position
+                </label>
+                <select
+                  id="contentPosition"
+                  value={localContentPosition}
+                  onChange={handleContentPositionChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="top-left">Top Left</option>
+                  <option value="top-center">Top Center</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="center-left">Center Left</option>
+                  <option value="center">Center</option>
+                  <option value="center-right">Center Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-center">Bottom Center</option>
+                  <option value="bottom-right">Bottom Right</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1589,7 +1589,7 @@ const VideoSection = React.memo(function VideoSection({
   // Styling Tab Component
   const StylingTab = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Layout & Appearance</h3>
           
@@ -1640,60 +1640,8 @@ const VideoSection = React.memo(function VideoSection({
             </div>
           </div>
         </div>
-
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Settings</h3>
-            
-            <div>
-              <ColorSelector
-                label="Text Color"
-                value={localTextColor}
-                onChange={handleTextColorChange}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="textAlignment" className="text-sm font-medium block mb-2">
-                  Text Alignment
-                </label>
-                <select
-                  id="textAlignment"
-                  value={localTextAlignment}
-                  onChange={handleTextAlignmentChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="contentPosition" className="text-sm font-medium block mb-2">
-                  Content Position
-                </label>
-                <select
-                  id="contentPosition"
-                  value={localContentPosition}
-                  onChange={handleContentPositionChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="top-left">Top Left</option>
-                  <option value="top-center">Top Center</option>
-                  <option value="top-right">Top Right</option>
-                  <option value="center-left">Center Left</option>
-                  <option value="center">Center</option>
-                  <option value="center-right">Center Right</option>
-                  <option value="bottom-left">Bottom Left</option>
-                  <option value="bottom-center">Bottom Center</option>
-                  <option value="bottom-right">Bottom Right</option>
-                </select>
-              </div>
-            </div>
-          </div>
         
-          <div className="space-y-4">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Overlay Settings</h3>
           
           <div className="flex items-center space-x-2">

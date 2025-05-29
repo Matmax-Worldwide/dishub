@@ -90,42 +90,6 @@ export const cmsResolvers = {
         return null;
       }
     },
-
-    page: async (_parent: unknown, args: { id: string }) => {
-      console.log('======== START page resolver ========');
-      try {
-        const { id } = args;
-        console.log(`Looking for page with ID: ${id}`);
-        
-        const page = await prisma.page.findUnique({
-          where: { id },
-          include: {
-            sections: true,
-            seo: true
-          }
-        });
-        
-        if (!page) {
-          console.log(`No page found with ID: ${id}`);
-          return null;
-        }
-        
-        console.log(`Found page: ${page.title} (${page.slug})`);
-        
-        // Filter out sections with null sectionId to prevent GraphQL errors
-        const filteredPage = {
-          ...page,
-          sections: page.sections.filter(section => 
-            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
-        };
-        
-        return filteredPage;
-      } catch (error) {
-        console.error('Error in page resolver:', error);
-        return null;
-      }
-    },
     
     getSectionComponents: async (_parent: unknown, args: { sectionId: string }) => {
       console.log('======== START getSectionComponents resolver ========');

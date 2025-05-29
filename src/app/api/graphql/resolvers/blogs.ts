@@ -389,7 +389,7 @@ export const blogResolvers = {
             slug: input.slug,
             content: input.content,
             excerpt: input.excerpt,
-            // featuredImage: input.featuredImage, // Field is being removed, use featuredImageId
+            featuredImage: input.featuredImage,
             featuredImageId: input.featuredImageId,
             status: input.status || 'DRAFT',
             publishedAt: input.publishedAt ? new Date(input.publishedAt) : null,
@@ -463,7 +463,7 @@ export const blogResolvers = {
         if (input.slug) updateData.slug = input.slug;
         if (input.content) updateData.content = input.content;
         if (input.excerpt !== undefined) updateData.excerpt = input.excerpt;
-        // if (input.featuredImage !== undefined) updateData.featuredImage = input.featuredImage; // Field is being removed, use featuredImageId
+        if (input.featuredImage !== undefined) updateData.featuredImage = input.featuredImage;
         if (input.featuredImageId !== undefined) updateData.featuredImageId = input.featuredImageId;
         if (input.status) updateData.status = input.status;
         if (input.publishedAt !== undefined) {

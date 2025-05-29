@@ -52,15 +52,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Actualizar el estado del editor
   const updateEditorState = useCallback(() => {
-    if (showCodeView || !editorRef.current) return;
+    if (showCodeView) return;
     
     try {
-      // Solo actualizar estado si hay una selección activa o el editor tiene foco
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) {
-        return; // No actualizar estado si no hay selección
-      }
-      
       const newState = EditorUtils.getEditorState();
       setEditorState(newState);
     } catch (error) {
@@ -85,79 +79,55 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       return;
     }
 
-    // Debounce más largo para evitar actualizaciones excesivas
+    // Debounce para evitar actualizaciones excesivas
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
     }
 
     updateTimeoutRef.current = setTimeout(() => {
       onChange(sanitizedContent);
-    }, 800); // Aumentado de 500ms a 800ms
-  }, [onChange, maxLength, showCodeView]);
+      updateEditorState();
+    }, 300);
+  }, [onChange, maxLength, showCodeView, updateEditorState]);
 
   // Manejar comandos de la barra de herramientas
   const handleCommand = useCallback((command: string, value?: string) => {
-    if (showCodeView || !editorRef.current) return;
-
-    // Asegurar que el editor tenga foco
-    editorRef.current.focus();
+    if (showCodeView) return;
 
     // Restaurar selección si existe
     if (savedSelectionRef.current) {
       EditorUtils.restoreSelection(savedSelectionRef.current);
     }
 
-    // Verificar que hay una selección válida para comandos de formato
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      // Para comandos que no requieren selección (como headings), crear una selección al final
-      if (['formatBlock'].includes(command)) {
-        const range = document.createRange();
-        range.selectNodeContents(editorRef.current);
-        range.collapse(false);
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-      } else {
-        return; // No ejecutar comandos de formato sin selección
-      }
-    }
-
     // Ejecutar comando
-    try {
-      switch (command) {
-        case 'formatBlock':
-          EditorUtils.formatHeading(value || 'p');
-          break;
-        case 'fontSize':
-          EditorUtils.applyFontSize(value || '3');
-          break;
-        case 'foreColor':
-          EditorUtils.applyTextColor(value || '#000000');
-          break;
-        case 'backColor':
-          EditorUtils.applyBackgroundColor(value || 'transparent');
-          break;
-        case 'removeFormat':
-          EditorUtils.clearFormatting();
-          break;
-        default:
-          EditorUtils.executeCommand({ command, value });
-      }
-    } catch (error) {
-      console.warn('Error executing command:', command, error);
+    switch (command) {
+      case 'formatBlock':
+        EditorUtils.formatHeading(value || 'p');
+        break;
+      case 'fontSize':
+        EditorUtils.applyFontSize(value || '3');
+        break;
+      case 'foreColor':
+        EditorUtils.applyTextColor(value || '#000000');
+        break;
+      case 'backColor':
+        EditorUtils.applyBackgroundColor(value || 'transparent');
+        break;
+      case 'removeFormat':
+        EditorUtils.clearFormatting();
+        break;
+      default:
+        EditorUtils.executeCommand({ command, value });
     }
 
-    // Actualizar estado y contenido inmediatamente para comandos de toolbar
-    setTimeout(() => {
-      updateEditorState();
-      // Forzar guardado inmediato para comandos de toolbar
-      const content = editorRef.current?.innerHTML || '';
-      const sanitizedContent = EditorUtils.sanitizeHTML(content);
-      onChange(sanitizedContent);
-    }, 100); // Reducido de 50ms a 100ms para mejor estabilidad
-  }, [showCodeView, updateEditorState, onChange]);
+    // Enfocar el editor y actualizar estado
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+    
+    updateEditorState();
+    handleContentChange();
+  }, [showCodeView, updateEditorState, handleContentChange]);
 
   // Manejar atajos de teclado
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -208,9 +178,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Manejar foco
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-    // No actualizar estado inmediatamente al hacer foco
+    updateEditorState();
     onFocus?.();
-  }, [onFocus]);
+  }, [updateEditorState, onFocus]);
 
   // Manejar pérdida de foco
   const handleBlur = useCallback(() => {
@@ -218,29 +188,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     savedSelectionRef.current = EditorUtils.saveSelection();
     onBlur?.();
   }, [onBlur]);
-
-  // Manejar selección de texto - simplificado
-  const handleSelectionChange = useCallback(() => {
-    if (showCodeView || !editorRef.current || !isFocused) return;
-    
-    // Solo actualizar estado, no contenido
-    updateEditorState();
-  }, [showCodeView, isFocused, updateEditorState]);
-
-  // Event listener para cambios de selección
-  useEffect(() => {
-    const handleDocumentSelectionChange = () => {
-      if (isFocused && editorRef.current && document.activeElement === editorRef.current) {
-        handleSelectionChange();
-      }
-    };
-
-    document.addEventListener('selectionchange', handleDocumentSelectionChange);
-    
-    return () => {
-      document.removeEventListener('selectionchange', handleDocumentSelectionChange);
-    };
-  }, [handleSelectionChange, isFocused]);
 
   // Alternar vista de código
   const toggleCodeView = useCallback(() => {
@@ -286,7 +233,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     updateTimeoutRef.current = setTimeout(() => {
       onChange(newValue);
-    }, 500);
+    }, 300);
   }, [onChange]);
 
   // Inicializar contenido
