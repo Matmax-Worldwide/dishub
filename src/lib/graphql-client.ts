@@ -3480,6 +3480,87 @@ export const cmsOperations = {
     return result.deleteFormSubmission;
   },
 
+  // Calendar booking rules
+  async globalBookingRule(): Promise<{
+    id: string;
+    advanceBookingHoursMin: number;
+    advanceBookingDaysMax: number;
+    sameDayCutoffTime?: string;
+    bufferBetweenAppointmentsMinutes: number;
+    maxAppointmentsPerDayPerStaff?: number;
+    bookingSlotIntervalMinutes: number;
+  } | null> {
+    const query = `
+      query GlobalBookingRule {
+        globalBookingRule {
+          id
+          advanceBookingHoursMin
+          advanceBookingDaysMax
+          sameDayCutoffTime
+          bufferBetweenAppointmentsMinutes
+          maxAppointmentsPerDayPerStaff
+          bookingSlotIntervalMinutes
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ globalBookingRule: {
+      id: string;
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    } | null }>(query);
+    return result.globalBookingRule;
+  },
+
+  // Calendar booking rules - upsert
+  async upsertGlobalBookingRules({ input }: {
+    input: {
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    }
+  }): Promise<{
+    id: string;
+    advanceBookingHoursMin: number;
+    advanceBookingDaysMax: number;
+    sameDayCutoffTime?: string;
+    bufferBetweenAppointmentsMinutes: number;
+    maxAppointmentsPerDayPerStaff?: number;
+    bookingSlotIntervalMinutes: number;
+  }> {
+    const mutation = `
+      mutation UpsertGlobalBookingRules($input: BookingRuleInput!) {
+        upsertGlobalBookingRules(input: $input) {
+          id
+          advanceBookingHoursMin
+          advanceBookingDaysMax
+          sameDayCutoffTime
+          bufferBetweenAppointmentsMinutes
+          maxAppointmentsPerDayPerStaff
+          bookingSlotIntervalMinutes
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ upsertGlobalBookingRules: {
+      id: string;
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    } }>(mutation, { input });
+    
+    return result.upsertGlobalBookingRules;
+  }
 };
 
 // Form Builder API functions
@@ -5355,41 +5436,6 @@ const graphqlClient = {
     }
   },
 
-  // Calendar booking rules
-  async globalBookingRule(): Promise<{
-    id: string;
-    advanceBookingHoursMin: number;
-    advanceBookingDaysMax: number;
-    sameDayCutoffTime?: string;
-    bufferBetweenAppointmentsMinutes: number;
-    maxAppointmentsPerDayPerStaff?: number;
-    bookingSlotIntervalMinutes: number;
-  } | null> {
-    const query = `
-      query GlobalBookingRule {
-        globalBookingRule {
-          id
-          advanceBookingHoursMin
-          advanceBookingDaysMax
-          sameDayCutoffTime
-          bufferBetweenAppointmentsMinutes
-          maxAppointmentsPerDayPerStaff
-          bookingSlotIntervalMinutes
-        }
-      }
-    `;
-
-    const result = await gqlRequest<{ globalBookingRule: {
-      id: string;
-      advanceBookingHoursMin: number;
-      advanceBookingDaysMax: number;
-      sameDayCutoffTime?: string;
-      bufferBetweenAppointmentsMinutes: number;
-      maxAppointmentsPerDayPerStaff?: number;
-      bookingSlotIntervalMinutes: number;
-    } | null }>(query);
-    return result.globalBookingRule;
-  }
 };
 
 // Export all functions
