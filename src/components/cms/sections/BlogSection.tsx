@@ -26,7 +26,8 @@ interface BlogPost {
   slug: string;
   excerpt?: string;
   content?: string;
-  featuredImage?: string;
+  // featuredImage?: string; // Field removed
+  featuredImageMedia?: { fileUrl: string };
   author?: {
     name: string;
     image?: string;
@@ -51,7 +52,8 @@ interface PostResponse {
   slug: string;
   excerpt?: string;
   content: string;
-  featuredImage?: string;
+  // featuredImage?: string; // Field removed
+  featuredImageMedia?: { fileUrl: string };
   status: string;
   publishedAt?: string;
   readTime?: number;
@@ -444,7 +446,10 @@ export default function BlogSection({
             slug
             excerpt
             content
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageMedia {
+              fileUrl
+            }
             status
             publishedAt
             readTime
@@ -474,7 +479,8 @@ export default function BlogSection({
         slug: post.slug,
         excerpt: post.excerpt || undefined,
         content: post.content,
-        featuredImage: post.featuredImage || undefined,
+        // featuredImage: post.featuredImage || undefined, // Field removed
+        featuredImageMedia: post.featuredImageMedia || undefined,
         author: post.author ? {
           name: `${post.author.firstName} ${post.author.lastName}`,
           image: post.author.profileImageUrl || undefined
@@ -687,10 +693,10 @@ export default function BlogSection({
     <Card className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden border-0 shadow-md">
       {localShowFeaturedImage && (
         <div className={`w-full ${getImageAspectRatio(localImageAspectRatio)} overflow-hidden relative`}>
-          {post.featuredImage ? (
+          {post.featuredImageMedia?.fileUrl ? (
             <>
           <Image
-            src={post.featuredImage}
+            src={post.featuredImageMedia.fileUrl}
             alt={post.title}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -796,9 +802,9 @@ export default function BlogSection({
     <div className="flex gap-6 p-6 border rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white">
       {localShowFeaturedImage && (
         <div className="w-48 h-32 flex-shrink-0 overflow-hidden rounded-lg relative">
-          {post.featuredImage ? (
+          {post.featuredImageMedia?.fileUrl ? (
           <Image
-            src={post.featuredImage}
+            src={post.featuredImageMedia.fileUrl}
             alt={post.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -1372,9 +1378,9 @@ export default function BlogSection({
                           <div key={index} className="border rounded-lg overflow-hidden bg-white shadow-sm">
                             {localShowFeaturedImage && (
                               <div className={`w-full ${getImageAspectRatio(localImageAspectRatio)} bg-gray-200 flex items-center justify-center`}>
-                                {post.featuredImage ? (
+                                {post.featuredImageMedia?.fileUrl ? (
                                   <Image
-                                    src={post.featuredImage}
+                                    src={post.featuredImageMedia.fileUrl}
                                     alt={post.title}
                                     width={200}
                                     height={150}

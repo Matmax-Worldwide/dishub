@@ -18,29 +18,48 @@ export async function comparePasswords(password: string, hashedPassword: string)
 }
 
 export async function generateToken(userId: string, roleInfo?: { id?: string, name?: string } | string | null): Promise<string> {
-  // Handle different role types properly
   let roleId: string | undefined = undefined;
   let roleName: string = 'USER'; // Default role
-  
-  if (roleInfo != null) {
-    if (typeof roleInfo === 'string') {
-      // If it's already a string, use it as the role name
-      if (VALID_ROLES.includes(roleInfo)) {
-        roleName = roleInfo;
-      }
-    } else if (typeof roleInfo === 'object') {
-      // Handle role object with id and name
-      if (roleInfo.id) {
-        roleId = roleInfo.id;
-      }
-      
-      if (roleInfo.name && VALID_ROLES.includes(roleInfo.name)) {
-        roleName = roleInfo.name;
-      }
+
+  console.log(`Initial roleInfo for token generation (userId: ${userId}):`, roleInfo);
+
+  if (typeof roleInfo === 'object' && roleInfo !== null) {
+    // Case 1: roleInfo is an object (e.g., { id: "role_xyz", name: "ADMIN" })
+    if (roleInfo.name && VALID_ROLES.includes(roleInfo.name)) {
+      // Valid name provided in object
+      roleName = roleInfo.name;
+      roleId = roleInfo.id; // Use id from object, could be undefined if not provided.
+    } else if (roleInfo.name) {
+      // An invalid role name was provided in the object (e.g., name: "SUPER_ADMIN_INVALID")
+      // Default to 'USER' and discard the provided roleInfo.id, as it's associated with an invalid role name.
+      console.warn(`Invalid role name '${roleInfo.name}' in object for userId '${userId}'. Defaulting to roleName 'USER' and undefined roleId.`);
+      // roleName is already 'USER' (default), roleId remains undefined.
+    } else {
+      // roleInfo.name is undefined or null, but roleInfo.id might be present (e.g., { id: "role_xyz" })
+      // Use default roleName 'USER', but preserve roleInfo.id if provided.
+      // This implies the caller might have specific use for an id with a default user role.
+      // createSession will typically provide both name and id, so this path is less common for session creation.
+      roleId = roleInfo.id;
+      // roleName is already 'USER' (default).
+    }
+  } else if (typeof roleInfo === 'string') {
+    // Case 2: roleInfo is a string (e.g., "ADMIN", assumed to be roleName)
+    if (VALID_ROLES.includes(roleInfo)) {
+      roleName = roleInfo;
+      // roleId remains undefined.
+      // Fetching roleId from DB based on roleName is not done here to keep the function simpler
+      // and avoid I/O. Callers like createSession are expected to provide a full roleInfo object (id and name)
+      // if the roleId is known and required in the token payload.
+    } else {
+      // Invalid role name string (e.g., "SUPER_ADMIN_INVALID")
+      console.warn(`Invalid role name string '${roleInfo}' for userId '${userId}'. Defaulting to roleName 'USER'.`);
+      // roleName is already 'USER' (default), roleId remains undefined.
     }
   }
-  
-  console.log('Generating token with roleId:', roleId, 'roleName:', roleName);
+  // Case 3: roleInfo is null, undefined, or any other type not explicitly handled.
+  // The initial defaults (roleName = 'USER', roleId = undefined) will apply.
+
+  console.log(`Final token parameters for userId: ${userId} - roleId: ${roleId}, roleName: ${roleName}`);
   
   const token = await new SignJWT({ userId, roleId, role: roleName })
     .setProtectedHeader({ alg: 'HS256' })

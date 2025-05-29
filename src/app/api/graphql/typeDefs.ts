@@ -1530,7 +1530,7 @@ export const typeDefs = gql`
     slug: String!
     content: String!
     excerpt: String
-    featuredImage: String
+    # featuredImage: String, // Field removed, use featuredImageMedia.fileUrl
     featuredImageId: String
     featuredImageMedia: Media
     status: PostStatus!
@@ -1586,7 +1586,7 @@ export const typeDefs = gql`
     slug: String!
     content: String!
     excerpt: String
-    featuredImage: String
+    # featuredImage: String, // Field removed, use featuredImageId
     featuredImageId: String
     status: PostStatus
     publishedAt: DateTime
@@ -1605,7 +1605,7 @@ export const typeDefs = gql`
     slug: String
     content: String
     excerpt: String
-    featuredImage: String
+    # featuredImage: String, // Field removed, use featuredImageId
     featuredImageId: String
     status: PostStatus
     publishedAt: DateTime

@@ -1071,7 +1071,7 @@ model Post {
   slug            String    @unique
   content         String    @db.Text
   excerpt         String?
-  featuredImage   String?
+  // featuredImage   String? // Field removed, use featuredImageId and featuredImageMedia relation
   featuredImageId String?
   status          PostStatus @default(DRAFT)
   publishedAt     DateTime?
