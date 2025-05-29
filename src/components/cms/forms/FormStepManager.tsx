@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Edit, Eye, EyeOff, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, ArrowUp, ArrowDown, GripVertical, Settings2 } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
+import EditStepModal from './EditStepModal'; // Import the modal
 
 // Drag and Drop imports
 import {
@@ -25,13 +26,17 @@ import {
   useSensors,
   closestCorners,
   useDroppable,
+  arrayMove, 
+  KeyboardSensor,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { SortableStepItem } from './SortableStepItem';
 
 interface FormStepManagerProps {
   form: FormBase;
@@ -156,7 +161,9 @@ function DroppableUnassigned({ children }: DroppableUnassignedProps) {
 export default function FormStepManager({ form, onFormUpdate }: FormStepManagerProps) {
   const [steps, setSteps] = useState<StepWithFields[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingStep, setEditingStep] = useState<string | null>(null);
+  // const [editingStep, setEditingStep] = useState<string | null>(null); // Replaced by currentlyEditingStepDetail for modal
+  const [currentlyEditingStepDetail, setCurrentlyEditingStepDetail] = useState<FormStepBase | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newStepData, setNewStepData] = useState({
     title: '',
     description: '',
@@ -165,11 +172,16 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
 
   // Drag and Drop state
   const [activeField, setActiveField] = useState<FormFieldBase | null>(null);
+  const [activeStep, setActiveStep] = useState<StepWithFields | null>(null); // For dragging steps
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // Require mouse to move 8px before D&D starts
       },
+    }),
+    useSensor(KeyboardSensor, { // Add Keyboard sensor for accessibility
+      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
@@ -431,44 +443,95 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
   // Drag and Drop handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const fieldId = active.id as string;
-    
-    // Find the field being dragged
-    const field = form.fields?.find(f => f.id === fieldId) || 
-                  steps.flatMap(step => step.fields).find(f => f.id === fieldId);
-    
-    if (field) {
-      setActiveField(field);
+    const activeId = active.id as string;
+
+    if (activeId.startsWith('step-dnd-')) { 
+        const stepId = activeId.replace('step-dnd-', '');
+        const step = steps.find(s => s.id === stepId);
+        if (step) {
+            setActiveStep(step);
+            active.data.current = { type: 'step', stepData: step }; 
+        }
+        setActiveField(null);
+    } else { 
+        const field = form.fields?.find(f => f.id === activeId) || 
+                      steps.flatMap(s => s.fields).find(f => f.id === activeId);
+        if (field) {
+            setActiveField(field);
+            active.data.current = { type: 'field', fieldData: field };
+        }
+        setActiveStep(null);
     }
   };
-
+  
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    
-    if (!over) return;
-    
-    // Visual feedback is handled by the droppable components
+    // For visual feedback during drag if needed
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
-    setActiveField(null);
-    
-    if (!over) return;
-    
+    if (!active || !over) {
+      setActiveField(null);
+      setActiveStep(null);
+      return;
+    }
+
     const activeId = active.id as string;
     const overId = over.id as string;
+
+    // Scenario 1: Reordering Steps
+    if (active.data.current?.type === 'step' && overId.startsWith('step-dnd-') && activeId !== overId) {
+        const oldIndex = steps.findIndex(s => `step-dnd-${s.id}` === activeId);
+        const newIndex = steps.findIndex(s => `step-dnd-${s.id}` === overId);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+            const newOrderedSteps = arrayMove(steps, oldIndex, newIndex);
+            setSteps(newOrderedSteps); 
+
+            const orderUpdates = newOrderedSteps.map((step, index) => ({
+                id: step.id,
+                order: index,
+            }));
+            try {
+                setLoading(true);
+                const result = await graphqlClient.updateStepOrders(orderUpdates);
+                if (result.success) {
+                    toast.success('Step order saved successfully.');
+                    if (onFormUpdate) onFormUpdate();
+                    await loadFormSteps(); 
+                } else {
+                    toast.error(result.message || 'Failed to save step order.');
+                    await loadFormSteps(); 
+                }
+            } catch (error) {
+                toast.error('An error occurred while saving step order.');
+                await loadFormSteps(); 
+                console.error("Error saving step order:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    } 
+    // Scenario 2: Moving a Field
+    else if (active.data.current?.type === 'field') {
+        const fieldId = activeId;
+        const fieldBeingDragged = active.data.current.fieldData as FormFieldBase;
+
+        if (overId.startsWith('step-')) { 
+            const targetStepId = overId.replace('step-', '');
+            if (fieldBeingDragged?.stepId !== targetStepId) { 
+                 await handleAssignFieldToStep(fieldId, targetStepId);
+            }
+        } else if (overId === 'unassigned-fields') { 
+            if (fieldBeingDragged?.stepId) { 
+                await handleUnassignFieldFromStep(fieldId);
+            }
+        }
+    }
     
-    // If dropping over a step container
-    if (overId.startsWith('step-')) {
-      const stepId = overId.replace('step-', '');
-      await handleAssignFieldToStep(activeId, stepId);
-    }
-    // If dropping over unassigned area
-    else if (overId === 'unassigned-fields') {
-      await handleUnassignFieldFromStep(activeId);
-    }
+    setActiveField(null);
+    setActiveStep(null);
   };
 
   const unassignedFields = getUnassignedFields();
@@ -579,135 +642,129 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
             </div>
 
             {/* Steps List */}
-            {loading ? (
+            {loading && steps.length === 0 ? (
               <div className="text-center py-8">
                 <p>Loading steps...</p>
               </div>
-            ) : steps.length === 0 ? (
+            ) : !loading && steps.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>No steps created yet. Add your first step above.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {steps.map((step, index) => (
-                  <Card key={step.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="outline">Step {index + 1}</Badge>
-                              <h4 className="font-medium">{step.title}</h4>
-                              {!step.isVisible && (
-                                <Badge variant="secondary">Hidden</Badge>
+              <SortableContext items={steps.map(s => `step-dnd-${s.id}`)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-0"> 
+                  {steps.map((step, index) => (
+                    <SortableStepItem key={`step-dnd-${step.id}`} id={`step-dnd-${step.id}`}>
+                      <div> 
+                        <CardHeader className="pb-3 relative pt-8">
+                          <div className="flex items-center justify-between ml-8"> 
+                            <div className="flex items-center space-x-3">
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline">Step {index + 1}</Badge>
+                                  <h4 className="font-medium">{step.title}</h4>
+                                  {!step.isVisible && <Badge variant="secondary">Hidden</Badge>}
+                                </div>
+                                {step.description && <p className="text-sm text-gray-600 mt-1">{step.description}</p>}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleToggleStepVisibility(step.id, !step.isVisible)} title={step.isVisible ? "Hide Step" : "Show Step"}>
+                                {step.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => { setCurrentlyEditingStepDetail(step); setIsEditModalOpen(true); }} title="Edit Step Details">
+                                <Settings2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteStep(step.id)} className="text-red-600 hover:text-red-700" title="Delete Step">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between mb-3">
+                              <h5 className="text-sm font-medium">Assigned Fields ({step.fields.length})</h5>
+                              {unassignedFields.length > 0 && (
+                                <Select onValueChange={(fieldId) => handleAssignFieldToStep(fieldId, step.id)}>
+                                  <SelectTrigger className="w-auto md:w-56 text-xs h-8"><SelectValue placeholder="Quick assign field..." /></SelectTrigger>
+                                  <SelectContent>
+                                    {unassignedFields.map((field) => (
+                                      <SelectItem key={field.id} value={field.id}>{field.label} ({field.type})</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               )}
                             </div>
-                            {step.description && (
-                              <p className="text-sm text-gray-600 mt-1">{step.description}</p>
-                            )}
+                            <DroppableStep step={step}>
+                              {step.fields.length === 0 ? (
+                                <p className="text-sm text-gray-500 py-8 text-center">Drag & drop fields here or use "Quick assign".</p>
+                              ) : (
+                                <SortableContext items={step.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                                  <div className="space-y-2">
+                                    {step.fields.map((field) => (
+                                      <DraggableField key={field.id} field={field} onUnassign={() => handleUnassignFieldFromStep(field.id)} showUnassignButton={true} />
+                                    ))}
+                                  </div>
+                                </SortableContext>
+                              )}
+                            </DroppableStep>
                           </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMoveStep(index, 'up')}
-                            disabled={index === 0}
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMoveStep(index, 'down')}
-                            disabled={index === steps.length - 1}
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleStepVisibility(step.id, !step.isVisible)}
-                          >
-                            {step.isVisible ? (
-                              <Eye className="w-4 h-4" />
-                            ) : (
-                              <EyeOff className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingStep(editingStep === step.id ? null : step.id)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteStep(step.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        </CardContent>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Step Fields */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h5 className="text-sm font-medium">Assigned Fields ({step.fields.length})</h5>
-                          {unassignedFields.length > 0 && (
-                            <Select onValueChange={(fieldId) => handleAssignFieldToStep(fieldId, step.id)}>
-                              <SelectTrigger className="w-48">
-                                <SelectValue placeholder="Assign field to step" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {unassignedFields.map((field) => (
-                                  <SelectItem key={field.id} value={field.id}>
-                                    {field.label} ({field.type})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-                        
-                        <DroppableStep step={step}>
-                          {step.fields.length === 0 ? (
-                            <p className="text-sm text-gray-500 py-8 text-center">
-                              Drop fields here or use the dropdown above to assign fields to this step.
-                            </p>
-                          ) : (
-                            <SortableContext items={step.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                              <div className="space-y-2">
-                                {step.fields.map((field) => (
-                                  <DraggableField
-                                    key={field.id}
-                                    field={field}
-                                    onUnassign={() => handleUnassignFieldFromStep(field.id)}
-                                    showUnassignButton={true}
-                                  />
-                                ))}
-                              </div>
-                            </SortableContext>
-                          )}
-                        </DroppableStep>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </SortableStepItem>
+                  ))}
+                </div>
+              </SortableContext>
             )}
           </CardContent>
         </Card>
       </div>
 
+      {/* Modal for Editing Step Details */}
+      {currentlyEditingStepDetail && (
+        <EditStepModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setCurrentlyEditingStepDetail(null);
+          }}
+          step={currentlyEditingStepDetail}
+          onSave={async (updatedData) => {
+            if (!currentlyEditingStepDetail?.id) return;
+            try {
+              setLoading(true);
+              const result = await graphqlClient.updateFormStep(currentlyEditingStepDetail.id, updatedData);
+              if (result.success) {
+                toast.success('Step details updated successfully.');
+                await loadFormSteps(); // Refresh steps
+                if (onFormUpdate) onFormUpdate();
+              } else {
+                toast.error(result.message || 'Failed to update step details.');
+              }
+            } catch (error) {
+              toast.error('An error occurred while updating step details.');
+              console.error("Error updating step details:", error);
+            } finally {
+              setLoading(false);
+              setIsEditModalOpen(false);
+              setCurrentlyEditingStepDetail(null);
+            }
+          }}
+        />
+      )}
+
       {/* Drag Overlay */}
       <DragOverlay>
-        {activeField ? (
-          <div className="p-3 bg-white border rounded-lg shadow-lg opacity-90">
+        {activeStep ? (
+            <Card className="p-3 bg-white border rounded-lg shadow-2xl opacity-90 cursor-grabbing">
+                <CardHeader className="p-2 flex flex-row items-center space-x-2">
+                    <GripVertical className="h-5 w-5 text-gray-400" />
+                    <CardTitle className="text-sm">Step: {activeStep.title}</CardTitle>
+                </CardHeader>
+            </Card>
+        ) : activeField ? (
+          <div className="p-3 bg-white border rounded-lg shadow-lg opacity-90 cursor-grabbing">
             <div className="font-medium text-sm">{activeField.label}</div>
             <div className="text-xs text-gray-500">
               {activeField.name} • {activeField.type}
@@ -717,4 +774,38 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
       </DragOverlay>
     </DndContext>
   );
-} 
+}
+      {currentlyEditingStepDetail && (
+        <EditStepModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setCurrentlyEditingStepDetail(null);
+          }}
+          step={currentlyEditingStepDetail}
+          onSave={async (updatedData) => {
+            if (!currentlyEditingStepDetail?.id) return;
+            try {
+              setLoading(true);
+              const result = await graphqlClient.updateFormStep(currentlyEditingStepDetail.id, updatedData);
+              if (result.success) {
+                toast.success('Step details updated successfully.');
+                await loadFormSteps(); // Refresh steps
+                if (onFormUpdate) onFormUpdate();
+              } else {
+                toast.error(result.message || 'Failed to update step details.');
+              }
+            } catch (error) {
+              toast.error('An error occurred while updating step details.');
+              console.error("Error updating step details:", error);
+            } finally {
+              setLoading(false);
+              setIsEditModalOpen(false);
+              setCurrentlyEditingStepDetail(null);
+            }
+          }}
+        />
+      )}
+    </DndContext>
+  );
+}

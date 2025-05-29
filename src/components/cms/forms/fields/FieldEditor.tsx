@@ -10,6 +10,26 @@ import { CheckboxField } from './CheckboxField';
 import { EmailField } from './EmailField';
 import { PasswordField } from './PasswordField';
 import { PhoneField } from './PhoneField';
+import { HeadingField } from './HeadingField';
+import { ParagraphField } from './ParagraphField';
+import { DividerField } from './DividerField';
+import { SpacerField } from './SpacerField';
+import { HiddenField } from './HiddenField';
+import { HtmlField } from './HtmlField';
+import { NumberField } from './NumberField';
+import { DateField } from './DateField';
+import { TimeField } from './TimeField';
+import { DateTimeField } from './DateTimeField';
+// Part 2 imports
+import { MultiSelectField } from './MultiSelectField';
+import { ToggleField } from './ToggleField';
+import { SliderField } from './SliderField';
+import { RatingField } from './RatingField';
+import { FileField } from './FileField';
+import { CaptchaField } from './CaptchaField';
+import { SignatureField } from './SignatureField';
+import { AutocompleteField } from './AutocompleteField';
+import { AddressField } from './AddressField';
 import { fieldTypeNames } from './FieldBase';
 
 // Propiedades para el editor de campos
@@ -31,6 +51,27 @@ const isComponentImplemented = (fieldType: FormFieldType): boolean => {
     case FormFieldType.SELECT:
     case FormFieldType.RADIO:
     case FormFieldType.CHECKBOX:
+    // Newly added types
+    case FormFieldType.NUMBER:
+    case FormFieldType.DATE:
+    case FormFieldType.TIME:
+    case FormFieldType.DATETIME:
+    case FormFieldType.HIDDEN:
+    case FormFieldType.HEADING:
+    case FormFieldType.PARAGRAPH:
+    case FormFieldType.DIVIDER:
+    case FormFieldType.SPACER:
+    case FormFieldType.HTML:
+    // Part 2 types
+    case FormFieldType.MULTISELECT:
+    case FormFieldType.TOGGLE:
+    case FormFieldType.SLIDER:
+    case FormFieldType.RATING:
+    case FormFieldType.FILE:
+    case FormFieldType.CAPTCHA:
+    case FormFieldType.SIGNATURE:
+    case FormFieldType.AUTOCOMPLETE:
+    case FormFieldType.ADDRESS:
       return true;
     default:
       return false;
@@ -157,6 +198,46 @@ export function FieldEditor({ field, onSave, onCancel, formId }: FieldEditorProp
         return <RadioField field={editingField} onChange={handleFieldChange} />;
       case FormFieldType.CHECKBOX:
         return <CheckboxField field={editingField} onChange={handleFieldChange} />;
+      // Newly added types
+      case FormFieldType.NUMBER:
+        return <NumberField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.DATE:
+        return <DateField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.TIME:
+        return <TimeField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.DATETIME:
+        return <DateTimeField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.HIDDEN:
+        return <HiddenField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.HEADING:
+        return <HeadingField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.PARAGRAPH:
+        return <ParagraphField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.DIVIDER:
+        return <DividerField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.SPACER:
+        return <SpacerField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.HTML:
+        return <HtmlField field={editingField} onChange={handleFieldChange} />;
+      // Part 2 components
+      case FormFieldType.MULTISELECT:
+        return <MultiSelectField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.TOGGLE:
+        return <ToggleField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.SLIDER:
+        return <SliderField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.RATING:
+        return <RatingField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.FILE:
+        return <FileField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.CAPTCHA:
+        return <CaptchaField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.SIGNATURE:
+        return <SignatureField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.AUTOCOMPLETE:
+        return <AutocompleteField field={editingField} onChange={handleFieldChange} />;
+      case FormFieldType.ADDRESS:
+        return <AddressField field={editingField} onChange={handleFieldChange} />;
       default:
         // Para componentes no implementados, mostrar un mensaje con estilo especial
         return (

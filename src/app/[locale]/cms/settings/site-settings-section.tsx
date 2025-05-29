@@ -96,11 +96,10 @@ export default function SiteSettingsSection() {
         setSocialLinksJson(initialSiteSettings.socialLinks);
         toast.info('No site settings found. Displaying default values.');
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to load site settings: ${errorMessage}`);
+    } catch (err: any) {
+      setError(`Failed to load site settings: ${err.message || 'Unknown error'}`);
       console.error(err);
-      toast.error(`Failed to load site settings: ${errorMessage}`);
+      toast.error(`Failed to load site settings: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +134,7 @@ export default function SiteSettingsSection() {
       } else {
         parsedSocialLinks = '{}'; // Default to empty JSON object if textarea is empty
       }
-    } catch {
+    } catch (e) {
       setError('Social Links JSON is invalid. Please correct it.');
       toast.error('Social Links JSON is invalid.');
       setIsSaving(false);
@@ -157,22 +156,19 @@ export default function SiteSettingsSection() {
     
     // Remove id field if it's part of the state but not needed for input (depends on GQL schema for UpdateSiteSettingsInput)
     // Typically, ID is not part of the input for update, it's used in 'where' clause by resolver
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...inputData } = inputToSave; 
 
-    // Create a type for the input data without the id field
-    type SiteSettingsInputData = Omit<SiteSettingsData, 'id'>;
 
     // Only send changed data
     const changes: Partial<SiteSettingsData> = {};
     let hasChanges = false;
     for (const key in inputData) {
-        const K = key as keyof SiteSettingsInputData;
+        const K = key as keyof SiteSettingsData;
         if (inputData[K] !== initialFetchedSettings[K]) {
             // Special handling for arrays like supportedLocales for proper comparison
             if (K === 'supportedLocales' && initialFetchedSettings.supportedLocales) {
                  if (JSON.stringify(inputData.supportedLocales?.sort()) !== JSON.stringify(initialFetchedSettings.supportedLocales?.sort())) {
-                    (changes as Record<string, unknown>)[K] = inputData[K];
+                    (changes as any)[K] = inputData[K];
                     hasChanges = true;
                  }
             } else if (K === 'socialLinks') {
@@ -181,16 +177,16 @@ export default function SiteSettingsSection() {
                     const currentSocial = JSON.stringify(JSON.parse(inputData.socialLinks || '{}'));
                     const initialSocial = JSON.stringify(JSON.parse(initialFetchedSettings.socialLinks || '{}'));
                     if (currentSocial !== initialSocial) {
-                        (changes as Record<string, unknown>)[K] = inputData[K];
+                        (changes as any)[K] = inputData[K];
                         hasChanges = true;
                     }
                 } catch { // if parsing fails, assume it's different or handle error
-                    (changes as Record<string, unknown>)[K] = inputData[K];
+                    (changes as any)[K] = inputData[K];
                     hasChanges = true;
                 }
             }
             else if (inputData[K] !== initialFetchedSettings[K]) {
-                (changes as Record<string, unknown>)[K] = inputData[K];
+                (changes as any)[K] = inputData[K];
                 hasChanges = true;
             }
         }
@@ -214,11 +210,10 @@ export default function SiteSettingsSection() {
       } else {
          throw new Error('No data returned from update operation');
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to save site settings: ${errorMessage}`);
+    } catch (err: any) {
+      setError(`Failed to save site settings: ${err.message || 'Unknown error'}`);
       console.error(err);
-      toast.error(`Failed to save site settings: ${errorMessage}`);
+      toast.error(`Failed to save site settings: ${err.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
