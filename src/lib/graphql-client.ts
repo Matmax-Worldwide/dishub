@@ -3918,7 +3918,8 @@ const graphqlClient = {
     slug: string;
     content: string;
     excerpt?: string;
-    featuredImage?: string;
+    // featuredImage?: string; // Field removed, use featuredImageId
+    featuredImageId?: string; // Ensure this is part of the input type if not already
     status: string;
     blogId: string;
     authorId: string;
@@ -3939,7 +3940,10 @@ const graphqlClient = {
             slug
             content
             excerpt
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageMedia {
+              fileUrl
+            }
             status
             blogId
             authorId
@@ -3991,7 +3995,10 @@ const graphqlClient = {
           slug
           content
           excerpt
-          featuredImage
+          # featuredImage // Field removed
+          featuredImageMedia {
+            fileUrl
+          }
           status
           blogId
           authorId
@@ -4032,7 +4039,10 @@ const graphqlClient = {
           slug
           content
           excerpt
-          featuredImage
+          # featuredImage // Field removed
+          featuredImageMedia {
+            fileUrl
+          }
           status
           blogId
           authorId
@@ -4068,7 +4078,8 @@ const graphqlClient = {
     slug?: string;
     content?: string;
     excerpt?: string;
-    featuredImage?: string;
+    // featuredImage?: string; // Field removed, use featuredImageId
+    featuredImageId?: string; // Ensure this is part of the input type if not already
     status?: string;
     publishedAt?: string | null;
     metaTitle?: string;

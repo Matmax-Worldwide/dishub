@@ -24,7 +24,10 @@ async function getPostBySlug(slug: string): Promise<Post | null> {
           slug
           content
           excerpt
-          featuredImage
+          # featuredImage // Field removed
+          featuredImageMedia {
+            fileUrl
+          }
           status
           publishedAt
           metaTitle
@@ -73,7 +76,7 @@ export async function generateMetadata({ params }: PageProps) {
     openGraph: {
       title: post.metaTitle || post.title,
       description: post.metaDescription || post.excerpt,
-      images: post.featuredImage ? [post.featuredImage] : [],
+      images: post.featuredImageMedia?.fileUrl ? [post.featuredImageMedia.fileUrl] : [],
     },
   };
 }
@@ -103,10 +106,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Article Header */}
         <header className="mb-8">
           {/* Featured Image */}
-          {post.featuredImage && (
+        {post.featuredImageMedia?.fileUrl && (
             <div className="mb-8">
               <img
-                src={post.featuredImage}
+              src={post.featuredImageMedia.fileUrl}
                 alt={post.title}
                 className="w-full h-64 md:h-96 object-cover rounded-lg"
               />
