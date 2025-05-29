@@ -3465,6 +3465,21 @@ export const cmsOperations = {
       throw error;
     }
   },
+
+  async deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
+    const mutation = `
+      mutation DeleteFormSubmission($id: ID!) {
+        deleteFormSubmission(id: $id) {
+          success
+          message
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ deleteFormSubmission: FormSubmissionResult }>(mutation, { id });
+    return result.deleteFormSubmission;
+  },
+
 };
 
 // Form Builder API functions
@@ -5339,6 +5354,42 @@ const graphqlClient = {
       throw error;
     }
   },
+
+  // Calendar booking rules
+  async globalBookingRule(): Promise<{
+    id: string;
+    advanceBookingHoursMin: number;
+    advanceBookingDaysMax: number;
+    sameDayCutoffTime?: string;
+    bufferBetweenAppointmentsMinutes: number;
+    maxAppointmentsPerDayPerStaff?: number;
+    bookingSlotIntervalMinutes: number;
+  } | null> {
+    const query = `
+      query GlobalBookingRule {
+        globalBookingRule {
+          id
+          advanceBookingHoursMin
+          advanceBookingDaysMax
+          sameDayCutoffTime
+          bufferBetweenAppointmentsMinutes
+          maxAppointmentsPerDayPerStaff
+          bookingSlotIntervalMinutes
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ globalBookingRule: {
+      id: string;
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    } | null }>(query);
+    return result.globalBookingRule;
+  }
 };
 
 // Export all functions
