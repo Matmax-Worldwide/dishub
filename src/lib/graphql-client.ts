@@ -4377,6 +4377,105 @@ const graphqlClient = {
       throw error;
     }
   },
+
+  // User Settings operations
+  async getUserSettings(): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetUserSettings {
+        getUserSettings {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getUserSettings;
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      return null;
+    }
+  },
+
+  async updateUserSettings(input: {
+    emailNotifications?: boolean;
+    theme?: string;
+    language?: string;
+    timeFormat?: string;
+    dateFormat?: string;
+  }): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+        updateUserSettings(input: $input) {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateUserSettings;
+    } catch (error) {
+      console.error('Error updating user settings:', error);
+      throw error;
+    }
+  },
 };
 
 // Export all functions
