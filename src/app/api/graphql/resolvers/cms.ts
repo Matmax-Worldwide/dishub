@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma, PageType } from '@prisma/client';
+import { verifySession } from '@/app/api/utils/auth';
+import { Context } from '@/app/api/graphql/types';
+import { GraphQLError } from 'graphql';
 
 // Tipo para los componentes de una sección
 type SectionComponentWithRelation = {
@@ -537,7 +540,22 @@ export const cmsResolvers = {
         sectionId: string; 
         components: Array<{ id: string; type: string; data: Record<string, unknown> }> 
       } 
-    }) => {
+    }, context: Context) => {
+      // Require authentication for editing CMS content
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to edit CMS content', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins, managers, and employees can edit CMS content
+      if (!['ADMIN', 'MANAGER', 'EMPLOYEE'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to edit CMS content', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         console.log('========================================');
         const { input } = args;

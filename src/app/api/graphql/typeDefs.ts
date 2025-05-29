@@ -1160,6 +1160,10 @@ export const typeDefs = gql`
     permissions: [Permission]
     rolePermissions(roleId: ID!): [Permission]
     
+    # Permission queries - public access
+    allPermissions: [Permission!]!
+    allUsersWithPermissions: [User!]!
+    
     # Contact form queries
     contactFormSubmissions: [ContactFormSubmission!]
     

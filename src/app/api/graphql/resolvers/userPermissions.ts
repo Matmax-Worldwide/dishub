@@ -8,20 +8,10 @@ type Parent = object;
 
 export const userPermissionResolvers = {
   Query: {
-    // Obtener todos los permisos específicos para un usuario
-    userSpecificPermissions: async (_: Parent, { userId }: { userId: string }, context: Context) => {
-      // Verificar si el usuario está autenticado y tiene permisos
-      const session = await verifySession(context.req);
-      const currentUser = session?.user;
-      
-      if (!currentUser) {
-        throw new Error('Unauthorized: You must be logged in to access this information');
-      }
-      
-      // Verificar permisos: El usuario debe tener permiso para ver otros usuarios o ser el mismo usuario
-      if (currentUser.role.name !== 'ADMIN' && !currentUser.permissions?.includes('users:read') && currentUser.id !== userId) {
-        throw new Error('Forbidden: You do not have permission to access this user\'s permissions');
-      }
+    // Obtener todos los permisos específicos para un usuario - PÚBLICO
+    userSpecificPermissions: async (_: Parent, { userId }: { userId: string }) => {
+      // Permitir lectura de permisos sin autenticación
+      // Anyone can read user permissions
       
       try {
         const userPermissions = await prisma.userPermission.findMany({
@@ -39,10 +29,42 @@ export const userPermissionResolvers = {
         throw new Error('Failed to fetch user permissions');
       }
     },
+
+    // Obtener todos los permisos disponibles - PÚBLICO
+    allPermissions: async () => {
+      try {
+        const permissions = await prisma.permission.findMany({
+          orderBy: {
+            name: 'asc',
+          },
+        });
+        
+        return permissions;
+      } catch (error) {
+        console.error('Error fetching all permissions:', error);
+        throw new Error('Failed to fetch permissions');
+      }
+    },
+
+    // Obtener todos los usuarios con sus permisos - PÚBLICO
+    allUsersWithPermissions: async () => {
+      try {
+        const users = await prisma.user.findMany({
+          orderBy: {
+            email: 'asc',
+          },
+        });
+        
+        return users;
+      } catch (error) {
+        console.error('Error fetching users with permissions:', error);
+        throw new Error('Failed to fetch users with permissions');
+      }
+    },
   },
   
   Mutation: {
-    // Establecer o actualizar un permiso específico para un usuario
+    // Establecer o actualizar un permiso específico para un usuario - REQUIERE AUTENTICACIÓN
     setUserPermission: async (_: Parent, { input }: { input: { userId: string; permissionName: string; granted: boolean | null } }, context: Context) => {
       // Verificar si el usuario está autenticado y tiene permisos
       const session = await verifySession(context.req);
