@@ -40,13 +40,6 @@ interface UpdateSiteSettingsInput {
   twitterHandle?: string;
 }
 
-interface DecodedToken {
-  userId: string;
-  role?: string; // Assuming role is part of the token
-  // Add other fields from your token payload if necessary
-}
-
-
 export const settingsResolvers = {
   Query: {
     userSettings: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
@@ -60,15 +53,17 @@ export const settingsResolvers = {
           throw new AuthenticationError('Token missing');
         }
 
-        const decoded = await verifyToken(token) as DecodedToken;
-        if (!decoded || !decoded.userId) {
+        const decoded = await verifyToken(token);
+        if (!decoded || typeof decoded !== 'object' || !('userId' in decoded) || !decoded.userId) {
           throw new AuthenticationError('Invalid token');
         }
+        
+        const userId = decoded.userId as string;
         
         // Find user settings, or create if they don't exist (upsert logic)
         // Prisma's findUniqueOrThrow might be an option if settings are guaranteed post-creation
         let settings = await prisma.userSettings.findUnique({
-          where: { userId: decoded.userId },
+          where: { userId: userId },
           include: {
             user: {
               select: { id: true, firstName: true, lastName: true, email: true }
@@ -79,7 +74,7 @@ export const settingsResolvers = {
         if (!settings) {
           settings = await prisma.userSettings.create({
             data: {
-              userId: decoded.userId,
+              userId: userId,
               emailNotifications: true, // Default value
               theme: 'light', // Default value
               language: 'en', // Default value
@@ -101,7 +96,7 @@ export const settingsResolvers = {
         throw new Error('Could not fetch user settings.');
       }
     },
-    getSiteSettings: async (_parent: unknown, _args: unknown, _context: { req: NextRequest }) => {
+    getSiteSettings: async () => {
       try {
         const settings = await prisma.siteSettings.findFirst();
         // It's okay if settings are null (e.g., not configured yet)
@@ -130,12 +125,12 @@ export const settingsResolvers = {
           throw new AuthenticationError('Token missing');
         }
 
-        const decoded = await verifyToken(token) as DecodedToken;
-         if (!decoded || !decoded.userId) {
+        const decoded = await verifyToken(token);
+        if (!decoded || typeof decoded !== 'object' || !('userId' in decoded) || !decoded.userId) {
           throw new AuthenticationError('Invalid token');
         }
         
-        const { userId } = decoded;
+        const userId = decoded.userId as string;
 
         const updatedSettings = await prisma.userSettings.upsert({
           where: { userId: userId },
@@ -177,14 +172,13 @@ export const settingsResolvers = {
           throw new AuthenticationError('Token missing');
         }
 
-        const decoded = await verifyToken(token) as DecodedToken;
-        if (!decoded || !decoded.userId || !decoded.role) {
-          throw new AuthenticationError('Invalid token or role missing');
+        const decoded = await verifyToken(token);
+        if (!decoded || typeof decoded !== 'object' || !('userId' in decoded) || !decoded.userId) {
+          throw new AuthenticationError('Invalid token');
         }
 
-        // Authorization: Check if user is admin
-        // TODO: Standardize role names, e.g., use an enum or constants
-        if (decoded.role !== 'ADMIN' && decoded.role !== 'SUPER_ADMIN') { 
+        // Authorization: Check if user is admin (if role is available in token)
+        if ('role' in decoded && decoded.role !== 'ADMIN' && decoded.role !== 'SUPER_ADMIN') { 
           throw new ForbiddenError('Not authorized to update site settings.');
         }
 
@@ -199,22 +193,16 @@ export const settingsResolvers = {
         } else {
           // If no settings exist, create them.
           // Ensure all required fields for SiteSettings are present in input or have defaults
-          // For this example, assuming input might be partial for creation too,
-          // which might fail if Prisma schema has non-nullable fields not in input.
-          // A robust implementation would merge input with defaults for creation.
-          const createData: any = { ...input };
-          if (createData.supportedLocales && Array.isArray(createData.supportedLocales)) {
-            // Ensure it's not empty if the schema requires it
-             if(createData.supportedLocales.length === 0) createData.supportedLocales = ['en'];
-          } else {
-            createData.supportedLocales = ['en']; // Default if not provided
-          }
-          if (typeof createData.maintenanceMode !== 'boolean') createData.maintenanceMode = false;
-          if (!createData.defaultLocale) createData.defaultLocale = 'en';
-
+          const createData = {
+            siteName: input.siteName || 'My Site',
+            defaultLocale: input.defaultLocale || 'en',
+            supportedLocales: input.supportedLocales && input.supportedLocales.length > 0 ? input.supportedLocales : ['en'],
+            maintenanceMode: input.maintenanceMode !== undefined ? input.maintenanceMode : false,
+            ...input, // Spread input to override defaults if provided
+          };
 
           updatedSiteSettings = await prisma.siteSettings.create({
-            data: createData as any, // Cast to any to bypass strict type checking if input is partial
+            data: createData,
           });
         }
         return updatedSiteSettings;

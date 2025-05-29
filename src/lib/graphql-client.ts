@@ -21,6 +21,85 @@ import {
 
 import { Blog, Post } from '@/types/blog';
 
+// Site Settings interfaces
+export interface SiteSettings {
+  id?: string;
+  siteName: string;
+  siteDescription: string;
+  logoUrl: string;
+  faviconUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  googleAnalyticsId: string;
+  facebookPixelId: string;
+  customCss: string;
+  customJs: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  defaultLocale: string;
+  supportedLocales: string[];
+  footerText: string;
+  maintenanceMode: boolean;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage: string;
+  socialLinks: string;
+  twitterCardType: string;
+  twitterHandle: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateSiteSettingsInput {
+  siteName?: string;
+  siteDescription?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  googleAnalyticsId?: string;
+  facebookPixelId?: string;
+  customCss?: string;
+  customJs?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  defaultLocale?: string;
+  supportedLocales?: string[];
+  footerText?: string;
+  maintenanceMode?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
+  socialLinks?: string;
+  twitterCardType?: string;
+  twitterHandle?: string;
+}
+
+// User Settings interfaces
+export interface UserSettings {
+  id: string;
+  userId: string;
+  emailNotifications: boolean;
+  theme: string;
+  language: string;
+  timeFormat: string;
+  dateFormat: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUserSettingsInput {
+  emailNotifications?: boolean;
+  theme?: string;
+  language?: string;
+  timeFormat?: string;
+  dateFormat?: string;
+}
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,
@@ -3704,6 +3783,100 @@ const graphqlClient = {
   updateFormSubmissionStatus,
   deleteFormSubmission,
 
+  // Site Settings functions
+  async getSiteSettings(): Promise<SiteSettings | null> {
+    const query = `
+      query GetSiteSettings {
+        getSiteSettings {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          accentColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          defaultLocale
+          supportedLocales
+          footerText
+          maintenanceMode
+          metaTitle
+          metaDescription
+          ogImage
+          socialLinks
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getSiteSettings: SiteSettings }>(query);
+      return response.getSiteSettings;
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      return null;
+    }
+  },
+
+  async updateSiteSettings({ input }: { input: UpdateSiteSettingsInput }): Promise<SiteSettings> {
+    const mutation = `
+      mutation UpdateSiteSettings($input: UpdateSiteSettingsInput!) {
+        updateSiteSettings(input: $input) {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          accentColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          defaultLocale
+          supportedLocales
+          footerText
+          maintenanceMode
+          metaTitle
+          metaDescription
+          ogImage
+          socialLinks
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateSiteSettings: SiteSettings }>(mutation, { input });
+      if (response.updateSiteSettings) {
+        // Clear any cached site settings
+        clearCache('site_settings');
+        optimizedQueries.invalidateCache('siteSettings');
+      }
+      return response.updateSiteSettings;
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      throw error;
+    }
+  },
+
   // Blog operations
   async getBlogs() {
     const query = `
@@ -4137,6 +4310,64 @@ const graphqlClient = {
       clearCache('posts');
     }
     return response.deletePost;
+  },
+
+  // User Settings functions
+  async userSettings(): Promise<UserSettings | null> {
+    const query = `
+      query GetUserSettings {
+        userSettings {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ userSettings: UserSettings }>(query);
+      return response.userSettings;
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      return null;
+    }
+  },
+
+  async updateUserSettings({ input }: { input: UpdateUserSettingsInput }): Promise<UserSettings> {
+    const mutation = `
+      mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+        updateUserSettings(input: $input) {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateUserSettings: UserSettings }>(mutation, { input });
+      if (response.updateUserSettings) {
+        // Clear any cached user settings
+        clearCache('user_settings');
+        optimizedQueries.invalidateCache('userSettings');
+      }
+      return response.updateUserSettings;
+    } catch (error) {
+      console.error('Error updating user settings:', error);
+      throw error;
+    }
   },
 };
 
