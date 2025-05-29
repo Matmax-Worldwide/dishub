@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import graphqlClient from '@/lib/graphql-client'; // Assuming this is set up
-import { Location, ServiceCategory, Service } from '@/types/calendar'; // Assuming these types exist
+import graphqlClient from '@/lib/graphql-client'; 
+import { Location, ServiceCategory, Service, StaffProfile, AvailableTimeSlot } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, User, Users, CalendarDays, Clock } from 'lucide-react'; // Added new icons
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { DayPicker } from 'react-day-picker'; 
+import 'react-day-picker/dist/style.css'; 
+import { format } from 'date-fns'; 
 
 interface CalendarSectionProps {
   calendarId?: string; 
@@ -16,12 +19,13 @@ interface CalendarSectionProps {
   theme?: 'light' | 'dark'; // For now, not implemented
   showLocationSelector?: boolean;
   showServiceCategories?: boolean;
-  defaultLocation?: string; // Pre-selected location ID
-  defaultService?: string; // Pre-selected service ID
-  customStyles?: Record<string, string>; // For theming
+  defaultLocation?: string; 
+  defaultService?: string; 
+  customStyles?: Record<string, string>; 
+  showStaffSelector?: boolean; // New prop
 }
 
-type BookingStep = 'locationSelection' | 'serviceSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
+type BookingStep = 'locationSelection' | 'serviceSelection' | 'staffSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
 
 const ProgressIndicator = ({ currentStep, steps }: { currentStep: BookingStep, steps: {id: BookingStep, label: string}[] }) => {
   const currentIndex = steps.findIndex(s => s.id === currentStep);
@@ -51,32 +55,76 @@ export default function CalendarSection({
   showLocationSelector = true,
   showServiceCategories = true,
   defaultLocation,
-  defaultService, // Not used in this part, but for future steps
+  defaultService, 
+  showStaffSelector = true, // Default to true if service might have staff
 }: CalendarSectionProps) {
   
-  const allSteps: {id: BookingStep, label: string}[] = [
-    ...(showLocationSelector ? [{ id: 'locationSelection' as BookingStep, label: 'Location' }] : []),
-    { id: 'serviceSelection' as BookingStep, label: 'Service' },
-    { id: 'dateTimeSelection' as BookingStep, label: 'Date & Time' },
-    { id: 'detailsForm' as BookingStep, label: 'Your Details' },
-    { id: 'confirmation' as BookingStep, label: 'Confirm' },
+  // Define all possible steps
+  const stepDefinitions: {id: BookingStep, label: string, condition?: boolean}[] = [
+    { id: 'locationSelection', label: 'Location', condition: showLocationSelector },
+    { id: 'serviceSelection', label: 'Service', condition: true },
+    { id: 'staffSelection', label: 'Staff', condition: showStaffSelector }, 
+    { id: 'dateTimeSelection', label: 'Date & Time', condition: true },
+    { id: 'detailsForm', label: 'Your Details', condition: true },
+    { id: 'confirmation', label: 'Confirm', condition: true },
   ];
+
+  const allSteps = stepDefinitions.filter(step => step.condition !== false);
   
-  const [currentStep, setCurrentStep] = useState<BookingStep>(showLocationSelector ? 'locationSelection' : 'serviceSelection');
+  const getInitialStep = (): BookingStep => {
+    if (showLocationSelector && !(defaultLocation || initialLocationIdProp)) return 'locationSelection';
+    // If location is set (either by prop or default), move to service selection or further
+    if (selectedLocationId) {
+        if (!selectedServiceId) return 'serviceSelection';
+        if (showStaffSelector && !selectedStaffId) return 'staffSelection'; // Assuming selectedStaffId needs to be set
+        return 'dateTimeSelection';
+    }
+    return 'serviceSelection'; // Fallback if location selector is hidden but no location set
+  };
+  
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(defaultLocation || initialLocationIdProp || null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null); // Initialize defaultService later
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>("ANY_AVAILABLE"); 
+  
+  const [currentStep, setCurrentStep] = useState<BookingStep>(getInitialStep());
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
-  const [allServicesForLocation, setAllServicesForLocation] = useState<Service[]>([]); // Services for the selected location
-  const [displayServices, setDisplayServices] = useState<Service[]>([]); // Services to display (filtered by category)
+  const [allServicesForLocation, setAllServicesForLocation] = useState<Service[]>([]); 
+  const [displayServices, setDisplayServices] = useState<Service[]>([]); 
 
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(defaultLocation || initialLocationIdProp || null);
+  const [availableStaffForService, setAvailableStaffForService] = useState<Partial<StaffProfile>[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [timeSlots, setTimeSlots] = useState<AvailableTimeSlot[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<AvailableTimeSlot | null>(null);
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
-  const [isLoadingLocations, setIsLoadingLocations] = useState(showLocationSelector);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(showLocationSelector && !(defaultLocation || initialLocationIdProp));
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+   // Initialize current step based on props, and handle defaultService
+   useEffect(() => {
+    let initialStep: BookingStep = 'locationSelection';
+    if (!showLocationSelector && selectedLocationId) {
+      initialStep = 'serviceSelection';
+    } else if (showLocationSelector && !(defaultLocation || initialLocationIdProp)) {
+      initialStep = 'locationSelection';
+    } else if (selectedLocationId) { // Location is known (default or prop)
+        initialStep = 'serviceSelection';
+    }
+    
+    if (selectedLocationId && defaultService && !selectedServiceId) {
+        setSelectedServiceId(defaultService);
+        initialStep = showStaffSelector ? 'staffSelection' : 'dateTimeSelection';
+    }
+    setCurrentStep(initialStep);
+  }, [showLocationSelector, selectedLocationId, defaultLocation, initialLocationIdProp, defaultService, selectedServiceId, showStaffSelector]);
+
 
   // Fetch Locations
   useEffect(() => {
@@ -180,15 +228,84 @@ export default function CalendarSection({
 
   const handleServiceSelect = (serviceId: string) => {
     setSelectedServiceId(serviceId);
-    // In a full flow, this would set the service and move to the next step (e.g., staff or date/time)
-    toast.info(`Service ${serviceId} selected. Next step: Date/Time selection (Not Implemented).`);
-    setCurrentStep('dateTimeSelection'); 
+    setSelectedStaffId("ANY_AVAILABLE"); // Reset staff preference
+    setSelectedDate(new Date()); // Reset date
+    setTimeSlots([]);
+    setSelectedTimeSlot(null);
+    if (showStaffSelector) {
+      setCurrentStep('staffSelection');
+    } else {
+      setCurrentStep('dateTimeSelection');
+    }
+  };
+
+  const handleStaffSelect = (staffId: string | null) => {
+    setSelectedStaffId(staffId); 
+    setSelectedDate(new Date()); 
+    setTimeSlots([]);
+    setSelectedTimeSlot(null);
+    setCurrentStep('dateTimeSelection');
+  };
+
+  const handleDateSelect = (date?: Date) => {
+    if (date) {
+      setSelectedDate(date);
+      setTimeSlots([]); 
+      setSelectedTimeSlot(null);
+      // Fetching slots will be triggered by useEffect for date changes
+    }
+  };
+
+  const handleTimeSlotSelect = (slot: AvailableTimeSlot) => {
+    setSelectedTimeSlot(slot);
+    toast.success(`Time slot from ${format(new Date(slot.startTime), "p")} selected. Next: Your Details.`);
+    setCurrentStep('detailsForm');
   };
   
+  // Fetch Staff for Service
+  useEffect(() => {
+    if (currentStep === 'staffSelection' && selectedServiceId && selectedLocationId && showStaffSelector) {
+      setIsLoadingStaff(true);
+      // Assuming graphqlClient.staffForService is a new method to fetch staff for a specific service and location
+      // This might require a new GraphQL query and resolver: staffForService(serviceId: ID!, locationId: ID!): [StaffProfile!]
+      graphqlClient.staffForService({ serviceId: selectedServiceId, locationId: selectedLocationId })
+        .then(data => setAvailableStaffForService(data || []))
+        .catch(err => {
+          console.error("Error fetching staff:", err);
+          toast.error("Could not load available staff.");
+          setAvailableStaffForService([]); // Clear on error
+        })
+        .finally(() => setIsLoadingStaff(false));
+    }
+  }, [currentStep, selectedServiceId, selectedLocationId, showStaffSelector]);
+
+  // Fetch Available Time Slots
+  useEffect(() => {
+    if (currentStep === 'dateTimeSelection' && selectedDate && selectedServiceId && selectedLocationId && selectedStaffId !== undefined) {
+      setIsLoadingSlots(true);
+      const dateString = format(selectedDate, "yyyy-MM-dd");
+      // Assuming graphqlClient.availableSlots is a new method
+      // This requires a new GraphQL query and resolver: availableSlots(serviceId: ID!, locationId: ID!, date: String!, staffId: ID): [AvailableTimeSlot!]
+      graphqlClient.availableSlots({ 
+        serviceId: selectedServiceId, 
+        locationId: selectedLocationId, 
+        date: dateString, 
+        staffId: selectedStaffId === "ANY_AVAILABLE" ? null : selectedStaffId 
+      })
+        .then(data => setTimeSlots(data || []))
+        .catch(err => {
+          console.error("Error fetching time slots:", err);
+          toast.error("Could not load available time slots.");
+          setTimeSlots([]); 
+        })
+        .finally(() => setIsLoadingSlots(false));
+    }
+  }, [currentStep, selectedDate, selectedServiceId, selectedLocationId, selectedStaffId]);
+
+
   const currentVisibleStep = allSteps.find(s => s.id === currentStep);
 
-
-  if (error) {
+  if (error && currentStep !== 'locationSelection' && currentStep !== 'serviceSelection') { 
     return <div className="p-4 text-red-600 bg-red-50 rounded-md">{error}</div>;
   }
 
@@ -300,37 +417,129 @@ export default function CalendarSection({
         </section>
       )}
       
-      {/* Placeholder for next steps */}
-      {currentStep === 'dateTimeSelection' && (
-        <div className="p-6 bg-yellow-50 rounded-md text-yellow-700">
-            Date/Time, Staff Selection, and Form details will appear here. Service <Badge>{selectedServiceId}</Badge> selected.
-            <Button onClick={() => setCurrentStep('serviceSelection')} variant="link" className="mt-2">Go Back to Services</Button>
-        </div>
+      {/* Step 3: Staff Selection */}
+      {currentStep === 'staffSelection' && selectedServiceId && (
+        <section>
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">Select Staff (Optional)</h2>
+          {isLoadingStaff ? (
+            <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /> <span className="ml-2">Loading staff...</span></div>
+          ) : (
+            <div className="space-y-3">
+              <Button 
+                variant={selectedStaffId === "ANY_AVAILABLE" ? "default" : "outline"} 
+                onClick={() => handleStaffSelect("ANY_AVAILABLE")}
+                className="w-full justify-start py-3 text-left h-auto"
+                size="lg"
+              >
+                <Users className="mr-3 h-5 w-5 flex-shrink-0" /> 
+                <div>
+                  Any Available Staff
+                  <p className="text-xs font-normal text-muted-foreground">Let us pick the best available staff for you.</p>
+                </div>
+              </Button>
+              {availableStaffForService.map(staff => (
+                <Button 
+                  key={staff.id} 
+                  variant={selectedStaffId === staff.id ? "default" : "outline"} 
+                  onClick={() => handleStaffSelect(staff.id!)}
+                  className="w-full justify-start py-3 text-left h-auto"
+                  size="lg"
+                >
+                  <User className="mr-3 h-5 w-5 flex-shrink-0" /> 
+                   <div>
+                    {staff.user?.firstName} {staff.user?.lastName}
+                    {staff.specializations && staff.specializations.length > 0 && 
+                      <Badge variant="secondary" className="ml-2 text-xs">{staff.specializations.join(', ')}</Badge>}
+                  </div>
+                </Button>
+              ))}
+              {availableStaffForService.length === 0 && !isLoadingStaff && (
+                 <p className="text-sm text-muted-foreground p-3 bg-gray-50 rounded-md text-center">No specific staff available for this service. 'Any Available' will be used.</p>
+              )}
+            </div>
+          )}
+           <Button onClick={() => setCurrentStep('serviceSelection')} variant="link" className="mt-4 text-sm px-0">Back to Services</Button>
+        </section>
       )}
-       {currentStep === 'detailsForm' && <div className="p-6 bg-green-50">Details Form step...</div>}
-       {currentStep === 'confirmation' && <div className="p-6 bg-indigo-50">Confirmation step...</div>}
 
+      {/* Step 4: Date & Time Selection */}
+      {currentStep === 'dateTimeSelection' && selectedServiceId && (
+         <section>
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">Select Date & Time</h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 items-start">
+            <div className="flex justify-center md:justify-start">
+                <Card className="shadow-md">
+                    <CardContent className="p-1 sm:p-2">
+                         <DayPicker
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            fromDate={new Date()} 
+                            className="flex justify-center"
+                            disabled={isLoadingSlots || isLoadingStaff}
+                            footer={selectedDate ? <p className="text-xs text-center p-2">You selected {format(selectedDate, 'PPP')}.</p> : <p className="text-xs text-center p-2">Please pick a day.</p>}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="mt-4 md:mt-0">
+                <h3 className="text-lg font-medium mb-3 text-gray-700">
+                    Available Slots for {selectedDate ? format(selectedDate, 'PPP') : '...'}
+                </h3>
+                {isLoadingSlots ? (
+                    <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" /> Loading slots...</div>
+                ) : timeSlots.length === 0 ? (
+                    <p className="text-gray-600 text-sm p-4 bg-gray-50 rounded-md text-center">
+                        {selectedDate ? "No available slots for this date. Please try another date." : "Please select a date to see available slots."}
+                    </p>
+                ) : (
+                    <ScrollArea className="h-[280px] pr-3 border rounded-md p-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {timeSlots.map(slot => (
+                            <Button 
+                                key={slot.startTime.toString()} 
+                                variant={selectedTimeSlot?.startTime === slot.startTime ? "default" : "outline"} 
+                                onClick={() => handleTimeSlotSelect(slot)}
+                                disabled={!slot.isAvailable || isSaving}
+                                className={`py-2 px-3 h-auto text-xs sm:text-sm w-full ${!slot.isAvailable ? 'text-muted-foreground line-through' : ''}`}
+                            >
+                                {format(new Date(slot.startTime), "p")}
+                            </Button>
+                        ))}
+                        </div>
+                    </ScrollArea>
+                )}
+            </div>
+           </div>
+           <Button onClick={() => setCurrentStep(showStaffSelector ? 'staffSelection' : 'serviceSelection')} variant="link" className="mt-4 text-sm px-0">Back</Button>
+        </section>
+      )}
+      
+       {currentStep === 'detailsForm' && 
+        <div className="p-6 bg-green-50 rounded-md text-green-700">
+            Details form will appear here. Service: <Badge>{selectedServiceId}</Badge>, 
+            Staff: <Badge>{selectedStaffId === "ANY_AVAILABLE" ? "Any Available" : availableStaffForService.find(s=>s.id === selectedStaffId)?.user?.firstName || selectedStaffId}</Badge>, 
+            Slot: <Badge>{selectedTimeSlot ? format(new Date(selectedTimeSlot.startTime), "Pp") : 'N/A'}</Badge>.
+            <Button onClick={() => setCurrentStep('dateTimeSelection')} variant="link" className="mt-2">Back to Date/Time</Button>
+        </div>}
+       {currentStep === 'confirmation' && <div className="p-6 bg-indigo-50 rounded-md text-indigo-700">Confirmation step...</div>}
 
     </div>
   );
 }
 
 // Extend types if they are not fully defined for props and state.
-// This ensures that the component can rely on these fields existing.
 declare module '@/types/calendar' {
   export interface Location {
     id: string;
     name: string;
     address?: string | null;
     phone?: string | null;
-    // operatingHours?: any; // Not directly used in this specific UI part yet
-    // services?: Service[]; // If needed for "available services count"
   }
   export interface ServiceCategory {
     id: string;
     name: string;
     description?: string | null;
-    // services?: Service[]; // Could be used for price/duration ranges
   }
   export interface Service {
     id: string;
@@ -340,7 +549,24 @@ declare module '@/types/calendar' {
     price: number;
     isActive: boolean;
     serviceCategoryId: string;
-    serviceCategory?: { id: string; name: string }; // For display
-    locations?: Array<{ id: string; name: string }>; // For filtering and display
+    serviceCategory?: { id: string; name: string }; 
+    locations?: Array<{ id: string; name: string }>; 
+  }
+  export interface StaffProfile { 
+    id: string;
+    userId: string;
+    bio?: string | null;
+    specializations?: string[];
+    user?: { firstName?: string | null; lastName?: string | null; email?: string; };
+  }
+  export interface AvailableTimeSlot {
+    startTime: string; 
+    endTime: string;   
+    isAvailable: boolean;
+    staffId?: string | null; 
+  }
+   export enum DayOfWeek { // Ensure this matches Prisma definition or is mapped
+    MONDAY = "MONDAY", TUESDAY = "TUESDAY", WEDNESDAY = "WEDNESDAY",
+    THURSDAY = "THURSDAY", FRIDAY = "FRIDAY", SATURDAY = "SATURDAY", SUNDAY = "SUNDAY",
   }
 }
