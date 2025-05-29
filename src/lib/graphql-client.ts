@@ -1,5 +1,6 @@
 import { updateCMSSection } from './cms-update';
 import { deletePageWithSections } from './cms-page-delete';
+import { optimizedQueries } from './graphql-optimizations';
 
 // Import form types
 import {
@@ -632,12 +633,56 @@ async function updatePage(id: string, input: {
     console.log('Update page result:', result);
     
     // Handle different response structures
+    let opResult = null;
     if (result.updatePage) {
-      return result.updatePage;
+      opResult = result.updatePage;
     } else if (result.data?.updatePage) {
-      return result.data.updatePage;
+      opResult = result.data.updatePage;
+    }
+
+    if (opResult && opResult.success && opResult.page) {
+      const updatedPageData = opResult.page;
+      if (updatedPageData.slug) {
+        optimizedQueries.invalidateCache(`page:${updatedPageData.slug}`);
+        clearCache(`page_slug_${updatedPageData.slug}`); // local cache
+      }
+      optimizedQueries.invalidateCache(`page_id:${id}`);
+      clearCache(`page_id_${id}`); // local cache
+
+      if (updatedPageData.isDefault && updatedPageData.locale) {
+        optimizedQueries.invalidateCache(`default_page_${updatedPageData.locale}`);
+        clearCache(`default_page_${updatedPageData.locale}`); // local cache
+      }
+      // Invalidate related sections if their structure might change or be affected
+      if (updatedPageData.sections) {
+        updatedPageData.sections.forEach(section => {
+          if (section.sectionId) {
+            optimizedQueries.invalidateCache(`section:${section.sectionId}`);
+            clearCache(`section_components_${section.sectionId}`); // local cache
+          }
+        });
+      }
+      optimizedQueries.invalidateCache('allPages'); 
+      clearCache('allPages'); // local cache for general page lists
+    } else if (opResult && opResult.success) {
+      // Page data might not be returned but operation was successful
+      // Attempt to invalidate based on input if available
+      if (input.slug) {
+        optimizedQueries.invalidateCache(`page:${input.slug}`);
+        clearCache(`page_slug_${input.slug}`);
+      }
+      optimizedQueries.invalidateCache(`page_id:${id}`);
+      clearCache(`page_id_${id}`);
+      if (input.isDefault && input.locale) {
+        optimizedQueries.invalidateCache(`default_page_${input.locale}`);
+        clearCache(`default_page_${input.locale}`);
+      }
+      optimizedQueries.invalidateCache('allPages');
+      clearCache('allPages');
     }
     
+    if (opResult) return opResult;
+
     return {
       success: false,
       message: 'Failed to update page: Unexpected response format',
@@ -660,30 +705,104 @@ async function getPageById(id: string): Promise<PageData | null> {
   const cachedPage = getCachedResponse<PageData>(cacheKey);
   
   if (cachedPage) {
+    console.log(`[getPageById] Found cached page: ID=${id}`);
     return cachedPage;
   }
   
+  const GET_PAGE_BY_ID_QUERY = `
+    query GetPageById($id: ID!) {
+      page(id: $id) {
+        id
+        title
+        slug
+        description
+        template
+        isPublished
+        publishDate
+        featuredImage
+        metaTitle
+        metaDescription
+        parentId
+        order
+        pageType
+        locale
+        scrollType
+        isDefault
+        createdAt
+        updatedAt
+        sections {
+          id
+          sectionId
+          name
+          order
+        }
+        seo {
+          title
+          description
+          keywords
+          ogTitle
+          ogDescription
+          ogImage
+          twitterTitle
+          twitterDescription
+          twitterImage
+          canonicalUrl
+          structuredData
+        }
+      }
+    }
+  `;
+
   try {
-    // First try to get all pages and filter by ID
-    const allPages = await cmsOperations.getAllPages();
-    const page = allPages.find(p => p.id === id);
+    console.log(`[getPageById] Attempting to fetch page with ID: "${id}"`);
+    const variables = { id };
     
-    if (page) {
-      // Make sure to filter out sections with null sectionId
+    const result = await gqlRequest<{ 
+      page?: PageData;
+      data?: { page: PageData }; // Alternative structure
+      errors?: Array<{ message: string }>
+    }>(GET_PAGE_BY_ID_QUERY, variables);
+
+    console.log(`[getPageById] GraphQL result for ID "${id}":`, result);
+
+    if (result.errors && result.errors.length > 0) {
+      console.error(`[getPageById] GraphQL errors for ID "${id}": ${result.errors.map(e => e.message).join(', ')}`);
+      return null;
+    }
+
+    let page: PageData | null = null;
+
+    if (result.page) {
+      page = result.page;
+    } else if (result.data?.page) {
+      page = result.data.page;
+    }
+
+    if (page && page.id) {
+      console.log(`[getPageById] Found page: ID=${page.id}, Title="${page.title}"`);
+      
+      // Filter sections with null sectionId
       if (page.sections && Array.isArray(page.sections)) {
         page.sections = page.sections.filter(section => 
           section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
         );
       }
       
-      // Cache the found page
-      setCachedResponse(cacheKey, page as PageData);
-      return page as PageData;
+      // Ensure there's always at least an empty SEO object
+      if (!page.seo) {
+        page.seo = {};
+      }
+      
+      // Cache the page data
+      setCachedResponse(cacheKey, page);
+      return page;
     }
     
+    console.log(`[getPageById] No page found with ID: "${id}"`);
     return null;
   } catch (error) {
-    console.error(`Error in getPageById for ID ${id}:`, error);
+    console.error(`[getPageById] Error retrieving page with ID "${id}":`, error);
+    // Do not throw error, just return null as per original behavior of function
     return null;
   }
 }
@@ -789,6 +908,12 @@ async function updateSectionName(sectionId: string, name: string): Promise<{
   try {
     // Use the updateCMSSection function from cms-update.ts
     const result = await updateCMSSection(sectionId, { name });
+
+    if (result.success) {
+      optimizedQueries.invalidateCache(`section:${sectionId}`);
+      clearCache(`section_components_${sectionId}`); // Local cache for section components
+      clearCache(`section_${sectionId}`); // Local cache for section data if separate
+    }
     
     return {
       success: result.success,
@@ -1232,6 +1357,7 @@ export const cmsOperations = {
       
       // Clear cache for this section
       clearCache(`section_components_${sectionId}`);
+      optimizedQueries.invalidateCache(`section:${sectionId}`);
       
       return result.saveSectionComponents;
     } catch (error) {
@@ -1299,6 +1425,33 @@ export const cmsOperations = {
       }
     } catch (error) {
       console.error(`Error general en getAllPages:`, error);
+      return [];
+    }
+  },
+
+  // Obtener todos los identificadores de página CMS
+  getAllPageIdentifiers: async () => {
+    const GET_ALL_PAGE_IDENTIFIERS_QUERY = `
+      query GetAllCMSPageIdentifiers {
+        getAllCMSPages {
+          id
+          slug
+          locale
+        }
+      }
+    `;
+    try {
+      const result = await gqlRequest<{ getAllCMSPages: Array<{ id: string; slug: string; locale?: string | null }> }>(GET_ALL_PAGE_IDENTIFIERS_QUERY);
+      if (!result || !result.getAllCMSPages) {
+        return [];
+      }
+      return result.getAllCMSPages.map(page => ({
+        id: page.id,
+        slug: page.slug,
+        locale: page.locale || 'en', // Default locale to 'en' if missing
+      }));
+    } catch (error) {
+      console.error(`Error general en getAllPageIdentifiers:`, error);
       return [];
     }
   },
@@ -1605,6 +1758,8 @@ export const cmsOperations = {
         
         if (associateResult.success) {
           console.log(`✅ [${requestId}] Page and section created successfully`);
+          optimizedQueries.invalidateCache('allPages');
+          clearCache('allPages'); // Local cache
           return {
             success: true,
             message: `Página "${createdPage.title}" creada con sección inicial`,
@@ -1612,6 +1767,9 @@ export const cmsOperations = {
           };
         } else {
           console.warn(`⚠️ [${requestId}] Page created but section association failed: ${associateResult.message}`);
+          // Still invalidate allPages as the page itself was created
+          optimizedQueries.invalidateCache('allPages');
+          clearCache('allPages');
           return {
             success: true,
             message: `Página creada. ${associateResult.message || 'La sección se creará automáticamente al editar.'}`,
@@ -1620,6 +1778,9 @@ export const cmsOperations = {
         }
       } else {
         console.warn(`⚠️ [${requestId}] Page created but section creation failed: ${sectionResult.message}`);
+        // Still invalidate allPages as the page itself was created
+        optimizedQueries.invalidateCache('allPages');
+        clearCache('allPages');
         return {
           success: true,
           message: `Página creada. ${sectionResult.message || 'La sección se creará automáticamente al editar.'}`,
@@ -1652,8 +1813,55 @@ export const cmsOperations = {
     success: boolean;
     message: string;
   }> => {
-    console.log(`Eliminando página con ID: ${id} y sus secciones asociadas`);
-    return deletePageWithSections(id);
+    console.log(`Attempting to delete page with ID: ${id} and its associated sections.`);
+    
+    // Step 1: Fetch page details first to get slug and other info for cache invalidation.
+    // Use the already refactored getPageById which uses a direct query.
+    let pageToDelete: PageData | null = null;
+    try {
+      // We use the internal getPageById directly, not via cmsOperations to avoid circular dependency issues
+      // if cmsOperations.getPageById was not yet defined or fully initialized during module load.
+      // However, getPageById is defined earlier in this file.
+      pageToDelete = await getPageById(id); 
+    } catch (fetchError) {
+      console.error(`Error fetching page details for ID ${id} before deletion:`, fetchError);
+      // Proceed with deletion if fetching fails, but cache invalidation might be incomplete.
+    }
+
+    // Step 2: Call the actual deletion logic (deletePageWithSections)
+    // deletePageWithSections is imported and should handle the GraphQL mutation for deletion.
+    // Assuming deletePageWithSections is defined elsewhere and handles the actual deletion.
+    // For this refactoring, we are focusing on the cache invalidation within this deletePage operation.
+    
+    const deleteResult = await deletePageWithSections(id); // This function is imported.
+
+    // Step 3: Invalidate caches if deletion was successful
+    if (deleteResult.success) {
+      console.log(`Page with ID: ${id} deleted successfully. Invalidating caches.`);
+      if (pageToDelete && pageToDelete.slug) {
+        optimizedQueries.invalidateCache(`page:${pageToDelete.slug}`);
+        clearCache(`page_slug_${pageToDelete.slug}`);
+      }
+      optimizedQueries.invalidateCache(`page_id:${id}`);
+      clearCache(`page_id_${id}`);
+
+      if (pageToDelete && pageToDelete.isDefault && pageToDelete.locale) {
+        optimizedQueries.invalidateCache(`default_page_${pageToDelete.locale}`);
+        clearCache(`default_page_${pageToDelete.locale}`);
+      }
+      
+      optimizedQueries.invalidateCache('allPages');
+      clearCache('allPages');
+      
+      // If pages also affect menu structures (e.g. if a deleted page was in a menu)
+      optimizedQueries.invalidateCache('menus'); 
+      clearCache('all_menus'); // Assuming 'all_menus' for local cache based on getMenus
+
+    } else {
+      console.log(`Failed to delete page with ID: ${id}. Message: ${deleteResult.message}`);
+    }
+    
+    return deleteResult;
   },
 
   // Obtener páginas que usan una sección específica
@@ -1853,7 +2061,10 @@ export const cmsOperations = {
       }
       
       // Clear cache for related data
-      clearCache(`section_${input.sectionId}`);
+      clearCache(`section_${input.sectionId}`); // Local cache for the specific section by its internal ID
+      optimizedQueries.invalidateCache(`section:${input.sectionId}`); // GraphQLOptimizer cache for the specific section by its sectionId
+      // If there was a general key for all sections list in GraphQLOptimizer, invalidate it here.
+      // e.g., optimizedQueries.invalidateCache('allCMSSections');
       
       return result.createCMSSection;
     } catch (error) {
@@ -1876,6 +2087,12 @@ export const cmsOperations = {
     try {
       // Use the updateCMSSection function from cms-update.ts
       const result = await updateCMSSection(sectionId, { backgroundImage, backgroundType });
+
+      if (result.success) {
+        optimizedQueries.invalidateCache(`section:${sectionId}`);
+        clearCache(`section_components_${sectionId}`);
+        clearCache(`section_${sectionId}`);
+      }
       
       return {
         success: result.success,
@@ -2155,6 +2372,11 @@ export const cmsOperations = {
           message: 'Failed to update header style'
         };
       }
+      
+      if (result.updateHeaderStyle.success) {
+        optimizedQueries.invalidateCache('menus');
+        clearCache('all_menus'); // local cache
+      }
 
       return {
         success: result.updateHeaderStyle.success,
@@ -2313,6 +2535,21 @@ export const cmsOperations = {
           page: null
         };
       }
+      
+      if (result.associateSectionToPage && result.associateSectionToPage.success && result.associateSectionToPage.page) {
+        const updatedPage = result.associateSectionToPage.page;
+        if (updatedPage.slug) {
+          optimizedQueries.invalidateCache(`page:${updatedPage.slug}`);
+          clearCache(`page_slug_${updatedPage.slug}`);
+        }
+        optimizedQueries.invalidateCache(`page_id:${pageId}`);
+        clearCache(`page_id_${pageId}`);
+        optimizedQueries.invalidateCache(`section:${sectionId}`); // Section's context within a page changed
+        clearCache(`section_components_${sectionId}`);
+        clearCache(`section_${sectionId}`);
+        optimizedQueries.invalidateCache('allPages');
+        clearCache('allPages');
+      }
 
       return result.associateSectionToPage;
     } catch (error) {
@@ -2361,6 +2598,21 @@ export const cmsOperations = {
           page: PageData | null;
         } 
       }>(mutation, variables);
+      
+      if (result.dissociateSectionFromPage && result.dissociateSectionFromPage.success && result.dissociateSectionFromPage.page) {
+        const updatedPage = result.dissociateSectionFromPage.page;
+        if (updatedPage.slug) {
+          optimizedQueries.invalidateCache(`page:${updatedPage.slug}`);
+          clearCache(`page_slug_${updatedPage.slug}`);
+        }
+        optimizedQueries.invalidateCache(`page_id:${pageId}`);
+        clearCache(`page_id_${pageId}`);
+        optimizedQueries.invalidateCache(`section:${sectionId}`); // Section's context within a page changed
+        clearCache(`section_components_${sectionId}`);
+        clearCache(`section_${sectionId}`);
+        optimizedQueries.invalidateCache('allPages');
+        clearCache('allPages');
+      }
 
       return result.dissociateSectionFromPage;
     } catch (error) {
@@ -2459,6 +2711,12 @@ export const cmsOperations = {
           footerStyle: Record<string, unknown> | null;
         };
       }>(query, variables);
+
+      
+      if (response.updateFooterStyle.success) {
+        optimizedQueries.invalidateCache('menus');
+        clearCache('all_menus'); // local cache
+      }
 
       return {
         success: response.updateFooterStyle.success,
@@ -3007,6 +3265,16 @@ async function createForm(input: FormInput): Promise<FormResult> {
 
   try {
     const response = await gqlRequest<{ createForm: FormResult }>(mutation, variables);
+    if (response.createForm && response.createForm.success && response.createForm.form) {
+      optimizedQueries.invalidateCache('forms'); // General list
+      clearCache('forms'); // Local cache general list
+      optimizedQueries.invalidateCache(`form:${response.createForm.form.id}`);
+      clearCache(`form_${response.createForm.form.id}`); // Local cache specific form
+      if (response.createForm.form.slug) {
+        optimizedQueries.invalidateCache(`form:${response.createForm.form.slug}`);
+        clearCache(`form_slug_${response.createForm.form.slug}`);
+      }
+    }
     return response.createForm || { success: false, message: 'Failed to create form', form: null };
   } catch (error) {
     console.error('Error creating form:', error);
@@ -3047,6 +3315,21 @@ async function updateForm(id: string, input: Partial<FormInput>): Promise<FormRe
 
   try {
     const response = await gqlRequest<{ updateForm: FormResult }>(mutation, variables);
+    if (response.updateForm && response.updateForm.success && response.updateForm.form) {
+      optimizedQueries.invalidateCache(`form:${id}`);
+      clearCache(`form_${id}`);
+      if (response.updateForm.form.slug) {
+        optimizedQueries.invalidateCache(`form:${response.updateForm.form.slug}`);
+        clearCache(`form_slug_${response.updateForm.form.slug}`);
+      }
+      // If the input contained a slug (e.g. if slug could be changed), invalidate old slug too
+      if (input.slug && input.slug !== response.updateForm.form.slug) {
+         optimizedQueries.invalidateCache(`form:${input.slug}`);
+         clearCache(`form_slug_${input.slug}`);
+      }
+      optimizedQueries.invalidateCache('forms'); // General list
+      clearCache('forms');
+    }
     return response.updateForm || { success: false, message: 'Failed to update form', form: null };
   } catch (error) {
     console.error('Error updating form:', error);
@@ -3068,6 +3351,16 @@ async function deleteForm(id: string): Promise<FormResult> {
 
   try {
     const response = await gqlRequest<{ deleteForm: FormResult }>(mutation, variables);
+    if (response.deleteForm && response.deleteForm.success) {
+      // We need to know the slug if forms are cached by slug by GraphQLOptimizer
+      // This example assumes we don't have slug here, so only invalidate by ID for GraphQLOptimizer.
+      // If form details (like slug) were fetched before delete or part of response, we could use them.
+      optimizedQueries.invalidateCache(`form:${id}`);
+      clearCache(`form_${id}`); 
+      // To be safe, if slugs are used, we might need to clear a specific slug if known, or be more general.
+      optimizedQueries.invalidateCache('forms'); // General list
+      clearCache('forms');
+    }
     return response.deleteForm || { success: false, message: 'Failed to delete form', form: null };
   } catch (error) {
     console.error('Error deleting form:', error);
@@ -3100,6 +3393,13 @@ async function createFormStep(input: FormStepInput): Promise<FormStepResult> {
 
   try {
     const response = await gqlRequest<{ createFormStep: FormStepResult }>(mutation, variables);
+    if (response.createFormStep && response.createFormStep.success && response.createFormStep.step) {
+      const formId = response.createFormStep.step.formId;
+      optimizedQueries.invalidateCache(`form:${formId}`);
+      clearCache(`form_${formId}`);
+      optimizedQueries.invalidateCache('forms'); // Also invalidate general list as form structure changed.
+      clearCache('forms');
+    }
     return response.createFormStep || { success: false, message: 'Failed to create form step', step: null };
   } catch (error) {
     console.error('Error creating form step:', error);
@@ -3140,6 +3440,15 @@ async function createFormField(input: FormFieldInput): Promise<FormFieldResult> 
 
   try {
     const response = await gqlRequest<{ createFormField: FormFieldResult }>(mutation, variables);
+    if (response.createFormField && response.createFormField.success && response.createFormField.field) {
+      const formId = response.createFormField.field.formId;
+      if (formId) {
+        optimizedQueries.invalidateCache(`form:${formId}`);
+        clearCache(`form_${formId}`);
+        optimizedQueries.invalidateCache('forms'); 
+        clearCache('forms');
+      }
+    }
     return response.createFormField || { success: false, message: 'Failed to create form field', field: null };
   } catch (error) {
     console.error('Error creating form field:', error);
@@ -3181,6 +3490,22 @@ async function updateFormField(id: string, input: FormFieldInput): Promise<FormF
 
   try {
     const response = await gqlRequest<{ updateFormField: FormFieldResult }>(mutation, variables);
+    if (response.updateFormField && response.updateFormField.success && response.updateFormField.field) {
+      const formId = response.updateFormField.field.formId;
+      // The input to updateFormField IS FormFieldInput, which should contain formId
+      // However, the returned field object is what we are checking here.
+      if (formId) { 
+        optimizedQueries.invalidateCache(`form:${formId}`);
+        clearCache(`form_${formId}`);
+        optimizedQueries.invalidateCache('forms');
+        clearCache('forms');
+      } else if (input.formId) { // Fallback to input if not in response
+        optimizedQueries.invalidateCache(`form:${input.formId}`);
+        clearCache(`form_${input.formId}`);
+        optimizedQueries.invalidateCache('forms');
+        clearCache('forms');
+      }
+    }
     return response.updateFormField || { success: false, message: 'Failed to update form field', field: null };
   } catch (error) {
     console.error('Error updating form field:', error);
@@ -3203,6 +3528,12 @@ async function deleteFormField(id: string): Promise<{success: boolean; message: 
 
   try {
     const response = await gqlRequest<{ deleteFormField: {success: boolean; message: string} }>(mutation, variables);
+    if (response.deleteFormField && response.deleteFormField.success) {
+      // ID here is the field ID. FormID is not directly available.
+      // Invalidate general forms list as a broader measure.
+      optimizedQueries.invalidateCache('forms');
+      clearCache('forms');
+    }
     return response.deleteFormField || { success: false, message: 'Failed to delete form field' };
   } catch (error) {
     console.error('Error deleting form field:', error);
@@ -3323,6 +3654,13 @@ async function updateFieldOrders(updates: Array<{ id: string; order: number }>):
         message: string;
       }
     }>(mutation, variables);
+    
+    if (response.updateFieldOrders && response.updateFieldOrders.success) {
+      // This is a batch operation. We don't have individual formIds here easily.
+      // Invalidate the general forms list.
+      optimizedQueries.invalidateCache('forms');
+      clearCache('forms');
+    }
     
     return response.updateFieldOrders || { 
       success: false, 
@@ -3471,6 +3809,17 @@ const graphqlClient = {
           blog: Blog | null;
         };
       }>(query, { input });
+      if (response.createBlog && response.createBlog.success && response.createBlog.blog) {
+        const newBlog = response.createBlog.blog;
+        optimizedQueries.invalidateCache('blogs'); // General list
+        clearCache('blogs');
+        optimizedQueries.invalidateCache(`blog:${newBlog.id}`);
+        clearCache(`blog_${newBlog.id}`);
+        if (newBlog.slug) {
+          optimizedQueries.invalidateCache(`blog:${newBlog.slug}`);
+          clearCache(`blog_slug_${newBlog.slug}`);
+        }
+      }
       return response.createBlog;
     } catch (error) {
       console.error('Error creating blog:', error);
@@ -3492,6 +3841,14 @@ const graphqlClient = {
       }
     `;
     const response = await gqlRequest<{ deleteBlog: { success: boolean; message: string } }>(query, { id });
+    if (response.deleteBlog && response.deleteBlog.success) {
+      optimizedQueries.invalidateCache(`blog:${id}`);
+      clearCache(`blog_${id}`);
+      // If slug was known, invalidate it too. For delete, often only ID is available.
+      // optimizedQueries.invalidateCache(`blog:${slug}`); 
+      optimizedQueries.invalidateCache('blogs');
+      clearCache('blogs');
+    }
     return response.deleteBlog;
   },
 
@@ -3528,6 +3885,22 @@ const graphqlClient = {
         };
       }>(query, { id, input });
       
+      if (response.updateBlog && response.updateBlog.success && response.updateBlog.blog) {
+        const updatedBlog = response.updateBlog.blog;
+        optimizedQueries.invalidateCache(`blog:${id}`);
+        clearCache(`blog_${id}`);
+        if (updatedBlog.slug) {
+          optimizedQueries.invalidateCache(`blog:${updatedBlog.slug}`);
+          clearCache(`blog_slug_${updatedBlog.slug}`);
+        }
+        // If input slug is different from response slug (slug changed)
+        if (input.slug && updatedBlog.slug && input.slug !== updatedBlog.slug) {
+            optimizedQueries.invalidateCache(`blog:${input.slug}`);
+            clearCache(`blog_slug_${input.slug}`);
+        }
+        optimizedQueries.invalidateCache('blogs');
+        clearCache('blogs');
+      }
       return response.updateBlog;
     } catch (error) {
       console.error('Error updating blog:', error);
@@ -3582,6 +3955,21 @@ const graphqlClient = {
       }
     `;
     const response = await gqlRequest<{ createPost: { success: boolean; message: string; post: Post | null } }>(mutation, { input });
+    if (response.createPost && response.createPost.success && response.createPost.post) {
+      const newPost = response.createPost.post;
+      optimizedQueries.invalidateCache('posts'); // General list
+      clearCache('posts');
+      optimizedQueries.invalidateCache(`post:${newPost.id}`);
+      clearCache(`post_${newPost.id}`);
+      if (newPost.slug) {
+        optimizedQueries.invalidateCache(`post:${newPost.slug}`);
+        clearCache(`post_slug_${newPost.slug}`);
+      }
+      if (newPost.blogId) { // blogId comes from input, should be in newPost
+        optimizedQueries.invalidateCache(`blog:${newPost.blogId}`);
+        clearCache(`blog_${newPost.blogId}`); // Assuming blog specific cache might list posts
+      }
+    }
     return response.createPost;
   },
 
@@ -3704,6 +4092,28 @@ const graphqlClient = {
       }
     `;
     const response = await gqlRequest<{ updatePost: { success: boolean; message: string; post: Post | null } }>(mutation, { id, input });
+    if (response.updatePost && response.updatePost.success && response.updatePost.post) {
+      const updatedPost = response.updatePost.post;
+      optimizedQueries.invalidateCache(`post:${id}`);
+      clearCache(`post_${id}`);
+      if (updatedPost.slug) {
+        optimizedQueries.invalidateCache(`post:${updatedPost.slug}`);
+        clearCache(`post_slug_${updatedPost.slug}`);
+      }
+       // If input slug is different from response slug (slug changed)
+      if (input.slug && updatedPost.slug && input.slug !== updatedPost.slug) {
+        optimizedQueries.invalidateCache(`post:${input.slug}`);
+        clearCache(`post_slug_${input.slug}`);
+      }
+      optimizedQueries.invalidateCache('posts');
+      clearCache('posts');
+      // Assuming blogId does not change on update. If it could, we'd need old and new blogId.
+      // If the post details returned included blogId, we could invalidate it:
+      // if (updatedPost.blogId) {
+      //   optimizedQueries.invalidateCache(`blog:${updatedPost.blogId}`);
+      //   clearCache(`blog_${updatedPost.blogId}`);
+      // }
+    }
     return response.updatePost;
   },
 
@@ -3717,6 +4127,15 @@ const graphqlClient = {
       }
     `;
     const response = await gqlRequest<{ deletePost: { success: boolean; message: string } }>(mutation, { id });
+    if (response.deletePost && response.deletePost.success) {
+      optimizedQueries.invalidateCache(`post:${id}`);
+      clearCache(`post_${id}`);
+      // If slug/blogId were known, invalidate them too.
+      // optimizedQueries.invalidateCache(`post:${slug}`);
+      // optimizedQueries.invalidateCache(`blog:${blogId}`);
+      optimizedQueries.invalidateCache('posts');
+      clearCache('posts');
+    }
     return response.deletePost;
   },
 };
@@ -3850,6 +4269,13 @@ async function updateFormStep(id: string, input: Partial<FormStepInput>): Promis
 
   try {
     const response = await gqlRequest<{ updateFormStep: FormStepResult }>(mutation, variables);
+    if (response.updateFormStep && response.updateFormStep.success && response.updateFormStep.step) {
+      const formId = response.updateFormStep.step.formId;
+      optimizedQueries.invalidateCache(`form:${formId}`);
+      clearCache(`form_${formId}`);
+      optimizedQueries.invalidateCache('forms');
+      clearCache('forms');
+    }
     return response.updateFormStep || { success: false, message: 'Failed to update form step', step: null };
   } catch (error) {
     console.error('Error updating form step:', error);
@@ -3872,6 +4298,21 @@ async function deleteFormStep(id: string): Promise<FormStepResult> {
 
   try {
     const response = await gqlRequest<{ deleteFormStep: FormStepResult }>(mutation, variables);
+    // For delete, the step object might not be returned, or formId might not be in it.
+    // If formId is part of the input or can be reliably inferred, use it.
+    // Assuming 'id' passed to deleteFormStep is the step's ID, and we don't have formId directly.
+    // This makes targeted invalidation hard without fetching step details first or changing API.
+    // As a broader measure, we invalidate all forms list cache.
+    if (response.deleteFormStep && response.deleteFormStep.success) {
+      // Best effort: if step info with formId was returned, use it.
+      // if (response.deleteFormStep.step && response.deleteFormStep.step.formId) {
+      //   const formId = response.deleteFormStep.step.formId;
+      //   optimizedQueries.invalidateCache(`form:${formId}`);
+      //   clearCache(`form_${formId}`);
+      // }
+      optimizedQueries.invalidateCache('forms'); // Invalidate general list
+      clearCache('forms');
+    }
     return response.deleteFormStep || { success: false, message: 'Failed to delete form step', step: null };
   } catch (error) {
     console.error('Error deleting form step:', error);

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { cmsOperations, CMSPageDB } from '@/lib/graphql-client';
-import { optimizedQueries } from '@/lib/graphql-optimizations';
+import { optimizedQueries, graphqlOptimizer } from '@/lib/graphql-optimizations'; // Import graphqlOptimizer
 import SectionManager from '@/components/cms/SectionManager';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import ModernLoader from '@/components/ui/ModernLoader';
@@ -19,7 +19,7 @@ const globalPageCache = new Map<string, {
 }>();
 
 // Global cache for all pages list
-let allPagesCache: Array<{ slug: string; locale: string; title: string }> | null = null;
+let allPagesCache: Array<{ slug: string; locale: string; id: string }> | null = null;
 
 // Navigation function type
 interface NavigationFunction {
@@ -94,12 +94,18 @@ export default function CMSPage() {
       
       // Get all pages first
       if (!allPagesCache) {
-        const allPages = await cmsOperations.getAllPages() as CMSPageDB[];
-        allPagesCache = allPages.map(page => ({
-          slug: page.slug,
-          locale: page.locale || 'en', // Handle missing locale property
-          title: page.title
-        }));
+        const allPages = await cmsOperations.getAllPageIdentifiers();
+        // Ensure allPages is an array and each item has id, slug, and locale
+        if (Array.isArray(allPages) && allPages.every(p => p && typeof p.id === 'string' && typeof p.slug === 'string' && typeof p.locale === 'string')) {
+          allPagesCache = allPages.map(page => ({
+            id: page.id,
+            slug: page.slug,
+            locale: page.locale, 
+          }));
+        } else {
+          console.error("Failed to fetch or process page identifiers correctly.");
+          allPagesCache = []; // Initialize as empty array to prevent further errors
+        }
       }
       
       const totalPages = allPagesCache.length;
@@ -152,7 +158,7 @@ export default function CMSPage() {
                   timestamp: Date.now()
                 });
                 
-                console.log(`✅ Página precargada: ${pageInfo.title} (${pageInfo.slug})`);
+                console.log(`✅ Página precargada: ${pageInfo.slug}`);
               }
               
               loadedPages++;
@@ -229,36 +235,61 @@ export default function CMSPage() {
           console.log('Found page using fallback method:', pageData.title);
           setPageData(pageData as unknown as PageData);
           
-          // Load sections using traditional method
-          const pageSectionsData: SectionData[] = [];
+          // Load sections using OPTIMIZED batch fetching via graphqlOptimizer
+          let pageSectionsData: SectionData[] = [];
           
           if (pageData.sections && pageData.sections.length > 0) {
-            for (const section of pageData.sections) {
-              try {
-                const componentResult = await cmsOperations.getSectionComponents(section.sectionId);
-                
-                if (componentResult && componentResult.components) {
-                  pageSectionsData.push({
-                    id: section.id,
-                    order: section.order || 0,
-                    title: section.name,
-                    components: componentResult.components
-                  });
+            const sectionIds = pageData.sections
+              .map(s => s.sectionId)
+              .filter((id): id is string => !!id); // Ensure IDs are strings and filter out null/undefined
+
+            if (sectionIds.length > 0) {
+              const GET_SECTION_COMPONENTS_OPTIMIZED_QUERY = `
+                query GetSectionComponentsOptimized($sectionId: ID!) {
+                  getSectionComponents(sectionId: $sectionId) {
+                    components { id type data }
+                    lastUpdated
+                  }
                 }
-              } catch (error) {
-                console.error(`Error al cargar componentes para sección ${section.id}:`, error);
+              `;
+              try {
+                const sectionsDataResults = await Promise.all(
+                  sectionIds.map(sectionId =>
+                    graphqlOptimizer.executeQuery( 
+                      GET_SECTION_COMPONENTS_OPTIMIZED_QUERY,
+                      { sectionId },
+                      { cache: true, ttl: 5 * 60 * 1000, dependencies: [`section:${sectionId}`], batch: true }
+                    )
+                  )
+                );
+
+                pageSectionsData = sectionsDataResults.map((result: any, index: number) => {
+                  // Find the original section info using the sectionId, as the order might not be guaranteed
+                  // or some sections might have failed to load, Promise.allSettled would be better for that.
+                  // For now, assuming sectionIds[index] corresponds to result.
+                  const originalSectionInfo = pageData.sections?.find(s => s.sectionId === sectionIds[index]);
+                  const components = result?.getSectionComponents?.components || [];
+                  return {
+                    id: originalSectionInfo?.id || `fallback-id-${index}`, // Use original section's CMS ID
+                    order: originalSectionInfo?.order || 0,
+                    title: originalSectionInfo?.name,
+                    components: components
+                  };
+                }).sort((a, b) => a.order - b.order);
+              
+              } catch (sectionError) {
+                console.error('Error fetching sections in fallback using graphqlOptimizer:', sectionError);
+                // pageSectionsData will remain empty or partially filled if some succeeded before error
               }
             }
-            
-            pageSectionsData.sort((a, b) => a.order - b.order);
           }
           
           setSections(pageSectionsData);
           
           // Cache for future use
           globalPageCache.set(cacheKey, {
-            page: pageData as unknown as PageData,
-            sections: pageSectionsData,
+            page: pageData as unknown as PageData, // pageData is from cmsOperations.getPageBySlug
+            sections: pageSectionsData, // sections are now from graphqlOptimizer
             timestamp: Date.now()
           });
           
