@@ -105,7 +105,98 @@ export default function CalendarSection({
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isBooking, setIsBooking] = useState(false); 
   const [error, setError] = useState<string | null>(null);
+
+  const [customerInfo, setCustomerInfo] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    notes: '',
+  });
+  // Example, if you add communication preferences UI
+  // const [communicationPreferences, setCommunicationPreferences] = useState<CommunicationMethod[]>([]); 
+  const [confirmedBookingDetails, setConfirmedBookingDetails] = useState<Booking | null>(null);
+
+  const resetBookingFlow = () => {
+    setSelectedLocationId(defaultLocation || initialLocationIdProp || null);
+    setSelectedCategoryId(null);
+    setSelectedServiceId(null);
+    setSelectedStaffId("ANY_AVAILABLE");
+    setSelectedDate(new Date());
+    setTimeSlots([]);
+    setSelectedTimeSlot(null);
+    setCustomerInfo({ fullName: '', email: '', phone: '', notes: '' });
+    setConfirmedBookingDetails(null);
+    setCurrentStep(getInitialStep()); // Recalculate initial step
+    setError(null);
+    // Potentially re-fetch initial data if needed, but usually not for a reset
+  };
+
+  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCustomerInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLocationId || !selectedServiceId || !selectedTimeSlot || !selectedDate) {
+      toast.error("Booking details are incomplete. Please go back and complete selections.");
+      return;
+    }
+    if (!customerInfo.fullName.trim() || !customerInfo.email.trim() || !customerInfo.phone.trim()) {
+      toast.error("Please fill in all required customer details.");
+      return;
+    }
+    // Basic email validation
+    if (!/\S+@\S+\.\S+/.test(customerInfo.email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
+    setIsBooking(true);
+    setError(null);
+
+    const serviceDetails = allServicesForLocation.find(s => s.id === selectedServiceId);
+    if (!serviceDetails) {
+        toast.error("Selected service details not found. Please try again.");
+        setIsBooking(false);
+        return;
+    }
+
+    const bookingInput = {
+      locationId: selectedLocationId,
+      serviceId: selectedServiceId,
+      staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? null : selectedStaffId,
+      startTime: selectedTimeSlot.startTime, // Already ISO string
+      endTime: selectedTimeSlot.endTime,     // Already ISO string
+      durationMinutes: serviceDetails.durationMinutes,
+      // status: "PENDING", // Or "CONFIRMED" depending on business logic, resolver might set default
+      notes: customerInfo.notes,
+      customerName: customerInfo.fullName,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      communicationPreferences: [], // Example: ['EMAIL'] if UI was added
+    };
+
+    try {
+      const result = await graphqlClient.createBooking({ input: bookingInput });
+      if (result) { // Assuming createBooking returns the created booking object
+        setConfirmedBookingDetails(result);
+        setCurrentStep('confirmation');
+        toast.success("Booking successfully created!");
+      } else {
+        throw new Error("Booking creation did not return data.");
+      }
+    } catch (err: any) {
+      console.error("Booking submission error:", err);
+      toast.error(`Booking failed: ${err.message || 'Unknown error'}`);
+      setError(`Booking failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
 
    // Initialize current step based on props, and handle defaultService
    useEffect(() => {
@@ -522,8 +613,71 @@ export default function CalendarSection({
             Slot: <Badge>{selectedTimeSlot ? format(new Date(selectedTimeSlot.startTime), "Pp") : 'N/A'}</Badge>.
             <Button onClick={() => setCurrentStep('dateTimeSelection')} variant="link" className="mt-2">Back to Date/Time</Button>
         </div>}
-       {currentStep === 'confirmation' && <div className="p-6 bg-indigo-50 rounded-md text-indigo-700">Confirmation step...</div>}
+      
+      {/* Step 5: Customer Information Form */}
+      {currentStep === 'detailsForm' && selectedTimeSlot && (
+        <section>
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">Your Information</h2>
+          <Card className="p-6 shadow-lg">
+            <form onSubmit={handleBookingSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
+                <Input id="fullName" name="fullName" value={customerInfo.fullName} onChange={handleCustomerInfoChange} required disabled={isBooking} />
+              </div>
+              <div>
+                <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
+                <Input id="email" name="email" type="email" value={customerInfo.email} onChange={handleCustomerInfoChange} required disabled={isBooking} />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
+                <Input id="phone" name="phone" type="tel" value={customerInfo.phone} onChange={handleCustomerInfoChange} required disabled={isBooking} />
+              </div>
+              <div>
+                <Label htmlFor="notes">Special Requests / Notes (Optional)</Label>
+                <Textarea id="notes" name="notes" value={customerInfo.notes} onChange={handleCustomerInfoChange} rows={3} disabled={isBooking} />
+              </div>
+              {/* Add Communication Preferences UI if needed */}
+              <div className="flex justify-between items-center pt-4">
+                <Button type="button" variant="link" onClick={() => setCurrentStep('dateTimeSelection')} disabled={isBooking}>Back to Date/Time</Button>
+                <Button type="submit" disabled={isBooking || !customerInfo.fullName || !customerInfo.email || !customerInfo.phone}>
+                  {isBooking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Confirm Booking
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </section>
+      )}
 
+      {/* Step 6: Confirmation Screen */}
+      {currentStep === 'confirmation' && confirmedBookingDetails && (
+        <section className="text-center py-8">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl sm:text-3xl font-semibold mb-3 text-gray-800">Booking Confirmed!</h2>
+            <p className="text-muted-foreground mb-6">Thank you, {confirmedBookingDetails.customerName}. Your booking details are below.</p>
+            <Card className="max-w-md mx-auto text-left shadow-lg">
+                <CardHeader>
+                    <CardTitle>{confirmedBookingDetails.service?.name}</CardTitle>
+                    <CardDescription>Booking ID: {confirmedBookingDetails.id?.substring(0,8)}...</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <p><strong>Date & Time:</strong> {format(new Date(confirmedBookingDetails.startTime), "EEEE, MMMM d, yyyy 'at' p")}</p>
+                    <p><strong>Duration:</strong> {displayServices.find(s=>s.id === selectedServiceId)?.durationMinutes || 'N/A'} minutes</p>
+                    <p><strong>Location:</strong> {locations.find(l=>l.id === selectedLocationId)?.name}</p>
+                    {selectedStaffId !== "ANY_AVAILABLE" && confirmedBookingDetails.staffProfile?.user && (
+                        <p><strong>With:</strong> {confirmedBookingDetails.staffProfile.user.firstName} {confirmedBookingDetails.staffProfile.user.lastName}</p>
+                    )}
+                    <p><strong>Email:</strong> {confirmedBookingDetails.customerEmail}</p>
+                    <p><strong>Phone:</strong> {confirmedBookingDetails.customerPhone}</p>
+                    {confirmedBookingDetails.notes && <p><strong>Notes:</strong> {confirmedBookingDetails.notes}</p>}
+                </CardContent>
+                <DialogFooter className="p-4 border-t">
+                    <Button variant="outline" onClick={() => { /* TODO: Implement Add to Calendar */ toast.info("Add to Calendar - Not Implemented"); }}>Add to Calendar</Button>
+                    <Button onClick={resetBookingFlow}>Make Another Booking</Button>
+                </DialogFooter>
+            </Card>
+        </section>
+      )}
     </div>
   );
 }
@@ -557,7 +711,7 @@ declare module '@/types/calendar' {
     userId: string;
     bio?: string | null;
     specializations?: string[];
-    user?: { firstName?: string | null; lastName?: string | null; email?: string; };
+    user?: { id: string; firstName?: string | null; lastName?: string | null; email?: string; };
   }
   export interface AvailableTimeSlot {
     startTime: string; 
@@ -565,8 +719,22 @@ declare module '@/types/calendar' {
     isAvailable: boolean;
     staffId?: string | null; 
   }
-   export enum DayOfWeek { // Ensure this matches Prisma definition or is mapped
+  export enum DayOfWeek { 
     MONDAY = "MONDAY", TUESDAY = "TUESDAY", WEDNESDAY = "WEDNESDAY",
     THURSDAY = "THURSDAY", FRIDAY = "FRIDAY", SATURDAY = "SATURDAY", SUNDAY = "SUNDAY",
+  }
+  // For booking confirmation, assuming Booking type from resolver
+  export interface Booking {
+    id: string;
+    service?: Partial<Service>;
+    location?: Partial<Location>;
+    staffProfile?: Partial<StaffProfile>;
+    startTime: string; // ISO DateTime string
+    endTime: string;   // ISO DateTime string
+    status?: string; 
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    notes?: string | null;
   }
 }
