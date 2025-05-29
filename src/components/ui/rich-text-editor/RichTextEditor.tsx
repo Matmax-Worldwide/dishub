@@ -52,9 +52,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Actualizar el estado del editor
   const updateEditorState = useCallback(() => {
-    if (showCodeView) return;
+    if (showCodeView || !editorRef.current) return;
     
     try {
+      // Solo actualizar estado si hay una selección activa o el editor tiene foco
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return; // No actualizar estado si no hay selección
+      }
+      
       const newState = EditorUtils.getEditorState();
       setEditorState(newState);
     } catch (error) {
@@ -79,55 +85,79 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       return;
     }
 
-    // Debounce para evitar actualizaciones excesivas
+    // Debounce más largo para evitar actualizaciones excesivas
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
     }
 
     updateTimeoutRef.current = setTimeout(() => {
       onChange(sanitizedContent);
-      updateEditorState();
-    }, 300);
-  }, [onChange, maxLength, showCodeView, updateEditorState]);
+    }, 800); // Aumentado de 500ms a 800ms
+  }, [onChange, maxLength, showCodeView]);
 
   // Manejar comandos de la barra de herramientas
   const handleCommand = useCallback((command: string, value?: string) => {
-    if (showCodeView) return;
+    if (showCodeView || !editorRef.current) return;
+
+    // Asegurar que el editor tenga foco
+    editorRef.current.focus();
 
     // Restaurar selección si existe
     if (savedSelectionRef.current) {
       EditorUtils.restoreSelection(savedSelectionRef.current);
     }
 
-    // Ejecutar comando
-    switch (command) {
-      case 'formatBlock':
-        EditorUtils.formatHeading(value || 'p');
-        break;
-      case 'fontSize':
-        EditorUtils.applyFontSize(value || '3');
-        break;
-      case 'foreColor':
-        EditorUtils.applyTextColor(value || '#000000');
-        break;
-      case 'backColor':
-        EditorUtils.applyBackgroundColor(value || 'transparent');
-        break;
-      case 'removeFormat':
-        EditorUtils.clearFormatting();
-        break;
-      default:
-        EditorUtils.executeCommand({ command, value });
+    // Verificar que hay una selección válida para comandos de formato
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      // Para comandos que no requieren selección (como headings), crear una selección al final
+      if (['formatBlock'].includes(command)) {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      } else {
+        return; // No ejecutar comandos de formato sin selección
+      }
     }
 
-    // Enfocar el editor y actualizar estado
-    if (editorRef.current) {
-      editorRef.current.focus();
+    // Ejecutar comando
+    try {
+      switch (command) {
+        case 'formatBlock':
+          EditorUtils.formatHeading(value || 'p');
+          break;
+        case 'fontSize':
+          EditorUtils.applyFontSize(value || '3');
+          break;
+        case 'foreColor':
+          EditorUtils.applyTextColor(value || '#000000');
+          break;
+        case 'backColor':
+          EditorUtils.applyBackgroundColor(value || 'transparent');
+          break;
+        case 'removeFormat':
+          EditorUtils.clearFormatting();
+          break;
+        default:
+          EditorUtils.executeCommand({ command, value });
+      }
+    } catch (error) {
+      console.warn('Error executing command:', command, error);
     }
-    
-    updateEditorState();
-    handleContentChange();
-  }, [showCodeView, updateEditorState, handleContentChange]);
+
+    // Actualizar estado y contenido inmediatamente para comandos de toolbar
+    setTimeout(() => {
+      updateEditorState();
+      // Forzar guardado inmediato para comandos de toolbar
+      const content = editorRef.current?.innerHTML || '';
+      const sanitizedContent = EditorUtils.sanitizeHTML(content);
+      onChange(sanitizedContent);
+    }, 100); // Reducido de 50ms a 100ms para mejor estabilidad
+  }, [showCodeView, updateEditorState, onChange]);
 
   // Manejar atajos de teclado
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -178,9 +208,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Manejar foco
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-    updateEditorState();
+    // No actualizar estado inmediatamente al hacer foco
     onFocus?.();
-  }, [updateEditorState, onFocus]);
+  }, [onFocus]);
 
   // Manejar pérdida de foco
   const handleBlur = useCallback(() => {
@@ -188,6 +218,29 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     savedSelectionRef.current = EditorUtils.saveSelection();
     onBlur?.();
   }, [onBlur]);
+
+  // Manejar selección de texto - simplificado
+  const handleSelectionChange = useCallback(() => {
+    if (showCodeView || !editorRef.current || !isFocused) return;
+    
+    // Solo actualizar estado, no contenido
+    updateEditorState();
+  }, [showCodeView, isFocused, updateEditorState]);
+
+  // Event listener para cambios de selección
+  useEffect(() => {
+    const handleDocumentSelectionChange = () => {
+      if (isFocused && editorRef.current && document.activeElement === editorRef.current) {
+        handleSelectionChange();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleDocumentSelectionChange);
+    
+    return () => {
+      document.removeEventListener('selectionchange', handleDocumentSelectionChange);
+    };
+  }, [handleSelectionChange, isFocused]);
 
   // Alternar vista de código
   const toggleCodeView = useCallback(() => {
@@ -233,7 +286,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     updateTimeoutRef.current = setTimeout(() => {
       onChange(newValue);
-    }, 300);
+    }, 500);
   }, [onChange]);
 
   // Inicializar contenido

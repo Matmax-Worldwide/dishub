@@ -116,20 +116,92 @@ export const DEFAULT_STYLES = `
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
   
-  .rich-text-editor-content h1 { font-size: 2.25rem; font-weight: bold; margin: 0.5em 0; }
-  .rich-text-editor-content h2 { font-size: 1.875rem; font-weight: bold; margin: 0.5em 0; }
-  .rich-text-editor-content h3 { font-size: 1.5rem; font-weight: bold; margin: 0.5em 0; }
-  .rich-text-editor-content h4 { font-size: 1.25rem; font-weight: bold; margin: 0.5em 0; }
-  .rich-text-editor-content h5 { font-size: 1.125rem; font-weight: bold; margin: 0.5em 0; }
-  .rich-text-editor-content h6 { font-size: 1rem; font-weight: bold; margin: 0.5em 0; }
+  /* Headings */
+  .rich-text-editor-content h1 { 
+    font-size: 2.25rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.2;
+  }
+  .rich-text-editor-content h2 { 
+    font-size: 1.875rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.3;
+  }
+  .rich-text-editor-content h3 { 
+    font-size: 1.5rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.4;
+  }
+  .rich-text-editor-content h4 { 
+    font-size: 1.25rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.4;
+  }
+  .rich-text-editor-content h5 { 
+    font-size: 1.125rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.5;
+  }
+  .rich-text-editor-content h6 { 
+    font-size: 1rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.5;
+  }
   
-  .rich-text-editor-content p { margin: 0.5em 0; }
-  .rich-text-editor-content ul, .rich-text-editor-content ol { margin: 0.5em 0; padding-left: 2em; }
-  .rich-text-editor-content li { margin: 0.25em 0; }
+  /* Paragraphs */
+  .rich-text-editor-content p { 
+    margin: 0.5em 0; 
+    line-height: 1.6;
+  }
   
-  .rich-text-editor-content a { color: #3b82f6; text-decoration: underline; }
-  .rich-text-editor-content a:hover { color: #1d4ed8; }
+  /* Text formatting */
+  .rich-text-editor-content strong,
+  .rich-text-editor-content b { 
+    font-weight: bold; 
+  }
   
+  .rich-text-editor-content em,
+  .rich-text-editor-content i { 
+    font-style: italic; 
+  }
+  
+  .rich-text-editor-content u { 
+    text-decoration: underline; 
+  }
+  
+  .rich-text-editor-content strike,
+  .rich-text-editor-content s,
+  .rich-text-editor-content del { 
+    text-decoration: line-through; 
+  }
+  
+  /* Lists */
+  .rich-text-editor-content ul, 
+  .rich-text-editor-content ol { 
+    margin: 0.5em 0; 
+    padding-left: 2em; 
+  }
+  .rich-text-editor-content li { 
+    margin: 0.25em 0; 
+    line-height: 1.5;
+  }
+  
+  /* Links */
+  .rich-text-editor-content a { 
+    color: #3b82f6; 
+    text-decoration: underline; 
+  }
+  .rich-text-editor-content a:hover { 
+    color: #1d4ed8; 
+  }
+  
+  /* Blockquotes */
   .rich-text-editor-content blockquote {
     border-left: 4px solid #e2e8f0;
     padding-left: 1em;
@@ -138,6 +210,7 @@ export const DEFAULT_STYLES = `
     color: #64748b;
   }
   
+  /* Code */
   .rich-text-editor-content code {
     background-color: #f1f5f9;
     padding: 0.125em 0.25em;
@@ -157,5 +230,127 @@ export const DEFAULT_STYLES = `
   .rich-text-editor-content pre code {
     background: none;
     padding: 0;
+  }
+  
+  /* Estilos globales para contenido renderizado fuera del editor */
+  .rich-content h1 { 
+    font-size: 2.25rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.2;
+  }
+  .rich-content h2 { 
+    font-size: 1.875rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.3;
+  }
+  .rich-content h3 { 
+    font-size: 1.5rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.4;
+  }
+  .rich-content h4 { 
+    font-size: 1.25rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.4;
+  }
+  .rich-content h5 { 
+    font-size: 1.125rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.5;
+  }
+  .rich-content h6 { 
+    font-size: 1rem; 
+    font-weight: bold; 
+    margin: 0.5em 0; 
+    line-height: 1.5;
+  }
+  
+  .rich-content p { 
+    margin: 0.5em 0; 
+    line-height: 1.6;
+  }
+  
+  .rich-content strong,
+  .rich-content b { 
+    font-weight: bold; 
+  }
+  
+  .rich-content em,
+  .rich-content i { 
+    font-style: italic; 
+  }
+  
+  .rich-content u { 
+    text-decoration: underline; 
+  }
+  
+  .rich-content strike,
+  .rich-content s,
+  .rich-content del { 
+    text-decoration: line-through; 
+  }
+  
+  .rich-content ul, 
+  .rich-content ol { 
+    margin: 0.5em 0; 
+    padding-left: 2em; 
+  }
+  
+  .rich-content li { 
+    margin: 0.25em 0; 
+    line-height: 1.5;
+  }
+  
+  .rich-content a { 
+    color: #3b82f6; 
+    text-decoration: underline; 
+  }
+  
+  .rich-content a:hover { 
+    color: #1d4ed8; 
+  }
+  
+  /* Estilos para modo simple del RichTextEditor */
+  .rich-text-simple-mode .rich-text-editor {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+  }
+  
+  .rich-text-simple-mode .rich-text-editor-content {
+    min-height: 60px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .rich-text-simple-mode .rich-text-editor-content:focus {
+    border: none;
+    box-shadow: none;
+  }
+  
+  /* Toolbar más compacto para modo simple */
+  .rich-text-simple-mode .toolbar {
+    padding: 4px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+  
+  .rich-text-simple-mode .toolbar button {
+    padding: 4px 6px;
+    margin: 0 1px;
+    border-radius: 4px;
+  }
+  
+  .rich-text-simple-mode .toolbar .w-px {
+    height: 16px;
+    margin: 0 4px;
   }
 `; 
