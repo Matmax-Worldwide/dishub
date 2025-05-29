@@ -1237,6 +1237,7 @@ export const typeDefs = gql`
     
     # Nuevas queries para páginas CMS
     getAllCMSPages: [Page!]!
+    page(id: ID!): Page
     getPageBySlug(slug: String!): Page
     getDefaultPage(locale: String!): Page
     getPagesUsingSectionId(sectionId: ID!): [Page!]!
