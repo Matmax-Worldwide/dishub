@@ -82,6 +82,78 @@ export const calendarResolvers = {
         },
       });
     },
+    bookings: async (_parent: unknown, { filter, pagination }: { filter?: any, pagination?: any }, context: any) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+
+      const where: Prisma.BookingWhereInput = {};
+      if (filter) {
+        if (filter.dateFrom && filter.dateTo) {
+          where.bookingDate = { gte: new Date(filter.dateFrom), lte: new Date(filter.dateTo) };
+        } else if (filter.dateFrom) {
+          where.bookingDate = { gte: new Date(filter.dateFrom) };
+        } else if (filter.dateTo) {
+          where.bookingDate = { lte: new Date(filter.dateTo) };
+        }
+        if (filter.status) {
+          where.status = filter.status as Prisma.BookingStatus;
+        }
+        if (filter.locationId) {
+          where.locationId = filter.locationId;
+        }
+        if (filter.serviceId) {
+          where.serviceId = filter.serviceId;
+        }
+        if (filter.staffProfileId) {
+          where.staffProfileId = filter.staffProfileId;
+        }
+        if (filter.userId) {
+          where.userId = filter.userId;
+        }
+        if (filter.customerEmail) {
+          where.customerEmail = { contains: filter.customerEmail, mode: 'insensitive' };
+        }
+        if (filter.searchQuery) {
+          where.OR = [
+            { customerName: { contains: filter.searchQuery, mode: 'insensitive' } },
+            { customerEmail: { contains: filter.searchQuery, mode: 'insensitive' } },
+            { notes: { contains: filter.searchQuery, mode: 'insensitive' } },
+            // Potentially search in service name, location name, staff name if needed
+            // This would require joins or fetching related data then filtering,
+            // or denormalizing these names onto the Booking table for easier search.
+            // For now, keeping search to direct Booking fields.
+          ];
+        }
+      }
+
+      const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
+      const pageSize = pagination?.pageSize && pagination.pageSize > 0 ? pagination.pageSize : 10;
+      const skip = (page - 1) * pageSize;
+
+      const totalCount = await prisma.booking.count({ where });
+      const items = await prisma.booking.findMany({
+        where,
+        skip,
+        take: pageSize,
+        include: {
+          user: true, // If userId is present, fetch the user
+          service: true,
+          location: true,
+          staffProfile: {
+            include: {
+              user: true, // Fetch the user related to the staffProfile
+            },
+          },
+        },
+        orderBy: { bookingDate: 'desc' }, // Default order
+      });
+
+      return {
+        items,
+        totalCount,
+        page,
+        pageSize,
+      };
+    },
   },
   Mutation: {
     createLocation: async (_parent: unknown, { input }: { input: Prisma.LocationCreateInput }, context: any) => {
@@ -326,5 +398,26 @@ export const calendarResolvers = {
       if (!parent.locationId) return null;
       return prisma.location.findUnique({ where: { id: parent.locationId } });
     }
-  }
+  },
+  // Add Type resolver for Booking to ensure relations are handled if not covered by direct includes
+  // However, the 'include' in the main 'bookings' query resolver should handle these.
+  // Booking: {
+  //   user: async (parent: { userId?: string | null }) => {
+  //     if (!parent.userId) return null;
+  //     return prisma.user.findUnique({ where: { id: parent.userId } });
+  //   },
+  //   service: async (parent: { serviceId: string }) => {
+  //     return prisma.service.findUnique({ where: { id: parent.serviceId } });
+  //   },
+  //   location: async (parent: { locationId: string }) => {
+  //     return prisma.location.findUnique({ where: { id: parent.locationId } });
+  //   },
+  //   staffProfile: async (parent: { staffProfileId?: string | null }) => {
+  //     if (!parent.staffProfileId) return null;
+  //     return prisma.staffProfile.findUnique({ 
+  //       where: { id: parent.staffProfileId },
+  //       include: { user: true } 
+  //     });
+  //   },
+  // }
 };

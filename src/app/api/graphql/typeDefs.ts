@@ -14,6 +14,7 @@ export const typeDefs = gql`
   # --------------- BOOKING MODULE ENUMS --- V1 ---
   enum DayOfWeek { MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY }
   enum ScheduleType { REGULAR_HOURS OVERRIDE_HOURS BREAK TIME_OFF SPECIAL_EVENT BLACKOUT_DATE }
+  enum BookingStatus { PENDING CONFIRMED CANCELLED COMPLETED NO_SHOW RESCHEDULED }
   # --------------- END BOOKING MODULE ENUMS --- V1 ---
 
   # Forward declaration for StaffProfile for User type
@@ -40,13 +41,31 @@ export const typeDefs = gql`
 
   # --------------- BOOKING MODULE TYPES (Placeholders and Full Defs) --- V1 ---
   # Placeholder for StaffLocationAssignment (if it's only a join table without extra fields, it might not need a GQL type)
-  # type StaffLocationAssignment { id: ID! } 
+  # type StaffLocationAssignment { id: ID! }
   
-  type Booking { # Placeholder for now
+  type Booking {
     id: ID!
-    # status: String! 
+    userId: ID # ID of the registered user who booked
+    user: User # Resolved from userId
+    customerName: String # Name of the customer (guest or registered)
+    customerEmail: String # Email of the customer
+    customerPhone: String # Phone of the customer
+    serviceId: ID!
+    service: Service! # Resolved from serviceId
+    locationId: ID!
+    location: Location! # Resolved from locationId
+    staffProfileId: ID # Optional: ID of the staff member
+    staffProfile: StaffProfile # Resolved from staffProfileId
+    bookingDate: DateTime! # Date of the appointment
+    startTime: DateTime! # Start date and time of the appointment
+    endTime: DateTime! # End date and time of the appointment
+    status: BookingStatus!
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
-  type BookingRule { # Placeholder for now
+
+  type BookingRule { # Placeholder for now - Will be defined later if needed for booking list/details
     id: ID!
     # advanceBookingDaysMax: Int
   }
@@ -1041,6 +1060,32 @@ export const typeDefs = gql`
     services: [Service!]!
     staffProfile(id: ID!): StaffProfile # New
     staffProfiles: [StaffProfile!]!   # New
+
+    bookings(filter: BookingFilterInput, pagination: PaginationInput): PaginatedBookings!
+  }
+
+  input PaginationInput {
+    page: Int = 1
+    pageSize: Int = 10
+  }
+
+  type PaginatedBookings {
+    items: [Booking!]!
+    totalCount: Int!
+    page: Int!
+    pageSize: Int!
+  }
+
+  input BookingFilterInput {
+    dateFrom: DateTime
+    dateTo: DateTime
+    status: BookingStatus
+    locationId: ID
+    serviceId: ID
+    staffProfileId: ID
+    userId: ID # Filter by registered customer
+    customerEmail: String # Filter by customer email (guest or registered)
+    searchQuery: String # General search for customer name, email, notes etc.
   }
 
   type Mutation {
