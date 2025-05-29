@@ -389,15 +389,15 @@ export const typeDefs = gql`
   # Settings types
   type UserSettings {
     id: ID!
-    userId: ID!
-    user: User
+    userId: ID! # Assuming this maps to the User ID
+    user: User # Relation to User
     emailNotifications: Boolean!
     theme: String!
     language: String!
     timeFormat: String!
     dateFormat: String!
-    createdAt: String!
-    updatedAt: String!
+    createdAt: String! # Using String for DateTime as per existing pattern
+    updatedAt: String! # Using String for DateTime
   }
 
   input UpdateUserSettingsInput {
@@ -406,6 +406,63 @@ export const typeDefs = gql`
     language: String
     timeFormat: String
     dateFormat: String
+  }
+
+  type SiteSettings {
+    id: ID!
+    siteName: String!
+    siteDescription: String
+    logoUrl: String
+    faviconUrl: String
+    primaryColor: String
+    secondaryColor: String
+    googleAnalyticsId: String
+    facebookPixelId: String
+    customCss: String
+    customJs: String
+    contactEmail: String
+    contactPhone: String
+    address: String
+    accentColor: String
+    defaultLocale: String!
+    footerText: String
+    maintenanceMode: Boolean!
+    metaDescription: String
+    metaTitle: String
+    ogImage: String
+    socialLinks: String # Using String for JSON as per existing pattern (JSON scalar exists but example uses String)
+    supportedLocales: [String!]!
+    twitterCardType: String
+    twitterHandle: String
+    createdAt: String! # Using String for DateTime
+    updatedAt: String! # Using String for DateTime
+  }
+
+  input UpdateSiteSettingsInput {
+    siteName: String
+    siteDescription: String
+    logoUrl: String
+    faviconUrl: String
+    primaryColor: String
+    secondaryColor: String
+    googleAnalyticsId: String
+    facebookPixelId: String
+    customCss: String
+    customJs: String
+    contactEmail: String
+    contactPhone: String
+    address: String
+    accentColor: String
+    defaultLocale: String
+    footerText: String
+    maintenanceMode: Boolean
+    metaDescription: String
+    metaTitle: String
+    ogImage: String
+    socialLinks: String # Input for JSON field
+    supportedLocales: [String!]
+    twitterCardType: String
+    twitterHandle: String
   }
 
   # Help types
@@ -1151,6 +1208,7 @@ export const typeDefs = gql`
     
     # Settings queries
     userSettings: UserSettings
+    getSiteSettings: SiteSettings
     
     # Help queries
     helpArticles: [HelpArticle!]
@@ -1271,6 +1329,7 @@ export const typeDefs = gql`
     
     # Settings mutations
     updateUserSettings(input: UpdateUserSettingsInput!): UserSettings!
+    updateSiteSettings(input: UpdateSiteSettingsInput!): SiteSettings
     
     # Help mutations
     createHelpArticle(input: CreateHelpArticleInput!): HelpArticle!
