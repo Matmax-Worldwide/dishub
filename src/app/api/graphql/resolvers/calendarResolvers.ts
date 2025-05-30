@@ -60,13 +60,6 @@ interface PaginationInput {
   pageSize?: number;
 }
 
-type LocationCreateInput = {
-  name: string;
-  address?: string | null;
-  phone?: string | null;
-  operatingHours?: JSON;
-};
-
 interface CreateServiceCategoryInput {
   name: string;
   description?: string;
@@ -757,7 +750,7 @@ export const calendarResolvers = {
           operatingHours: input.operatingHours,
         };
         const location = await prisma.location.create({ 
-          data: data as LocationCreateInput
+          data
         });
         return {
           success: true,
