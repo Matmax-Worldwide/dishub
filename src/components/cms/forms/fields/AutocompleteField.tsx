@@ -28,6 +28,7 @@ export function AutocompleteFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para Autocomplete
 export function AutocompleteField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.AUTOCOMPLETE,
     label: 'Autocomplete Input',
     name: 'autocompleteField',
@@ -36,12 +37,9 @@ export function AutocompleteField({ field, onChange, showPreview = true }: Field
     isRequired: false,
     defaultValue: '',
     width: 100,
-    options: { dataSourceUrl: '', staticItems: '' }, // staticItems as comma-separated string
+    order: 0,
+    options: { dataSourceUrl: '', staticItems: '' },
     ...field,
-    options: {
-        dataSourceUrl: '', staticItems: '',
-        ...field?.options,
-    }
   });
 
   useEffect(() => {
@@ -124,12 +122,12 @@ export function AutocompleteField({ field, onChange, showPreview = true }: Field
       </div>
       <div>
         <Label htmlFor="options.dataSourceUrl">Data Source URL (for dynamic suggestions)</Label>
-        <Input id="options.dataSourceUrl" name="dataSourceUrl" value={localField.options?.dataSourceUrl || ''} onChange={handleOptionsChange} onKeyDown={handleKeyDown} placeholder="e.g., /api/suggestions?q=" />
+        <Input id="options.dataSourceUrl" name="dataSourceUrl" value={(localField.options?.dataSourceUrl as string) || ''} onChange={handleOptionsChange} onKeyDown={handleKeyDown} placeholder="e.g., /api/suggestions?q=" />
         <p className="mt-1 text-xs text-gray-500">URL to fetch suggestions from. Not implemented in this version.</p>
       </div>
       <div>
         <Label htmlFor="options.staticItems">Static Items (comma-separated for basic suggestions)</Label>
-        <Textarea id="options.staticItems" name="staticItems" value={localField.options?.staticItems || ''} onChange={handleOptionsChange} onKeyDown={handleKeyDown} placeholder="e.g., Apple, Banana, Cherry" rows={3}/>
+        <Textarea id="options.staticItems" name="staticItems" value={(localField.options?.staticItems as string) || ''} onChange={handleOptionsChange} onKeyDown={handleKeyDown} placeholder="e.g., Apple, Banana, Cherry" rows={3}/>
          <p className="mt-1 text-xs text-gray-500">Simple list for client-side suggestions. Not a functional autocomplete in this editor version.</p>
       </div>
       <div>

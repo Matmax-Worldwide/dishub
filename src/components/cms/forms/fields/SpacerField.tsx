@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 
 // Componente de vista previa para campos de espaciador
 export function SpacerFieldPreview({ field }: { field: FormFieldBase }) {
-  const height = field.options?.height || 20; // Default height if not specified
+  const height = (field.options?.height as number) || 20;
   return (
     <BaseFieldPreview field={{...field, label: field.label || "Spacer Preview" }}>
       <div 
@@ -24,10 +24,14 @@ export function SpacerFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de espaciador
 export function SpacerField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.SPACER,
-    label: 'Spacer Block', // Admin label
+    label: 'Spacer Block',
     name: 'spacerField',
-    options: { height: 20 }, // Default height
+    defaultValue: '',
+    isRequired: false,
+    order: 0,
+    options: { height: 20 },
     width: 100,
     ...field,
   });
@@ -106,7 +110,7 @@ export function SpacerField({ field, onChange, showPreview = true }: FieldProps)
           name="options.height"
           min="5"
           step="5"
-          value={localField.options?.height || 20}
+          value={(localField.options?.height as number) || 20}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />

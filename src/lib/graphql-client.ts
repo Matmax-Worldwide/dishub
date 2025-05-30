@@ -21,6 +21,15 @@ import {
 
 import { Blog, Post } from '@/types/blog';
 
+// Import calendar types
+import {
+  CalendarStaffProfile,
+  CalendarUser,
+  CalendarLocation,
+  CalendarStaffScheduleInput,
+  StaffProfileInput
+} from '@/types/calendar';
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,
@@ -1336,14 +1345,14 @@ export const cmsOperations = {
       
       console.log(`Starting saveSectionComponents mutation for section ${sectionId} with ${components.length} components`);
       
-      // Use a longer timeout for saving components - increase from 15s to 30s
+      // Use a longer timeout for saving components - reduced from 30s to 15s after optimization
       const result = await gqlRequest<{ 
         saveSectionComponents: { 
           success: boolean; 
           message: string; 
           lastUpdated: string | null;
         }
-      }>(mutation, { input }, 30000);
+      }>(mutation, { input }, 15000);
       
       if (!result) {
         console.error('No result from GraphQL request in saveSectionComponents');
@@ -1843,15 +1852,15 @@ export const cmsOperations = {
         clearCache(`page_slug_${pageToDelete.slug}`);
       }
       optimizedQueries.invalidateCache(`page_id:${id}`);
-      clearCache(`page_id_${id}`);
+      clearCache(`page_id_${id}`); // local cache
 
       if (pageToDelete && pageToDelete.isDefault && pageToDelete.locale) {
         optimizedQueries.invalidateCache(`default_page_${pageToDelete.locale}`);
-        clearCache(`default_page_${pageToDelete.locale}`);
+        clearCache(`default_page_${pageToDelete.locale}`); // local cache
       }
       
       optimizedQueries.invalidateCache('allPages');
-      clearCache('allPages');
+      clearCache('allPages'); // local cache for general page lists
       
       // If pages also affect menu structures (e.g. if a deleted page was in a menu)
       optimizedQueries.invalidateCache('menus'); 
@@ -2865,6 +2874,1084 @@ export const cmsOperations = {
 
   // Get the default page for a locale
   getDefaultPage,
+
+  // Settings operations
+  async getSiteSettings(): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetSiteSettings {
+        getSiteSettings {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getSiteSettings;
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      return null;
+    }
+  },
+
+  async updateSiteSettings(input: {
+    siteName?: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale?: string;
+    footerText?: string;
+    maintenanceMode?: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales?: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+  }): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateSiteSettings($input: UpdateSiteSettingsInput!) {
+        updateSiteSettings(input: $input) {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateSiteSettings;
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      throw error;
+    }
+  },
+
+  // User Settings operations
+  async getUserSettings(): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetUserSettings {
+        getUserSettings {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getUserSettings;
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      return null;
+    }
+  },
+
+  async updateUserSettings(input: {
+    emailNotifications?: boolean;
+    theme?: string;
+    language?: string;
+    timeFormat?: string;
+    dateFormat?: string;
+  }): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+        updateUserSettings(input: $input) {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateUserSettings;
+    } catch (error) {
+      console.error('Error updating user settings:', error);
+      throw error;
+    }
+  },
+
+  // Staff Management Operations
+  async staffProfiles(): Promise<CalendarStaffProfile[]> {
+    try {
+      const query = `
+        query GetStaffProfiles {
+          staffProfiles {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+            assignedServices {
+              id
+              name
+              description
+              durationMinutes
+              price
+              isActive
+            }
+            locationAssignments {
+              id
+              name
+              address
+              phone
+            }
+            schedules {
+              id
+              locationId
+              date
+              dayOfWeek
+              startTime
+              endTime
+              scheduleType
+              isAvailable
+              notes
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ staffProfiles: CalendarStaffProfile[] }>(query);
+      return response.staffProfiles || [];
+    } catch (error) {
+      console.error('Error fetching staff profiles:', error);
+      return [];
+    }
+  },
+
+  async users(): Promise<CalendarUser[]> {
+    try {
+      const query = `
+        query GetUsers {
+          users {
+            id
+            email
+            firstName
+            lastName
+            phoneNumber
+            bio
+            department
+            isActive
+            position
+            profileImageUrl
+            roleId
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ users: CalendarUser[] }>(query);
+      return response.users || [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  },
+
+
+  async locations(): Promise<CalendarLocation[]> {
+    try {
+      const query = `
+        query GetLocations {
+          locations {
+            id
+            name
+            address
+            phone
+            operatingHours
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
+      return response.locations || [];
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      return [];
+    }
+  },
+
+  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+    try {
+      const mutation = `
+        mutation CreateStaffProfile($input: StaffProfileInput!) {
+          createStaffProfile(input: $input) {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
+      return response.createStaffProfile;
+    } catch (error) {
+      console.error('Error creating staff profile:', error);
+      throw error;
+    }
+  },
+
+  async updateStaffProfile(input: { id: string; input: Partial<StaffProfileInput> }): Promise<CalendarStaffProfile> {
+    try {
+      const mutation = `
+        mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
+          updateStaffProfile(id: $id, input: $input) {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
+      return response.updateStaffProfile;
+    } catch (error) {
+      console.error('Error updating staff profile:', error);
+      throw error;
+    }
+  },
+
+  async deleteStaffProfile(input: { id: string }): Promise<{ success: boolean; message: string }> {
+    try {
+      const mutation = `
+        mutation DeleteStaffProfile($id: ID!) {
+          deleteStaffProfile(id: $id) {
+            success
+            message
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ deleteStaffProfile: { success: boolean; message: string } }>(mutation, input);
+      return response.deleteStaffProfile;
+    } catch (error) {
+      console.error('Error deleting staff profile:', error);
+      throw error;
+    }
+  },
+
+  async updateStaffSchedule(input: { staffProfileId: string; schedule: CalendarStaffScheduleInput[] }): Promise<{ success: boolean; message: string }> {
+    try {
+      const mutation = `
+        mutation UpdateStaffSchedule($staffProfileId: ID!, $schedule: [StaffScheduleInput!]!) {
+          updateStaffSchedule(staffProfileId: $staffProfileId, schedule: $schedule) {
+            success
+            message
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateStaffSchedule: { success: boolean; message: string } }>(mutation, input);
+      return response.updateStaffSchedule;
+    } catch (error) {
+      console.error('Error updating staff schedule:', error);
+      throw error;
+    }
+  },
+
+  async deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
+    const mutation = `
+      mutation DeleteFormSubmission($id: ID!) {
+        deleteFormSubmission(id: $id) {
+          success
+          message
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ deleteFormSubmission: FormSubmissionResult }>(mutation, { id });
+    return result.deleteFormSubmission;
+  },
+
+  // Calendar booking rules
+  async globalBookingRule(): Promise<{
+    id: string;
+    advanceBookingHoursMin: number;
+    advanceBookingDaysMax: number;
+    sameDayCutoffTime?: string;
+    bufferBetweenAppointmentsMinutes: number;
+    maxAppointmentsPerDayPerStaff?: number;
+    bookingSlotIntervalMinutes: number;
+  } | null> {
+    const query = `
+      query GlobalBookingRule {
+        globalBookingRule {
+          id
+          advanceBookingHoursMin
+          advanceBookingDaysMax
+          sameDayCutoffTime
+          bufferBetweenAppointmentsMinutes
+          maxAppointmentsPerDayPerStaff
+          bookingSlotIntervalMinutes
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ globalBookingRule: {
+      id: string;
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    } | null }>(query);
+    return result.globalBookingRule;
+  },
+
+  // Calendar booking rules - upsert
+  async upsertGlobalBookingRules({ input }: {
+    input: {
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string | null;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number | null;
+      bookingSlotIntervalMinutes: number;
+    }
+  }): Promise<{
+    id: string;
+    advanceBookingHoursMin: number;
+    advanceBookingDaysMax: number;
+    sameDayCutoffTime?: string;
+    bufferBetweenAppointmentsMinutes: number;
+    maxAppointmentsPerDayPerStaff?: number;
+    bookingSlotIntervalMinutes: number;
+  }> {
+    const mutation = `
+      mutation UpsertGlobalBookingRules($input: BookingRuleInput!) {
+        upsertGlobalBookingRules(input: $input) {
+          id
+          advanceBookingHoursMin
+          advanceBookingDaysMax
+          sameDayCutoffTime
+          bufferBetweenAppointmentsMinutes
+          maxAppointmentsPerDayPerStaff
+          bookingSlotIntervalMinutes
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ upsertGlobalBookingRules: {
+      id: string;
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number;
+      bookingSlotIntervalMinutes: number;
+    } }>(mutation, { input });
+    
+    return result.upsertGlobalBookingRules;
+  },
+
+  // Calendar service categories
+  async serviceCategories(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query ServiceCategories {
+        serviceCategories {
+          id
+          name
+          description
+          displayOrder
+          parentId
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ serviceCategories: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query);
+    
+    return result.serviceCategories || [];
+  },
+
+  // Delete service category
+  async deleteServiceCategory({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteServiceCategory($id: ID!) {
+        deleteServiceCategory(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Service category deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting service category:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete service category'
+      };
+    }
+  },
+
+  // Create service category
+  async createServiceCategory({ input }: { 
+    input: {
+      name?: string;
+      description?: string | null;
+      displayOrder?: number;
+      parentId?: string | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+  }> {
+    const mutation = `
+      mutation CreateServiceCategory($input: ServiceCategoryInput!) {
+        createServiceCategory(input: $input) {
+          id
+          name
+          description
+          displayOrder
+          parentId
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createServiceCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+    } }>(mutation, { input });
+    
+    return result.createServiceCategory;
+  },
+
+  // Update service category
+  async updateServiceCategory({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      displayOrder?: number;
+      parentId?: string | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    parentId?: string;
+  }> {
+    const mutation = `
+      mutation UpdateServiceCategory($id: ID!, $input: ServiceCategoryInput!) {
+        updateServiceCategory(id: $id, input: $input) {
+          id
+          name
+          description
+          displayOrder
+          parentId
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateServiceCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      displayOrder: number;
+      parentId?: string;
+    } }>(mutation, { id, input });
+    
+    return result.updateServiceCategory;
+  },
+
+  // Services
+  async services(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    bufferTimeBeforeMinutes: number;
+    bufferTimeAfterMinutes: number;
+    preparationTimeMinutes: number;
+    cleanupTimeMinutes: number;
+    maxDailyBookingsPerService?: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    serviceCategoryId: string;
+    serviceCategory?: { id: string; name: string };
+    locations?: Array<{ id: string; name: string }>;
+  }>> {
+    const query = `
+      query Services {
+        services {
+          id
+          name
+          description
+          durationMinutes
+          price
+          bufferTimeBeforeMinutes
+          bufferTimeAfterMinutes
+          preparationTimeMinutes
+          cleanupTimeMinutes
+          maxDailyBookingsPerService
+          isActive
+          createdAt
+          updatedAt
+          serviceCategoryId
+          serviceCategory {
+            id
+            name
+          }
+          locations {
+            id
+            name
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ services: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      bufferTimeBeforeMinutes: number;
+      bufferTimeAfterMinutes: number;
+      preparationTimeMinutes: number;
+      cleanupTimeMinutes: number;
+      maxDailyBookingsPerService?: number;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+      serviceCategoryId: string;
+      serviceCategory?: { id: string; name: string };
+      locations?: Array<{ id: string; name: string }>;
+    }> }>(query);
+    
+    // Transform string dates to Date objects to match CalendarService type
+    const transformedServices = (result.services || []).map(service => ({
+      ...service,
+      createdAt: new Date(service.createdAt),
+      updatedAt: new Date(service.updatedAt)
+    }));
+    
+    return transformedServices;
+  },
+
+  async createService({ input }: { input: {
+    name?: string;
+    description?: string | null;
+    durationMinutes?: number;
+    price?: number;
+    isActive?: boolean;
+    serviceCategoryId?: string;
+    locationIds?: string[];
+  }}): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    isActive: boolean;
+  }> {
+    const mutation = `
+      mutation CreateService($input: ServiceInput!) {
+        createService(input: $input) {
+          id
+          name
+          description
+          durationMinutes
+          price
+          isActive
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createService: {
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      isActive: boolean;
+    } }>(mutation, { input });
+    
+    return result.createService;
+  },
+
+  async updateService({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      durationMinutes?: number;
+      price?: number;
+      isActive?: boolean;
+      serviceCategoryId?: string;
+      locationIds?: string[];
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    price: number;
+    isActive: boolean;
+  }> {
+    const mutation = `
+      mutation UpdateService($id: ID!, $input: ServiceInput!) {
+        updateService(id: $id, input: $input) {
+          id
+          name
+          description
+          durationMinutes
+          price
+          isActive
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateService: {
+      id: string;
+      name: string;
+      description?: string;
+      durationMinutes: number;
+      price: number;
+      isActive: boolean;
+    } }>(mutation, { id, input });
+    
+    return result.updateService;
+  },
+
+  async deleteService({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteService($id: ID!) {
+        deleteService(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Service deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete service'
+      };
+    }
+  },
+
+  async createLocation({ input }: { input: {
+    name?: string;
+    address?: string | null;
+    phone?: string | null;
+    operatingHours?: Record<string, unknown> | null;
+  }}): Promise<{
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  }> {
+    const mutation = `
+      mutation CreateLocation($input: LocationInput!) {
+        createLocation(input: $input) {
+          id
+          name
+          address
+          phone
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createLocation: {
+      id: string;
+      name: string;
+      address?: string;
+      phone?: string;
+    } }>(mutation, { input });
+    
+    return result.createLocation;
+  },
+
+  async updateLocation({ id, input }: { 
+    id: string;
+    input: {
+      name?: string;
+      address?: string | null;
+      phone?: string | null;
+      operatingHours?: Record<string, unknown> | null;
+    }
+  }): Promise<{
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  }> {
+    const mutation = `
+      mutation UpdateLocation($id: ID!, $input: LocationInput!) {
+        updateLocation(id: $id, input: $input) {
+          id
+          name
+          address
+          phone
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ updateLocation: {
+      id: string;
+      name: string;
+      address?: string;
+      phone?: string;
+    } }>(mutation, { id, input });
+    
+    return result.updateLocation;
+  },
+
+  async deleteLocation({ id }: { id: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const mutation = `
+      mutation DeleteLocation($id: ID!) {
+        deleteLocation(id: $id) {
+          id
+          name
+        }
+      }
+    `;
+
+    try {
+      await gqlRequest(mutation, { id });
+      return {
+        success: true,
+        message: 'Location deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete location'
+      };
+    }
+  }
 };
 
 // Form Builder API functions
@@ -3918,7 +5005,8 @@ const graphqlClient = {
     slug: string;
     content: string;
     excerpt?: string;
-    featuredImage?: string;
+    // featuredImage?: string; // Field removed, use featuredImageId
+    featuredImageId?: string; // Ensure this is part of the input type if not already
     status: string;
     blogId: string;
     authorId: string;
@@ -3939,7 +5027,10 @@ const graphqlClient = {
             slug
             content
             excerpt
-            featuredImage
+            # featuredImage // Field removed
+            featuredImageMedia {
+              fileUrl
+            }
             status
             blogId
             authorId
@@ -3991,7 +5082,10 @@ const graphqlClient = {
           slug
           content
           excerpt
-          featuredImage
+          # featuredImage // Field removed
+          featuredImageMedia {
+            fileUrl
+          }
           status
           blogId
           authorId
@@ -4032,7 +5126,10 @@ const graphqlClient = {
           slug
           content
           excerpt
-          featuredImage
+          # featuredImage // Field removed
+          featuredImageMedia {
+            fileUrl
+          }
           status
           blogId
           authorId
@@ -4068,7 +5165,8 @@ const graphqlClient = {
     slug?: string;
     content?: string;
     excerpt?: string;
-    featuredImage?: string;
+    // featuredImage?: string; // Field removed, use featuredImageId
+    featuredImageId?: string; // Ensure this is part of the input type if not already
     status?: string;
     publishedAt?: string | null;
     metaTitle?: string;
@@ -4138,6 +5236,561 @@ const graphqlClient = {
     }
     return response.deletePost;
   },
+
+  // Settings operations
+  async getSiteSettings(): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetSiteSettings {
+        getSiteSettings {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getSiteSettings;
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      return null;
+    }
+  },
+
+  async updateSiteSettings(input: {
+    siteName?: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale?: string;
+    footerText?: string;
+    maintenanceMode?: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales?: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+  }): Promise<{
+    id: string;
+    siteName: string;
+    siteDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    googleAnalyticsId?: string;
+    facebookPixelId?: string;
+    customCss?: string;
+    customJs?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    accentColor?: string;
+    defaultLocale: string;
+    footerText?: string;
+    maintenanceMode: boolean;
+    metaDescription?: string;
+    metaTitle?: string;
+    ogImage?: string;
+    socialLinks?: string;
+    supportedLocales: string[];
+    twitterCardType?: string;
+    twitterHandle?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateSiteSettings($input: UpdateSiteSettingsInput!) {
+        updateSiteSettings(input: $input) {
+          id
+          siteName
+          siteDescription
+          logoUrl
+          faviconUrl
+          primaryColor
+          secondaryColor
+          googleAnalyticsId
+          facebookPixelId
+          customCss
+          customJs
+          contactEmail
+          contactPhone
+          address
+          accentColor
+          defaultLocale
+          footerText
+          maintenanceMode
+          metaDescription
+          metaTitle
+          ogImage
+          socialLinks
+          supportedLocales
+          twitterCardType
+          twitterHandle
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateSiteSettings: {
+        id: string;
+        siteName: string;
+        siteDescription?: string;
+        logoUrl?: string;
+        faviconUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        googleAnalyticsId?: string;
+        facebookPixelId?: string;
+        customCss?: string;
+        customJs?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        address?: string;
+        accentColor?: string;
+        defaultLocale: string;
+        footerText?: string;
+        maintenanceMode: boolean;
+        metaDescription?: string;
+        metaTitle?: string;
+        ogImage?: string;
+        socialLinks?: string;
+        supportedLocales: string[];
+        twitterCardType?: string;
+        twitterHandle?: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateSiteSettings;
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      throw error;
+    }
+  },
+
+  // User Settings operations
+  async getUserSettings(): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetUserSettings {
+        getUserSettings {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ getUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query);
+      return response.getUserSettings;
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      return null;
+    }
+  },
+
+  async updateUserSettings(input: {
+    emailNotifications?: boolean;
+    theme?: string;
+    language?: string;
+    timeFormat?: string;
+    dateFormat?: string;
+  }): Promise<{
+    id: string;
+    userId: string;
+    emailNotifications: boolean;
+    theme: string;
+    language: string;
+    timeFormat: string;
+    dateFormat: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const mutation = `
+      mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+        updateUserSettings(input: $input) {
+          id
+          userId
+          emailNotifications
+          theme
+          language
+          timeFormat
+          dateFormat
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ updateUserSettings: {
+        id: string;
+        userId: string;
+        emailNotifications: boolean;
+        theme: string;
+        language: string;
+        timeFormat: string;
+        dateFormat: string;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(mutation, { input });
+      return response.updateUserSettings;
+    } catch (error) {
+      console.error('Error updating user settings:', error);
+      throw error;
+    }
+  },
+
+  // Staff Management Operations
+  async staffProfiles(): Promise<CalendarStaffProfile[]> {
+    try {
+      const query = `
+        query GetStaffProfiles {
+          staffProfiles {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+            assignedServices {
+              id
+              name
+              description
+              durationMinutes
+              price
+              isActive
+            }
+            locationAssignments {
+              id
+              name
+              address
+              phone
+            }
+            schedules {
+              id
+              locationId
+              date
+              dayOfWeek
+              startTime
+              endTime
+              scheduleType
+              isAvailable
+              notes
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ staffProfiles: CalendarStaffProfile[] }>(query);
+      return response.staffProfiles || [];
+    } catch (error) {
+      console.error('Error fetching staff profiles:', error);
+      return [];
+    }
+  },
+
+  async users(): Promise<CalendarUser[]> {
+    try {
+      const query = `
+        query GetUsers {
+          users {
+            id
+            email
+            firstName
+            lastName
+            phoneNumber
+            bio
+            department
+            isActive
+            position
+            profileImageUrl
+            roleId
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ users: CalendarUser[] }>(query);
+      return response.users || [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  },
+
+
+  async locations(): Promise<CalendarLocation[]> {
+    try {
+      const query = `
+        query GetLocations {
+          locations {
+            id
+            name
+            address
+            phone
+            operatingHours
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
+      return response.locations || [];
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      return [];
+    }
+  },
+
+  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+    try {
+      const mutation = `
+        mutation CreateStaffProfile($input: StaffProfileInput!) {
+          createStaffProfile(input: $input) {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
+      return response.createStaffProfile;
+    } catch (error) {
+      console.error('Error creating staff profile:', error);
+      throw error;
+    }
+  },
+
+  async updateStaffProfile(input: { id: string; input: Partial<StaffProfileInput> }): Promise<CalendarStaffProfile> {
+    try {
+      const mutation = `
+        mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
+          updateStaffProfile(id: $id, input: $input) {
+            id
+            userId
+            bio
+            specializations
+            createdAt
+            updatedAt
+            user {
+              id
+              email
+              firstName
+              lastName
+              phoneNumber
+              bio
+              department
+              isActive
+              position
+              profileImageUrl
+              roleId
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
+      return response.updateStaffProfile;
+    } catch (error) {
+      console.error('Error updating staff profile:', error);
+      throw error;
+    }
+  },
+
+  async deleteStaffProfile(input: { id: string }): Promise<{ success: boolean; message: string }> {
+    try {
+      const mutation = `
+        mutation DeleteStaffProfile($id: ID!) {
+          deleteStaffProfile(id: $id) {
+            success
+            message
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ deleteStaffProfile: { success: boolean; message: string } }>(mutation, input);
+      return response.deleteStaffProfile;
+    } catch (error) {
+      console.error('Error deleting staff profile:', error);
+      throw error;
+    }
+  },
+
+  async updateStaffSchedule(input: { staffProfileId: string; schedule: CalendarStaffScheduleInput[] }): Promise<{ success: boolean; message: string }> {
+    try {
+      const mutation = `
+        mutation UpdateStaffSchedule($staffProfileId: ID!, $schedule: [StaffScheduleInput!]!) {
+          updateStaffSchedule(staffProfileId: $staffProfileId, schedule: $schedule) {
+            success
+            message
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ updateStaffSchedule: { success: boolean; message: string } }>(mutation, input);
+      return response.updateStaffSchedule;
+    } catch (error) {
+      console.error('Error updating staff schedule:', error);
+      throw error;
+    }
+  },
+
 };
 
 // Export all functions

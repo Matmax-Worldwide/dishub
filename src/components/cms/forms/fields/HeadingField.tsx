@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,9 @@ export function HeadingFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de encabezado
 export function HeadingField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
+    order: field?.order || 0,
+    isRequired: field?.isRequired || false,
     type: FormFieldType.HEADING,
     label: 'New Heading',
     name: 'headingField',
@@ -117,7 +120,7 @@ export function HeadingField({ field, onChange, showPreview = true }: FieldProps
         <Label htmlFor="options.level">Heading Level</Label>
         <Select
           name="options.level"
-          value={localField.options?.level || 'h2'}
+          value={localField.options?.level as string || 'h2'}
           onValueChange={(value) => handleSelectChange('options.level', value)}
         >
           <SelectTrigger><SelectValue /></SelectTrigger>

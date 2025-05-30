@@ -54,19 +54,17 @@ export function AddressFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para Address
 export function AddressField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.ADDRESS,
     label: 'Address Block',
     name: 'addressField',
     helpText: '',
-    isRequired: false, // Applies to the block or specific subfields based on further config
+    isRequired: false,
+    defaultValue: '',
+    order: 0,
     width: 100,
-    options: { 
-      // subfieldsConfig: defaultSubfields // For future configuration
-    }, 
+    options: {},
     ...field,
-     options: {
-        // ...field?.options, // For future configuration options
-    }
   });
 
   useEffect(() => {
@@ -118,7 +116,7 @@ export function AddressField({ field, onChange, showPreview = true }: FieldProps
       <div>
         <Label htmlFor="name">Identifier Name (Base) <span className="text-red-500">*</span></Label>
         <Input id="name" name="name" value={localField.name} onChange={handleInputChange} onKeyDown={handleKeyDown} placeholder="e.g., shipping_address" />
-        <p className="mt-1 text-xs text-gray-500">Base name for address fields (e.g., 'shipping_address' becomes 'shipping_address_street').</p>
+        <p className="mt-1 text-xs text-gray-500">Base name for address fields (e.g., &lsquo;shipping_address&rsquo; becomes &lsquo;shipping_address_street&rsquo;).</p>
       </div>
       <div>
         <Label htmlFor="helpText">Help Text (for the whole block)</Label>

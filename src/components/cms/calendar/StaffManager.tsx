@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
-import { StaffProfile, User, Service, Location, StaffScheduleInput, DayOfWeek as PrismaDayOfWeek, ScheduleType as PrismaScheduleType } from '@/types/calendar';
+import { CalendarStaffProfile as StaffProfile, CalendarUser as User, CalendarService as Service, CalendarLocation as Location, CalendarStaffScheduleInput as StaffScheduleInput, PrismaScheduleType } from '@/types/calendar';
 import StaffForm from './StaffForm';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,8 +33,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 
-// Local enums removed, will use PrismaDayOfWeek and PrismaScheduleType from '@/types/calendar'
-
 export default function StaffManager() {
   const [staffMembers, setStaffMembers] = useState<StaffProfile[]>([]);
   const [allUsers, setAllUsers] = useState<Partial<User>[]>([]);
@@ -45,7 +43,7 @@ export default function StaffManager() {
   const [error, setError] = useState<string | null>(null);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingStaffMember, setEditingStaffMember] = useState<Partial<StaffProfile> & { schedules?: StaffScheduleInput[] } | null>(null);
+  const [editingStaffMember, setEditingStaffMember] = useState<StaffProfile | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -64,12 +62,12 @@ export default function StaffManager() {
       ]);
       setStaffMembers(staffData || []);
       setAllUsers(usersData || []);
-      setAllServices(servicesData || []);
+      setAllServices(servicesData as Service[] || []);
       setAllLocations(locationsData || []);
       if(showToasts) toast.success("Staff data refreshed");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch staff management data:', err);
-      const errorMsg = `Failed to load data: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       if(showToasts) toast.error(errorMsg);
     } finally {
@@ -86,22 +84,12 @@ export default function StaffManager() {
   );
 
   const handleAddNew = () => {
-    setEditingStaffMember(null);
+    setEditingStaffMember(undefined);
     setIsFormOpen(true);
   };
 
   const handleEdit = (staffMember: StaffProfile) => {
-    const regularSchedules = (staffMember.schedules || [])
-        // Updated to use only PrismaScheduleType from import
-        .filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) 
-        .map(s => ({ 
-            dayOfWeek: s.dayOfWeek as PrismaDayOfWeek, // Ensured this uses the imported aliased enum
-            startTime: s.startTime,
-            endTime: s.endTime,
-            isAvailable: s.isAvailable,
-            scheduleType: PrismaScheduleType.REGULAR_HOURS,
-        }));
-    setEditingStaffMember({ ...staffMember, schedules: regularSchedules });
+
     setIsFormOpen(true);
   };
 
@@ -117,8 +105,8 @@ export default function StaffManager() {
       await graphqlClient.deleteStaffProfile({ id: staffToDelete.id });
       toast.success(`Staff member "${staffToDelete.user?.firstName} ${staffToDelete.user?.lastName}" deleted.`);
       fetchData(false); 
-    } catch (err: any) {
-      toast.error(`Failed to delete staff: ${err.message || 'Unknown error'}`);
+    } catch (err: unknown) {
+      toast.error(`Failed to delete staff: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
       setShowDeleteConfirm(false);
@@ -126,19 +114,22 @@ export default function StaffManager() {
     }
   };
 
-  const handleSaveStaff = async (data: { staffProfileData: Partial<StaffProfile>; scheduleData: StaffScheduleInput[] }) => {
+  const handleSaveStaff = async (data: { staffProfileData: Partial<StaffProfile>; scheduleData: Partial<StaffScheduleInput>[] }) => {
     setIsSaving(true);
     setError(null);
     const { staffProfileData, scheduleData } = data;
 
     try {
       let savedProfile: StaffProfile;
+      
+      if (!staffProfileData.userId) {
+        throw new Error('User ID is required');
+      }
+
       const profileInput = {
           userId: staffProfileData.userId,
           bio: staffProfileData.bio,
           specializations: staffProfileData.specializations || [],
-          assignedServiceIds: staffProfileData.assignedServiceIds || [],
-          assignedLocationIds: staffProfileData.assignedLocationIds || [],
       };
 
       if (editingStaffMember?.id) { 
@@ -151,8 +142,12 @@ export default function StaffManager() {
 
       if (savedProfile && savedProfile.id && scheduleData) {
         const typedScheduleData = scheduleData.map(s => ({
-            ...s, 
-            scheduleType: PrismaScheduleType.REGULAR_HOURS // Ensure correct enum value
+            staffProfileId: savedProfile.id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime || '',
+            endTime: s.endTime || '',
+            scheduleType: PrismaScheduleType.REGULAR_HOURS,
+            isAvailable: s.isAvailable ?? true
         }));
         await graphqlClient.updateStaffSchedule({ staffProfileId: savedProfile.id, schedule: typedScheduleData });
         toast.success(`Schedule updated for ${savedProfile.user?.firstName}.`);
@@ -160,9 +155,9 @@ export default function StaffManager() {
       
       fetchData(false); 
       setIsFormOpen(false);
-      setEditingStaffMember(null);
-    } catch (err: any) {
-      const errorMsg = `Failed to save staff: ${err.message || 'Unknown error'}`;
+      setEditingStaffMember(undefined);
+    } catch (err: unknown) {
+      const errorMsg = `Failed to save staff: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -257,7 +252,7 @@ export default function StaffManager() {
 
       <StaffForm
         isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setEditingStaffMember(null); }}
+        onClose={() => { setIsFormOpen(false); setEditingStaffMember(undefined); }}
         onSave={handleSaveStaff}
         initialData={editingStaffMember}
         allUsersForSelect={usersAvailableForStaffAssignment} // Corrected variable name
@@ -273,7 +268,7 @@ export default function StaffManager() {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete staff member 
-                "{staffToDelete.user?.firstName} {staffToDelete.user?.lastName}".
+                &quot;{staffToDelete.user?.firstName} {staffToDelete.user?.lastName}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

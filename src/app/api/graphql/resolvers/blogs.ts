@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 import { PostStatus } from '@prisma/client';
+import { verifySession } from '@/app/api/utils/auth';
+import { Context } from '@/app/api/graphql/types';
 
 // Define interfaces for input types
 interface BlogInput {
@@ -251,7 +253,22 @@ export const blogResolvers = {
 
   Mutation: {
     // Create a new blog
-    createBlog: async (_: unknown, { input }: { input: BlogInput }) => {
+    createBlog: async (_: unknown, { input }: { input: BlogInput }, context: Context) => {
+      // Require authentication for creating blogs
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to create blogs', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins and managers can create blogs
+      if (!['ADMIN', 'MANAGER'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to create blogs', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         const blog = await prisma.blog.create({
           data: {
@@ -288,7 +305,22 @@ export const blogResolvers = {
     },
 
     // Update a blog
-    updateBlog: async (_: unknown, { id, input }: { id: string; input: BlogInput }) => {
+    updateBlog: async (_: unknown, { id, input }: { id: string; input: BlogInput }, context: Context) => {
+      // Require authentication for updating blogs
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to update blogs', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins and managers can update blogs
+      if (!['ADMIN', 'MANAGER'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to update blogs', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         const blog = await prisma.blog.update({
           where: { id },
@@ -334,7 +366,22 @@ export const blogResolvers = {
     },
 
     // Delete a blog
-    deleteBlog: async (_: unknown, { id }: { id: string }) => {
+    deleteBlog: async (_: unknown, { id }: { id: string }, context: Context) => {
+      // Require authentication for deleting blogs
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to delete blogs', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins can delete blogs
+      if (session.user.role.name !== 'ADMIN') {
+        throw new GraphQLError('Insufficient permissions to delete blogs', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         // Check if blog has posts
         const postsCount = await prisma.post.count({
@@ -379,7 +426,22 @@ export const blogResolvers = {
     },
 
     // Create a new post
-    createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
+    createPost: async (_: unknown, { input }: { input: CreatePostInput }, context: Context) => {
+      // Require authentication for creating posts
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to create posts', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins, managers, and employees can create posts
+      if (!['ADMIN', 'MANAGER', 'EMPLOYEE'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to create posts', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         console.log('Creating post with input:', JSON.stringify(input, null, 2));
         
@@ -455,7 +517,22 @@ export const blogResolvers = {
     },
 
     // Update a post
-    updatePost: async (_: unknown, { id, input }: { id: string; input: UpdatePostInput }) => {
+    updatePost: async (_: unknown, { id, input }: { id: string; input: UpdatePostInput }, context: Context) => {
+      // Require authentication for updating posts
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to update posts', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins, managers, and employees can update posts
+      if (!['ADMIN', 'MANAGER', 'EMPLOYEE'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to update posts', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         const updateData: Record<string, unknown> = {};
         
@@ -514,7 +591,22 @@ export const blogResolvers = {
     },
 
     // Delete a post
-    deletePost: async (_: unknown, { id }: { id: string }) => {
+    deletePost: async (_: unknown, { id }: { id: string }, context: Context) => {
+      // Require authentication for deleting posts
+      const session = await verifySession(context.req);
+      if (!session?.user) {
+        throw new GraphQLError('Authentication required to delete posts', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+
+      // Only admins and managers can delete posts
+      if (!['ADMIN', 'MANAGER'].includes(session.user.role.name)) {
+        throw new GraphQLError('Insufficient permissions to delete posts', {
+          extensions: { code: 'FORBIDDEN' }
+        });
+      }
+
       try {
         await prisma.post.delete({
           where: { id }

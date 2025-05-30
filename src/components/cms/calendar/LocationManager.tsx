@@ -5,6 +5,7 @@ import graphqlClient from '@/lib/graphql-client';
 import { Location } from '@/types/calendar'; // Assuming this type is defined
 import LocationForm from './LocationForm';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -49,10 +50,10 @@ export default function LocationManager() {
     try {
       const response = await graphqlClient.locations(); // Assuming this returns { locations: Location[] } or Location[]
       setLocations(response || []); // Adjust based on actual response structure
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch locations:', err);
-      setError(`Failed to load locations: ${err.message || 'Unknown error'}`);
-      toast.error(`Failed to load locations: ${err.message || 'Unknown error'}`);
+      setError(`Failed to load locations: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to load locations: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -84,9 +85,9 @@ export default function LocationManager() {
       await graphqlClient.deleteLocation({ id: locationToDelete.id });
       toast.success(`Location "${locationToDelete.name}" deleted successfully.`);
       fetchLocations(); // Refresh list
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete location:', err);
-      toast.error(`Failed to delete location: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to delete location: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
       setShowDeleteConfirm(false);
@@ -108,9 +109,9 @@ export default function LocationManager() {
       fetchLocations(); // Refresh the list
       setIsFormOpen(false);
       setEditingLocation(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save location:', err);
-      const errorMsg = `Failed to save location: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to save location: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -219,7 +220,7 @@ export default function LocationManager() {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the location
-                "{locationToDelete.name}".
+                &quot;{locationToDelete.name}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

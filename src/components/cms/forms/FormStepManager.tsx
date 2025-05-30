@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Edit, Eye, EyeOff, ArrowUp, ArrowDown, GripVertical, Settings2 } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, GripVertical, Settings2 } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 import EditStepModal from './EditStepModal'; // Import the modal
@@ -26,7 +26,6 @@ import {
   useSensors,
   closestCorners,
   useDroppable,
-  arrayMove, 
   KeyboardSensor,
 } from '@dnd-kit/core';
 import {
@@ -34,6 +33,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
   sortableKeyboardCoordinates,
+  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SortableStepItem } from './SortableStepItem';
@@ -292,45 +292,6 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
     }
   };
 
-  const handleMoveStep = async (stepIndex: number, direction: 'up' | 'down') => {
-    const newSteps = [...steps];
-    const targetIndex = direction === 'up' ? stepIndex - 1 : stepIndex + 1;
-    
-    if (targetIndex < 0 || targetIndex >= newSteps.length) return;
-    
-    // Swap steps
-    [newSteps[stepIndex], newSteps[targetIndex]] = [newSteps[targetIndex], newSteps[stepIndex]];
-    
-    try {
-      setLoading(true);
-      
-      // Update orders
-      const updates = newSteps.map((step, index) => ({
-        id: step.id,
-        order: index
-      }));
-      
-      const result = await graphqlClient.updateStepOrders(updates);
-      
-      if (result.success) {
-        setSteps(newSteps);
-        toast.success('Step order updated');
-        
-        // Notify parent of form changes
-        if (onFormUpdate) {
-          onFormUpdate();
-        }
-      } else {
-        toast.error('Failed to update step order');
-      }
-    } catch (error) {
-      console.error('Error updating step order:', error);
-      toast.error('Failed to update step order');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleToggleStepVisibility = async (stepId: string, isVisible: boolean) => {
     try {
       const result = await graphqlClient.updateFormStep(stepId, { isVisible });
@@ -466,6 +427,7 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
   
   const handleDragOver = (event: DragOverEvent) => {
     // For visual feedback during drag if needed
+    console.log('Drag Over', event);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -698,7 +660,7 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
                             </div>
                             <DroppableStep step={step}>
                               {step.fields.length === 0 ? (
-                                <p className="text-sm text-gray-500 py-8 text-center">Drag & drop fields here or use "Quick assign".</p>
+                                <p className="text-sm text-gray-500 py-8 text-center">Drag &amp; drop fields here or use &ldquo;Quick assign&rdquo;.</p>
                               ) : (
                                 <SortableContext items={step.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
                                   <div className="space-y-2">
@@ -772,40 +734,6 @@ export default function FormStepManager({ form, onFormUpdate }: FormStepManagerP
           </div>
         ) : null}
       </DragOverlay>
-    </DndContext>
-  );
-}
-      {currentlyEditingStepDetail && (
-        <EditStepModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setCurrentlyEditingStepDetail(null);
-          }}
-          step={currentlyEditingStepDetail}
-          onSave={async (updatedData) => {
-            if (!currentlyEditingStepDetail?.id) return;
-            try {
-              setLoading(true);
-              const result = await graphqlClient.updateFormStep(currentlyEditingStepDetail.id, updatedData);
-              if (result.success) {
-                toast.success('Step details updated successfully.');
-                await loadFormSteps(); // Refresh steps
-                if (onFormUpdate) onFormUpdate();
-              } else {
-                toast.error(result.message || 'Failed to update step details.');
-              }
-            } catch (error) {
-              toast.error('An error occurred while updating step details.');
-              console.error("Error updating step details:", error);
-            } finally {
-              setLoading(false);
-              setIsEditModalOpen(false);
-              setCurrentlyEditingStepDetail(null);
-            }
-          }}
-        />
-      )}
     </DndContext>
   );
 }

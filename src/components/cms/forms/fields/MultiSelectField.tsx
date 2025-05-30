@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, ChangeEvent } from 'react';
-import { FormFieldBase, FormFieldType }_from '@/types/forms';
+import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,20 @@ interface SelectOption {
 // Componente de vista previa para MultiSelect
 export function MultiSelectFieldPreview({ field }: { field: FormFieldBase }) {
   const options = (field.options?.items || []) as SelectOption[];
-  const defaultValues = (Array.isArray(field.defaultValue) ? field.defaultValue : []) as string[];
+  
+  // Parse defaultValue from string to array
+  let defaultValues: string[] = [];
+  if (field.defaultValue) {
+    try {
+      const parsed = JSON.parse(field.defaultValue);
+      if (Array.isArray(parsed)) {
+        defaultValues = parsed;
+      }
+    } catch {
+      // If parsing fails, try comma-separated string
+      defaultValues = field.defaultValue.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
   
   const selectedLabels = defaultValues
     .map(val => options.find(opt => opt.value === val)?.label)
@@ -32,7 +45,6 @@ export function MultiSelectFieldPreview({ field }: { field: FormFieldBase }) {
         <span className="text-sm text-gray-500">
           {selectedLabels || field.placeholder || 'Select one or more options'}
         </span>
-        {/* Add a dropdown arrow icon for visual consistency if desired */}
       </div>
     </BaseFieldPreview>
   );
@@ -40,45 +52,55 @@ export function MultiSelectFieldPreview({ field }: { field: FormFieldBase }) {
 
 // Componente de edición para MultiSelect
 export function MultiSelectField({ field, onChange, showPreview = true }: FieldProps) {
+  // Helper function to parse defaultValue
+  const parseDefaultValue = (value: string | undefined): string => {
+    if (!value) return '[]';
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? value : '[]';
+    } catch {
+      // Try to parse as comma-separated string
+      const array = value.split(',').map(s => s.trim()).filter(Boolean);
+      return JSON.stringify(array);
+    }
+  };
+
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.MULTISELECT,
     label: 'Multi-Select Field',
     name: 'multiSelectField',
     placeholder: 'Select options...',
     helpText: '',
     isRequired: false,
-    defaultValue: [], // Array of strings
+    defaultValue: parseDefaultValue(field?.defaultValue),
     width: 100,
+    order: 0,
     options: { items: [] },
     ...field,
-    // Ensure defaultValue is always an array, even if input field.defaultValue is string or undefined
-    defaultValue: Array.isArray(field?.defaultValue) 
-        ? field.defaultValue 
-        : (typeof field?.defaultValue === 'string' && field.defaultValue !== '' ? field.defaultValue.split(',').map(s => s.trim()) : []),
-    options: { items: [], ...field?.options },
   });
 
   const [options, setOptions] = useState<SelectOption[]>((localField.options?.items || []) as SelectOption[]);
   const [newOption, setNewOption] = useState<{ label: string; value: string }>({ label: '', value: '' });
-  // For managing defaultValue input as a comma-separated string
-  const [defaultValueStr, setDefaultValueStr] = useState<string>(
-    Array.isArray(localField.defaultValue) ? localField.defaultValue.join(', ') : ''
-  );
 
+  // Helper function to get current default values as array
+  const getCurrentDefaultValues = (): string[] => {
+    try {
+      const parsed = JSON.parse(localField.defaultValue || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
 
   useEffect(() => {
-    const currentDefaultValue = Array.isArray(field?.defaultValue) 
-        ? field.defaultValue 
-        : (typeof field?.defaultValue === 'string' && field.defaultValue !== '' ? field.defaultValue.split(',').map(s => s.trim()) : []);
-
     setLocalField(prev => ({
         ...prev,
         ...field,
-        defaultValue: currentDefaultValue,
+        defaultValue: parseDefaultValue(field?.defaultValue),
         options: { items: [], ...prev.options, ...field?.options },
     }));
     setOptions((field?.options?.items || []) as SelectOption[]);
-    setDefaultValueStr(currentDefaultValue.join(', '));
   }, [field]);
 
   if (!localField) return null;
@@ -134,14 +156,13 @@ export function MultiSelectField({ field, onChange, showPreview = true }: FieldP
     setOptions(updatedOptions);
     
     // Also remove from defaultValue if it was there
-    const currentDefault = Array.isArray(localField.defaultValue) ? localField.defaultValue : [];
+    const currentDefault = getCurrentDefaultValues();
     const newDefault = currentDefault.filter(val => val !== removedOptionValue);
-    setDefaultValueStr(newDefault.join(', '));
 
     const updatedField = { 
         ...localField, 
         options: { ...localField.options, items: updatedOptions },
-        defaultValue: newDefault 
+        defaultValue: JSON.stringify(newDefault) 
     };
     setLocalField(updatedField);
     onChange(updatedField);
@@ -150,9 +171,18 @@ export function MultiSelectField({ field, onChange, showPreview = true }: FieldP
   const handleDefaultValueStrChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault(); e.stopPropagation();
     const strVal = e.target.value;
-    setDefaultValueStr(strVal);
-    const arrVal = strVal.split(',').map(s => s.trim()).filter(s => s);
-    const updated = { ...localField, defaultValue: arrVal };
+    // Try to parse as JSON array, if fails, treat as comma-separated string
+    let jsonValue: string;
+    try {
+      // If it's already valid JSON, use it
+      JSON.parse(strVal);
+      jsonValue = strVal;
+    } catch {
+      // Convert comma-separated string to JSON array
+      const array = strVal.split(',').map(s => s.trim()).filter(Boolean);
+      jsonValue = JSON.stringify(array);
+    }
+    const updated = { ...localField, defaultValue: jsonValue };
     setLocalField(updated);
     onChange(updated);
   };
@@ -202,14 +232,14 @@ export function MultiSelectField({ field, onChange, showPreview = true }: FieldP
       </div>
       
       <div>
-        <Label htmlFor="defaultValueStr">Default Values (comma-separated values)</Label>
+        <Label htmlFor="defaultValueStr">Default Values (comma-separated)</Label>
         <Input 
             id="defaultValueStr" 
             name="defaultValueStr" 
-            value={defaultValueStr} 
+            value={getCurrentDefaultValues().join(', ')} 
             onChange={handleDefaultValueStrChange} 
             onKeyDown={handleKeyDown}
-            placeholder="e.g., value1,value2"
+            placeholder="e.g., value1, value2"
         />
          <p className="mt-1 text-xs text-gray-500">Enter values from the options above, separated by commas.</p>
       </div>

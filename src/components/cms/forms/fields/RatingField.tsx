@@ -11,9 +11,9 @@ import { StarIcon, HeartIcon, CircleIcon } from 'lucide-react'; // Example icons
 
 // Componente de vista previa para campos de Calificación (Rating)
 export function RatingFieldPreview({ field }: { field: FormFieldBase }) {
-  const maxRating = field.options?.maxRating as number || 5;
+  const maxRating = (field.options?.maxRating as number) || 5;
   const currentRating = field.defaultValue !== undefined ? Number(field.defaultValue) : 0;
-  const iconType = field.options?.icon || 'star';
+  const iconType = (field.options?.icon as string) || 'star';
 
   const renderStars = () => {
     const stars = [];
@@ -37,7 +37,7 @@ export function RatingFieldPreview({ field }: { field: FormFieldBase }) {
       <div className="flex items-center space-x-1">
         {renderStars()}
       </div>
-       <p className="mt-1 text-xs text-gray-500">{currentRating} / {maxRating} {iconType}(s)</p>
+      <p className="mt-1 text-xs text-gray-500">{currentRating} / {maxRating} {iconType}(s)</p>
     </BaseFieldPreview>
   );
 }
@@ -45,35 +45,28 @@ export function RatingFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de Calificación (Rating)
 export function RatingField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || `field-${Date.now()}`,
     type: FormFieldType.RATING,
     label: 'Rating Input',
     name: 'ratingField',
     helpText: '',
     isRequired: false,
-    defaultValue: 0,
+    defaultValue: '0',
     width: 100,
+    order: 0,
     options: { maxRating: 5, icon: 'star' },
     ...field,
-    defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : 0,
-    options: {
-        maxRating: 5, icon: 'star',
-        ...field?.options,
-        maxRating: field?.options?.maxRating !== undefined ? Number(field.options.maxRating) : 5,
-        icon: field?.options?.icon || 'star',
-    },
   });
 
   useEffect(() => {
      setLocalField(prev => ({ 
         ...prev, 
         ...field,
-        defaultValue: field?.defaultValue !== undefined ? Number(field.defaultValue) : 0,
         options: {
-            maxRating: 5, icon: 'star',
+            maxRating: 5, 
+            icon: 'star',
             ...prev.options,
             ...field?.options,
-            maxRating: field?.options?.maxRating !== undefined ? Number(field.options.maxRating) : (prev.options?.maxRating !== undefined ? Number(prev.options.maxRating) : 5),
-            icon: field?.options?.icon || (prev.options?.icon || 'star'),
         }
     }));
   }, [field]);
@@ -108,7 +101,7 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
         const updated = { ...prev, options: { ...prev.options, [name]: numValue } };
         // Adjust defaultValue if it exceeds new maxRating
         if (name === 'maxRating' && prev.defaultValue !== undefined && Number(prev.defaultValue) > numValue) {
-            updated.defaultValue = numValue;
+            updated.defaultValue = String(numValue);
         }
         onChange(updated);
         return updated;
@@ -158,11 +151,11 @@ export function RatingField({ field, onChange, showPreview = true }: FieldProps)
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="options.maxRating">Max Rating (e.g., 5 for 5 stars)</Label>
-          <Input type="number" name="maxRating" id="options.maxRating" value={localField.options?.maxRating || 5} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="1" />
+          <Input type="number" name="maxRating" id="options.maxRating" value={(localField.options?.maxRating as number) || 5} onChange={handleOptionsChange} onKeyDown={handleKeyDown} min="1" />
         </div>
         <div>
           <Label htmlFor="options.icon">Icon Type</Label>
-          <Select name="options.icon" value={localField.options?.icon || 'star'} onValueChange={(value) => handleSelectChange('options.icon', value)}>
+          <Select name="options.icon" value={(localField.options?.icon as string) || 'star'} onValueChange={(value) => handleSelectChange('options.icon', value)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="star">Star</SelectItem>

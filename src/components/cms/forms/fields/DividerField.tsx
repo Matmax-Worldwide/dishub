@@ -18,10 +18,13 @@ export function DividerFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de divisor
 export function DividerField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.DIVIDER,
     label: 'Divider', // Admin label
     name: 'dividerField',
     width: 100,
+    order: 0,
+    isRequired: false,
     ...field,
   });
 

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
-import { BookingRule } from '@/types/calendar'; // Assuming this type is defined
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +34,6 @@ export default function BookingRulesManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ruleId, setRuleId] = useState<string | null>(null); // To store ID of existing rule for update
 
   const fetchBookingRules = useCallback(async (showToast = false) => {
     setIsLoading(true);
@@ -51,16 +49,15 @@ export default function BookingRulesManager() {
           maxAppointmentsPerDayPerStaff: responseData.maxAppointmentsPerDayPerStaff || null,
           bookingSlotIntervalMinutes: responseData.bookingSlotIntervalMinutes,
         });
-        setRuleId(responseData.id || null); // Store the ID
         if(showToast) toast.success("Booking rules loaded.");
       } else {
         // Should not happen if resolver creates default, but handle defensively
         setRules(defaultBookingRuleValues);
          if(showToast) toast.info("No existing booking rules found. Displaying defaults.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch booking rules:', err);
-      const errorMsg = `Failed to load booking rules: ${err.message || 'Unknown error'}`;
+      const errorMsg = `Failed to load booking rules: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       if(showToast) toast.error(errorMsg);
     } finally {
@@ -119,13 +116,12 @@ export default function BookingRulesManager() {
             maxAppointmentsPerDayPerStaff: updatedRules.maxAppointmentsPerDayPerStaff || null,
             bookingSlotIntervalMinutes: updatedRules.bookingSlotIntervalMinutes,
         });
-        setRuleId(updatedRules.id || null);
         toast.success('Global booking rules updated successfully!');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save booking rules:', err);
-      setError(`Failed to save rules: ${err.message || 'Unknown error'}`);
-      toast.error(`Failed to save rules: ${err.message || 'Unknown error'}`);
+      setError(`Failed to save rules: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Failed to save rules: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }

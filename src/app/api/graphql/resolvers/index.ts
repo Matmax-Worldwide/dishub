@@ -39,19 +39,6 @@ console.log('🔍 Verificando resolvers Blog importados:', {
   createBlogType: typeof blogResolvers?.Mutation?.createBlog
 });
 
-// Direct test of the createBlog function
-if (blogResolvers?.Mutation?.createBlog) {
-  console.log('🧪 Testing createBlog function directly...');
-  try {
-    const testResult = blogResolvers.Mutation.createBlog(null, {
-      input: { title: 'Test', slug: 'test', isActive: true }
-    });
-    console.log('🧪 Direct test result:', testResult);
-  } catch (error) {
-    console.log('🧪 Direct test error:', error);
-  }
-}
-
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
