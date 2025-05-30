@@ -4110,25 +4110,31 @@ export const cmsOperations = {
     const mutation = `
       mutation DeleteLocation($id: ID!) {
         deleteLocation(id: $id) {
-          id
-          name
+          success
+          message
+          location {
+            id
+            name
+          }
         }
       }
     `;
 
-    try {
-      await gqlRequest(mutation, { id });
-      return {
-        success: true,
-        message: 'Location deleted successfully'
+    const response = await gqlRequest<{
+      deleteLocation: {
+        success: boolean;
+        message: string;
+        location: {
+          id: string;
+          name: string;
+        } | null;
       };
-    } catch (error) {
-      console.error('Error deleting location:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to delete location'
-      };
-    }
+    }>(mutation, { id });
+
+    return {
+      success: response.deleteLocation.success,
+      message: response.deleteLocation.message
+    };
   },
 
   // Calendar Bookings Operations
