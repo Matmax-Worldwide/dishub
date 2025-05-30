@@ -20,6 +20,12 @@ import {
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
 import { format } from 'date-fns';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 // Add design template type
 type DesignTemplate = 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern';
@@ -233,18 +239,26 @@ export default function CalendarSection({
 
   // Design template state
   const [localDesignTemplate, setLocalDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
+  const [isDesignChanging, setIsDesignChanging] = useState(false);
 
   // Handle design template change
   const handleDesignTemplateChange = useCallback((template: string) => {
     try {
+      setIsDesignChanging(true);
       setLocalDesignTemplate(template as DesignTemplate);
       
       if (onUpdate) {
         onUpdate({ designTemplate: template as DesignTemplate });
       }
+      
+      // Reset the changing state after a brief delay
+      setTimeout(() => {
+        setIsDesignChanging(false);
+      }, 500);
     } catch (error) {
       console.error('Error changing design template:', error);
       toast.error('Failed to change design template');
+      setIsDesignChanging(false);
     }
   }, [onUpdate]);
 
@@ -1122,22 +1136,10 @@ export default function CalendarSection({
   );
   };
 
-  // Render editing interface with template-aware styling
-  const renderEditingInterface = () => {
-    const { colors, name } = currentTemplate;
-    
+  // Details Tab Component
+  const DetailsTab = () => {
     return (
-      <div className="space-y-6 p-6 bg-white rounded-lg border">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Calendar Booking Component</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Current Template:</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
-              {name}
-            </span>
-          </div>
-        </div>
-        
+      <div className="space-y-6">
         {/* Text Configuration Section */}
         <div className="space-y-4">
           <h4 className="font-medium text-gray-900">Text Content</h4>
@@ -1309,9 +1311,63 @@ export default function CalendarSection({
           </div>
         </div>
         
+        {/* Configuration Options */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+          <div className="space-y-3">
+            <h5 className="font-medium text-gray-900">Booking Flow Options</h5>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Location Selector</label>
+              <input
+                type="checkbox"
+                checked={showLocationSelector}
+                onChange={(e) => onUpdate?.({ showLocationSelector: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Service Categories</label>
+              <input
+                type="checkbox"
+                checked={showServiceCategories}
+                onChange={(e) => onUpdate?.({ showServiceCategories: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Staff Selector</label>
+              <input
+                type="checkbox"
+                checked={showStaffSelector}
+                onChange={(e) => onUpdate?.({ showStaffSelector: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Styles Tab Component
+  const StylesTab = () => {
+    const { colors, name } = currentTemplate;
+    
+    return (
+      <div className="space-y-6">
         {/* Visual Design Template Selector */}
         <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Choose Design Template</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-900">Choose Design Template</h4>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Current:</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
+                {name}
+              </span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(designTemplates).map(([key, template]) => (
               <div
@@ -1373,58 +1429,80 @@ export default function CalendarSection({
           </div>
         </div>
         
-        {/* Configuration Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-          <div className="space-y-3">
-            <h5 className="font-medium text-gray-900">Booking Flow Options</h5>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Location Selector</label>
-              <input
-                type="checkbox"
-                checked={showLocationSelector}
-                onChange={(e) => onUpdate?.({ showLocationSelector: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
+        {/* Template Preview */}
+        <div className="space-y-3">
+          <h5 className="font-medium text-gray-900">Template Preview</h5>
+          <div className={`p-4 rounded-lg bg-gradient-to-r ${colors.secondary} border`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`p-2 bg-gradient-to-r ${colors.primary} rounded-lg`}>
+                <currentTemplate.icons.calendar className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="font-medium text-gray-900">{name}</div>
+                <div className="text-sm text-gray-600 capitalize">{currentTemplate.style} design</div>
+              </div>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Service Categories</label>
-              <input
-                type="checkbox"
-                checked={showServiceCategories}
-                onChange={(e) => onUpdate?.({ showServiceCategories: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Staff Selector</label>
-              <input
-                type="checkbox"
-                checked={showStaffSelector}
-                onChange={(e) => onUpdate?.({ showStaffSelector: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
+            <div className="text-xs text-gray-500">
+              This template features {currentTemplate.style} styling with {name.toLowerCase()} branding and color scheme.
             </div>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Preview Tab Component
+  const PreviewTab = () => {
+    const { name } = currentTemplate;
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-gray-900">Calendar Preview</h4>
+          <div className="text-sm text-gray-500">
+            Template: <span className="font-medium">{name}</span>
+          </div>
+        </div>
+        
+        {/* Live Preview */}
+        <div className="border rounded-lg overflow-hidden bg-gray-50">
+          <div className="p-4 bg-white border-b">
+            <h4 className="font-medium text-gray-900 mb-1">Live Preview</h4>
+            <p className="text-sm text-gray-600">This is how your calendar will appear to visitors</p>
+          </div>
           
-          <div className="space-y-3">
-            <h5 className="font-medium text-gray-900">Template Preview</h5>
-            <div className={`p-4 rounded-lg bg-gradient-to-r ${colors.secondary} border`}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2 bg-gradient-to-r ${colors.primary} rounded-lg`}>
-                  <currentTemplate.icons.calendar className="w-5 h-5 text-white" />
+          <div className="p-6 bg-gray-50">
+            <div className="max-w-3xl mx-auto">
+              {isDesignChanging ? (
+                <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center min-h-[300px]">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-600">Updating design preview...</p>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium text-gray-900">{name}</div>
-                  <div className="text-sm text-gray-600 capitalize">{currentTemplate.style} design</div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                  {/* Render the actual calendar component in preview mode */}
+                  {renderCalendarContent()}
                 </div>
-              </div>
-              <div className="text-xs text-gray-500">
-                This template features {currentTemplate.style} styling with {name.toLowerCase()} branding and color scheme.
-              </div>
+              )}
             </div>
+          </div>
+        </div>
+        
+        {/* Template Information */}
+        <div className="p-4 border rounded-md bg-blue-50">
+          <h5 className="text-sm font-medium text-blue-900 mb-2">Current Template: {name}</h5>
+          <div className="text-xs text-blue-700">
+            {localDesignTemplate === 'beauty-salon' && 'Pink/purple gradient with sparkles icon and beauty salon branding'}
+            {localDesignTemplate === 'medical' && 'Blue professional theme with calendar icon and medical styling'}
+            {localDesignTemplate === 'fitness' && 'Orange/red gradient with heart icon and fitness branding'}
+            {localDesignTemplate === 'restaurant' && 'Amber/orange theme with star icon and restaurant styling'}
+            {localDesignTemplate === 'corporate' && 'Gray professional theme with building icon and corporate branding'}
+            {localDesignTemplate === 'spa' && 'Green/teal wellness theme with spa styling'}
+            {localDesignTemplate === 'automotive' && 'Slate/gray theme with settings icon and automotive branding'}
+            {localDesignTemplate === 'education' && 'Indigo/purple theme with user icon and education styling'}
+            {localDesignTemplate === 'modern' && 'Black/gray minimalist theme with modern styling'}
           </div>
         </div>
         
@@ -1462,6 +1540,35 @@ export default function CalendarSection({
             Preview Template
           </button>
         </div>
+      </div>
+    );
+  };
+
+  const renderEditingInterface = () => {
+    return (
+      <div className="w-full p-6">
+        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
+          <TabsList className="flex flex-wrap space-x-2 w-full">
+            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
+            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
+            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+          </TabsList>
+
+          {/* DETAILS TAB */}
+          <TabsContent value="details" className="space-y-4">
+            <DetailsTab />
+          </TabsContent>
+
+          {/* STYLES TAB */}
+          <TabsContent value="styles" className="space-y-4">
+            <StylesTab />
+          </TabsContent>
+
+          {/* PREVIEW TAB */}
+          <TabsContent value="preview" className="space-y-4">
+            <PreviewTab />
+          </TabsContent>
+        </Tabs>
       </div>
     );
   };

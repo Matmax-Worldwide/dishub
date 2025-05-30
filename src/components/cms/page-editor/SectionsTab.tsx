@@ -122,6 +122,12 @@ const AVAILABLE_COMPONENTS = [
     displayType: 'Gallery',
     nameKey: 'sections.components.gallery.name',
     descriptionKey: 'sections.components.gallery.description'
+  },
+  {
+    type: 'calendar',
+    displayType: 'Calendar',
+    nameKey: 'sections.components.calendar.name',
+    descriptionKey: 'sections.components.calendar.description'
   }
 ];
 

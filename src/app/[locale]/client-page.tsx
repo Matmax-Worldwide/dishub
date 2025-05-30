@@ -632,6 +632,9 @@ export default function ClientPage({ locale, dictionary }: ClientPageProps) {
     if (lowercaseType === 'gallery') {
       return 'Gallery' as ComponentType;
     }
+    if (lowercaseType === 'calendar') {
+      return 'Calendar' as ComponentType;
+    }
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };
 
