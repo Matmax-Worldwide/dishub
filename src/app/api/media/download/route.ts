@@ -71,6 +71,12 @@ export async function GET(request: NextRequest) {
       contentType = 'application/pdf';
     }
     
+    // Special case for SVGs: check filename
+    if (filename.toLowerCase().endsWith('.svg') && contentType === 'application/octet-stream') {
+      console.log(`Fixed content type for SVG file: ${filename}`);
+      contentType = 'image/svg+xml';
+    }
+    
     // Log the file details
     console.log(`Serving file: ${filename}, Content-Type: ${contentType}, Size: ${buffer.length}`);
     
@@ -79,6 +85,12 @@ export async function GET(request: NextRequest) {
       'Content-Type': contentType,
       'Content-Length': buffer.length.toString(),
     };
+    
+    // Add security headers for SVG files
+    if (contentType === 'image/svg+xml') {
+      headers['X-Content-Type-Options'] = 'nosniff';
+      headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'none';";
+    }
     
     // If downloading (not viewing), add Content-Disposition header
     if (!viewMode) {
