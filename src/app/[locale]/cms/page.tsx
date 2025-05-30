@@ -11,7 +11,8 @@ import {
   ArrowRightIcon,
   AlertCircleIcon,
   ClipboardList,
-  NewspaperIcon
+  NewspaperIcon,
+  CalendarIcon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
 import graphqlClient from '@/lib/graphql-client';
@@ -128,6 +129,14 @@ export default function CMSDashboard() {
       icon: SettingsIcon,
       href: `/${locale}/cms/settings`,
       color: 'bg-orange-500',
+      disabled: false
+    },
+    {
+      title: 'Calendario',
+      description: 'Gestionar calendario de citas y servicios',
+      icon: CalendarIcon,
+      href: `/${locale}/cms/calendar`,
+      color: 'bg-red-500',
       disabled: false
     }
   ];

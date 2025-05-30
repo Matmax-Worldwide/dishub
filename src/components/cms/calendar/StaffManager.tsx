@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
-import { CalendarStaffProfile as StaffProfile, CalendarUser as User, CalendarService as Service, CalendarLocation as Location, CalendarStaffScheduleInput as StaffScheduleInput, PrismaScheduleType } from '@/types/calendar';
+import { StaffProfile, User, Service, Location, StaffScheduleInput } from '@/types/calendar';
 import StaffForm from './StaffForm';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 export default function StaffManager() {
   const [staffMembers, setStaffMembers] = useState<StaffProfile[]>([]);
@@ -60,7 +61,7 @@ export default function StaffManager() {
         graphqlClient.services(),   
         graphqlClient.locations(),  
       ]);
-      setStaffMembers(staffData || []);
+      setStaffMembers((staffData as unknown as StaffProfile[]) || []);
       setAllUsers(usersData || []);
       setAllServices(servicesData as Service[] || []);
       setAllLocations(locationsData || []);
@@ -89,7 +90,7 @@ export default function StaffManager() {
   };
 
   const handleEdit = (staffMember: StaffProfile) => {
-
+    setEditingStaffMember(staffMember);
     setIsFormOpen(true);
   };
 
@@ -128,15 +129,15 @@ export default function StaffManager() {
 
       const profileInput = {
           userId: staffProfileData.userId,
-          bio: staffProfileData.bio,
+          bio: staffProfileData.bio || undefined,
           specializations: staffProfileData.specializations || [],
       };
 
       if (editingStaffMember?.id) { 
-        savedProfile = await graphqlClient.updateStaffProfile({ id: editingStaffMember.id, input: profileInput });
+        savedProfile = await graphqlClient.updateStaffProfile({ id: editingStaffMember.id, input: profileInput }) as unknown as StaffProfile;
         toast.success(`Staff member "${savedProfile.user?.firstName}" updated.`);
       } else { 
-        savedProfile = await graphqlClient.createStaffProfile({ input: profileInput });
+        savedProfile = await graphqlClient.createStaffProfile({ input: profileInput }) as unknown as StaffProfile;
         toast.success(`Staff member "${savedProfile.user?.firstName}" created.`);
       }
 
@@ -146,7 +147,7 @@ export default function StaffManager() {
             dayOfWeek: s.dayOfWeek,
             startTime: s.startTime || '',
             endTime: s.endTime || '',
-            scheduleType: PrismaScheduleType.REGULAR_HOURS,
+            scheduleType: 'REGULAR_HOURS' as const,
             isAvailable: s.isAvailable ?? true
         }));
         await graphqlClient.updateStaffSchedule({ staffProfileId: savedProfile.id, schedule: typedScheduleData });
@@ -254,7 +255,7 @@ export default function StaffManager() {
         isOpen={isFormOpen}
         onClose={() => { setIsFormOpen(false); setEditingStaffMember(undefined); }}
         onSave={handleSaveStaff}
-        initialData={editingStaffMember}
+        initialData={editingStaffMember as Partial<StaffProfile> & { schedules?: Partial<StaffScheduleInput>[] }}
         allUsersForSelect={usersAvailableForStaffAssignment} // Corrected variable name
         allServices={allServices}
         allLocations={allLocations}

@@ -77,6 +77,75 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
+  type StaffProfile {
+    id: ID!
+    userId: ID!
+    user: User
+    bio: String
+    specializations: [String!]!
+    assignedServices: [Service!]
+    locationAssignments: [Location!]
+    schedules: [StaffSchedule!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Service {
+    id: ID!
+    name: String!
+    description: String
+    durationMinutes: Int!
+    price: Float!
+    bufferTimeBeforeMinutes: Int!
+    bufferTimeAfterMinutes: Int!
+    preparationTimeMinutes: Int!
+    cleanupTimeMinutes: Int!
+    maxDailyBookingsPerService: Int
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    serviceCategoryId: ID!
+    serviceCategory: ServiceCategory
+    locations: [Location!]
+  }
+
+  type Location {
+    id: ID!
+    name: String!
+    address: String
+    phone: String
+    operatingHours: JSON
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ServiceCategory {
+    id: ID!
+    name: String!
+    description: String
+    displayOrder: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    parentId: ID
+  }
+
+  type StaffSchedule {
+    id: ID!
+    staffProfileId: ID!
+    staffProfile: StaffProfile
+    locationId: ID
+    location: Location
+    date: DateTime
+    dayOfWeek: DayOfWeek
+    startTime: String!
+    endTime: String!
+    scheduleType: ScheduleType!
+    isAvailable: Boolean!
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
   type BookingRule { # Placeholder for now - Will be defined later if needed for booking list/details
     id: ID!
   }

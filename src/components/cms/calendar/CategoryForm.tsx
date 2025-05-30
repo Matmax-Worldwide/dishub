@@ -174,19 +174,3 @@ export default function CategoryForm({
     </Dialog>
   );
 }
-
-// Define ServiceCategory type if not already globally available (e.g. in types/calendar.ts)
-// For the purpose of this component, a partial definition is fine.
-declare module '@/types/calendar' {
-  export interface ServiceCategory {
-    id: string;
-    name: string;
-    description?: string | null;
-    displayOrder?: number;
-    parentId?: string | null;
-    // parentCategory?: ServiceCategory | null; // For display in manager
-    // childCategories?: ServiceCategory[]; // For display in manager
-    createdAt?: string | Date;
-    updatedAt?: string | Date;
-  }
-}
