@@ -195,19 +195,6 @@ type StaffProfileWhereInput = {
   };
 };
 
-type LocationCreateInput = {
-  name: string;
-  address?: string | null;
-  phone?: string | null;
-  operatingHours?: unknown;
-};
-
-type LocationUpdateInput = {
-  name?: string;
-  address?: string;
-  phone?: string;
-  operatingHours?: unknown;
-};
 
 type ServiceCategoryCreateInput = {
   name: string;
@@ -754,7 +741,7 @@ export const calendarResolvers = {
     createLocation: async (_parent: unknown, { input }: { input: CreateLocationInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const data: LocationCreateInput = {
+        const data = {
           name: input.name,
           address: input.address || null,
           phone: input.phone || null,
@@ -782,7 +769,7 @@ export const calendarResolvers = {
       
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const data: LocationUpdateInput = {
+        const data = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.address !== undefined && { address: input.address }),
           ...(input.phone !== undefined && { phone: input.phone }),
