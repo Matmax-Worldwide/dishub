@@ -16,8 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  BookOpen,
-  CalendarDays // Added Calendar icon
+  BookOpen
 } from 'lucide-react';
 
 import {
@@ -123,47 +122,8 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
       href: `/${locale}/cms/media`,
       icon: <ImageIcon className="h-4 w-4" />
     },
-    // Settings will be moved down to appear after Calendar
   ];
 
-  const calendarNavItems = [
-    {
-      name: "Overview", // Assuming dictionary.cms.calendar.overview or similar if translated
-      href: `/${locale}/cms/calendar`,
-      icon: <CalendarDays className="h-4 w-4" /> // Main icon for the group
-    },
-    {
-      name: "Locations",
-      href: `/${locale}/cms/calendar/locations`,
-      icon: <div className="w-4 h-4" /> // Placeholder for sub-item indentation or specific icon
-    },
-    {
-      name: "Categories",
-      href: `/${locale}/cms/calendar/categories`,
-      icon: <div className="w-4 h-4" />
-    },
-    {
-      name: "Services",
-      href: `/${locale}/cms/calendar/services`,
-      icon: <div className="w-4 h-4" />
-    },
-    {
-      name: "Staff",
-      href: `/${locale}/cms/calendar/staff`,
-      icon: <div className="w-4 h-4" />
-    },
-    {
-      name: "Bookings",
-      href: `/${locale}/cms/calendar/bookings`,
-      icon: <div className="w-4 h-4" />
-    },
-    {
-      name: "Rules",
-      href: `/${locale}/cms/calendar/rules`,
-      icon: <div className="w-4 h-4" />
-    }
-  ];
-  
   const settingsNavItem = {
     name: nav.settings,
     href: `/${locale}/cms/settings`,
@@ -239,19 +199,31 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     <SidebarProvider defaultCollapsed={false}>
       <Sidebar className="flex flex-col h-full relative">
         <SidebarHeader className="flex items-center justify-between p-3 pb-2">
-          <Link href={`/${locale}/cms`} className="flex items-center">
-            <div className="relative h-8 w-8 mr-2">
-              <Image 
-                src="/images/logo.png" 
-                alt="E-Voque CMS" 
-                fill
-                sizes="32px"
-                priority
-                style={{ objectFit: 'contain' }}
-              />
-            </div>
-            <span className="text-lg font-semibold text-foreground sidebar-title">CMS</span>
-          </Link>
+          <div className="flex items-center space-x-2">
+            <Link href={`/${locale}/cms`} className="flex items-center">
+              <div className="relative h-8 w-8 mr-2">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="E-Voque CMS" 
+                  fill
+                  sizes="32px"
+                  priority
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
+              <span className="text-lg font-semibold text-foreground sidebar-title">CMS</span>
+            </Link>
+            
+            {/* Switch to Bookings button */}
+            <Link 
+              href={`/${locale}/bookings`}
+              className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+              title="Switch to Bookings"
+            >
+              Bookings
+            </Link>
+          </div>
+          
           <div className="flex items-center">
             <CollapsibleButton className="sidebar-header-collapse-button" />
           </div>
@@ -280,26 +252,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
               </Link>
             ))}
           </SidebarGroup>
-          <SidebarGroup title="Calendar"> {/* Or "Calendar Management" */}
-            {calendarNavItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block"
-                onClick={(e) => handleNavigation(item.href, e)}
-              >
-                <SidebarItem
-                  icon={item.icon}
-                  active={isActiveLink(item.href)}
-                  // Consider adding a slight padding-left for sub-items if icon is just a spacer
-                  // className={item.icon.type === 'div' ? 'pl-[calc(1rem+Xpx)]' : ''} // Xpx is width of actual icon
-                >
-                  {item.name}
-                </SidebarItem>
-              </Link>
-            ))}
-          </SidebarGroup>
-          <SidebarGroup title="Configuration"> {/* A group for settings */}
+          <SidebarGroup title="Configuration">
             <Link
               key={settingsNavItem.name}
               href={settingsNavItem.href}

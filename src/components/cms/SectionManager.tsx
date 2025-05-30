@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
 import { FormDesignType } from './forms/MultiStepFormRenderer';
-import { ComponentType } from '@/types/cms';
+import { ComponentType, HeaderAdvancedOptions } from '@/types/cms';
 import ComponentSelector from './ComponentSelector';
 
 // Drag and Drop imports
@@ -1541,6 +1541,33 @@ function SectionManagerBase({
               backgroundColor={component.data.backgroundColor as string || "#ffffff"}
               textColor={component.data.textColor as string || "#000000"}
               logoUrl={component.data.logoUrl as string || ""}
+              transparency={component.data.transparency as number || 0}
+              headerSize={component.data.headerSize as 'sm' | 'md' | 'lg' || 'md'}
+              menuAlignment={component.data.menuAlignment as 'left' | 'center' | 'right' || 'right'}
+              menuButtonStyle={component.data.menuButtonStyle as 'default' | 'filled' | 'outline' || 'default'}
+              mobileMenuStyle={component.data.mobileMenuStyle as 'fullscreen' | 'dropdown' | 'sidebar' || 'dropdown'}
+              mobileMenuPosition={component.data.mobileMenuPosition as 'left' | 'right' || 'right'}
+              transparentHeader={component.data.transparentHeader as boolean || false}
+              borderBottom={component.data.borderBottom as boolean || false}
+              fixedHeader={component.data.fixedHeader as boolean || false}
+              advancedOptions={component.data.advancedOptions as HeaderAdvancedOptions || {}}
+              menuIcon={component.data.menuIcon as string || 'Menu'}
+              // Button configuration props
+              showButton={component.data.showButton as boolean || false}
+              buttonText={component.data.buttonText as string || ''}
+              buttonAction={component.data.buttonAction as string || ''}
+              buttonColor={component.data.buttonColor as string || '#3B82F6'}
+              buttonTextColor={component.data.buttonTextColor as string || '#FFFFFF'}
+              buttonSize={component.data.buttonSize as 'sm' | 'md' | 'lg' || 'md'}
+              buttonBorderRadius={component.data.buttonBorderRadius as number || 0}
+              buttonShadow={component.data.buttonShadow as 'none' | 'sm' | 'md' | 'lg' | 'xl' || 'none'}
+              buttonBorderColor={component.data.buttonBorderColor as string || ''}
+              buttonBorderWidth={component.data.buttonBorderWidth as number || 0}
+              buttonWidth={component.data.buttonWidth as string || ''}
+              buttonHeight={component.data.buttonHeight as string || ''}
+              buttonPosition={component.data.buttonPosition as 'left' | 'center' | 'right' || 'right'}
+              buttonDropdown={component.data.buttonDropdown as boolean || false}
+              buttonDropdownItems={component.data.buttonDropdownItems as Array<{id: string; label: string; url: string}> || []}
               isEditing={isEditing}
               onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
