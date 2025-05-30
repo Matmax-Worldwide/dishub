@@ -116,10 +116,18 @@ export default function ServiceManager() {
     setIsSaving(true);
     setError(null);
     try {
-      let result;
-      // Ensure locationIds is part of the input sent to the mutation
-      const inputData = { ...data, locationIds: data.locationIds || [] };
+      // Prepare input data, removing form-specific fields
+      const inputData = {
+        name: data.name,
+        description: data.description,
+        durationMinutes: data.durationMinutes,
+        price: data.price,
+        serviceCategoryId: data.serviceCategoryId || undefined,
+        isActive: data.isActive ?? true,
+        locationIds: data.locationIds || [],
+      };
 
+      let result;
       if (editingService?.id) {
         result = await graphqlClient.updateService({ id: editingService.id, input: inputData });
         toast.success(`Service "${result.name}" updated successfully.`);

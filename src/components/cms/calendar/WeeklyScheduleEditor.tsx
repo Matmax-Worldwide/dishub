@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { CalendarStaffScheduleInput as StaffScheduleInput, PrismaDayOfWeek as DayOfWeek, PrismaScheduleType as ScheduleType } from '@/types/calendar'; // Assuming these types/enums are defined
+import { StaffScheduleInput, PrismaDayOfWeek as DayOfWeek, PrismaScheduleType as ScheduleType } from '@/types/calendar';
 
 // Local DayOfWeek enum for UI iteration if not easily importable for client-side
 const OrderedDays: DayOfWeek[] = [

@@ -23,11 +23,11 @@ import { Blog, Post } from '@/types/blog';
 
 // Import calendar types
 import {
+  StaffProfileInput,
   CalendarStaffProfile,
   CalendarUser,
   CalendarLocation,
-  CalendarStaffScheduleInput,
-  StaffProfileInput
+  CalendarStaffScheduleInput
 } from '@/types/calendar';
 
 // Función simple para realizar solicitudes GraphQL

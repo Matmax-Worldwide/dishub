@@ -155,7 +155,7 @@ export default function ServiceForm({
             </div>
             <div>
               <Label htmlFor="serviceCategoryId">Category <span className="text-red-500">*</span></Label>
-              <Select value={formData.serviceCategoryId} onValueChange={(val) => handleSelectChange('serviceCategoryId', val)} disabled={isSaving}>
+              <Select value={formData.serviceCategoryId || ''} onValueChange={(val) => handleSelectChange('serviceCategoryId', val)} disabled={isSaving}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   {allCategories?.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
@@ -211,7 +211,7 @@ export default function ServiceForm({
               <Input id="maxDailyBookingsPerService" name="maxDailyBookingsPerService" type="number" value={formData.maxDailyBookingsPerService || ''} onChange={handleChange} disabled={isSaving} />
             </div>
              <div className="flex items-center space-x-2 pt-6">
-                <Switch id="isActive" checked={formData.isActive} onCheckedChange={(val) => handleSwitchChange('isActive', val)} disabled={isSaving} />
+                <Switch id="isActive" checked={formData.isActive ?? true} onCheckedChange={(val) => handleSwitchChange('isActive', val)} disabled={isSaving} />
                 <Label htmlFor="isActive">Service is Active</Label>
             </div>
           </div>
@@ -250,33 +250,4 @@ export default function ServiceForm({
       </DialogContent>
     </Dialog>
   );
-}
-
-// Extend Location and ServiceCategory types if not already globally available for the props
-declare module '@/types/calendar' {
-  export interface Location { // Only if not already fully defined elsewhere
-    id: string;
-    name: string;
-  }
-  export interface ServiceCategory { // Only if not already fully defined elsewhere
-    id: string;
-    name: string;
-  }
-   export interface Service { // Only if not already fully defined elsewhere
-    id: string;
-    name: string;
-    description?: string | null;
-    durationMinutes: number;
-    price: number;
-    bufferTimeBeforeMinutes?: number | null;
-    bufferTimeAfterMinutes?: number | null;
-    preparationTimeMinutes?: number | null;
-    cleanupTimeMinutes?: number | null;
-    maxDailyBookingsPerService?: number | null;
-    isActive: boolean;
-    serviceCategoryId: string;
-    serviceCategory?: ServiceCategory; // For display, not direct input
-    locationIds?: string[]; // For form state
-    locations?: Location[]; // For display, from query
-  }
 }

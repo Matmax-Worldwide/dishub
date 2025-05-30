@@ -16,10 +16,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  BookOpen
+  BookOpen,
+  CalendarDays // Added Calendar icon
 } from 'lucide-react';
 
-import { 
+import {
   Sidebar, 
   SidebarProvider, 
   SidebarHeader, 
@@ -86,46 +87,88 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     forms: 'Forms',
     media: 'Media',
     settings: 'Settings',
-    blog: 'Blog'
+    blog: 'Blog',
+    // Add new dictionary entries for Calendar if they are to be translated
+    // For now, using hardcoded strings.
   };
 
   const navigationItems = [
-    { 
-      name: nav.dashboard, 
-      href: `/${locale}/cms/`, 
-      icon: <LayoutDashboard className="h-4 w-4" /> 
+    {
+      name: nav.dashboard,
+      href: `/${locale}/cms/`,
+      icon: <LayoutDashboard className="h-4 w-4" />
     },
-    { 
-      name: nav.pages, 
-      href: `/${locale}/cms/pages`, 
-      icon: <FileText className="h-4 w-4" /> 
+    {
+      name: nav.pages,
+      href: `/${locale}/cms/pages`,
+      icon: <FileText className="h-4 w-4" />
     },
-    { 
-      name: nav.menus, 
-      href: `/${locale}/cms/menus`, 
-      icon: <Menu className="h-4 w-4" /> 
+    {
+      name: nav.menus,
+      href: `/${locale}/cms/menus`,
+      icon: <Menu className="h-4 w-4" />
     },
-    { 
-      name: nav.forms, 
-      href: `/${locale}/cms/forms`, 
-      icon: <FormInput className="h-4 w-4" /> 
+    {
+      name: nav.forms,
+      href: `/${locale}/cms/forms`,
+      icon: <FormInput className="h-4 w-4" />
     },
-    { 
-      name: nav.blog, 
-      href: `/${locale}/cms/blog`, 
-      icon: <BookOpen className="h-4 w-4" /> 
+    {
+      name: nav.blog,
+      href: `/${locale}/cms/blog`,
+      icon: <BookOpen className="h-4 w-4" />
     },
-    { 
-      name: nav.media, 
-      href: `/${locale}/cms/media`, 
-      icon: <ImageIcon className="h-4 w-4" /> 
+    {
+      name: nav.media,
+      href: `/${locale}/cms/media`,
+      icon: <ImageIcon className="h-4 w-4" />
     },
-    { 
-      name: nav.settings, 
-      href: `/${locale}/cms/settings`, 
-      icon: <Settings className="h-4 w-4" /> 
-    },
+    // Settings will be moved down to appear after Calendar
   ];
+
+  const calendarNavItems = [
+    {
+      name: "Overview", // Assuming dictionary.cms.calendar.overview or similar if translated
+      href: `/${locale}/cms/calendar`,
+      icon: <CalendarDays className="h-4 w-4" /> // Main icon for the group
+    },
+    {
+      name: "Locations",
+      href: `/${locale}/cms/calendar/locations`,
+      icon: <div className="w-4 h-4" /> // Placeholder for sub-item indentation or specific icon
+    },
+    {
+      name: "Categories",
+      href: `/${locale}/cms/calendar/categories`,
+      icon: <div className="w-4 h-4" />
+    },
+    {
+      name: "Services",
+      href: `/${locale}/cms/calendar/services`,
+      icon: <div className="w-4 h-4" />
+    },
+    {
+      name: "Staff",
+      href: `/${locale}/cms/calendar/staff`,
+      icon: <div className="w-4 h-4" />
+    },
+    {
+      name: "Bookings",
+      href: `/${locale}/cms/calendar/bookings`,
+      icon: <div className="w-4 h-4" />
+    },
+    {
+      name: "Rules",
+      href: `/${locale}/cms/calendar/rules`,
+      icon: <div className="w-4 h-4" />
+    }
+  ];
+  
+  const settingsNavItem = {
+    name: nav.settings,
+    href: `/${locale}/cms/settings`,
+    icon: <Settings className="h-4 w-4" />
+  };
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
@@ -236,6 +279,40 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
                 </SidebarItem>
               </Link>
             ))}
+          </SidebarGroup>
+          <SidebarGroup title="Calendar"> {/* Or "Calendar Management" */}
+            {calendarNavItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="block"
+                onClick={(e) => handleNavigation(item.href, e)}
+              >
+                <SidebarItem
+                  icon={item.icon}
+                  active={isActiveLink(item.href)}
+                  // Consider adding a slight padding-left for sub-items if icon is just a spacer
+                  // className={item.icon.type === 'div' ? 'pl-[calc(1rem+Xpx)]' : ''} // Xpx is width of actual icon
+                >
+                  {item.name}
+                </SidebarItem>
+              </Link>
+            ))}
+          </SidebarGroup>
+          <SidebarGroup title="Configuration"> {/* A group for settings */}
+            <Link
+              key={settingsNavItem.name}
+              href={settingsNavItem.href}
+              className="block"
+              onClick={(e) => handleNavigation(settingsNavItem.href, e)}
+            >
+              <SidebarItem
+                icon={settingsNavItem.icon}
+                active={isActiveLink(settingsNavItem.href)}
+              >
+                {settingsNavItem.name}
+              </SidebarItem>
+            </Link>
           </SidebarGroup>
         </SidebarContent>
         

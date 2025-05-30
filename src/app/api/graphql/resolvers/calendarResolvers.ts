@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
-import { Prisma, ScheduleType, DayOfWeek } from '@prisma/client';
+import { Prisma, ScheduleType, DayOfWeek, BookingStatus } from '@prisma/client';
 
 // Define proper context type
 interface GraphQLContext {
@@ -12,6 +12,22 @@ interface GraphQLContext {
 }
 
 // Define input types
+interface BookingFilterInput {
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+  locationId?: string;
+  serviceId?: string;
+  staffProfileId?: string;
+  customerId?: string;
+  searchQuery?: string;
+}
+
+interface PaginationInput {
+  page?: number;
+  pageSize?: number;
+}
+
 interface ServiceCategoryInput {
   name: string;
   description?: string;
@@ -132,6 +148,77 @@ export const calendarResolvers = {
           locationAssignments: { take: 3, include: { location: {select: {name: true, id: true}} } }, 
         },
       });
+    },
+    bookings: async (_parent: unknown, { filter, pagination }: { filter?: BookingFilterInput, pagination?: PaginationInput }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+
+      const where: Prisma.BookingWhereInput = {};
+      if (filter) {
+        if (filter.dateFrom && filter.dateTo) {
+          where.bookingDate = { gte: new Date(filter.dateFrom), lte: new Date(filter.dateTo) };
+        } else if (filter.dateFrom) {
+          where.bookingDate = { gte: new Date(filter.dateFrom) };
+        } else if (filter.dateTo) {
+          where.bookingDate = { lte: new Date(filter.dateTo) };
+        }
+        if (filter.status) {
+          where.status = filter.status as BookingStatus;
+        }
+        if (filter.locationId) {
+          where.locationId = filter.locationId;
+        }
+        if (filter.serviceId) {
+          where.serviceId = filter.serviceId;
+        }
+        if (filter.staffProfileId) {
+          where.staffProfileId = filter.staffProfileId;
+        }
+        if (filter.customerId) {
+          where.customerId = filter.customerId;
+        }
+        if (filter.searchQuery) {
+          where.OR = [
+            { notes: { contains: filter.searchQuery, mode: 'insensitive' } },
+            // Search in related customer data
+            { customer: { 
+              OR: [
+                { firstName: { contains: filter.searchQuery, mode: 'insensitive' } },
+                { lastName: { contains: filter.searchQuery, mode: 'insensitive' } },
+                { email: { contains: filter.searchQuery, mode: 'insensitive' } }
+              ]
+            }},
+          ];
+        }
+      }
+
+      const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
+      const pageSize = pagination?.pageSize && pagination.pageSize > 0 ? pagination.pageSize : 10;
+      const skip = (page - 1) * pageSize;
+
+      const totalCount = await prisma.booking.count({ where });
+      const items = await prisma.booking.findMany({
+        where,
+        skip,
+        take: pageSize,
+        include: {
+          customer: true, // Changed from 'user' to 'customer'
+          service: true,
+          location: true,
+          staffProfile: {
+            include: {
+              user: true, // Fetch the user related to the staffProfile
+            },
+          },
+        },
+        orderBy: { bookingDate: 'desc' }, // Default order
+      });
+
+      return {
+        items,
+        totalCount,
+        page,
+        pageSize,
+      };
     },
   },
   Mutation: {
@@ -390,5 +477,26 @@ export const calendarResolvers = {
       if (!parent.locationId) return null;
       return prisma.location.findUnique({ where: { id: parent.locationId } });
     }
-  }
+  },
+  // Add Type resolver for Booking to ensure relations are handled if not covered by direct includes
+  // However, the 'include' in the main 'bookings' query resolver should handle these.
+  // Booking: {
+  //   user: async (parent: { userId?: string | null }) => {
+  //     if (!parent.userId) return null;
+  //     return prisma.user.findUnique({ where: { id: parent.userId } });
+  //   },
+  //   service: async (parent: { serviceId: string }) => {
+  //     return prisma.service.findUnique({ where: { id: parent.serviceId } });
+  //   },
+  //   location: async (parent: { locationId: string }) => {
+  //     return prisma.location.findUnique({ where: { id: parent.locationId } });
+  //   },
+  //   staffProfile: async (parent: { staffProfileId?: string | null }) => {
+  //     if (!parent.staffProfileId) return null;
+  //     return prisma.staffProfile.findUnique({ 
+  //       where: { id: parent.staffProfileId },
+  //       include: { user: true } 
+  //     });
+  //   },
+  // }
 };

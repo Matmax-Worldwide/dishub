@@ -170,17 +170,3 @@ export default function LocationForm({ isOpen, onClose, onSave, initialData, isS
     </Dialog>
   );
 }
-
-// Define Location type if not already globally available (e.g. in types/calendar.ts)
-// For the purpose of this component, a partial definition is fine.
-declare module '@/types/calendar' {
-  export interface Location {
-    id: string;
-    name: string;
-    address?: string | null;
-    phone?: string | null;
-    operatingHours?: Record<string, unknown> | null; // Prisma Json can be any
-    createdAt?: string | Date;
-    updatedAt?: string | Date;
-  }
-}

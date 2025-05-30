@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch'; // For multi-select items if needed
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
-import { CalendarStaffProfile as StaffProfile, CalendarUser as User, CalendarService as Service, CalendarLocation as Location, CalendarStaffScheduleInput as StaffScheduleInput, PrismaDayOfWeek, PrismaScheduleType } from '@/types/calendar'; // Assuming types
+import { StaffProfile, User, Service, Location, StaffScheduleInput, StaffSchedule, PrismaDayOfWeek, PrismaScheduleType } from '@/types/calendar';
 import WeeklyScheduleEditor from './WeeklyScheduleEditor';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,21 +48,21 @@ export default function StaffForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   const getInitialSchedule = useCallback(() => {
-    const regularHours = initialData?.schedules?.filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
+    const regularHours = initialData?.schedules?.filter((s: StaffSchedule) => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
     // Ensure all days are present, using defaults for missing ones
     return OrderedDays.map(day => {
-        const existing = regularHours.find(s => s.dayOfWeek === day);
+        const existing = regularHours.find((s: StaffSchedule) => s.dayOfWeek === day);
         if (existing) return existing;
         const isWeekend = day === PrismaDayOfWeek.SATURDAY || day === PrismaDayOfWeek.SUNDAY;
         return {
             dayOfWeek: day,
-            startTime: "09:00",
-            endTime: "17:00",
+            startTime: isWeekend ? '' : '09:00',
+            endTime: isWeekend ? '' : '17:00',
             isAvailable: !isWeekend,
             scheduleType: PrismaScheduleType.REGULAR_HOURS,
         };
     });
-  }, [initialData?.schedules]);
+  }, [initialData]);
 
   useEffect(() => {
     if (isOpen) {
@@ -70,15 +70,21 @@ export default function StaffForm({
         setFormData({
           ...defaultStaffValues,
           ...initialData,
-          assignedServiceIds: initialData.assignedServices?.map(s => s.id) || [],
-          assignedLocationIds: initialData.locationAssignments?.map(l => l.id) || [],
+          assignedServiceIds: initialData.assignedServices?.reduce((acc: string[], s) => {
+            if (s.id) acc.push(s.id);
+            return acc;
+          }, []) || [],
+          assignedLocationIds: initialData.locationAssignments?.reduce((acc: string[], l) => {
+            if (l.id) acc.push(l.id);
+            return acc;
+          }, []) || [],
         });
         setSpecializationsStr((initialData.specializations || []).join(', '));
         setScheduleData(getInitialSchedule());
       } else {
         setFormData(defaultStaffValues);
         setSpecializationsStr('');
-        setScheduleData(getInitialSchedule()); // For default schedule on new staff
+        setScheduleData(getInitialSchedule());
       }
       setFormError(null);
     }
@@ -88,15 +94,15 @@ export default function StaffForm({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: Partial<StaffProfile>) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: keyof StaffProfile, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: Partial<StaffProfile>) => ({ ...prev, [name]: value }));
   };
 
   const handleMultiSelectToggle = (type: 'assignedServiceIds' | 'assignedLocationIds', itemId: string) => {
-    setFormData(prev => {
+    setFormData((prev: Partial<StaffProfile>) => {
       const currentItems = (prev[type] as string[] || []);
       if (currentItems.includes(itemId)) {
         return { ...prev, [type]: currentItems.filter(id => id !== itemId) };
@@ -105,10 +111,10 @@ export default function StaffForm({
       }
     });
   };
-  
+
   const handleSpecializationsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSpecializationsStr(e.target.value);
-    setFormData(prev => ({ ...prev, specializations: e.target.value.split(',').map(s => s.trim()).filter(s => s) }));
+    setFormData((prev: Partial<StaffProfile>) => ({ ...prev, specializations: e.target.value.split(',').map(s => s.trim()).filter(s => s) }));
   };
 
   const handleScheduleUpdate = (newSchedule: Partial<StaffScheduleInput>[]) => {
@@ -119,24 +125,21 @@ export default function StaffForm({
     e.preventDefault();
     setFormError(null);
 
-    if (!formData.userId && !initialData?.userId) { // userId is crucial
-      setFormError('User selection is required to create a staff profile.');
-      toast.error('User selection is required.');
+    if (!formData.userId) {
+      setFormError('Please select a user.');
+      toast.error('Please select a user.');
       return;
     }
 
     const staffProfileData: Partial<StaffProfile> = {
-      ...formData,
-      specializations: specializationsStr.split(',').map(s => s.trim()).filter(s => s),
+      userId: formData.userId,
+      bio: formData.bio,
+      specializations: formData.specializations,
     };
-     if (initialData?.id) { // For updates
-        staffProfileData.id = initialData.id;
-    }
-
 
     await onSave({ staffProfileData, scheduleData });
   };
-  
+
   const OrderedDays: PrismaDayOfWeek[] = [
     PrismaDayOfWeek.MONDAY, PrismaDayOfWeek.TUESDAY, PrismaDayOfWeek.WEDNESDAY, 
     PrismaDayOfWeek.THURSDAY, PrismaDayOfWeek.FRIDAY, PrismaDayOfWeek.SATURDAY, PrismaDayOfWeek.SUNDAY
@@ -144,94 +147,105 @@ export default function StaffForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl"> {/* Wider modal */}
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initialData?.id ? 'Edit Staff Member' : 'Create New Staff Member'}</DialogTitle>
+          <DialogTitle>{initialData?.id ? 'Edit Staff Member' : 'Add New Staff Member'}</DialogTitle>
           <DialogDescription>
-            {initialData?.id ? 'Update details for this staff member.' : 'Fill in details for the new staff member.'}
+            {initialData?.id ? 'Update staff member details and schedule.' : 'Create a new staff member and set their schedule.'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6 py-4 max-h-[80vh] overflow-y-auto pr-2">
-          {/* User Selection (only for create) */}
-          {!initialData?.id && (
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          {/* Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="userId">Select User <span className="text-red-500">*</span></Label>
-              <Select value={formData.userId} onValueChange={(val) => handleSelectChange('userId', val)} disabled={isSaving || !!initialData?.id}>
-                <SelectTrigger><SelectValue placeholder="Select a user to make staff" /></SelectTrigger>
+              <Select value={formData.userId || ''} onValueChange={(val) => handleSelectChange('userId', val)} disabled={isSaving || !!initialData?.id}>
+                <SelectTrigger><SelectValue placeholder="Choose a user" /></SelectTrigger>
                 <SelectContent>
-                  {allUsersForSelect?.map(user => <SelectItem key={user.id!} value={user.id!}>{user.firstName} {user.lastName} ({user.email})</SelectItem>)}
+                  {allUsersForSelect.map(user => (
+                    <SelectItem key={user.id} value={user.id!}>
+                      {user.firstName} {user.lastName} ({user.email})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {initialData?.id && <p className="text-xs text-muted-foreground mt-1">User cannot be changed when editing.</p>}
             </div>
-          )}
-          {initialData?.user && ( // Display selected user when editing
             <div>
-                <Label>Staff User</Label>
-                <Input value={`${initialData.user.firstName} ${initialData.user.lastName} (${initialData.user.email})`} disabled />
+              <Label htmlFor="specializations">Specializations (comma-separated)</Label>
+              <Input
+                id="specializations"
+                value={specializationsStr}
+                onChange={handleSpecializationsChange}
+                placeholder="e.g., Massage Therapy, Physical Therapy"
+                disabled={isSaving}
+              />
             </div>
-          )}
-
-
+          </div>
           <div>
-            <Label htmlFor="bio">Bio / Profile Overview</Label>
-            <Textarea id="bio" name="bio" value={formData.bio || ''} onChange={handleChange} rows={3} disabled={isSaving} />
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
+              name="bio"
+              value={formData.bio || ''}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Brief description about the staff member..."
+              disabled={isSaving}
+            />
           </div>
 
-          <div>
-            <Label htmlFor="specializationsStr">Specializations (comma-separated)</Label>
-            <Input id="specializationsStr" name="specializationsStr" value={specializationsStr} onChange={handleSpecializationsChange} disabled={isSaving} placeholder="e.g., Cutting, Coloring, Deep Tissue" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Assigned Services */}
-            <div>
-              <Label className="block text-base font-medium mb-2">Assign Services</Label>
-              <ScrollArea className="h-48 border rounded-md p-3">
-                <div className="space-y-2">
-                  {allServices?.map(service => (
-                    <div key={service.id} className="flex items-center space-x-2">
-                      <Switch
-                        id={`service-${service.id}`}
-                        checked={(formData.assignedServiceIds || []).includes(service.id)}
-                        onCheckedChange={() => handleMultiSelectToggle('assignedServiceIds', service.id)}
-                        disabled={isSaving}
-                      />
-                      <Label htmlFor={`service-${service.id}`} className="font-normal">{service.name}</Label>
-                    </div>
-                  ))}
-                  {allServices?.length === 0 && <p className="text-sm text-muted-foreground">No services available.</p>}
-                </div>
-              </ScrollArea>
-            </div>
-
-            {/* Assigned Locations */}
-            <div>
-              <Label className="block text-base font-medium mb-2">Assign Locations</Label>
-              <ScrollArea className="h-48 border rounded-md p-3">
-                <div className="space-y-2">
-                  {allLocations?.map(loc => (
-                    <div key={loc.id} className="flex items-center space-x-2">
-                      <Switch
-                        id={`loc-${loc.id}`}
-                        checked={(formData.assignedLocationIds || []).includes(loc.id)}
-                        onCheckedChange={() => handleMultiSelectToggle('assignedLocationIds', loc.id)}
-                        disabled={isSaving}
-                      />
-                      <Label htmlFor={`loc-${loc.id}`} className="font-normal">{loc.name}</Label>
-                    </div>
-                  ))}
-                  {allLocations?.length === 0 && <p className="text-sm text-muted-foreground">No locations available.</p>}
-                </div>
-              </ScrollArea>
-            </div>
+          {/* Service Assignment */}
+          <div className="border-t pt-4">
+            <Label className="block text-base font-medium mb-2">Assign Services</Label>
+            <ScrollArea className="h-32 border rounded-md p-2">
+              <div className="space-y-2">
+                {allServices.map(service => (
+                  <div key={service.id} className="flex items-center space-x-2">
+                    <Switch
+                      id={`service-${service.id}`}
+                      checked={(formData.assignedServiceIds || []).includes(service.id)}
+                      onCheckedChange={() => handleMultiSelectToggle('assignedServiceIds', service.id)}
+                      disabled={isSaving}
+                    />
+                    <Label htmlFor={`service-${service.id}`} className="font-normal">{service.name}</Label>
+                  </div>
+                ))}
+                {allServices.length === 0 && <p className="text-sm text-muted-foreground">No services available.</p>}
+              </div>
+            </ScrollArea>
           </div>
 
-          {/* Weekly Schedule Editor */}
-          <WeeklyScheduleEditor 
-            initialSchedule={scheduleData} 
-            onChange={handleScheduleUpdate}
-            disabled={isSaving}
-          />
+          {/* Location Assignment */}
+          <div className="border-t pt-4">
+            <Label className="block text-base font-medium mb-2">Assign Locations</Label>
+            <ScrollArea className="h-32 border rounded-md p-2">
+              <div className="space-y-2">
+                {allLocations.map(location => (
+                  <div key={location.id} className="flex items-center space-x-2">
+                    <Switch
+                      id={`location-${location.id}`}
+                      checked={(formData.assignedLocationIds || []).includes(location.id)}
+                      onCheckedChange={() => handleMultiSelectToggle('assignedLocationIds', location.id)}
+                      disabled={isSaving}
+                    />
+                    <Label htmlFor={`location-${location.id}`} className="font-normal">{location.name}</Label>
+                  </div>
+                ))}
+                {allLocations.length === 0 && <p className="text-sm text-muted-foreground">No locations available.</p>}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Weekly Schedule */}
+          <div className="border-t pt-4">
+            <Label className="block text-base font-medium mb-2">Weekly Schedule</Label>
+            <WeeklyScheduleEditor
+              initialSchedule={scheduleData}
+              onChange={handleScheduleUpdate}
+              disabled={isSaving}
+            />
+          </div>
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <DialogFooter>
@@ -239,33 +253,11 @@ export default function StaffForm({
               <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
             </DialogClose>
             <Button type="submit" disabled={isSaving}>
-              {isSaving ? (initialData?.id ? 'Saving Staff...' : 'Creating Staff...') : (initialData?.id ? 'Save Changes' : 'Create Staff Member')}
+              {isSaving ? (initialData?.id ? 'Saving...' : 'Creating...') : (initialData?.id ? 'Save Changes' : 'Create Staff')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
-
-// Extend types for props if not fully defined globally
-declare module '@/types/calendar' {
-    export interface User { // Basic User structure for selection
-        id: string;
-        firstName?: string | null;
-        lastName?: string | null;
-        email: string;
-    }
-    export interface StaffProfile {
-        id: string;
-        userId: string;
-        user?: Partial<User>; // For displaying name/email when editing
-        bio?: string | null;
-        specializations?: string[];
-        assignedServiceIds?: string[]; // Used in form state
-        assignedLocationIds?: string[]; // Used in form state
-        assignedServices?: Partial<Service>[]; // For initialData mapping
-        locationAssignments?: Partial<Location>[]; // For initialData mapping
-        schedules?: Partial<StaffScheduleInput>[];
-    }
 }
