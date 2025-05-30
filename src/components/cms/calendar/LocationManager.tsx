@@ -100,7 +100,10 @@ export default function LocationManager() {
     setError(null);
     try {
       if (editingLocation?.id) { // Editing existing location
-        const result = await graphqlClient.updateLocation({ id: editingLocation.id, input: data });
+        // Remove id from input data since it should be passed as separate parameter
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...inputData } = data;
+        const result = await graphqlClient.updateLocation({ id: editingLocation.id, input: inputData });
         toast.success(`Location "${result.name}" updated successfully.`);
       } else { // Creating new location
         if (!data.name) {
