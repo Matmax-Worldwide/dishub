@@ -167,12 +167,6 @@ export const typeDefs = gql`
     staffProfileId: ID
   }
 
-  type BookingConnection {
-    bookings: [Booking!]!
-    totalCount: Int!
-    hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-  }
 
   # Role and Permission related types
   type Role {
@@ -1287,15 +1281,6 @@ export const typeDefs = gql`
     user(id: ID!): User
     users: [User!]
 
-    # Calendar queries
-    calendar: [Calendar!]
-    calendar(id: ID!): Calendar
-    calendarEvents(filter: CalendarEventFilter): [CalendarEvent!]
-    calendarEvent(id: ID!): CalendarEvent
-    calendarEventStats(id: ID!): CalendarEventStats
-    calendarEventTypes: [CalendarEventType!]
-    calendarEventTypes(filter: CalendarEventTypeFilter): [CalendarEventType!]
-    
     # Role and permission queries
     roles: [Role]
     role(id: ID!): Role
@@ -1611,6 +1596,7 @@ export const typeDefs = gql`
     deleteServiceCategory(id: ID!): ServiceCategoryResult!
     
     upsertGlobalBookingRules(input: BookingRuleInput!): BookingRule!
+    updateGlobalBookingRules(input: GlobalBookingRuleInput!): BookingRule!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2081,6 +2067,16 @@ export const typeDefs = gql`
 
   # Input type for booking rules
   input BookingRuleInput {
+    advanceBookingHoursMin: Int!
+    advanceBookingDaysMax: Int!
+    sameDayCutoffTime: String
+    bufferBetweenAppointmentsMinutes: Int!
+    maxAppointmentsPerDayPerStaff: Int
+    bookingSlotIntervalMinutes: Int!
+  }
+
+  # Input type for global booking rules (same as BookingRuleInput but for updateGlobalBookingRules)
+  input GlobalBookingRuleInput {
     advanceBookingHoursMin: Int!
     advanceBookingDaysMax: Int!
     sameDayCutoffTime: String
