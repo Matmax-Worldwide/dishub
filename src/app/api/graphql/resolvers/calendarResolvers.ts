@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
 import { NextRequest } from 'next/server';
 
