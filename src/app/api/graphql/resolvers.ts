@@ -27,6 +27,7 @@ import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
 import { blogResolvers } from './resolvers/blogs';
 import { calendarResolvers } from './resolvers/calendarResolvers';
+import { ecommerceResolvers } from './resolvers/ecommerce';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -689,6 +690,18 @@ const resolvers = {
     post: blogResolvers.Query.post,
     posts: blogResolvers.Query.posts,
     postBySlug: blogResolvers.Query.postBySlug,
+
+    // Add e-commerce queries
+    shops: ecommerceResolvers.Query.shops,
+    shop: ecommerceResolvers.Query.shop,
+    products: ecommerceResolvers.Query.products,
+    product: ecommerceResolvers.Query.product,
+    productBySku: ecommerceResolvers.Query.productBySku,
+    currencies: ecommerceResolvers.Query.currencies,
+    currency: ecommerceResolvers.Query.currency,
+    currencyByCode: ecommerceResolvers.Query.currencyByCode,
+    taxes: ecommerceResolvers.Query.taxes,
+    tax: ecommerceResolvers.Query.tax,
   },
   
   Mutation: {
@@ -1137,6 +1150,10 @@ const resolvers = {
     createPost: blogResolvers.Mutation.createPost,
     updatePost: blogResolvers.Mutation.updatePost,
     deletePost: blogResolvers.Mutation.deletePost,
+
+    // Add e-commerce mutations
+    createShop: ecommerceResolvers.Mutation.createShop,
+    createCurrency: ecommerceResolvers.Mutation.createCurrency,
   },
 
   // Include form type resolvers
@@ -1154,6 +1171,12 @@ const resolvers = {
   StaffProfile: calendarResolvers.StaffProfile,
   Location: calendarResolvers.Location,
   StaffSchedule: calendarResolvers.StaffSchedule,
+
+  // Add e-commerce type resolvers
+  Shop: ecommerceResolvers.Shop,
+  Product: ecommerceResolvers.Product,
+  Price: ecommerceResolvers.Price,
+  Tax: ecommerceResolvers.Tax,
 };
 
 export default resolvers; 

@@ -16,38 +16,45 @@ model ContactFormSubmission {
 }
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  password        String
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  firstName       String
-  lastName        String
-  phoneNumber     String?
-  bio             String?
-  department      String?
-  isActive        Boolean        @default(true)
-  position        String?
-  profileImageUrl String?
-  roleId          String?
-  accounts        Account[]
-  appointments    Appointment[]
-  clients         Client[]
-  documents       Document[]
-  employee        Employee?
-  notifications   Notification[]
-  performances    Performance[]
-  projects        Project[]
-  sessions        Session[]
-  tasksAssigned   Task[]         @relation("TaskAssignee")
-  tasksCreated    Task[]         @relation("TaskCreator")
-  timeEntries     TimeEntry[]
-  role            RoleModel?     @relation(fields: [roleId], references: [id])
-  settings        UserSettings?
-  posts           Post[]
-  staffProfile    StaffProfile? // Relation to StaffProfile for booking module
-  bookings        Booking[] // Bookings made by this user as a customer
-  Shop            Shop[]
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String?
+  firstName        String?
+  lastName         String?
+  phoneNumber      String?
+  profileImageUrl  String?
+  isActive         Boolean   @default(true)
+  emailVerified    DateTime?
+  emailVerifiedAt  DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  roleId           String?
+  role             RoleModel?           @relation(fields: [roleId], references: [id])
+  accounts         Account[]
+  sessions         Session[]
+  documents        Document[]
+  projects         Project[]
+  appointments     Appointment[]
+  tasksAssigned    Task[]               @relation("TaskAssignee")
+  tasksCreated     Task[]               @relation("TaskCreator")
+  timeEntries      TimeEntry[]
+  notifications    Notification[]
+  performances     Performance[]
+  settings         UserSettings?
+  employee         Employee?
+  shops            Shop[]
+  bookings         Booking[]
+  staffProfile     StaffProfile?
+  orders           Order[]              @relation("CustomerOrders")
+  clients          Client[]
+  posts            Post[]
+
+  @@index([email])
+  @@index([roleId])
 }
 
 model Session {
@@ -232,6 +239,7 @@ model Shop {
   locations Location[]
   products  Product[]
   taxes     Tax[] // A shop can have specific taxes
+  orders    Order[]
 
   // @@index([adminUserId]) // Optional: if querying shops by admin user is frequent
   @@index([defaultCurrencyId])
@@ -286,8 +294,9 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  shop   Shop    @relation(fields: [shopId], references: [id])
-  prices Price[] // Relation to its prices in different currencies
+  shop       Shop        @relation(fields: [shopId], references: [id])
+  prices     Price[]     // Relation to its prices in different currencies
+  orderItems OrderItem[]
   // @@index([productCategoryId])
 
   @@index([shopId])
@@ -1461,7 +1470,55 @@ model Currency {
   shopsAcceptedIn ShopAcceptedCurrencies[] @relation("ShopAcceptedCurrencies")
   shopsDefaultIn  Shop[]                   @relation("ShopDefaultCurrency")
   prices          Price[]
+  orders          Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  customerId    String?
+  customer      User?       @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerName  String
+  customerEmail String
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  currencyId    String
+  currency      Currency    @relation(fields: [currencyId], references: [id])
+  shopId        String
+  shop          Shop        @relation(fields: [shopId], references: [id])
+  
+  items         OrderItem[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([customerId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+
+  @@index([orderId])
+  @@index([productId])
 }

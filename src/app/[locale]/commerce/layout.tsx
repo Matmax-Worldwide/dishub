@@ -13,12 +13,18 @@ interface CommerceLayoutProps {
 
 export default function CommerceLayout({ children, params }: CommerceLayoutProps) {
   const { locale } = use(params);
+  
   return (
     <UnsavedChangesProvider>
       <div className="flex h-screen bg-gray-50">
+        {/* Sidebar */}
         <CommerceSidebar locale={locale} />
+        
+        {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
-          {children}
+          <div className="min-h-full">
+            {children}
+          </div>
         </main>
       </div>
     </UnsavedChangesProvider>

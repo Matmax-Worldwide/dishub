@@ -1440,6 +1440,19 @@ export const typeDefs = gql`
     availableSlots(serviceId: ID!, locationId: ID!, staffProfileId: ID, date: String!): [AvailableTimeSlot!]!
     staffForService(serviceId: ID!, locationId: ID): [StaffProfile!]!
 
+    # E-commerce queries
+    shops(filter: ShopFilterInput, pagination: PaginationInput): [Shop!]!
+    shop(id: ID!): Shop
+    products(filter: ProductFilterInput, pagination: PaginationInput): [Product!]!
+    product(id: ID!): Product
+    productBySku(sku: String!): Product
+    orders(filter: OrderFilterInput, pagination: PaginationInput): [Order!]!
+    order(id: ID!): Order
+    currencies: [Currency!]!
+    currency(id: ID!): Currency
+    currencyByCode(code: String!): Currency
+    taxes(shopId: String): [Tax!]!
+    tax(id: ID!): Tax
   }
 
   # Root Mutation
@@ -1616,6 +1629,27 @@ export const typeDefs = gql`
     
     upsertGlobalBookingRules(input: BookingRuleInput!): BookingRule!
     updateGlobalBookingRules(input: GlobalBookingRuleInput!): BookingRule!
+
+    # E-commerce mutations
+    createShop(input: CreateShopInput!): ShopResult!
+    updateShop(id: ID!, input: UpdateShopInput!): ShopResult!
+    deleteShop(id: ID!): ShopResult!
+    
+    createProduct(input: CreateProductInput!): ProductResult!
+    updateProduct(id: ID!, input: UpdateProductInput!): ProductResult!
+    deleteProduct(id: ID!): ProductResult!
+    
+    createOrder(input: CreateOrderInput!): OrderResult!
+    updateOrder(id: ID!, input: UpdateOrderInput!): OrderResult!
+    deleteOrder(id: ID!): OrderResult!
+    
+    createCurrency(input: CreateCurrencyInput!): CurrencyResult!
+    updateCurrency(id: ID!, input: UpdateCurrencyInput!): CurrencyResult!
+    deleteCurrency(id: ID!): CurrencyResult!
+    
+    createTax(input: CreateTaxInput!): TaxResult!
+    updateTax(id: ID!, input: UpdateTaxInput!): TaxResult!
+    deleteTax(id: ID!): TaxResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2134,4 +2168,221 @@ export const typeDefs = gql`
   }
 
   # --------------- END BOOKING MODULE INPUTS AND CONNECTIONS --- V1 ---
+
+  # --------------- E-COMMERCE MODULE TYPES --- V1 ---
+  
+  type Shop {
+    id: ID!
+    name: String!
+    defaultCurrencyId: String!
+    defaultCurrency: Currency!
+    acceptedCurrencies: [Currency!]!
+    adminUserId: String!
+    adminUser: User!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    products: [Product!]!
+    orders: [Order!]!
+  }
+
+  type Product {
+    id: ID!
+    name: String!
+    description: String
+    sku: String!
+    stockQuantity: Int!
+    shopId: String!
+    shop: Shop!
+    prices: [Price!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Order {
+    id: ID!
+    customerId: String
+    customer: User
+    customerName: String!
+    customerEmail: String!
+    status: OrderStatus!
+    totalAmount: Float!
+    currencyId: String!
+    currency: Currency!
+    shopId: String!
+    shop: Shop!
+    items: [OrderItem!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type OrderItem {
+    id: ID!
+    orderId: String!
+    order: Order!
+    productId: String!
+    product: Product!
+    quantity: Int!
+    unitPrice: Float!
+    totalPrice: Float!
+  }
+
+  type Tax {
+    id: ID!
+    name: String!
+    rate: Float!
+    isActive: Boolean!
+    shopId: String!
+    shop: Shop!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  enum OrderStatus {
+    PENDING
+    PROCESSING
+    SHIPPED
+    DELIVERED
+    CANCELLED
+    REFUNDED
+  }
+
+  # E-commerce input types
+  input CreateShopInput {
+    name: String!
+    defaultCurrencyId: String!
+    acceptedCurrencyIds: [String!]
+    adminUserId: String!
+  }
+
+  input UpdateShopInput {
+    name: String
+    defaultCurrencyId: String
+    acceptedCurrencyIds: [String!]
+    adminUserId: String
+  }
+
+  input CreateProductInput {
+    name: String!
+    description: String
+    sku: String!
+    stockQuantity: Int!
+    shopId: String!
+    prices: [CreatePriceInput!]!
+  }
+
+  input UpdateProductInput {
+    name: String
+    description: String
+    sku: String
+    stockQuantity: Int
+    prices: [CreatePriceInput!]
+  }
+
+  input CreatePriceInput {
+    amount: Float!
+    currencyId: String!
+    priceIncludesTax: Boolean!
+  }
+
+  input CreateOrderInput {
+    customerId: String
+    customerName: String!
+    customerEmail: String!
+    shopId: String!
+    items: [CreateOrderItemInput!]!
+  }
+
+  input CreateOrderItemInput {
+    productId: String!
+    quantity: Int!
+    unitPrice: Float!
+  }
+
+  input UpdateOrderInput {
+    status: OrderStatus
+    customerName: String
+    customerEmail: String
+  }
+
+  input CreateCurrencyInput {
+    code: String!
+    name: String!
+    symbol: String!
+  }
+
+  input UpdateCurrencyInput {
+    code: String
+    name: String
+    symbol: String
+  }
+
+  input CreateTaxInput {
+    name: String!
+    rate: Float!
+    isActive: Boolean!
+    shopId: String!
+  }
+
+  input UpdateTaxInput {
+    name: String
+    rate: Float
+    isActive: Boolean
+  }
+
+  # E-commerce result types
+  type ShopResult {
+    success: Boolean!
+    message: String!
+    shop: Shop
+  }
+
+  type ProductResult {
+    success: Boolean!
+    message: String!
+    product: Product
+  }
+
+  type OrderResult {
+    success: Boolean!
+    message: String!
+    order: Order
+  }
+
+  type CurrencyResult {
+    success: Boolean!
+    message: String!
+    currency: Currency
+  }
+
+  type TaxResult {
+    success: Boolean!
+    message: String!
+    tax: Tax
+  }
+
+  # E-commerce filter inputs
+  input ShopFilterInput {
+    search: String
+    adminUserId: String
+    currencyId: String
+  }
+
+  input ProductFilterInput {
+    search: String
+    shopId: String
+    inStock: Boolean
+    minPrice: Float
+    maxPrice: Float
+  }
+
+  input OrderFilterInput {
+    search: String
+    shopId: String
+    customerId: String
+    status: OrderStatus
+    dateFrom: DateTime
+    dateTo: DateTime
+  }
+
+  # --------------- END E-COMMERCE MODULE TYPES --- V1 ---
 `; 

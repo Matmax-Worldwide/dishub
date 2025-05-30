@@ -4482,6 +4482,139 @@ export const cmsOperations = {
     }
   },
 
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
 };
 
 // Form Builder API functions
@@ -6530,6 +6663,139 @@ const graphqlClient = {
     }
   },
 
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
 };
 
 // Export all functions
@@ -6759,3 +7025,786 @@ async function deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
     return { success: false, message: 'Error deleting form submission', submission: null };
   }
 }
+
+// E-commerce functions
+export const ecommerce = {
+  // Shop functions
+  async getShops(filter?: {
+    search?: string;
+    adminUserId?: string;
+    currencyId?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    defaultCurrency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    acceptedCurrencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    }>;
+    adminUser?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email: string;
+    };
+    products: Array<{
+      id: string;
+      name: string;
+      sku?: string;
+      stockQuantity?: number;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShops($filter: ShopFilterInput, $pagination: PaginationInput) {
+        shops(filter: $filter, pagination: $pagination) {
+          id
+          name
+          defaultCurrency {
+            id
+            code
+            name
+            symbol
+          }
+          acceptedCurrencies {
+            id
+            code
+            name
+            symbol
+          }
+          adminUser {
+            id
+            firstName
+            lastName
+            email
+          }
+          products {
+            id
+            name
+            sku
+            stockQuantity
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ shops: Array<{
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+      products: Array<{
+        id: string;
+        name: string;
+        sku?: string;
+        stockQuantity?: number;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.shops || [];
+  },
+
+  async getShop(id: string): Promise<{
+    id: string;
+    name: string;
+    defaultCurrency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    acceptedCurrencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    }>;
+    adminUser?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email: string;
+    };
+    products: Array<{
+      id: string;
+      name: string;
+      sku?: string;
+      stockQuantity?: number;
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetShop($id: ID!) {
+        shop(id: $id) {
+          id
+          name
+          defaultCurrency {
+            id
+            code
+            name
+            symbol
+          }
+          acceptedCurrencies {
+            id
+            code
+            name
+            symbol
+          }
+          adminUser {
+            id
+            firstName
+            lastName
+            email
+          }
+          products {
+            id
+            name
+            sku
+            stockQuantity
+            prices {
+              id
+              amount
+              currency {
+                id
+                code
+                symbol
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ shop: {
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+      products: Array<{
+        id: string;
+        name: string;
+        sku?: string;
+        stockQuantity?: number;
+        prices: Array<{
+          id: string;
+          amount: number;
+          currency: {
+            id: string;
+            code: string;
+            symbol: string;
+          };
+        }>;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.shop;
+  },
+
+  // Product functions
+  async getProducts(filter?: {
+    search?: string;
+    shopId?: string;
+    inStock?: boolean;
+    minPrice?: number;
+    maxPrice?: number;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    stockQuantity?: number;
+    shop: {
+      id: string;
+      name: string;
+    };
+    prices: Array<{
+      id: string;
+      amount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetProducts($filter: ProductFilterInput, $pagination: PaginationInput) {
+        products(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          sku
+          stockQuantity
+          shop {
+            id
+            name
+          }
+          prices {
+            id
+            amount
+            currency {
+              id
+              code
+              symbol
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ products: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      sku?: string;
+      stockQuantity?: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.products || [];
+  },
+
+  async getProduct(id: string): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    stockQuantity?: number;
+    shop: {
+      id: string;
+      name: string;
+    };
+    prices: Array<{
+      id: string;
+      amount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetProduct($id: ID!) {
+        product(id: $id) {
+          id
+          name
+          description
+          sku
+          stockQuantity
+          shop {
+            id
+            name
+          }
+          prices {
+            id
+            amount
+            currency {
+              id
+              code
+              symbol
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ product: {
+      id: string;
+      name: string;
+      description?: string;
+      sku?: string;
+      stockQuantity?: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.product;
+  },
+
+  // Currency functions
+  async getCurrencies(): Promise<Array<{
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetCurrencies {
+        currencies {
+          id
+          code
+          name
+          symbol
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ currencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query);
+
+    return result.currencies || [];
+  },
+
+  async getCurrency(id: string): Promise<{
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetCurrency($id: ID!) {
+        currency(id: $id) {
+          id
+          code
+          name
+          symbol
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.currency;
+  },
+
+  // Tax functions
+  async getTaxes(shopId?: string): Promise<Array<{
+    id: string;
+    name: string;
+    rate: number;
+    isActive: boolean;
+    shop: {
+      id: string;
+      name: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetTaxes($shopId: String) {
+        taxes(shopId: $shopId) {
+          id
+          name
+          rate
+          isActive
+          shop {
+            id
+            name
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ taxes: Array<{
+      id: string;
+      name: string;
+      rate: number;
+      isActive: boolean;
+      shop: {
+        id: string;
+        name: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { shopId });
+
+    return result.taxes || [];
+  },
+
+  // Mutation functions
+  async createShop(input: {
+    name: string;
+    defaultCurrencyId: string;
+    adminUserId: string;
+    acceptedCurrencyIds?: string[];
+  }): Promise<{
+    success: boolean;
+    message: string;
+    shop: {
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+    } | null;
+  }> {
+    const mutation = `
+      mutation CreateShop($input: CreateShopInput!) {
+        createShop(input: $input) {
+          success
+          message
+          shop {
+            id
+            name
+            defaultCurrency {
+              id
+              code
+              name
+              symbol
+            }
+            acceptedCurrencies {
+              id
+              code
+              name
+              symbol
+            }
+            adminUser {
+              id
+              firstName
+              lastName
+              email
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createShop: {
+      success: boolean;
+      message: string;
+      shop: {
+        id: string;
+        name: string;
+        defaultCurrency: {
+          id: string;
+          code: string;
+          name: string;
+          symbol: string;
+        };
+        acceptedCurrencies: Array<{
+          id: string;
+          code: string;
+          name: string;
+          symbol: string;
+        }>;
+        adminUser?: {
+          id: string;
+          firstName?: string;
+          lastName?: string;
+          email: string;
+        };
+      } | null;
+    } }>(mutation, { input });
+
+    return result.createShop;
+  },
+
+  async createCurrency(input: {
+    code: string;
+    name: string;
+    symbol: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    } | null;
+  }> {
+    const mutation = `
+      mutation CreateCurrency($input: CreateCurrencyInput!) {
+        createCurrency(input: $input) {
+          success
+          message
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createCurrency: {
+      success: boolean;
+      message: string;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      } | null;
+    } }>(mutation, { input });
+
+    return result.createCurrency;
+  },
+
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
+};
