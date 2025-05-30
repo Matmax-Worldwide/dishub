@@ -1389,6 +1389,16 @@ export const typeDefs = gql`
     mediaByType(fileType: String!): [Media!]!
     mediaInFolder(folder: String): [Media!]!
 
+    # Calendar/Booking queries
+    location(id: ID!): Location
+    locations: [Location!]!
+    serviceCategory(id: ID!): ServiceCategory
+    serviceCategories: [ServiceCategory!]!
+    service(id: ID!): Service
+    services: [Service!]!
+    staffProfile(id: ID!): StaffProfile
+    staffProfiles: [StaffProfile!]!
+    bookings(filter: BookingFilterInput, pagination: PaginationInput): BookingConnection!
 
   }
 
@@ -1541,6 +1551,28 @@ export const typeDefs = gql`
     deleteMedia(id: ID!): MediaResult!
     associateMediaToPost(postId: ID!, mediaId: ID!): PostResult!
     dissociateMediaFromPost(postId: ID!, mediaId: ID!): PostResult!
+
+    # Calendar/Booking mutations
+    createBooking(input: CreateBookingInput!): BookingResult!
+    updateBooking(id: ID!, input: UpdateBookingInput!): BookingResult!
+    deleteBooking(id: ID!): BookingResult!
+    
+    createStaffProfile(input: CreateStaffProfileInput!): StaffProfileResult!
+    updateStaffProfile(id: ID!, input: UpdateStaffProfileInput!): StaffProfileResult!
+    deleteStaffProfile(id: ID!): StaffProfileResult!
+    updateStaffSchedule(staffProfileId: ID!, schedule: [StaffScheduleInput!]!): StaffProfileResult!
+    
+    createService(input: CreateServiceInput!): ServiceResult!
+    updateService(id: ID!, input: UpdateServiceInput!): ServiceResult!
+    deleteService(id: ID!): ServiceResult!
+    
+    createLocation(input: CreateLocationInput!): LocationResult!
+    updateLocation(id: ID!, input: UpdateLocationInput!): LocationResult!
+    deleteLocation(id: ID!): LocationResult!
+    
+    createServiceCategory(input: CreateServiceCategoryInput!): ServiceCategoryResult!
+    updateServiceCategory(id: ID!, input: UpdateServiceCategoryInput!): ServiceCategoryResult!
+    deleteServiceCategory(id: ID!): ServiceCategoryResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -1850,4 +1882,193 @@ export const typeDefs = gql`
     message: String!
     media: Media
   }
+
+  # --------------- BOOKING MODULE INPUTS AND CONNECTIONS --- V1 ---
+  
+  # Input types for booking queries
+  input BookingFilterInput {
+    status: BookingStatus
+    serviceId: ID
+    locationId: ID
+    staffProfileId: ID
+    customerId: ID
+    startDate: DateTime
+    endDate: DateTime
+    search: String
+  }
+
+  input PaginationInput {
+    limit: Int
+    offset: Int
+    page: Int
+    pageSize: Int
+  }
+
+  # Connection types for paginated results
+  type BookingConnection {
+    edges: [BookingEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+  }
+
+  type BookingEdge {
+    node: Booking!
+    cursor: String!
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+  }
+
+  # Input types for booking mutations
+  input CreateBookingInput {
+    customerId: ID
+    customerName: String!
+    customerEmail: String!
+    customerPhone: String!
+    serviceId: ID!
+    locationId: ID!
+    staffProfileId: ID
+    bookingDate: DateTime!
+    startTime: DateTime!
+    endTime: DateTime!
+    notes: String
+    communicationPreferences: [String!]
+  }
+
+  input UpdateBookingInput {
+    customerId: ID
+    customerName: String
+    customerEmail: String
+    customerPhone: String
+    serviceId: ID
+    locationId: ID
+    staffProfileId: ID
+    bookingDate: DateTime
+    startTime: DateTime
+    endTime: DateTime
+    status: BookingStatus
+    notes: String
+    communicationPreferences: [String!]
+  }
+
+  # Input types for staff profile management
+  input CreateStaffProfileInput {
+    userId: ID!
+    bio: String
+    specializations: [String!]
+  }
+
+  input UpdateStaffProfileInput {
+    userId: ID
+    bio: String
+    specializations: [String!]
+  }
+
+  input StaffScheduleInput {
+    staffProfileId: ID!
+    locationId: ID
+    date: DateTime
+    dayOfWeek: DayOfWeek
+    startTime: String!
+    endTime: String!
+    scheduleType: ScheduleType!
+    isAvailable: Boolean!
+    notes: String
+  }
+
+  # Input types for service management
+  input CreateServiceInput {
+    name: String!
+    description: String
+    durationMinutes: Int!
+    price: Float!
+    bufferTimeBeforeMinutes: Int
+    bufferTimeAfterMinutes: Int
+    preparationTimeMinutes: Int
+    cleanupTimeMinutes: Int
+    maxDailyBookingsPerService: Int
+    isActive: Boolean
+    serviceCategoryId: ID!
+  }
+
+  input UpdateServiceInput {
+    name: String
+    description: String
+    durationMinutes: Int
+    price: Float
+    bufferTimeBeforeMinutes: Int
+    bufferTimeAfterMinutes: Int
+    preparationTimeMinutes: Int
+    cleanupTimeMinutes: Int
+    maxDailyBookingsPerService: Int
+    isActive: Boolean
+    serviceCategoryId: ID
+  }
+
+  # Input types for location management
+  input CreateLocationInput {
+    name: String!
+    address: String
+    phone: String
+    operatingHours: JSON
+  }
+
+  input UpdateLocationInput {
+    name: String
+    address: String
+    phone: String
+    operatingHours: JSON
+  }
+
+  # Input types for service category management
+  input CreateServiceCategoryInput {
+    name: String!
+    description: String
+    displayOrder: Int
+    parentId: ID
+  }
+
+  input UpdateServiceCategoryInput {
+    name: String
+    description: String
+    displayOrder: Int
+    parentId: ID
+  }
+
+  # Result types for booking operations
+  type BookingResult {
+    success: Boolean!
+    message: String!
+    booking: Booking
+  }
+
+  type StaffProfileResult {
+    success: Boolean!
+    message: String!
+    staffProfile: StaffProfile
+  }
+
+  type ServiceResult {
+    success: Boolean!
+    message: String!
+    service: Service
+  }
+
+  type LocationResult {
+    success: Boolean!
+    message: String!
+    location: Location
+  }
+
+  type ServiceCategoryResult {
+    success: Boolean!
+    message: String!
+    serviceCategory: ServiceCategory
+  }
+
+  # --------------- END BOOKING MODULE INPUTS AND CONNECTIONS --- V1 ---
 `; 
