@@ -33,14 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 
-// Local DayOfWeek enum for UI iteration if not easily importable for client-side
-// This should align with the Prisma enums used in types/calendar if possible
-enum DayOfWeek {
-    MONDAY = "MONDAY", TUESDAY = "TUESDAY", WEDNESDAY = "WEDNESDAY",
-    THURSDAY = "THURSDAY", FRIDAY = "FRIDAY", SATURDAY = "SATURDAY", SUNDAY = "SUNDAY",
-}
-enum ScheduleType { REGULAR_HOURS = "REGULAR_HOURS" }
-
+// Local enums removed, will use PrismaDayOfWeek and PrismaScheduleType from '@/types/calendar'
 
 export default function StaffManager() {
   const [staffMembers, setStaffMembers] = useState<StaffProfile[]>([]);
@@ -99,13 +92,14 @@ export default function StaffManager() {
 
   const handleEdit = (staffMember: StaffProfile) => {
     const regularSchedules = (staffMember.schedules || [])
-        .filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS || s.scheduleType === ScheduleType.REGULAR_HOURS) // Handle both Prisma and local enum if different
+        // Updated to use only PrismaScheduleType from import
+        .filter(s => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) 
         .map(s => ({ 
-            dayOfWeek: s.dayOfWeek as unknown as PrismaDayOfWeek, // Cast to Prisma enum if necessary
+            dayOfWeek: s.dayOfWeek as PrismaDayOfWeek, // Ensured this uses the imported aliased enum
             startTime: s.startTime,
             endTime: s.endTime,
             isAvailable: s.isAvailable,
-            scheduleType: PrismaScheduleType.REGULAR_HOURS, 
+            scheduleType: PrismaScheduleType.REGULAR_HOURS,
         }));
     setEditingStaffMember({ ...staffMember, schedules: regularSchedules });
     setIsFormOpen(true);
@@ -189,10 +183,10 @@ export default function StaffManager() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>{/* Placeholder for filters */}</div>
-        <Button onClick={handleAddNew} disabled={isLoadingData || allUsersForSelect.length === 0}>
+        <Button onClick={handleAddNew} disabled={isLoadingData || usersAvailableForStaffAssignment.length === 0}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Staff
         </Button>
-         {allUsersForSelect.length === 0 && !isLoadingData && (
+         {usersAvailableForStaffAssignment.length === 0 && !isLoadingData && (
           <p className="text-sm text-muted-foreground">All users are already staff or no users available.</p>
         )}
       </div>
@@ -266,7 +260,7 @@ export default function StaffManager() {
         onClose={() => { setIsFormOpen(false); setEditingStaffMember(null); }}
         onSave={handleSaveStaff}
         initialData={editingStaffMember}
-        allUsersForSelect={usersAvailableForStaffAssignment}
+        allUsersForSelect={usersAvailableForStaffAssignment} // Corrected variable name
         allServices={allServices}
         allLocations={allLocations}
         isSaving={isSaving}
