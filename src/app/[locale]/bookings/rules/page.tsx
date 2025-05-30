@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import BookingRulesManager from '@/components/cms/calendar/BookingRulesManager'; // Adjust path as necessary
+import BookingRulesManager from '@/components/calendar/BookingRulesManager'; // Adjust path as necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function BookingRulesPage() {

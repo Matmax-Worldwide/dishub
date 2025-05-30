@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Service, ServiceCategory, StaffProfile, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,7 +15,11 @@ import {
   Heart,
   Building,
   Settings,
-  Clock
+  Clock,
+  FileText,
+  LayoutPanelTop,
+  FormInput,
+  Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
@@ -111,6 +115,7 @@ interface CalendarSectionProps {
       notes?: string;
     };
   }) => void;
+  className?: string;
 }
 
 type BookingStep = 'locationSelection' | 'serviceSelection' | 'staffSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
@@ -140,16 +145,16 @@ const ProgressIndicator = ({ currentStep, steps }: { currentStep: BookingStep, s
 
 export default function CalendarSection({
   locationId: initialLocationIdProp,
-  showLocationSelector = true,
-  showServiceCategories = true,
-  defaultLocation,
-  showStaffSelector = true,
+  showLocationSelector: initialShowLocationSelector = true,
+  showServiceCategories: initialShowServiceCategories = true,
+  defaultLocation: initialDefaultLocation,
+  showStaffSelector: initialShowStaffSelector = true,
   designTemplate: initialDesignTemplate = 'beauty-salon',
   // Configurable text content with defaults
-  title = 'Book Your Appointment',
-  subtitle = 'Choose your preferred service and time',
-  description = 'Select from our available services and book your appointment in just a few simple steps.',
-  stepTitles = {
+  title: initialTitle = 'Book Your Appointment',
+  subtitle: initialSubtitle = 'Choose your preferred service and time',
+  description: initialDescription = 'Select from our available services and book your appointment in just a few simple steps.',
+  stepTitles: initialStepTitles = {
     locationSelection: 'Choose Location',
     serviceSelection: 'Select Service',
     staffSelection: 'Choose Staff',
@@ -157,7 +162,7 @@ export default function CalendarSection({
     detailsForm: 'Your Details',
     confirmation: 'Confirm Booking'
   },
-  buttonTexts = {
+  buttonTexts: initialButtonTexts = {
     next: 'Next',
     back: 'Back',
     submit: 'Submit',
@@ -167,7 +172,7 @@ export default function CalendarSection({
     selectStaff: 'Select Staff',
     selectDateTime: 'Select Date & Time'
   },
-  placeholderTexts = {
+  placeholderTexts: initialPlaceholderTexts = {
     searchServices: 'Search services...',
     customerName: 'Your full name',
     customerEmail: 'your.email@example.com',
@@ -175,8 +180,128 @@ export default function CalendarSection({
     notes: 'Any special requests or notes...'
   },
   isEditing = false,
-  onUpdate
+  onUpdate,
+  className = ''
 }: CalendarSectionProps) {
+  
+  // Local state management
+  const [title, setTitle] = useState(initialTitle);
+  const [subtitle, setSubtitle] = useState(initialSubtitle);
+  const [description, setDescription] = useState(initialDescription);
+  const [showLocationSelector, setShowLocationSelector] = useState(initialShowLocationSelector);
+  const [showServiceCategories, setShowServiceCategories] = useState(initialShowServiceCategories);
+  const [defaultLocation, setDefaultLocation] = useState(initialDefaultLocation);
+  const [showStaffSelector, setShowStaffSelector] = useState(initialShowStaffSelector);
+  const [stepTitles, setStepTitles] = useState(initialStepTitles);
+  const [buttonTexts, setButtonTexts] = useState(initialButtonTexts);
+  const [placeholderTexts, setPlaceholderTexts] = useState(initialPlaceholderTexts);
+  
+  // Track if we're actively editing to prevent props from overriding local state
+  const isEditingRef = useRef(false);
+  
+  // Debounce updates
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Update local state when props change, but only if not currently editing
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      if (initialTitle !== title) setTitle(initialTitle);
+      if (initialSubtitle !== subtitle) setSubtitle(initialSubtitle);
+      if (initialDescription !== description) setDescription(initialDescription);
+      if (initialShowLocationSelector !== showLocationSelector) setShowLocationSelector(initialShowLocationSelector);
+      if (initialShowServiceCategories !== showServiceCategories) setShowServiceCategories(initialShowServiceCategories);
+      if (initialDefaultLocation !== defaultLocation) setDefaultLocation(initialDefaultLocation);
+      if (initialShowStaffSelector !== showStaffSelector) setShowStaffSelector(initialShowStaffSelector);
+      if (JSON.stringify(initialStepTitles) !== JSON.stringify(stepTitles)) setStepTitles(initialStepTitles);
+      if (JSON.stringify(initialButtonTexts) !== JSON.stringify(buttonTexts)) setButtonTexts(initialButtonTexts);
+      if (JSON.stringify(initialPlaceholderTexts) !== JSON.stringify(placeholderTexts)) setPlaceholderTexts(initialPlaceholderTexts);
+    }
+  }, [initialTitle, initialSubtitle, initialDescription, initialShowLocationSelector, initialShowServiceCategories, initialDefaultLocation, initialShowStaffSelector, initialStepTitles, initialButtonTexts, initialPlaceholderTexts]);
+  
+  // Design template state
+  const [localDesignTemplate, setLocalDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
+  const [isDesignChanging, setIsDesignChanging] = useState(false);
+
+  // Update parent with changes
+  const handleUpdateField = useCallback((field: string, value: string | boolean | DesignTemplate | typeof stepTitles | typeof buttonTexts | typeof placeholderTexts, event?: React.SyntheticEvent) => {
+    // Solo para los campos que no son title y description, hacemos stopPropagation
+    if (event && field !== 'title' && field !== 'description') {
+      event.stopPropagation();
+    }
+    
+    if (onUpdate) {
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      // Prepare data to update
+      const updateData = {
+        title,
+        subtitle,
+        description,
+        showLocationSelector,
+        showServiceCategories,
+        defaultLocation,
+        showStaffSelector,
+        designTemplate: localDesignTemplate,
+        stepTitles,
+        buttonTexts,
+        placeholderTexts
+      };
+      
+      // Update the specific field
+      switch (field) {
+        case 'title':
+          updateData.title = value as string;
+          break;
+        case 'subtitle':
+          updateData.subtitle = value as string;
+          break;
+        case 'description':
+          updateData.description = value as string;
+          break;
+        case 'showLocationSelector':
+          updateData.showLocationSelector = value as boolean;
+          break;
+        case 'showServiceCategories':
+          updateData.showServiceCategories = value as boolean;
+          break;
+        case 'defaultLocation':
+          updateData.defaultLocation = value as string;
+          break;
+        case 'showStaffSelector':
+          updateData.showStaffSelector = value as boolean;
+          break;
+        case 'designTemplate':
+          updateData.designTemplate = value as DesignTemplate;
+          break;
+        case 'stepTitles':
+          updateData.stepTitles = value as typeof stepTitles;
+          break;
+        case 'buttonTexts':
+          updateData.buttonTexts = value as typeof buttonTexts;
+          break;
+        case 'placeholderTexts':
+          updateData.placeholderTexts = value as typeof placeholderTexts;
+          break;
+      }
+      
+      try {
+        // Set up a debounced update
+        debounceRef.current = setTimeout(() => {
+          onUpdate(updateData);
+          // Don't reset the editing ref right away to prevent props from overriding local state
+          // Allow changes to persist during the editing session
+        }, 500);
+      } catch (error) {
+        console.error("Error updating field:", error);
+      }
+    }
+  }, [title, subtitle, description, showLocationSelector, showServiceCategories, defaultLocation, showStaffSelector, localDesignTemplate, stepTitles, buttonTexts, placeholderTexts, onUpdate]);
   
   // Define all possible steps
   const stepDefinitions: {id: BookingStep, label: string, condition?: boolean}[] = [
@@ -237,19 +362,13 @@ export default function CalendarSection({
   
   const [confirmedBookingDetails, setConfirmedBookingDetails] = useState<Booking | null>(null);
 
-  // Design template state
-  const [localDesignTemplate, setLocalDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
-  const [isDesignChanging, setIsDesignChanging] = useState(false);
-
   // Handle design template change
   const handleDesignTemplateChange = useCallback((template: string) => {
     try {
       setIsDesignChanging(true);
       setLocalDesignTemplate(template as DesignTemplate);
       
-      if (onUpdate) {
-        onUpdate({ designTemplate: template as DesignTemplate });
-      }
+      handleUpdateField('designTemplate', template as DesignTemplate);
       
       // Reset the changing state after a brief delay
       setTimeout(() => {
@@ -260,7 +379,7 @@ export default function CalendarSection({
       toast.error('Failed to change design template');
       setIsDesignChanging(false);
     }
-  }, [onUpdate]);
+  }, [handleUpdateField]);
 
   // Reset booking flow function
   const resetBookingFlow = () => {
@@ -280,6 +399,18 @@ export default function CalendarSection({
     setCurrentStep(getInitialStep());
     setError(null);
   };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      // Reset any pending state changes
+      setIsDesignChanging(false);
+      isEditingRef.current = false;
+    };
+  }, []);
 
   // Design templates configuration
   const designTemplates = {
@@ -1138,56 +1269,111 @@ export default function CalendarSection({
 
   // Details Tab Component
   const DetailsTab = () => {
+    // Estado local para los inputs
+    const [localTitle, setLocalTitle] = useState(title);
+    const [localSubtitle, setLocalSubtitle] = useState(subtitle);
+    const [localDescription, setLocalDescription] = useState(description);
+    
+    // Manejador de submit para los inputs
+    const handleInputSubmit = useCallback(() => {
+      // Solo actualizar si los valores han cambiado
+      if (localTitle !== title) {
+        setTitle(localTitle);
+        handleUpdateField('title', localTitle);
+      }
+      
+      if (localSubtitle !== subtitle) {
+        setSubtitle(localSubtitle);
+        handleUpdateField('subtitle', localSubtitle);
+      }
+      
+      if (localDescription !== description) {
+        setDescription(localDescription);
+        handleUpdateField('description', localDescription);
+      }
+    }, [localTitle, localSubtitle, localDescription, title, subtitle, description]);
+
+    // Actualizar estado local cuando cambian las props
+    useEffect(() => {
+      setLocalTitle(title);
+      setLocalSubtitle(subtitle);
+      setLocalDescription(description);
+    }, [title, subtitle, description]);
+    
     return (
       <div className="space-y-6">
         {/* Text Configuration Section */}
         <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Text Content</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Main Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => onUpdate?.({ title: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                placeholder="Book Your Appointment"
-              />
+          <div className="flex items-start space-x-2">
+            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="isolate" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Section Title
+                </label>
+                <input
+                  type="text"
+                  value={localTitle}
+                  onChange={(e) => setLocalTitle(e.target.value)}
+                  onBlur={handleInputSubmit}
+                  placeholder="Book Your Appointment"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-medium text-xl"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Subtitle</label>
-              <input
-                type="text"
-                value={subtitle}
-                onChange={(e) => onUpdate?.({ subtitle: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                placeholder="Choose your preferred service and time"
-              />
+          </div>
+          
+          <div className="flex items-start space-x-2">
+            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="isolate" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Section Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={localSubtitle}
+                  onChange={(e) => setLocalSubtitle(e.target.value)}
+                  onBlur={handleInputSubmit}
+                  placeholder="Choose your preferred service and time"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground"
+                />
+              </div>
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => onUpdate?.({ description: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                rows={2}
-                placeholder="Select from our available services and book your appointment in just a few simple steps."
-              />
+          </div>
+          
+          <div className="flex items-start space-x-2">
+            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="isolate" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Section Description
+                </label>
+                <textarea
+                  value={localDescription}
+                  onChange={(e) => setLocalDescription(e.target.value)}
+                  onBlur={handleInputSubmit}
+                  placeholder="Select from our available services and book your appointment in just a few simple steps."
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground text-muted-foreground"
+                  rows={3}
+                />
+              </div>
             </div>
           </div>
           
           {/* Step Titles Configuration */}
-          <div>
-            <h5 className="font-medium text-gray-900 mb-3">Step Titles</h5>
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-3 flex items-center">
+              <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+              Step Titles
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Location Step</label>
                 <input
                   type="text"
                   value={stepTitles.locationSelection}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, locationSelection: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, locationSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Choose Location"
                 />
@@ -1197,9 +1383,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={stepTitles.serviceSelection}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, serviceSelection: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, serviceSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Select Service"
                 />
@@ -1209,9 +1393,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={stepTitles.staffSelection}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, staffSelection: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, staffSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Choose Staff"
                 />
@@ -1221,9 +1403,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={stepTitles.dateTimeSelection}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, dateTimeSelection: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, dateTimeSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Pick Date & Time"
                 />
@@ -1233,9 +1413,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={stepTitles.detailsForm}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, detailsForm: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, detailsForm: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Your Details"
                 />
@@ -1245,9 +1423,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={stepTitles.confirmation}
-                  onChange={(e) => onUpdate?.({ 
-                    stepTitles: { ...stepTitles, confirmation: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, confirmation: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Confirm Booking"
                 />
@@ -1256,17 +1432,18 @@ export default function CalendarSection({
           </div>
           
           {/* Button Texts Configuration */}
-          <div>
-            <h5 className="font-medium text-gray-900 mb-3">Button Texts</h5>
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-3 flex items-center">
+              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+              Button Texts
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Next Button</label>
                 <input
                   type="text"
                   value={buttonTexts.next}
-                  onChange={(e) => onUpdate?.({ 
-                    buttonTexts: { ...buttonTexts, next: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, next: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Next"
                 />
@@ -1276,9 +1453,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={buttonTexts.back}
-                  onChange={(e) => onUpdate?.({ 
-                    buttonTexts: { ...buttonTexts, back: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, back: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Back"
                 />
@@ -1288,9 +1463,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={buttonTexts.submit}
-                  onChange={(e) => onUpdate?.({ 
-                    buttonTexts: { ...buttonTexts, submit: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, submit: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Submit"
                 />
@@ -1300,9 +1473,7 @@ export default function CalendarSection({
                 <input
                   type="text"
                   value={buttonTexts.bookNow}
-                  onChange={(e) => onUpdate?.({ 
-                    buttonTexts: { ...buttonTexts, bookNow: e.target.value }
-                  })}
+                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, bookNow: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Book Now"
                 />
@@ -1321,7 +1492,7 @@ export default function CalendarSection({
               <input
                 type="checkbox"
                 checked={showLocationSelector}
-                onChange={(e) => onUpdate?.({ showLocationSelector: e.target.checked })}
+                onChange={(e) => handleUpdateField('showLocationSelector', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
             </div>
@@ -1331,7 +1502,7 @@ export default function CalendarSection({
               <input
                 type="checkbox"
                 checked={showServiceCategories}
-                onChange={(e) => onUpdate?.({ showServiceCategories: e.target.checked })}
+                onChange={(e) => handleUpdateField('showServiceCategories', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
             </div>
@@ -1341,7 +1512,7 @@ export default function CalendarSection({
               <input
                 type="checkbox"
                 checked={showStaffSelector}
-                onChange={(e) => onUpdate?.({ showStaffSelector: e.target.checked })}
+                onChange={(e) => handleUpdateField('showStaffSelector', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
             </div>
@@ -1357,6 +1528,11 @@ export default function CalendarSection({
     
     return (
       <div className="space-y-6">
+        <h3 className="text-sm font-medium mb-2 flex items-center">
+          <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
+          Calendar Design Style
+        </h3>
+        
         {/* Visual Design Template Selector */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1648,8 +1824,8 @@ export default function CalendarSection({
   };
 
   return (
-    <div className="calendar-section">
-      {renderCalendarContent()}
+    <div className={`calendar-section ${className}`}>
+      {isEditing ? renderEditingInterface() : renderCalendarContent()}
     </div>
   );
 }

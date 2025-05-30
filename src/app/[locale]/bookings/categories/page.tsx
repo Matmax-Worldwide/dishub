@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import CategoryManager from '@/components/cms/calendar/CategoryManager'; // Adjust path if necessary
+import CategoryManager from '@/components/calendar/CategoryManager'; // Adjust path if necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function ServiceCategoriesPage() {
