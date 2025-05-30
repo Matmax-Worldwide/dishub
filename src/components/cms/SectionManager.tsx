@@ -1828,6 +1828,27 @@ function SectionManagerBase({
           );
         }
         
+        case 'Calendar': {
+          const CalendarComponent = componentMap.Calendar;
+          return (
+            <div {...containerProps}>
+              <CalendarComponent
+                calendarId={component.data.calendarId as string}
+                locationId={component.data.locationId as string}
+                serviceIds={component.data.serviceIds as string[]}
+                theme={component.data.theme as 'light' | 'dark' || 'light'}
+                showLocationSelector={component.data.showLocationSelector as boolean ?? true}
+                showServiceCategories={component.data.showServiceCategories as boolean ?? true}
+                showStaffSelector={component.data.showStaffSelector as boolean ?? true}
+                designTemplate={component.data.designTemplate as 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern' || 'beauty-salon'}
+                customStyles={component.data.customStyles as Record<string, string> || {}}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
         default: {
           return (
             <div {...containerProps} className={containerClass}>

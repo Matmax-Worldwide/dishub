@@ -35,6 +35,35 @@ interface CalendarSectionProps {
   customStyles?: Record<string, string>; 
   showStaffSelector?: boolean; // New prop
   designTemplate?: DesignTemplate;
+  // Configurable text content with defaults
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  stepTitles?: {
+    locationSelection?: string;
+    serviceSelection?: string;
+    staffSelection?: string;
+    dateTimeSelection?: string;
+    detailsForm?: string;
+    confirmation?: string;
+  };
+  buttonTexts?: {
+    next?: string;
+    back?: string;
+    submit?: string;
+    bookNow?: string;
+    selectLocation?: string;
+    selectService?: string;
+    selectStaff?: string;
+    selectDateTime?: string;
+  };
+  placeholderTexts?: {
+    searchServices?: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    notes?: string;
+  };
   isEditing?: boolean;
   onUpdate?: (data: {
     calendarId?: string;
@@ -47,6 +76,34 @@ interface CalendarSectionProps {
     customStyles?: Record<string, string>;
     showStaffSelector?: boolean;
     designTemplate?: DesignTemplate;
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    stepTitles?: {
+      locationSelection?: string;
+      serviceSelection?: string;
+      staffSelection?: string;
+      dateTimeSelection?: string;
+      detailsForm?: string;
+      confirmation?: string;
+    };
+    buttonTexts?: {
+      next?: string;
+      back?: string;
+      submit?: string;
+      bookNow?: string;
+      selectLocation?: string;
+      selectService?: string;
+      selectStaff?: string;
+      selectDateTime?: string;
+    };
+    placeholderTexts?: {
+      searchServices?: string;
+      customerName?: string;
+      customerEmail?: string;
+      customerPhone?: string;
+      notes?: string;
+    };
   }) => void;
 }
 
@@ -82,22 +139,51 @@ export default function CalendarSection({
   defaultLocation,
   showStaffSelector = true,
   designTemplate: initialDesignTemplate = 'beauty-salon',
+  // Configurable text content with defaults
+  title = 'Book Your Appointment',
+  subtitle = 'Choose your preferred service and time',
+  description = 'Select from our available services and book your appointment in just a few simple steps.',
+  stepTitles = {
+    locationSelection: 'Choose Location',
+    serviceSelection: 'Select Service',
+    staffSelection: 'Choose Staff',
+    dateTimeSelection: 'Pick Date & Time',
+    detailsForm: 'Your Details',
+    confirmation: 'Confirm Booking'
+  },
+  buttonTexts = {
+    next: 'Next',
+    back: 'Back',
+    submit: 'Submit',
+    bookNow: 'Book Now',
+    selectLocation: 'Select Location',
+    selectService: 'Select Service',
+    selectStaff: 'Select Staff',
+    selectDateTime: 'Select Date & Time'
+  },
+  placeholderTexts = {
+    searchServices: 'Search services...',
+    customerName: 'Your full name',
+    customerEmail: 'your.email@example.com',
+    customerPhone: 'Your phone number',
+    notes: 'Any special requests or notes...'
+  },
   isEditing = false,
   onUpdate
 }: CalendarSectionProps) {
   
   // Define all possible steps
   const stepDefinitions: {id: BookingStep, label: string, condition?: boolean}[] = [
-    { id: 'locationSelection', label: 'Location', condition: showLocationSelector },
-    { id: 'serviceSelection', label: 'Service', condition: true },
-    { id: 'staffSelection', label: 'Staff', condition: showStaffSelector }, 
-    { id: 'dateTimeSelection', label: 'Date & Time', condition: true },
-    { id: 'detailsForm', label: 'Details', condition: true },
-    { id: 'confirmation', label: 'Confirm', condition: true }
+    { id: 'locationSelection', label: stepTitles.locationSelection || 'Choose Location', condition: showLocationSelector },
+    { id: 'serviceSelection', label: stepTitles.serviceSelection || 'Select Service', condition: true },
+    { id: 'staffSelection', label: stepTitles.staffSelection || 'Choose Staff', condition: showStaffSelector }, 
+    { id: 'dateTimeSelection', label: stepTitles.dateTimeSelection || 'Pick Date & Time', condition: true },
+    { id: 'detailsForm', label: stepTitles.detailsForm || 'Your Details', condition: true },
+    { id: 'confirmation', label: stepTitles.confirmation || 'Confirm Booking', condition: true }
   ];
-  
+
   const allSteps = stepDefinitions.filter(step => step.condition !== false);
-    
+  
   const getInitialStep = (): BookingStep => {
     if (showLocationSelector && !(defaultLocation || initialLocationIdProp)) return 'locationSelection';
     // If location is set (either by prop or default), move to service selection or further
@@ -375,30 +461,29 @@ export default function CalendarSection({
 
   // Beauty Salon Design Template
   const renderBeautySalonDesign = () => {
-    if (isEditing) {
-      return renderEditingInterface();
-    }
-
+    const { colors } = designTemplates['beauty-salon'];
+    
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-pink-50 via-white to-purple-50 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-3xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 via-purple-400 to-pink-500 text-white p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <Sparkles className="w-8 h-8" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold">Book Your Beauty Experience</h2>
-              <p className="text-pink-100 text-lg">Transform yourself with our premium services</p>
-            </div>
+        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles className="w-8 h-8" />
+            <h2 className="text-2xl font-bold">{title}</h2>
           </div>
-          
-          {/* Progress Steps */}
+          <p className="text-purple-100">{subtitle}</p>
+          {description && (
+            <p className="text-sm text-purple-200 mt-2">{description}</p>
+          )}
+        </div>
+        
+        {/* Progress Indicator */}
+        <div className="px-6 py-4 bg-white/80 backdrop-blur-sm">
           <ProgressIndicator currentStep={currentStep} steps={allSteps} />
         </div>
-
+        
         {/* Content */}
-        <div className="p-8">
+        <div className="p-6">
           {renderStepContent()}
         </div>
       </div>
@@ -407,27 +492,28 @@ export default function CalendarSection({
 
   // Medical Design Template
   const renderMedicalDesign = () => {
-    if (isEditing) {
-      return renderEditingInterface();
-    }
-
+    const { colors, icons } = designTemplates['medical'];
+    
     return (
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-blue-100 overflow-hidden">
+      <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-blue-100 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold">Schedule Your Appointment</h2>
-              <p className="text-blue-100">Professional healthcare services</p>
-            </div>
+        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
+          <div className="flex items-center gap-3 mb-2">
+            <icons.calendar className="w-8 h-8" />
+            <h2 className="text-2xl font-semibold">{title}</h2>
           </div>
-          
+          <p className="text-blue-100">{subtitle}</p>
+          {description && (
+            <p className="text-sm text-blue-200 mt-2">{description}</p>
+          )}
+        </div>
+        
+        {/* Progress Indicator */}
+        <div className="px-6 py-4 bg-blue-50">
           <ProgressIndicator currentStep={currentStep} steps={allSteps} />
         </div>
-
+        
+        {/* Content */}
         <div className="p-6">
           {renderStepContent()}
         </div>
@@ -437,27 +523,29 @@ export default function CalendarSection({
 
   // Fitness Design Template
   const renderFitnessDesign = () => {
-    if (isEditing) {
-      return renderEditingInterface();
-    }
-
+    const { colors } = designTemplates['fitness'];
+    
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-orange-50 to-red-50 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <Heart className="w-8 h-8" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold">Book Your Workout</h2>
-              <p className="text-orange-100 text-lg">Get fit with our expert trainers</p>
-            </div>
+      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-orange-50 to-red-50 rounded-3xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Heart className="w-8 h-8" />
+            <h2 className="text-2xl font-bold">{title}</h2>
           </div>
-          
+          <p className="text-orange-100">{subtitle}</p>
+          {description && (
+            <p className="text-sm text-orange-200 mt-2">{description}</p>
+          )}
+        </div>
+        
+        {/* Progress Indicator */}
+        <div className="px-6 py-4 bg-white/90 backdrop-blur-sm">
           <ProgressIndicator currentStep={currentStep} steps={allSteps} />
         </div>
-
-        <div className="p-8">
+        
+        {/* Content */}
+        <div className="p-6">
           {renderStepContent()}
         </div>
       </div>
@@ -670,7 +758,7 @@ export default function CalendarSection({
   // Location Selection Step
   const renderLocationSelection = () => {
     if (isLoadingLocations) {
-      return (
+  return (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Loading locations...</p>
@@ -702,8 +790,8 @@ export default function CalendarSection({
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
       </div>
     );
   };
@@ -724,7 +812,7 @@ export default function CalendarSection({
         <h3 className="text-xl font-semibold mb-4">Select Service</h3>
         
         {/* Service Categories */}
-        {showServiceCategories && serviceCategories.length > 0 && (
+              {showServiceCategories && serviceCategories.length > 0 && (
           <div className="mb-6">
             <h4 className="font-medium mb-3">Categories</h4>
             <div className="flex flex-wrap gap-2">
@@ -741,9 +829,9 @@ export default function CalendarSection({
                   {category.name}
                 </button>
               ))}
-            </div>
-          </div>
-        )}
+                  </div>
+                </div>
+              )}
 
         {/* Services */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -757,8 +845,8 @@ export default function CalendarSection({
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex justify-between items-start">
-                <div>
+                        <div className="flex justify-between items-start">
+                            <div>
                   <h4 className="font-medium">{service.name}</h4>
                   {service.description && (
                     <p className="text-sm text-gray-600 mt-1">{service.description}</p>
@@ -771,13 +859,13 @@ export default function CalendarSection({
                     {service.price && (
                       <span className="font-medium text-green-600">${service.price}</span>
                     )}
-                  </div>
+                            </div>
+                        </div>
+                        </div>
+            </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
     );
   };
 
@@ -788,7 +876,7 @@ export default function CalendarSection({
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Loading staff...</p>
-        </div>
+            </div>
       );
     }
 
@@ -798,7 +886,7 @@ export default function CalendarSection({
         
         {/* Any Available Option */}
         <div
-          onClick={() => handleStaffSelect("ANY_AVAILABLE")}
+                onClick={() => handleStaffSelect("ANY_AVAILABLE")}
           className={`p-4 border rounded-lg cursor-pointer transition-all ${
             selectedStaffId === "ANY_AVAILABLE"
               ? 'border-blue-500 bg-blue-50'
@@ -807,10 +895,10 @@ export default function CalendarSection({
         >
           <div className="flex items-center gap-3">
             <User className="w-5 h-5 text-gray-500" />
-            <div>
+                <div>
               <h4 className="font-medium">Any Available Staff</h4>
               <p className="text-sm text-gray-600">We&apos;ll assign the best available staff member</p>
-            </div>
+                </div>
           </div>
         </div>
 
@@ -818,8 +906,8 @@ export default function CalendarSection({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {availableStaffForService.map((staff) => (
             <div
-              key={staff.id}
-              onClick={() => handleStaffSelect(staff.id!)}
+                  key={staff.id} 
+                  onClick={() => handleStaffSelect(staff.id!)}
               className={`p-4 border rounded-lg cursor-pointer transition-all ${
                 selectedStaffId === staff.id
                   ? 'border-blue-500 bg-blue-50'
@@ -830,16 +918,16 @@ export default function CalendarSection({
                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-gray-500" />
                 </div>
-                <div>
+                   <div>
                   <h4 className="font-medium">{staff.user?.firstName} {staff.user?.lastName || 'Staff Member'}</h4>
                   {staff.specializations && staff.specializations.length > 0 && (
                     <p className="text-sm text-gray-600">{staff.specializations.join(', ')}</p>
                   )}
-                </div>
+                  </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
       </div>
     );
   };
@@ -881,7 +969,7 @@ export default function CalendarSection({
               {timeSlots.map((slot, index) => (
                 <button
                   key={index}
-                  onClick={() => handleTimeSlotSelect(slot)}
+                                onClick={() => handleTimeSlotSelect(slot)}
                   disabled={!slot.isAvailable}
                   className={`p-3 text-sm rounded-lg transition-all ${
                     selectedTimeSlot?.startTime === slot.startTime
@@ -893,10 +981,10 @@ export default function CalendarSection({
                 >
                   {format(new Date(slot.startTime), 'h:mm a')}
                 </button>
-              ))}
+                        ))}
+                        </div>
             </div>
-          </div>
-        </div>
+           </div>
       </div>
     );
   };
@@ -905,79 +993,86 @@ export default function CalendarSection({
   const renderDetailsForm = () => {
     return (
       <div className="space-y-6">
-        <h3 className="text-xl font-semibold mb-4">Your Details</h3>
+        <div className="text-center">
+          <h3 className="text-xl font-semibold mb-2">{stepTitles.detailsForm}</h3>
+          <p className="text-gray-600">Please provide your contact information</p>
+        </div>
         
-        <form onSubmit={handleBookingSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Full Name *</label>
-              <input
-                type="text"
-                name="fullName"
-                value={customerInfo.fullName}
-                onChange={handleCustomerInfoChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your full name"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={customerInfo.email}
-                onChange={handleCustomerInfoChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your email"
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              value={customerInfo.fullName}
+              onChange={handleCustomerInfoChange}
+              name="fullName"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={placeholderTexts.customerName}
+            />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Phone Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              value={customerInfo.email}
+              onChange={handleCustomerInfoChange}
+              name="email"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={placeholderTexts.customerEmail}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number
+            </label>
             <input
               type="tel"
-              name="phone"
               value={customerInfo.phone}
               onChange={handleCustomerInfoChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your phone number"
+              name="phone"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={placeholderTexts.customerPhone}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Special Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Special Requests
+            </label>
             <textarea
-              name="notes"
               value={customerInfo.notes}
               onChange={handleCustomerInfoChange}
+              name="notes"
               rows={3}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Any special requests or notes..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={placeholderTexts.notes}
             />
           </div>
-          
-          <div className="flex gap-4 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCurrentStep('dateTimeSelection')}
-              className="flex-1"
-            >
-              Back
-            </Button>
-            <Button
-              type="submit"
-              disabled={isBooking}
-              className="flex-1"
-            >
-              {isBooking ? 'Booking...' : 'Confirm Booking'}
-            </Button>
-          </div>
-        </form>
+        </div>
+        
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={() => setCurrentStep('dateTimeSelection')}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={handleBookingSubmit}
+            disabled={isBooking || !customerInfo.fullName || !customerInfo.email}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isBooking ? 'Processing...' : buttonTexts.submit}
+          </button>
+        </div>
       </div>
     );
   };
@@ -1023,8 +1118,8 @@ export default function CalendarSection({
         <Button onClick={resetBookingFlow} variant="outline">
           Book Another Appointment
         </Button>
-      </div>
-    );
+    </div>
+  );
   };
 
   // Render editing interface with template-aware styling
@@ -1036,65 +1131,336 @@ export default function CalendarSection({
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Calendar Booking Component</h3>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Template:</span>
-            <span className={`px-2 py-1 rounded text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
+            <span className="text-sm text-gray-600">Current Template:</span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
               {name}
             </span>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Design Template</label>
-            <select
-              value={localDesignTemplate}
-              onChange={(e) => handleDesignTemplateChange(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-            >
-              {Object.entries(designTemplates).map(([key, template]) => (
-                <option key={key} value={key}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
+        {/* Text Configuration Section */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-gray-900">Text Content</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Main Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => onUpdate?.({ title: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Book Your Appointment"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Subtitle</label>
+              <input
+                type="text"
+                value={subtitle}
+                onChange={(e) => onUpdate?.({ subtitle: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Choose your preferred service and time"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => onUpdate?.({ description: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                rows={2}
+                placeholder="Select from our available services and book your appointment in just a few simple steps."
+              />
+            </div>
           </div>
           
+          {/* Step Titles Configuration */}
           <div>
-            <label className="block text-sm font-medium mb-2">Show Location Selector</label>
-            <input
-              type="checkbox"
-              checked={showLocationSelector}
-              onChange={(e) => onUpdate?.({ showLocationSelector: e.target.checked })}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
+            <h5 className="font-medium text-gray-900 mb-3">Step Titles</h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Location Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.locationSelection}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, locationSelection: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Choose Location"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Service Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.serviceSelection}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, serviceSelection: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Select Service"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Staff Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.staffSelection}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, staffSelection: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Choose Staff"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Date & Time Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.dateTimeSelection}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, dateTimeSelection: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Pick Date & Time"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Details Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.detailsForm}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, detailsForm: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Your Details"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Confirmation Step</label>
+                <input
+                  type="text"
+                  value={stepTitles.confirmation}
+                  onChange={(e) => onUpdate?.({ 
+                    stepTitles: { ...stepTitles, confirmation: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Confirm Booking"
+                />
+              </div>
+            </div>
           </div>
           
+          {/* Button Texts Configuration */}
           <div>
-            <label className="block text-sm font-medium mb-2">Show Service Categories</label>
-            <input
-              type="checkbox"
-              checked={showServiceCategories}
-              onChange={(e) => onUpdate?.({ showServiceCategories: e.target.checked })}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Show Staff Selector</label>
-            <input
-              type="checkbox"
-              checked={showStaffSelector}
-              onChange={(e) => onUpdate?.({ showStaffSelector: e.target.checked })}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
+            <h5 className="font-medium text-gray-900 mb-3">Button Texts</h5>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Next Button</label>
+                <input
+                  type="text"
+                  value={buttonTexts.next}
+                  onChange={(e) => onUpdate?.({ 
+                    buttonTexts: { ...buttonTexts, next: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Next"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Back Button</label>
+                <input
+                  type="text"
+                  value={buttonTexts.back}
+                  onChange={(e) => onUpdate?.({ 
+                    buttonTexts: { ...buttonTexts, back: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Back"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Submit Button</label>
+                <input
+                  type="text"
+                  value={buttonTexts.submit}
+                  onChange={(e) => onUpdate?.({ 
+                    buttonTexts: { ...buttonTexts, submit: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Submit"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">Book Now Button</label>
+                <input
+                  type="text"
+                  value={buttonTexts.bookNow}
+                  onChange={(e) => onUpdate?.({ 
+                    buttonTexts: { ...buttonTexts, bookNow: e.target.value }
+                  })}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                  placeholder="Book Now"
+                />
+              </div>
+            </div>
           </div>
         </div>
         
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium mb-2">Preview</h4>
-          <p className="text-sm text-gray-600">
-            This calendar component will use the <strong>{name}</strong> design template with {currentTemplate.style} styling.
-          </p>
+        {/* Visual Design Template Selector */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-gray-900">Choose Design Template</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(designTemplates).map(([key, template]) => (
+              <div
+                key={key}
+                onClick={() => handleDesignTemplateChange(key)}
+                className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                  localDesignTemplate === key 
+                    ? 'border-blue-500 ring-2 ring-blue-200' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {/* Template Preview */}
+                <div className="p-4">
+                  {/* Header Preview */}
+                  <div className={`h-16 rounded-lg bg-gradient-to-r ${template.colors.primary} mb-3 flex items-center px-4`}>
+                    <div className="flex items-center gap-2 text-white">
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                        <template.icons.calendar className="w-3 h-3" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold">{template.name}</div>
+                        <div className="text-xs opacity-80">Book Appointment</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Content Preview */}
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="h-2 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      <div className="h-6 bg-gray-100 rounded"></div>
+                      <div className="h-6 bg-gray-100 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Template Info */}
+                <div className="px-4 pb-4">
+                  <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                  <div className="text-xs text-gray-500 capitalize">{template.style} style</div>
+                </div>
+                
+                {/* Selected Indicator */}
+                {localDesignTemplate === key && (
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Configuration Options */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+          <div className="space-y-3">
+            <h5 className="font-medium text-gray-900">Booking Flow Options</h5>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Location Selector</label>
+              <input
+                type="checkbox"
+                checked={showLocationSelector}
+                onChange={(e) => onUpdate?.({ showLocationSelector: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Service Categories</label>
+              <input
+                type="checkbox"
+                checked={showServiceCategories}
+                onChange={(e) => onUpdate?.({ showServiceCategories: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Show Staff Selector</label>
+              <input
+                type="checkbox"
+                checked={showStaffSelector}
+                onChange={(e) => onUpdate?.({ showStaffSelector: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h5 className="font-medium text-gray-900">Template Preview</h5>
+            <div className={`p-4 rounded-lg bg-gradient-to-r ${colors.secondary} border`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 bg-gradient-to-r ${colors.primary} rounded-lg`}>
+                  <currentTemplate.icons.calendar className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">{name}</div>
+                  <div className="text-sm text-gray-600 capitalize">{currentTemplate.style} design</div>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                This template features {currentTemplate.style} styling with {name.toLowerCase()} branding and color scheme.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Live Preview Button */}
+        <div className="pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              // Toggle to preview mode temporarily
+              const previewElement = document.createElement('div');
+              previewElement.innerHTML = `
+                <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+                    <div class="p-4 border-b flex justify-between items-center">
+                      <h3 class="font-semibold">Template Preview: ${name}</h3>
+                      <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="p-6">
+                      <div class="text-center text-gray-500">
+                        <p>Live preview would show the ${name} template in action</p>
+                        <p class="text-sm mt-2">This would render the actual booking flow with the selected template</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.body.appendChild(previewElement);
+            }}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Preview Template
+          </button>
         </div>
       </div>
     );

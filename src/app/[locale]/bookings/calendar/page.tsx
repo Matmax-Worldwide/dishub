@@ -664,8 +664,8 @@ export default function CalendarPage() {
             <ChevronLeftIcon className="w-4 h-4" />
           </Button>
           <Button variant="outline" onClick={goToToday}>
-            Today
-          </Button>
+          Today
+        </Button>
           <Button variant="outline" onClick={() => navigateDate('next')}>
             <ChevronRightIcon className="w-4 h-4" />
           </Button>
@@ -695,8 +695,8 @@ export default function CalendarPage() {
             <CardTitle className="flex items-center">
               <MapPinIcon className="w-5 h-5 mr-2" />
               Locations
-            </CardTitle>
-          </CardHeader>
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {locations.slice(0, 5).map(location => (
@@ -719,7 +719,7 @@ export default function CalendarPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+              <div className="space-y-2">
               {filteredServices.slice(0, 5).map(service => (
                 <div key={service.id} className="flex justify-between items-center">
                   <span className="text-sm">{service.name}</span>
@@ -728,7 +728,7 @@ export default function CalendarPage() {
                   </Badge>
                 </div>
               ))}
-            </div>
+                </div>
           </CardContent>
         </Card>
 
@@ -754,7 +754,7 @@ export default function CalendarPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
     </div>
   );
 } 

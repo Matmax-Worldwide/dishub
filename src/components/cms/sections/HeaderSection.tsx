@@ -1920,38 +1920,38 @@ export default function HeaderSection({
               <div className="flex items-center space-x-4">
                 {/* Header Button - positioned on the right or left */}
                 {showButton && buttonPosition === 'right' && renderHeaderButton()}
-                
-                {/* Mobile menu button */}
-                <div className="md:hidden flex items-center">
-                  <button
-                    onClick={() => {
-                      // Toggle all top-level menus
-                      const newState: { [key: string]: boolean } = {};
-                      if (selectedMenu && selectedMenu.items) {
-                        selectedMenu.items.forEach(item => {
-                          newState[item.id] = false; // Close all dropdowns first
-                        });
-                      }
-                      // Then toggle overall menu visibility with a special key
-                      setIsDropdownOpen(prev => ({
-                        ...newState,
-                        mobileMenu: !prev.mobileMenu
-                      }));
-                    }}
-                    className={`p-2 rounded-md focus:outline-none ${
-                      menuButtonStyle === 'filled' ? 'bg-primary text-white' :
-                      menuButtonStyle === 'outline' ? 'border border-current' : ''
-                    }`}
-                    style={{ color: textColor }}
-                  >
-                    {isDropdownOpen.mobileMenu ? (
-                      <LucideIcons.X className="h-6 w-6" />
-                    ) : (
-                      renderMenuIcon()
-                    )}
-                  </button>
-                </div>
+
+              {/* Mobile menu button */}
+              <div className="md:hidden flex items-center">
+                <button
+                  onClick={() => {
+                    // Toggle all top-level menus
+                    const newState: { [key: string]: boolean } = {};
+                    if (selectedMenu && selectedMenu.items) {
+                      selectedMenu.items.forEach(item => {
+                        newState[item.id] = false; // Close all dropdowns first
+                      });
+                    }
+                    // Then toggle overall menu visibility with a special key
+                    setIsDropdownOpen(prev => ({
+                      ...newState,
+                      mobileMenu: !prev.mobileMenu
+                    }));
+                  }}
+                  className={`p-2 rounded-md focus:outline-none ${
+                    menuButtonStyle === 'filled' ? 'bg-primary text-white' :
+                    menuButtonStyle === 'outline' ? 'border border-current' : ''
+                  }`}
+                  style={{ color: textColor }}
+                >
+                  {isDropdownOpen.mobileMenu ? (
+                    <LucideIcons.X className="h-6 w-6" />
+                  ) : (
+                    renderMenuIcon()
+                  )}
+                </button>
               </div>
+            </div>
             </div>
             
             {/* Header Button - positioned on the left (below logo/title on mobile) */}
