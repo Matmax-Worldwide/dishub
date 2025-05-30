@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
-import { Prisma, ScheduleType, DayOfWeek } from '@prisma/client';
+import { Prisma, ScheduleType, DayOfWeek, BookingStatus } from '@prisma/client';
 
 // Define proper context type
 interface GraphQLContext {
@@ -12,6 +12,22 @@ interface GraphQLContext {
 }
 
 // Define input types
+interface BookingFilterInput {
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+  locationId?: string;
+  serviceId?: string;
+  staffProfileId?: string;
+  customerId?: string;
+  searchQuery?: string;
+}
+
+interface PaginationInput {
+  page?: number;
+  pageSize?: number;
+}
+
 interface ServiceCategoryInput {
   name: string;
   description?: string;
@@ -133,7 +149,7 @@ export const calendarResolvers = {
         },
       });
     },
-    bookings: async (_parent: unknown, { filter, pagination }: { filter?: any, pagination?: any }, context: any) => {
+    bookings: async (_parent: unknown, { filter, pagination }: { filter?: BookingFilterInput, pagination?: PaginationInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
 
       const where: Prisma.BookingWhereInput = {};
@@ -146,7 +162,7 @@ export const calendarResolvers = {
           where.bookingDate = { lte: new Date(filter.dateTo) };
         }
         if (filter.status) {
-          where.status = filter.status as Prisma.BookingStatus;
+          where.status = filter.status as BookingStatus;
         }
         if (filter.locationId) {
           where.locationId = filter.locationId;
@@ -157,21 +173,20 @@ export const calendarResolvers = {
         if (filter.staffProfileId) {
           where.staffProfileId = filter.staffProfileId;
         }
-        if (filter.userId) {
-          where.userId = filter.userId;
-        }
-        if (filter.customerEmail) {
-          where.customerEmail = { contains: filter.customerEmail, mode: 'insensitive' };
+        if (filter.customerId) {
+          where.customerId = filter.customerId;
         }
         if (filter.searchQuery) {
           where.OR = [
-            { customerName: { contains: filter.searchQuery, mode: 'insensitive' } },
-            { customerEmail: { contains: filter.searchQuery, mode: 'insensitive' } },
             { notes: { contains: filter.searchQuery, mode: 'insensitive' } },
-            // Potentially search in service name, location name, staff name if needed
-            // This would require joins or fetching related data then filtering,
-            // or denormalizing these names onto the Booking table for easier search.
-            // For now, keeping search to direct Booking fields.
+            // Search in related customer data
+            { customer: { 
+              OR: [
+                { firstName: { contains: filter.searchQuery, mode: 'insensitive' } },
+                { lastName: { contains: filter.searchQuery, mode: 'insensitive' } },
+                { email: { contains: filter.searchQuery, mode: 'insensitive' } }
+              ]
+            }},
           ];
         }
       }
@@ -186,7 +201,7 @@ export const calendarResolvers = {
         skip,
         take: pageSize,
         include: {
-          user: true, // If userId is present, fetch the user
+          customer: true, // Changed from 'user' to 'customer'
           service: true,
           location: true,
           staffProfile: {
