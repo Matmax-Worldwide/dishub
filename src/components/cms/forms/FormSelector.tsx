@@ -211,7 +211,7 @@ export function FormSelector({
             {/* Create new form link */}
             <div className="p-2 border-t border-gray-200">
               <a 
-                href="/cms/forms/new" 
+                href="/cms/forms/create" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center text-xs text-blue-600 hover:text-blue-800 hover:underline"
