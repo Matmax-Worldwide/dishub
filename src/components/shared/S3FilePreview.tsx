@@ -199,29 +199,46 @@ const S3FilePreview = ({
   
   // Handler for image error
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // Log each property individually to identify which ones are undefined
+    console.error("S3FilePreview: Error loading image - Individual properties:");
+    console.error("- src:", src);
+    console.error("- isS3Url:", isS3Url);
+    console.error("- s3Key:", s3Key);
+    console.error("- providedFileType:", providedFileType);
+    console.error("- fileName:", fileName);
+    
+    let finalUrl = 'failed to get URL';
+    try {
+      finalUrl = getFileUrl();
+    } catch (e) {
+      finalUrl = `error getting URL: ${e instanceof Error ? e.message : 'unknown error'}`;
+    }
+    console.error("- finalUrl:", finalUrl);
+    
+    if (error) {
+      console.error("- error.type:", error.type);
+      console.error("- error.currentTarget:", error.currentTarget);
+      if (error.currentTarget) {
+        console.error("- error.currentTarget.src:", error.currentTarget.src);
+        console.error("- error.currentTarget.tagName:", error.currentTarget.tagName);
+      }
+    } else {
+      console.error("- error: no error event provided");
+    }
+    
+    // Also try the original object approach
     const errorDetails = {
       src: src || 'undefined',
-      isS3Url: isS3Url,
+      isS3Url: Boolean(isS3Url),
       s3Key: s3Key || 'null',
-      finalUrl: (() => {
-        try {
-          return getFileUrl() || 'empty';
-        } catch (e) {
-          return `error: ${e instanceof Error ? e.message : 'unknown'}`;
-        }
-      })(),
+      finalUrl: finalUrl,
       fileType: providedFileType || 'not provided',
       fileName: fileName || 'not provided',
-      errorEvent: error ? {
-        type: error.type || 'unknown',
-        target: error.currentTarget ? {
-          src: error.currentTarget.src || 'no src',
-          tagName: error.currentTarget.tagName || 'unknown'
-        } : 'no target'
-      } : 'no error event'
+      hasError: Boolean(error),
+      errorType: error?.type || 'no type'
     };
     
-    console.error("S3FilePreview: Error loading image:", errorDetails);
+    console.error("S3FilePreview: Error details object:", JSON.stringify(errorDetails, null, 2));
     setImageError(true);
   };
   
