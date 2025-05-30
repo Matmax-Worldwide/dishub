@@ -3218,12 +3218,12 @@ export const cmsOperations = {
               firstName
               lastName
               phoneNumber
-              bio
-              department
               isActive
-              position
               profileImageUrl
-              roleId
+              role {
+                id
+                name
+              }
             }
             assignedServices {
               id
@@ -3274,12 +3274,12 @@ export const cmsOperations = {
             firstName
             lastName
             phoneNumber
-            bio
-            department
             isActive
-            position
             profileImageUrl
-            roleId
+            role {
+              id
+              name
+            }
             createdAt
             updatedAt
           }
@@ -3287,9 +3287,21 @@ export const cmsOperations = {
       `;
 
       const response = await gqlRequest<{ users: CalendarUser[] }>(query);
-      return response.users || [];
+      
+      // Handle case where users might be null or undefined
+      if (!response || !response.users) {
+        console.warn('Users query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.users;
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.users')) {
+        console.warn('Users field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
@@ -3312,9 +3324,21 @@ export const cmsOperations = {
       `;
 
       const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
-      return response.locations || [];
+      
+      // Handle case where locations might be null or undefined
+      if (!response || !response.locations) {
+        console.warn('Locations query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.locations;
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.locations')) {
+        console.warn('Locations field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
@@ -3549,17 +3573,33 @@ export const cmsOperations = {
       }
     `;
 
-    const result = await gqlRequest<{ serviceCategories: Array<{
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
-      createdAt: string;
-      updatedAt: string;
-    }> }>(query);
-    
-    return result.serviceCategories || [];
+    try {
+      const result = await gqlRequest<{ serviceCategories: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(query);
+      
+      // Handle case where serviceCategories might be null or undefined
+      if (!result || !result.serviceCategories) {
+        console.warn('ServiceCategories query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return result.serviceCategories;
+    } catch (error) {
+      console.error('Error fetching service categories:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.serviceCategories')) {
+        console.warn('ServiceCategories field is null in database, returning empty array');
+        return [];
+      }
+      return [];
+    }
   },
 
   // Delete service category
@@ -3716,33 +3756,49 @@ export const cmsOperations = {
       }
     `;
 
-    const result = await gqlRequest<{ services: Array<{
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      bufferTimeBeforeMinutes: number;
-      bufferTimeAfterMinutes: number;
-      preparationTimeMinutes: number;
-      cleanupTimeMinutes: number;
-      maxDailyBookingsPerService?: number;
-      isActive: boolean;
-      createdAt: string;
-      updatedAt: string;
-      serviceCategoryId: string;
-      serviceCategory?: { id: string; name: string };
-      locations?: Array<{ id: string; name: string }>;
-    }> }>(query);
-    
-    // Transform string dates to Date objects to match CalendarService type
-    const transformedServices = (result.services || []).map(service => ({
-      ...service,
-      createdAt: new Date(service.createdAt),
-      updatedAt: new Date(service.updatedAt)
-    }));
-    
-    return transformedServices;
+    try {
+      const result = await gqlRequest<{ services: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        durationMinutes: number;
+        price: number;
+        bufferTimeBeforeMinutes: number;
+        bufferTimeAfterMinutes: number;
+        preparationTimeMinutes: number;
+        cleanupTimeMinutes: number;
+        maxDailyBookingsPerService?: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        serviceCategoryId: string;
+        serviceCategory?: { id: string; name: string };
+        locations?: Array<{ id: string; name: string }>;
+      }> }>(query);
+      
+      // Handle case where services might be null or undefined
+      if (!result || !result.services) {
+        console.warn('Services query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      // Transform string dates to Date objects to match CalendarService type
+      const transformedServices = result.services.map(service => ({
+        ...service,
+        createdAt: new Date(service.createdAt),
+        updatedAt: new Date(service.updatedAt)
+      }));
+      
+      return transformedServices;
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.services')) {
+        console.warn('Services field is null in database, returning empty array');
+        return [];
+      }
+      return []; // Return empty array instead of null on any error
+    }
   },
 
   async createService({ input }: { input: {
@@ -3993,37 +4049,43 @@ export const cmsOperations = {
     const query = `
       query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
         bookings(filter: $filter, pagination: $pagination) {
-          items {
-            id
-            customerName
-            customerEmail
-            customerPhone
-            service {
+          edges {
+            node {
               id
-              name
-            }
-            location {
-              id
-              name
-            }
-            staffProfile {
-              id
-              user {
-                firstName
-                lastName
+              customerName
+              customerEmail
+              customerPhone
+              service {
+                id
+                name
               }
+              location {
+                id
+                name
+              }
+              staffProfile {
+                id
+                user {
+                  firstName
+                  lastName
+                }
+              }
+              bookingDate
+              startTime
+              endTime
+              status
+              notes
+              createdAt
+              updatedAt
             }
-            bookingDate
-            startTime
-            endTime
-            status
-            notes
-            createdAt
-            updatedAt
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
           }
           totalCount
-          page
-          pageSize
         }
       }
     `;
@@ -4031,31 +4093,64 @@ export const cmsOperations = {
     try {
       const response = await gqlRequest<{
         bookings: {
-          items: Array<{
-            id: string;
-            customerName?: string | null;
-            customerEmail?: string | null;
-            customerPhone?: string | null;
-            service: { id: string; name: string };
-            location: { id: string; name: string };
-            staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
-            bookingDate: string;
-            startTime: string;
-            endTime: string;
-            status: string;
-            notes?: string | null;
-            createdAt: string;
-            updatedAt: string;
+          edges: Array<{
+            node: {
+              id: string;
+              customerName?: string | null;
+              customerEmail?: string | null;
+              customerPhone?: string | null;
+              service: { id: string; name: string };
+              location: { id: string; name: string };
+              staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+              bookingDate: string;
+              startTime: string;
+              endTime: string;
+              status: string;
+              notes?: string | null;
+              createdAt: string;
+              updatedAt: string;
+            };
           }>;
+          pageInfo: {
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+            startCursor?: string;
+            endCursor?: string;
+          };
           totalCount: number;
-          page: number;
-          pageSize: number;
         };
       }>(query, { filter, pagination });
       
-      return response.bookings || null;
+      // Transform the response to match the expected format
+      const bookingsData = response.bookings;
+      if (!bookingsData) {
+        console.warn('Bookings query returned null or undefined, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      
+      return {
+        items: bookingsData.edges.map(edge => edge.node),
+        totalCount: bookingsData.totalCount,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.bookings')) {
+        console.warn('Bookings field is null in database, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
       return null;
     }
   },
@@ -5867,12 +5962,12 @@ const graphqlClient = {
               firstName
               lastName
               phoneNumber
-              bio
-              department
               isActive
-              position
               profileImageUrl
-              roleId
+              role {
+                id
+                name
+              }
             }
             assignedServices {
               id
@@ -5923,12 +6018,12 @@ const graphqlClient = {
             firstName
             lastName
             phoneNumber
-            bio
-            department
             isActive
-            position
             profileImageUrl
-            roleId
+            role {
+              id
+              name
+            }
             createdAt
             updatedAt
           }
@@ -5936,13 +6031,24 @@ const graphqlClient = {
       `;
 
       const response = await gqlRequest<{ users: CalendarUser[] }>(query);
-      return response.users || [];
+      
+      // Handle case where users might be null or undefined
+      if (!response || !response.users) {
+        console.warn('Users query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.users;
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.users')) {
+        console.warn('Users field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
-
 
   async locations(): Promise<CalendarLocation[]> {
     try {
@@ -5961,9 +6067,21 @@ const graphqlClient = {
       `;
 
       const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
-      return response.locations || [];
+      
+      // Handle case where locations might be null or undefined
+      if (!response || !response.locations) {
+        console.warn('Locations query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.locations;
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.locations')) {
+        console.warn('Locations field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
@@ -6118,37 +6236,43 @@ const graphqlClient = {
     const query = `
       query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
         bookings(filter: $filter, pagination: $pagination) {
-          items {
-            id
-            customerName
-            customerEmail
-            customerPhone
-            service {
+          edges {
+            node {
               id
-              name
-            }
-            location {
-              id
-              name
-            }
-            staffProfile {
-              id
-              user {
-                firstName
-                lastName
+              customerName
+              customerEmail
+              customerPhone
+              service {
+                id
+                name
               }
+              location {
+                id
+                name
+              }
+              staffProfile {
+                id
+                user {
+                  firstName
+                  lastName
+                }
+              }
+              bookingDate
+              startTime
+              endTime
+              status
+              notes
+              createdAt
+              updatedAt
             }
-            bookingDate
-            startTime
-            endTime
-            status
-            notes
-            createdAt
-            updatedAt
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
           }
           totalCount
-          page
-          pageSize
         }
       }
     `;
@@ -6156,31 +6280,64 @@ const graphqlClient = {
     try {
       const response = await gqlRequest<{
         bookings: {
-          items: Array<{
-            id: string;
-            customerName?: string | null;
-            customerEmail?: string | null;
-            customerPhone?: string | null;
-            service: { id: string; name: string };
-            location: { id: string; name: string };
-            staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
-            bookingDate: string;
-            startTime: string;
-            endTime: string;
-            status: string;
-            notes?: string | null;
-            createdAt: string;
-            updatedAt: string;
+          edges: Array<{
+            node: {
+              id: string;
+              customerName?: string | null;
+              customerEmail?: string | null;
+              customerPhone?: string | null;
+              service: { id: string; name: string };
+              location: { id: string; name: string };
+              staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+              bookingDate: string;
+              startTime: string;
+              endTime: string;
+              status: string;
+              notes?: string | null;
+              createdAt: string;
+              updatedAt: string;
+            };
           }>;
+          pageInfo: {
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+            startCursor?: string;
+            endCursor?: string;
+          };
           totalCount: number;
-          page: number;
-          pageSize: number;
         };
       }>(query, { filter, pagination });
       
-      return response.bookings || null;
+      // Transform the response to match the expected format
+      const bookingsData = response.bookings;
+      if (!bookingsData) {
+        console.warn('Bookings query returned null or undefined, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      
+      return {
+        items: bookingsData.edges.map(edge => edge.node),
+        totalCount: bookingsData.totalCount,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.bookings')) {
+        console.warn('Bookings field is null in database, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
       return null;
     }
   },

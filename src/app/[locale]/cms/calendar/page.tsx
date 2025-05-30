@@ -73,7 +73,7 @@ export default function CalendarManagementPage() {
           servicesData, 
           staffData,
           locationsData
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
           graphqlClient.bookings({ 
             filter: {}, 
             pagination: { page: 1, pageSize: 5 } 
@@ -83,12 +83,32 @@ export default function CalendarManagementPage() {
           graphqlClient.locations()
         ]);
 
+        // Extract successful results, use empty arrays for failed requests
+        const bookingsResult = bookingsData.status === 'fulfilled' ? bookingsData.value : null;
+        const servicesResult = servicesData.status === 'fulfilled' ? servicesData.value : [];
+        const staffResult = staffData.status === 'fulfilled' ? staffData.value : [];
+        const locationsResult = locationsData.status === 'fulfilled' ? locationsData.value : [];
+
+        // Log any failures
+        if (bookingsData.status === 'rejected') {
+          console.error('Failed to fetch bookings:', bookingsData.reason);
+        }
+        if (servicesData.status === 'rejected') {
+          console.error('Failed to fetch services:', servicesData.reason);
+        }
+        if (staffData.status === 'rejected') {
+          console.error('Failed to fetch staff:', staffData.reason);
+        }
+        if (locationsData.status === 'rejected') {
+          console.error('Failed to fetch locations:', locationsData.reason);
+        }
+
         // Calculate stats
         const dashboardStats: DashboardStats = {
-          totalBookings: bookingsData?.totalCount || 0,
-          activeServices: servicesData?.filter((s: ServiceData) => s.isActive).length || 0,
-          staffMembers: staffData?.length || 0,
-          locations: locationsData?.length || 0,
+          totalBookings: bookingsResult?.totalCount || 0,
+          activeServices: servicesResult?.filter((s: ServiceData) => s.isActive).length || 0,
+          staffMembers: staffResult?.length || 0,
+          locations: locationsResult?.length || 0,
           // TODO: Calculate changes from previous period
           bookingsChange: '+12%', // Placeholder until we implement period comparison
           servicesChange: '+3',
@@ -99,8 +119,8 @@ export default function CalendarManagementPage() {
         setStats(dashboardStats);
         
         // Set recent bookings
-        if (bookingsData?.items) {
-          setRecentBookings(bookingsData.items.slice(0, 3));
+        if (bookingsResult?.items) {
+          setRecentBookings(bookingsResult.items.slice(0, 3));
         }
 
       } catch (err: unknown) {
