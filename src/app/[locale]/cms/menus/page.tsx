@@ -1422,7 +1422,7 @@ function MenuEditor({
                     </div>
                   ) : (
             <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="menu-items">
+              <Droppable droppableId="menu-items" isDropDisabled={false}>
                 {(provided) => (
                   <div
                     {...provided.droppableProps}
