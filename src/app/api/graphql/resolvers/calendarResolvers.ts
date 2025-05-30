@@ -284,12 +284,15 @@ type BookingWithRelations = {
   startTime: Date;
   endTime: Date;
   customer?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phoneNumber?: string;
-  };
-  customerId?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phoneNumber?: string | null;
+  } | null;
+  customerId?: string | null;
+  staffProfile?: unknown | null;
+  location?: unknown;
+  service?: unknown;
 };
 
 // Define location type for map functions
