@@ -64,7 +64,7 @@ type LocationCreateInput = {
   name: string;
   address?: string | null;
   phone?: string | null;
-  operatingHours?: unknown;
+  operatingHours?: JSON;
 };
 
 interface CreateServiceCategoryInput {
