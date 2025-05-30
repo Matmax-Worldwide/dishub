@@ -44,6 +44,29 @@ interface OrderFilterInput {
   dateTo?: string;
 }
 
+interface PaymentProviderFilterInput {
+  search?: string;
+  type?: string;
+  isActive?: boolean;
+}
+
+interface PaymentMethodFilterInput {
+  search?: string;
+  providerId?: string;
+  type?: string;
+  isActive?: boolean;
+}
+
+interface PaymentFilterInput {
+  search?: string;
+  orderId?: string;
+  status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+  providerId?: string;
+  paymentMethodId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export const ecommerceResolvers = {
   Query: {
     // Shop queries
@@ -574,6 +597,287 @@ export const ecommerceResolvers = {
         console.error('Error fetching product category by slug:', error);
         throw error;
       }
+    },
+
+    // Payment Provider queries
+    paymentProviders: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: PaymentProviderFilterInput; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.search) {
+          where.OR = [
+            { name: { contains: filter.search, mode: 'insensitive' } },
+            { type: { contains: filter.search, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.type) {
+          where.type = filter.type;
+        }
+
+        if (filter?.isActive !== undefined) {
+          where.isActive = filter.isActive;
+        }
+
+        const providers = await prisma.paymentProvider.findMany({
+          where,
+          include: {
+            paymentMethods: true,
+            payments: true,
+            _count: {
+              select: {
+                paymentMethods: true,
+                payments: true
+              }
+            }
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50)
+        });
+
+        return providers;
+      } catch (error) {
+        console.error('Error fetching payment providers:', error);
+        throw error;
+      }
+    },
+
+    paymentProvider: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const provider = await prisma.paymentProvider.findUnique({
+          where: { id },
+          include: {
+            paymentMethods: true,
+            payments: {
+              include: {
+                order: true,
+                currency: true,
+                paymentMethod: true
+              }
+            }
+          }
+        });
+
+        if (!provider) {
+          throw new Error('Payment provider not found');
+        }
+
+        return provider;
+      } catch (error) {
+        console.error('Error fetching payment provider:', error);
+        throw error;
+      }
+    },
+
+    // Payment Method queries
+    paymentMethods: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: PaymentMethodFilterInput; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.search) {
+          where.OR = [
+            { name: { contains: filter.search, mode: 'insensitive' } },
+            { type: { contains: filter.search, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.providerId) {
+          where.providerId = filter.providerId;
+        }
+
+        if (filter?.type) {
+          where.type = filter.type;
+        }
+
+        if (filter?.isActive !== undefined) {
+          where.isActive = filter.isActive;
+        }
+
+        const methods = await prisma.paymentMethod.findMany({
+          where,
+          include: {
+            provider: true,
+            payments: true,
+            _count: {
+              select: {
+                payments: true
+              }
+            }
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50)
+        });
+
+        return methods;
+      } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        throw error;
+      }
+    },
+
+    paymentMethod: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const method = await prisma.paymentMethod.findUnique({
+          where: { id },
+          include: {
+            provider: true,
+            payments: {
+              include: {
+                order: true,
+                currency: true
+              }
+            }
+          }
+        });
+
+        if (!method) {
+          throw new Error('Payment method not found');
+        }
+
+        return method;
+      } catch (error) {
+        console.error('Error fetching payment method:', error);
+        throw error;
+      }
+    },
+
+    // Payment queries
+    payments: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: PaymentFilterInput; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.orderId) {
+          where.orderId = filter.orderId;
+        }
+
+        if (filter?.status) {
+          where.status = filter.status;
+        }
+
+        if (filter?.providerId) {
+          where.providerId = filter.providerId;
+        }
+
+        if (filter?.paymentMethodId) {
+          where.paymentMethodId = filter.paymentMethodId;
+        }
+
+        if (filter?.dateFrom || filter?.dateTo) {
+          where.createdAt = {};
+          if (filter.dateFrom) {
+            (where.createdAt as Record<string, unknown>).gte = new Date(filter.dateFrom);
+          }
+          if (filter.dateTo) {
+            (where.createdAt as Record<string, unknown>).lte = new Date(filter.dateTo);
+          }
+        }
+
+        const payments = await prisma.payment.findMany({
+          where,
+          include: {
+            order: {
+              include: {
+                customer: true,
+                shop: true
+              }
+            },
+            currency: true,
+            paymentMethod: {
+              include: {
+                provider: true
+              }
+            },
+            provider: true
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
+          orderBy: { createdAt: 'desc' }
+        });
+
+        return payments;
+      } catch (error) {
+        console.error('Error fetching payments:', error);
+        throw error;
+      }
+    },
+
+    payment: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const payment = await prisma.payment.findUnique({
+          where: { id },
+          include: {
+            order: {
+              include: {
+                customer: true,
+                shop: true,
+                items: {
+                  include: {
+                    product: true
+                  }
+                }
+              }
+            },
+            currency: true,
+            paymentMethod: {
+              include: {
+                provider: true
+              }
+            },
+            provider: true
+          }
+        });
+
+        if (!payment) {
+          throw new Error('Payment not found');
+        }
+
+        return payment;
+      } catch (error) {
+        console.error('Error fetching payment:', error);
+        throw error;
+      }
     }
   },
 
@@ -835,6 +1139,431 @@ export const ecommerceResolvers = {
           category: null
         };
       }
+    },
+
+    // Payment Provider mutations
+    createPaymentProvider: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const provider = await prisma.paymentProvider.create({
+          data: {
+            name: input.name as string,
+            type: input.type as string,
+            isActive: input.isActive as boolean ?? true,
+            apiKey: input.apiKey as string || null,
+            secretKey: input.secretKey as string || null,
+            webhookUrl: input.webhookUrl as string || null
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment provider created successfully',
+          provider
+        };
+      } catch (error) {
+        console.error('Error creating payment provider:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create payment provider',
+          provider: null
+        };
+      }
+    },
+
+    updatePaymentProvider: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const provider = await prisma.paymentProvider.update({
+          where: { id },
+          data: {
+            name: input.name as string,
+            type: input.type as string,
+            isActive: input.isActive as boolean,
+            apiKey: input.apiKey as string || null,
+            secretKey: input.secretKey as string || null,
+            webhookUrl: input.webhookUrl as string || null
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment provider updated successfully',
+          provider
+        };
+      } catch (error) {
+        console.error('Error updating payment provider:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update payment provider',
+          provider: null
+        };
+      }
+    },
+
+    deletePaymentProvider: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if provider has payment methods or payments
+        const providerWithRelations = await prisma.paymentProvider.findUnique({
+          where: { id },
+          include: {
+            paymentMethods: true,
+            payments: true
+          }
+        });
+
+        if (!providerWithRelations) {
+          throw new Error('Payment provider not found');
+        }
+
+        if (providerWithRelations.paymentMethods.length > 0) {
+          throw new Error('Cannot delete provider with associated payment methods');
+        }
+
+        if (providerWithRelations.payments.length > 0) {
+          throw new Error('Cannot delete provider with associated payments');
+        }
+
+        await prisma.paymentProvider.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Payment provider deleted successfully',
+          provider: null
+        };
+      } catch (error) {
+        console.error('Error deleting payment provider:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete payment provider',
+          provider: null
+        };
+      }
+    },
+
+    // Payment Method mutations
+    createPaymentMethod: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const method = await prisma.paymentMethod.create({
+          data: {
+            name: input.name as string,
+            type: input.type as string,
+            providerId: input.providerId as string,
+            isActive: input.isActive as boolean ?? true,
+            processingFeeRate: input.processingFeeRate as number || null,
+            fixedFee: input.fixedFee as number || null
+          },
+          include: {
+            provider: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment method created successfully',
+          method
+        };
+      } catch (error) {
+        console.error('Error creating payment method:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create payment method',
+          method: null
+        };
+      }
+    },
+
+    updatePaymentMethod: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const method = await prisma.paymentMethod.update({
+          where: { id },
+          data: {
+            name: input.name as string,
+            type: input.type as string,
+            providerId: input.providerId as string,
+            isActive: input.isActive as boolean,
+            processingFeeRate: input.processingFeeRate as number || null,
+            fixedFee: input.fixedFee as number || null
+          },
+          include: {
+            provider: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment method updated successfully',
+          method
+        };
+      } catch (error) {
+        console.error('Error updating payment method:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update payment method',
+          method: null
+        };
+      }
+    },
+
+    deletePaymentMethod: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if method has payments
+        const methodWithPayments = await prisma.paymentMethod.findUnique({
+          where: { id },
+          include: {
+            payments: true
+          }
+        });
+
+        if (!methodWithPayments) {
+          throw new Error('Payment method not found');
+        }
+
+        if (methodWithPayments.payments.length > 0) {
+          throw new Error('Cannot delete payment method with associated payments');
+        }
+
+        await prisma.paymentMethod.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Payment method deleted successfully',
+          method: null
+        };
+      } catch (error) {
+        console.error('Error deleting payment method:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete payment method',
+          method: null
+        };
+      }
+    },
+
+    // Payment mutations
+    createPayment: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const payment = await prisma.payment.create({
+          data: {
+            orderId: input.orderId as string || null,
+            amount: input.amount as number,
+            currencyId: input.currencyId as string,
+            paymentMethodId: input.paymentMethodId as string,
+            providerId: input.providerId as string,
+            transactionId: input.transactionId as string || null
+          },
+          include: {
+            order: true,
+            currency: true,
+            paymentMethod: {
+              include: {
+                provider: true
+              }
+            },
+            provider: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment created successfully',
+          payment
+        };
+      } catch (error) {
+        console.error('Error creating payment:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create payment',
+          payment: null
+        };
+      }
+    },
+
+    updatePayment: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const payment = await prisma.payment.update({
+          where: { id },
+          data: {
+            status: input.status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED',
+            transactionId: input.transactionId as string || null,
+            gatewayResponse: input.gatewayResponse as string || null,
+            failureReason: input.failureReason as string || null,
+            refundAmount: input.refundAmount as number || null
+          },
+          include: {
+            order: true,
+            currency: true,
+            paymentMethod: {
+              include: {
+                provider: true
+              }
+            },
+            provider: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Payment updated successfully',
+          payment
+        };
+      } catch (error) {
+        console.error('Error updating payment:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update payment',
+          payment: null
+        };
+      }
+    },
+
+    deletePayment: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        await prisma.payment.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Payment deleted successfully',
+          payment: null
+        };
+      } catch (error) {
+        console.error('Error deleting payment:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete payment',
+          payment: null
+        };
+      }
     }
   },
 
@@ -990,12 +1719,89 @@ export const ecommerceResolvers = {
 
   Tax: {
     shop: async (parent: Record<string, unknown>) => {
+      if (!parent.shopId) return null;
       return await prisma.shop.findUnique({
-        where: { id: parent.shopId as string },
+        where: { id: parent.shopId as string }
+      });
+    }
+  },
+
+  PaymentProvider: {
+    paymentMethods: async (parent: Record<string, unknown>) => {
+      return await prisma.paymentMethod.findMany({
+        where: { providerId: parent.id as string },
         include: {
-          defaultCurrency: true,
-          adminUser: true
+          provider: true
         }
+      });
+    },
+
+    payments: async (parent: Record<string, unknown>) => {
+      return await prisma.payment.findMany({
+        where: { providerId: parent.id as string },
+        include: {
+          order: true,
+          currency: true,
+          paymentMethod: true
+        }
+      });
+    }
+  },
+
+  PaymentMethod: {
+    provider: async (parent: Record<string, unknown>) => {
+      return await prisma.paymentProvider.findUnique({
+        where: { id: parent.providerId as string }
+      });
+    },
+
+    payments: async (parent: Record<string, unknown>) => {
+      return await prisma.payment.findMany({
+        where: { paymentMethodId: parent.id as string },
+        include: {
+          order: true,
+          currency: true,
+          provider: true
+        }
+      });
+    }
+  },
+
+  Payment: {
+    order: async (parent: Record<string, unknown>) => {
+      if (!parent.orderId) return null;
+      return await prisma.order.findUnique({
+        where: { id: parent.orderId as string },
+        include: {
+          customer: true,
+          shop: true,
+          items: {
+            include: {
+              product: true
+            }
+          }
+        }
+      });
+    },
+
+    currency: async (parent: Record<string, unknown>) => {
+      return await prisma.currency.findUnique({
+        where: { id: parent.currencyId as string }
+      });
+    },
+
+    paymentMethod: async (parent: Record<string, unknown>) => {
+      return await prisma.paymentMethod.findUnique({
+        where: { id: parent.paymentMethodId as string },
+        include: {
+          provider: true
+        }
+      });
+    },
+
+    provider: async (parent: Record<string, unknown>) => {
+      return await prisma.paymentProvider.findUnique({
+        where: { id: parent.providerId as string }
       });
     }
   }

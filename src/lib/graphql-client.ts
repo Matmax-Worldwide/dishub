@@ -4780,6 +4780,422 @@ export const cmsOperations = {
     return result.createProductCategory;
   },
 
+  // Payment Provider functions
+  async getPaymentProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentProviders($filter: PaymentProviderFilterInput, $pagination: PaginationInput) {
+        paymentProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentProviders || [];
+  },
+
+  async getPaymentProvider(id: string): Promise<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetPaymentProvider($id: ID!) {
+        paymentProvider(id: $id) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentProvider: {
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.paymentProvider;
+  },
+
+  // Payment Method functions
+  async getPaymentMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    providerId: string;
+    isActive: boolean;
+    processingFeeRate?: number;
+    fixedFee?: number;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentMethods($filter: PaymentMethodFilterInput, $pagination: PaginationInput) {
+        paymentMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          providerId
+          isActive
+          processingFeeRate
+          fixedFee
+          provider {
+            id
+            name
+            type
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+      providerId: string;
+      isActive: boolean;
+      processingFeeRate?: number;
+      fixedFee?: number;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentMethods || [];
+  },
+
+  // Payment functions
+  async getPayments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    providerId?: string;
+    paymentMethodId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId?: string;
+    amount: number;
+    status: string;
+    transactionId?: string;
+    failureReason?: string;
+    refundAmount?: number;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    paymentMethod: {
+      id: string;
+      name: string;
+      type: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    order?: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPayments($filter: PaymentFilterInput, $pagination: PaginationInput) {
+        payments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          amount
+          status
+          transactionId
+          failureReason
+          refundAmount
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+          paymentMethod {
+            id
+            name
+            type
+            provider {
+              id
+              name
+              type
+            }
+          }
+          provider {
+            id
+            name
+            type
+          }
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            shop {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ payments: Array<{
+      id: string;
+      orderId?: string;
+      amount: number;
+      status: string;
+      transactionId?: string;
+      failureReason?: string;
+      refundAmount?: number;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      paymentMethod: {
+        id: string;
+        name: string;
+        type: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      order?: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.payments || [];
+  },
+
+  async createPaymentProvider(input: {
+    name: string;
+    type: string;
+    isActive?: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    provider?: {
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+    };
+  }> {
+    const mutation = `
+      mutation CreatePaymentProvider($input: CreatePaymentProviderInput!) {
+        createPaymentProvider(input: $input) {
+          success
+          message
+          provider {
+            id
+            name
+            type
+            isActive
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createPaymentProvider: {
+      success: boolean;
+      message: string;
+      provider?: {
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+      };
+    } }>(mutation, { input });
+
+    return result.createPaymentProvider;
+  }
 };
 
 // Form Builder API functions
@@ -7970,6 +8386,374 @@ export const ecommerce = {
     }> }>(query, variables);
 
     return result.orders || [];
+  },
+
+  // Payment functions
+  async getPayments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    providerId?: string;
+    paymentMethodId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId?: string;
+    amount: number;
+    status: string;
+    transactionId?: string;
+    failureReason?: string;
+    refundAmount?: number;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    paymentMethod: {
+      id: string;
+      name: string;
+      type: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    order?: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPayments($filter: PaymentFilterInput, $pagination: PaginationInput) {
+        payments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          amount
+          status
+          transactionId
+          failureReason
+          refundAmount
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+          paymentMethod {
+            id
+            name
+            type
+            provider {
+              id
+              name
+              type
+            }
+          }
+          provider {
+            id
+            name
+            type
+          }
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            shop {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        providerId?: string;
+        paymentMethodId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ payments: Array<{
+      id: string;
+      orderId?: string;
+      amount: number;
+      status: string;
+      transactionId?: string;
+      failureReason?: string;
+      refundAmount?: number;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      paymentMethod: {
+        id: string;
+        name: string;
+        type: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      order?: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.payments || [];
+  },
+
+  async getPaymentProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentProviders($filter: PaymentProviderFilterInput, $pagination: PaginationInput) {
+        paymentProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ paymentProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.paymentProviders || [];
+  },
+
+  async getPaymentMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    providerId: string;
+    isActive: boolean;
+    processingFeeRate?: number;
+    fixedFee?: number;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentMethods($filter: PaymentMethodFilterInput, $pagination: PaginationInput) {
+        paymentMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          providerId
+          isActive
+          processingFeeRate
+          fixedFee
+          provider {
+            id
+            name
+            type
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        providerId?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+      providerId: string;
+      isActive: boolean;
+      processingFeeRate?: number;
+      fixedFee?: number;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.paymentMethods || [];
   },
 
 };

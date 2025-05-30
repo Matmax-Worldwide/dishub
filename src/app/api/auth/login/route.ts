@@ -38,6 +38,16 @@ export async function POST(request: Request) {
     }
 
     console.log('User found, verifying password');
+    
+    // Check if user has a password set
+    if (!user.password) {
+      console.log('User has no password set for email:', email);
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+    
     const isValidPassword = await comparePasswords(password, user.password);
 
     if (!isValidPassword) {

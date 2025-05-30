@@ -1456,6 +1456,14 @@ export const typeDefs = gql`
     currencyByCode(code: String!): Currency
     taxes(shopId: String): [Tax!]!
     tax(id: ID!): Tax
+    
+    # Payment queries
+    paymentProviders(filter: PaymentProviderFilterInput, pagination: PaginationInput): [PaymentProvider!]!
+    paymentProvider(id: ID!): PaymentProvider
+    paymentMethods(filter: PaymentMethodFilterInput, pagination: PaginationInput): [PaymentMethod!]!
+    paymentMethod(id: ID!): PaymentMethod
+    payments(filter: PaymentFilterInput, pagination: PaginationInput): [Payment!]!
+    payment(id: ID!): Payment
   }
 
   # Root Mutation
@@ -1657,6 +1665,19 @@ export const typeDefs = gql`
     createTax(input: CreateTaxInput!): TaxResult!
     updateTax(id: ID!, input: UpdateTaxInput!): TaxResult!
     deleteTax(id: ID!): TaxResult!
+    
+    # Payment mutations
+    createPaymentProvider(input: CreatePaymentProviderInput!): PaymentProviderResult!
+    updatePaymentProvider(id: ID!, input: UpdatePaymentProviderInput!): PaymentProviderResult!
+    deletePaymentProvider(id: ID!): PaymentProviderResult!
+    
+    createPaymentMethod(input: CreatePaymentMethodInput!): PaymentMethodResult!
+    updatePaymentMethod(id: ID!, input: UpdatePaymentMethodInput!): PaymentMethodResult!
+    deletePaymentMethod(id: ID!): PaymentMethodResult!
+    
+    createPayment(input: CreatePaymentInput!): PaymentResult!
+    updatePayment(id: ID!, input: UpdatePaymentInput!): PaymentResult!
+    deletePayment(id: ID!): PaymentResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2395,6 +2416,24 @@ export const typeDefs = gql`
     tax: Tax
   }
 
+  type PaymentProviderResult {
+    success: Boolean!
+    message: String!
+    provider: PaymentProvider
+  }
+
+  type PaymentMethodResult {
+    success: Boolean!
+    message: String!
+    method: PaymentMethod
+  }
+
+  type PaymentResult {
+    success: Boolean!
+    message: String!
+    payment: Payment
+  }
+
   # E-commerce filter inputs
   input ShopFilterInput {
     search: String
@@ -2444,5 +2483,139 @@ export const typeDefs = gql`
     isActive: Boolean
   }
 
+  input CreatePaymentProviderInput {
+    name: String!
+    type: String!
+    isActive: Boolean
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+  }
+
+  input UpdatePaymentProviderInput {
+    name: String
+    type: String
+    isActive: Boolean
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+  }
+
+  input CreatePaymentMethodInput {
+    name: String!
+    type: String!
+    providerId: String!
+    isActive: Boolean
+    processingFeeRate: Float
+    fixedFee: Float
+  }
+
+  input UpdatePaymentMethodInput {
+    name: String
+    type: String
+    providerId: String
+    isActive: Boolean
+    processingFeeRate: Float
+    fixedFee: Float
+  }
+
+  input CreatePaymentInput {
+    orderId: String
+    amount: Float!
+    currencyId: String!
+    paymentMethodId: String!
+    providerId: String!
+    transactionId: String
+  }
+
+  input UpdatePaymentInput {
+    status: PaymentStatus
+    transactionId: String
+    gatewayResponse: String
+    failureReason: String
+    refundAmount: Float
+  }
+
+  input PaymentProviderFilterInput {
+    search: String
+    type: String
+    isActive: Boolean
+  }
+
+  input PaymentMethodFilterInput {
+    search: String
+    providerId: String
+    type: String
+    isActive: Boolean
+  }
+
+  input PaymentFilterInput {
+    search: String
+    orderId: String
+    status: PaymentStatus
+    providerId: String
+    paymentMethodId: String
+    dateFrom: DateTime
+    dateTo: DateTime
+  }
+
   # --------------- END E-COMMERCE MODULE TYPES --- V1 ---
+
+  type PaymentProvider {
+    id: ID!
+    name: String!
+    type: String!
+    isActive: Boolean!
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+    paymentMethods: [PaymentMethod!]!
+    payments: [Payment!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type PaymentMethod {
+    id: ID!
+    name: String!
+    type: String!
+    providerId: String!
+    provider: PaymentProvider!
+    isActive: Boolean!
+    processingFeeRate: Float
+    fixedFee: Float
+    payments: [Payment!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  enum PaymentStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+    CANCELLED
+    REFUNDED
+    PARTIALLY_REFUNDED
+  }
+
+  type Payment {
+    id: ID!
+    orderId: String
+    order: Order
+    amount: Float!
+    currencyId: String!
+    currency: Currency!
+    status: PaymentStatus!
+    paymentMethodId: String!
+    paymentMethod: PaymentMethod!
+    providerId: String!
+    provider: PaymentProvider!
+    transactionId: String
+    gatewayResponse: String
+    failureReason: String
+    refundAmount: Float
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
 `; 

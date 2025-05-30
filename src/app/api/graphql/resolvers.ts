@@ -705,6 +705,14 @@ const resolvers = {
     currencyByCode: ecommerceResolvers.Query.currencyByCode,
     taxes: ecommerceResolvers.Query.taxes,
     tax: ecommerceResolvers.Query.tax,
+    
+    // Payment queries
+    paymentProviders: ecommerceResolvers.Query.paymentProviders,
+    paymentProvider: ecommerceResolvers.Query.paymentProvider,
+    paymentMethods: ecommerceResolvers.Query.paymentMethods,
+    paymentMethod: ecommerceResolvers.Query.paymentMethod,
+    payments: ecommerceResolvers.Query.payments,
+    payment: ecommerceResolvers.Query.payment,
   },
   
   Mutation: {
@@ -1164,6 +1172,17 @@ const resolvers = {
     createProductCategory: ecommerceResolvers.Mutation.createProductCategory,
     updateProductCategory: ecommerceResolvers.Mutation.updateProductCategory,
     deleteProductCategory: ecommerceResolvers.Mutation.deleteProductCategory,
+    
+    // Payment mutations
+    createPaymentProvider: ecommerceResolvers.Mutation.createPaymentProvider,
+    updatePaymentProvider: ecommerceResolvers.Mutation.updatePaymentProvider,
+    deletePaymentProvider: ecommerceResolvers.Mutation.deletePaymentProvider,
+    createPaymentMethod: ecommerceResolvers.Mutation.createPaymentMethod,
+    updatePaymentMethod: ecommerceResolvers.Mutation.updatePaymentMethod,
+    deletePaymentMethod: ecommerceResolvers.Mutation.deletePaymentMethod,
+    createPayment: ecommerceResolvers.Mutation.createPayment,
+    updatePayment: ecommerceResolvers.Mutation.updatePayment,
+    deletePayment: ecommerceResolvers.Mutation.deletePayment,
   },
 
   // Include form type resolvers
@@ -1188,6 +1207,11 @@ const resolvers = {
   ProductCategory: ecommerceResolvers.ProductCategory,
   Price: ecommerceResolvers.Price,
   Tax: ecommerceResolvers.Tax,
+  
+  // Payment type resolvers
+  PaymentProvider: ecommerceResolvers.PaymentProvider,
+  PaymentMethod: ecommerceResolvers.PaymentMethod,
+  Payment: ecommerceResolvers.Payment,
 };
 
 export default resolvers; 

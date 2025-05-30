@@ -1492,6 +1492,7 @@ model Currency {
   shopsDefaultIn  Shop[]                   @relation("ShopDefaultCurrency")
   prices          Price[]
   orders          Order[]
+  payments        Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1520,6 +1521,7 @@ model Order {
   shop          Shop        @relation(fields: [shopId], references: [id])
   
   items         OrderItem[]
+  payments      Payment[]
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -1542,4 +1544,78 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model PaymentProvider {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "Stripe", "PayPal", "Square"
+  type        String  // e.g., "CREDIT_CARD", "DIGITAL_WALLET", "BANK_TRANSFER"
+  isActive    Boolean @default(true)
+  apiKey      String?
+  secretKey   String?
+  webhookUrl  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  paymentMethods PaymentMethod[]
+  payments       Payment[]
+  
+  @@unique([name])
+}
+
+model PaymentMethod {
+  id                String  @id @default(cuid())
+  name              String  // e.g., "Visa", "MasterCard", "PayPal"
+  type              String  // e.g., "CREDIT_CARD", "DEBIT_CARD", "DIGITAL_WALLET"
+  providerId        String
+  isActive          Boolean @default(true)
+  processingFeeRate Float?  // Percentage fee
+  fixedFee          Float?  // Fixed fee amount
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  provider PaymentProvider @relation(fields: [providerId], references: [id])
+  payments Payment[]
+  
+  @@index([providerId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String?
+  amount          Float
+  currencyId      String
+  status          PaymentStatus @default(PENDING)
+  paymentMethodId String
+  providerId      String
+  transactionId   String?       // External transaction ID from payment provider
+  gatewayResponse String?       // JSON response from payment gateway
+  failureReason   String?
+  refundAmount    Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  order         Order?          @relation(fields: [orderId], references: [id])
+  currency      Currency        @relation(fields: [currencyId], references: [id])
+  paymentMethod PaymentMethod   @relation(fields: [paymentMethodId], references: [id])
+  provider      PaymentProvider @relation(fields: [providerId], references: [id])
+  
+  @@index([orderId])
+  @@index([currencyId])
+  @@index([paymentMethodId])
+  @@index([providerId])
+  @@index([status])
 }

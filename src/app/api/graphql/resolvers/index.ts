@@ -153,6 +153,11 @@ const authResolvers = {
         throw new Error('No user found with this email');
       }
       
+      // Check if user has a password set
+      if (!user.password) {
+        throw new Error('Invalid credentials');
+      }
+      
       const valid = await bcrypt.compare(inputPassword, user.password);
       
       if (!valid) {
@@ -309,6 +314,11 @@ const authResolvers = {
             throw new Error('User not found');
           }
           
+          // Check if user has a password set
+          if (!user.password) {
+            throw new Error('Current password is required');
+          }
+          
           const valid = await bcrypt.compare(input.currentPassword, user.password);
           
           if (!valid) {
@@ -368,18 +378,12 @@ const authResolvers = {
             firstName?: string;
             lastName?: string;
             phoneNumber?: string;
-            bio?: string;
-            position?: string;
-            department?: string;
           } = {};
           
           // Only update fields that are provided
           if (input.firstName !== undefined) userData.firstName = input.firstName;
           if (input.lastName !== undefined) userData.lastName = input.lastName;
           if (input.phoneNumber !== undefined) userData.phoneNumber = input.phoneNumber;
-          if (input.bio !== undefined) userData.bio = input.bio;
-          if (input.position !== undefined) userData.position = input.position;
-          if (input.department !== undefined) userData.department = input.department;
           
           console.log('Updating user with data:', userData);
           
@@ -413,9 +417,6 @@ const authResolvers = {
             lastName: updatedUser.lastName,
             phoneNumber: updatedUser.phoneNumber,
             role: updatedUser.role?.name || 'USER',
-            bio: updatedUser.bio,
-            position: updatedUser.position,
-            department: updatedUser.department,
             createdAt: updatedUser.createdAt,
             updatedAt: updatedUser.updatedAt
           };
@@ -446,9 +447,6 @@ interface UpdateUserProfileInput {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
-  bio?: string;
-  position?: string;
-  department?: string;
 }
 
 // Merge all resolvers
