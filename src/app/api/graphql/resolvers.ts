@@ -697,6 +697,9 @@ const resolvers = {
     products: ecommerceResolvers.Query.products,
     product: ecommerceResolvers.Query.product,
     productBySku: ecommerceResolvers.Query.productBySku,
+    productCategories: ecommerceResolvers.Query.productCategories,
+    productCategory: ecommerceResolvers.Query.productCategory,
+    productCategoryBySlug: ecommerceResolvers.Query.productCategoryBySlug,
     currencies: ecommerceResolvers.Query.currencies,
     currency: ecommerceResolvers.Query.currency,
     currencyByCode: ecommerceResolvers.Query.currencyByCode,
@@ -732,6 +735,10 @@ const resolvers = {
       
       if (!user) {
         throw new Error('No user found with this email');
+      }
+      
+      if (!user.password) {
+        throw new Error('Invalid user account');
       }
       
       const valid = await bcrypt.compare(inputPassword, user.password);
@@ -1154,6 +1161,9 @@ const resolvers = {
     // Add e-commerce mutations
     createShop: ecommerceResolvers.Mutation.createShop,
     createCurrency: ecommerceResolvers.Mutation.createCurrency,
+    createProductCategory: ecommerceResolvers.Mutation.createProductCategory,
+    updateProductCategory: ecommerceResolvers.Mutation.updateProductCategory,
+    deleteProductCategory: ecommerceResolvers.Mutation.deleteProductCategory,
   },
 
   // Include form type resolvers
@@ -1175,6 +1185,7 @@ const resolvers = {
   // Add e-commerce type resolvers
   Shop: ecommerceResolvers.Shop,
   Product: ecommerceResolvers.Product,
+  ProductCategory: ecommerceResolvers.ProductCategory,
   Price: ecommerceResolvers.Price,
   Tax: ecommerceResolvers.Tax,
 };

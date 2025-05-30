@@ -1446,6 +1446,9 @@ export const typeDefs = gql`
     products(filter: ProductFilterInput, pagination: PaginationInput): [Product!]!
     product(id: ID!): Product
     productBySku(sku: String!): Product
+    productCategories(filter: ProductCategoryFilterInput, pagination: PaginationInput): [ProductCategory!]!
+    productCategory(id: ID!): ProductCategory
+    productCategoryBySlug(slug: String!): ProductCategory
     orders(filter: OrderFilterInput, pagination: PaginationInput): [Order!]!
     order(id: ID!): Order
     currencies: [Currency!]!
@@ -1638,6 +1641,10 @@ export const typeDefs = gql`
     createProduct(input: CreateProductInput!): ProductResult!
     updateProduct(id: ID!, input: UpdateProductInput!): ProductResult!
     deleteProduct(id: ID!): ProductResult!
+    
+    createProductCategory(input: CreateProductCategoryInput!): ProductCategoryResult!
+    updateProductCategory(id: ID!, input: UpdateProductCategoryInput!): ProductCategoryResult!
+    deleteProductCategory(id: ID!): ProductCategoryResult!
     
     createOrder(input: CreateOrderInput!): OrderResult!
     updateOrder(id: ID!, input: UpdateOrderInput!): OrderResult!
@@ -2182,6 +2189,7 @@ export const typeDefs = gql`
     createdAt: DateTime!
     updatedAt: DateTime!
     products: [Product!]!
+    productCategories: [ProductCategory!]!
     orders: [Order!]!
   }
 
@@ -2193,7 +2201,26 @@ export const typeDefs = gql`
     stockQuantity: Int!
     shopId: String!
     shop: Shop!
+    categoryId: String
+    category: ProductCategory
     prices: [Price!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ProductCategory {
+    id: ID!
+    name: String!
+    description: String
+    slug: String!
+    parentId: String
+    parent: ProductCategory
+    children: [ProductCategory!]!
+    isActive: Boolean!
+    shopId: String
+    shop: Shop
+    products: [Product!]!
+    productCount: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -2267,6 +2294,7 @@ export const typeDefs = gql`
     sku: String!
     stockQuantity: Int!
     shopId: String!
+    categoryId: String
     prices: [CreatePriceInput!]!
   }
 
@@ -2275,6 +2303,7 @@ export const typeDefs = gql`
     description: String
     sku: String
     stockQuantity: Int
+    categoryId: String
     prices: [CreatePriceInput!]
   }
 
@@ -2342,6 +2371,12 @@ export const typeDefs = gql`
     product: Product
   }
 
+  type ProductCategoryResult {
+    success: Boolean!
+    message: String!
+    category: ProductCategory
+  }
+
   type OrderResult {
     success: Boolean!
     message: String!
@@ -2370,9 +2405,17 @@ export const typeDefs = gql`
   input ProductFilterInput {
     search: String
     shopId: String
+    categoryId: String
     inStock: Boolean
     minPrice: Float
     maxPrice: Float
+  }
+
+  input ProductCategoryFilterInput {
+    search: String
+    shopId: String
+    parentId: String
+    isActive: Boolean
   }
 
   input OrderFilterInput {
@@ -2382,6 +2425,23 @@ export const typeDefs = gql`
     status: OrderStatus
     dateFrom: DateTime
     dateTo: DateTime
+  }
+
+  input CreateProductCategoryInput {
+    name: String!
+    description: String
+    slug: String!
+    parentId: String
+    isActive: Boolean
+    shopId: String
+  }
+
+  input UpdateProductCategoryInput {
+    name: String
+    description: String
+    slug: String
+    parentId: String
+    isActive: Boolean
   }
 
   # --------------- END E-COMMERCE MODULE TYPES --- V1 ---

@@ -235,11 +235,12 @@ model Shop {
   defaultCurrency    Currency                 @relation("ShopDefaultCurrency", fields: [defaultCurrencyId], references: [id])
   acceptedCurrencies ShopAcceptedCurrencies[] // Relation to the explicit join table
 
-  adminUser User?      @relation(fields: [adminUserId], references: [id])
-  locations Location[]
-  products  Product[]
-  taxes     Tax[] // A shop can have specific taxes
-  orders    Order[]
+  adminUser         User?             @relation(fields: [adminUserId], references: [id])
+  locations         Location[]
+  products          Product[]
+  productCategories ProductCategory[]
+  taxes             Tax[] // A shop can have specific taxes
+  orders            Order[]
 
   // @@index([adminUserId]) // Optional: if querying shops by admin user is frequent
   @@index([defaultCurrencyId])
@@ -286,20 +287,40 @@ model Product {
   sku           String? @unique
   stockQuantity Int?
   shopId        String
-
-  // Potentially add fields for category, tags, images, etc., in the future
-  // productCategoryId String?
-  // category ProductCategory? @relation(fields: [productCategoryId], references: [id])
+  categoryId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  shop       Shop        @relation(fields: [shopId], references: [id])
-  prices     Price[]     // Relation to its prices in different currencies
+  shop       Shop             @relation(fields: [shopId], references: [id])
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+  prices     Price[]          // Relation to its prices in different currencies
   orderItems OrderItem[]
-  // @@index([productCategoryId])
 
   @@index([shopId])
+  @@index([categoryId])
+}
+
+model ProductCategory {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  slug        String  @unique
+  parentId    String?
+  isActive    Boolean @default(true)
+  shopId      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop            Shop?             @relation(fields: [shopId], references: [id])
+  parent          ProductCategory?  @relation("CategoryToParent", fields: [parentId], references: [id])
+  children        ProductCategory[] @relation("CategoryToParent")
+  products        Product[]
+
+  @@index([shopId])
+  @@index([parentId])
+  @@index([slug])
 }
 
 model Price {

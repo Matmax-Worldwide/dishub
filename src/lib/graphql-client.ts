@@ -4615,6 +4615,171 @@ export const cmsOperations = {
     return result.orders || [];
   },
 
+  // Product Category functions
+  async getProductCategories(filter?: {
+    search?: string;
+    shopId?: string;
+    parentId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive: boolean;
+    shopId?: string;
+    productCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetProductCategories($filter: ProductCategoryFilterInput, $pagination: PaginationInput) {
+        productCategories(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          slug
+          parentId
+          isActive
+          shopId
+          productCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ productCategories: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.productCategories || [];
+  },
+
+  async getProductCategory(id: string): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive: boolean;
+    shopId?: string;
+    productCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetProductCategory($id: ID!) {
+        productCategory(id: $id) {
+          id
+          name
+          description
+          slug
+          parentId
+          isActive
+          shopId
+          productCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ productCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.productCategory;
+  },
+
+  async createProductCategory(input: {
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive?: boolean;
+    shopId?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    category?: {
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }> {
+    const mutation = `
+      mutation CreateProductCategory($input: CreateProductCategoryInput!) {
+        createProductCategory(input: $input) {
+          success
+          message
+          category {
+            id
+            name
+            description
+            slug
+            parentId
+            isActive
+            shopId
+            productCount
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createProductCategory: {
+      success: boolean;
+      message: string;
+      category?: {
+        id: string;
+        name: string;
+        description?: string;
+        slug: string;
+        parentId?: string;
+        isActive: boolean;
+        shopId?: string;
+        productCount: number;
+        createdAt: string;
+        updatedAt: string;
+      };
+    } }>(mutation, { input });
+
+    return result.createProductCategory;
+  },
+
 };
 
 // Form Builder API functions
