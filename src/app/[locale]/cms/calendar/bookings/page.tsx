@@ -2,14 +2,16 @@
 
 import React from 'react';
 import BookingsList from '@/components/cms/calendar/BookingsList'; 
-import { PageHeader, PageHeaderHeading } from '@/components/page-header'; // Assuming this exists for consistent headings
+import PageHeader from '@/components/page-header';
 
 const ManageBookingsPage = () => {
   return (
     <div className="container mx-auto p-4">
-      <PageHeader className="mb-6">
-        <PageHeaderHeading>Manage Bookings</PageHeaderHeading>
-      </PageHeader>
+      <PageHeader 
+        title="Manage Bookings"
+        description="View and manage all calendar bookings"
+        className="mb-6"
+      />
       <BookingsList />
     </div>
   );
