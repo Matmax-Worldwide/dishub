@@ -583,7 +583,44 @@ export default function FormSection({
   // Generate class names for form container based on styles and template
   const getContainerClassNames = () => {
     if (template === 'DEFAULT') {
-      return 'relative overflow-hidden min-h-screen w-full';
+      // Check if custom styles are provided
+      const hasCustomStyles = styles && Object.keys(styles).length > 0;
+      
+      if (hasCustomStyles) {
+        // Use custom styles when provided
+        const classes = ['w-full', 'rounded-md'];
+        
+        // Padding
+        if (styles.padding === 'small') classes.push('p-3');
+        else if (styles.padding === 'medium') classes.push('p-5');
+        else if (styles.padding === 'large') classes.push('p-8');
+        
+        // Alignment
+        if (styles.alignment === 'center') classes.push('text-center');
+        else if (styles.alignment === 'right') classes.push('text-right');
+        
+        // Container styles
+        if (styles.containerStyles) {
+          // Border radius
+          if (styles.containerStyles.borderRadius === 'sm') classes.push('rounded-sm');
+          else if (styles.containerStyles.borderRadius === 'md') classes.push('rounded-md');
+          else if (styles.containerStyles.borderRadius === 'lg') classes.push('rounded-lg');
+          else if (styles.containerStyles.borderRadius === 'full') classes.push('rounded-full');
+          
+          // Shadow
+          if (styles.containerStyles.shadow === 'sm') classes.push('shadow-sm');
+          else if (styles.containerStyles.shadow === 'md') classes.push('shadow');
+          else if (styles.containerStyles.shadow === 'lg') classes.push('shadow-lg');
+          
+          // Border
+          if (styles.containerStyles.borderColor) classes.push('border');
+        }
+        
+        return classes.join(' ');
+      } else {
+        // Use default template styles when no custom styles provided
+        return 'relative overflow-hidden min-h-screen w-full';
+      }
     }
 
     const classes = ['w-full', 'rounded-md'];
@@ -620,19 +657,44 @@ export default function FormSection({
   // Generate inline styles for form container
   const getContainerStyles = () => {
     if (template === 'DEFAULT') {
-      if (backgroundType === 'image' && backgroundImage) {
-        return {
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundPosition: 'center',
-          backgroundSize: 'cover',
-          backgroundRepeat: 'no-repeat',
-          opacity: 0.95
-        };
+      // Check if custom styles are provided and should override default template
+      const hasCustomStyles = styles && Object.keys(styles).length > 0 && styles.containerStyles;
+      
+      if (hasCustomStyles) {
+        // Use custom styles when provided
+        const inlineStyles: React.CSSProperties = {};
+        
+        if (styles.containerStyles) {
+          if (styles.containerStyles.backgroundColor) {
+            inlineStyles.backgroundColor = styles.containerStyles.backgroundColor;
+          }
+          
+          if (styles.containerStyles.borderColor) {
+            inlineStyles.borderColor = styles.containerStyles.borderColor;
+          }
+          
+          if (styles.containerStyles.borderWidth) {
+            inlineStyles.borderWidth = styles.containerStyles.borderWidth;
+          }
+        }
+        
+        return inlineStyles;
       } else {
-        return {
-          background: backgroundImage || 'linear-gradient(to bottom right, #01112A, #01319c, #1E0B4D)',
-          opacity: 0.95
-        };
+        // Use default template styles when no custom styles provided
+        if (backgroundType === 'image' && backgroundImage) {
+          return {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            backgroundRepeat: 'no-repeat',
+            opacity: 0.95
+          };
+        } else {
+          return {
+            background: backgroundImage || 'linear-gradient(to bottom right, #01112A, #01319c, #1E0B4D)',
+            opacity: 0.95
+          };
+        }
       }
     }
 
@@ -658,7 +720,26 @@ export default function FormSection({
   // Generate class names for button
   const getButtonClassNames = () => {
     if (template === 'DEFAULT') {
-      return 'w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300';
+      // Check if custom button styles are provided
+      const hasCustomButtonStyles = styles && styles.buttonStyles && Object.keys(styles.buttonStyles).length > 0;
+      
+      if (hasCustomButtonStyles) {
+        // Use custom button styles when provided
+        const classes = ['px-4 py-2 rounded'];
+        
+        if (styles.buttonStyles) {
+          // Border radius
+          if (styles.buttonStyles.borderRadius === 'sm') classes.push('rounded-sm');
+          else if (styles.buttonStyles.borderRadius === 'md') classes.push('rounded-md');
+          else if (styles.buttonStyles.borderRadius === 'lg') classes.push('rounded-lg');
+          else if (styles.buttonStyles.borderRadius === 'full') classes.push('rounded-full');
+        }
+        
+        return classes.join(' ');
+      } else {
+        // Use default template button styles when no custom styles provided
+        return 'w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300';
+      }
     }
 
     const classes = ['px-4 py-2 rounded'];
@@ -676,7 +757,28 @@ export default function FormSection({
   
   const getButtonStyles = () => {
     if (template === 'DEFAULT') {
-      return {};
+      // Check if custom button styles are provided
+      const hasCustomButtonStyles = styles && styles.buttonStyles && Object.keys(styles.buttonStyles).length > 0;
+      
+      if (hasCustomButtonStyles) {
+        // Use custom button styles when provided
+        const inlineStyles: React.CSSProperties = {};
+        
+        if (styles.buttonStyles) {
+          if (styles.buttonStyles.backgroundColor) {
+            inlineStyles.backgroundColor = styles.buttonStyles.backgroundColor;
+          }
+          
+          if (styles.buttonStyles.textColor) {
+            inlineStyles.color = styles.buttonStyles.textColor;
+          }
+        }
+        
+        return inlineStyles;
+      } else {
+        // Use default template button styles (no inline styles needed)
+        return {};
+      }
     }
 
     const inlineStyles: React.CSSProperties = {};
