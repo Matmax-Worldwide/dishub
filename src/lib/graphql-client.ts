@@ -3343,36 +3343,55 @@ export const cmsOperations = {
     }
   },
 
-  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+  async createStaffProfile(input: { input: {
+    userId: string;
+    bio?: string;
+    specializations?: string[];
+  }}): Promise<CalendarStaffProfile> {
     try {
       const mutation = `
-        mutation CreateStaffProfile($input: StaffProfileInput!) {
+        mutation CreateStaffProfile($input: CreateStaffProfileInput!) {
           createStaffProfile(input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.createStaffProfile;
+      const response = await gqlRequest<{
+        createStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.createStaffProfile.success || !response.createStaffProfile.staffProfile) {
+        throw new Error(response.createStaffProfile.message || 'Failed to create staff profile');
+      }
+
+      return response.createStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error creating staff profile:', error);
       throw error;
@@ -3384,31 +3403,46 @@ export const cmsOperations = {
       const mutation = `
         mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
           updateStaffProfile(id: $id, input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.updateStaffProfile;
+      const response = await gqlRequest<{
+        updateStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.updateStaffProfile.success || !response.updateStaffProfile.staffProfile) {
+        throw new Error(response.updateStaffProfile.message || 'Failed to update staff profile');
+      }
+
+      return response.updateStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error updating staff profile:', error);
       throw error;
@@ -3647,26 +3681,38 @@ export const cmsOperations = {
     parentId?: string;
   }> {
     const mutation = `
-      mutation CreateServiceCategory($input: ServiceCategoryInput!) {
+      mutation CreateServiceCategory($input: CreateServiceCategoryInput!) {
         createServiceCategory(input: $input) {
-          id
-          name
-          description
-          displayOrder
-          parentId
+          success
+          message
+          serviceCategory {
+            id
+            name
+            description
+            displayOrder
+            parentId
+          }
         }
       }
     `;
 
     const result = await gqlRequest<{ createServiceCategory: {
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
+      success: boolean;
+      message: string;
+      serviceCategory: {
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+      } | null;
     } }>(mutation, { input });
     
-    return result.createServiceCategory;
+    if (!result.createServiceCategory.success || !result.createServiceCategory.serviceCategory) {
+      throw new Error(result.createServiceCategory.message || 'Failed to create service category');
+    }
+    
+    return result.createServiceCategory.serviceCategory;
   },
 
   // Update service category
@@ -3686,26 +3732,38 @@ export const cmsOperations = {
     parentId?: string;
   }> {
     const mutation = `
-      mutation UpdateServiceCategory($id: ID!, $input: ServiceCategoryInput!) {
+      mutation UpdateServiceCategory($id: ID!, $input: UpdateServiceCategoryInput!) {
         updateServiceCategory(id: $id, input: $input) {
-          id
-          name
-          description
-          displayOrder
-          parentId
+          success
+          message
+          serviceCategory {
+            id
+            name
+            description
+            displayOrder
+            parentId
+          }
         }
       }
     `;
 
     const result = await gqlRequest<{ updateServiceCategory: {
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
+      success: boolean;
+      message: string;
+      serviceCategory: {
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+      } | null;
     } }>(mutation, { id, input });
     
-    return result.updateServiceCategory;
+    if (!result.updateServiceCategory.success || !result.updateServiceCategory.serviceCategory) {
+      throw new Error(result.updateServiceCategory.message || 'Failed to update service category');
+    }
+    
+    return result.updateServiceCategory.serviceCategory;
   },
 
   // Services
@@ -3802,13 +3860,17 @@ export const cmsOperations = {
   },
 
   async createService({ input }: { input: {
-    name?: string;
+    name: string;
     description?: string | null;
-    durationMinutes?: number;
-    price?: number;
+    durationMinutes: number;
+    price: number;
+    bufferTimeBeforeMinutes?: number;
+    bufferTimeAfterMinutes?: number;
+    preparationTimeMinutes?: number;
+    cleanupTimeMinutes?: number;
+    maxDailyBookingsPerService?: number;
     isActive?: boolean;
-    serviceCategoryId?: string;
-    locationIds?: string[];
+    serviceCategoryId: string;
   }}): Promise<{
     id: string;
     name: string;
@@ -3818,28 +3880,42 @@ export const cmsOperations = {
     isActive: boolean;
   }> {
     const mutation = `
-      mutation CreateService($input: ServiceInput!) {
+      mutation CreateService($input: CreateServiceInput!) {
         createService(input: $input) {
-          id
-          name
-          description
-          durationMinutes
-          price
-          isActive
+          success
+          message
+          service {
+            id
+            name
+            description
+            durationMinutes
+            price
+            isActive
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ createService: {
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      isActive: boolean;
-    } }>(mutation, { input });
-    
-    return result.createService;
+    const response = await gqlRequest<{
+      createService: {
+        success: boolean;
+        message: string;
+        service: {
+          id: string;
+          name: string;
+          description?: string;
+          durationMinutes: number;
+          price: number;
+          isActive: boolean;
+        } | null;
+      };
+    }>(mutation, { input });
+
+    if (!response.createService.success || !response.createService.service) {
+      throw new Error(response.createService.message || 'Failed to create service');
+    }
+
+    return response.createService.service;
   },
 
   async updateService({ id, input }: { 
@@ -3849,9 +3925,13 @@ export const cmsOperations = {
       description?: string | null;
       durationMinutes?: number;
       price?: number;
+      bufferTimeBeforeMinutes?: number;
+      bufferTimeAfterMinutes?: number;
+      preparationTimeMinutes?: number;
+      cleanupTimeMinutes?: number;
+      maxDailyBookingsPerService?: number;
       isActive?: boolean;
       serviceCategoryId?: string;
-      locationIds?: string[];
     }
   }): Promise<{
     id: string;
@@ -3862,28 +3942,42 @@ export const cmsOperations = {
     isActive: boolean;
   }> {
     const mutation = `
-      mutation UpdateService($id: ID!, $input: ServiceInput!) {
+      mutation UpdateService($id: ID!, $input: UpdateServiceInput!) {
         updateService(id: $id, input: $input) {
-          id
-          name
-          description
-          durationMinutes
-          price
-          isActive
+          success
+          message
+          service {
+            id
+            name
+            description
+            durationMinutes
+            price
+            isActive
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ updateService: {
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      isActive: boolean;
-    } }>(mutation, { id, input });
-    
-    return result.updateService;
+    const response = await gqlRequest<{
+      updateService: {
+        success: boolean;
+        message: string;
+        service: {
+          id: string;
+          name: string;
+          description?: string;
+          durationMinutes: number;
+          price: number;
+          isActive: boolean;
+        } | null;
+      };
+    }>(mutation, { id, input });
+
+    if (!response.updateService.success || !response.updateService.service) {
+      throw new Error(response.updateService.message || 'Failed to update service');
+    }
+
+    return response.updateService.service;
   },
 
   async deleteService({ id }: { id: string }): Promise<{
@@ -3915,7 +4009,7 @@ export const cmsOperations = {
   },
 
   async createLocation({ input }: { input: {
-    name?: string;
+    name: string;
     address?: string | null;
     phone?: string | null;
     operatingHours?: Record<string, unknown> | null;
@@ -3926,24 +4020,38 @@ export const cmsOperations = {
     phone?: string;
   }> {
     const mutation = `
-      mutation CreateLocation($input: LocationInput!) {
+      mutation CreateLocation($input: CreateLocationInput!) {
         createLocation(input: $input) {
-          id
-          name
-          address
-          phone
+          success
+          message
+          location {
+            id
+            name
+            address
+            phone
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ createLocation: {
-      id: string;
-      name: string;
-      address?: string;
-      phone?: string;
-    } }>(mutation, { input });
-    
-    return result.createLocation;
+    const response = await gqlRequest<{
+      createLocation: {
+        success: boolean;
+        message: string;
+        location: {
+          id: string;
+          name: string;
+          address?: string;
+          phone?: string;
+        } | null;
+      };
+    }>(mutation, { input });
+
+    if (!response.createLocation.success || !response.createLocation.location) {
+      throw new Error(response.createLocation.message || 'Failed to create location');
+    }
+
+    return response.createLocation.location;
   },
 
   async updateLocation({ id, input }: { 
@@ -3961,24 +4069,38 @@ export const cmsOperations = {
     phone?: string;
   }> {
     const mutation = `
-      mutation UpdateLocation($id: ID!, $input: LocationInput!) {
+      mutation UpdateLocation($id: ID!, $input: UpdateLocationInput!) {
         updateLocation(id: $id, input: $input) {
-          id
-          name
-          address
-          phone
+          success
+          message
+          location {
+            id
+            name
+            address
+            phone
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ updateLocation: {
-      id: string;
-      name: string;
-      address?: string;
-      phone?: string;
-    } }>(mutation, { id, input });
-    
-    return result.updateLocation;
+    const response = await gqlRequest<{
+      updateLocation: {
+        success: boolean;
+        message: string;
+        location: {
+          id: string;
+          name: string;
+          address?: string;
+          phone?: string;
+        } | null;
+      };
+    }>(mutation, { id, input });
+
+    if (!response.updateLocation.success || !response.updateLocation.location) {
+      throw new Error(response.updateLocation.message || 'Failed to update location');
+    }
+
+    return response.updateLocation.location;
   },
 
   async deleteLocation({ id }: { id: string }): Promise<{
@@ -6092,36 +6214,55 @@ const graphqlClient = {
     }
   },
 
-  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+  async createStaffProfile(input: { input: {
+    userId: string;
+    bio?: string;
+    specializations?: string[];
+  }}): Promise<CalendarStaffProfile> {
     try {
       const mutation = `
-        mutation CreateStaffProfile($input: StaffProfileInput!) {
+        mutation CreateStaffProfile($input: CreateStaffProfileInput!) {
           createStaffProfile(input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.createStaffProfile;
+      const response = await gqlRequest<{
+        createStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.createStaffProfile.success || !response.createStaffProfile.staffProfile) {
+        throw new Error(response.createStaffProfile.message || 'Failed to create staff profile');
+      }
+
+      return response.createStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error creating staff profile:', error);
       throw error;
@@ -6133,31 +6274,46 @@ const graphqlClient = {
       const mutation = `
         mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
           updateStaffProfile(id: $id, input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.updateStaffProfile;
+      const response = await gqlRequest<{
+        updateStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.updateStaffProfile.success || !response.updateStaffProfile.staffProfile) {
+        throw new Error(response.updateStaffProfile.message || 'Failed to update staff profile');
+      }
+
+      return response.updateStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error updating staff profile:', error);
       throw error;

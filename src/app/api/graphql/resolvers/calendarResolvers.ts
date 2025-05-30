@@ -28,14 +28,35 @@ interface PaginationInput {
   pageSize?: number;
 }
 
-interface ServiceCategoryInput {
+interface CreateServiceCategoryInput {
   name: string;
   description?: string;
   displayOrder?: number;
   parentId?: string;
 }
 
-interface ServiceInput {
+interface UpdateServiceCategoryInput {
+  name?: string;
+  description?: string;
+  displayOrder?: number;
+  parentId?: string;
+}
+
+interface CreateLocationInput {
+  name: string;
+  address?: string;
+  phone?: string;
+  operatingHours?: Record<string, unknown>;
+}
+
+interface UpdateLocationInput {
+  name?: string;
+  address?: string;
+  phone?: string;
+  operatingHours?: Record<string, unknown>;
+}
+
+interface CreateServiceInput {
   name: string;
   description?: string;
   durationMinutes: number;
@@ -47,15 +68,20 @@ interface ServiceInput {
   maxDailyBookingsPerService?: number;
   isActive?: boolean;
   serviceCategoryId: string;
-  locationIds?: string[];
 }
 
-interface StaffProfileInput {
-  userId: string;
-  bio?: string;
-  specializations?: string[];
-  assignedServiceIds?: string[];
-  assignedLocationIds?: string[];
+interface UpdateServiceInput {
+  name?: string;
+  description?: string;
+  durationMinutes?: number;
+  price?: number;
+  bufferTimeBeforeMinutes?: number;
+  bufferTimeAfterMinutes?: number;
+  preparationTimeMinutes?: number;
+  cleanupTimeMinutes?: number;
+  maxDailyBookingsPerService?: number;
+  isActive?: boolean;
+  serviceCategoryId?: string;
 }
 
 interface StaffScheduleInput {
@@ -66,6 +92,18 @@ interface StaffScheduleInput {
   isAvailable: boolean;
   locationId?: string;
   notes?: string;
+}
+
+interface CreateStaffProfileInput {
+  userId: string;
+  bio?: string;
+  specializations?: string[];
+}
+
+interface UpdateStaffProfileInput {
+  userId?: string;
+  bio?: string;
+  specializations?: string[];
 }
 
 const isAdminUser = (context: GraphQLContext): boolean => {
@@ -318,149 +356,231 @@ export const calendarResolvers = {
     },
   },
   Mutation: {
-    createLocation: async (_parent: unknown, { input }: { input: Prisma.LocationCreateInput }, context: GraphQLContext) => {
+    createLocation: async (_parent: unknown, { input }: { input: CreateLocationInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      return prisma.location.create({ data: input });
+      try {
+        const data: Prisma.LocationCreateInput = {
+          name: input.name,
+          address: input.address || null,
+          phone: input.phone || null,
+          operatingHours: input.operatingHours ? input.operatingHours as Prisma.InputJsonValue : undefined,
+        };
+        const location = await prisma.location.create({ data });
+        return {
+          success: true,
+          message: 'Location created successfully',
+          location
+        };
+      } catch (error) {
+        console.error('Error creating location:', error);
+        return {
+          success: false,
+          message: 'Failed to create location',
+          location: null
+        };
+      }
     },
-    updateLocation: async (_parent: unknown, { id, input }: { id: string; input: Prisma.LocationUpdateInput }, context: GraphQLContext) => {
+    updateLocation: async (_parent: unknown, { id, input }: { id: string; input: UpdateLocationInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      return prisma.location.update({ where: { id }, data: input });
+      try {
+        const data: Prisma.LocationUpdateInput = {
+          ...(input.name !== undefined && { name: input.name }),
+          ...(input.address !== undefined && { address: input.address }),
+          ...(input.phone !== undefined && { phone: input.phone }),
+          ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours as Prisma.InputJsonValue }),
+        };
+        const location = await prisma.location.update({ where: { id }, data });
+        return {
+          success: true,
+          message: 'Location updated successfully',
+          location
+        };
+      } catch (error) {
+        console.error('Error updating location:', error);
+        return {
+          success: false,
+          message: 'Failed to update location',
+          location: null
+        };
+      }
     },
     deleteLocation: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       return prisma.location.delete({ where: { id } });
     },
-    createServiceCategory: async (_parent: unknown, { input }: { input: ServiceCategoryInput }, context: GraphQLContext) => {
+    createServiceCategory: async (_parent: unknown, { input }: { input: CreateServiceCategoryInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { parentId, ...categoryData } = input;
-      const data: Prisma.ServiceCategoryCreateInput = { 
-        ...categoryData,
-        ...(parentId && parentId !== '' ? { parentCategory: { connect: { id: parentId } } } : {})
-      };
-      return prisma.serviceCategory.create({ data });
+      try {
+        const { parentId, ...categoryData } = input;
+        const data: Prisma.ServiceCategoryCreateInput = { 
+          ...categoryData,
+          ...(parentId && parentId !== '' ? { parentCategory: { connect: { id: parentId } } } : {})
+        };
+        const serviceCategory = await prisma.serviceCategory.create({ data });
+        return {
+          success: true,
+          message: 'Service category created successfully',
+          serviceCategory
+        };
+      } catch (error) {
+        console.error('Error creating service category:', error);
+        return {
+          success: false,
+          message: 'Failed to create service category',
+          serviceCategory: null
+        };
+      }
     },
-    updateServiceCategory: async (_parent: unknown, { id, input }: { id: string; input: ServiceCategoryInput }, context: GraphQLContext) => {
+    updateServiceCategory: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceCategoryInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { parentId, ...categoryData } = input;
-      const data: Prisma.ServiceCategoryUpdateInput = { 
-        ...categoryData,
-        ...(parentId !== undefined ? 
-          (parentId === '' || parentId === null ? 
-            { parentCategory: { disconnect: true } } : 
-            { parentCategory: { connect: { id: parentId } } }
-          ) : {}
-        )
-      };
-      return prisma.serviceCategory.update({ where: { id }, data });
+      try {
+        const { parentId, ...categoryData } = input;
+        const data: Prisma.ServiceCategoryUpdateInput = { 
+          ...categoryData,
+          ...(parentId !== undefined ? 
+            (parentId === '' || parentId === null ? 
+              { parentCategory: { disconnect: true } } : 
+              { parentCategory: { connect: { id: parentId } } }
+            ) : {}
+          )
+        };
+        const serviceCategory = await prisma.serviceCategory.update({ where: { id }, data });
+        return {
+          success: true,
+          message: 'Service category updated successfully',
+          serviceCategory
+        };
+      } catch (error) {
+        console.error('Error updating service category:', error);
+        return {
+          success: false,
+          message: 'Failed to update service category',
+          serviceCategory: null
+        };
+      }
     },
     deleteServiceCategory: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       return prisma.serviceCategory.delete({ where: { id } });
     },
-    createService: async (_parent: unknown, { input }: { input: ServiceInput }, context: GraphQLContext) => {
+    createService: async (_parent: unknown, { input }: { input: CreateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { locationIds, serviceCategoryId, ...serviceData } = input;
-      const data: Prisma.ServiceCreateInput = { 
-        ...serviceData,
-        serviceCategory: { connect: { id: serviceCategoryId } }
-      };
-      if (locationIds && locationIds.length > 0) {
-        data.locations = {
-          create: locationIds.map((locId: string) => ({
-            location: { connect: { id: locId } },
-          })),
+      try {
+        const serviceData: Prisma.ServiceCreateInput = {
+          name: input.name,
+          description: input.description || null,
+          durationMinutes: input.durationMinutes,
+          price: input.price,
+          bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes || 0,
+          bufferTimeAfterMinutes: input.bufferTimeAfterMinutes || 0,
+          preparationTimeMinutes: input.preparationTimeMinutes || 0,
+          cleanupTimeMinutes: input.cleanupTimeMinutes || 0,
+          maxDailyBookingsPerService: input.maxDailyBookingsPerService || null,
+          isActive: input.isActive !== undefined ? input.isActive : true,
+          serviceCategory: { connect: { id: input.serviceCategoryId } },
+        };
+        const service = await prisma.service.create({ data: serviceData });
+        return {
+          success: true,
+          message: 'Service created successfully',
+          service
+        };
+      } catch (error) {
+        console.error('Error creating service:', error);
+        return {
+          success: false,
+          message: 'Failed to create service',
+          service: null
         };
       }
-      return prisma.service.create({ data, include: { serviceCategory: true, locations: { include: { location: true } } } });
     },
-    updateService: async (_parent: unknown, { id, input }: { id: string; input: ServiceInput }, context: GraphQLContext) => {
+    updateService: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { locationIds, serviceCategoryId, ...serviceData } = input;
-      const data: Prisma.ServiceUpdateInput = { ...serviceData };
-
-      if (serviceCategoryId) {
-        data.serviceCategory = { connect: { id: serviceCategoryId } };
-      }
-
-      if (locationIds !== undefined) {
-        data.locations = {
-            deleteMany: {}, 
-            create: locationIds.map((locId: string) => ({
-                location: { connect: { id: locId } },
-            })),
+      try {
+        const data: Prisma.ServiceUpdateInput = {
+          ...(input.name !== undefined && { name: input.name }),
+          ...(input.description !== undefined && { description: input.description }),
+          ...(input.durationMinutes !== undefined && { durationMinutes: input.durationMinutes }),
+          ...(input.price !== undefined && { price: input.price }),
+          ...(input.bufferTimeBeforeMinutes !== undefined && { bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes }),
+          ...(input.bufferTimeAfterMinutes !== undefined && { bufferTimeAfterMinutes: input.bufferTimeAfterMinutes }),
+          ...(input.preparationTimeMinutes !== undefined && { preparationTimeMinutes: input.preparationTimeMinutes }),
+          ...(input.cleanupTimeMinutes !== undefined && { cleanupTimeMinutes: input.cleanupTimeMinutes }),
+          ...(input.maxDailyBookingsPerService !== undefined && { maxDailyBookingsPerService: input.maxDailyBookingsPerService }),
+          ...(input.isActive !== undefined && { isActive: input.isActive }),
+          ...(input.serviceCategoryId !== undefined && { serviceCategory: { connect: { id: input.serviceCategoryId } } }),
+        };
+        const service = await prisma.service.update({ where: { id }, data });
+        return {
+          success: true,
+          message: 'Service updated successfully',
+          service
+        };
+      } catch (error) {
+        console.error('Error updating service:', error);
+        return {
+          success: false,
+          message: 'Failed to update service',
+          service: null
         };
       }
-      return prisma.service.update({ 
-        where: { id }, 
-        data, 
-        include: { serviceCategory: true, locations: { include: { location: true } } } 
-      });
     },
     deleteService: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       return prisma.service.delete({ where: { id } });
     },
-    createStaffProfile: async (_parent: unknown, { input }: { input: StaffProfileInput }, context: GraphQLContext) => {
+    createStaffProfile: async (_parent: unknown, { input }: { input: CreateStaffProfileInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { userId, bio, specializations, assignedServiceIds, assignedLocationIds } = input;
-
-      const existingProfile = await prisma.staffProfile.findUnique({ where: { userId } });
-      if (existingProfile) throw new Error('User already has a staff profile.');
-
-      const profileData: Prisma.StaffProfileCreateInput = {
-        user: { connect: { id: userId } },
-        bio: bio || undefined,
-        specializations: specializations || [],
-      };
-      if (assignedServiceIds && assignedServiceIds.length > 0) {
-        profileData.assignedServices = { create: assignedServiceIds.map((id: string) => ({ service: { connect: { id } } })) };
+      try {
+        const staffProfileData: Prisma.StaffProfileCreateInput = {
+          user: { connect: { id: input.userId } },
+          bio: input.bio || null,
+          specializations: input.specializations || [],
+        };
+        const staffProfile = await prisma.staffProfile.create({ 
+          data: staffProfileData,
+          include: { user: true }
+        });
+        return {
+          success: true,
+          message: 'Staff profile created successfully',
+          staffProfile
+        };
+      } catch (error) {
+        console.error('Error creating staff profile:', error);
+        return {
+          success: false,
+          message: 'Failed to create staff profile',
+          staffProfile: null
+        };
       }
-      if (assignedLocationIds && assignedLocationIds.length > 0) {
-        profileData.locationAssignments = { create: assignedLocationIds.map((id: string) => ({ location: { connect: { id } } })) };
-      }
-      
-      const newStaffProfile = await prisma.staffProfile.create({ data: profileData });
-
-      const days = Object.values(DayOfWeek);
-      const defaultSchedule: Prisma.StaffScheduleCreateManyInput[] = days.map(day => ({
-        staffProfileId: newStaffProfile.id,
-        dayOfWeek: day,
-        startTime: "09:00",
-        endTime: "17:00",
-        isAvailable: !(day === DayOfWeek.SATURDAY || day === DayOfWeek.SUNDAY),
-        scheduleType: ScheduleType.REGULAR_HOURS,
-      }));
-      await prisma.staffSchedule.createMany({ data: defaultSchedule });
-
-      return prisma.staffProfile.findUnique({ 
-          where: {id: newStaffProfile.id},
-          include: { user: true, schedules: true, assignedServices: {include: {service:true}}, locationAssignments: {include: {location:true}} }
-      });
     },
-    updateStaffProfile: async (_parent: unknown, { id, input }: { id: string; input: StaffProfileInput }, context: GraphQLContext) => {
+    updateStaffProfile: async (_parent: unknown, { id, input }: { id: string; input: UpdateStaffProfileInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const { bio, specializations, assignedServiceIds, assignedLocationIds } = input;
-      
-      const updateData: Prisma.StaffProfileUpdateInput = {};
-      if (bio !== undefined) updateData.bio = bio;
-      if (specializations !== undefined) updateData.specializations = { set: specializations }; 
-
-      if (assignedServiceIds !== undefined) {
-        updateData.assignedServices = {
-          deleteMany: {}, 
-          create: assignedServiceIds.map((serviceId: string) => ({ service: { connect: { id: serviceId } } })),
+      try {
+        const data: Prisma.StaffProfileUpdateInput = {
+          ...(input.userId !== undefined && { user: { connect: { id: input.userId } } }),
+          ...(input.bio !== undefined && { bio: input.bio }),
+          ...(input.specializations !== undefined && { specializations: input.specializations }),
+        };
+        const staffProfile = await prisma.staffProfile.update({ 
+          where: { id }, 
+          data,
+          include: { user: true }
+        });
+        return {
+          success: true,
+          message: 'Staff profile updated successfully',
+          staffProfile
+        };
+      } catch (error) {
+        console.error('Error updating staff profile:', error);
+        return {
+          success: false,
+          message: 'Failed to update staff profile',
+          staffProfile: null
         };
       }
-      if (assignedLocationIds !== undefined) {
-        updateData.locationAssignments = {
-          deleteMany: {}, 
-          create: assignedLocationIds.map((locationId: string) => ({ location: { connect: { id: locationId } } })),
-        };
-      }
-      return prisma.staffProfile.update({
-        where: { id }, data: updateData,
-        include: { user: true, schedules: true, assignedServices: {include: {service:true}}, locationAssignments: {include: {location:true}} }
-      });
     },
     deleteStaffProfile: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');

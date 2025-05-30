@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Service, ServiceCategory, Location } from '@/types/calendar'; // Assuming type definitions
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area'; // For location list
+import { X } from 'lucide-react';
 
 interface ServiceFormProps {
   isOpen: boolean;
@@ -33,7 +33,7 @@ const defaultServiceValues: Partial<Service> = {
   cleanupTimeMinutes: 0,
   maxDailyBookingsPerService: null,
   isActive: true,
-  serviceCategoryId: '',
+  serviceCategoryId: undefined,
   locationIds: [],
 };
 
@@ -64,6 +64,26 @@ export default function ServiceForm({
       setFormError(null);
     }
   }, [initialData, isOpen]);
+
+  // Handle escape key to close
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -133,121 +153,196 @@ export default function ServiceForm({
     dataToSave.cleanupTimeMinutes = Number(dataToSave.cleanupTimeMinutes) || 0;
     dataToSave.maxDailyBookingsPerService = dataToSave.maxDailyBookingsPerService ? Number(dataToSave.maxDailyBookingsPerService) : null;
 
-
     await onSave(dataToSave);
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl"> {/* Wider modal for more fields */}
-        <DialogHeader>
-          <DialogTitle>{initialData?.id ? 'Edit Service' : 'Create New Service'}</DialogTitle>
-          <DialogDescription>
-            {initialData?.id ? 'Update the details of this service.' : 'Fill in the details for the new service.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-          {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Service Name <span className="text-red-500">*</span></Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleChange} disabled={isSaving} />
-            </div>
-            <div>
-              <Label htmlFor="serviceCategoryId">Category <span className="text-red-500">*</span></Label>
-              <Select value={formData.serviceCategoryId || ''} onValueChange={(val) => handleSelectChange('serviceCategoryId', val)} disabled={isSaving}>
-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
-                  {allCategories?.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" name="description" value={formData.description || ''} onChange={handleChange} rows={3} disabled={isSaving} />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {initialData?.id ? 'Edit Service' : 'Add New Service'}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {initialData?.id ? 'Update service information' : 'Create a new service for your business'}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+            disabled={isSaving}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-          {/* Timing & Price */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Error Display */}
+            {formError && (
+              <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg border border-red-200">
+                {formError}
+              </div>
+            )}
+
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Service Name <span className="text-red-500">*</span></Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleChange} disabled={isSaving} />
+              </div>
+              <div>
+                <Label htmlFor="serviceCategoryId">Category <span className="text-red-500">*</span></Label>
+                <Select 
+                  value={formData.serviceCategoryId || ''} 
+                  onValueChange={(val) => handleSelectChange('serviceCategoryId', val)} 
+                  disabled={isSaving || !allCategories || allCategories.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      !allCategories || allCategories.length === 0 
+                        ? "Loading categories..." 
+                        : "Select category"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                  <SelectItem key="hola" value="hola">
+                          hola
+                        </SelectItem>
+                    {allCategories && allCategories.length > 0 ? (
+                      allCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        No categories available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                {(!allCategories || allCategories.length === 0) && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Please create a service category first before adding services.
+                  </p>
+                )}
+              </div>
+            </div>
+            
             <div>
-              <Label htmlFor="durationMinutes">Duration (minutes) <span className="text-red-500">*</span></Label>
-              <Input id="durationMinutes" name="durationMinutes" type="number" value={formData.durationMinutes || ''} onChange={handleChange} disabled={isSaving} />
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" name="description" value={formData.description || ''} onChange={handleChange} rows={3} disabled={isSaving} />
             </div>
-            <div>
-              <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
-              <Input id="price" name="price" type="number" step="0.01" value={formData.price || ''} onChange={handleChange} disabled={isSaving} />
-            </div>
-          </div>
-          
-          {/* Buffer & Prep Times */}
-          <details className="group">
-            <summary className="text-sm font-medium text-gray-700 cursor-pointer group-open:mb-2">Advanced Timing (Buffers, Prep)</summary>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t mt-2">
+
+            {/* Timing & Price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="bufferTimeBeforeMinutes">Buffer Before (min)</Label>
-                <Input id="bufferTimeBeforeMinutes" name="bufferTimeBeforeMinutes" type="number" value={formData.bufferTimeBeforeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                <Label htmlFor="durationMinutes">Duration (minutes) <span className="text-red-500">*</span></Label>
+                <Input id="durationMinutes" name="durationMinutes" type="number" value={formData.durationMinutes || ''} onChange={handleChange} disabled={isSaving} />
               </div>
               <div>
-                <Label htmlFor="bufferTimeAfterMinutes">Buffer After (min)</Label>
-                <Input id="bufferTimeAfterMinutes" name="bufferTimeAfterMinutes" type="number" value={formData.bufferTimeAfterMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
+                <Input id="price" name="price" type="number" step="0.01" value={formData.price || ''} onChange={handleChange} disabled={isSaving} />
               </div>
+            </div>
+            
+            {/* Buffer & Prep Times */}
+            <details className="group">
+              <summary className="text-sm font-medium text-gray-700 cursor-pointer group-open:mb-2">Advanced Timing (Buffers, Prep)</summary>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t mt-2">
+                <div>
+                  <Label htmlFor="bufferTimeBeforeMinutes">Buffer Before (min)</Label>
+                  <Input id="bufferTimeBeforeMinutes" name="bufferTimeBeforeMinutes" type="number" value={formData.bufferTimeBeforeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                </div>
+                <div>
+                  <Label htmlFor="bufferTimeAfterMinutes">Buffer After (min)</Label>
+                  <Input id="bufferTimeAfterMinutes" name="bufferTimeAfterMinutes" type="number" value={formData.bufferTimeAfterMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                </div>
+                <div>
+                  <Label htmlFor="preparationTimeMinutes">Prep Time (min)</Label>
+                  <Input id="preparationTimeMinutes" name="preparationTimeMinutes" type="number" value={formData.preparationTimeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                </div>
+                <div>
+                  <Label htmlFor="cleanupTimeMinutes">Cleanup Time (min)</Label>
+                  <Input id="cleanupTimeMinutes" name="cleanupTimeMinutes" type="number" value={formData.cleanupTimeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                </div>
+              </div>
+            </details>
+
+            {/* Other Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
               <div>
-                <Label htmlFor="preparationTimeMinutes">Prep Time (min)</Label>
-                <Input id="preparationTimeMinutes" name="preparationTimeMinutes" type="number" value={formData.preparationTimeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+                <Label htmlFor="maxDailyBookingsPerService">Max Daily Bookings</Label>
+                <Input id="maxDailyBookingsPerService" name="maxDailyBookingsPerService" type="number" value={formData.maxDailyBookingsPerService || ''} onChange={handleChange} disabled={isSaving} />
               </div>
-              <div>
-                <Label htmlFor="cleanupTimeMinutes">Cleanup Time (min)</Label>
-                <Input id="cleanupTimeMinutes" name="cleanupTimeMinutes" type="number" value={formData.cleanupTimeMinutes || ''} onChange={handleChange} disabled={isSaving} />
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="isActive" 
+                  checked={formData.isActive ?? true} 
+                  onCheckedChange={(checked) => handleSwitchChange('isActive', checked)}
+                  disabled={isSaving}
+                />
+                <Label htmlFor="isActive">Service is active</Label>
               </div>
             </div>
-          </details>
 
-
-          {/* Other Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
-            <div>
-              <Label htmlFor="maxDailyBookingsPerService">Max Daily Bookings (optional)</Label>
-              <Input id="maxDailyBookingsPerService" name="maxDailyBookingsPerService" type="number" value={formData.maxDailyBookingsPerService || ''} onChange={handleChange} disabled={isSaving} />
+            {/* Location Assignment */}
+            <div className="border-t pt-4">
+              <Label className="text-base font-medium">Available Locations</Label>
+              <p className="text-sm text-gray-500 mb-3">Select which locations offer this service</p>
+              <ScrollArea className="h-32 w-full border rounded-md p-3">
+                <div className="space-y-2">
+                  {allLocations?.map(location => (
+                    <div key={location.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`location-${location.id}`}
+                        checked={(formData.locationIds || []).includes(location.id)}
+                        onChange={() => handleLocationToggle(location.id)}
+                        disabled={isSaving}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor={`location-${location.id}`} className="text-sm font-normal cursor-pointer">
+                        {location.name}
+                      </Label>
+                    </div>
+                  ))}
+                  {(!allLocations || allLocations.length === 0) && (
+                    <p className="text-sm text-gray-500">No locations available</p>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
-             <div className="flex items-center space-x-2 pt-6">
-                <Switch id="isActive" checked={formData.isActive ?? true} onCheckedChange={(val) => handleSwitchChange('isActive', val)} disabled={isSaving} />
-                <Label htmlFor="isActive">Service is Active</Label>
-            </div>
-          </div>
+          </form>
+        </div>
 
-          {/* Location Assignment */}
-          <div className="border-t pt-4">
-            <Label className="block text-base font-medium mb-2">Assign to Locations</Label>
-            <ScrollArea className="h-40 border rounded-md p-2">
-              <div className="space-y-2">
-                {allLocations?.map(loc => (
-                  <div key={loc.id} className="flex items-center space-x-2">
-                    <Switch
-                      id={`loc-${loc.id}`}
-                      checked={(formData.locationIds || []).includes(loc.id)}
-                      onCheckedChange={() => handleLocationToggle(loc.id)}
-                      disabled={isSaving}
-                    />
-                    <Label htmlFor={`loc-${loc.id}`} className="font-normal">{loc.name}</Label>
-                  </div>
-                ))}
-                {allLocations?.length === 0 && <p className="text-sm text-muted-foreground">No locations available. Please create locations first.</p>}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (initialData?.id ? 'Saving...' : 'Creating...') : (initialData?.id ? 'Save Changes' : 'Create Service')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* Footer - Fixed */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSaving || !formData.name?.trim() || !formData.serviceCategoryId}
+            onClick={handleSubmit}
+          >
+            {isSaving ? 'Saving...' : (initialData?.id ? 'Update Service' : 'Create Service')}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

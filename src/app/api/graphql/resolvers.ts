@@ -1152,6 +1152,8 @@ const resolvers = {
   Booking: calendarResolvers.Booking,
   Service: calendarResolvers.Service,
   StaffProfile: calendarResolvers.StaffProfile,
+  Location: calendarResolvers.Location,
+  StaffSchedule: calendarResolvers.StaffSchedule,
 };
 
 export default resolvers; 

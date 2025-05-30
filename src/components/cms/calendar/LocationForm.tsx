@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog'; // Using Dialog for modal
 import { Location } from '@/types/calendar'; // Assuming a Location type definition
 import { toast } from 'sonner';
+import { X } from 'lucide-react';
 
 interface LocationFormProps {
   isOpen: boolean;
@@ -26,7 +26,6 @@ const operatingHoursExample = `{
   "SATURDAY": {"openTime": "10:00", "closeTime": "14:00", "isClosed": true},
   "SUNDAY": {"isClosed": true}
 }`;
-
 
 export default function LocationForm({ isOpen, onClose, onSave, initialData, isSaving }: LocationFormProps) {
   const [name, setName] = useState('');
@@ -60,6 +59,26 @@ export default function LocationForm({ isOpen, onClose, onSave, initialData, isS
     }
     setFormError(null); // Clear error when initialData changes or form opens
   }, [initialData, isOpen]);
+
+  // Handle escape key to close
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -99,74 +118,107 @@ export default function LocationForm({ isOpen, onClose, onSave, initialData, isS
     // onClose will be called by parent if save is successful
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
-          <DialogTitle>{initialData?.id ? 'Edit Location' : 'Create New Location'}</DialogTitle>
-          <DialogDescription>
-            {initialData?.id ? 'Update the details of this location.' : 'Fill in the details for the new location.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
-            <Label htmlFor="name">Location Name <span className="text-red-500">*</span></Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Downtown Clinic"
-              disabled={isSaving}
-            />
-          </div>
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g., 123 Main St, Anytown"
-              disabled={isSaving}
-            />
-          </div>
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g., (555) 123-4567"
-              disabled={isSaving}
-            />
-          </div>
-          <div>
-            <Label htmlFor="operatingHours">Operating Hours (JSON format)</Label>
-            <Textarea
-              id="operatingHours"
-              value={operatingHoursStr}
-              onChange={(e) => setOperatingHoursStr(e.target.value)}
-              rows={10}
-              placeholder={operatingHoursExample}
-              className="font-mono text-sm"
-              disabled={isSaving}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Use format like: {"{\"DAY_OF_WEEK\": {\"openTime\": \"HH:MM\", \"closeTime\": \"HH:MM\", \"isClosed\": boolean}}"}
+            <h2 className="text-lg font-semibold text-gray-900">
+              {initialData?.id ? 'Edit Location' : 'Add New Location'}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {initialData?.id ? 'Update location information' : 'Create a new business location'}
             </p>
           </div>
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <DialogFooter>
-            <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
-                    Cancel
-                </Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (initialData?.id ? 'Saving...' : 'Creating...') : (initialData?.id ? 'Save Changes' : 'Create Location')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+            disabled={isSaving}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div>
+              <Label htmlFor="name">Location Name <span className="text-red-500">*</span></Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Downtown Clinic"
+                disabled={isSaving}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g., 123 Main St, Anytown"
+                disabled={isSaving}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g., (555) 123-4567"
+                disabled={isSaving}
+              />
+            </div>
+            <div>
+              <Label htmlFor="operatingHours">Operating Hours (JSON format)</Label>
+              <Textarea
+                id="operatingHours"
+                value={operatingHoursStr}
+                onChange={(e) => setOperatingHoursStr(e.target.value)}
+                rows={10}
+                placeholder={operatingHoursExample}
+                className="font-mono text-sm"
+                disabled={isSaving}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use format like: {"{\"DAY_OF_WEEK\": {\"openTime\": \"HH:MM\", \"closeTime\": \"HH:MM\", \"isClosed\": boolean}}"}
+              </p>
+            </div>
+            {formError && (
+              <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg border border-red-200">
+                {formError}
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Footer - Fixed */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            onClick={handleSubmit} 
+            disabled={isSaving || !name.trim()}
+          >
+            {isSaving ? 'Saving...' : (initialData?.id ? 'Update Location' : 'Create Location')}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
