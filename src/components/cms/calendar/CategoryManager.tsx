@@ -73,6 +73,16 @@ export default function CategoryManager() {
     setIsFormOpen(true);
   };
 
+  const getCategoryDependencies = (category: ServiceCategory) => {
+    const childCategories = categories.filter(c => c.parentId === category.id);
+    // Note: We don't have services data in the categories response, so we'll rely on the server-side check
+    return {
+      hasChildren: childCategories.length > 0,
+      childCount: childCategories.length,
+      childNames: childCategories.map(c => c.name)
+    };
+  };
+
   const handleDeleteConfirmation = (category: ServiceCategory) => {
     setCategoryToDelete(category);
     setShowDeleteConfirm(true);
@@ -82,10 +92,17 @@ export default function CategoryManager() {
     if (!categoryToDelete) return;
     setIsSaving(true);
     try {
-      await graphqlClient.deleteServiceCategory({ id: categoryToDelete.id });
-      toast.success(`Category "${categoryToDelete.name}" deleted successfully.`);
-      fetchCategories(); 
+      const result = await graphqlClient.deleteServiceCategory({ id: categoryToDelete.id });
+      
+      if (result.success) {
+        toast.success(result.message || `Category "${categoryToDelete.name}" deleted successfully.`);
+        fetchCategories(); 
+      } else {
+        // Handle business logic errors (like category has associated services)
+        toast.error(result.message || 'Failed to delete category');
+      }
     } catch (err: unknown) {
+      // Handle network/system errors
       console.error('Failed to delete category:', err);
       toast.error(`Failed to delete category: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
@@ -178,38 +195,50 @@ export default function CategoryManager() {
                 </TableCell>
               </TableRow>
             )}
-            {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell className="font-medium">{category.name}</TableCell>
-                <TableCell className="hidden md:table-cell text-sm text-muted-foreground truncate max-w-xs">
-                  {category.description || 'N/A'}
-                </TableCell>
-                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                  {getParentCategoryName(category.parentId)}
-                </TableCell>
-                <TableCell className="hidden sm:table-cell text-center text-sm text-muted-foreground">
-                  <Badge variant="outline">{category.displayOrder}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(category)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteConfirmation(category)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+            {categories.map((category) => {
+              const dependencies = getCategoryDependencies(category);
+              return (
+                <TableRow key={category.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {category.name}
+                      {dependencies.hasChildren && (
+                        <Badge variant="secondary" className="text-xs">
+                          {dependencies.childCount} child{dependencies.childCount === 1 ? '' : 'ren'}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground truncate max-w-xs">
+                    {category.description || 'N/A'}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                    {getParentCategoryName(category.parentId)}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-center text-sm text-muted-foreground">
+                    <Badge variant="outline">{category.displayOrder}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(category)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteConfirmation(category)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
@@ -230,17 +259,51 @@ export default function CategoryManager() {
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the category
-                &quot;{categoryToDelete.name}&quot;. Associated services might also be affected.
+              <AlertDialogTitle>Delete Category</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Are you sure you want to delete the category &quot;{categoryToDelete.name}&quot;?
+                  </p>
+                  
+                  {(() => {
+                    const dependencies = getCategoryDependencies(categoryToDelete);
+                    return (
+                      <div className="space-y-2">
+                        {dependencies.hasChildren && (
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                            <p className="text-sm text-amber-800 font-medium">
+                              ⚠️ This category has {dependencies.childCount} child categor{dependencies.childCount === 1 ? 'y' : 'ies'}:
+                            </p>
+                            <ul className="text-sm text-amber-700 mt-1 ml-4 list-disc">
+                              {dependencies.childNames.map(name => (
+                                <li key={name}>{name}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-800">
+                            💡 <strong>Note:</strong> Categories with associated services or child categories cannot be deleted. 
+                            You&apos;ll need to reassign or delete them first.
+                          </p>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600">
+                          This action cannot be undone.
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={isSaving} className="bg-destructive hover:bg-destructive/90">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Delete
+                Delete Category
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

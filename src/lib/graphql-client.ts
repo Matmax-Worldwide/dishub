@@ -3644,17 +3644,29 @@ export const cmsOperations = {
     const mutation = `
       mutation DeleteServiceCategory($id: ID!) {
         deleteServiceCategory(id: $id) {
-          id
-          name
+          success
+          message
+          serviceCategory {
+            id
+            name
+          }
         }
       }
     `;
 
     try {
-      await gqlRequest(mutation, { id });
+      const result = await gqlRequest<{ deleteServiceCategory: {
+        success: boolean;
+        message: string;
+        serviceCategory: {
+          id: string;
+          name: string;
+        } | null;
+      } }>(mutation, { id });
+      
       return {
-        success: true,
-        message: 'Service category deleted successfully'
+        success: result.deleteServiceCategory.success,
+        message: result.deleteServiceCategory.message
       };
     } catch (error) {
       console.error('Error deleting service category:', error);

@@ -17,15 +17,6 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -41,7 +32,9 @@ import {
   FilterIcon, 
   Edit2Icon, 
   Trash2Icon,
-  ShieldIcon
+  ShieldIcon,
+  XIcon,
+  SaveIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
@@ -143,11 +136,10 @@ export default function UserManagementPage() {
   const params = useParams();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -221,7 +213,7 @@ export default function UserManagementPage() {
   const [createUser, { loading: createLoading }] = useMutation(CREATE_USER, {
     client,
     onCompleted: () => {
-      setIsAddUserOpen(false);
+      setShowAddForm(false);
       resetForm();
       
       // Fetch the latest data
@@ -241,8 +233,7 @@ export default function UserManagementPage() {
   const [updateUser, { loading: updateLoading }] = useMutation(UPDATE_USER, {
     client,
     onCompleted: () => {
-      setIsEditUserOpen(false);
-      setCurrentUser(null);
+      setEditingUserId(null);
       resetForm();
       
       // Fetch the latest data
@@ -334,23 +325,6 @@ export default function UserManagementPage() {
       password: '',
       role: 'USER'
     });
-    
-    // Asegurarse de que los input forms queden limpios
-    if (document.getElementById('firstName')) {
-      (document.getElementById('firstName') as HTMLInputElement).value = '';
-    }
-    if (document.getElementById('lastName')) {
-      (document.getElementById('lastName') as HTMLInputElement).value = '';
-    }
-    if (document.getElementById('email')) {
-      (document.getElementById('email') as HTMLInputElement).value = '';
-    }
-    if (document.getElementById('password')) {
-      (document.getElementById('password') as HTMLInputElement).value = '';
-    }
-    if (document.getElementById('phoneNumber')) {
-      (document.getElementById('phoneNumber') as HTMLInputElement).value = '';
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,13 +345,13 @@ export default function UserManagementPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber || null,
-        role: formData.role  // Using role name as roleId - server will handle lookup if needed
+        role: formData.role
       } 
     });
   };
 
   const handleEditUser = (user: User) => {
-    setCurrentUser(user);
+    setEditingUserId(user.id);
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -386,27 +360,25 @@ export default function UserManagementPage() {
       password: '',
       role: user.role.name
     });
-    setIsEditUserOpen(true);
   };
 
   const handleCancelEdit = () => {
-    setIsEditUserOpen(false);
-    setCurrentUser(null);
+    setEditingUserId(null);
     resetForm();
   };
 
   const handleCancelAdd = () => {
-    setIsAddUserOpen(false);
+    setShowAddForm(false);
     resetForm();
   };
 
   const handleUpdateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!editingUserId) return;
     
     updateUser({ 
       variables: { 
-        id: currentUser.id,
+        id: editingUserId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -425,6 +397,114 @@ export default function UserManagementPage() {
     if (!userToDelete) return;
     deleteUser({ variables: { id: userToDelete.id } });
   };
+
+  const UserForm = ({ isEdit = false, onSubmit, onCancel, loading }: {
+    isEdit?: boolean;
+    onSubmit: (e: React.FormEvent) => void;
+    onCancel: () => void;
+    loading: boolean;
+  }) => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          {isEdit ? 'Edit User' : 'Add New User'}
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </CardTitle>
+        <CardDescription>
+          {isEdit ? 'Update user information' : 'Create a new user account in the system'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <Select value={formData.role} onValueChange={handleRoleChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USER">User</SelectItem>
+                <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                <SelectItem value="MANAGER">Manager</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex gap-2 pt-4">
+            <Button type="submit" disabled={loading}>
+              <SaveIcon className="h-4 w-4 mr-2" />
+              {loading ? (isEdit ? "Updating..." : "Creating...") : (isEdit ? "Update User" : "Create User")}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
   
   return (
     <div className="space-y-6">
@@ -434,6 +514,25 @@ export default function UserManagementPage() {
           View and manage all users in the system.
         </p>
       </div>
+
+      {/* Add User Form */}
+      {showAddForm && (
+        <UserForm
+          onSubmit={handleAddUser}
+          onCancel={handleCancelAdd}
+          loading={createLoading}
+        />
+      )}
+
+      {/* Edit User Form */}
+      {editingUserId && (
+        <UserForm
+          isEdit
+          onSubmit={handleUpdateUser}
+          onCancel={handleCancelEdit}
+          loading={updateLoading}
+        />
+      )}
       
       <Tabs defaultValue="all-users">
         <TabsList>
@@ -509,7 +608,7 @@ export default function UserManagementPage() {
                           </TableRow>
                         ) : (
                           filteredUsers.map(user => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.id} className={editingUserId === user.id ? 'bg-blue-50' : ''}>
                               <TableCell className="font-medium">
                                 {user.firstName} {user.lastName}
                               </TableCell>
@@ -526,9 +625,10 @@ export default function UserManagementPage() {
                                     size="sm" 
                                     variant="outline"
                                     onClick={() => handleEditUser(user)}
+                                    disabled={editingUserId === user.id}
                                   >
                                     <Edit2Icon className="h-4 w-4 mr-1" />
-                                    Edit
+                                    {editingUserId === user.id ? 'Editing' : 'Edit'}
                                   </Button>
                                   <Button 
                                     size="sm" 
@@ -572,108 +672,17 @@ export default function UserManagementPage() {
                       <ShieldIcon className="h-4 w-4" />
                       Manage Roles
                     </Button>
-                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
-                          <UserPlusIcon className="h-4 w-4" />
-                          Add User
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add New User</DialogTitle>
-                          <DialogDescription>
-                            Create a new user account in the system.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleAddUser}>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="firstName">First Name</Label>
-                                <Input
-                                  id="firstName"
-                                  name="firstName"
-                                  value={formData.firstName}
-                                  onChange={handleInputChange}
-                                  required
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="lastName">Last Name</Label>
-                                <Input
-                                  id="lastName"
-                                  name="lastName"
-                                  value={formData.lastName}
-                                  onChange={handleInputChange}
-                                  required
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="email">Email</Label>
-                              <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleInputChange}
-                                required
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="password">Password</Label>
-                              <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleInputChange}
-                                required
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="phoneNumber">Phone Number</Label>
-                              <Input
-                                id="phoneNumber"
-                                name="phoneNumber"
-                                value={formData.phoneNumber}
-                                onChange={handleInputChange}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="role">Role</Label>
-                              <Select 
-                                value={formData.role} 
-                                onValueChange={handleRoleChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="USER">User</SelectItem>
-                                  <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                                  <SelectItem value="MANAGER">Manager</SelectItem>
-                                  <SelectItem value="ADMIN">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button 
-                              variant="outline" 
-                              type="button" 
-                              onClick={handleCancelAdd}
-                            >
-                              Cancel
-                            </Button>
-                            <Button type="submit" disabled={createLoading}>
-                              {createLoading ? "Creating..." : "Create User"}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                    {!showAddForm && !editingUserId && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-1"
+                        onClick={() => setShowAddForm(true)}
+                      >
+                        <UserPlusIcon className="h-4 w-4" />
+                        Add User
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -841,94 +850,7 @@ export default function UserManagementPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit User Dialog */}
-      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user information.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateUser}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-firstName">First Name</Label>
-                  <Input
-                    id="edit-firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-lastName">Last Name</Label>
-                  <Input
-                    id="edit-lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email">Email</Label>
-                <Input
-                  id="edit-email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-phoneNumber">Phone Number</Label>
-                <Input
-                  id="edit-phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">Role</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={handleRoleChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USER">User</SelectItem>
-                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                    <SelectItem value="MANAGER">Manager</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                type="button" 
-                onClick={handleCancelEdit}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateLoading}>
-                {updateLoading ? "Updating..." : "Update User"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete User Confirmation */}
+      {/* Delete User Confirmation - Keep this as it's more subtle */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

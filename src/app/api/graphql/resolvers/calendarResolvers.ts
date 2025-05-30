@@ -469,6 +469,31 @@ export const calendarResolvers = {
     updateServiceCategory: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceCategoryInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('updateServiceCategory called with:', { id, input });
+        
+        // Validate that the category exists
+        const existingCategory = await prisma.serviceCategory.findUnique({
+          where: { id }
+        });
+        if (!existingCategory) {
+          throw new Error(`Service category with ID ${id} not found`);
+        }
+        
+        // Validate parent category if provided
+        if (input.parentId && input.parentId !== '') {
+          const parentExists = await prisma.serviceCategory.findUnique({
+            where: { id: input.parentId }
+          });
+          if (!parentExists) {
+            throw new Error(`Parent category with ID ${input.parentId} not found`);
+          }
+          
+          // Prevent circular references
+          if (input.parentId === id) {
+            throw new Error('A category cannot be its own parent');
+          }
+        }
+        
         const { parentId, ...categoryData } = input;
         const data: Prisma.ServiceCategoryUpdateInput = { 
           ...categoryData,
@@ -479,7 +504,11 @@ export const calendarResolvers = {
             ) : {}
           )
         };
+        
+        console.log('Updating service category with data:', data);
         const serviceCategory = await prisma.serviceCategory.update({ where: { id }, data });
+        console.log('Service category updated:', serviceCategory);
+        
         return {
           success: true,
           message: 'Service category updated successfully',
@@ -489,14 +518,58 @@ export const calendarResolvers = {
         console.error('Error updating service category:', error);
         return {
           success: false,
-          message: 'Failed to update service category',
+          message: error instanceof Error ? error.message : 'Failed to update service category',
           serviceCategory: null
         };
       }
     },
     deleteServiceCategory: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      return prisma.serviceCategory.delete({ where: { id } });
+      try {
+        console.log('deleteServiceCategory called with id:', id);
+        
+        // Validate that the category exists
+        const existingCategory = await prisma.serviceCategory.findUnique({
+          where: { id },
+          include: {
+            services: { select: { id: true, name: true } },
+            childCategories: { select: { id: true, name: true } }
+          }
+        });
+        
+        if (!existingCategory) {
+          throw new Error(`Service category with ID ${id} not found`);
+        }
+        
+        // Check if category has services
+        if (existingCategory.services.length > 0) {
+          const serviceNames = existingCategory.services.map(s => s.name).join(', ');
+          throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.services.length} associated service${existingCategory.services.length === 1 ? '' : 's'}: ${serviceNames}. Please reassign or delete these services first.`);
+        }
+        
+        // Check if category has child categories
+        if (existingCategory.childCategories.length > 0) {
+          const childNames = existingCategory.childCategories.map(c => c.name).join(', ');
+          throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.childCategories.length} child categor${existingCategory.childCategories.length === 1 ? 'y' : 'ies'}: ${childNames}. Please reassign or delete these categories first.`);
+        }
+        
+        console.log('Deleting service category:', existingCategory.name);
+        const deletedCategory = await prisma.serviceCategory.delete({ where: { id } });
+        console.log('Service category deleted:', deletedCategory);
+        
+        return {
+          success: true,
+          message: `Service category "${deletedCategory.name}" deleted successfully`,
+          serviceCategory: deletedCategory
+        };
+      } catch (error) {
+        console.error('Error deleting service category:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete service category',
+          serviceCategory: null
+        };
+      }
     },
     createService: async (_parent: unknown, { input }: { input: CreateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
