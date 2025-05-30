@@ -90,6 +90,13 @@ export async function GET(request: NextRequest) {
     if (contentType === 'image/svg+xml') {
       headers['X-Content-Type-Options'] = 'nosniff';
       headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'none';";
+      headers['X-Frame-Options'] = 'DENY';
+      headers['Referrer-Policy'] = 'no-referrer';
+      
+      // Additional security: serve SVGs with a restrictive sandbox
+      if (viewMode) {
+        headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'none'; object-src 'none'; frame-src 'none';";
+      }
     }
     
     // If downloading (not viewing), add Content-Disposition header
