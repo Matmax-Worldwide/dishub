@@ -3115,7 +3115,7 @@ export const cmsOperations = {
   } | null> {
     const query = `
       query GetUserSettings {
-        getUserSettings {
+        userSettings {
           id
           userId
           emailNotifications
@@ -3130,7 +3130,7 @@ export const cmsOperations = {
     `;
 
     try {
-      const response = await gqlRequest<{ getUserSettings: {
+      const response = await gqlRequest<{ userSettings: {
         id: string;
         userId: string;
         emailNotifications: boolean;
@@ -3141,7 +3141,7 @@ export const cmsOperations = {
         createdAt: string;
         updatedAt: string;
       } | null }>(query);
-      return response.getUserSettings;
+      return response.userSettings;
     } catch (error) {
       console.error('Error fetching user settings:', error);
       return null;
@@ -5865,7 +5865,7 @@ const graphqlClient = {
   } | null> {
     const query = `
       query GetUserSettings {
-        getUserSettings {
+        userSettings {
           id
           userId
           emailNotifications
@@ -5880,7 +5880,7 @@ const graphqlClient = {
     `;
 
     try {
-      const response = await gqlRequest<{ getUserSettings: {
+      const response = await gqlRequest<{ userSettings: {
         id: string;
         userId: string;
         emailNotifications: boolean;
@@ -5891,7 +5891,7 @@ const graphqlClient = {
         createdAt: string;
         updatedAt: string;
       } | null }>(query);
-      return response.getUserSettings;
+      return response.userSettings;
     } catch (error) {
       console.error('Error fetching user settings:', error);
       return null;

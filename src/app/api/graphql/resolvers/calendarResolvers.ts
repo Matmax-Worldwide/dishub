@@ -287,6 +287,35 @@ export const calendarResolvers = {
         };
       }
     },
+    globalBookingRule: async () => {
+      try {
+        // Find the global booking rule (there should only be one)
+        const rule = await prisma.bookingRule.findFirst({
+          where: { locationId: null } // Global rules have no locationId
+        });
+        
+        // If no rule exists, create a default one
+        if (!rule) {
+          const defaultRule = await prisma.bookingRule.create({
+            data: {
+              advanceBookingHoursMin: 24, // 24 hours minimum advance booking
+              advanceBookingDaysMax: 90, // 90 days maximum advance booking
+              sameDayCutoffTime: "12:00", // Same day cutoff at noon
+              bufferBetweenAppointmentsMinutes: 15, // 15 minutes buffer
+              maxAppointmentsPerDayPerStaff: 8, // 8 appointments per day per staff
+              bookingSlotIntervalMinutes: 30, // 30 minute slots
+              locationId: null // Global rule
+            }
+          });
+          return defaultRule;
+        }
+        
+        return rule;
+      } catch (error) {
+        console.error('Error fetching global booking rule:', error);
+        return null;
+      }
+    },
   },
   Mutation: {
     createLocation: async (_parent: unknown, { input }: { input: Prisma.LocationCreateInput }, context: GraphQLContext) => {
@@ -459,6 +488,54 @@ export const calendarResolvers = {
         where: { staffProfileId: staffProfileId, scheduleType: ScheduleType.REGULAR_HOURS },
         orderBy: { dayOfWeek: 'asc' }, include: { location: true }
       });
+    },
+    upsertGlobalBookingRules: async (_parent: unknown, { input }: { input: {
+      advanceBookingHoursMin: number;
+      advanceBookingDaysMax: number;
+      sameDayCutoffTime?: string | null;
+      bufferBetweenAppointmentsMinutes: number;
+      maxAppointmentsPerDayPerStaff?: number | null;
+      bookingSlotIntervalMinutes: number;
+    } }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      
+      try {
+        // Find existing global booking rule
+        const existingRule = await prisma.bookingRule.findFirst({
+          where: { locationId: null } // Global rules have no locationId
+        });
+        
+        if (existingRule) {
+          // Update existing rule
+          return await prisma.bookingRule.update({
+            where: { id: existingRule.id },
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+            }
+          });
+        } else {
+          // Create new rule
+          return await prisma.bookingRule.create({
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              locationId: null // Global rule
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error upserting global booking rule:', error);
+        throw new Error('Failed to update booking rules');
+      }
     },
   },
   Location: {
