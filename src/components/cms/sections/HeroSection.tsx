@@ -1296,7 +1296,7 @@ const HeroSection = React.memo(function HeroSection({
                                             return baseColor.includes('#') ? `${baseColor}CC` : baseColor;
                                           })()
                                         }}
-                                      >
+                                        >
                                         {localSubtitle}
                                       </motion.p>
                                     )}
