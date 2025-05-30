@@ -110,6 +110,29 @@ interface UpdateStaffProfileInput {
   specializations?: string[];
 }
 
+interface CreateBookingInput {
+  serviceId: string;
+  locationId: string;
+  staffProfileId?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  notes?: string;
+  userId?: string;
+}
+
+interface GlobalBookingRuleInput {
+  advanceBookingHoursMin: number;
+  advanceBookingDaysMax: number;
+  sameDayCutoffTime?: string;
+  bufferBetweenAppointmentsMinutes: number;
+  maxAppointmentsPerDayPerStaff?: number;
+  bookingSlotIntervalMinutes: number;
+}
+
 const isAdminUser = (context: GraphQLContext): boolean => {
   // Temporary bypass for debugging
   if (context._emergency_bypass) {
@@ -361,6 +384,186 @@ export const calendarResolvers = {
       } catch (error) {
         console.error('Error fetching global booking rule:', error);
         return null;
+      }
+    },
+    availableSlots: async (_parent: unknown, { 
+      serviceId, 
+      locationId, 
+      staffProfileId, 
+      date 
+    }: { 
+      serviceId: string; 
+      locationId: string; 
+      staffProfileId?: string; 
+      date: string; 
+    }) => {
+      try {
+        console.log('availableSlots resolver called with:', { serviceId, locationId, staffProfileId, date });
+        
+        // Get service details
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId },
+          include: { serviceCategory: true }
+        });
+        
+        if (!service) {
+          throw new Error(`Service with ID ${serviceId} not found`);
+        }
+        
+        // Get location details with operating hours
+        const location = await prisma.location.findUnique({
+          where: { id: locationId }
+        });
+        
+        if (!location) {
+          throw new Error(`Location with ID ${locationId} not found`);
+        }
+        
+        // Get global booking rules
+        const bookingRule = await prisma.bookingRule.findFirst({
+          where: { locationId: null }
+        });
+        
+        const slotInterval = bookingRule?.bookingSlotIntervalMinutes || 30;
+        
+        // Parse operating hours for the given date
+        const targetDate = new Date(date);
+        const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+        const dayOfWeek = dayNames[targetDate.getDay()];
+        
+        const operatingHours = location.operatingHours as Record<string, { open: string; close: string; isClosed: boolean }> | null;
+        const dayHours = operatingHours?.[dayOfWeek];
+        
+        if (!dayHours || dayHours.isClosed) {
+          return []; // Location is closed on this day
+        }
+        
+        // Get existing bookings for the date
+        const existingBookings = await prisma.booking.findMany({
+          where: {
+            locationId,
+            bookingDate: targetDate,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            ...(staffProfileId && { staffProfileId })
+          },
+          include: {
+            service: true
+          }
+        });
+        
+        // Get staff schedules if specific staff is requested
+        let staffSchedule = null;
+        if (staffProfileId) {
+          const dayOfWeekEnum = dayNames[targetDate.getDay()];
+          staffSchedule = await prisma.staffSchedule.findFirst({
+            where: {
+              staffProfileId,
+              dayOfWeek: dayOfWeekEnum as DayOfWeek,
+              isAvailable: true,
+              scheduleType: ScheduleType.REGULAR_HOURS
+            }
+          });
+          
+          if (!staffSchedule) {
+            return []; // Staff not available on this day
+          }
+        }
+        
+        // Generate time slots
+        const slots = [];
+        const startTime = staffSchedule?.startTime || dayHours.open;
+        const endTime = staffSchedule?.endTime || dayHours.close;
+        
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        
+        const startDateTime = new Date(targetDate);
+        startDateTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endDateTime = new Date(targetDate);
+        endDateTime.setHours(endHour, endMinute, 0, 0);
+        
+        let currentSlot = new Date(startDateTime);
+        
+        while (currentSlot.getTime() + (service.durationMinutes * 60000) <= endDateTime.getTime()) {
+          const slotEndTime = new Date(currentSlot.getTime() + (service.durationMinutes * 60000));
+          
+          // Check if slot conflicts with existing bookings
+          const hasConflict = existingBookings.some(booking => {
+            const bookingStart = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.startTime}`);
+            const bookingEnd = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.endTime}`);
+            
+            return (
+              (currentSlot >= bookingStart && currentSlot < bookingEnd) ||
+              (slotEndTime > bookingStart && slotEndTime <= bookingEnd) ||
+              (currentSlot <= bookingStart && slotEndTime >= bookingEnd)
+            );
+          });
+          
+          if (!hasConflict) {
+            slots.push({
+              startTime: currentSlot.toISOString(),
+              endTime: slotEndTime.toISOString(),
+              isAvailable: true,
+              serviceId,
+              locationId,
+              staffProfileId: staffProfileId || null
+            });
+          }
+          
+          // Move to next slot
+          currentSlot = new Date(currentSlot.getTime() + (slotInterval * 60000));
+        }
+        
+        return slots;
+      } catch (error) {
+        console.error('Error generating available slots:', error);
+        return [];
+      }
+    },
+    staffForService: async (_parent: unknown, { serviceId, locationId }: { serviceId: string; locationId?: string }) => {
+      try {
+        console.log('staffForService resolver called with:', { serviceId, locationId });
+        
+        const whereCondition: Prisma.StaffProfileWhereInput = {
+          assignedServices: {
+            some: {
+              serviceId: serviceId
+            }
+          }
+        };
+        
+        if (locationId) {
+          whereCondition.locationAssignments = {
+            some: {
+              locationId: locationId
+            }
+          };
+        }
+        
+        const staffProfiles = await prisma.staffProfile.findMany({
+          where: whereCondition,
+          include: {
+            user: true,
+            schedules: {
+              where: { scheduleType: 'REGULAR_HOURS' },
+              orderBy: { dayOfWeek: 'asc' }
+            },
+            assignedServices: {
+              where: { serviceId },
+              include: { service: true }
+            },
+            locationAssignments: locationId ? {
+              where: { locationId },
+              include: { location: true }
+            } : true
+          }
+        });
+        
+        return staffProfiles || [];
+      } catch (error) {
+        console.error('Error fetching staff for service:', error);
+        return [];
       }
     },
   },
@@ -907,6 +1110,169 @@ export const calendarResolvers = {
         }
       } catch (error) {
         console.error('Error upserting global booking rule:', error);
+        throw new Error('Failed to update booking rules');
+      }
+    },
+    createBooking: async (_parent: unknown, { input }: { input: CreateBookingInput }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        console.log('createBooking called with input:', input);
+        
+        // Validate that the service exists
+        const service = await prisma.service.findUnique({
+          where: { id: input.serviceId }
+        });
+        if (!service) {
+          throw new Error(`Service with ID ${input.serviceId} not found`);
+        }
+        
+        // Validate that the location exists
+        const location = await prisma.location.findUnique({
+          where: { id: input.locationId }
+        });
+        if (!location) {
+          throw new Error(`Location with ID ${input.locationId} not found`);
+        }
+        
+        // Validate staff profile if provided
+        if (input.staffProfileId) {
+          const staffProfile = await prisma.staffProfile.findUnique({
+            where: { id: input.staffProfileId }
+          });
+          if (!staffProfile) {
+            throw new Error(`Staff profile with ID ${input.staffProfileId} not found`);
+          }
+        }
+        
+        // Check for booking conflicts
+        const bookingDate = new Date(input.bookingDate);
+        const existingBookings = await prisma.booking.findMany({
+          where: {
+            locationId: input.locationId,
+            bookingDate: bookingDate,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            OR: [
+              {
+                AND: [
+                  { startTime: { lte: input.startTime } },
+                  { endTime: { gt: input.startTime } }
+                ]
+              },
+              {
+                AND: [
+                  { startTime: { lt: input.endTime } },
+                  { endTime: { gte: input.endTime } }
+                ]
+              },
+              {
+                AND: [
+                  { startTime: { gte: input.startTime } },
+                  { endTime: { lte: input.endTime } }
+                ]
+              }
+            ]
+          }
+        });
+        
+        if (existingBookings.length > 0) {
+          throw new Error('Time slot is already booked');
+        }
+        
+        // Create or find customer
+        let customerId = input.userId;
+        if (!customerId) {
+          // Create a guest customer record
+          const guestCustomer = await prisma.user.create({
+            data: {
+              password: '',
+              email: input.customerEmail,
+              firstName: input.customerName.split(' ')[0] || input.customerName,
+              lastName: input.customerName.split(' ').slice(1).join(' ') || '',
+              phoneNumber: input.customerPhone,
+              role: { connect: { name: 'CUSTOMER' } }
+            }
+          });
+          customerId = guestCustomer.id;
+        }
+        
+        // Create the booking
+        const booking = await prisma.booking.create({
+          data: {
+            durationMinutes: service.durationMinutes,
+            serviceId: input.serviceId,
+            locationId: input.locationId,
+            staffProfileId: input.staffProfileId,
+            customerId: customerId,
+            bookingDate: bookingDate,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            notes: input.notes,
+            status: 'PENDING'
+          },
+          include: {
+            customer: true,
+            service: true,
+            location: true,
+            staffProfile: {
+              include: {
+                user: true
+              }
+            }
+          }
+        });
+        
+        return {
+          success: true,
+          message: 'Booking created successfully',
+          booking
+        };
+      } catch (error) {
+        console.error('Error creating booking:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create booking',
+          booking: null
+        };
+      }
+    },
+    updateGlobalBookingRules: async (_parent: unknown, { input }: { input: GlobalBookingRuleInput }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      
+      try {
+        // Find existing global booking rule
+        const existingRule = await prisma.bookingRule.findFirst({
+          where: { locationId: null } // Global rules have no locationId
+        });
+        
+        if (existingRule) {
+          // Update existing rule
+          return await prisma.bookingRule.update({
+            where: { id: existingRule.id },
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+            }
+          });
+        } else {
+          // Create new rule
+          return await prisma.bookingRule.create({
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              locationId: null // Global rule
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error updating global booking rule:', error);
         throw new Error('Failed to update booking rules');
       }
     },

@@ -158,6 +158,22 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
+  type AvailableTimeSlot {
+    startTime: DateTime!
+    endTime: DateTime!
+    isAvailable: Boolean!
+    serviceId: ID!
+    locationId: ID!
+    staffProfileId: ID
+  }
+
+  type BookingConnection {
+    bookings: [Booking!]!
+    totalCount: Int!
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+  }
+
   # Role and Permission related types
   type Role {
     id: ID!
@@ -1270,6 +1286,15 @@ export const typeDefs = gql`
     me: User
     user(id: ID!): User
     users: [User!]
+
+    # Calendar queries
+    calendar: [Calendar!]
+    calendar(id: ID!): Calendar
+    calendarEvents(filter: CalendarEventFilter): [CalendarEvent!]
+    calendarEvent(id: ID!): CalendarEvent
+    calendarEventStats(id: ID!): CalendarEventStats
+    calendarEventTypes: [CalendarEventType!]
+    calendarEventTypes(filter: CalendarEventTypeFilter): [CalendarEventType!]
     
     # Role and permission queries
     roles: [Role]
@@ -1408,6 +1433,8 @@ export const typeDefs = gql`
     staffProfiles: [StaffProfile!]!
     bookings(filter: BookingFilterInput, pagination: PaginationInput): BookingConnection!
     globalBookingRule: BookingRule
+    availableSlots(serviceId: ID!, locationId: ID!, staffProfileId: ID, date: String!): [AvailableTimeSlot!]!
+    staffForService(serviceId: ID!, locationId: ID): [StaffProfile!]!
 
   }
 

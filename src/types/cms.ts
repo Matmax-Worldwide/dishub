@@ -12,7 +12,23 @@ export interface Section {
   componentId?: string;
 }
 
-export type ComponentType = 'Hero' | 'Text' | 'Image' | 'Feature' | 'Testimonial' | 'Header' | 'Card' | 'Benefit' | 'Form' | 'Footer' | 'Article' | 'Blog' | 'CtaButton' | 'Video' | 'Gallery';
+export type ComponentType = 
+  | 'Header' 
+  | 'Hero' 
+  | 'Text' 
+  | 'Image' 
+  | 'Feature' 
+  | 'Testimonial' 
+  | 'Card' 
+  | 'Benefit' 
+  | 'Form' 
+  | 'Footer' 
+  | 'Article' 
+  | 'Blog' 
+  | 'CtaButton' 
+  | 'Video' 
+  | 'Gallery'
+  | 'Calendar';
 
 export interface AvailableSection {
   id: string;

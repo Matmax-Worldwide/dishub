@@ -1,26 +1,26 @@
 'use client';
 
-import React from 'react';
-import BookingsSidebar from '@/components/BookingsSidebar';
-import { useParams } from 'next/navigation';
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
+import BookingsSidebar from '@/components/BookingsSidebar';
+import { use } from 'react';
 
-export default function BookingsLayout({
-  children,
-}: {
+interface BookingsLayoutProps {
   children: React.ReactNode;
-}) {
-  const params = useParams();
-  const locale = params.locale as string;
+  params:  Promise<{
+    locale: string;
+  }>;
+}
 
+export default function BookingsLayout({ children, params }: BookingsLayoutProps) {
+  const { locale } = use(params);
   return (
     <UnsavedChangesProvider>
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-50">
         <BookingsSidebar locale={locale} />
-        <div className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto">
           {/* This is a nested layout inside the dashboard layout */}
           {children}
-        </div>
+        </main>
       </div>
     </UnsavedChangesProvider>
   );

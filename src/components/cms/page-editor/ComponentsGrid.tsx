@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { SearchIcon } from 'lucide-react';
+import { Calendar, MapPin, Sparkles, Check, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ComponentType } from '@/types/cms';
@@ -263,6 +263,50 @@ export default function ComponentsGrid({
               </div>
             </div>
           )
+        },
+        {
+          type: 'Calendar' as ComponentType,
+          title: 'Calendar Booking',
+          description: 'Interactive booking calendar with multiple design templates',
+          icon: <Calendar className="w-6 h-6" />,
+          color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+          preview: (
+            <div className="w-full h-32 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-purple-500 rounded-full">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-purple-700">Book Your Experience</span>
+              </div>
+              
+              {/* Progress indicators */}
+              <div className="flex justify-between mb-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                    i <= 2 ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {i <= 2 ? <Check className="w-3 h-3" /> : i}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Service selection grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className={`h-6 rounded-md text-xs flex items-center justify-center ${
+                    i === 1 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {i === 1 ? <MapPin className="w-3 h-3" /> : <div className="w-3 h-3 bg-gray-300 rounded"></div>}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Bottom action */}
+              <div className="mt-2 bg-purple-500 text-white text-xs py-1 px-2 rounded text-center">
+                Confirm Booking
+              </div>
+            </div>
+          )
         }
       ]
     },
@@ -469,13 +513,13 @@ export default function ComponentsGrid({
       <div className="space-y-4">
         {/* Search Input */}
         <div className="relative">
-          <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search components..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 py-1 h-9 text-sm"
+            className="pl-8 pr-4 py-2 w-full"
           />
         </div>
 
@@ -540,13 +584,13 @@ export default function ComponentsGrid({
     <div className="space-y-4">
       {/* Search Input */}
       <div className="relative">
-        <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
         <Input
           type="text"
           placeholder="Search components..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-8 py-1 h-9 text-sm"
+          className="pl-8 pr-4 py-2 w-full"
         />
       </div>
 

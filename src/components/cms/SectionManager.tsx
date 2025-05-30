@@ -389,6 +389,38 @@ const componentMap = {
       </div>
     )
   }),
+  // Calendar
+  Calendar: dynamic(() => import('./sections/CalendarSection'), {
+    loading: () => (
+      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500 text-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-white/20 rounded-full animate-pulse"></div>
+            <div className="w-64 h-8 bg-white/20 rounded animate-pulse"></div>
+          </div>
+          <div className="w-80 h-6 bg-white/20 rounded animate-pulse"></div>
+        </div>
+        <div className="p-6">
+          <div className="flex justify-between mb-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="w-48 h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="p-4 bg-gray-100 rounded-xl">
+                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-3/4 h-3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }),
 };
 
 // Props for the SectionManager component
@@ -903,6 +935,16 @@ function SectionManagerBase({
           images: [],
           layout: 'grid',
           columns: 3,
+        } : type === 'Calendar' ? {
+          designTemplate: 'beauty-salon',
+          showLocationSelector: true,
+          showServiceCategories: true,
+          showStaffSelector: true,
+          calendarId: '',
+          locationId: '',
+          serviceIds: [],
+          theme: 'light' as const,
+          customStyles: {}
         } : {}),
         componentTitle: `${type} Component`
       }

@@ -1,119 +1,318 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useQuery, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
-import { useRouter, useParams } from 'next/navigation';
-import { format, addDays, startOfWeek, isSameDay, parseISO } from 'date-fns';
-import {  
-  ChevronLeft, 
-  ChevronRight,
-  Plus,
-  Clock,
-  User
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
+  MapPinIcon,
+  ClockIcon,
+  UsersIcon,
+  FilterIcon,
+  PlusIcon,
+  RefreshCwIcon
+} from 'lucide-react';
+import graphqlClient from '@/lib/graphql-client';
+import { toast } from 'sonner';
 
-// GraphQL Queries
-const GET_BOOKINGS = gql`
-  query GetBookings($startDate: String!, $endDate: String!) {
-    bookings(startDate: $startDate, endDate: $endDate) {
-      id
-      title
-      startTime
-      endTime
-      status
-      clientName
-      serviceName
-      staffName
-    }
-  }
-`;
+// Types
+interface Location {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  operatingHours?: Record<string, {
+    open: string;
+    close: string;
+    isClosed: boolean;
+  }>;
+}
+
+interface ServiceCategory {
+  id: string;
+  name: string;
+  description?: string;
+  displayOrder: number;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  durationMinutes: number;
+  price: number;
+  isActive: boolean;
+  serviceCategory: ServiceCategory;
+  locations: Array<{ id: string; name: string }>;
+}
+
+interface StaffProfile {
+  id: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl?: string;
+  };
+  bio?: string;
+  specializations: string[];
+}
 
 interface Booking {
   id: string;
-  title: string;
+  customerName?: string;
+  customerEmail?: string;
+  service: { id: string; name: string };
+  location: { id: string; name: string };
+  staffProfile?: { 
+    id: string; 
+    user: { firstName: string; lastName: string } 
+  };
+  bookingDate: string;
   startTime: string;
   endTime: string;
   status: string;
-  clientName: string;
-  serviceName: string;
-  staffName: string;
+  notes?: string;
 }
 
-export default function BookingsCalendar() {
-  const router = useRouter();
-  const { locale } = useParams();
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  type: 'booking' | 'available' | 'break';
+  booking?: Booking;
+  service?: Service;
+  staff?: StaffProfile;
+  location?: Location;
+  color: string;
+}
+
+type ViewMode = 'month' | 'week' | 'day';
+
+const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+export default function CalendarPage() {
+
+  // State
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStaff, setSelectedStaff] = useState<string>('all');
+  
+  // Data state
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [staff, setStaff] = useState<StaffProfile[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Check for authentication token
+  // Fetch data
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      
+      const [
+        locationsData,
+        servicesData,
+        categoriesData,
+        staffData,
+        bookingsData
+      ] = await Promise.allSettled([
+        graphqlClient.locations(),
+        graphqlClient.services(),
+        graphqlClient.serviceCategories(),
+        graphqlClient.staffProfiles(),
+        graphqlClient.bookings({
+          filter: {
+            dateFrom: getStartOfPeriod(currentDate, viewMode).toISOString().split('T')[0],
+            dateTo: getEndOfPeriod(currentDate, viewMode).toISOString().split('T')[0]
+          }
+        })
+      ]);
+
+      // Process results
+      if (locationsData.status === 'fulfilled') {
+        setLocations(locationsData.value as Location[]);
+      }
+      
+      if (servicesData.status === 'fulfilled') {
+        // Fix type conversion by handling the mismatch in serviceCategory structure
+        const servicesWithFixedCategories = (servicesData.value as unknown[]).map((service: unknown) => {
+          const s = service as Record<string, unknown>;
+          const category = s.serviceCategory as Record<string, unknown> | undefined;
+          return {
+            ...s,
+            serviceCategory: {
+              id: category?.id as string || '',
+              name: category?.name as string || '',
+              description: category?.description as string,
+              displayOrder: category?.displayOrder as number || 0
+            }
+          };
+        });
+        setServices(servicesWithFixedCategories as Service[]);
+      }
+      
+      if (categoriesData.status === 'fulfilled') {
+        setCategories(categoriesData.value);
+      }
+      
+      if (staffData.status === 'fulfilled') {
+        setStaff(staffData.value as StaffProfile[]);
+      }
+      
+      if (bookingsData.status === 'fulfilled' && bookingsData.value) {
+        setBookings(bookingsData.value.items as Booking[]);
+      }
+
+    } catch (error) {
+      console.error('Error fetching calendar data:', error);
+      toast.error('Failed to load calendar data');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  // Refresh data
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    const cookies = document.cookie;
-    const hasToken = cookies.includes('session-token=');
-    
-    if (!hasToken) {
-      console.log('No session token detected, redirecting to login');
-      router.push(`/${locale}/login`);
-    }
-  }, [locale, router]);
+    fetchData();
+  }, [currentDate, viewMode]);
 
-  // Generate week dates
-  const generateWeekDays = () => {
-    const startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
-    return Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
-  };
+  // Generate calendar events
+  useEffect(() => {
+    const calendarEvents: CalendarEvent[] = [];
 
-  const weekDays = generateWeekDays();
-  const startDate = format(weekDays[0], 'yyyy-MM-dd');
-  const endDate = format(weekDays[6], 'yyyy-MM-dd');
-
-  // Load bookings for the current week
-  const { loading, error, data, refetch } = useQuery(GET_BOOKINGS, {
-    variables: { startDate, endDate },
-    client,
-    errorPolicy: 'all',
-    fetchPolicy: 'network-only',
-    context: {
-      headers: {
-        credentials: 'include',
-      }
-    },
-    onError: (error) => {
-      console.error('Bookings query error:', error);
-      if (error.message.includes('Not authenticated')) {
-        router.push(`/${locale}/login`);
-      }
-    }
-  });
-
-  const bookings: Booking[] = data?.bookings || [];
-
-  const getBookingsForDay = (date: Date) => {
-    return bookings.filter((booking) => {
-      const bookingDate = parseISO(booking.startTime);
-      return isSameDay(bookingDate, date);
+    // Add booking events
+    bookings.forEach(booking => {
+      const startDateTime = new Date(`${booking.bookingDate}T${booking.startTime}`);
+      const endDateTime = new Date(`${booking.bookingDate}T${booking.endTime}`);
+      
+      calendarEvents.push({
+        id: `booking-${booking.id}`,
+        title: `${booking.service.name} - ${booking.customerName || 'Guest'}`,
+        start: startDateTime,
+        end: endDateTime,
+        type: 'booking',
+        booking,
+        color: getStatusColor(booking.status)
+      });
     });
-  };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+    // Add available slots based on location operating hours and services
+    generateAvailableSlots();
+
+    setEvents(calendarEvents);
+  }, [bookings, locations, services, selectedLocation, selectedCategory, selectedStaff]);
+
+  // Helper functions
+  const getStartOfPeriod = (date: Date, mode: ViewMode): Date => {
+    const start = new Date(date);
+    
+    switch (mode) {
+      case 'month':
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        // Go to start of week for the first day of month
+        const firstDayOfWeek = start.getDay();
+        start.setDate(start.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1));
+        return start;
+      case 'week':
+        const dayOfWeek = start.getDay();
+        start.setDate(start.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        start.setHours(0, 0, 0, 0);
+        return start;
+      case 'day':
+        start.setHours(0, 0, 0, 0);
+        return start;
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return start;
     }
   };
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const newDate = addDays(currentDate, direction === 'next' ? 7 : -7);
+  const getEndOfPeriod = (date: Date, mode: ViewMode): Date => {
+    const end = new Date(date);
+    
+    switch (mode) {
+      case 'month':
+        end.setMonth(end.getMonth() + 1);
+        end.setDate(0);
+        end.setHours(23, 59, 59, 999);
+        // Go to end of week for the last day of month
+        const lastDayOfWeek = end.getDay();
+        end.setDate(end.getDate() + (lastDayOfWeek === 0 ? 0 : 7 - lastDayOfWeek));
+        return end;
+      case 'week':
+        const dayOfWeek = end.getDay();
+        end.setDate(end.getDate() + (dayOfWeek === 0 ? 0 : 7 - dayOfWeek));
+        end.setHours(23, 59, 59, 999);
+        return end;
+      case 'day':
+        end.setHours(23, 59, 59, 999);
+        return end;
+      default:
+        return end;
+    }
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'confirmed': return '#10b981'; // green
+      case 'pending': return '#f59e0b'; // yellow
+      case 'cancelled': return '#ef4444'; // red
+      case 'completed': return '#6366f1'; // indigo
+      case 'no_show': return '#9ca3af'; // gray
+      default: return '#3b82f6'; // blue
+    }
+  };
+
+  const generateAvailableSlots = () => {
+    // This would generate available time slots based on:
+    // 1. Location operating hours
+    // 2. Service duration and availability
+    // 3. Staff schedules
+    // 4. Existing bookings
+    
+    // For now, we'll add a simplified version
+    // In a real implementation, this would be more complex
+  };
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    
+    switch (viewMode) {
+      case 'month':
+        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+        break;
+      case 'day':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+        break;
+    }
+    
     setCurrentDate(newDate);
   };
 
@@ -121,190 +320,441 @@ export default function BookingsCalendar() {
     setCurrentDate(new Date());
   };
 
-  if (loading) {
+  const formatDateRange = (): string => {
+    const start = getStartOfPeriod(currentDate, viewMode);
+    const end = getEndOfPeriod(currentDate, viewMode);
+    
+    switch (viewMode) {
+      case 'month':
+        return `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+      case 'week':
+        if (start.getMonth() === end.getMonth()) {
+          return `${MONTH_NAMES[start.getMonth()]} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+        } else {
+          return `${MONTH_NAMES[start.getMonth()]} ${start.getDate()} - ${MONTH_NAMES[end.getMonth()]} ${end.getDate()}, ${start.getFullYear()}`;
+        }
+      case 'day':
+        return `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+      default:
+        return '';
+    }
+  };
+
+  // Filter data based on selections
+  const filteredServices = useMemo(() => {
+    return services.filter(service => {
+      if (selectedCategory !== 'all' && service.serviceCategory.id !== selectedCategory) return false;
+      if (selectedLocation !== 'all' && !service.locations.some(loc => loc.id === selectedLocation)) return false;
+      return service.isActive;
+    });
+  }, [services, selectedCategory, selectedLocation]);
+
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      if (selectedLocation !== 'all' && event.booking?.location.id !== selectedLocation) return false;
+      if (selectedStaff !== 'all' && event.booking?.staffProfile?.id !== selectedStaff) return false;
+      if (selectedCategory !== 'all') {
+        const service = services.find(s => s.id === event.booking?.service.id);
+        if (service && service.serviceCategory.id !== selectedCategory) return false;
+      }
+      return true;
+    });
+  }, [events, selectedLocation, selectedStaff, selectedCategory, services]);
+
+  // Render calendar grid
+  const renderCalendarGrid = () => {
+    const start = getStartOfPeriod(currentDate, viewMode);
+    const end = getEndOfPeriod(currentDate, viewMode);
+    
+    if (viewMode === 'month') {
+      return renderMonthView(start, end);
+    } else if (viewMode === 'week') {
+      return renderWeekView(start);
+    } else {
+      return renderDayView(currentDate);
+    }
+  };
+
+  const renderMonthView = (start: Date, end: Date) => {
+    const weeks = [];
+    const current = new Date(start);
+    
+    while (current <= end) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        const dayEvents = filteredEvents.filter(event => 
+          event.start.toDateString() === current.toDateString()
+        );
+        
+        week.push(
+          <div
+            key={current.toISOString()}
+            className={`min-h-[120px] border border-gray-200 p-2 ${
+              current.getMonth() !== currentDate.getMonth() ? 'bg-gray-50 text-gray-400' : 'bg-white'
+            } ${current.toDateString() === new Date().toDateString() ? 'bg-blue-50' : ''}`}
+          >
+            <div className="font-medium text-sm mb-1">{current.getDate()}</div>
+            <div className="space-y-1">
+              {dayEvents.slice(0, 3).map(event => (
+                <div
+                  key={event.id}
+                  className="text-xs p-1 rounded truncate"
+                  style={{ backgroundColor: event.color + '20', color: event.color }}
+                >
+                  {event.title}
+                </div>
+              ))}
+              {dayEvents.length > 3 && (
+                <div className="text-xs text-gray-500">+{dayEvents.length - 3} more</div>
+              )}
+            </div>
+          </div>
+        );
+        current.setDate(current.getDate() + 1);
+      }
+      weeks.push(
+        <div key={weeks.length} className="grid grid-cols-7">
+          {week}
+        </div>
+      );
+    }
+    
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-7 gap-4 mb-4">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+      <div className="space-y-0">
+        {/* Header */}
+        <div className="grid grid-cols-7 bg-gray-100">
+          {WEEKDAY_NAMES.map(day => (
+            <div key={day} className="p-3 text-center font-medium text-gray-700 border border-gray-200">
+              {day}
+            </div>
+          ))}
+        </div>
+        {/* Weeks */}
+        {weeks}
+      </div>
+    );
+  };
+
+  const renderWeekView = (start: Date) => {
+    const days = [];
+    const current = new Date(start);
+    
+    for (let i = 0; i < 7; i++) {
+      const dayEvents = filteredEvents.filter(event => 
+        event.start.toDateString() === current.toDateString()
+      );
+      
+      days.push(
+        <div key={current.toISOString()} className="flex-1 border-r border-gray-200 last:border-r-0">
+          <div className={`p-3 text-center border-b border-gray-200 ${
+            current.toDateString() === new Date().toDateString() ? 'bg-blue-50' : 'bg-gray-50'
+          }`}>
+            <div className="font-medium">{WEEKDAY_NAMES[i]}</div>
+            <div className="text-sm text-gray-600">{current.getDate()}</div>
+          </div>
+          <div className="p-2 space-y-1 min-h-[400px]">
+            {dayEvents.map(event => (
+              <div
+                key={event.id}
+                className="text-xs p-2 rounded border-l-4"
+                style={{ 
+                  borderLeftColor: event.color,
+                  backgroundColor: event.color + '10'
+                }}
+              >
+                <div className="font-medium">{event.title}</div>
+                <div className="text-gray-600">
+                  {event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                  {event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                {event.booking && (
+                  <div className="text-gray-500">
+                    {event.booking.location.name}
+                    {event.booking.staffProfile && (
+                      <span> • {event.booking.staffProfile.user.firstName} {event.booking.staffProfile.user.lastName}</span>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
+      );
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return (
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+        {days}
       </div>
     );
-  }
+  };
 
-  if (error) {
+  const renderDayView = (date: Date) => {
+    const dayEvents = filteredEvents.filter(event => 
+      event.start.toDateString() === date.toDateString()
+    ).sort((a, b) => a.start.getTime() - b.start.getTime());
+    
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium">Error loading calendar</h3>
-          <p className="text-red-600 text-sm mt-1">
-            {error.message || 'An error occurred while loading the calendar.'}
-          </p>
-          <Button 
-            onClick={() => refetch()}
-            className="mt-3"
-            variant="outline"
-            size="sm"
-          >
-            Retry
-          </Button>
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-gray-50 p-4 border-b border-gray-200">
+          <h3 className="font-medium">{date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          {dayEvents.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              No events scheduled for this day
+            </div>
+          ) : (
+            dayEvents.map(event => (
+              <div
+                key={event.id}
+                className="p-4 rounded-lg border-l-4"
+                style={{ 
+                  borderLeftColor: event.color,
+                  backgroundColor: event.color + '10'
+                }}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">{event.title}</h4>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                      {event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {event.booking && (
+                      <div className="text-sm text-gray-500 mt-2">
+                        <div>📍 {event.booking.location.name}</div>
+                        {event.booking.staffProfile && (
+                          <div>👤 {event.booking.staffProfile.user.firstName} {event.booking.staffProfile.user.lastName}</div>
+                        )}
+                        {event.booking.customerEmail && (
+                          <div>📧 {event.booking.customerEmail}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <Badge variant="outline" style={{ color: event.color, borderColor: event.color }}>
+                    {event.booking?.status || event.type}
+                  </Badge>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bookings Calendar</h1>
-          <p className="text-gray-600 mt-1">View and manage your appointments</p>
+          <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
+          <p className="text-gray-600 mt-1">View and manage bookings across locations and services</p>
         </div>
-        <Button 
-          onClick={() => router.push(`/${locale}/bookings/new`)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Booking
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshData}
+            disabled={isRefreshing}
+          >
+            <RefreshCwIcon className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button size="sm">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            New Booking
+          </Button>
+        </div>
       </div>
 
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FilterIcon className="w-5 h-5 mr-2" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Location</label>
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations.map(location => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Category</label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Staff</label>
+              <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+                  {staff.map(staffMember => (
+                    <SelectItem key={staffMember.id} value={staffMember.id}>
+                      {staffMember.user.firstName} {staffMember.user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">View</label>
+              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="month">Month</TabsTrigger>
+                  <TabsTrigger value="week">Week</TabsTrigger>
+                  <TabsTrigger value="day">Day</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Calendar Navigation */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateWeek('prev')}
-          >
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="outline" onClick={() => navigateDate('prev')}>
+            <ChevronLeftIcon className="w-4 h-4" />
           </Button>
-          <h2 className="text-xl font-semibold">
-            {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d, yyyy')}
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateWeek('next')}
-          >
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="outline" onClick={goToToday}>
+            Today
+          </Button>
+          <Button variant="outline" onClick={() => navigateDate('next')}>
+            <ChevronRightIcon className="w-4 h-4" />
           </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={goToToday}
-        >
-          Today
-        </Button>
+        <h2 className="text-xl font-semibold">{formatDateRange()}</h2>
+        <div className="flex items-center space-x-2">
+          <Badge variant="outline" className="text-green-600 border-green-200">
+            {filteredEvents.length} Events
+          </Badge>
+          <Badge variant="outline" className="text-blue-600 border-blue-200">
+            {filteredServices.length} Services
+          </Badge>
+        </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-4">
-        {weekDays.map((day, index) => (
-          <Card key={index} className="min-h-[300px]">
-            <CardHeader className={`p-3 text-center ${
-              isSameDay(day, new Date()) ? 'bg-blue-50 border-b border-blue-200' : 'bg-gray-50 border-b'
-            }`}>
-              <CardTitle className="text-sm font-medium">
-                <div>{format(day, 'EEE')}</div>
-                <div className={`text-lg ${
-                  isSameDay(day, new Date()) ? 'text-blue-600 font-bold' : ''
-                }`}>
-                  {format(day, 'd')}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 space-y-1">
-              {getBookingsForDay(day).length > 0 ? (
-                getBookingsForDay(day).map((booking) => (
-                  <div
-                    key={booking.id}
-                    onClick={() => setSelectedBooking(booking)}
-                    className={`p-2 rounded-md border cursor-pointer hover:shadow-sm transition-shadow ${getStatusColor(booking.status)}`}
-                  >
-                    <div className="text-xs font-medium truncate">{booking.title}</div>
-                    <div className="text-xs flex items-center mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {format(parseISO(booking.startTime), 'h:mm a')}
-                    </div>
-                    <div className="text-xs flex items-center">
-                      <User className="h-3 w-3 mr-1" />
-                      {booking.clientName}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-xs text-gray-500 text-center py-4">
-                  No bookings
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="p-0">
+          {renderCalendarGrid()}
+        </CardContent>
+      </Card>
 
-      {/* Booking Details Modal */}
-      {selectedBooking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-medium">Booking Details</h2>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <MapPinIcon className="w-5 h-5 mr-2" />
+              Locations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {locations.slice(0, 5).map(location => (
+                <div key={location.id} className="flex justify-between items-center">
+                  <span className="text-sm">{location.name}</span>
+                  <Badge variant="outline">
+                    {bookings.filter(b => b.location.id === location.id).length} bookings
+                  </Badge>
+                </div>
+              ))}
             </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold">{selectedBooking.title}</h3>
-                <p className="text-gray-500">
-                  {format(parseISO(selectedBooking.startTime), 'MMMM d, yyyy')} •{' '}
-                  {format(parseISO(selectedBooking.startTime), 'h:mm a')} -{' '}
-                  {format(parseISO(selectedBooking.endTime), 'h:mm a')}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Client:</span>
-                  <p className="text-gray-900">{selectedBooking.clientName}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <ClockIcon className="w-5 h-5 mr-2" />
+              Services
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {filteredServices.slice(0, 5).map(service => (
+                <div key={service.id} className="flex justify-between items-center">
+                  <span className="text-sm">{service.name}</span>
+                  <Badge variant="outline">
+                    ${service.price}
+                  </Badge>
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Service:</span>
-                  <p className="text-gray-900">{selectedBooking.serviceName}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Staff:</span>
-                  <p className="text-gray-900">{selectedBooking.staffName}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Status:</span>
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedBooking.status)}`}>
-                    {selectedBooking.status}
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <UsersIcon className="w-5 h-5 mr-2" />
+              Staff
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {staff.slice(0, 5).map(staffMember => (
+                <div key={staffMember.id} className="flex justify-between items-center">
+                  <span className="text-sm">
+                    {staffMember.user.firstName} {staffMember.user.lastName}
                   </span>
+                  <Badge variant="outline">
+                    {bookings.filter(b => b.staffProfile?.id === staffMember.id).length} bookings
+                  </Badge>
                 </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedBooking(null)}
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    router.push(`/${locale}/bookings/edit/${selectedBooking.id}`);
-                  }}
-                >
-                  Edit Booking
-                </Button>
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 
