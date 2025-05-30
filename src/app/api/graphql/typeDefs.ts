@@ -1464,6 +1464,26 @@ export const typeDefs = gql`
     paymentMethod(id: ID!): PaymentMethod
     payments(filter: PaymentFilterInput, pagination: PaginationInput): [Payment!]!
     payment(id: ID!): Payment
+    
+    # Shipping queries
+    shippingProviders(filter: ShippingProviderFilterInput, pagination: PaginationInput): [ShippingProvider!]!
+    shippingProvider(id: ID!): ShippingProvider
+    shippingMethods(filter: ShippingMethodFilterInput, pagination: PaginationInput): [ShippingMethod!]!
+    shippingMethod(id: ID!): ShippingMethod
+    shippingZones(filter: ShippingZoneFilterInput, pagination: PaginationInput): [ShippingZone!]!
+    shippingZone(id: ID!): ShippingZone
+    shippingRates(filter: ShippingRateFilterInput, pagination: PaginationInput): [ShippingRate!]!
+    shippingRate(id: ID!): ShippingRate
+    shipments(filter: ShipmentFilterInput, pagination: PaginationInput): [Shipment!]!
+    shipment(id: ID!): Shipment
+    
+    # Review queries
+    reviews(filter: ReviewFilterInput, pagination: PaginationInput): [Review!]!
+    review(id: ID!): Review
+    reviewsByProduct(productId: ID!, filter: ReviewFilterInput, pagination: PaginationInput): [Review!]!
+    reviewsByCustomer(customerId: ID!, filter: ReviewFilterInput, pagination: PaginationInput): [Review!]!
+    reviewStats(productId: ID): ReviewStats!
+    pendingReviews(pagination: PaginationInput): [Review!]!
   }
 
   # Root Mutation
@@ -1678,6 +1698,40 @@ export const typeDefs = gql`
     createPayment(input: CreatePaymentInput!): PaymentResult!
     updatePayment(id: ID!, input: UpdatePaymentInput!): PaymentResult!
     deletePayment(id: ID!): PaymentResult!
+    
+    # Shipping mutations
+    createShippingProvider(input: CreateShippingProviderInput!): ShippingProviderResult!
+    updateShippingProvider(id: ID!, input: UpdateShippingProviderInput!): ShippingProviderResult!
+    deleteShippingProvider(id: ID!): Boolean!
+    
+    createShippingMethod(input: CreateShippingMethodInput!): ShippingMethodResult!
+    updateShippingMethod(id: ID!, input: UpdateShippingMethodInput!): ShippingMethodResult!
+    deleteShippingMethod(id: ID!): Boolean!
+    
+    createShippingZone(input: CreateShippingZoneInput!): ShippingZoneResult!
+    updateShippingZone(id: ID!, input: UpdateShippingZoneInput!): ShippingZoneResult!
+    deleteShippingZone(id: ID!): Boolean!
+    
+    createShippingRate(input: CreateShippingRateInput!): ShippingRateResult!
+    updateShippingRate(id: ID!, input: UpdateShippingRateInput!): ShippingRateResult!
+    deleteShippingRate(id: ID!): Boolean!
+    
+    createShipment(input: CreateShipmentInput!): ShipmentResult!
+    updateShipment(id: ID!, input: UpdateShipmentInput!): ShipmentResult!
+    deleteShipment(id: ID!): Boolean!
+    
+    # Review mutations
+    createReview(input: CreateReviewInput!): ReviewResult!
+    updateReview(id: ID!, input: UpdateReviewInput!): ReviewResult!
+    deleteReview(id: ID!): ReviewResult!
+    approveReview(id: ID!): ReviewResult!
+    rejectReview(id: ID!): ReviewResult!
+    reportReview(id: ID!, reason: String!): ReviewResult!
+    markReviewHelpful(id: ID!): ReviewResult!
+    
+    createReviewResponse(input: CreateReviewResponseInput!): ReviewResponseResult!
+    updateReviewResponse(id: ID!, input: UpdateReviewResponseInput!): ReviewResponseResult!
+    deleteReviewResponse(id: ID!): ReviewResponseResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2225,6 +2279,7 @@ export const typeDefs = gql`
     categoryId: String
     category: ProductCategory
     prices: [Price!]!
+    reviews: [Review!]!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -2259,6 +2314,7 @@ export const typeDefs = gql`
     shopId: String!
     shop: Shop!
     items: [OrderItem!]!
+    shipments: [Shipment!]!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -2618,4 +2674,414 @@ export const typeDefs = gql`
     createdAt: DateTime!
     updatedAt: DateTime!
   }
+
+  # --------------- SHIPPING MODULE TYPES --- V1 ---
+
+  enum ShipmentStatus {
+    PENDING
+    PROCESSING
+    SHIPPED
+    IN_TRANSIT
+    OUT_FOR_DELIVERY
+    DELIVERED
+    FAILED
+    RETURNED
+    CANCELLED
+  }
+
+  type ShippingProvider {
+    id: ID!
+    name: String!
+    type: String!
+    isActive: Boolean!
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+    trackingUrl: String
+    shippingMethods: [ShippingMethod!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ShippingMethod {
+    id: ID!
+    name: String!
+    description: String
+    providerId: String!
+    provider: ShippingProvider!
+    isActive: Boolean!
+    estimatedDaysMin: Int
+    estimatedDaysMax: Int
+    trackingEnabled: Boolean!
+    shippingRates: [ShippingRate!]!
+    shipments: [Shipment!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ShippingZone {
+    id: ID!
+    name: String!
+    description: String
+    countries: [String!]!
+    states: [String!]!
+    postalCodes: [String!]!
+    isActive: Boolean!
+    shippingRates: [ShippingRate!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ShippingRate {
+    id: ID!
+    shippingMethodId: String!
+    shippingMethod: ShippingMethod!
+    shippingZoneId: String!
+    shippingZone: ShippingZone!
+    minWeight: Float
+    maxWeight: Float
+    minValue: Float
+    maxValue: Float
+    baseRate: Float!
+    perKgRate: Float
+    freeShippingMin: Float
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Shipment {
+    id: ID!
+    orderId: String!
+    order: Order!
+    shippingMethodId: String!
+    shippingMethod: ShippingMethod!
+    trackingNumber: String
+    status: ShipmentStatus!
+    shippingCost: Float!
+    weight: Float
+    dimensions: String
+    fromAddress: String!
+    toAddress: String!
+    shippedAt: DateTime
+    estimatedDelivery: DateTime
+    deliveredAt: DateTime
+    providerResponse: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # Shipping filter inputs
+  input ShippingProviderFilterInput {
+    search: String
+    type: String
+    isActive: Boolean
+  }
+
+  input ShippingMethodFilterInput {
+    search: String
+    providerId: String
+    isActive: Boolean
+  }
+
+  input ShippingZoneFilterInput {
+    search: String
+    isActive: Boolean
+  }
+
+  input ShippingRateFilterInput {
+    search: String
+    shippingMethodId: String
+    shippingZoneId: String
+    isActive: Boolean
+  }
+
+  input ShipmentFilterInput {
+    search: String
+    orderId: String
+    status: ShipmentStatus
+    shippingMethodId: String
+    trackingNumber: String
+    dateFrom: DateTime
+    dateTo: DateTime
+  }
+
+  # Shipping input types
+  input CreateShippingProviderInput {
+    name: String!
+    type: String!
+    isActive: Boolean
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+    trackingUrl: String
+  }
+
+  input UpdateShippingProviderInput {
+    name: String
+    type: String
+    isActive: Boolean
+    apiKey: String
+    secretKey: String
+    webhookUrl: String
+    trackingUrl: String
+  }
+
+  input CreateShippingMethodInput {
+    name: String!
+    description: String
+    providerId: String!
+    isActive: Boolean
+    estimatedDaysMin: Int
+    estimatedDaysMax: Int
+    trackingEnabled: Boolean
+  }
+
+  input UpdateShippingMethodInput {
+    name: String
+    description: String
+    providerId: String
+    isActive: Boolean
+    estimatedDaysMin: Int
+    estimatedDaysMax: Int
+    trackingEnabled: Boolean
+  }
+
+  input CreateShippingZoneInput {
+    name: String!
+    description: String
+    countries: [String!]!
+    states: [String!]
+    postalCodes: [String!]
+    isActive: Boolean
+  }
+
+  input UpdateShippingZoneInput {
+    name: String
+    description: String
+    countries: [String!]
+    states: [String!]
+    postalCodes: [String!]
+    isActive: Boolean
+  }
+
+  input CreateShippingRateInput {
+    shippingMethodId: String!
+    shippingZoneId: String!
+    minWeight: Float
+    maxWeight: Float
+    minValue: Float
+    maxValue: Float
+    baseRate: Float!
+    perKgRate: Float
+    freeShippingMin: Float
+    isActive: Boolean
+  }
+
+  input UpdateShippingRateInput {
+    shippingMethodId: String
+    shippingZoneId: String
+    minWeight: Float
+    maxWeight: Float
+    minValue: Float
+    maxValue: Float
+    baseRate: Float
+    perKgRate: Float
+    freeShippingMin: Float
+    isActive: Boolean
+  }
+
+  input CreateShipmentInput {
+    orderId: String!
+    shippingMethodId: String!
+    trackingNumber: String
+    shippingCost: Float!
+    weight: Float
+    dimensions: String
+    fromAddress: String!
+    toAddress: String!
+    estimatedDelivery: DateTime
+  }
+
+  input UpdateShipmentInput {
+    trackingNumber: String
+    status: ShipmentStatus
+    shippingCost: Float
+    weight: Float
+    dimensions: String
+    fromAddress: String
+    toAddress: String
+    shippedAt: DateTime
+    estimatedDelivery: DateTime
+    deliveredAt: DateTime
+    providerResponse: String
+  }
+
+  # --------------- END SHIPPING MODULE TYPES --- V1 ---
+
+  # Shipping result types
+  type ShippingProviderResult {
+    success: Boolean!
+    message: String!
+    provider: ShippingProvider
+  }
+
+  type ShippingMethodResult {
+    success: Boolean!
+    message: String!
+    method: ShippingMethod
+  }
+
+  type ShippingZoneResult {
+    success: Boolean!
+    message: String!
+    zone: ShippingZone
+  }
+
+  type ShippingRateResult {
+    success: Boolean!
+    message: String!
+    rate: ShippingRate
+  }
+
+  type ShipmentResult {
+    success: Boolean!
+    message: String!
+    shipment: Shipment
+  }
+
+  # --------------- REVIEW MODULE TYPES --- V1 ---
+
+  enum ReviewStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    REPORTED
+  }
+
+  type Review {
+    id: ID!
+    productId: String!
+    product: Product!
+    customerId: String
+    customer: User
+    customerName: String!
+    customerEmail: String!
+    rating: Int!
+    title: String
+    comment: String
+    isVerified: Boolean!
+    isApproved: Boolean!
+    isHelpful: Int!
+    isReported: Boolean!
+    reportReason: String
+    orderItemId: String
+    orderItem: OrderItem
+    images: [ReviewImage!]!
+    response: ReviewResponse
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ReviewImage {
+    id: ID!
+    reviewId: String!
+    review: Review!
+    imageUrl: String!
+    altText: String
+    order: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ReviewResponse {
+    id: ID!
+    reviewId: String!
+    review: Review!
+    responderId: String!
+    responder: User!
+    response: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type ReviewStats {
+    totalReviews: Int!
+    averageRating: Float!
+    ratingDistribution: [RatingCount!]!
+    verifiedReviews: Int!
+    pendingReviews: Int!
+  }
+
+  type RatingCount {
+    rating: Int!
+    count: Int!
+  }
+
+  # Review filter inputs
+  input ReviewFilterInput {
+    search: String
+    productId: String
+    customerId: String
+    rating: Int
+    isVerified: Boolean
+    isApproved: Boolean
+    isReported: Boolean
+    dateFrom: DateTime
+    dateTo: DateTime
+  }
+
+  # Review input types
+  input CreateReviewInput {
+    productId: String!
+    customerId: String
+    customerName: String!
+    customerEmail: String!
+    rating: Int!
+    title: String
+    comment: String
+    orderItemId: String
+    images: [CreateReviewImageInput!]
+  }
+
+  input UpdateReviewInput {
+    rating: Int
+    title: String
+    comment: String
+    isApproved: Boolean
+    isReported: Boolean
+    reportReason: String
+  }
+
+  input CreateReviewImageInput {
+    imageUrl: String!
+    altText: String
+    order: Int
+  }
+
+  input CreateReviewResponseInput {
+    reviewId: String!
+    response: String!
+  }
+
+  input UpdateReviewResponseInput {
+    response: String!
+  }
+
+  # Review result types
+  type ReviewResult {
+    success: Boolean!
+    message: String!
+    review: Review
+  }
+
+  type ReviewResponseResult {
+    success: Boolean!
+    message: String!
+    response: ReviewResponse
+  }
+
+  # --------------- END REVIEW MODULE TYPES --- V1 ---
+
+  # Shipping result types
 `; 

@@ -2,6 +2,34 @@ import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Define types for Prisma entities with relations
+type ShopWithRelations = {
+  id: string;
+  name: string;
+  defaultCurrencyId: string;
+  adminUserId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  defaultCurrency: unknown;
+  acceptedCurrencies: Array<{ currency: unknown }>;
+  adminUser: unknown;
+  products: unknown[];
+  _count: { products: number };
+};
+
+type ProductCategoryWithCount = {
+  id: string;
+  name: string;
+  description?: string | null;
+  slug: string;
+  parentId?: string | null;
+  shopId?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: { products: number };
+};
+
 interface Context {
   req: NextRequest;
 }
@@ -124,7 +152,7 @@ export const ecommerceResolvers = {
           skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50)
         });
 
-        return shops.map(shop => ({
+        return shops.map((shop: ShopWithRelations) => ({
           ...shop,
           acceptedCurrencies: shop.acceptedCurrencies.map((ac: { currency: unknown }) => ac.currency)
         }));
@@ -501,7 +529,7 @@ export const ecommerceResolvers = {
           skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50)
         });
 
-        return categories.map(category => ({
+        return categories.map((category: ProductCategoryWithCount) => ({
           ...category,
           productCount: category._count.products
         }));
@@ -1498,7 +1526,7 @@ export const ecommerceResolvers = {
         const payment = await prisma.payment.update({
           where: { id },
           data: {
-            status: input.status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED',
+            status: input.status as string,
             transactionId: input.transactionId as string || null,
             gatewayResponse: input.gatewayResponse as string || null,
             failureReason: input.failureReason as string || null,
@@ -1601,7 +1629,7 @@ export const ecommerceResolvers = {
           }
         }
       });
-      return categories.map(category => ({
+      return categories.map((category: ProductCategoryWithCount) => ({
         ...category,
         productCount: category._count.products
       }));
@@ -1688,7 +1716,7 @@ export const ecommerceResolvers = {
           }
         }
       });
-      return children.map(child => ({
+      return children.map((child: ProductCategoryWithCount) => ({
         ...child,
         productCount: child._count.products
       }));

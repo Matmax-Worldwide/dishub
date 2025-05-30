@@ -2,6 +2,89 @@ import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Define types for Prisma entities with relations
+type ShippingProviderWithRelations = {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+  apiKey?: string | null;
+  secretKey?: string | null;
+  webhookUrl?: string | null;
+  trackingUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  shippingMethods: unknown[];
+};
+
+type ShippingMethodWithRelations = {
+  id: string;
+  name: string;
+  description?: string | null;
+  providerId: string;
+  isActive: boolean;
+  estimatedDaysMin?: number | null;
+  estimatedDaysMax?: number | null;
+  trackingEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  provider: unknown;
+  shippingRates: unknown[];
+  shipments: unknown[];
+};
+
+type ShippingZoneWithRelations = {
+  id: string;
+  name: string;
+  description?: string | null;
+  countries: string[];
+  states: string[];
+  postalCodes: string[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  shippingRates: unknown[];
+};
+
+type ShippingRateWithRelations = {
+  id: string;
+  shippingMethodId: string;
+  shippingZoneId: string;
+  minWeight?: number | null;
+  maxWeight?: number | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  baseRate: number;
+  perKgRate?: number | null;
+  freeShippingMin?: number | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  shippingMethod: unknown;
+  shippingZone: unknown;
+};
+
+type ShipmentWithRelations = {
+  id: string;
+  orderId: string;
+  shippingMethodId: string;
+  trackingNumber?: string | null;
+  status: string;
+  shippingCost: number;
+  weight?: number | null;
+  dimensions?: string | null;
+  fromAddress: string;
+  toAddress: string;
+  shippedAt?: Date | null;
+  estimatedDelivery?: Date | null;
+  deliveredAt?: Date | null;
+  providerResponse?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  order: unknown;
+  shippingMethod: unknown;
+};
+
 // Define input types
 interface CreateShippingProviderInput {
   name: string;
@@ -138,7 +221,7 @@ export const shippingResolvers = {
           orderBy: { name: 'asc' }
         });
         
-        return providers.map((provider) => ({
+        return providers.map((provider: ShippingProviderWithRelations) => ({
           ...provider,
           createdAt: provider.createdAt.toISOString(),
           updatedAt: provider.updatedAt.toISOString()
@@ -210,7 +293,7 @@ export const shippingResolvers = {
           orderBy: { name: 'asc' }
         });
         
-        return methods.map((method) => ({
+        return methods.map((method: ShippingMethodWithRelations) => ({
           ...method,
           createdAt: method.createdAt.toISOString(),
           updatedAt: method.updatedAt.toISOString()
@@ -247,7 +330,7 @@ export const shippingResolvers = {
           orderBy: { name: 'asc' }
         });
         
-        return zones.map((zone) => ({
+        return zones.map((zone: ShippingZoneWithRelations) => ({
           ...zone,
           createdAt: zone.createdAt.toISOString(),
           updatedAt: zone.updatedAt.toISOString()
@@ -281,7 +364,7 @@ export const shippingResolvers = {
           orderBy: { baseRate: 'asc' }
         });
         
-        return rates.map((rate) => ({
+        return rates.map((rate: ShippingRateWithRelations) => ({
           ...rate,
           createdAt: rate.createdAt.toISOString(),
           updatedAt: rate.updatedAt.toISOString()
@@ -321,7 +404,7 @@ export const shippingResolvers = {
           orderBy: { createdAt: 'desc' }
         });
         
-        return shipments.map((shipment) => ({
+        return shipments.map((shipment: ShipmentWithRelations) => ({
           ...shipment,
           createdAt: shipment.createdAt.toISOString(),
           updatedAt: shipment.updatedAt.toISOString(),
