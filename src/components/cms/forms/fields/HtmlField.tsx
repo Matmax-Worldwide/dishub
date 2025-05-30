@@ -28,11 +28,14 @@ export function HtmlFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos HTML personalizados
 export function HtmlField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.HTML,
     label: 'Custom HTML Block', // Admin label
     name: 'customHtmlField',
     options: { htmlContent: '' },
     width: 100,
+    order: 0,
+    isRequired: false,
     ...field,
   });
 
@@ -115,7 +118,7 @@ export function HtmlField({ field, onChange, showPreview = true }: FieldProps) {
         <Textarea
           id="htmlContent"
           name="htmlContent" 
-          value={localField.options?.htmlContent || ''}
+          value={(localField.options?.htmlContent as string) || ''}
           onChange={handleOptionsChange}
           onKeyDown={handleKeyDown}
           placeholder="Enter your custom HTML code here..."

@@ -25,23 +25,23 @@ export function FileFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de Archivo (File)
 export function FileField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.FILE,
     label: 'File Upload',
     name: 'fileUploadField',
     helpText: '',
     isRequired: false,
     width: 100,
-    options: { allowedFileTypes: '', maxFileSizeMB: 5 },
-    ...field,
+    order: 0,
     options: {
-        allowedFileTypes: '', // Stored as comma-separated string in editor
-        maxFileSizeMB: 5,
-        ...field?.options,
-        // Ensure string for allowedFileTypes if it's an array from field prop
         allowedFileTypes: Array.isArray(field?.options?.allowedFileTypes) 
             ? (field.options.allowedFileTypes as string[]).join(', ') 
             : field?.options?.allowedFileTypes || '',
+        maxFileSizeMB: field?.options?.maxFileSizeMB !== undefined 
+            ? Number(field.options.maxFileSizeMB) 
+            : 5,
     },
+    ...field,
   });
 
   useEffect(() => {
@@ -49,15 +49,12 @@ export function FileField({ field, onChange, showPreview = true }: FieldProps) {
         ...prev, 
         ...field,
         options: {
-            allowedFileTypes: '', maxFileSizeMB: 5,
-            ...prev.options,
-            ...field?.options,
             allowedFileTypes: Array.isArray(field?.options?.allowedFileTypes) 
                 ? (field.options.allowedFileTypes as string[]).join(', ') 
-                : field?.options?.allowedFileTypes || (prev.options?.allowedFileTypes || ''),
+                : field?.options?.allowedFileTypes || (prev.options?.allowedFileTypes as string || ''),
             maxFileSizeMB: field?.options?.maxFileSizeMB !== undefined 
                 ? Number(field.options.maxFileSizeMB) 
-                : (prev.options?.maxFileSizeMB !== undefined ? Number(prev.options.maxFileSizeMB) : 5),
+                : (prev.options?.maxFileSizeMB as number || 5),
         }
     }));
   }, [field]);
@@ -127,7 +124,7 @@ export function FileField({ field, onChange, showPreview = true }: FieldProps) {
         <Input 
             id="options.allowedFileTypes" 
             name="allowedFileTypes" // Corresponds to key in options object
-            value={localField.options?.allowedFileTypes || ''} 
+            value={(localField.options?.allowedFileTypes as string) || ''} 
             onChange={handleOptionsChange} 
             onKeyDown={handleKeyDown} 
             placeholder="e.g., .pdf, .doc, .docx, image/*" 
@@ -140,7 +137,7 @@ export function FileField({ field, onChange, showPreview = true }: FieldProps) {
             type="number" 
             id="options.maxFileSizeMB" 
             name="maxFileSizeMB" // Corresponds to key in options object
-            value={localField.options?.maxFileSizeMB || 5} 
+            value={(localField.options?.maxFileSizeMB as number) || 5} 
             onChange={handleOptionsChange} 
             onKeyDown={handleKeyDown} 
             min="1"

@@ -26,6 +26,7 @@ export function DateTimeFieldPreview({ field }: { field: FormFieldBase }) {
 // Componente de edición para campos de fecha y hora
 export function DateTimeField({ field, onChange, showPreview = true }: FieldProps) {
   const [localField, setLocalField] = useState<FormFieldBase>({
+    id: field?.id || '',
     type: FormFieldType.DATETIME,
     label: 'Date & Time Input',
     name: 'dateTimeField',
@@ -34,6 +35,7 @@ export function DateTimeField({ field, onChange, showPreview = true }: FieldProp
     isRequired: false,
     defaultValue: '', // Should be in YYYY-MM-DDTHH:MM format if pre-filled
     width: 100,
+    order: 0,
     ...field,
   });
 
