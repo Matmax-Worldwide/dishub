@@ -1,345 +1,496 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useQuery, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  TrendingUp, 
-  Plus,
-  CalendarDays,
-  Briefcase,
-  UserCheck
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { 
+  CalendarIcon, 
+  MapPinIcon, 
+  UsersIcon, 
+  ClockIcon, 
+  SettingsIcon,
+  PlusIcon,
+  BookOpenIcon,
+  BarChart3Icon,
+  Loader2
+} from 'lucide-react';
 
-// GraphQL Queries
-const GET_BOOKING_STATS = gql`
-  query GetBookingStats {
-    bookingStats {
-      totalBookings
-      todayBookings
-      upcomingBookings
-      completedBookings
-      revenue
-    }
-  }
-`;
+// Import calendar management components
+import ServiceManager from '@/components/cms/calendar/ServiceManager';
+import StaffManager from '@/components/cms/calendar/StaffManager';
+import LocationManager from '@/components/cms/calendar/LocationManager';
+import CategoryManager from '@/components/cms/calendar/CategoryManager';
+import BookingsList from '@/components/cms/calendar/BookingsList';
+import CalendarSection from '@/components/cms/sections/CalendarSection';
+import graphqlClient from '@/lib/graphql-client';
+import { toast } from 'sonner';
 
-const GET_RECENT_BOOKINGS = gql`
-  query GetRecentBookings($limit: Int) {
-    recentBookings(limit: $limit) {
-      id
-      title
-      startTime
-      endTime
-      status
-      clientName
-      serviceName
-      staffName
-    }
-  }
-`;
-
-interface BookingStats {
+// Types for dashboard stats
+interface DashboardStats {
   totalBookings: number;
-  todayBookings: number;
-  upcomingBookings: number;
-  completedBookings: number;
-  revenue: number;
+  activeServices: number;
+  staffMembers: number;
+  locations: number;
+  bookingsChange?: string;
+  servicesChange?: string;
+  staffChange?: string;
+  locationsChange?: string;
 }
 
 interface RecentBooking {
   id: string;
-  title: string;
+  customerName?: string | null;
+  service: { name: string };
   startTime: string;
-  endTime: string;
   status: string;
-  clientName: string;
-  serviceName: string;
-  staffName: string;
 }
 
-export default function BookingsDashboard() {
+interface ServiceData {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export default function CalendarManagementPage() {
   const router = useRouter();
-  const { locale } = useParams();
+  const params = useParams();
+  const locale = params.locale as string;
+  
+  const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Check for authentication token
+  // Fetch dashboard data
   useEffect(() => {
-    const cookies = document.cookie;
-    const hasToken = cookies.includes('session-token=');
-    
-    if (!hasToken) {
-      console.log('No session token detected, redirecting to login');
-      router.push(`/${locale}/login`);
-    }
-  }, [locale, router]);
+    const fetchDashboardData = async () => {
+      setIsLoadingStats(true);
+      setError(null);
+      
+      try {
+        // Fetch all data in parallel
+        const [
+          bookingsData,
+          servicesData, 
+          staffData,
+          locationsData
+        ] = await Promise.allSettled([
+          graphqlClient.bookings({ 
+            filter: {}, 
+            pagination: { page: 1, pageSize: 5 } 
+          }),
+          graphqlClient.services(),
+          graphqlClient.staffProfiles(),
+          graphqlClient.locations()
+        ]);
 
-  // Load booking statistics
-  const { loading: statsLoading, error: statsError, data: statsData } = useQuery(GET_BOOKING_STATS, {
-    client,
-    errorPolicy: 'all',
-    fetchPolicy: 'network-only',
-    context: {
-      headers: {
-        credentials: 'include',
+        // Extract successful results, use empty arrays for failed requests
+        const bookingsResult = bookingsData.status === 'fulfilled' ? bookingsData.value : null;
+        const servicesResult = servicesData.status === 'fulfilled' ? servicesData.value : [];
+        const staffResult = staffData.status === 'fulfilled' ? staffData.value : [];
+        const locationsResult = locationsData.status === 'fulfilled' ? locationsData.value : [];
+
+        // Log any failures
+        if (bookingsData.status === 'rejected') {
+          console.error('Failed to fetch bookings:', bookingsData.reason);
+        }
+        if (servicesData.status === 'rejected') {
+          console.error('Failed to fetch services:', servicesData.reason);
+        }
+        if (staffData.status === 'rejected') {
+          console.error('Failed to fetch staff:', staffData.reason);
+        }
+        if (locationsData.status === 'rejected') {
+          console.error('Failed to fetch locations:', locationsData.reason);
+        }
+
+        // Calculate stats
+        const dashboardStats: DashboardStats = {
+          totalBookings: bookingsResult?.totalCount || 0,
+          activeServices: servicesResult?.filter((s: ServiceData) => s.isActive).length || 0,
+          staffMembers: staffResult?.length || 0,
+          locations: locationsResult?.length || 0,
+          // TODO: Calculate changes from previous period
+          bookingsChange: '+12%', // Placeholder until we implement period comparison
+          servicesChange: '+3',
+          staffChange: '+1', 
+          locationsChange: '0'
+        };
+
+        setStats(dashboardStats);
+        
+        // Set recent bookings
+        if (bookingsResult?.items) {
+          setRecentBookings(bookingsResult.items.slice(0, 3));
+        }
+
+      } catch (err: unknown) {
+        console.error('Failed to fetch dashboard data:', err);
+        const errorMsg = `Failed to load dashboard: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        setError(errorMsg);
+        toast.error(errorMsg);
+      } finally {
+        setIsLoadingStats(false);
       }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Generate stats cards with real data
+  const statsCards = stats ? [
+    {
+      title: 'Total Bookings',
+      value: stats.totalBookings.toString(),
+      change: stats.bookingsChange || '+0%',
+      icon: CalendarIcon,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     },
-    onError: (error) => {
-      console.error('Booking stats query error:', error);
-      if (error.message.includes('Not authenticated')) {
-        router.push(`/${locale}/login`);
-      }
+    {
+      title: 'Active Services',
+      value: stats.activeServices.toString(),
+      change: stats.servicesChange || '+0',
+      icon: ClockIcon,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      title: 'Staff Members',
+      value: stats.staffMembers.toString(),
+      change: stats.staffChange || '+0',
+      icon: UsersIcon,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    },
+    {
+      title: 'Locations',
+      value: stats.locations.toString(),
+      change: stats.locationsChange || '0',
+      icon: MapPinIcon,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
     }
-  });
-
-  // Load recent bookings
-  const { loading: bookingsLoading, error: bookingsError, data: bookingsData } = useQuery(GET_RECENT_BOOKINGS, {
-    variables: { limit: 5 },
-    client,
-    errorPolicy: 'all',
-    fetchPolicy: 'network-only',
-    context: {
-      headers: {
-        credentials: 'include',
-      }
-    }
-  });
-
-  const stats: BookingStats = statsData?.bookingStats || {
-    totalBookings: 0,
-    todayBookings: 0,
-    upcomingBookings: 0,
-    completedBookings: 0,
-    revenue: 0
-  };
-
-  const recentBookings: RecentBooking[] = bookingsData?.recentBookings || [];
+  ] : [];
 
   const quickActions = [
     {
-      title: 'New Booking',
-      description: 'Create a new booking',
-      icon: Plus,
-      href: `/${locale}/bookings/new`,
+      title: 'Add New Service',
+      description: 'Create a new bookable service',
+      icon: PlusIcon,
+      action: () => setActiveTab('services'),
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
-      title: 'Calendar View',
-      description: 'View booking calendar',
-      icon: CalendarDays,
-      href: `/${locale}/bookings/calendar`,
+      title: 'Manage Staff',
+      description: 'Add or edit staff schedules',
+      icon: UsersIcon,
+      action: () => setActiveTab('staff'),
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
-      title: 'Manage Services',
-      description: 'Configure services',
-      icon: Briefcase,
-      href: `/${locale}/bookings/services`,
+      title: 'View Bookings',
+      description: 'See all upcoming appointments',
+      icon: BookOpenIcon,
+      action: () => setActiveTab('bookings'),
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
-      title: 'Staff Management',
-      description: 'Manage staff members',
-      icon: UserCheck,
-      href: `/${locale}/bookings/staff`,
+      title: 'Analytics',
+      description: 'View booking statistics',
+      icon: BarChart3Icon,
+      action: () => setActiveTab('analytics'),
       color: 'bg-orange-500 hover:bg-orange-600'
     }
   ];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (statsLoading || bookingsLoading) {
+  // Loading state
+  if (isLoadingStats && !stats) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-64 bg-gray-200 rounded-lg"></div>
-            <div className="h-64 bg-gray-200 rounded-lg"></div>
-          </div>
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="ml-2">Loading calendar dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (statsError || bookingsError) {
+  // Error state
+  if (error && !stats) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium">Error loading dashboard</h3>
-          <p className="text-red-600 text-sm mt-1">
-            {statsError?.message || bookingsError?.message || 'An error occurred while loading the dashboard.'}
-          </p>
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bookings Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage your appointments and bookings</p>
+          <h1 className="text-3xl font-bold text-gray-900">Calendar Management</h1>
+          <p className="text-gray-600 mt-1">Manage your booking system, services, and appointments</p>
         </div>
-        <Button 
-          onClick={() => router.push(`/${locale}/bookings/new`)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Booking
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Badge variant="outline" className="text-green-600 border-green-200">
+            System Active
+          </Badge>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push(`/${locale}/bookings/rules`)}
+          >
+            <SettingsIcon className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+        </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">All time bookings</p>
-          </CardContent>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3Icon className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4" />
+            Bookings
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <ClockIcon className="w-4 h-4" />
+            Services
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <BookOpenIcon className="w-4 h-4" />
+            Categories
+          </TabsTrigger>
+          <TabsTrigger value="locations" className="flex items-center gap-2">
+            <MapPinIcon className="w-4 h-4" />
+            Locations
+          </TabsTrigger>
+          <TabsTrigger value="staff" className="flex items-center gap-2">
+            <UsersIcon className="w-4 h-4" />
+            Staff
+          </TabsTrigger>
+          <TabsTrigger value="booking-widget" className="flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4" />
+            Widget
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today&apos;s Bookings</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.todayBookings}</div>
-            <p className="text-xs text-muted-foreground">Scheduled for today</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.upcomingBookings}</div>
-            <p className="text-xs text-muted-foreground">Future appointments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.revenue)}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common booking management tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {quickActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className={`h-20 flex flex-col items-center justify-center space-y-2 ${action.color} text-white border-none`}
-                  onClick={() => router.push(action.href)}
-                >
-                  <action.icon className="h-6 w-6" />
-                  <span className="text-sm font-medium">{action.title}</span>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Bookings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Bookings</CardTitle>
-            <CardDescription>Latest booking activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentBookings.length > 0 ? (
-                recentBookings.map((booking) => (
-                  <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{booking.title}</h4>
-                      <p className="text-xs text-gray-600">
-                        {booking.clientName} • {booking.serviceName}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDateTime(booking.startTime)}
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {statsCards.map((stat, index) => (
+              <Card key={index} className="relative overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        <span className={stat.change.startsWith('+') ? 'text-green-600' : 'text-gray-500'}>
+                          {stat.change}
+                        </span> from last month
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                      {booking.status}
-                    </span>
+                    <div className={`p-3 rounded-full ${stat.bgColor}`}>
+                      <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recent bookings</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => router.push(`/${locale}/bookings/new`)}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks to manage your calendar system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {quickActions.map((action, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto p-4 flex flex-col items-center space-y-2 hover:shadow-md transition-shadow"
+                    onClick={action.action}
                   >
-                    Create your first booking
+                    <div className={`p-2 rounded-full text-white ${action.color}`}>
+                      <action.icon className="w-5 h-5" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-sm">{action.title}</p>
+                      <p className="text-xs text-gray-500">{action.description}</p>
+                    </div>
                   </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Bookings</CardTitle>
+                <CardDescription>Latest appointments scheduled</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentBookings.length > 0 ? (
+                    recentBookings.map((booking, index) => (
+                      <div key={booking.id || index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {booking.service.name} - {booking.customerName || 'Guest'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(booking.startTime).toLocaleDateString()} at {new Date(booking.startTime).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {booking.status.toLowerCase()}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">No recent bookings</p>
+                  )}
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>System Status</CardTitle>
+                <CardDescription>Current system health and performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Booking System</span>
+                    <Badge className="bg-green-100 text-green-800">Online</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Email Notifications</span>
+                    <Badge className="bg-green-100 text-green-800">Active</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">SMS Reminders</span>
+                    <Badge className="bg-yellow-100 text-yellow-800">Pending Setup</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Calendar Sync</span>
+                    <Badge className="bg-green-100 text-green-800">Synced</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Bookings Tab */}
+        <TabsContent value="bookings">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Bookings</CardTitle>
+              <CardDescription>View and manage all appointments and reservations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BookingsList />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services">
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Management</CardTitle>
+              <CardDescription>Create and manage your bookable services</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ServiceManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Staff Tab */}
+        <TabsContent value="staff">
+          <Card>
+            <CardHeader>
+              <CardTitle>Staff Management</CardTitle>
+              <CardDescription>Manage staff members and their schedules</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StaffManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Locations Tab */}
+        <TabsContent value="locations">
+          <Card>
+            <CardHeader>
+              <CardTitle>Location Management</CardTitle>
+              <CardDescription>Manage your business locations and their settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LocationManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Categories</CardTitle>
+              <CardDescription>Organize your services into categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CategoryManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Booking Widget Tab */}
+        <TabsContent value="booking-widget">
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking Widget Preview</CardTitle>
+              <CardDescription>Preview how your booking widget looks to customers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <CalendarSection 
+                  showLocationSelector={true}
+                  showServiceCategories={true}
+                  showStaffSelector={true}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

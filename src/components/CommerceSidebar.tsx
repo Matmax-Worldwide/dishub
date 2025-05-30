@@ -8,19 +8,21 @@ import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
 import { 
   LayoutDashboard,
-  Calendar,
-  MapPin,
+  Package,
+  ShoppingCart,
   Users,
-  Briefcase,
-  UserCheck,
-  BookOpen,
+  Warehouse,
+  Tags,
+  Truck,
+  CreditCard,
+  BarChart3,
+  Settings,
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  Clock,
-  BarChart3,
-  CreditCard,
-  ChevronDown
+  ChevronDown,
+  Percent,
+  Star
 } from 'lucide-react';
 
 import {
@@ -35,19 +37,21 @@ import {
   useSidebar
 } from '@/components/ui/sidebar';
 
-interface BookingsSidebarProps {
+interface CommerceSidebarProps {
   dictionary?: {
-    bookings?: {
+    commerce?: {
       dashboard: string;
-      calendar: string;
-      bookings: string;
-      services: string;
+      products: string;
+      orders: string;
+      customers: string;
+      inventory: string;
       categories: string;
-      locations: string;
-      staff: string;
-      rules: string;
-      reports: string;
+      shipping: string;
       payments: string;
+      discounts: string;
+      reviews: string;
+      analytics: string;
+      settings: string;
     };
   };
   locale: string;
@@ -69,7 +73,7 @@ function CollapsibleButton({ className = "" }) {
   );
 }
 
-export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarProps) {
+export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -87,83 +91,98 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
   } = useUnsavedChanges();
   
   // Default navigation items if dictionary is not provided
-  const nav = dictionary?.bookings || {
+  const nav = dictionary?.commerce || {
     dashboard: 'Dashboard',
-    calendar: 'Calendar',
-    bookings: 'Bookings',
-    services: 'Services',
+    products: 'Products',
+    orders: 'Orders',
+    customers: 'Customers',
+    inventory: 'Inventory',
     categories: 'Categories',
-    locations: 'Locations',
-    staff: 'Staff',
-    rules: 'Rules',
-    reports: 'Reports',
+    shipping: 'Shipping',
     payments: 'Payments',
+    discounts: 'Discounts',
+    reviews: 'Reviews',
+    analytics: 'Analytics',
+    settings: 'Settings',
   };
 
   const mainNavigationItems = [
     {
       name: nav.dashboard,
-      href: `/${locale}/bookings`,
+      href: `/${locale}/commerce`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
-      name: nav.calendar,
-      href: `/${locale}/bookings/calendar`,
-      icon: <Calendar className="h-4 w-4" />
+      name: nav.products,
+      href: `/${locale}/commerce/products`,
+      icon: <Package className="h-4 w-4" />
     },
     {
-      name: nav.bookings,
-      href: `/${locale}/bookings/list`,
-      icon: <BookOpen className="h-4 w-4" />
+      name: nav.orders,
+      href: `/${locale}/commerce/orders`,
+      icon: <ShoppingCart className="h-4 w-4" />
+    },
+    {
+      name: nav.customers,
+      href: `/${locale}/commerce/customers`,
+      icon: <Users className="h-4 w-4" />
     },
   ];
 
-  const managementItems = [
+  const inventoryItems = [
     {
-      name: nav.services,
-      href: `/${locale}/bookings/services`,
-      icon: <Briefcase className="h-4 w-4" />
+      name: nav.inventory,
+      href: `/${locale}/commerce/inventory`,
+      icon: <Warehouse className="h-4 w-4" />
     },
     {
       name: nav.categories,
-      href: `/${locale}/bookings/categories`,
-      icon: <Users className="h-4 w-4" />
+      href: `/${locale}/commerce/categories`,
+      icon: <Tags className="h-4 w-4" />
     },
     {
-      name: nav.locations,
-      href: `/${locale}/bookings/locations`,
-      icon: <MapPin className="h-4 w-4" />
+      name: nav.shipping,
+      href: `/${locale}/commerce/shipping`,
+      icon: <Truck className="h-4 w-4" />
+    },
+  ];
+
+  const salesItems = [
+    {
+      name: nav.payments,
+      href: `/${locale}/commerce/payments`,
+      icon: <CreditCard className="h-4 w-4" />
     },
     {
-      name: nav.staff,
-      href: `/${locale}/bookings/staff`,
-      icon: <UserCheck className="h-4 w-4" />
+      name: nav.discounts,
+      href: `/${locale}/commerce/discounts`,
+      icon: <Percent className="h-4 w-4" />
     },
     {
-      name: nav.rules,
-      href: `/${locale}/bookings/rules`,
-      icon: <Clock className="h-4 w-4" />
+      name: nav.reviews,
+      href: `/${locale}/commerce/reviews`,
+      icon: <Star className="h-4 w-4" />
     },
   ];
 
   const analyticsItems = [
     {
-      name: nav.reports,
-      href: `/${locale}/bookings/reports`,
+      name: nav.analytics,
+      href: `/${locale}/commerce/analytics`,
       icon: <BarChart3 className="h-4 w-4" />
     },
-    {
-      name: nav.payments,
-      href: `/${locale}/bookings/payments`,
-      icon: <CreditCard className="h-4 w-4" />
-    },
   ];
-  
+
+  const settingsNavItem = {
+    name: nav.settings,
+    href: `/${locale}/commerce/settings`,
+    icon: <Settings className="h-4 w-4" />
+  };
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/bookings`) {
-      return pathname === `/${locale}/bookings` || pathname === `/${locale}/bookings/`;
+    if (path === `/${locale}/commerce`) {
+      return pathname === `/${locale}/commerce` || pathname === `/${locale}/commerce/`;
     }
     
     // For other links, check if pathname starts with the link path
@@ -246,7 +265,7 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-between w-full text-lg font-semibold text-foreground sidebar-title hover:bg-gray-100 rounded-md px-2 py-1 transition-colors"
                 >
-                  <span>Bookings</span>
+                  <span>E-COMMERCE</span>
                   <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
@@ -261,11 +280,11 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                       <span>CMS</span>
                     </Link>
                     <Link
-                      href={`/${locale}/commerce`}
+                      href={`/${locale}/bookings`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
-                      <span>E-COMMERCE</span>
+                      <span>Bookings</span>
                     </Link>
                   </div>
                 )}
@@ -301,8 +320,26 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
               ))}
             </SidebarGroup>
             
-            <SidebarGroup title="Management">
-              {managementItems.map((item) => (
+            <SidebarGroup title="Inventory & Catalog">
+              {inventoryItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="block"
+                  onClick={(e) => handleNavigation(item.href, e)}
+                >
+                  <SidebarItem
+                    icon={item.icon}
+                    active={isActiveLink(item.href)}
+                  >
+                    {item.name}
+                  </SidebarItem>
+                </Link>
+              ))}
+            </SidebarGroup>
+            
+            <SidebarGroup title="Sales & Marketing">
+              {salesItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
@@ -337,6 +374,21 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
               ))}
             </SidebarGroup>
             
+            <SidebarGroup title="Configuration">
+              <Link
+                key={settingsNavItem.name}
+                href={settingsNavItem.href}
+                className="block"
+                onClick={(e) => handleNavigation(settingsNavItem.href, e)}
+              >
+                <SidebarItem
+                  icon={settingsNavItem.icon}
+                  active={isActiveLink(settingsNavItem.href)}
+                >
+                  {settingsNavItem.name}
+                </SidebarItem>
+              </Link>
+            </SidebarGroup>
           </SidebarContent>
           
           <SidebarFooter>

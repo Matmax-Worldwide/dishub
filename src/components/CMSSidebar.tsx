@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -16,7 +16,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  BookOpen
+  BookOpen,
+  ChevronDown
 } from 'lucide-react';
 
 import {
@@ -65,6 +66,7 @@ function CollapsibleButton({ className = "" }) {
 export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // Unsaved changes context
   const {
@@ -199,29 +201,48 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     <SidebarProvider defaultCollapsed={false}>
       <Sidebar className="flex flex-col h-full relative">
         <SidebarHeader className="flex items-center justify-between p-3 pb-2">
-          <div className="flex items-center space-x-2">
-            <Link href={`/${locale}/cms`} className="flex items-center">
-              <div className="relative h-8 w-8 mr-2">
-                <Image 
-                  src="/images/logo.png" 
-                  alt="E-Voque CMS" 
-                  fill
-                  sizes="32px"
-                  priority
-                  style={{ objectFit: 'contain' }}
-                />
-              </div>
-              <span className="text-lg font-semibold text-foreground sidebar-title">CMS</span>
-            </Link>
+          <div className="flex items-center space-x-2 flex-1">
+            <div className="relative h-8 w-8 mr-2">
+              <Image 
+                src="/images/logo.png" 
+                alt="E-Voque" 
+                fill
+                sizes="32px"
+                priority
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
             
-            {/* Switch to Bookings button */}
-            <Link 
-              href={`/${locale}/bookings`}
-              className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-              title="Switch to Bookings"
-            >
-              Bookings
-            </Link>
+            {/* Dropdown Switcher */}
+            <div className="relative flex-1">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between w-full text-lg font-semibold text-foreground sidebar-title hover:bg-gray-100 rounded-md px-2 py-1 transition-colors"
+              >
+                <span>CMS</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                  <Link
+                    href={`/${locale}/bookings`}
+                    className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <span>Bookings</span>
+                  </Link>
+                  <Link
+                    href={`/${locale}/commerce`}
+                    className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <span>E-COMMERCE</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center">
