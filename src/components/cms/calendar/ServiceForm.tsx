@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Service, ServiceCategory, Location } from '@/types/calendar'; // Assuming type definitions
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area'; // For location list
@@ -47,7 +46,15 @@ export default function ServiceForm({
   isSaving
 }: ServiceFormProps) {
   const [formData, setFormData] = useState<Partial<Service>>(defaultServiceValues);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Debug logging for categories
+  useEffect(() => {
+    console.log('ServiceForm: allCategories prop changed:', allCategories);
+    console.log('ServiceForm: allCategories length:', allCategories?.length || 0);
+    console.log('ServiceForm: allCategories content:', JSON.stringify(allCategories, null, 2));
+  }, [allCategories]);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,8 +65,11 @@ export default function ServiceForm({
           // Ensure locationIds is an array of strings, even if initialData.locations provides full objects
           locationIds: initialData.locations?.map(loc => loc.id) || [], 
         });
+        // Initialize selected categories - for now, use single category if exists
+        setSelectedCategoryIds(initialData.serviceCategoryId ? [initialData.serviceCategoryId] : []);
       } else {
         setFormData(defaultServiceValues);
+        setSelectedCategoryIds([]);
       }
       setFormError(null);
     }
@@ -96,12 +106,19 @@ export default function ServiceForm({
     setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
 
-  const handleSelectChange = (name: keyof Service, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
   
   const handleSwitchChange = (name: keyof Service, checked: boolean) => {
     setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleCategoryToggle = (categoryId: string) => {
+    setSelectedCategoryIds(prev => {
+      if (prev.includes(categoryId)) {
+        return prev.filter(id => id !== categoryId);
+      } else {
+        return [...prev, categoryId];
+      }
+    });
   };
 
   const handleLocationToggle = (locationId: string) => {
@@ -124,9 +141,9 @@ export default function ServiceForm({
       toast.error('Service name is required.');
       return;
     }
-    if (!formData.serviceCategoryId) {
-      setFormError('Service category is required.');
-      toast.error('Service category is required.');
+    if (selectedCategoryIds.length === 0) {
+      setFormError('At least one service category is required.');
+      toast.error('At least one service category is required.');
       return;
     }
     if (formData.durationMinutes == null || formData.durationMinutes <= 0) {
@@ -140,7 +157,11 @@ export default function ServiceForm({
         return;
     }
 
-    const dataToSave: Partial<Service> = { ...formData };
+    const dataToSave: Partial<Service> = { 
+      ...formData,
+      // For now, use the first selected category as the primary category
+      serviceCategoryId: selectedCategoryIds[0]
+    };
     if (initialData?.id) {
         dataToSave.id = initialData.id;
     }
@@ -204,36 +225,30 @@ export default function ServiceForm({
                 <Input id="name" name="name" value={formData.name} onChange={handleChange} disabled={isSaving} />
               </div>
               <div>
-                <Label htmlFor="serviceCategoryId">Category <span className="text-red-500">*</span></Label>
-                <Select 
-                  value={formData.serviceCategoryId || ''} 
-                  onValueChange={(val) => handleSelectChange('serviceCategoryId', val)} 
-                  disabled={isSaving || !allCategories || allCategories.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      !allCategories || allCategories.length === 0 
-                        ? "Loading categories..." 
-                        : "Select category"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                  <SelectItem key="hola" value="hola">
-                          hola
-                        </SelectItem>
-                    {allCategories && allCategories.length > 0 ? (
-                      allCategories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="" disabled>
-                        No categories available
-                      </SelectItem>
+                <Label className="text-base font-medium">Categories <span className="text-red-500">*</span></Label>
+                <p className="text-sm text-gray-500 mb-3">Select which categories this service belongs to</p>
+                <ScrollArea className="h-32 w-full border rounded-md p-3">
+                  <div className="space-y-2">
+                    {allCategories?.map(category => (
+                      <div key={category.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`category-${category.id}`}
+                          checked={selectedCategoryIds.includes(category.id)}
+                          onChange={() => handleCategoryToggle(category.id)}
+                          disabled={isSaving}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <Label htmlFor={`category-${category.id}`} className="text-sm font-normal cursor-pointer">
+                          {category.name}
+                        </Label>
+                      </div>
+                    ))}
+                    {(!allCategories || allCategories.length === 0) && (
+                      <p className="text-sm text-gray-500">No categories available</p>
                     )}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </ScrollArea>
                 {(!allCategories || allCategories.length === 0) && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Please create a service category first before adding services.
@@ -336,7 +351,7 @@ export default function ServiceForm({
           </Button>
           <Button 
             type="submit" 
-            disabled={isSaving || !formData.name?.trim() || !formData.serviceCategoryId}
+            disabled={isSaving || !formData.name?.trim() || selectedCategoryIds.length === 0}
             onClick={handleSubmit}
           >
             {isSaving ? 'Saving...' : (initialData?.id ? 'Update Service' : 'Create Service')}

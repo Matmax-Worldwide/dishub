@@ -50,6 +50,11 @@ export default function StaffForm({
   const getInitialSchedule = useCallback(() => {
     const regularHours = initialData?.schedules?.filter((s: StaffSchedule) => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
     // Ensure all days are present, using defaults for missing ones
+    const OrderedDays: PrismaDayOfWeek[] = [
+      PrismaDayOfWeek.MONDAY, PrismaDayOfWeek.TUESDAY, PrismaDayOfWeek.WEDNESDAY, 
+      PrismaDayOfWeek.THURSDAY, PrismaDayOfWeek.FRIDAY, PrismaDayOfWeek.SATURDAY, PrismaDayOfWeek.SUNDAY
+    ];
+  
     return OrderedDays.map(day => {
         const existing = regularHours.find((s: StaffSchedule) => s.dayOfWeek === day);
         if (existing) return existing;
@@ -166,10 +171,6 @@ export default function StaffForm({
     }
   };
 
-  const OrderedDays: PrismaDayOfWeek[] = [
-    PrismaDayOfWeek.MONDAY, PrismaDayOfWeek.TUESDAY, PrismaDayOfWeek.WEDNESDAY, 
-    PrismaDayOfWeek.THURSDAY, PrismaDayOfWeek.FRIDAY, PrismaDayOfWeek.SATURDAY, PrismaDayOfWeek.SUNDAY
-  ];
 
   return (
     <div 

@@ -103,7 +103,10 @@ export default function LocationManager() {
         const result = await graphqlClient.updateLocation({ id: editingLocation.id, input: data });
         toast.success(`Location "${result.name}" updated successfully.`);
       } else { // Creating new location
-        const result = await graphqlClient.createLocation({ input: data });
+        if (!data.name) {
+          throw new Error('Location name is required');
+        }
+        const result = await graphqlClient.createLocation({ input: data as { name: string; address?: string | null; phone?: string | null; operatingHours?: Record<string, unknown> | null } });
         toast.success(`Location "${result.name}" created successfully.`);
       }
       fetchLocations(); // Refresh the list
