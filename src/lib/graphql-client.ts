@@ -3951,7 +3951,294 @@ export const cmsOperations = {
         message: error instanceof Error ? error.message : 'Failed to delete location'
       };
     }
-  }
+  },
+
+  // Calendar Bookings Operations
+  async bookings({ filter, pagination }: {
+    filter?: {
+      dateFrom?: string;
+      dateTo?: string;
+      status?: string;
+      locationId?: string;
+      serviceId?: string;
+      staffProfileId?: string;
+      customerId?: string;
+      searchQuery?: string;
+    };
+    pagination?: {
+      page?: number;
+      pageSize?: number;
+    };
+  }): Promise<{
+    items: Array<{
+      id: string;
+      customerName?: string | null;
+      customerEmail?: string | null;
+      customerPhone?: string | null;
+      service: { id: string; name: string };
+      location: { id: string; name: string };
+      staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    totalCount: number;
+    page: number;
+    pageSize: number;
+  } | null> {
+    const query = `
+      query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
+        bookings(filter: $filter, pagination: $pagination) {
+          items {
+            id
+            customerName
+            customerEmail
+            customerPhone
+            service {
+              id
+              name
+            }
+            location {
+              id
+              name
+            }
+            staffProfile {
+              id
+              user {
+                firstName
+                lastName
+              }
+            }
+            bookingDate
+            startTime
+            endTime
+            status
+            notes
+            createdAt
+            updatedAt
+          }
+          totalCount
+          page
+          pageSize
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        bookings: {
+          items: Array<{
+            id: string;
+            customerName?: string | null;
+            customerEmail?: string | null;
+            customerPhone?: string | null;
+            service: { id: string; name: string };
+            location: { id: string; name: string };
+            staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+            bookingDate: string;
+            startTime: string;
+            endTime: string;
+            status: string;
+            notes?: string | null;
+            createdAt: string;
+            updatedAt: string;
+          }>;
+          totalCount: number;
+          page: number;
+          pageSize: number;
+        };
+      }>(query, { filter, pagination });
+      
+      return response.bookings || null;
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      return null;
+    }
+  },
+
+  // Create a new booking
+  async createBooking({ input }: {
+    input: {
+      serviceId: string;
+      locationId: string;
+      staffProfileId?: string;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      customerName: string;
+      customerEmail: string;
+      customerPhone?: string;
+      notes?: string;
+      userId?: string;
+    };
+  }): Promise<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    service: { name: string };
+    location: { name: string };
+    staffProfile?: { user: { firstName: string; lastName: string } } | null;
+    bookingDate: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    notes?: string;
+  } | null> {
+    const mutation = `
+      mutation CreateBooking($input: BookingInput!) {
+        createBooking(input: $input) {
+          id
+          customerName
+          customerEmail
+          service {
+            name
+          }
+          location {
+            name
+          }
+          staffProfile {
+            user {
+              firstName
+              lastName
+            }
+          }
+          bookingDate
+          startTime
+          endTime
+          status
+          notes
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        createBooking: {
+          id: string;
+          customerName: string;
+          customerEmail: string;
+          service: { name: string };
+          location: { name: string };
+          staffProfile?: { user: { firstName: string; lastName: string } } | null;
+          bookingDate: string;
+          startTime: string;
+          endTime: string;
+          status: string;
+          notes?: string;
+        };
+      }>(mutation, { input });
+      
+      return response.createBooking || null;
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
+  },
+
+  // Get staff available for a service at a location
+  async staffForService({ serviceId, locationId }: {
+    serviceId: string;
+    locationId: string;
+  }): Promise<Array<{
+    id: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      profileImageUrl?: string;
+    };
+    bio?: string;
+    specializations: string[];
+  }>> {
+    const query = `
+      query StaffForService($serviceId: ID!, $locationId: ID!) {
+        staffForService(serviceId: $serviceId, locationId: $locationId) {
+          id
+          user {
+            id
+            firstName
+            lastName
+            profileImageUrl
+          }
+          bio
+          specializations
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        staffForService: Array<{
+          id: string;
+          user: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            profileImageUrl?: string;
+          };
+          bio?: string;
+          specializations: string[];
+        }>;
+      }>(query, { serviceId, locationId });
+      
+      return response.staffForService || [];
+    } catch (error) {
+      console.error('Error fetching staff for service:', error);
+      return [];
+    }
+  },
+
+  // Get available time slots
+  async availableSlots({ 
+    serviceId, 
+    locationId, 
+    staffProfileId, 
+    date 
+  }: {
+    serviceId: string;
+    locationId: string;
+    staffProfileId?: string;
+    date: string;
+  }): Promise<Array<{
+    startTime: string;
+    endTime: string;
+    isAvailable: boolean;
+  }>> {
+    const query = `
+      query AvailableSlots($serviceId: ID!, $locationId: ID!, $staffProfileId: ID, $date: String!) {
+        availableSlots(
+          serviceId: $serviceId, 
+          locationId: $locationId, 
+          staffProfileId: $staffProfileId, 
+          date: $date
+        ) {
+          startTime
+          endTime
+          isAvailable
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        availableSlots: Array<{
+          startTime: string;
+          endTime: string;
+          isAvailable: boolean;
+        }>;
+      }>(query, { serviceId, locationId, staffProfileId, date });
+      
+      return response.availableSlots || [];
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      return [];
+    }
+  },
+
 };
 
 // Form Builder API functions
@@ -5788,6 +6075,113 @@ const graphqlClient = {
     } catch (error) {
       console.error('Error updating staff schedule:', error);
       throw error;
+    }
+  },
+
+  // Calendar Bookings Operations
+  async bookings({ filter, pagination }: {
+    filter?: {
+      dateFrom?: string;
+      dateTo?: string;
+      status?: string;
+      locationId?: string;
+      serviceId?: string;
+      staffProfileId?: string;
+      customerId?: string;
+      searchQuery?: string;
+    };
+    pagination?: {
+      page?: number;
+      pageSize?: number;
+    };
+  }): Promise<{
+    items: Array<{
+      id: string;
+      customerName?: string | null;
+      customerEmail?: string | null;
+      customerPhone?: string | null;
+      service: { id: string; name: string };
+      location: { id: string; name: string };
+      staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    totalCount: number;
+    page: number;
+    pageSize: number;
+  } | null> {
+    const query = `
+      query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
+        bookings(filter: $filter, pagination: $pagination) {
+          items {
+            id
+            customerName
+            customerEmail
+            customerPhone
+            service {
+              id
+              name
+            }
+            location {
+              id
+              name
+            }
+            staffProfile {
+              id
+              user {
+                firstName
+                lastName
+              }
+            }
+            bookingDate
+            startTime
+            endTime
+            status
+            notes
+            createdAt
+            updatedAt
+          }
+          totalCount
+          page
+          pageSize
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        bookings: {
+          items: Array<{
+            id: string;
+            customerName?: string | null;
+            customerEmail?: string | null;
+            customerPhone?: string | null;
+            service: { id: string; name: string };
+            location: { id: string; name: string };
+            staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+            bookingDate: string;
+            startTime: string;
+            endTime: string;
+            status: string;
+            notes?: string | null;
+            createdAt: string;
+            updatedAt: string;
+          }>;
+          totalCount: number;
+          page: number;
+          pageSize: number;
+        };
+      }>(query, { filter, pagination });
+      
+      return response.bookings || null;
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      return null;
     }
   },
 

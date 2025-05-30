@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,8 @@ import {
   SettingsIcon,
   PlusIcon,
   BookOpenIcon,
-  BarChart3Icon
+  BarChart3Icon,
+  Loader2
 } from 'lucide-react';
 
 // Import calendar management components
@@ -23,44 +24,133 @@ import LocationManager from '@/components/cms/calendar/LocationManager';
 import CategoryManager from '@/components/cms/calendar/CategoryManager';
 import BookingsList from '@/components/cms/calendar/BookingsList';
 import CalendarSection from '@/components/cms/sections/CalendarSection';
+import graphqlClient from '@/lib/graphql-client';
+import { toast } from 'sonner';
+
+// Types for dashboard stats
+interface DashboardStats {
+  totalBookings: number;
+  activeServices: number;
+  staffMembers: number;
+  locations: number;
+  bookingsChange?: string;
+  servicesChange?: string;
+  staffChange?: string;
+  locationsChange?: string;
+}
+
+interface RecentBooking {
+  id: string;
+  customerName?: string | null;
+  service: { name: string };
+  startTime: string;
+  status: string;
+}
+
+interface ServiceData {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
 
 export default function CalendarManagementPage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const stats = [
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoadingStats(true);
+      setError(null);
+      
+      try {
+        // Fetch all data in parallel
+        const [
+          bookingsData,
+          servicesData, 
+          staffData,
+          locationsData
+        ] = await Promise.all([
+          graphqlClient.bookings({ 
+            filter: {}, 
+            pagination: { page: 1, pageSize: 5 } 
+          }),
+          graphqlClient.services(),
+          graphqlClient.staffProfiles(),
+          graphqlClient.locations()
+        ]);
+
+        // Calculate stats
+        const dashboardStats: DashboardStats = {
+          totalBookings: bookingsData?.totalCount || 0,
+          activeServices: servicesData?.filter((s: ServiceData) => s.isActive).length || 0,
+          staffMembers: staffData?.length || 0,
+          locations: locationsData?.length || 0,
+          // TODO: Calculate changes from previous period
+          bookingsChange: '+12%', // Placeholder until we implement period comparison
+          servicesChange: '+3',
+          staffChange: '+1', 
+          locationsChange: '0'
+        };
+
+        setStats(dashboardStats);
+        
+        // Set recent bookings
+        if (bookingsData?.items) {
+          setRecentBookings(bookingsData.items.slice(0, 3));
+        }
+
+      } catch (err: unknown) {
+        console.error('Failed to fetch dashboard data:', err);
+        const errorMsg = `Failed to load dashboard: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        setError(errorMsg);
+        toast.error(errorMsg);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Generate stats cards with real data
+  const statsCards = stats ? [
     {
       title: 'Total Bookings',
-      value: '156',
-      change: '+12%',
+      value: stats.totalBookings.toString(),
+      change: stats.bookingsChange || '+0%',
       icon: CalendarIcon,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
       title: 'Active Services',
-      value: '24',
-      change: '+3',
+      value: stats.activeServices.toString(),
+      change: stats.servicesChange || '+0',
       icon: ClockIcon,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
       title: 'Staff Members',
-      value: '8',
-      change: '+1',
+      value: stats.staffMembers.toString(),
+      change: stats.staffChange || '+0',
       icon: UsersIcon,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },
     {
       title: 'Locations',
-      value: '3',
-      change: '0',
+      value: stats.locations.toString(),
+      change: stats.locationsChange || '0',
       icon: MapPinIcon,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
     }
-  ];
+  ] : [];
 
   const quickActions = [
     {
@@ -92,6 +182,34 @@ export default function CalendarManagementPage() {
       color: 'bg-orange-500 hover:bg-orange-600'
     }
   ];
+
+  // Loading state
+  if (isLoadingStats && !stats) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="ml-2">Loading calendar dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !stats) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -148,7 +266,7 @@ export default function CalendarManagementPage() {
         <TabsContent value="overview" className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
+            {statsCards.map((stat, index) => (
               <Card key={index} className="relative overflow-hidden">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -207,16 +325,26 @@ export default function CalendarManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3].map((_, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Hair Cut - John Doe</p>
-                        <p className="text-xs text-gray-500">Today at 2:00 PM</p>
+                  {recentBookings.length > 0 ? (
+                    recentBookings.map((booking, index) => (
+                      <div key={booking.id || index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {booking.service.name} - {booking.customerName || 'Guest'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(booking.startTime).toLocaleDateString()} at {new Date(booking.startTime).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {booking.status.toLowerCase()}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="text-xs">Confirmed</Badge>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">No recent bookings</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

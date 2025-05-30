@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import graphqlClient from '@/lib/graphql-client'; 
-import { Service, ServiceCategory, StaffProfile, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
+import { Service, ServiceCategory, StaffProfile, Location, AvailableTimeSlot, Booking, BookingStatus } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, CheckCircle, User, Users  } from 'lucide-react'; // Added new icons
+import { Loader2, CheckCircle, User, Users } from 'lucide-react'; // Added new icons
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { DayPicker } from 'react-day-picker'; 
@@ -172,39 +172,47 @@ export default function CalendarSection({
     const bookingInput = {
       locationId: selectedLocationId,
       serviceId: selectedServiceId,
-      staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? null : selectedStaffId,
+      staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : (selectedStaffId || undefined),
+      bookingDate: format(selectedDate!, 'yyyy-MM-dd'),
       startTime: selectedTimeSlot.startTime, // Already ISO string
       endTime: selectedTimeSlot.endTime,     // Already ISO string
-      durationMinutes: serviceDetails.durationMinutes,
-      // status: "PENDING", // Or "CONFIRMED" depending on business logic, resolver might set default
       notes: customerInfo.notes,
       customerName: customerInfo.fullName,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
-      communicationPreferences: [], // Example: ['EMAIL'] if UI was added
     };
 
     try {
-      // TODO: Implement createBooking in GraphQL client
-      // const result = await graphqlClient.createBooking({ input: bookingInput });
-      // For now, just simulate success
-      const result: Booking = { 
-        id: 'temp-booking-id', 
-        customerName: bookingInput.customerName, 
-        startTime: bookingInput.startTime,
-        endTime: bookingInput.endTime,
-        bookingDate: format(selectedDate!, 'yyyy-MM-dd'),
-        serviceId: selectedServiceId!,
-        locationId: selectedLocationId!,
-        service: { name: 'Selected Service' }, 
-        staffProfile: null, 
-        customerEmail: bookingInput.customerEmail, 
-        customerPhone: bookingInput.customerPhone, 
-        notes: bookingInput.notes 
-      };
+      // Implement createBooking in GraphQL client
+      const result = await graphqlClient.createBooking({ input: bookingInput });
       
       if (result) { // Assuming createBooking returns the created booking object
-        setConfirmedBookingDetails(result);
+        // Transform the result to match the Booking interface
+        const bookingDetails: Booking = {
+          id: result.id,
+          customerName: result.customerName,
+          customerEmail: result.customerEmail,
+          serviceId: selectedServiceId,
+          locationId: selectedLocationId,
+          service: result.service,
+          location: result.location,
+          staffProfile: result.staffProfile ? {
+            id: result.staffProfile.user.firstName + result.staffProfile.user.lastName, // Temporary ID
+            user: {
+              id: 'temp-id',
+              email: 'temp@email.com',
+              firstName: result.staffProfile.user.firstName,
+              lastName: result.staffProfile.user.lastName
+            }
+          } : null,
+          bookingDate: result.bookingDate,
+          startTime: result.startTime,
+          endTime: result.endTime,
+          status: result.status as BookingStatus,
+          notes: result.notes
+        };
+        
+        setConfirmedBookingDetails(bookingDetails);
         setCurrentStep('confirmation');
         toast.success("Booking successfully created!");
       } else {
@@ -379,45 +387,48 @@ export default function CalendarSection({
   useEffect(() => {
     if (currentStep === 'staffSelection' && selectedServiceId && selectedLocationId && showStaffSelector) {
       setIsLoadingStaff(true);
-      // TODO: Implement staffForService in GraphQL client  
-      // graphqlClient.staffForService({ serviceId: selectedServiceId, locationId: selectedLocationId })
-      //   .then((data: StaffProfile[]) => setAvailableStaffForService(data || []))
-      //   .catch((err: unknown) => {
-      //     console.error("Error fetching staff:", err);
-      //     toast.error("Could not load available staff.");
-      //     setAvailableStaffForService([]); // Clear on error
-      //   })
-      //   .finally(() => setIsLoadingStaff(false));
-      
-      // For now, set empty staff list
-      setAvailableStaffForService([]);
-      setIsLoadingStaff(false);
+      graphqlClient.staffForService({ serviceId: selectedServiceId, locationId: selectedLocationId })
+        .then((data) => {
+          // Transform the data to match StaffProfile interface
+          const transformedStaff = data.map(staff => ({
+            id: staff.id,
+            user: {
+              ...staff.user,
+              email: staff.user.profileImageUrl || 'temp@email.com' // Temporary fallback
+            },
+            bio: staff.bio,
+            specializations: staff.specializations
+          }));
+          setAvailableStaffForService(transformedStaff);
+        })
+        .catch((err: unknown) => {
+          console.error("Error fetching staff:", err);
+          toast.error("Could not load available staff.");
+          setAvailableStaffForService([]); // Clear on error
+        })
+        .finally(() => setIsLoadingStaff(false));
     }
   }, [currentStep, selectedServiceId, selectedLocationId, showStaffSelector]);
 
   // Fetch Available Time Slots
   useEffect(() => {
-    if (currentStep === 'dateTimeSelection' && selectedDate && selectedServiceId && selectedLocationId && selectedStaffId !== undefined) {
+    if (currentStep === 'dateTimeSelection' && selectedDate && selectedServiceId && selectedLocationId) {
       setIsLoadingSlots(true);
-      // TODO: Implement availableSlots in GraphQL client
-      // const dateString = format(selectedDate, "yyyy-MM-dd");
-      // graphqlClient.availableSlots({ 
-      //   serviceId: selectedServiceId, 
-      //   locationId: selectedLocationId, 
-      //   date: dateString, 
-      //   staffId: selectedStaffId === "ANY_AVAILABLE" ? null : selectedStaffId 
-      // })
-      //   .then((data: AvailableTimeSlot[]) => setTimeSlots(data || []))
-      //   .catch((err: unknown) => {
-      //     console.error("Error fetching time slots:", err);
-      //     toast.error("Could not load available time slots.");
-      //     setTimeSlots([]); 
-      //   })
-      //   .finally(() => setIsLoadingSlots(false));
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
       
-      // For now, set empty slots
-      setTimeSlots([]);
-      setIsLoadingSlots(false);
+      graphqlClient.availableSlots({ 
+        serviceId: selectedServiceId, 
+        locationId: selectedLocationId, 
+        staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : (selectedStaffId || undefined),
+        date: dateString 
+      })
+        .then((slots) => setTimeSlots(slots || []))
+        .catch((err: unknown) => {
+          console.error("Error fetching available slots:", err);
+          toast.error("Could not load available time slots.");
+          setTimeSlots([]);
+        })
+        .finally(() => setIsLoadingSlots(false));
     }
   }, [currentStep, selectedDate, selectedServiceId, selectedLocationId, selectedStaffId]);
 
