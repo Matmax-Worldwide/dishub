@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
 import { NextRequest } from 'next/server';
 
@@ -74,16 +73,16 @@ interface UpdateServiceCategoryInput {
 
 interface CreateLocationInput {
   name: string;
-  address?: string;
-  phone?: string;
-  operatingHours?: Record<string, unknown>;
+  address?: string | null;
+  phone?: string | null;
+  operatingHours?: unknown;
 }
 
 interface UpdateLocationInput {
   name?: string;
   address?: string;
   phone?: string;
-  operatingHours?: Record<string, unknown>;
+  operatingHours?: unknown;
 }
 
 interface CreateServiceInput {
@@ -758,7 +757,7 @@ export const calendarResolvers = {
           name: input.name,
           address: input.address || null,
           phone: input.phone || null,
-          operatingHours: input.operatingHours ? input.operatingHours as unknown : undefined,
+          operatingHours: input.operatingHours,
         };
         const location = await prisma.location.create({ data });
         return {
@@ -786,7 +785,7 @@ export const calendarResolvers = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.address !== undefined && { address: input.address }),
           ...(input.phone !== undefined && { phone: input.phone }),
-          ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours as unknown }),
+          ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours }),
         };
         console.log('updateLocation prisma data:', data);
         const location = await prisma.location.update({ where: { id }, data });
