@@ -5195,7 +5195,508 @@ export const cmsOperations = {
     } }>(mutation, { input });
 
     return result.createPaymentProvider;
-  }
+  },
+
+  // Shipping functions
+  async getShippingProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    trackingUrl?: string;
+    shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingProviders($filter: ShippingProviderFilterInput, $pagination: PaginationInput) {
+        shippingProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          trackingUrl
+          shippingMethods {
+            id
+            name
+            description
+            isActive
+            estimatedDaysMin
+            estimatedDaysMax
+            trackingEnabled
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      trackingUrl?: string;
+      shippingMethods: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        isActive: boolean;
+        estimatedDaysMin?: number;
+        estimatedDaysMax?: number;
+        trackingEnabled: boolean;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingProviders || [];
+  },
+
+  async getShippingMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    providerId: string;
+    isActive: boolean;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    trackingEnabled: boolean;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      minWeight?: number;
+      maxWeight?: number;
+      shippingZone: {
+        id: string;
+        name: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingMethods($filter: ShippingMethodFilterInput, $pagination: PaginationInput) {
+        shippingMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          providerId
+          isActive
+          estimatedDaysMin
+          estimatedDaysMax
+          trackingEnabled
+          provider {
+            id
+            name
+            type
+          }
+          shippingRates {
+            id
+            baseRate
+            minWeight
+            maxWeight
+            shippingZone {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        providerId?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      providerId: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        minWeight?: number;
+        maxWeight?: number;
+        shippingZone: {
+          id: string;
+          name: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingMethods || [];
+  },
+
+  async getShippingZones(filter?: {
+    search?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    countries: string[];
+    states: string[];
+    postalCodes: string[];
+    isActive: boolean;
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+        };
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingZones($filter: ShippingZoneFilterInput, $pagination: PaginationInput) {
+        shippingZones(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          countries
+          states
+          postalCodes
+          isActive
+          shippingRates {
+            id
+            baseRate
+            shippingMethod {
+              id
+              name
+              provider {
+                id
+                name
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingZones: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      countries: string[];
+      states: string[];
+      postalCodes: string[];
+      isActive: boolean;
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+          };
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingZones || [];
+  },
+
+  async getShipments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    shippingMethodId?: string;
+    trackingNumber?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId: string;
+    trackingNumber?: string;
+    status: string;
+    shippingCost: number;
+    weight?: number;
+    dimensions?: string;
+    fromAddress: string;
+    toAddress: string;
+    shippedAt?: string;
+    estimatedDelivery?: string;
+    deliveredAt?: string;
+    order: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    shippingMethod: {
+      id: string;
+      name: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShipments($filter: ShipmentFilterInput, $pagination: PaginationInput) {
+        shipments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          trackingNumber
+          status
+          shippingCost
+          weight
+          dimensions
+          fromAddress
+          toAddress
+          shippedAt
+          estimatedDelivery
+          deliveredAt
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            currency {
+              id
+              code
+              symbol
+            }
+            shop {
+              id
+              name
+            }
+          }
+          shippingMethod {
+            id
+            name
+            provider {
+              id
+              name
+              type
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        shippingMethodId?: string;
+        trackingNumber?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shipments: Array<{
+      id: string;
+      orderId: string;
+      trackingNumber?: string;
+      status: string;
+      shippingCost: number;
+      weight?: number;
+      dimensions?: string;
+      fromAddress: string;
+      toAddress: string;
+      shippedAt?: string;
+      estimatedDelivery?: string;
+      deliveredAt?: string;
+      order: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shipments || [];
+  },
+
 };
 
 // Form Builder API functions
@@ -8713,10 +9214,86 @@ export const ecommerce = {
       }
     `;
 
+    const result = await gqlRequest<{ paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+      providerId: string;
+      isActive: boolean;
+      processingFeeRate?: number;
+      fixedFee?: number;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentMethods || [];
+  },
+
+  // Shipping functions
+  async getShippingProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    trackingUrl?: string;
+    shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingProviders($filter: ShippingProviderFilterInput, $pagination: PaginationInput) {
+        shippingProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          trackingUrl
+          shippingMethods {
+            id
+            name
+            description
+            isActive
+            estimatedDaysMin
+            estimatedDaysMax
+            trackingEnabled
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
     const variables: {
       filter?: {
         search?: string;
-        providerId?: string;
         type?: string;
         isActive?: boolean;
       };
@@ -8736,24 +9313,425 @@ export const ecommerce = {
       variables.pagination = pagination;
     }
 
-    const result = await gqlRequest<{ paymentMethods: Array<{
+    const result = await gqlRequest<{ shippingProviders: Array<{
       id: string;
       name: string;
       type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      trackingUrl?: string;
+      shippingMethods: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        isActive: boolean;
+        estimatedDaysMin?: number;
+        estimatedDaysMax?: number;
+        trackingEnabled: boolean;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingProviders || [];
+  },
+
+  async getShippingMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    providerId: string;
+    isActive: boolean;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    trackingEnabled: boolean;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      minWeight?: number;
+      maxWeight?: number;
+      shippingZone: {
+        id: string;
+        name: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingMethods($filter: ShippingMethodFilterInput, $pagination: PaginationInput) {
+        shippingMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          providerId
+          isActive
+          estimatedDaysMin
+          estimatedDaysMax
+          trackingEnabled
+          provider {
+            id
+            name
+            type
+          }
+          shippingRates {
+            id
+            baseRate
+            minWeight
+            maxWeight
+            shippingZone {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        providerId?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
       providerId: string;
       isActive: boolean;
-      processingFeeRate?: number;
-      fixedFee?: number;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
       provider: {
         id: string;
         name: string;
         type: string;
       };
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        minWeight?: number;
+        maxWeight?: number;
+        shippingZone: {
+          id: string;
+          name: string;
+        };
+      }>;
       createdAt: string;
       updatedAt: string;
     }> }>(query, variables);
 
-    return result.paymentMethods || [];
+    return result.shippingMethods || [];
+  },
+
+  async getShippingZones(filter?: {
+    search?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    countries: string[];
+    states: string[];
+    postalCodes: string[];
+    isActive: boolean;
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+        };
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingZones($filter: ShippingZoneFilterInput, $pagination: PaginationInput) {
+        shippingZones(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          countries
+          states
+          postalCodes
+          isActive
+          shippingRates {
+            id
+            baseRate
+            shippingMethod {
+              id
+              name
+              provider {
+                id
+                name
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingZones: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      countries: string[];
+      states: string[];
+      postalCodes: string[];
+      isActive: boolean;
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+          };
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingZones || [];
+  },
+
+  async getShipments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    shippingMethodId?: string;
+    trackingNumber?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId: string;
+    trackingNumber?: string;
+    status: string;
+    shippingCost: number;
+    weight?: number;
+    dimensions?: string;
+    fromAddress: string;
+    toAddress: string;
+    shippedAt?: string;
+    estimatedDelivery?: string;
+    deliveredAt?: string;
+    order: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    shippingMethod: {
+      id: string;
+      name: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShipments($filter: ShipmentFilterInput, $pagination: PaginationInput) {
+        shipments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          trackingNumber
+          status
+          shippingCost
+          weight
+          dimensions
+          fromAddress
+          toAddress
+          shippedAt
+          estimatedDelivery
+          deliveredAt
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            currency {
+              id
+              code
+              symbol
+            }
+            shop {
+              id
+              name
+            }
+          }
+          shippingMethod {
+            id
+            name
+            provider {
+              id
+              name
+              type
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        shippingMethodId?: string;
+        trackingNumber?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shipments: Array<{
+      id: string;
+      orderId: string;
+      trackingNumber?: string;
+      status: string;
+      shippingCost: number;
+      weight?: number;
+      dimensions?: string;
+      fromAddress: string;
+      toAddress: string;
+      shippedAt?: string;
+      estimatedDelivery?: string;
+      deliveredAt?: string;
+      order: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shipments || [];
   },
 
 };

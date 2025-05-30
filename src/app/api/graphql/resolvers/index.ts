@@ -19,7 +19,8 @@ import { cmsResolvers } from './cms';
 import { blogResolvers } from './blogs';
 import { formResolvers } from './forms';
 import { menuResolvers } from './menus';
-import { calendarResolvers } from './calendarResolvers'; 
+import { calendarResolvers } from './calendarResolvers';
+import { shippingResolvers } from './shipping';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -472,6 +473,7 @@ const resolvers = {
     ...formResolvers.Query,
     ...menuResolvers.Query,
     ...calendarResolvers.Query, // Add calendar queries
+    ...shippingResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -490,6 +492,7 @@ const resolvers = {
     ...formResolvers.Mutation,
     ...menuResolvers.Mutation,
     ...calendarResolvers.Mutation, // Add calendar mutations
+    ...shippingResolvers.Mutation,
   },
   
   // Type resolvers

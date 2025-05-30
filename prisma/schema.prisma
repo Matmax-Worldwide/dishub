@@ -1522,6 +1522,7 @@ model Order {
   
   items         OrderItem[]
   payments      Payment[]
+  shipments     Shipment[]
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -1619,3 +1620,129 @@ model Payment {
   @@index([providerId])
   @@index([status])
 }
+
+// --------------- SHIPPING MODULE MODELS ---------------
+
+model ShippingProvider {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "FedEx", "UPS", "DHL", "USPS"
+  type        String  // e.g., "COURIER", "POSTAL", "FREIGHT"
+  isActive    Boolean @default(true)
+  apiKey      String?
+  secretKey   String?
+  webhookUrl  String?
+  trackingUrl String? // Base URL for tracking packages
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingMethods ShippingMethod[]
+  
+  @@unique([name])
+}
+
+model ShippingMethod {
+  id                String  @id @default(cuid())
+  name              String  // e.g., "Standard Shipping", "Express", "Overnight"
+  description       String?
+  providerId        String
+  isActive          Boolean @default(true)
+  estimatedDaysMin  Int?    // Minimum delivery days
+  estimatedDaysMax  Int?    // Maximum delivery days
+  trackingEnabled   Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  provider      ShippingProvider @relation(fields: [providerId], references: [id])
+  shippingRates ShippingRate[]
+  shipments     Shipment[]
+  
+  @@index([providerId])
+}
+
+model ShippingZone {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "Domestic", "International", "Europe"
+  description String?
+  countries   String[] // Array of country codes
+  states      String[] // Array of state/province codes
+  postalCodes String[] // Array of postal code patterns
+  isActive    Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingRates ShippingRate[]
+}
+
+model ShippingRate {
+  id               String  @id @default(cuid())
+  shippingMethodId String
+  shippingZoneId   String
+  minWeight        Float?  // Minimum weight in kg
+  maxWeight        Float?  // Maximum weight in kg
+  minValue         Float?  // Minimum order value
+  maxValue         Float?  // Maximum order value
+  baseRate         Float   // Base shipping cost
+  perKgRate        Float?  // Additional cost per kg
+  freeShippingMin  Float?  // Minimum order value for free shipping
+  isActive         Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  shippingZone   ShippingZone   @relation(fields: [shippingZoneId], references: [id])
+  
+  @@index([shippingMethodId])
+  @@index([shippingZoneId])
+}
+
+enum ShipmentStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  RETURNED
+  CANCELLED
+}
+
+model Shipment {
+  id               String         @id @default(cuid())
+  orderId          String
+  shippingMethodId String
+  trackingNumber   String?
+  status           ShipmentStatus @default(PENDING)
+  shippingCost     Float
+  weight           Float?
+  dimensions       String?        // JSON string with width, height, length
+  
+  // Shipping addresses
+  fromAddress      String         // JSON string with sender address
+  toAddress        String         // JSON string with recipient address
+  
+  // Tracking information
+  shippedAt        DateTime?
+  estimatedDelivery DateTime?
+  deliveredAt      DateTime?
+  
+  // Provider response data
+  providerResponse String?        // JSON response from shipping provider
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  order          Order          @relation(fields: [orderId], references: [id])
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  
+  @@index([orderId])
+  @@index([shippingMethodId])
+  @@index([trackingNumber])
+  @@index([status])
+}
+
+// --------------- END SHIPPING MODULE MODELS ---------------
