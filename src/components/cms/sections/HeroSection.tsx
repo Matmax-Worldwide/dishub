@@ -14,8 +14,7 @@ import {
   ComponentStyling, 
   ComponentStyleProps, 
   DEFAULT_STYLING,
-  generateStylesFromStyling,
-  generateClassesFromStyling
+  generateStylesFromStyling
 } from '@/types/cms-styling';
 
 interface HeroSectionProps extends ComponentStyleProps {
@@ -326,16 +325,20 @@ const HeroSection = React.memo(function HeroSection({
   const getDesignTemplateStyles = useCallback(() => {
     const baseStyles: React.CSSProperties = {};
     
+    console.log('Applying design template:', localDesignTemplate);
+    
     switch (localDesignTemplate) {
       case 'modern':
         return {
           ...baseStyles,
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: '#ffffff',
         };
       case 'elegant':
         return {
           ...baseStyles,
           background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          color: '#ffffff',
         };
       case 'futuristic':
         return {
@@ -359,6 +362,7 @@ const HeroSection = React.memo(function HeroSection({
         return {
           ...baseStyles,
           background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)',
+          color: '#333333',
         };
       case 'glassmorphism':
         return {
@@ -366,6 +370,7 @@ const HeroSection = React.memo(function HeroSection({
           background: 'rgba(255, 255, 255, 0.25)',
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.18)',
+          color: '#333333',
         };
       case 'neon':
         return {
@@ -381,7 +386,11 @@ const HeroSection = React.memo(function HeroSection({
           color: '#2c2c54',
         };
       default:
-        return baseStyles;
+        return {
+          ...baseStyles,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: '#ffffff',
+        };
     }
   }, [localDesignTemplate]);
 
@@ -495,7 +504,17 @@ const HeroSection = React.memo(function HeroSection({
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.8 }}
             className="mb-2 inline-block px-4 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
-            style={{ color: localStyling.textColor || undefined }}
+            style={{ 
+              color: (() => {
+                const templateStyles = getDesignTemplateStyles();
+                return localStyling.textColor || templateStyles.color || undefined;
+              })(),
+              backgroundColor: (() => {
+                const templateStyles = getDesignTemplateStyles();
+                const baseColor = localStyling.backgroundColor || templateStyles.color;
+                return baseColor ? `${baseColor}20` : undefined;
+              })()
+            }}
             data-field-type="badgeText"
             data-component-type="Hero"
           >
@@ -504,7 +523,12 @@ const HeroSection = React.memo(function HeroSection({
         )}
         <h1 
           className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" 
-          style={{ color: localStyling.textColor || '#111827' }}
+          style={{ 
+            color: (() => {
+              const templateStyles = getDesignTemplateStyles();
+              return localStyling.textColor || templateStyles.color || '#111827';
+            })()
+          }}
           data-field-type="title" 
           data-component-type="Hero"
         >
@@ -512,7 +536,14 @@ const HeroSection = React.memo(function HeroSection({
         </h1>
         <p 
           className="mt-6 text-xl" 
-          style={{ color: localStyling.textColor ? `${localStyling.textColor}CC` : '#4B5563' }}
+          style={{ 
+            color: (() => {
+              const templateStyles = getDesignTemplateStyles();
+              const baseColor = localStyling.textColor || templateStyles.color || '#4B5563';
+              // Add some transparency for subtitle
+              return baseColor.includes('#') ? `${baseColor}CC` : baseColor;
+            })()
+          }}
           data-field-type="subtitle" 
           data-component-type="Hero"
         >
@@ -657,7 +688,6 @@ const HeroSection = React.memo(function HeroSection({
 
   // Generate styles and classes from styling
   const inlineStyles = generateStylesFromStyling(localStyling);
-  const cssClasses = generateClassesFromStyling(localStyling);
 
   return (
     <>
@@ -697,13 +727,12 @@ const HeroSection = React.memo(function HeroSection({
       <section 
         className={cn(
           "relative w-full h-full overflow-hidden flex items-center",
-          isEditing ? "min-h-[600px] bg-white" : "min-h-screen",
-          !isEditing ? cssClasses : "",
-          !isEditing ? getLayoutClasses() : ""
+          isEditing ? "min-h-[600px]" : "min-h-screen",
+          getLayoutClasses()
         )}
         style={isEditing ? { 
           isolation: 'isolate',
-          backgroundColor: '#ffffff' // Always white background in editor
+          backgroundColor: '#f8fafc' // Light gray background in editor for better contrast
         } : {
           ...(localBackgroundType === 'image' && localBackgroundImage ? {
             backgroundImage: `url(${localBackgroundImage})`,
@@ -712,9 +741,7 @@ const HeroSection = React.memo(function HeroSection({
             backgroundRepeat: 'no-repeat'
           } : localBackgroundImage ? {
             backgroundImage: localBackgroundImage
-          } : {
-            backgroundImage: 'linear-gradient(to bottom, white, #dbeafe)'
-          }),
+          } : {}),
           isolation: 'isolate',
           ...inlineStyles,
           ...getDesignTemplateStyles(),
@@ -1179,8 +1206,7 @@ const HeroSection = React.memo(function HeroSection({
                                 key={`preview-${localDesignTemplate}-${localPadding}-${localBorderRadius}-${localShadowSize}`}
                                 className={cn(
                                   "relative w-full overflow-hidden flex items-center min-h-[400px]",
-                                  !isEditing ? cssClasses : "",
-                                  !isEditing ? getLayoutClasses() : ""
+                                  getLayoutClasses()
                                 )}
                                 style={{
                                   ...(localBackgroundType === 'image' && localBackgroundImage ? {
@@ -1190,9 +1216,7 @@ const HeroSection = React.memo(function HeroSection({
                                     backgroundRepeat: 'no-repeat'
                                   } : localBackgroundImage ? {
                                     backgroundImage: localBackgroundImage
-                                  } : {
-                                    backgroundImage: 'linear-gradient(to bottom, white, #dbeafe)'
-                                  }),
+                                  } : {}),
                                   isolation: 'isolate',
                                   ...getDesignTemplateStyles(),
                                   ...getLayoutStyles()
@@ -1247,7 +1271,12 @@ const HeroSection = React.memo(function HeroSection({
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.8 }}
                                         className="text-4xl md:text-6xl font-bold mb-6 leading-tight"
-                                        style={{ color: localStyling.textColor || '#111827' }}
+                                        style={{ 
+                                          color: (() => {
+                                            const templateStyles = getDesignTemplateStyles();
+                                            return localStyling.textColor || templateStyles.color || '#111827';
+                                          })()
+                                        }}
                                       >
                                         {localTitle}
                                       </motion.h1>
@@ -1259,7 +1288,14 @@ const HeroSection = React.memo(function HeroSection({
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.8, delay: 0.2 }}
                                         className="text-xl md:text-2xl mb-8 opacity-90"
-                                        style={{ color: localStyling.textColor || '#6B7280' }}
+                                        style={{ 
+                                          color: (() => {
+                                            const templateStyles = getDesignTemplateStyles();
+                                            const baseColor = localStyling.textColor || templateStyles.color || '#4B5563';
+                                            // Add some transparency for subtitle
+                                            return baseColor.includes('#') ? `${baseColor}CC` : baseColor;
+                                          })()
+                                        }}
                                       >
                                         {localSubtitle}
                                       </motion.p>

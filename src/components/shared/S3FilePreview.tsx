@@ -95,6 +95,7 @@ const S3FilePreview = ({
     }
     
     console.log(`File type detection for ${src}: ${detectedFileType}`);
+    console.log(`SVG detection: isSvg=${detectedFileType === 'image/svg+xml' || (src && src.toLowerCase().endsWith('.svg')) || getFileTypeFromUrl(src) === 'image/svg+xml'}, detectedFileType=${detectedFileType}, srcEndsWithSvg=${src && src.toLowerCase().endsWith('.svg')}`);
     
     // Actualizar estados derivados del tipo de archivo
     setIsImage(detectedFileType.startsWith('image/'));
@@ -105,7 +106,7 @@ const S3FilePreview = ({
     setFileCategory(categorizeFileType(detectedFileType));
     
     // Set SVG flag based on file type
-    setIsSvg(providedFileType === 'image/svg+xml' || 
+    setIsSvg(detectedFileType === 'image/svg+xml' || 
              (src && src.toLowerCase().endsWith('.svg')) ||
              getFileTypeFromUrl(src) === 'image/svg+xml');
   }, [src, providedFileType, fileName]);
@@ -197,8 +198,47 @@ const S3FilePreview = ({
   };
   
   // Handler for image error
-  const handleImageError = () => {
-    console.error("S3FilePreview: Error loading image:", { src, isS3Url, s3Key, finalUrl: getFileUrl() });
+  const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // Log each property individually to identify which ones are undefined
+    console.error("S3FilePreview: Error loading image - Individual properties:");
+    console.error("- src:", src);
+    console.error("- isS3Url:", isS3Url);
+    console.error("- s3Key:", s3Key);
+    console.error("- providedFileType:", providedFileType);
+    console.error("- fileName:", fileName);
+    
+    let finalUrl = 'failed to get URL';
+    try {
+      finalUrl = getFileUrl();
+    } catch (e) {
+      finalUrl = `error getting URL: ${e instanceof Error ? e.message : 'unknown error'}`;
+    }
+    console.error("- finalUrl:", finalUrl);
+    
+    if (error) {
+      console.error("- error.type:", error.type);
+      console.error("- error.currentTarget:", error.currentTarget);
+      if (error.currentTarget) {
+        console.error("- error.currentTarget.src:", error.currentTarget.src);
+        console.error("- error.currentTarget.tagName:", error.currentTarget.tagName);
+      }
+    } else {
+      console.error("- error: no error event provided");
+    }
+    
+    // Also try the original object approach
+    const errorDetails = {
+      src: src || 'undefined',
+      isS3Url: Boolean(isS3Url),
+      s3Key: s3Key || 'null',
+      finalUrl: finalUrl,
+      fileType: providedFileType || 'not provided',
+      fileName: fileName || 'not provided',
+      hasError: Boolean(error),
+      errorType: error?.type || 'no type'
+    };
+    
+    console.error("S3FilePreview: Error details object:", JSON.stringify(errorDetails, null, 2));
     setImageError(true);
   };
   
@@ -292,9 +332,8 @@ const S3FilePreview = ({
       );
     }
     
-    // For S3 files served through our API, use regular img tag instead of Next.js Image
-    // This avoids issues with Next.js Image optimization and our custom API route
-    if (isS3Url && s3Key) {
+    // For SVGs, always use regular img tag to avoid issues
+    if (isSvg) {
       return (
         <img 
           src={imageUrl} 
@@ -308,8 +347,9 @@ const S3FilePreview = ({
       );
     }
     
-    if (isSvg) {
-      // Los SVG los renderizamos como imagenes normales para evitar inyección XSS
+    // For S3 files served through our API, use regular img tag instead of Next.js Image
+    // This avoids issues with Next.js Image optimization and our custom API route
+    if (isS3Url && s3Key) {
       return (
         <img 
           src={imageUrl} 
@@ -339,7 +379,7 @@ const S3FilePreview = ({
   // Renderizar según el tipo de archivo
   return (
     <div className="relative group">
-      {isImage && !imageError ? (
+      {(isImage || isSvg) && !imageError ? (
         renderImage()
       ) : isPdf ? (
         // Para PDFs, mostrar un icono de PDF con opción para ver

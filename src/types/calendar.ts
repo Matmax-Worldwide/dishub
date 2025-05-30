@@ -124,6 +124,7 @@ export interface CalendarUser {
   position?: string;
   profileImageUrl?: string;
   roleId?: string;
+  locations?: CalendarLocation[];
   createdAt: Date;
   updatedAt: Date;
 }

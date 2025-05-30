@@ -3115,7 +3115,7 @@ export const cmsOperations = {
   } | null> {
     const query = `
       query GetUserSettings {
-        getUserSettings {
+        userSettings {
           id
           userId
           emailNotifications
@@ -3130,7 +3130,7 @@ export const cmsOperations = {
     `;
 
     try {
-      const response = await gqlRequest<{ getUserSettings: {
+      const response = await gqlRequest<{ userSettings: {
         id: string;
         userId: string;
         emailNotifications: boolean;
@@ -3141,7 +3141,7 @@ export const cmsOperations = {
         createdAt: string;
         updatedAt: string;
       } | null }>(query);
-      return response.getUserSettings;
+      return response.userSettings;
     } catch (error) {
       console.error('Error fetching user settings:', error);
       return null;
@@ -3218,12 +3218,12 @@ export const cmsOperations = {
               firstName
               lastName
               phoneNumber
-              bio
-              department
               isActive
-              position
               profileImageUrl
-              roleId
+              role {
+                id
+                name
+              }
             }
             assignedServices {
               id
@@ -3274,12 +3274,12 @@ export const cmsOperations = {
             firstName
             lastName
             phoneNumber
-            bio
-            department
             isActive
-            position
             profileImageUrl
-            roleId
+            role {
+              id
+              name
+            }
             createdAt
             updatedAt
           }
@@ -3287,9 +3287,21 @@ export const cmsOperations = {
       `;
 
       const response = await gqlRequest<{ users: CalendarUser[] }>(query);
-      return response.users || [];
+      
+      // Handle case where users might be null or undefined
+      if (!response || !response.users) {
+        console.warn('Users query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.users;
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.users')) {
+        console.warn('Users field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
@@ -3312,43 +3324,74 @@ export const cmsOperations = {
       `;
 
       const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
-      return response.locations || [];
+      
+      // Handle case where locations might be null or undefined
+      if (!response || !response.locations) {
+        console.warn('Locations query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.locations;
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.locations')) {
+        console.warn('Locations field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
 
-  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+  async createStaffProfile(input: { input: {
+    userId: string;
+    bio?: string;
+    specializations?: string[];
+  }}): Promise<CalendarStaffProfile> {
     try {
       const mutation = `
-        mutation CreateStaffProfile($input: StaffProfileInput!) {
+        mutation CreateStaffProfile($input: CreateStaffProfileInput!) {
           createStaffProfile(input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.createStaffProfile;
+      const response = await gqlRequest<{
+        createStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.createStaffProfile.success || !response.createStaffProfile.staffProfile) {
+        throw new Error(response.createStaffProfile.message || 'Failed to create staff profile');
+      }
+
+      return response.createStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error creating staff profile:', error);
       throw error;
@@ -3360,31 +3403,46 @@ export const cmsOperations = {
       const mutation = `
         mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
           updateStaffProfile(id: $id, input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.updateStaffProfile;
+      const response = await gqlRequest<{
+        updateStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.updateStaffProfile.success || !response.updateStaffProfile.staffProfile) {
+        throw new Error(response.updateStaffProfile.message || 'Failed to update staff profile');
+      }
+
+      return response.updateStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error updating staff profile:', error);
       throw error;
@@ -3549,17 +3607,33 @@ export const cmsOperations = {
       }
     `;
 
-    const result = await gqlRequest<{ serviceCategories: Array<{
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
-      createdAt: string;
-      updatedAt: string;
-    }> }>(query);
-    
-    return result.serviceCategories || [];
+    try {
+      const result = await gqlRequest<{ serviceCategories: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(query);
+      
+      // Handle case where serviceCategories might be null or undefined
+      if (!result || !result.serviceCategories) {
+        console.warn('ServiceCategories query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return result.serviceCategories;
+    } catch (error) {
+      console.error('Error fetching service categories:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.serviceCategories')) {
+        console.warn('ServiceCategories field is null in database, returning empty array');
+        return [];
+      }
+      return [];
+    }
   },
 
   // Delete service category
@@ -3607,26 +3681,38 @@ export const cmsOperations = {
     parentId?: string;
   }> {
     const mutation = `
-      mutation CreateServiceCategory($input: ServiceCategoryInput!) {
+      mutation CreateServiceCategory($input: CreateServiceCategoryInput!) {
         createServiceCategory(input: $input) {
-          id
-          name
-          description
-          displayOrder
-          parentId
+          success
+          message
+          serviceCategory {
+            id
+            name
+            description
+            displayOrder
+            parentId
+          }
         }
       }
     `;
 
     const result = await gqlRequest<{ createServiceCategory: {
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
+      success: boolean;
+      message: string;
+      serviceCategory: {
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+      } | null;
     } }>(mutation, { input });
     
-    return result.createServiceCategory;
+    if (!result.createServiceCategory.success || !result.createServiceCategory.serviceCategory) {
+      throw new Error(result.createServiceCategory.message || 'Failed to create service category');
+    }
+    
+    return result.createServiceCategory.serviceCategory;
   },
 
   // Update service category
@@ -3646,26 +3732,38 @@ export const cmsOperations = {
     parentId?: string;
   }> {
     const mutation = `
-      mutation UpdateServiceCategory($id: ID!, $input: ServiceCategoryInput!) {
+      mutation UpdateServiceCategory($id: ID!, $input: UpdateServiceCategoryInput!) {
         updateServiceCategory(id: $id, input: $input) {
-          id
-          name
-          description
-          displayOrder
-          parentId
+          success
+          message
+          serviceCategory {
+            id
+            name
+            description
+            displayOrder
+            parentId
+          }
         }
       }
     `;
 
     const result = await gqlRequest<{ updateServiceCategory: {
-      id: string;
-      name: string;
-      description?: string;
-      displayOrder: number;
-      parentId?: string;
+      success: boolean;
+      message: string;
+      serviceCategory: {
+        id: string;
+        name: string;
+        description?: string;
+        displayOrder: number;
+        parentId?: string;
+      } | null;
     } }>(mutation, { id, input });
     
-    return result.updateServiceCategory;
+    if (!result.updateServiceCategory.success || !result.updateServiceCategory.serviceCategory) {
+      throw new Error(result.updateServiceCategory.message || 'Failed to update service category');
+    }
+    
+    return result.updateServiceCategory.serviceCategory;
   },
 
   // Services
@@ -3716,43 +3814,63 @@ export const cmsOperations = {
       }
     `;
 
-    const result = await gqlRequest<{ services: Array<{
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      bufferTimeBeforeMinutes: number;
-      bufferTimeAfterMinutes: number;
-      preparationTimeMinutes: number;
-      cleanupTimeMinutes: number;
-      maxDailyBookingsPerService?: number;
-      isActive: boolean;
-      createdAt: string;
-      updatedAt: string;
-      serviceCategoryId: string;
-      serviceCategory?: { id: string; name: string };
-      locations?: Array<{ id: string; name: string }>;
-    }> }>(query);
-    
-    // Transform string dates to Date objects to match CalendarService type
-    const transformedServices = (result.services || []).map(service => ({
-      ...service,
-      createdAt: new Date(service.createdAt),
-      updatedAt: new Date(service.updatedAt)
-    }));
-    
-    return transformedServices;
+    try {
+      const result = await gqlRequest<{ services: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        durationMinutes: number;
+        price: number;
+        bufferTimeBeforeMinutes: number;
+        bufferTimeAfterMinutes: number;
+        preparationTimeMinutes: number;
+        cleanupTimeMinutes: number;
+        maxDailyBookingsPerService?: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+        serviceCategoryId: string;
+        serviceCategory?: { id: string; name: string };
+        locations?: Array<{ id: string; name: string }>;
+      }> }>(query);
+      
+      // Handle case where services might be null or undefined
+      if (!result || !result.services) {
+        console.warn('Services query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      // Transform string dates to Date objects to match CalendarService type
+      const transformedServices = result.services.map(service => ({
+        ...service,
+        createdAt: new Date(service.createdAt),
+        updatedAt: new Date(service.updatedAt)
+      }));
+      
+      return transformedServices;
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.services')) {
+        console.warn('Services field is null in database, returning empty array');
+        return [];
+      }
+      return []; // Return empty array instead of null on any error
+    }
   },
 
   async createService({ input }: { input: {
-    name?: string;
+    name: string;
     description?: string | null;
-    durationMinutes?: number;
-    price?: number;
+    durationMinutes: number;
+    price: number;
+    bufferTimeBeforeMinutes?: number;
+    bufferTimeAfterMinutes?: number;
+    preparationTimeMinutes?: number;
+    cleanupTimeMinutes?: number;
+    maxDailyBookingsPerService?: number;
     isActive?: boolean;
-    serviceCategoryId?: string;
-    locationIds?: string[];
+    serviceCategoryId: string;
   }}): Promise<{
     id: string;
     name: string;
@@ -3762,28 +3880,42 @@ export const cmsOperations = {
     isActive: boolean;
   }> {
     const mutation = `
-      mutation CreateService($input: ServiceInput!) {
+      mutation CreateService($input: CreateServiceInput!) {
         createService(input: $input) {
-          id
-          name
-          description
-          durationMinutes
-          price
-          isActive
+          success
+          message
+          service {
+            id
+            name
+            description
+            durationMinutes
+            price
+            isActive
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ createService: {
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      isActive: boolean;
-    } }>(mutation, { input });
-    
-    return result.createService;
+    const response = await gqlRequest<{
+      createService: {
+        success: boolean;
+        message: string;
+        service: {
+          id: string;
+          name: string;
+          description?: string;
+          durationMinutes: number;
+          price: number;
+          isActive: boolean;
+        } | null;
+      };
+    }>(mutation, { input });
+
+    if (!response.createService.success || !response.createService.service) {
+      throw new Error(response.createService.message || 'Failed to create service');
+    }
+
+    return response.createService.service;
   },
 
   async updateService({ id, input }: { 
@@ -3793,9 +3925,13 @@ export const cmsOperations = {
       description?: string | null;
       durationMinutes?: number;
       price?: number;
+      bufferTimeBeforeMinutes?: number;
+      bufferTimeAfterMinutes?: number;
+      preparationTimeMinutes?: number;
+      cleanupTimeMinutes?: number;
+      maxDailyBookingsPerService?: number;
       isActive?: boolean;
       serviceCategoryId?: string;
-      locationIds?: string[];
     }
   }): Promise<{
     id: string;
@@ -3806,28 +3942,42 @@ export const cmsOperations = {
     isActive: boolean;
   }> {
     const mutation = `
-      mutation UpdateService($id: ID!, $input: ServiceInput!) {
+      mutation UpdateService($id: ID!, $input: UpdateServiceInput!) {
         updateService(id: $id, input: $input) {
-          id
-          name
-          description
-          durationMinutes
-          price
-          isActive
+          success
+          message
+          service {
+            id
+            name
+            description
+            durationMinutes
+            price
+            isActive
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ updateService: {
-      id: string;
-      name: string;
-      description?: string;
-      durationMinutes: number;
-      price: number;
-      isActive: boolean;
-    } }>(mutation, { id, input });
-    
-    return result.updateService;
+    const response = await gqlRequest<{
+      updateService: {
+        success: boolean;
+        message: string;
+        service: {
+          id: string;
+          name: string;
+          description?: string;
+          durationMinutes: number;
+          price: number;
+          isActive: boolean;
+        } | null;
+      };
+    }>(mutation, { id, input });
+
+    if (!response.updateService.success || !response.updateService.service) {
+      throw new Error(response.updateService.message || 'Failed to update service');
+    }
+
+    return response.updateService.service;
   },
 
   async deleteService({ id }: { id: string }): Promise<{
@@ -3859,7 +4009,7 @@ export const cmsOperations = {
   },
 
   async createLocation({ input }: { input: {
-    name?: string;
+    name: string;
     address?: string | null;
     phone?: string | null;
     operatingHours?: Record<string, unknown> | null;
@@ -3870,24 +4020,38 @@ export const cmsOperations = {
     phone?: string;
   }> {
     const mutation = `
-      mutation CreateLocation($input: LocationInput!) {
+      mutation CreateLocation($input: CreateLocationInput!) {
         createLocation(input: $input) {
-          id
-          name
-          address
-          phone
+          success
+          message
+          location {
+            id
+            name
+            address
+            phone
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ createLocation: {
-      id: string;
-      name: string;
-      address?: string;
-      phone?: string;
-    } }>(mutation, { input });
-    
-    return result.createLocation;
+    const response = await gqlRequest<{
+      createLocation: {
+        success: boolean;
+        message: string;
+        location: {
+          id: string;
+          name: string;
+          address?: string;
+          phone?: string;
+        } | null;
+      };
+    }>(mutation, { input });
+
+    if (!response.createLocation.success || !response.createLocation.location) {
+      throw new Error(response.createLocation.message || 'Failed to create location');
+    }
+
+    return response.createLocation.location;
   },
 
   async updateLocation({ id, input }: { 
@@ -3905,24 +4069,38 @@ export const cmsOperations = {
     phone?: string;
   }> {
     const mutation = `
-      mutation UpdateLocation($id: ID!, $input: LocationInput!) {
+      mutation UpdateLocation($id: ID!, $input: UpdateLocationInput!) {
         updateLocation(id: $id, input: $input) {
-          id
-          name
-          address
-          phone
+          success
+          message
+          location {
+            id
+            name
+            address
+            phone
+          }
         }
       }
     `;
 
-    const result = await gqlRequest<{ updateLocation: {
-      id: string;
-      name: string;
-      address?: string;
-      phone?: string;
-    } }>(mutation, { id, input });
-    
-    return result.updateLocation;
+    const response = await gqlRequest<{
+      updateLocation: {
+        success: boolean;
+        message: string;
+        location: {
+          id: string;
+          name: string;
+          address?: string;
+          phone?: string;
+        } | null;
+      };
+    }>(mutation, { id, input });
+
+    if (!response.updateLocation.success || !response.updateLocation.location) {
+      throw new Error(response.updateLocation.message || 'Failed to update location');
+    }
+
+    return response.updateLocation.location;
   },
 
   async deleteLocation({ id }: { id: string }): Promise<{
@@ -3951,7 +4129,339 @@ export const cmsOperations = {
         message: error instanceof Error ? error.message : 'Failed to delete location'
       };
     }
-  }
+  },
+
+  // Calendar Bookings Operations
+  async bookings({ filter, pagination }: {
+    filter?: {
+      dateFrom?: string;
+      dateTo?: string;
+      status?: string;
+      locationId?: string;
+      serviceId?: string;
+      staffProfileId?: string;
+      customerId?: string;
+      searchQuery?: string;
+    };
+    pagination?: {
+      page?: number;
+      pageSize?: number;
+    };
+  }): Promise<{
+    items: Array<{
+      id: string;
+      customerName?: string | null;
+      customerEmail?: string | null;
+      customerPhone?: string | null;
+      service: { id: string; name: string };
+      location: { id: string; name: string };
+      staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    totalCount: number;
+    page: number;
+    pageSize: number;
+  } | null> {
+    const query = `
+      query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
+        bookings(filter: $filter, pagination: $pagination) {
+          edges {
+            node {
+              id
+              customerName
+              customerEmail
+              customerPhone
+              service {
+                id
+                name
+              }
+              location {
+                id
+                name
+              }
+              staffProfile {
+                id
+                user {
+                  firstName
+                  lastName
+                }
+              }
+              bookingDate
+              startTime
+              endTime
+              status
+              notes
+              createdAt
+              updatedAt
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        bookings: {
+          edges: Array<{
+            node: {
+              id: string;
+              customerName?: string | null;
+              customerEmail?: string | null;
+              customerPhone?: string | null;
+              service: { id: string; name: string };
+              location: { id: string; name: string };
+              staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+              bookingDate: string;
+              startTime: string;
+              endTime: string;
+              status: string;
+              notes?: string | null;
+              createdAt: string;
+              updatedAt: string;
+            };
+          }>;
+          pageInfo: {
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+            startCursor?: string;
+            endCursor?: string;
+          };
+          totalCount: number;
+        };
+      }>(query, { filter, pagination });
+      
+      // Transform the response to match the expected format
+      const bookingsData = response.bookings;
+      if (!bookingsData) {
+        console.warn('Bookings query returned null or undefined, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      
+      return {
+        items: bookingsData.edges.map(edge => edge.node),
+        totalCount: bookingsData.totalCount,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.bookings')) {
+        console.warn('Bookings field is null in database, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      // Always return empty result structure instead of null
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
+    }
+  },
+
+  // Create a new booking
+  async createBooking({ input }: {
+    input: {
+      serviceId: string;
+      locationId: string;
+      staffProfileId?: string;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      customerName: string;
+      customerEmail: string;
+      customerPhone?: string;
+      notes?: string;
+      userId?: string;
+    };
+  }): Promise<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    service: { name: string };
+    location: { name: string };
+    staffProfile?: { user: { firstName: string; lastName: string } } | null;
+    bookingDate: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    notes?: string;
+  } | null> {
+    const mutation = `
+      mutation CreateBooking($input: BookingInput!) {
+        createBooking(input: $input) {
+          id
+          customerName
+          customerEmail
+          service {
+            name
+          }
+          location {
+            name
+          }
+          staffProfile {
+            user {
+              firstName
+              lastName
+            }
+          }
+          bookingDate
+          startTime
+          endTime
+          status
+          notes
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        createBooking: {
+          id: string;
+          customerName: string;
+          customerEmail: string;
+          service: { name: string };
+          location: { name: string };
+          staffProfile?: { user: { firstName: string; lastName: string } } | null;
+          bookingDate: string;
+          startTime: string;
+          endTime: string;
+          status: string;
+          notes?: string;
+        };
+      }>(mutation, { input });
+      
+      return response.createBooking || null;
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
+  },
+
+  // Get staff available for a service at a location
+  async staffForService({ serviceId, locationId }: {
+    serviceId: string;
+    locationId: string;
+  }): Promise<Array<{
+    id: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      profileImageUrl?: string;
+    };
+    bio?: string;
+    specializations: string[];
+  }>> {
+    const query = `
+      query StaffForService($serviceId: ID!, $locationId: ID!) {
+        staffForService(serviceId: $serviceId, locationId: $locationId) {
+          id
+          user {
+            id
+            firstName
+            lastName
+            profileImageUrl
+          }
+          bio
+          specializations
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        staffForService: Array<{
+          id: string;
+          user: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            profileImageUrl?: string;
+          };
+          bio?: string;
+          specializations: string[];
+        }>;
+      }>(query, { serviceId, locationId });
+      
+      return response.staffForService || [];
+    } catch (error) {
+      console.error('Error fetching staff for service:', error);
+      return [];
+    }
+  },
+
+  // Get available time slots
+  async availableSlots({ 
+    serviceId, 
+    locationId, 
+    staffProfileId, 
+    date 
+  }: {
+    serviceId: string;
+    locationId: string;
+    staffProfileId?: string;
+    date: string;
+  }): Promise<Array<{
+    startTime: string;
+    endTime: string;
+    isAvailable: boolean;
+  }>> {
+    const query = `
+      query AvailableSlots($serviceId: ID!, $locationId: ID!, $staffProfileId: ID, $date: String!) {
+        availableSlots(
+          serviceId: $serviceId, 
+          locationId: $locationId, 
+          staffProfileId: $staffProfileId, 
+          date: $date
+        ) {
+          startTime
+          endTime
+          isAvailable
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        availableSlots: Array<{
+          startTime: string;
+          endTime: string;
+          isAvailable: boolean;
+        }>;
+      }>(query, { serviceId, locationId, staffProfileId, date });
+      
+      return response.availableSlots || [];
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      return [];
+    }
+  },
+
 };
 
 // Form Builder API functions
@@ -5477,7 +5987,7 @@ const graphqlClient = {
   } | null> {
     const query = `
       query GetUserSettings {
-        getUserSettings {
+        userSettings {
           id
           userId
           emailNotifications
@@ -5492,7 +6002,7 @@ const graphqlClient = {
     `;
 
     try {
-      const response = await gqlRequest<{ getUserSettings: {
+      const response = await gqlRequest<{ userSettings: {
         id: string;
         userId: string;
         emailNotifications: boolean;
@@ -5503,7 +6013,7 @@ const graphqlClient = {
         createdAt: string;
         updatedAt: string;
       } | null }>(query);
-      return response.getUserSettings;
+      return response.userSettings;
     } catch (error) {
       console.error('Error fetching user settings:', error);
       return null;
@@ -5580,12 +6090,12 @@ const graphqlClient = {
               firstName
               lastName
               phoneNumber
-              bio
-              department
               isActive
-              position
               profileImageUrl
-              roleId
+              role {
+                id
+                name
+              }
             }
             assignedServices {
               id
@@ -5636,12 +6146,12 @@ const graphqlClient = {
             firstName
             lastName
             phoneNumber
-            bio
-            department
             isActive
-            position
             profileImageUrl
-            roleId
+            role {
+              id
+              name
+            }
             createdAt
             updatedAt
           }
@@ -5649,13 +6159,24 @@ const graphqlClient = {
       `;
 
       const response = await gqlRequest<{ users: CalendarUser[] }>(query);
-      return response.users || [];
+      
+      // Handle case where users might be null or undefined
+      if (!response || !response.users) {
+        console.warn('Users query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.users;
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.users')) {
+        console.warn('Users field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
-
 
   async locations(): Promise<CalendarLocation[]> {
     try {
@@ -5674,43 +6195,74 @@ const graphqlClient = {
       `;
 
       const response = await gqlRequest<{ locations: CalendarLocation[] }>(query);
-      return response.locations || [];
+      
+      // Handle case where locations might be null or undefined
+      if (!response || !response.locations) {
+        console.warn('Locations query returned null or undefined, returning empty array');
+        return [];
+      }
+      
+      return response.locations;
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.locations')) {
+        console.warn('Locations field is null in database, returning empty array');
+        return [];
+      }
       return [];
     }
   },
 
-  async createStaffProfile(input: { input: StaffProfileInput }): Promise<CalendarStaffProfile> {
+  async createStaffProfile(input: { input: {
+    userId: string;
+    bio?: string;
+    specializations?: string[];
+  }}): Promise<CalendarStaffProfile> {
     try {
       const mutation = `
-        mutation CreateStaffProfile($input: StaffProfileInput!) {
+        mutation CreateStaffProfile($input: CreateStaffProfileInput!) {
           createStaffProfile(input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ createStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.createStaffProfile;
+      const response = await gqlRequest<{
+        createStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.createStaffProfile.success || !response.createStaffProfile.staffProfile) {
+        throw new Error(response.createStaffProfile.message || 'Failed to create staff profile');
+      }
+
+      return response.createStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error creating staff profile:', error);
       throw error;
@@ -5722,31 +6274,46 @@ const graphqlClient = {
       const mutation = `
         mutation UpdateStaffProfile($id: ID!, $input: UpdateStaffProfileInput!) {
           updateStaffProfile(id: $id, input: $input) {
-            id
-            userId
-            bio
-            specializations
-            createdAt
-            updatedAt
-            user {
+            success
+            message
+            staffProfile {
               id
-              email
-              firstName
-              lastName
-              phoneNumber
+              userId
               bio
-              department
-              isActive
-              position
-              profileImageUrl
-              roleId
+              specializations
+              createdAt
+              updatedAt
+              user {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                bio
+                department
+                isActive
+                position
+                profileImageUrl
+                roleId
+              }
             }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffProfile: CalendarStaffProfile }>(mutation, input);
-      return response.updateStaffProfile;
+      const response = await gqlRequest<{
+        updateStaffProfile: {
+          success: boolean;
+          message: string;
+          staffProfile: CalendarStaffProfile | null;
+        };
+      }>(mutation, input);
+
+      if (!response.updateStaffProfile.success || !response.updateStaffProfile.staffProfile) {
+        throw new Error(response.updateStaffProfile.message || 'Failed to update staff profile');
+      }
+
+      return response.updateStaffProfile.staffProfile;
     } catch (error) {
       console.error('Error updating staff profile:', error);
       throw error;
@@ -5788,6 +6355,158 @@ const graphqlClient = {
     } catch (error) {
       console.error('Error updating staff schedule:', error);
       throw error;
+    }
+  },
+
+  // Calendar Bookings Operations
+  async bookings({ filter, pagination }: {
+    filter?: {
+      dateFrom?: string;
+      dateTo?: string;
+      status?: string;
+      locationId?: string;
+      serviceId?: string;
+      staffProfileId?: string;
+      customerId?: string;
+      searchQuery?: string;
+    };
+    pagination?: {
+      page?: number;
+      pageSize?: number;
+    };
+  }): Promise<{
+    items: Array<{
+      id: string;
+      customerName?: string | null;
+      customerEmail?: string | null;
+      customerPhone?: string | null;
+      service: { id: string; name: string };
+      location: { id: string; name: string };
+      staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+      bookingDate: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      notes?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    totalCount: number;
+    page: number;
+    pageSize: number;
+  } | null> {
+    const query = `
+      query GetBookings($filter: BookingFilterInput, $pagination: PaginationInput) {
+        bookings(filter: $filter, pagination: $pagination) {
+          edges {
+            node {
+              id
+              customerName
+              customerEmail
+              customerPhone
+              service {
+                id
+                name
+              }
+              location {
+                id
+                name
+              }
+              staffProfile {
+                id
+                user {
+                  firstName
+                  lastName
+                }
+              }
+              bookingDate
+              startTime
+              endTime
+              status
+              notes
+              createdAt
+              updatedAt
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        bookings: {
+          edges: Array<{
+            node: {
+              id: string;
+              customerName?: string | null;
+              customerEmail?: string | null;
+              customerPhone?: string | null;
+              service: { id: string; name: string };
+              location: { id: string; name: string };
+              staffProfile?: { id: string; user: { firstName: string; lastName: string } } | null;
+              bookingDate: string;
+              startTime: string;
+              endTime: string;
+              status: string;
+              notes?: string | null;
+              createdAt: string;
+              updatedAt: string;
+            };
+          }>;
+          pageInfo: {
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+            startCursor?: string;
+            endCursor?: string;
+          };
+          totalCount: number;
+        };
+      }>(query, { filter, pagination });
+      
+      // Transform the response to match the expected format
+      const bookingsData = response.bookings;
+      if (!bookingsData) {
+        console.warn('Bookings query returned null or undefined, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      
+      return {
+        items: bookingsData.edges.map(edge => edge.node),
+        totalCount: bookingsData.totalCount,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      // Check if it's the specific "Cannot return null" error
+      if (error instanceof Error && error.message.includes('Cannot return null for non-nullable field Query.bookings')) {
+        console.warn('Bookings field is null in database, returning empty result');
+        return {
+          items: [],
+          totalCount: 0,
+          page: pagination?.page || 1,
+          pageSize: pagination?.pageSize || 10
+        };
+      }
+      // Always return empty result structure instead of null
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
     }
   },
 

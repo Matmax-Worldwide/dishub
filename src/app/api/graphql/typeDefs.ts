@@ -146,8 +146,16 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  type BookingRule { # Placeholder for now - Will be defined later if needed for booking list/details
+  type BookingRule {
     id: ID!
+    advanceBookingHoursMin: Int!
+    advanceBookingDaysMax: Int!
+    sameDayCutoffTime: String
+    bufferBetweenAppointmentsMinutes: Int!
+    maxAppointmentsPerDayPerStaff: Int
+    bookingSlotIntervalMinutes: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
 
   # Role and Permission related types
@@ -1399,6 +1407,7 @@ export const typeDefs = gql`
     staffProfile(id: ID!): StaffProfile
     staffProfiles: [StaffProfile!]!
     bookings(filter: BookingFilterInput, pagination: PaginationInput): BookingConnection!
+    globalBookingRule: BookingRule
 
   }
 
@@ -1573,6 +1582,8 @@ export const typeDefs = gql`
     createServiceCategory(input: CreateServiceCategoryInput!): ServiceCategoryResult!
     updateServiceCategory(id: ID!, input: UpdateServiceCategoryInput!): ServiceCategoryResult!
     deleteServiceCategory(id: ID!): ServiceCategoryResult!
+    
+    upsertGlobalBookingRules(input: BookingRuleInput!): BookingRule!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2037,6 +2048,16 @@ export const typeDefs = gql`
     description: String
     displayOrder: Int
     parentId: ID
+  }
+
+  # Input type for booking rules
+  input BookingRuleInput {
+    advanceBookingHoursMin: Int!
+    advanceBookingDaysMax: Int!
+    sameDayCutoffTime: String
+    bufferBetweenAppointmentsMinutes: Int!
+    maxAppointmentsPerDayPerStaff: Int
+    bookingSlotIntervalMinutes: Int!
   }
 
   # Result types for booking operations

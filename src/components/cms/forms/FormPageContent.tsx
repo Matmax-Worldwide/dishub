@@ -40,7 +40,7 @@ export function FormPageContent() {
 
   // Navigate to create form page
   const handleCreateForm = () => {
-    router.push('/cms/forms/new');
+    router.push('/cms/forms/create');
   };
 
   // Handle search change

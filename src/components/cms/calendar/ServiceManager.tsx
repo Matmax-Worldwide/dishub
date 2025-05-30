@@ -56,11 +56,14 @@ export default function ServiceManager() {
     setError(null);
     try {
       // Fetch all data in parallel
+      console.log('ServiceManager: Starting to fetch data...');
       const [servicesData, categoriesData, locationsData] = await Promise.all([
         graphqlClient.services(), 
         graphqlClient.serviceCategories(),
         graphqlClient.locations()
       ]);
+      console.log('ServiceManager: Fetched categories:', categoriesData);
+      console.log('ServiceManager: Categories length:', categoriesData?.length || 0);
       setServices(servicesData || []);
       setAllCategories(categoriesData || []);
       setAllLocations(locationsData || []);
@@ -118,13 +121,17 @@ export default function ServiceManager() {
     try {
       // Prepare input data, removing form-specific fields
       const inputData = {
-        name: data.name,
+        name: data.name!,
         description: data.description,
-        durationMinutes: data.durationMinutes,
-        price: data.price,
-        serviceCategoryId: data.serviceCategoryId || undefined,
+        durationMinutes: data.durationMinutes!,
+        price: data.price!,
+        bufferTimeBeforeMinutes: data.bufferTimeBeforeMinutes || undefined,
+        bufferTimeAfterMinutes: data.bufferTimeAfterMinutes || undefined,
+        preparationTimeMinutes: data.preparationTimeMinutes || undefined,
+        cleanupTimeMinutes: data.cleanupTimeMinutes || undefined,
+        maxDailyBookingsPerService: data.maxDailyBookingsPerService || undefined,
+        serviceCategoryId: data.serviceCategoryId!,
         isActive: data.isActive ?? true,
-        locationIds: data.locationIds || [],
       };
 
       let result;

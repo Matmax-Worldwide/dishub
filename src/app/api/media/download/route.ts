@@ -17,6 +17,17 @@ const s3Client = new S3Client({
 // S3 bucket name
 const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'vercelvendure';
 
+// Basic SVG sanitization function
+function sanitizeSVG(svgContent: string): string {
+  // Remove script tags and event handlers
+  return svgContent
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:text\/html/gi, 'data:text/plain')
+    .replace(/xlink:href\s*=\s*["']javascript:[^"']*["']/gi, '');
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -71,14 +82,47 @@ export async function GET(request: NextRequest) {
       contentType = 'application/pdf';
     }
     
+    // Special case for SVGs: check filename and sanitize content
+    let finalBuffer = buffer;
+    if (filename.toLowerCase().endsWith('.svg') && contentType === 'application/octet-stream') {
+      console.log(`Fixed content type for SVG file: ${filename}`);
+      contentType = 'image/svg+xml';
+    }
+    
+    // Sanitize SVG content for security
+    if (contentType === 'image/svg+xml') {
+      try {
+        const svgContent = buffer.toString('utf-8');
+        const sanitizedContent = sanitizeSVG(svgContent);
+        finalBuffer = Buffer.from(sanitizedContent, 'utf-8');
+        console.log(`Sanitized SVG file: ${filename}`);
+      } catch (error) {
+        console.error(`Error sanitizing SVG ${filename}:`, error);
+        // If sanitization fails, serve original but with strict CSP
+      }
+    }
+    
     // Log the file details
-    console.log(`Serving file: ${filename}, Content-Type: ${contentType}, Size: ${buffer.length}`);
+    console.log(`Serving file: ${filename}, Content-Type: ${contentType}, Size: ${finalBuffer.length}`);
     
     // Create appropriate headers based on view mode
     const headers: HeadersInit = {
       'Content-Type': contentType,
-      'Content-Length': buffer.length.toString(),
+      'Content-Length': finalBuffer.length.toString(),
     };
+    
+    // Add security headers for SVG files
+    if (contentType === 'image/svg+xml') {
+      headers['X-Content-Type-Options'] = 'nosniff';
+      headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'none';";
+      headers['X-Frame-Options'] = 'DENY';
+      headers['Referrer-Policy'] = 'no-referrer';
+      
+      // Additional security: serve SVGs with a restrictive sandbox
+      if (viewMode) {
+        headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'none'; object-src 'none'; frame-src 'none';";
+      }
+    }
     
     // If downloading (not viewing), add Content-Disposition header
     if (!viewMode) {
@@ -89,7 +133,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Create response with file data
-    const res = new NextResponse(buffer, {
+    const res = new NextResponse(finalBuffer, {
       status: 200,
       headers
     });

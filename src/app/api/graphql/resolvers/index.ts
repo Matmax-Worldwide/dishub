@@ -496,8 +496,6 @@ const resolvers = {
   
   // Type resolvers
   MenuItem: menuResolvers.MenuItem,
-  ServiceCategory: calendarResolvers.ServiceCategory, 
-  Location: calendarResolvers.Location, 
   Service: calendarResolvers.Service,
   StaffProfile: calendarResolvers.StaffProfile, // Add StaffProfile type resolver
   StaffSchedule: calendarResolvers.StaffSchedule, // Add StaffSchedule type resolver
