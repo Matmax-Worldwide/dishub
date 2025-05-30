@@ -13,6 +13,8 @@ enum DayOfWeek {
   SUNDAY = 'SUNDAY'
 }
 
+
+
 enum ScheduleType {
   REGULAR_HOURS = 'REGULAR_HOURS',
   OVERRIDE_HOURS = 'OVERRIDE_HOURS',
@@ -57,6 +59,13 @@ interface PaginationInput {
   page?: number;
   pageSize?: number;
 }
+
+type LocationCreateInput = {
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  operatingHours?: unknown;
+};
 
 interface CreateServiceCategoryInput {
   name: string;
@@ -747,7 +756,9 @@ export const calendarResolvers = {
           phone: input.phone || null,
           operatingHours: input.operatingHours,
         };
-        const location = await prisma.location.create({ data });
+        const location = await prisma.location.create({ 
+          data: data as LocationCreateInput
+        });
         return {
           success: true,
           message: 'Location created successfully',
