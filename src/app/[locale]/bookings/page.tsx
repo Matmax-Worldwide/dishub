@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +55,10 @@ interface ServiceData {
 }
 
 export default function CalendarManagementPage() {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
+  
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
@@ -243,7 +248,11 @@ export default function CalendarManagementPage() {
           <Badge variant="outline" className="text-green-600 border-green-200">
             System Active
           </Badge>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push(`/${locale}/bookings/rules`)}
+          >
             <SettingsIcon className="w-4 h-4 mr-2" />
             Settings
           </Button>
@@ -264,17 +273,17 @@ export default function CalendarManagementPage() {
             <ClockIcon className="w-4 h-4" />
             Services
           </TabsTrigger>
-          <TabsTrigger value="staff" className="flex items-center gap-2">
-            <UsersIcon className="w-4 h-4" />
-            Staff
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <BookOpenIcon className="w-4 h-4" />
+            Categories
           </TabsTrigger>
           <TabsTrigger value="locations" className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4" />
             Locations
           </TabsTrigger>
-          <TabsTrigger value="categories" className="flex items-center gap-2">
-            <BookOpenIcon className="w-4 h-4" />
-            Categories
+          <TabsTrigger value="staff" className="flex items-center gap-2">
+            <UsersIcon className="w-4 h-4" />
+            Staff
           </TabsTrigger>
           <TabsTrigger value="booking-widget" className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4" />

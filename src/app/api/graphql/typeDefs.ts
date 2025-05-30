@@ -158,6 +158,16 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
+  type AvailableTimeSlot {
+    startTime: DateTime!
+    endTime: DateTime!
+    isAvailable: Boolean!
+    serviceId: ID!
+    locationId: ID!
+    staffProfileId: ID
+  }
+
+
   # Role and Permission related types
   type Role {
     id: ID!
@@ -1270,7 +1280,7 @@ export const typeDefs = gql`
     me: User
     user(id: ID!): User
     users: [User!]
-    
+
     # Role and permission queries
     roles: [Role]
     role(id: ID!): Role
@@ -1408,6 +1418,8 @@ export const typeDefs = gql`
     staffProfiles: [StaffProfile!]!
     bookings(filter: BookingFilterInput, pagination: PaginationInput): BookingConnection!
     globalBookingRule: BookingRule
+    availableSlots(serviceId: ID!, locationId: ID!, staffProfileId: ID, date: String!): [AvailableTimeSlot!]!
+    staffForService(serviceId: ID!, locationId: ID): [StaffProfile!]!
 
   }
 
@@ -1584,6 +1596,7 @@ export const typeDefs = gql`
     deleteServiceCategory(id: ID!): ServiceCategoryResult!
     
     upsertGlobalBookingRules(input: BookingRuleInput!): BookingRule!
+    updateGlobalBookingRules(input: GlobalBookingRuleInput!): BookingRule!
   }
 
   # HeaderStyle type for storing header configuration
@@ -2004,6 +2017,7 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID!
+    locationIds: [ID!]
   }
 
   input UpdateServiceInput {
@@ -2018,6 +2032,7 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID
+    locationIds: [ID!]
   }
 
   # Input types for location management
@@ -2052,6 +2067,16 @@ export const typeDefs = gql`
 
   # Input type for booking rules
   input BookingRuleInput {
+    advanceBookingHoursMin: Int!
+    advanceBookingDaysMax: Int!
+    sameDayCutoffTime: String
+    bufferBetweenAppointmentsMinutes: Int!
+    maxAppointmentsPerDayPerStaff: Int
+    bookingSlotIntervalMinutes: Int!
+  }
+
+  # Input type for global booking rules (same as BookingRuleInput but for updateGlobalBookingRules)
+  input GlobalBookingRuleInput {
     advanceBookingHoursMin: Int!
     advanceBookingDaysMax: Int!
     sameDayCutoffTime: String

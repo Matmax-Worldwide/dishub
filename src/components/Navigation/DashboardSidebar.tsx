@@ -328,7 +328,7 @@ export function DashboardSidebar() {
     },
     { 
       name: t('sidebar.bookNow'), 
-      href: `/${params.locale}/dashboard/bookings`, 
+      href: `/${params.locale}/bookings`, 
       icon: CalendarIcon,
       disabled: true,
       locked: true
@@ -351,7 +351,7 @@ export function DashboardSidebar() {
     },
   ];
 
-  const designNavigationItems: NavItem[] = [
+  const toolsNavigationItems: NavItem[] = [
     {
       name: t('sidebar.cms'),
       href: `/${params.locale}/cms`,
@@ -389,6 +389,13 @@ export function DashboardSidebar() {
         }
       ]
     },
+    {
+      name: t('sidebar.bookings'),
+      href: `/${params.locale}/bookings`,
+      icon: CalendarIcon,
+      permissions: ['bookings:access'],
+      roles: ['ADMIN', 'MANAGER']
+    }
   ]
 
   // Convertir los enlaces externos del API a objetos NavItem
@@ -715,13 +722,13 @@ export function DashboardSidebar() {
           <>
 
            
-            {/* Design section for admins */}
+            {/* Tools section for admins */}
             <div className="mt-4 border-t pt-4 mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.design')}
+                {t('sidebar.tools')}
               </h3>
             </div>
-            {designNavigationItems.map(item => (
+            {toolsNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -850,13 +857,13 @@ export function DashboardSidebar() {
               </Link>
             ))}
             
-            {/* Design section for managers */}
+            {/* Tools section for managers */}
             <div className="mt-4 border-t pt-4 mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.design')}
+                {t('sidebar.tools')}
               </h3>
             </div>
-            {designNavigationItems.map(item => (
+            {toolsNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}

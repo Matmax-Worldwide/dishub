@@ -80,13 +80,20 @@ export default function LocationManager() {
 
   const handleDelete = async () => {
     if (!locationToDelete) return;
+    console.log('LocationManager: handleDelete called for location:', locationToDelete);
     setIsSaving(true);
     try {
-      await graphqlClient.deleteLocation({ id: locationToDelete.id });
-      toast.success(`Location "${locationToDelete.name}" deleted successfully.`);
-      fetchLocations(); // Refresh list
+      console.log('LocationManager: Calling deleteLocation with id:', locationToDelete.id);
+      const result = await graphqlClient.deleteLocation({ id: locationToDelete.id });
+      console.log('LocationManager: Delete result:', result);
+      if (result.success) {
+        toast.success(`Location "${locationToDelete.name}" deleted successfully.`);
+        fetchLocations(); // Refresh list
+      } else {
+        toast.error(result.message || 'Failed to delete location');
+      }
     } catch (err: unknown) {
-      console.error('Failed to delete location:', err);
+      console.error('LocationManager: Failed to delete location:', err);
       toast.error(`Failed to delete location: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -96,24 +103,34 @@ export default function LocationManager() {
   };
 
   const handleSaveLocation = async (data: Partial<Location>) => {
+    console.log('LocationManager: handleSaveLocation called with data:', data);
+    console.log('LocationManager: editingLocation:', editingLocation);
     setIsSaving(true);
     setError(null);
     try {
       if (editingLocation?.id) { // Editing existing location
-        const result = await graphqlClient.updateLocation({ id: editingLocation.id, input: data });
+        console.log('LocationManager: Updating existing location with id:', editingLocation.id);
+        // Remove id from input data since it should be passed as separate parameter
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...inputData } = data;
+        console.log('LocationManager: Update input data:', inputData);
+        const result = await graphqlClient.updateLocation({ id: editingLocation.id, input: inputData });
+        console.log('LocationManager: Update result:', result);
         toast.success(`Location "${result.name}" updated successfully.`);
       } else { // Creating new location
+        console.log('LocationManager: Creating new location');
         if (!data.name) {
           throw new Error('Location name is required');
         }
         const result = await graphqlClient.createLocation({ input: data as { name: string; address?: string | null; phone?: string | null; operatingHours?: Record<string, unknown> | null } });
+        console.log('LocationManager: Create result:', result);
         toast.success(`Location "${result.name}" created successfully.`);
       }
       fetchLocations(); // Refresh the list
       setIsFormOpen(false);
       setEditingLocation(null);
     } catch (err: unknown) {
-      console.error('Failed to save location:', err);
+      console.error('LocationManager: Failed to save location:', err);
       const errorMsg = `Failed to save location: ${err instanceof Error ? err.message : 'Unknown error'}`;
       setError(errorMsg);
       toast.error(errorMsg);

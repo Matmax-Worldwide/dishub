@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { cmsOperations, CMSPageDB } from '@/lib/graphql-client';
+import { cmsOperations } from '@/lib/graphql-client';
 import { optimizedQueries, graphqlOptimizer } from '@/lib/graphql-optimizations'; // Import graphqlOptimizer
 import SectionManager from '@/components/cms/SectionManager';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
@@ -62,6 +62,18 @@ interface SectionData {
     type: string;
     data: Record<string, unknown>;
   }>;
+}
+
+// Define GraphQL section result type
+interface SectionComponentsResult {
+  getSectionComponents?: {
+    components: Array<{
+      id: string;
+      type: string;
+      data: Record<string, unknown>;
+    }>;
+    lastUpdated?: string;
+  };
 }
 
 export default function CMSPage() {
@@ -263,7 +275,7 @@ export default function CMSPage() {
                   )
                 );
 
-                pageSectionsData = sectionsDataResults.map((result: any, index: number) => {
+                pageSectionsData = (sectionsDataResults as SectionComponentsResult[]).map((result: SectionComponentsResult, index: number) => {
                   // Find the original section info using the sectionId, as the order might not be guaranteed
                   // or some sections might have failed to load, Promise.allSettled would be better for that.
                   // For now, assuming sectionIds[index] corresponds to result.
@@ -880,6 +892,9 @@ export default function CMSPage() {
     }
     if (lowercaseType === 'gallery') {
       return 'Gallery' as ComponentType;
+    }
+    if (lowercaseType === 'calendar') {
+      return 'Calendar' as ComponentType;
     }
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;
   };

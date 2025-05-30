@@ -41,7 +41,7 @@ export default function ManagerDashboard() {
       title: "Book Now",
       description: "Gestión de reservas y calendario",
       icon: CalendarIcon,
-      href: `/${locale}/dashboard/bookings`,
+      href: `/${locale}/bookings`,
       color: "bg-amber-50 text-amber-700",
       disabled: true
     }

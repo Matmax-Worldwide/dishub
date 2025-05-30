@@ -40,6 +40,21 @@ interface HeaderSectionProps {
   fixedHeader?: boolean;
   advancedOptions?: HeaderAdvancedOptions;
   menuIcon?: string;
+  showButton?: boolean;
+  buttonText?: string;
+  buttonAction?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  buttonSize?: 'sm' | 'md' | 'lg';
+  buttonBorderRadius?: number;
+  buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: 'left' | 'center' | 'right';
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
   isEditing?: boolean;
   onUpdate?: (data: { 
     title?: string; 
@@ -59,6 +74,21 @@ interface HeaderSectionProps {
     fixedHeader?: boolean;
     advancedOptions?: HeaderAdvancedOptions;
     menuIcon?: string;
+    showButton?: boolean;
+    buttonText?: string;
+    buttonAction?: string;
+    buttonColor?: string;
+    buttonTextColor?: string;
+    buttonSize?: 'sm' | 'md' | 'lg';
+    buttonBorderRadius?: number;
+    buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+    buttonBorderColor?: string;
+    buttonBorderWidth?: number;
+    buttonWidth?: string;
+    buttonHeight?: string;
+    buttonPosition?: 'left' | 'center' | 'right';
+    buttonDropdown?: boolean;
+    buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
   }) => void;
 }
 
@@ -80,6 +110,21 @@ export default function HeaderSection({
   fixedHeader: initialFixedHeader = false,
   advancedOptions: initialAdvancedOptions = {},
   menuIcon: initialMenuIcon = 'Menu',
+  showButton: initialShowButton = false,
+  buttonText: initialButtonText = '',
+  buttonAction: initialButtonAction = '',
+  buttonColor: initialButtonColor = '',
+  buttonTextColor: initialButtonTextColor = '',
+  buttonSize: initialButtonSize = 'md',
+  buttonBorderRadius: initialButtonBorderRadius = 0,
+  buttonShadow: initialButtonShadow = 'none',
+  buttonBorderColor: initialButtonBorderColor = '',
+  buttonBorderWidth: initialButtonBorderWidth = 0,
+  buttonWidth: initialButtonWidth = '',
+  buttonHeight: initialButtonHeight = '',
+  buttonPosition: initialButtonPosition = 'center',
+  buttonDropdown: initialButtonDropdown = false,
+  buttonDropdownItems: initialButtonDropdownItems = [],
   isEditing = false, 
   onUpdate 
 }: HeaderSectionProps) {
@@ -112,6 +157,24 @@ export default function HeaderSection({
   
   // Estado para mostrar/ocultar opciones avanzadas en el panel de edición
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Button configuration states
+  const [showButton, setShowButton] = useState(initialShowButton);
+  const [buttonText, setButtonText] = useState(initialButtonText);
+  const [buttonAction, setButtonAction] = useState(initialButtonAction);
+  const [buttonColor, setButtonColor] = useState(initialButtonColor);
+  const [buttonTextColor, setButtonTextColor] = useState(initialButtonTextColor);
+  const [buttonSize, setButtonSize] = useState<'sm' | 'md' | 'lg'>(initialButtonSize);
+  const [buttonBorderRadius, setButtonBorderRadius] = useState(initialButtonBorderRadius);
+  const [buttonShadow, setButtonShadow] = useState<'none' | 'sm' | 'md' | 'lg' | 'xl'>(initialButtonShadow);
+  const [buttonBorderColor, setButtonBorderColor] = useState(initialButtonBorderColor);
+  const [buttonBorderWidth, setButtonBorderWidth] = useState(initialButtonBorderWidth);
+  const [buttonWidth, setButtonWidth] = useState(initialButtonWidth);
+  const [buttonHeight, setButtonHeight] = useState(initialButtonHeight);
+  const [buttonPosition, setButtonPosition] = useState<'left' | 'center' | 'right'>(initialButtonPosition);
+  const [buttonDropdown, setButtonDropdown] = useState(initialButtonDropdown);
+  const [buttonDropdownItems, setButtonDropdownItems] = useState<Array<{id: string; label: string; url: string}>>(initialButtonDropdownItems);
+  const [isButtonDropdownOpen, setIsButtonDropdownOpen] = useState(false);
   
   // Optimistic UI states
   const [isSaving, setIsSaving] = useState(false);
@@ -347,7 +410,7 @@ export default function HeaderSection({
   }, [hasUnsavedChanges, localMenuId, saveHeaderStyle]);
   
   // Optimize update handler with debouncing
-  const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown>) => {
+  const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
@@ -374,11 +437,26 @@ export default function HeaderSection({
         borderBottom,
         fixedHeader,
         advancedOptions,
-        menuIcon
+        menuIcon,
+        showButton,
+        buttonText,
+        buttonAction,
+        buttonColor,
+        buttonTextColor,
+        buttonSize,
+        buttonBorderRadius,
+        buttonShadow,
+        buttonBorderColor,
+        buttonBorderWidth,
+        buttonWidth,
+        buttonHeight,
+        buttonPosition,
+        buttonDropdown,
+        buttonDropdownItems
       };
       
       // Update the specific field with the new value
-      (updateData as Record<string, string | number | boolean | Record<string, unknown>>)[field] = value;
+      (updateData as Record<string, unknown>)[field] = value;
       
       // Set up a debounced update
       debounceRef.current = setTimeout(() => {
@@ -405,6 +483,21 @@ export default function HeaderSection({
     fixedHeader,
     advancedOptions,
     menuIcon,
+    showButton,
+    buttonText,
+    buttonAction,
+    buttonColor,
+    buttonTextColor,
+    buttonSize,
+    buttonBorderRadius,
+    buttonShadow,
+    buttonBorderColor,
+    buttonBorderWidth,
+    buttonWidth,
+    buttonHeight,
+    buttonPosition,
+    buttonDropdown,
+    buttonDropdownItems,
     onUpdate
   ]);
   
@@ -1017,6 +1110,280 @@ export default function HeaderSection({
     </div>
   );
 
+  const ButtonConfiguration = () => (
+    <div className="space-y-4">
+      <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+        Header Button Configuration
+      </h4>
+      
+      {/* Enable Button */}
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="showButton"
+          checked={showButton}
+          onChange={handleShowButtonChange}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="showButton" className="text-sm font-medium">
+          Show Button in Header
+        </label>
+      </div>
+      
+      {showButton && (
+        <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+          {/* Button Text and Action */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
+                Button Text
+              </label>
+              <input
+                type="text"
+                id="buttonText"
+                value={buttonText}
+                onChange={handleButtonTextChange}
+                placeholder="Get Started"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="buttonAction" className="text-sm font-medium block mb-2">
+                Button URL/Action
+              </label>
+              <input
+                type="text"
+                id="buttonAction"
+                value={buttonAction}
+                onChange={handleButtonActionChange}
+                placeholder="/contact"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          {/* Button Colors */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <ColorSelector
+                label="Button Background Color"
+                value={buttonColor}
+                onChange={handleButtonColorChange}
+              />
+            </div>
+            
+            <div>
+              <ColorSelector
+                label="Button Text Color"
+                value={buttonTextColor}
+                onChange={handleButtonTextColorChange}
+              />
+            </div>
+          </div>
+          
+          {/* Button Size and Position */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="buttonSize" className="text-sm font-medium block mb-2">
+                Button Size
+              </label>
+              <select
+                id="buttonSize"
+                value={buttonSize}
+                onChange={handleButtonSizeChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="buttonPosition" className="text-sm font-medium block mb-2">
+                Button Position
+              </label>
+              <select
+                id="buttonPosition"
+                value={buttonPosition}
+                onChange={handleButtonPositionChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Button Styling */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="buttonBorderRadius" className="text-sm font-medium block mb-2">
+                Border Radius (px)
+              </label>
+              <input
+                type="number"
+                id="buttonBorderRadius"
+                value={buttonBorderRadius}
+                onChange={handleButtonBorderRadiusChange}
+                min="0"
+                max="50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="buttonShadow" className="text-sm font-medium block mb-2">
+                Shadow
+              </label>
+              <select
+                id="buttonShadow"
+                value={buttonShadow}
+                onChange={handleButtonShadowChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra Large</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="buttonBorderWidth" className="text-sm font-medium block mb-2">
+                Border Width (px)
+              </label>
+              <input
+                type="number"
+                id="buttonBorderWidth"
+                value={buttonBorderWidth}
+                onChange={handleButtonBorderWidthChange}
+                min="0"
+                max="10"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          {/* Border Color */}
+          {buttonBorderWidth > 0 && (
+            <div>
+              <ColorSelector
+                label="Border Color"
+                value={buttonBorderColor}
+                onChange={handleButtonBorderColorChange}
+              />
+            </div>
+          )}
+          
+          {/* Button Dimensions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="buttonWidth" className="text-sm font-medium block mb-2">
+                Custom Width (optional)
+              </label>
+              <input
+                type="text"
+                id="buttonWidth"
+                value={buttonWidth}
+                onChange={handleButtonWidthChange}
+                placeholder="auto, 120px, 100%"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="buttonHeight" className="text-sm font-medium block mb-2">
+                Custom Height (optional)
+              </label>
+              <input
+                type="text"
+                id="buttonHeight"
+                value={buttonHeight}
+                onChange={handleButtonHeightChange}
+                placeholder="auto, 40px, 3rem"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          {/* Dropdown Configuration */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="buttonDropdown"
+                checked={buttonDropdown}
+                onChange={handleButtonDropdownChange}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="buttonDropdown" className="text-sm font-medium">
+                Enable Dropdown Menu
+              </label>
+            </div>
+            
+            {buttonDropdown && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dropdown Items</label>
+                {buttonDropdownItems.map((item, index) => (
+                  <div key={item.id} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={item.label}
+                      onChange={(e) => {
+                        const newItems = [...buttonDropdownItems];
+                        newItems[index] = { ...item, label: e.target.value };
+                        handleButtonDropdownItemsChange(newItems);
+                      }}
+                      placeholder="Label"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={item.url}
+                      onChange={(e) => {
+                        const newItems = [...buttonDropdownItems];
+                        newItems[index] = { ...item, url: e.target.value };
+                        handleButtonDropdownItemsChange(newItems);
+                      }}
+                      placeholder="URL"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const newItems = buttonDropdownItems.filter((_, i) => i !== index);
+                        handleButtonDropdownItemsChange(newItems);
+                      }}
+                      className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newItem = {
+                      id: `item-${Date.now()}`,
+                      label: '',
+                      url: ''
+                    };
+                    handleButtonDropdownItemsChange([...buttonDropdownItems, newItem]);
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                >
+                  Add Item
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const AdvancedOptions = () => (
     <div className="mt-4 border-t pt-2">
       <button
@@ -1191,6 +1558,206 @@ export default function HeaderSection({
     return <IconComponent className="h-6 w-6" />;
   };
 
+  // Function to render the configurable button
+  const renderHeaderButton = () => {
+    if (!showButton || !buttonText) return null;
+
+    const buttonSizeClasses = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-base',
+      lg: 'px-6 py-3 text-lg'
+    };
+
+    const shadowClasses = {
+      none: '',
+      sm: 'shadow-sm',
+      md: 'shadow-md',
+      lg: 'shadow-lg',
+      xl: 'shadow-xl'
+    };
+
+    const buttonStyle: React.CSSProperties = {
+      backgroundColor: buttonColor || '#3B82F6',
+      color: buttonTextColor || '#FFFFFF',
+      borderRadius: `${buttonBorderRadius}px`,
+      borderWidth: `${buttonBorderWidth}px`,
+      borderColor: buttonBorderColor || 'transparent',
+      borderStyle: buttonBorderWidth > 0 ? 'solid' : 'none',
+      width: buttonWidth || 'auto',
+      height: buttonHeight || 'auto',
+      transition: 'all 0.2s ease-in-out'
+    };
+
+    const buttonClasses = `
+      ${buttonSizeClasses[buttonSize]} 
+      ${shadowClasses[buttonShadow]} 
+      font-medium 
+      transition-all 
+      duration-200 
+      hover:opacity-90 
+      focus:outline-none 
+      focus:ring-2 
+      focus:ring-offset-2 
+      focus:ring-blue-500
+      relative
+    `.trim();
+
+    const handleButtonClick = (e: React.MouseEvent) => {
+      if (buttonDropdown && buttonDropdownItems.length > 0) {
+        e.preventDefault();
+        setIsButtonDropdownOpen(!isButtonDropdownOpen);
+      } else if (buttonAction) {
+        if (buttonAction.startsWith('/')) {
+          e.preventDefault();
+          router.push(buttonAction);
+        } else if (buttonAction.startsWith('http')) {
+          window.open(buttonAction, '_blank');
+        }
+      }
+    };
+
+    return (
+      <div className="relative">
+        <button
+          onClick={handleButtonClick}
+          className={buttonClasses}
+          style={buttonStyle}
+          data-field-type="button"
+          data-component-type="Header"
+        >
+          {buttonText}
+          {buttonDropdown && buttonDropdownItems.length > 0 && (
+            <ChevronDownIcon className={`ml-2 h-4 w-4 transition-transform duration-200 ${isButtonDropdownOpen ? 'rotate-180' : ''}`} />
+          )}
+        </button>
+
+        {/* Button Dropdown */}
+        {buttonDropdown && buttonDropdownItems.length > 0 && isButtonDropdownOpen && (
+          <div className="absolute top-full right-0 mt-2 py-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+            {buttonDropdownItems.map((item) => (
+              <a
+                key={item.id}
+                href={item.url}
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                onClick={(e) => {
+                  if (item.url.startsWith('/')) {
+                    e.preventDefault();
+                    router.push(item.url);
+                  }
+                  setIsButtonDropdownOpen(false);
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Button change handlers
+  const handleShowButtonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setShowButton(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('showButton', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setButtonText(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonText', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonActionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setButtonAction(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonAction', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonColorChange = useCallback((color: string) => {
+    setButtonColor(color);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonColor', color);
+  }, [handleUpdateField]);
+
+  const handleButtonTextColorChange = useCallback((color: string) => {
+    setButtonTextColor(color);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonTextColor', color);
+  }, [handleUpdateField]);
+
+  const handleButtonSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'sm' | 'md' | 'lg';
+    setButtonSize(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonSize', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonBorderRadiusChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value) || 0;
+    setButtonBorderRadius(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonBorderRadius', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonShadowChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'none' | 'sm' | 'md' | 'lg' | 'xl';
+    setButtonShadow(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonShadow', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonBorderColorChange = useCallback((color: string) => {
+    setButtonBorderColor(color);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonBorderColor', color);
+  }, [handleUpdateField]);
+
+  const handleButtonBorderWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value) || 0;
+    setButtonBorderWidth(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonBorderWidth', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setButtonWidth(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonWidth', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonHeightChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setButtonHeight(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonHeight', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value as 'left' | 'center' | 'right';
+    setButtonPosition(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonPosition', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonDropdownChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setButtonDropdown(newValue);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonDropdown', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonDropdownItemsChange = useCallback((items: Array<{id: string; label: string; url: string}>) => {
+    setButtonDropdownItems(items);
+    setHasUnsavedChanges(true);
+    handleUpdateField('buttonDropdownItems', items);
+  }, [handleUpdateField]);
+
   return (
     <>
       {isEditing ? (
@@ -1233,6 +1800,7 @@ export default function HeaderSection({
           {/* STYLES TAB */}
           <TabsContent value="styles" className="space-y-4">
             <StyleOptions />
+            <ButtonConfiguration />
             <AdvancedOptions />
           </TabsContent>
 
@@ -1339,7 +1907,19 @@ export default function HeaderSection({
                     )
                   )}
                 </ul>
+                
+                {/* Header Button - positioned based on buttonPosition */}
+                {showButton && buttonPosition === 'center' && (
+                  <div className="mx-4">
+                    {renderHeaderButton()}
+                  </div>
+                )}
               </div>
+
+              {/* Right side - Button and Mobile menu */}
+              <div className="flex items-center space-x-4">
+                {/* Header Button - positioned on the right or left */}
+                {showButton && buttonPosition === 'right' && renderHeaderButton()}
 
               {/* Mobile menu button */}
               <div className="md:hidden flex items-center">
@@ -1372,6 +1952,14 @@ export default function HeaderSection({
                 </button>
               </div>
             </div>
+            </div>
+            
+            {/* Header Button - positioned on the left (below logo/title on mobile) */}
+            {showButton && buttonPosition === 'left' && (
+              <div className="mt-4 md:mt-0 md:absolute md:left-4 md:top-1/2 md:transform md:-translate-y-1/2">
+                {renderHeaderButton()}
+              </div>
+            )}
           </div>
 
           {/* Mobile menu */}

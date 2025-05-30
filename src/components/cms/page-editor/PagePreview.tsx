@@ -69,6 +69,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({
     if (lowercaseType === 'ctabutton') return 'CtaButton';
     if (lowercaseType === 'gallery') return 'Gallery';
     if (lowercaseType === 'video') return 'Video';
+    if (lowercaseType === 'calendar') return 'Calendar';
     
     // Default fallback
     return (lowercaseType.charAt(0).toUpperCase() + lowercaseType.slice(1)) as ComponentType;

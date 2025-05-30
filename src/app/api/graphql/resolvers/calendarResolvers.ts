@@ -1,14 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
 import { Prisma, ScheduleType, DayOfWeek, BookingStatus } from '@prisma/client';
+import { NextRequest } from 'next/server';
 
 // Define proper context type
 interface GraphQLContext {
+  req: NextRequest;
   user?: {
-    role?: {
-      name: string;
-    } | string;
+    id: string;
+    role: string;
   };
+  _emergency_bypass?: boolean;
 }
 
 // Define input types
@@ -68,6 +70,7 @@ interface CreateServiceInput {
   maxDailyBookingsPerService?: number;
   isActive?: boolean;
   serviceCategoryId: string;
+  locationIds?: string[];
 }
 
 interface UpdateServiceInput {
@@ -82,6 +85,7 @@ interface UpdateServiceInput {
   maxDailyBookingsPerService?: number;
   isActive?: boolean;
   serviceCategoryId?: string;
+  locationIds?: string[];
 }
 
 interface StaffScheduleInput {
@@ -106,10 +110,39 @@ interface UpdateStaffProfileInput {
   specializations?: string[];
 }
 
+interface CreateBookingInput {
+  serviceId: string;
+  locationId: string;
+  staffProfileId?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  notes?: string;
+  userId?: string;
+}
+
+interface GlobalBookingRuleInput {
+  advanceBookingHoursMin: number;
+  advanceBookingDaysMax: number;
+  sameDayCutoffTime?: string;
+  bufferBetweenAppointmentsMinutes: number;
+  maxAppointmentsPerDayPerStaff?: number;
+  bookingSlotIntervalMinutes: number;
+}
+
 const isAdminUser = (context: GraphQLContext): boolean => {
+  // Temporary bypass for debugging
+  if (context._emergency_bypass) {
+    console.log('Using emergency bypass for authorization');
+    return true;
+  }
+  
   const role = context.user?.role;
-  const roleName = typeof role === 'string' ? role : role?.name;
-  return roleName === 'ADMIN' || roleName === 'SUPER_ADMIN';
+  console.log('isAdminUser check - user role:', role);
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
 };
 
 export const calendarResolvers = {
@@ -177,7 +210,6 @@ export const calendarResolvers = {
           orderBy: { name: 'asc' },
           include: { 
             serviceCategory: true, 
-            locations: { take: 3, include: { location: {select: {name: true, id: true}} } }, // Summary of locations
             staff: { take: 3, include: { staffProfile: { include: { user: {select: {id: true, firstName:true, lastName:true}}}}}} // Summary of staff
           },
         });
@@ -354,6 +386,186 @@ export const calendarResolvers = {
         return null;
       }
     },
+    availableSlots: async (_parent: unknown, { 
+      serviceId, 
+      locationId, 
+      staffProfileId, 
+      date 
+    }: { 
+      serviceId: string; 
+      locationId: string; 
+      staffProfileId?: string; 
+      date: string; 
+    }) => {
+      try {
+        console.log('availableSlots resolver called with:', { serviceId, locationId, staffProfileId, date });
+        
+        // Get service details
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId },
+          include: { serviceCategory: true }
+        });
+        
+        if (!service) {
+          throw new Error(`Service with ID ${serviceId} not found`);
+        }
+        
+        // Get location details with operating hours
+        const location = await prisma.location.findUnique({
+          where: { id: locationId }
+        });
+        
+        if (!location) {
+          throw new Error(`Location with ID ${locationId} not found`);
+        }
+        
+        // Get global booking rules
+        const bookingRule = await prisma.bookingRule.findFirst({
+          where: { locationId: null }
+        });
+        
+        const slotInterval = bookingRule?.bookingSlotIntervalMinutes || 30;
+        
+        // Parse operating hours for the given date
+        const targetDate = new Date(date);
+        const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+        const dayOfWeek = dayNames[targetDate.getDay()];
+        
+        const operatingHours = location.operatingHours as Record<string, { open: string; close: string; isClosed: boolean }> | null;
+        const dayHours = operatingHours?.[dayOfWeek];
+        
+        if (!dayHours || dayHours.isClosed) {
+          return []; // Location is closed on this day
+        }
+        
+        // Get existing bookings for the date
+        const existingBookings = await prisma.booking.findMany({
+          where: {
+            locationId,
+            bookingDate: targetDate,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            ...(staffProfileId && { staffProfileId })
+          },
+          include: {
+            service: true
+          }
+        });
+        
+        // Get staff schedules if specific staff is requested
+        let staffSchedule = null;
+        if (staffProfileId) {
+          const dayOfWeekEnum = dayNames[targetDate.getDay()];
+          staffSchedule = await prisma.staffSchedule.findFirst({
+            where: {
+              staffProfileId,
+              dayOfWeek: dayOfWeekEnum as DayOfWeek,
+              isAvailable: true,
+              scheduleType: ScheduleType.REGULAR_HOURS
+            }
+          });
+          
+          if (!staffSchedule) {
+            return []; // Staff not available on this day
+          }
+        }
+        
+        // Generate time slots
+        const slots = [];
+        const startTime = staffSchedule?.startTime || dayHours.open;
+        const endTime = staffSchedule?.endTime || dayHours.close;
+        
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        
+        const startDateTime = new Date(targetDate);
+        startDateTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endDateTime = new Date(targetDate);
+        endDateTime.setHours(endHour, endMinute, 0, 0);
+        
+        let currentSlot = new Date(startDateTime);
+        
+        while (currentSlot.getTime() + (service.durationMinutes * 60000) <= endDateTime.getTime()) {
+          const slotEndTime = new Date(currentSlot.getTime() + (service.durationMinutes * 60000));
+          
+          // Check if slot conflicts with existing bookings
+          const hasConflict = existingBookings.some(booking => {
+            const bookingStart = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.startTime}`);
+            const bookingEnd = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.endTime}`);
+            
+            return (
+              (currentSlot >= bookingStart && currentSlot < bookingEnd) ||
+              (slotEndTime > bookingStart && slotEndTime <= bookingEnd) ||
+              (currentSlot <= bookingStart && slotEndTime >= bookingEnd)
+            );
+          });
+          
+          if (!hasConflict) {
+            slots.push({
+              startTime: currentSlot.toISOString(),
+              endTime: slotEndTime.toISOString(),
+              isAvailable: true,
+              serviceId,
+              locationId,
+              staffProfileId: staffProfileId || null
+            });
+          }
+          
+          // Move to next slot
+          currentSlot = new Date(currentSlot.getTime() + (slotInterval * 60000));
+        }
+        
+        return slots;
+      } catch (error) {
+        console.error('Error generating available slots:', error);
+        return [];
+      }
+    },
+    staffForService: async (_parent: unknown, { serviceId, locationId }: { serviceId: string; locationId?: string }) => {
+      try {
+        console.log('staffForService resolver called with:', { serviceId, locationId });
+        
+        const whereCondition: Prisma.StaffProfileWhereInput = {
+          assignedServices: {
+            some: {
+              serviceId: serviceId
+            }
+          }
+        };
+        
+        if (locationId) {
+          whereCondition.locationAssignments = {
+            some: {
+              locationId: locationId
+            }
+          };
+        }
+        
+        const staffProfiles = await prisma.staffProfile.findMany({
+          where: whereCondition,
+          include: {
+            user: true,
+            schedules: {
+              where: { scheduleType: 'REGULAR_HOURS' },
+              orderBy: { dayOfWeek: 'asc' }
+            },
+            assignedServices: {
+              where: { serviceId },
+              include: { service: true }
+            },
+            locationAssignments: locationId ? {
+              where: { locationId },
+              include: { location: true }
+            } : true
+          }
+        });
+        
+        return staffProfiles || [];
+      } catch (error) {
+        console.error('Error fetching staff for service:', error);
+        return [];
+      }
+    },
   },
   Mutation: {
     createLocation: async (_parent: unknown, { input }: { input: CreateLocationInput }, context: GraphQLContext) => {
@@ -381,6 +593,10 @@ export const calendarResolvers = {
       }
     },
     updateLocation: async (_parent: unknown, { id, input }: { id: string; input: UpdateLocationInput }, context: GraphQLContext) => {
+      console.log('updateLocation resolver called with:', { id, input });
+      console.log('updateLocation context:', { user: context.user });
+      console.log('updateLocation isAdminUser result:', isAdminUser(context));
+      
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
         const data: Prisma.LocationUpdateInput = {
@@ -389,7 +605,9 @@ export const calendarResolvers = {
           ...(input.phone !== undefined && { phone: input.phone }),
           ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours as Prisma.InputJsonValue }),
         };
+        console.log('updateLocation prisma data:', data);
         const location = await prisma.location.update({ where: { id }, data });
+        console.log('updateLocation prisma result:', location);
         return {
           success: true,
           message: 'Location updated successfully',
@@ -405,8 +623,28 @@ export const calendarResolvers = {
       }
     },
     deleteLocation: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
+      console.log('deleteLocation resolver called with:', { id });
+      console.log('deleteLocation context:', { user: context.user });
+      console.log('deleteLocation isAdminUser result:', isAdminUser(context));
+      
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      return prisma.location.delete({ where: { id } });
+      try {
+        console.log('deleteLocation attempting to delete location with id:', id);
+        const location = await prisma.location.delete({ where: { id } });
+        console.log('deleteLocation prisma result:', location);
+        return {
+          success: true,
+          message: 'Location deleted successfully',
+          location
+        };
+      } catch (error) {
+        console.error('Error deleting location:', error);
+        return {
+          success: false,
+          message: 'Failed to delete location',
+          location: null
+        };
+      }
     },
     createServiceCategory: async (_parent: unknown, { input }: { input: CreateServiceCategoryInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
@@ -434,6 +672,31 @@ export const calendarResolvers = {
     updateServiceCategory: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceCategoryInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('updateServiceCategory called with:', { id, input });
+        
+        // Validate that the category exists
+        const existingCategory = await prisma.serviceCategory.findUnique({
+          where: { id }
+        });
+        if (!existingCategory) {
+          throw new Error(`Service category with ID ${id} not found`);
+        }
+        
+        // Validate parent category if provided
+        if (input.parentId && input.parentId !== '') {
+          const parentExists = await prisma.serviceCategory.findUnique({
+            where: { id: input.parentId }
+          });
+          if (!parentExists) {
+            throw new Error(`Parent category with ID ${input.parentId} not found`);
+          }
+          
+          // Prevent circular references
+          if (input.parentId === id) {
+            throw new Error('A category cannot be its own parent');
+          }
+        }
+        
         const { parentId, ...categoryData } = input;
         const data: Prisma.ServiceCategoryUpdateInput = { 
           ...categoryData,
@@ -444,7 +707,11 @@ export const calendarResolvers = {
             ) : {}
           )
         };
+        
+        console.log('Updating service category with data:', data);
         const serviceCategory = await prisma.serviceCategory.update({ where: { id }, data });
+        console.log('Service category updated:', serviceCategory);
+        
         return {
           success: true,
           message: 'Service category updated successfully',
@@ -454,18 +721,84 @@ export const calendarResolvers = {
         console.error('Error updating service category:', error);
         return {
           success: false,
-          message: 'Failed to update service category',
+          message: error instanceof Error ? error.message : 'Failed to update service category',
           serviceCategory: null
         };
       }
     },
     deleteServiceCategory: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      return prisma.serviceCategory.delete({ where: { id } });
+      try {
+        console.log('deleteServiceCategory called with id:', id);
+        
+        // Validate that the category exists
+        const existingCategory = await prisma.serviceCategory.findUnique({
+          where: { id },
+          include: {
+            services: { select: { id: true, name: true } },
+            childCategories: { select: { id: true, name: true } }
+          }
+        });
+        
+        if (!existingCategory) {
+          throw new Error(`Service category with ID ${id} not found`);
+        }
+        
+        // Check if category has services
+        if (existingCategory.services.length > 0) {
+          const serviceNames = existingCategory.services.map(s => s.name).join(', ');
+          throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.services.length} associated service${existingCategory.services.length === 1 ? '' : 's'}: ${serviceNames}. Please reassign or delete these services first.`);
+        }
+        
+        // Check if category has child categories
+        if (existingCategory.childCategories.length > 0) {
+          const childNames = existingCategory.childCategories.map(c => c.name).join(', ');
+          throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.childCategories.length} child categor${existingCategory.childCategories.length === 1 ? 'y' : 'ies'}: ${childNames}. Please reassign or delete these categories first.`);
+        }
+        
+        console.log('Deleting service category:', existingCategory.name);
+        const deletedCategory = await prisma.serviceCategory.delete({ where: { id } });
+        console.log('Service category deleted:', deletedCategory);
+        
+        return {
+          success: true,
+          message: `Service category "${deletedCategory.name}" deleted successfully`,
+          serviceCategory: deletedCategory
+        };
+      } catch (error) {
+        console.error('Error deleting service category:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete service category',
+          serviceCategory: null
+        };
+      }
     },
     createService: async (_parent: unknown, { input }: { input: CreateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('createService called with input:', input);
+        
+        // Validate that the service category exists
+        const categoryExists = await prisma.serviceCategory.findUnique({
+          where: { id: input.serviceCategoryId }
+        });
+        if (!categoryExists) {
+          throw new Error(`Service category with ID ${input.serviceCategoryId} not found`);
+        }
+        
+        // Validate that all location IDs exist if provided
+        if (input.locationIds && input.locationIds.length > 0) {
+          const existingLocations = await prisma.location.findMany({
+            where: { id: { in: input.locationIds } }
+          });
+          if (existingLocations.length !== input.locationIds.length) {
+            const foundIds = existingLocations.map(loc => loc.id);
+            const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
+            throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
+          }
+        }
+        
         const serviceData: Prisma.ServiceCreateInput = {
           name: input.name,
           description: input.description || null,
@@ -479,7 +812,52 @@ export const calendarResolvers = {
           isActive: input.isActive !== undefined ? input.isActive : true,
           serviceCategory: { connect: { id: input.serviceCategoryId } },
         };
+        
+        console.log('Creating service with data:', serviceData);
         const service = await prisma.service.create({ data: serviceData });
+        console.log('Service created:', service);
+        
+        // Always handle location connections (even if empty array)
+        if (input.locationIds !== undefined) {
+          if (input.locationIds.length > 0) {
+            console.log('Connecting service to locations:', input.locationIds);
+            
+            try {
+              // Use upsert to handle potential conflicts with composite primary key
+              for (const locationId of input.locationIds) {
+                await prisma.locationService.upsert({
+                  where: {
+                    locationId_serviceId: {
+                      locationId: locationId,
+                      serviceId: service.id
+                    }
+                  },
+                  update: {
+                    isActive: true
+                  },
+                  create: {
+                    locationId: locationId,
+                    serviceId: service.id,
+                    isActive: true
+                  }
+                });
+              }
+              console.log('Location connections created successfully');
+            } catch (locationError) {
+              console.error('Error creating location connections:', locationError);
+              // If location assignment fails, we should still return success for service creation
+              // but mention the location assignment issue
+              return {
+                success: true,
+                message: 'Service created successfully, but some location assignments failed',
+                service
+              };
+            }
+          } else {
+            console.log('No locations to connect for this service');
+          }
+        }
+        
         return {
           success: true,
           message: 'Service created successfully',
@@ -489,7 +867,7 @@ export const calendarResolvers = {
         console.error('Error creating service:', error);
         return {
           success: false,
-          message: 'Failed to create service',
+          message: error instanceof Error ? error.message : 'Failed to create service',
           service: null
         };
       }
@@ -497,6 +875,38 @@ export const calendarResolvers = {
     updateService: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('updateService called with input:', input);
+        
+        // Validate that the service exists
+        const existingService = await prisma.service.findUnique({
+          where: { id }
+        });
+        if (!existingService) {
+          throw new Error(`Service with ID ${id} not found`);
+        }
+        
+        // Validate that the service category exists if being updated
+        if (input.serviceCategoryId) {
+          const categoryExists = await prisma.serviceCategory.findUnique({
+            where: { id: input.serviceCategoryId }
+          });
+          if (!categoryExists) {
+            throw new Error(`Service category with ID ${input.serviceCategoryId} not found`);
+          }
+        }
+        
+        // Validate that all location IDs exist if provided
+        if (input.locationIds && input.locationIds.length > 0) {
+          const existingLocations = await prisma.location.findMany({
+            where: { id: { in: input.locationIds } }
+          });
+          if (existingLocations.length !== input.locationIds.length) {
+            const foundIds = existingLocations.map(loc => loc.id);
+            const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
+            throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
+          }
+        }
+        
         const data: Prisma.ServiceUpdateInput = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
@@ -510,7 +920,53 @@ export const calendarResolvers = {
           ...(input.isActive !== undefined && { isActive: input.isActive }),
           ...(input.serviceCategoryId !== undefined && { serviceCategory: { connect: { id: input.serviceCategoryId } } }),
         };
+        
+        console.log('Updating service with data:', data);
         const service = await prisma.service.update({ where: { id }, data });
+        console.log('Service updated:', service);
+        
+        // Always update location connections if locationIds are provided (even if empty array)
+        if (input.locationIds !== undefined) {
+          console.log('Updating service location connections:', input.locationIds);
+          
+          try {
+            // Use a transaction to ensure atomicity
+            await prisma.$transaction(async (tx) => {
+              // First, delete all existing location connections for this service
+              await tx.locationService.deleteMany({
+                where: { serviceId: id }
+              });
+              console.log('Existing location connections removed');
+              
+              // Then create new connections if any locationIds are provided
+              if (input.locationIds && input.locationIds.length > 0) {
+                // Use individual creates instead of createMany to handle potential conflicts better
+                for (const locationId of input.locationIds) {
+                  await tx.locationService.create({
+                    data: {
+                      locationId: locationId,
+                      serviceId: id,
+                      isActive: true
+                    }
+                  });
+                }
+                console.log('New location connections created successfully');
+              } else {
+                console.log('No locations to connect for this service (all connections removed)');
+              }
+            });
+          } catch (locationError) {
+            console.error('Error updating location connections:', locationError);
+            // If location update fails, we should still return success for service update
+            // but mention the location assignment issue
+            return {
+              success: true,
+              message: 'Service updated successfully, but location assignments failed',
+              service
+            };
+          }
+        }
+        
         return {
           success: true,
           message: 'Service updated successfully',
@@ -520,7 +976,7 @@ export const calendarResolvers = {
         console.error('Error updating service:', error);
         return {
           success: false,
-          message: 'Failed to update service',
+          message: error instanceof Error ? error.message : 'Failed to update service',
           service: null
         };
       }
@@ -654,6 +1110,169 @@ export const calendarResolvers = {
         }
       } catch (error) {
         console.error('Error upserting global booking rule:', error);
+        throw new Error('Failed to update booking rules');
+      }
+    },
+    createBooking: async (_parent: unknown, { input }: { input: CreateBookingInput }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        console.log('createBooking called with input:', input);
+        
+        // Validate that the service exists
+        const service = await prisma.service.findUnique({
+          where: { id: input.serviceId }
+        });
+        if (!service) {
+          throw new Error(`Service with ID ${input.serviceId} not found`);
+        }
+        
+        // Validate that the location exists
+        const location = await prisma.location.findUnique({
+          where: { id: input.locationId }
+        });
+        if (!location) {
+          throw new Error(`Location with ID ${input.locationId} not found`);
+        }
+        
+        // Validate staff profile if provided
+        if (input.staffProfileId) {
+          const staffProfile = await prisma.staffProfile.findUnique({
+            where: { id: input.staffProfileId }
+          });
+          if (!staffProfile) {
+            throw new Error(`Staff profile with ID ${input.staffProfileId} not found`);
+          }
+        }
+        
+        // Check for booking conflicts
+        const bookingDate = new Date(input.bookingDate);
+        const existingBookings = await prisma.booking.findMany({
+          where: {
+            locationId: input.locationId,
+            bookingDate: bookingDate,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            OR: [
+              {
+                AND: [
+                  { startTime: { lte: input.startTime } },
+                  { endTime: { gt: input.startTime } }
+                ]
+              },
+              {
+                AND: [
+                  { startTime: { lt: input.endTime } },
+                  { endTime: { gte: input.endTime } }
+                ]
+              },
+              {
+                AND: [
+                  { startTime: { gte: input.startTime } },
+                  { endTime: { lte: input.endTime } }
+                ]
+              }
+            ]
+          }
+        });
+        
+        if (existingBookings.length > 0) {
+          throw new Error('Time slot is already booked');
+        }
+        
+        // Create or find customer
+        let customerId = input.userId;
+        if (!customerId) {
+          // Create a guest customer record
+          const guestCustomer = await prisma.user.create({
+            data: {
+              password: '',
+              email: input.customerEmail,
+              firstName: input.customerName.split(' ')[0] || input.customerName,
+              lastName: input.customerName.split(' ').slice(1).join(' ') || '',
+              phoneNumber: input.customerPhone,
+              role: { connect: { name: 'CUSTOMER' } }
+            }
+          });
+          customerId = guestCustomer.id;
+        }
+        
+        // Create the booking
+        const booking = await prisma.booking.create({
+          data: {
+            durationMinutes: service.durationMinutes,
+            serviceId: input.serviceId,
+            locationId: input.locationId,
+            staffProfileId: input.staffProfileId,
+            customerId: customerId,
+            bookingDate: bookingDate,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            notes: input.notes,
+            status: 'PENDING'
+          },
+          include: {
+            customer: true,
+            service: true,
+            location: true,
+            staffProfile: {
+              include: {
+                user: true
+              }
+            }
+          }
+        });
+        
+        return {
+          success: true,
+          message: 'Booking created successfully',
+          booking
+        };
+      } catch (error) {
+        console.error('Error creating booking:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create booking',
+          booking: null
+        };
+      }
+    },
+    updateGlobalBookingRules: async (_parent: unknown, { input }: { input: GlobalBookingRuleInput }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      
+      try {
+        // Find existing global booking rule
+        const existingRule = await prisma.bookingRule.findFirst({
+          where: { locationId: null } // Global rules have no locationId
+        });
+        
+        if (existingRule) {
+          // Update existing rule
+          return await prisma.bookingRule.update({
+            where: { id: existingRule.id },
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+            }
+          });
+        } else {
+          // Create new rule
+          return await prisma.bookingRule.create({
+            data: {
+              advanceBookingHoursMin: input.advanceBookingHoursMin,
+              advanceBookingDaysMax: input.advanceBookingDaysMax,
+              sameDayCutoffTime: input.sameDayCutoffTime,
+              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
+              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              locationId: null // Global rule
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error updating global booking rule:', error);
         throw new Error('Failed to update booking rules');
       }
     },

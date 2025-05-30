@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { Calendar, MapPin, Sparkles, Check } from 'lucide-react';
 import { ComponentType } from '@/types/cms';
 import { cn } from '@/lib/utils';
 
@@ -429,6 +430,50 @@ const ComponentSelector: React.FC<ComponentSelectorProps> = ({
             </svg>
           </div>
           <div className="h-2 bg-emerald-200 rounded w-1/2 mt-2 mx-auto"></div>
+        </div>
+      )
+    },
+    {
+      type: 'Calendar',
+      title: 'Calendar Booking',
+      description: 'Interactive booking calendar with multiple design templates for appointments and reservations',
+      icon: <Calendar className="w-6 h-6" />,
+      color: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      preview: (
+        <div className="w-full h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 bg-purple-500 rounded-full">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold text-purple-700">Book Your Experience</span>
+          </div>
+          
+          {/* Progress indicators */}
+          <div className="flex justify-between mb-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                i <= 2 ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {i <= 2 ? <Check className="w-3 h-3" /> : i}
+              </div>
+            ))}
+          </div>
+          
+          {/* Service selection grid */}
+          <div className="grid grid-cols-2 gap-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className={`h-6 rounded-md text-xs flex items-center justify-center ${
+                i === 1 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {i === 1 ? <MapPin className="w-3 h-3" /> : <div className="w-3 h-3 bg-gray-300 rounded"></div>}
+              </div>
+            ))}
+          </div>
+          
+          {/* Bottom action */}
+          <div className="mt-2 bg-purple-500 text-white text-xs py-1 px-2 rounded text-center">
+            Confirm Booking
+          </div>
         </div>
       )
     }

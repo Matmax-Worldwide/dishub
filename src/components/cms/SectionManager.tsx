@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
 import { FormDesignType } from './forms/MultiStepFormRenderer';
-import { ComponentType } from '@/types/cms';
+import { ComponentType, HeaderAdvancedOptions } from '@/types/cms';
 import ComponentSelector from './ComponentSelector';
 
 // Drag and Drop imports
@@ -384,6 +384,38 @@ const componentMap = {
             {[...Array(6)].map((_, i) => (
               <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
             ))}
+          </div>
+        </div>
+      </div>
+    )
+  }),
+  // Calendar
+  Calendar: dynamic(() => import('./sections/CalendarSection'), {
+    loading: () => (
+      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500 text-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-white/20 rounded-full animate-pulse"></div>
+            <div className="w-64 h-8 bg-white/20 rounded animate-pulse"></div>
+          </div>
+          <div className="w-80 h-6 bg-white/20 rounded animate-pulse"></div>
+        </div>
+        <div className="p-6">
+          <div className="flex justify-between mb-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="w-48 h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="p-4 bg-gray-100 rounded-xl">
+                  <div className="w-full h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="w-3/4 h-3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -903,6 +935,16 @@ function SectionManagerBase({
           images: [],
           layout: 'grid',
           columns: 3,
+        } : type === 'Calendar' ? {
+          designTemplate: 'beauty-salon',
+          showLocationSelector: true,
+          showServiceCategories: true,
+          showStaffSelector: true,
+          calendarId: '',
+          locationId: '',
+          serviceIds: [],
+          theme: 'light' as const,
+          customStyles: {}
         } : {}),
         componentTitle: `${type} Component`
       }
@@ -1541,6 +1583,33 @@ function SectionManagerBase({
               backgroundColor={component.data.backgroundColor as string || "#ffffff"}
               textColor={component.data.textColor as string || "#000000"}
               logoUrl={component.data.logoUrl as string || ""}
+              transparency={component.data.transparency as number || 0}
+              headerSize={component.data.headerSize as 'sm' | 'md' | 'lg' || 'md'}
+              menuAlignment={component.data.menuAlignment as 'left' | 'center' | 'right' || 'right'}
+              menuButtonStyle={component.data.menuButtonStyle as 'default' | 'filled' | 'outline' || 'default'}
+              mobileMenuStyle={component.data.mobileMenuStyle as 'fullscreen' | 'dropdown' | 'sidebar' || 'dropdown'}
+              mobileMenuPosition={component.data.mobileMenuPosition as 'left' | 'right' || 'right'}
+              transparentHeader={component.data.transparentHeader as boolean || false}
+              borderBottom={component.data.borderBottom as boolean || false}
+              fixedHeader={component.data.fixedHeader as boolean || false}
+              advancedOptions={component.data.advancedOptions as HeaderAdvancedOptions || {}}
+              menuIcon={component.data.menuIcon as string || 'Menu'}
+              // Button configuration props
+              showButton={component.data.showButton as boolean || false}
+              buttonText={component.data.buttonText as string || ''}
+              buttonAction={component.data.buttonAction as string || ''}
+              buttonColor={component.data.buttonColor as string || '#3B82F6'}
+              buttonTextColor={component.data.buttonTextColor as string || '#FFFFFF'}
+              buttonSize={component.data.buttonSize as 'sm' | 'md' | 'lg' || 'md'}
+              buttonBorderRadius={component.data.buttonBorderRadius as number || 0}
+              buttonShadow={component.data.buttonShadow as 'none' | 'sm' | 'md' | 'lg' | 'xl' || 'none'}
+              buttonBorderColor={component.data.buttonBorderColor as string || ''}
+              buttonBorderWidth={component.data.buttonBorderWidth as number || 0}
+              buttonWidth={component.data.buttonWidth as string || ''}
+              buttonHeight={component.data.buttonHeight as string || ''}
+              buttonPosition={component.data.buttonPosition as 'left' | 'center' | 'right' || 'right'}
+              buttonDropdown={component.data.buttonDropdown as boolean || false}
+              buttonDropdownItems={component.data.buttonDropdownItems as Array<{id: string; label: string; url: string}> || []}
               isEditing={isEditing}
               onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />
@@ -1752,6 +1821,27 @@ function SectionManagerBase({
                 autoplaySpeed={component.data.autoplaySpeed as number || 3000}
                 showNavigation={component.data.showNavigation as boolean ?? true}
                 showDots={component.data.showDots as boolean ?? true}
+                isEditing={isEditing}
+                onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
+              />
+            </div>
+          );
+        }
+        
+        case 'Calendar': {
+          const CalendarComponent = componentMap.Calendar;
+          return (
+            <div {...containerProps}>
+              <CalendarComponent
+                calendarId={component.data.calendarId as string}
+                locationId={component.data.locationId as string}
+                serviceIds={component.data.serviceIds as string[]}
+                theme={component.data.theme as 'light' | 'dark' || 'light'}
+                showLocationSelector={component.data.showLocationSelector as boolean ?? true}
+                showServiceCategories={component.data.showServiceCategories as boolean ?? true}
+                showStaffSelector={component.data.showStaffSelector as boolean ?? true}
+                designTemplate={component.data.designTemplate as 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern' || 'beauty-salon'}
+                customStyles={component.data.customStyles as Record<string, string> || {}}
                 isEditing={isEditing}
                 onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
               />
