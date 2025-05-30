@@ -95,7 +95,7 @@ export const typeDefs = gql`
     name: String!
     description: String
     durationMinutes: Int!
-    price: Float!
+    prices: [Price!]!
     bufferTimeBeforeMinutes: Int!
     bufferTimeAfterMinutes: Int!
     preparationTimeMinutes: Int!
@@ -107,6 +107,25 @@ export const typeDefs = gql`
     serviceCategoryId: ID!
     serviceCategory: ServiceCategory
     locations: [Location!]
+  }
+
+  type Price {
+    id: ID!
+    amount: Float!
+    currencyId: String!
+    currency: Currency!
+    priceIncludesTax: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Currency {
+    id: ID!
+    code: String!
+    name: String!
+    symbol: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
 
   type Location {
@@ -2009,7 +2028,6 @@ export const typeDefs = gql`
     name: String!
     description: String
     durationMinutes: Int!
-    price: Float!
     bufferTimeBeforeMinutes: Int
     bufferTimeAfterMinutes: Int
     preparationTimeMinutes: Int
@@ -2024,7 +2042,6 @@ export const typeDefs = gql`
     name: String
     description: String
     durationMinutes: Int
-    price: Float
     bufferTimeBeforeMinutes: Int
     bufferTimeAfterMinutes: Int
     preparationTimeMinutes: Int

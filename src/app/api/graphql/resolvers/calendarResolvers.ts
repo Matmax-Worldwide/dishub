@@ -62,7 +62,6 @@ interface CreateServiceInput {
   name: string;
   description?: string;
   durationMinutes: number;
-  price: number;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;
@@ -77,7 +76,6 @@ interface UpdateServiceInput {
   name?: string;
   description?: string;
   durationMinutes?: number;
-  price?: number;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;
@@ -803,7 +801,6 @@ export const calendarResolvers = {
           name: input.name,
           description: input.description || null,
           durationMinutes: input.durationMinutes,
-          price: input.price,
           bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes || 0,
           bufferTimeAfterMinutes: input.bufferTimeAfterMinutes || 0,
           preparationTimeMinutes: input.preparationTimeMinutes || 0,
@@ -911,7 +908,6 @@ export const calendarResolvers = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
           ...(input.durationMinutes !== undefined && { durationMinutes: input.durationMinutes }),
-          ...(input.price !== undefined && { price: input.price }),
           ...(input.bufferTimeBeforeMinutes !== undefined && { bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes }),
           ...(input.bufferTimeAfterMinutes !== undefined && { bufferTimeAfterMinutes: input.bufferTimeAfterMinutes }),
           ...(input.preparationTimeMinutes !== undefined && { preparationTimeMinutes: input.preparationTimeMinutes }),
@@ -1146,6 +1142,9 @@ export const calendarResolvers = {
         
         // Check for booking conflicts
         const bookingDate = new Date(input.bookingDate);
+        const startDateTime = new Date(input.startTime);
+        const endDateTime = new Date(input.endTime);
+        
         const existingBookings = await prisma.booking.findMany({
           where: {
             locationId: input.locationId,
@@ -1154,20 +1153,20 @@ export const calendarResolvers = {
             OR: [
               {
                 AND: [
-                  { startTime: { lte: input.startTime } },
-                  { endTime: { gt: input.startTime } }
+                  { startTime: { lte: startDateTime } },
+                  { endTime: { gt: startDateTime } }
                 ]
               },
               {
                 AND: [
-                  { startTime: { lt: input.endTime } },
-                  { endTime: { gte: input.endTime } }
+                  { startTime: { lt: endDateTime } },
+                  { endTime: { gte: endDateTime } }
                 ]
               },
               {
                 AND: [
-                  { startTime: { gte: input.startTime } },
-                  { endTime: { lte: input.endTime } }
+                  { startTime: { gte: startDateTime } },
+                  { endTime: { lte: endDateTime } }
                 ]
               }
             ]
@@ -1204,8 +1203,8 @@ export const calendarResolvers = {
             staffProfileId: input.staffProfileId,
             customerId: customerId,
             bookingDate: bookingDate,
-            startTime: input.startTime,
-            endTime: input.endTime,
+            startTime: startDateTime,
+            endTime: endDateTime,
             notes: input.notes,
             status: 'PENDING'
           },
@@ -1298,6 +1297,19 @@ export const calendarResolvers = {
         return locationServices.map(ls => ls.location) || [];
       } catch (error) {
         console.error('Error fetching service locations:', error);
+        return [];
+      }
+    },
+    prices: async (parent: { id: string }) => {
+      try {
+        const prices = await prisma.price.findMany({
+          where: { serviceId: parent.id },
+          include: { currency: true },
+          orderBy: { createdAt: 'desc' }
+        });
+        return prices || [];
+      } catch (error) {
+        console.error('Error fetching service prices:', error);
         return [];
       }
     }
@@ -1404,5 +1416,18 @@ export const calendarResolvers = {
     userId: (parent: { customerId?: string }) => {
       return parent.customerId || null;
     },
+  },
+  Price: {
+    currency: async (parent: { currencyId: string }) => {
+      try {
+        return await prisma.currency.findUnique({ where: { id: parent.currencyId } });
+      } catch (error) {
+        console.error('Error fetching price currency:', error);
+        return null;
+      }
+    }
+  },
+  Currency: {
+    // Currency doesn't need any custom resolvers as all fields are direct
   },
 };
