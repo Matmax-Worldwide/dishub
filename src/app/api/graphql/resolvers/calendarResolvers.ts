@@ -70,6 +70,7 @@ interface CreateServiceInput {
   maxDailyBookingsPerService?: number;
   isActive?: boolean;
   serviceCategoryId: string;
+  locationIds?: string[];
 }
 
 interface UpdateServiceInput {
@@ -84,6 +85,7 @@ interface UpdateServiceInput {
   maxDailyBookingsPerService?: number;
   isActive?: boolean;
   serviceCategoryId?: string;
+  locationIds?: string[];
 }
 
 interface StaffScheduleInput {
@@ -185,7 +187,6 @@ export const calendarResolvers = {
           orderBy: { name: 'asc' },
           include: { 
             serviceCategory: true, 
-            locations: { take: 3, include: { location: {select: {name: true, id: true}} } }, // Summary of locations
             staff: { take: 3, include: { staffProfile: { include: { user: {select: {id: true, firstName:true, lastName:true}}}}}} // Summary of staff
           },
         });
@@ -500,6 +501,28 @@ export const calendarResolvers = {
     createService: async (_parent: unknown, { input }: { input: CreateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('createService called with input:', input);
+        
+        // Validate that the service category exists
+        const categoryExists = await prisma.serviceCategory.findUnique({
+          where: { id: input.serviceCategoryId }
+        });
+        if (!categoryExists) {
+          throw new Error(`Service category with ID ${input.serviceCategoryId} not found`);
+        }
+        
+        // Validate that all location IDs exist if provided
+        if (input.locationIds && input.locationIds.length > 0) {
+          const existingLocations = await prisma.location.findMany({
+            where: { id: { in: input.locationIds } }
+          });
+          if (existingLocations.length !== input.locationIds.length) {
+            const foundIds = existingLocations.map(loc => loc.id);
+            const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
+            throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
+          }
+        }
+        
         const serviceData: Prisma.ServiceCreateInput = {
           name: input.name,
           description: input.description || null,
@@ -513,7 +536,52 @@ export const calendarResolvers = {
           isActive: input.isActive !== undefined ? input.isActive : true,
           serviceCategory: { connect: { id: input.serviceCategoryId } },
         };
+        
+        console.log('Creating service with data:', serviceData);
         const service = await prisma.service.create({ data: serviceData });
+        console.log('Service created:', service);
+        
+        // Always handle location connections (even if empty array)
+        if (input.locationIds !== undefined) {
+          if (input.locationIds.length > 0) {
+            console.log('Connecting service to locations:', input.locationIds);
+            
+            try {
+              // Use upsert to handle potential conflicts with composite primary key
+              for (const locationId of input.locationIds) {
+                await prisma.locationService.upsert({
+                  where: {
+                    locationId_serviceId: {
+                      locationId: locationId,
+                      serviceId: service.id
+                    }
+                  },
+                  update: {
+                    isActive: true
+                  },
+                  create: {
+                    locationId: locationId,
+                    serviceId: service.id,
+                    isActive: true
+                  }
+                });
+              }
+              console.log('Location connections created successfully');
+            } catch (locationError) {
+              console.error('Error creating location connections:', locationError);
+              // If location assignment fails, we should still return success for service creation
+              // but mention the location assignment issue
+              return {
+                success: true,
+                message: 'Service created successfully, but some location assignments failed',
+                service
+              };
+            }
+          } else {
+            console.log('No locations to connect for this service');
+          }
+        }
+        
         return {
           success: true,
           message: 'Service created successfully',
@@ -523,7 +591,7 @@ export const calendarResolvers = {
         console.error('Error creating service:', error);
         return {
           success: false,
-          message: 'Failed to create service',
+          message: error instanceof Error ? error.message : 'Failed to create service',
           service: null
         };
       }
@@ -531,6 +599,38 @@ export const calendarResolvers = {
     updateService: async (_parent: unknown, { id, input }: { id: string; input: UpdateServiceInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
+        console.log('updateService called with input:', input);
+        
+        // Validate that the service exists
+        const existingService = await prisma.service.findUnique({
+          where: { id }
+        });
+        if (!existingService) {
+          throw new Error(`Service with ID ${id} not found`);
+        }
+        
+        // Validate that the service category exists if being updated
+        if (input.serviceCategoryId) {
+          const categoryExists = await prisma.serviceCategory.findUnique({
+            where: { id: input.serviceCategoryId }
+          });
+          if (!categoryExists) {
+            throw new Error(`Service category with ID ${input.serviceCategoryId} not found`);
+          }
+        }
+        
+        // Validate that all location IDs exist if provided
+        if (input.locationIds && input.locationIds.length > 0) {
+          const existingLocations = await prisma.location.findMany({
+            where: { id: { in: input.locationIds } }
+          });
+          if (existingLocations.length !== input.locationIds.length) {
+            const foundIds = existingLocations.map(loc => loc.id);
+            const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
+            throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
+          }
+        }
+        
         const data: Prisma.ServiceUpdateInput = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
@@ -544,7 +644,53 @@ export const calendarResolvers = {
           ...(input.isActive !== undefined && { isActive: input.isActive }),
           ...(input.serviceCategoryId !== undefined && { serviceCategory: { connect: { id: input.serviceCategoryId } } }),
         };
+        
+        console.log('Updating service with data:', data);
         const service = await prisma.service.update({ where: { id }, data });
+        console.log('Service updated:', service);
+        
+        // Always update location connections if locationIds are provided (even if empty array)
+        if (input.locationIds !== undefined) {
+          console.log('Updating service location connections:', input.locationIds);
+          
+          try {
+            // Use a transaction to ensure atomicity
+            await prisma.$transaction(async (tx) => {
+              // First, delete all existing location connections for this service
+              await tx.locationService.deleteMany({
+                where: { serviceId: id }
+              });
+              console.log('Existing location connections removed');
+              
+              // Then create new connections if any locationIds are provided
+              if (input.locationIds && input.locationIds.length > 0) {
+                // Use individual creates instead of createMany to handle potential conflicts better
+                for (const locationId of input.locationIds) {
+                  await tx.locationService.create({
+                    data: {
+                      locationId: locationId,
+                      serviceId: id,
+                      isActive: true
+                    }
+                  });
+                }
+                console.log('New location connections created successfully');
+              } else {
+                console.log('No locations to connect for this service (all connections removed)');
+              }
+            });
+          } catch (locationError) {
+            console.error('Error updating location connections:', locationError);
+            // If location update fails, we should still return success for service update
+            // but mention the location assignment issue
+            return {
+              success: true,
+              message: 'Service updated successfully, but location assignments failed',
+              service
+            };
+          }
+        }
+        
         return {
           success: true,
           message: 'Service updated successfully',
@@ -554,7 +700,7 @@ export const calendarResolvers = {
         console.error('Error updating service:', error);
         return {
           success: false,
-          message: 'Failed to update service',
+          message: error instanceof Error ? error.message : 'Failed to update service',
           service: null
         };
       }

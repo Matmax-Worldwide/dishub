@@ -2004,6 +2004,7 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID!
+    locationIds: [ID!]
   }
 
   input UpdateServiceInput {
@@ -2018,6 +2019,7 @@ export const typeDefs = gql`
     maxDailyBookingsPerService: Int
     isActive: Boolean
     serviceCategoryId: ID
+    locationIds: [ID!]
   }
 
   # Input types for location management

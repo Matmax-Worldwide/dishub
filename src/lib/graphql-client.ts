@@ -3871,6 +3871,7 @@ export const cmsOperations = {
     maxDailyBookingsPerService?: number;
     isActive?: boolean;
     serviceCategoryId: string;
+    locationIds?: string[];
   }}): Promise<{
     id: string;
     name: string;
@@ -3932,6 +3933,7 @@ export const cmsOperations = {
       maxDailyBookingsPerService?: number;
       isActive?: boolean;
       serviceCategoryId?: string;
+      locationIds?: string[];
     }
   }): Promise<{
     id: string;

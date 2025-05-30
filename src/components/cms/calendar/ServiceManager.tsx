@@ -132,6 +132,7 @@ export default function ServiceManager() {
         maxDailyBookingsPerService: data.maxDailyBookingsPerService || undefined,
         serviceCategoryId: data.serviceCategoryId!,
         isActive: data.isActive ?? true,
+        locationIds: data.locationIds || [],
       };
 
       let result;
