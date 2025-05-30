@@ -46,7 +46,8 @@ model User {
   settings        UserSettings?
   posts           Post[]
   staffProfile    StaffProfile? // Relation to StaffProfile for booking module
-  bookings        Booking[]     // Bookings made by this user as a customer
+  bookings        Booking[] // Bookings made by this user as a customer
+  Shop            Shop[]
 }
 
 model Session {
@@ -213,6 +214,119 @@ model HelpArticle {
   tags      String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Shop {
+  id                String  @id @default(cuid())
+  name              String
+  defaultCurrencyId String
+  adminUserId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  defaultCurrency    Currency                 @relation("ShopDefaultCurrency", fields: [defaultCurrencyId], references: [id])
+  acceptedCurrencies ShopAcceptedCurrencies[] // Relation to the explicit join table
+
+  adminUser User?      @relation(fields: [adminUserId], references: [id])
+  locations Location[]
+  products  Product[]
+  taxes     Tax[] // A shop can have specific taxes
+
+  // @@index([adminUserId]) // Optional: if querying shops by admin user is frequent
+  @@index([defaultCurrencyId])
+}
+
+model ShopAcceptedCurrencies {
+  shopId     String
+  currencyId String
+
+  shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  currency Currency @relation("ShopAcceptedCurrencies", fields: [currencyId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) // Optional: to track when a currency was added to a shop
+
+  @@id([shopId, currencyId])
+  @@index([currencyId]) // Index for querying shops by accepted currency
+}
+
+model Tax {
+  id          String  @id @default(cuid())
+  name        String // e.g., "VAT", "Sales Tax"
+  rate        Float // e.g., 0.07 for 7%
+  isInclusive Boolean @default(false) // Tax is included in the price
+  country     String? // For regional taxes
+  region      String? // Optional, sub-division of country
+  isGlobal    Boolean @default(false) // Applies to all shops/products unless overridden
+  shopId      String? // Optional, if a tax is specific to a shop
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop       Shop?      @relation(fields: [shopId], references: [id])
+  priceTaxes PriceTax[] // Relation to the explicit join table for prices
+
+  @@index([shopId])
+  @@index([isGlobal])
+  @@index([country])
+}
+
+model Product {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  sku           String? @unique
+  stockQuantity Int?
+  shopId        String
+
+  // Potentially add fields for category, tags, images, etc., in the future
+  // productCategoryId String?
+  // category ProductCategory? @relation(fields: [productCategoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop   Shop    @relation(fields: [shopId], references: [id])
+  prices Price[] // Relation to its prices in different currencies
+  // @@index([productCategoryId])
+
+  @@index([shopId])
+}
+
+model Price {
+  id               String  @id @default(cuid())
+  amount           Float
+  currencyId       String
+  productId        String?
+  serviceId        String?
+  priceIncludesTax Boolean @default(false) // Indicates if 'amount' already includes 'isInclusive' taxes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  currency   Currency   @relation(fields: [currencyId], references: [id])
+  product    Product?   @relation(fields: [productId], references: [id], onDelete: Cascade) // Cascade delete if product is removed
+  service    Service?   @relation(fields: [serviceId], references: [id], onDelete: Cascade) // Cascade delete if service is removed
+  priceTaxes PriceTax[] // Relation to the explicit join table for taxes
+
+  @@index([currencyId])
+  @@index([productId])
+  @@index([serviceId])
+}
+
+model PriceTax {
+  priceId   String
+  taxId     String
+  appliedAt DateTime @default(now()) // Optional: to track when a tax was associated with a price
+
+  price Price @relation(fields: [priceId], references: [id], onDelete: Cascade)
+  tax   Tax   @relation(fields: [taxId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) // It's good practice for join tables too
+  updatedAt DateTime @updatedAt // Though less frequently updated
+
+  @@id([priceId, taxId])
+  @@index([taxId]) // Index on taxId can be useful for finding all prices with a specific tax
 }
 
 model RoleModel {
@@ -468,11 +582,11 @@ model Payroll {
 }
 
 model Page {
-  id              String        @id @default(cuid())
+  id              String       @id @default(cuid())
   title           String
-  slug            String        @unique
+  slug            String       @unique
   description     String?
-  isPublished     Boolean       @default(false)
+  isPublished     Boolean      @default(false)
   publishDate     DateTime?
   featuredImage   String?
   metaTitle       String?
@@ -480,57 +594,57 @@ model Page {
   createdById     String
   updatedById     String?
   parentId        String?
-  order           Int           @default(0)
-  pageType        PageType      @default(CONTENT)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  locale          String        @default("en")
-  template        String        @default("default")
-  isDefault       Boolean       @default(false)
+  order           Int          @default(0)
+  pageType        PageType     @default(CONTENT)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  locale          String       @default("en")
+  template        String       @default("default")
+  isDefault       Boolean      @default(false)
   forms           Form[]
   menuItems       MenuItem[]
-  parent          Page?         @relation("PageToPage", fields: [parentId], references: [id])
-  children        Page[]        @relation("PageToPage")
+  parent          Page?        @relation("PageToPage", fields: [parentId], references: [id])
+  children        Page[]       @relation("PageToPage")
   seo             PageSEO?
-  sections        CMSSection[]  @relation("PageToSection")
+  sections        CMSSection[] @relation("PageToSection")
 }
 
 model CMSSection {
-  id          String             @id @default(cuid())
-  sectionId   String             @unique
-  lastUpdated DateTime           @default(now())
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  createdBy   String?
-  description String?
-  name        String?
+  id              String             @id @default(cuid())
+  sectionId       String             @unique
+  lastUpdated     DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdBy       String?
+  description     String?
+  name            String?
   backgroundImage String?
-  backgroundType  String?         @default("gradient")
-  gridDesign   String?           @default("basic")
-  components  SectionComponent[]
-  pages       Page[]             @relation("PageToSection")
-  media       Media[]
-  order       Int                @default(0)
+  backgroundType  String?            @default("gradient")
+  gridDesign      String?            @default("basic")
+  components      SectionComponent[]
+  pages           Page[]             @relation("PageToSection")
+  media           Media[]
+  order           Int                @default(0)
 
   @@map("CMSSection")
 }
 
 model Media {
-  id            String       @id @default(cuid())
-  title         String?
-  description   String?
-  fileUrl       String
-  fileName      String
-  fileSize      Int?
-  fileType      String?
-  altText       String?
-  cmsSectionId  String?      
-  uploadedById  String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  cmsSection    CMSSection?  @relation(fields: [cmsSectionId], references: [id])
-  posts         Post[]       @relation("PostMedia")
-  featuredInPosts Post[]     @relation("PostFeaturedImage")
+  id              String      @id @default(cuid())
+  title           String?
+  description     String?
+  fileUrl         String
+  fileName        String
+  fileSize        Int?
+  fileType        String?
+  altText         String?
+  cmsSectionId    String?
+  uploadedById    String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
+  posts           Post[]      @relation("PostMedia")
+  featuredInPosts Post[]      @relation("PostFeaturedImage")
 }
 
 model PageSEO {
@@ -763,21 +877,21 @@ model HeaderStyle {
 }
 
 model FooterStyle {
-  id                String   @id @default(cuid())
-  transparency      Int?     @default(0)
-  columnLayout      String?  @default("grid")
-  socialAlignment   String?  @default("left")
-  borderTop         Boolean? @default(false)
-  alignment         String?  @default("left")
-  padding           String?  @default("medium")
-  width             String?  @default("container")
-  advancedOptions   Json?
-  
-  menuId            String   @unique
-  menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              String   @id @default(cuid())
+  transparency    Int?     @default(0)
+  columnLayout    String?  @default("grid")
+  socialAlignment String?  @default("left")
+  borderTop       Boolean? @default(false)
+  alignment       String?  @default("left")
+  padding         String?  @default("medium")
+  width           String?  @default("container")
+  advancedOptions Json?
+
+  menuId String @unique
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Form {
@@ -1068,29 +1182,29 @@ model Blog {
 }
 
 model Post {
-  id              String    @id @default(cuid())
-  title           String
-  slug            String    @unique
-  content         String    @db.Text
-  excerpt         String?
-  featuredImage   String?
-  
-  featuredImageId String?
-  status          PostStatus @default(DRAFT)
-  publishedAt     DateTime?
-  blogId          String
-  authorId        String
-  metaTitle       String?
-  metaDescription String?
-  tags            String[]
-  categories      String[]
-  readTime        Int?      @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  blog            Blog      @relation(fields: [blogId], references: [id])
-  author          User      @relation(fields: [authorId], references: [id])
-  featuredImageMedia Media? @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
-  media           Media[]   @relation("PostMedia")
+  id            String  @id @default(cuid())
+  title         String
+  slug          String  @unique
+  content       String  @db.Text
+  excerpt       String?
+  featuredImage String?
+
+  featuredImageId    String?
+  status             PostStatus @default(DRAFT)
+  publishedAt        DateTime?
+  blogId             String
+  authorId           String
+  metaTitle          String?
+  metaDescription    String?
+  tags               String[]
+  categories         String[]
+  readTime           Int?       @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  blog               Blog       @relation(fields: [blogId], references: [id])
+  author             User       @relation(fields: [authorId], references: [id])
+  featuredImageMedia Media?     @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
+  media              Media[]    @relation("PostMedia")
 }
 
 enum PostStatus {
@@ -1134,23 +1248,29 @@ enum ScheduleType {
   SPECIAL_EVENT
   BLACKOUT_DATE
 }
+
 // --------------- END BOOKING MODULE ENUMS ---------------
 
 // --------------- BOOKING MODULE MODELS ---------------
 model Location {
-  id               String    @id @default(cuid())
-  name             String
-  address          String?
-  phone            String?
-  operatingHours   Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  operatingHours Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  shopId String?
+  shop   Shop?   @relation(fields: [shopId], references: [id])
 
   services         LocationService[]
   staffAssignments StaffLocationAssignment[]
   bookings         Booking[]
   schedules        StaffSchedule[] // Staff schedules specific to this location
-  bookingRules     BookingRule[]   // Booking rules specific to this location
+  bookingRules     BookingRule[] // Booking rules specific to this location
+
+  @@index([shopId])
 }
 
 model ServiceCategory {
@@ -1166,99 +1286,100 @@ model ServiceCategory {
   parentCategory  ServiceCategory?  @relation("ServiceCategoryToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
 
-  @@map("ServiceCategories") 
+  @@map("ServiceCategories")
 }
 
 model Service {
-  id                          String   @id @default(cuid())
-  name                        String
-  description                 String?
-  durationMinutes             Int
-  price                       Float
-  bufferTimeBeforeMinutes     Int      @default(0)
-  bufferTimeAfterMinutes      Int      @default(0)
-  preparationTimeMinutes      Int      @default(0) 
-  cleanupTimeMinutes          Int      @default(0) 
-  maxDailyBookingsPerService  Int?     
-  isActive                    Boolean  @default(true)
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  id                         String   @id @default(cuid())
+  name                       String
+  description                String?
+  durationMinutes            Int
+  // price                      Float // This field is being removed
+  bufferTimeBeforeMinutes    Int      @default(0)
+  bufferTimeAfterMinutes     Int      @default(0)
+  preparationTimeMinutes     Int      @default(0)
+  cleanupTimeMinutes         Int      @default(0)
+  maxDailyBookingsPerService Int?
+  isActive                   Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   serviceCategoryId String
   serviceCategory   ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
 
-  locations LocationService[] 
-  staff     StaffService[]    
+  locations LocationService[]
+  staff     StaffService[]
   bookings  Booking[]
+  prices    Price[] // This field is being added
 }
 
 model StaffProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique 
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio             String?
-  specializations String[]  @default([]) 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  specializations String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   schedules           StaffSchedule[]
   assignedServices    StaffService[]
   locationAssignments StaffLocationAssignment[]
-  bookings            Booking[]             @relation("StaffBookings")
+  bookings            Booking[]                 @relation("StaffBookings")
 }
 
 model StaffSchedule {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   staffProfileId String
-  staffProfile   StaffProfile  @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
-  
-  locationId     String?       
-  location       Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
 
-  date           DateTime?     
-  dayOfWeek      DayOfWeek?    
-  
-  startTime      String        // Format "HH:MM"
-  endTime        String        // Format "HH:MM"
-  
-  scheduleType   ScheduleType  
-  isAvailable    Boolean       @default(true) 
-  notes          String?
-  
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  date      DateTime?
+  dayOfWeek DayOfWeek?
+
+  startTime String // Format "HH:MM"
+  endTime   String // Format "HH:MM"
+
+  scheduleType ScheduleType
+  isAvailable  Boolean      @default(true)
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([staffProfileId, date])
   @@index([staffProfileId, dayOfWeek])
 }
 
 model Booking {
-  id           String   @id @default(cuid())
-  customerId   String   
-  customer     User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  serviceId    String
-  service      Service  @relation(fields: [serviceId], references: [id])
-  
-  staffProfileId String?  
+  id         String @id @default(cuid())
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  staffProfileId String?
   staffProfile   StaffProfile? @relation("StaffBookings", fields: [staffProfileId], references: [id], onDelete: SetNull)
-  
-  locationId   String
-  location     Location @relation(fields: [locationId], references: [id])
-  
-  bookingDate  DateTime 
-  startTime    DateTime 
-  endTime      DateTime 
-  durationMinutes Int   
 
-  status       BookingStatus @default(PENDING)
-  notes        String?       
-  
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  bookingDate     DateTime
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int
+
+  status BookingStatus @default(PENDING)
+  notes  String?
+
   communicationPreferences CommunicationMethod[] @default([])
-  reminderSentAt         DateTime?
+  reminderSentAt           DateTime?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([customerId])
   @@index([serviceId])
@@ -1269,31 +1390,31 @@ model Booking {
 }
 
 model BookingRule {
-  id            String  @id @default(cuid())
-  locationId    String? @unique 
+  id         String  @id @default(cuid())
+  locationId String? @unique
   // serviceId  String? // Potentially rules per service too
-  
-  advanceBookingHoursMin Int     
-  advanceBookingDaysMax  Int     
-  sameDayCutoffTime      String? 
-  
-  bufferBetweenAppointmentsMinutes Int @default(0) 
-  maxAppointmentsPerDayPerStaff  Int?
-  bookingSlotIntervalMinutes     Int     @default(15) 
+
+  advanceBookingHoursMin Int
+  advanceBookingDaysMax  Int
+  sameDayCutoffTime      String?
+
+  bufferBetweenAppointmentsMinutes Int  @default(0)
+  maxAppointmentsPerDayPerStaff    Int?
+  bookingSlotIntervalMinutes       Int  @default(15)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location  Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
 
 model LocationService {
   locationId String
   serviceId  String
-  isActive   Boolean  @default(true) 
+  isActive   Boolean @default(true)
 
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1308,7 +1429,7 @@ model StaffService {
 
   staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
   service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
 
   @@id([staffProfileId, serviceId])
@@ -1327,4 +1448,20 @@ model StaffLocationAssignment {
   @@id([staffProfileId, locationId])
   @@map("StaffLocationAssignments")
 }
+
 // --------------- END BOOKING MODULE MODELS ---------------
+
+model Currency {
+  id     String @id @default(cuid())
+  code   String @unique // e.g., "USD", "EUR", "PEN"
+  name   String // e.g., "United States Dollar", "Euro", "Peruvian Sol"
+  symbol String // e.g., "$", "€", "S/"
+
+  // Relations defined in plan - will be fully effective when Shop and Price models are added
+  shopsAcceptedIn ShopAcceptedCurrencies[] @relation("ShopAcceptedCurrencies")
+  shopsDefaultIn  Shop[]                   @relation("ShopDefaultCurrency")
+  prices          Price[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
