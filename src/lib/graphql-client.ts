@@ -4151,7 +4151,13 @@ export const cmsOperations = {
           pageSize: pagination?.pageSize || 10
         };
       }
-      return null;
+      // Always return empty result structure instead of null
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
     }
   },
 
@@ -6338,7 +6344,13 @@ const graphqlClient = {
           pageSize: pagination?.pageSize || 10
         };
       }
-      return null;
+      // Always return empty result structure instead of null
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination?.page || 1,
+        pageSize: pagination?.pageSize || 10
+      };
     }
   },
 

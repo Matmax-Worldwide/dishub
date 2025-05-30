@@ -26,6 +26,7 @@ import { cmsResolvers } from './resolvers/cms';
 import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
 import { blogResolvers } from './resolvers/blogs';
+import { calendarResolvers } from './resolvers/calendarResolvers';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -646,6 +647,7 @@ const resolvers = {
     ...((userPermissionResolvers.Query as object) || {}),
     ...((formResolvers.Query as object) || {}),
     ...((blogResolvers.Query as object) || {}),
+    ...((calendarResolvers.Query as object) || {}),
     
     // Add menu queries
     menus: menuResolvers.Query.menus,
@@ -862,6 +864,7 @@ const resolvers = {
     ...('Mutation' in userPermissionResolvers ? (userPermissionResolvers.Mutation as object) : {}),
     ...('Mutation' in formResolvers ? (formResolvers.Mutation as object) : {}),
     ...('Mutation' in blogResolvers ? (blogResolvers.Mutation as object) : {}),
+    ...('Mutation' in calendarResolvers ? (calendarResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
     createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
@@ -1144,6 +1147,11 @@ const resolvers = {
 
   // Add the MenuItem resolver for nested children
   MenuItem: menuResolvers.MenuItem,
+
+  // Add calendar field resolvers
+  Booking: calendarResolvers.Booking,
+  Service: calendarResolvers.Service,
+  StaffProfile: calendarResolvers.StaffProfile,
 };
 
 export default resolvers; 
