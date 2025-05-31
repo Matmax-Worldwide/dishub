@@ -1,9 +1,11 @@
 import enDict from './dictionaries/en.json';
 import esDict from './dictionaries/es.json';
+import deDict from './dictionaries/de.json';
 
 export const dictionaries = {
   en: enDict,
   es: esDict,
+  de: deDict,
 };
 
 export type Locale = keyof typeof dictionaries;

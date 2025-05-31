@@ -2,7 +2,6 @@
 
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
 import BookingsSidebar from '@/components/BookingsSidebar';
-import { use } from 'react';
 
 interface BookingsLayoutProps {
   children: React.ReactNode;
@@ -11,12 +10,11 @@ interface BookingsLayoutProps {
   }>;
 }
 
-export default function BookingsLayout({ children, params }: BookingsLayoutProps) {
-  const { locale } = use(params);
+export default function BookingsLayout({ children }: BookingsLayoutProps) {  
   return (
     <UnsavedChangesProvider>
       <div className="flex h-screen bg-gray-50">
-        <BookingsSidebar locale={locale} />
+        <BookingsSidebar/>
         <main className="flex-1 overflow-auto">
           {/* This is a nested layout inside the dashboard layout */}
           {children}

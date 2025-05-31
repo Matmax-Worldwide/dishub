@@ -26,43 +26,43 @@ const nextConfig = {
   // Reescribir rutas: crucial para arreglar el problema de i18n con imágenes
   async rewrites() {
     return [
-      // Reescribir cualquier URL que comience con /en/logo.png o /es/logo.png a /logo.png
+      // Reescribir cualquier URL que comience con /en/logo.png, /es/logo.png o /de/logo.png a /logo.png
       {
-        source: '/:locale(en|es)/logo.png',
+        source: '/:locale(en|es|de)/logo.png',
         destination: '/logo.png',
       },
       // Regla genérica para cualquier imagen con locale
       {
-        source: '/:locale(en|es)/:path*.png',
+        source: '/:locale(en|es|de)/:path*.png',
         destination: '/:path*.png',
       },
       {
-        source: '/:locale(en|es)/:path*.jpg',
+        source: '/:locale(en|es|de)/:path*.jpg',
         destination: '/:path*.jpg',
       },
       {
-        source: '/:locale(en|es)/:path*.svg',
+        source: '/:locale(en|es|de)/:path*.svg',
         destination: '/:path*.svg',
       },
       {
-        source: '/:locale(en|es)/:path*.webp',
+        source: '/:locale(en|es|de)/:path*.webp',
         destination: '/:path*.webp',
       },
       // Reglas para archivos de video optimizadas
       {
-        source: '/:locale(en|es)/:path*.mp4',
+        source: '/:locale(en|es|de)/:path*.mp4',
         destination: '/:path*.mp4',
       },
       {
-        source: '/:locale(en|es)/videos/:file*.mp4',
+        source: '/:locale(en|es|de)/videos/:file*.mp4',
         destination: '/videos/:file*.mp4',
       },
       {
-        source: '/:locale(en|es)/:path*.webm',
+        source: '/:locale(en|es|de)/:path*.webm',
         destination: '/:path*.webm',
       },
       {
-        source: '/:locale(en|es)/:path*.ogg',
+        source: '/:locale(en|es|de)/:path*.ogg',
         destination: '/:path*.ogg',
       },
     ];

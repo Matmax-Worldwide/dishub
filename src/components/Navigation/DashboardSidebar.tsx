@@ -33,6 +33,7 @@ import { client } from '@/app/lib/apollo-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import React from 'react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`
@@ -1157,7 +1158,7 @@ export function DashboardSidebar() {
           
           {/* Sidebar footer */}
           <div className="border-t p-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-2">
               <Avatar>
                 <AvatarImage src="" alt="User" />
                 <AvatarFallback>UN</AvatarFallback>
@@ -1170,6 +1171,9 @@ export function DashboardSidebar() {
                 <LogOutIcon className="h-4 w-4" />
                 <span className="sr-only">{t('sidebar.logout')}</span>
               </Button>
+            </div>
+            <div className="flex justify-center">
+              <LanguageSwitcher />
             </div>
           </div>
         </div>
@@ -1483,7 +1487,7 @@ export function DashboardSidebar() {
             
             {/* Mobile sidebar footer */}
             <div className="border-t p-3 shrink-0">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-2">
                 <Avatar>
                   <AvatarImage src="" alt="User" />
                   <AvatarFallback>UN</AvatarFallback>
@@ -1496,6 +1500,9 @@ export function DashboardSidebar() {
                   <LogOutIcon className="h-4 w-4" />
                   <span className="sr-only">{t('sidebar.logout')}</span>
                 </Button>
+              </div>
+              <div className="flex justify-center">
+                <LanguageSwitcher />
               </div>
             </div>
           </div>

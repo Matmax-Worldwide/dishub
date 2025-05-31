@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { RoleName } from './src/hooks/usePermission'
 
 // Definir los locales soportados
-const locales = ['en', 'es']
+const locales = ['en', 'es', 'de']
 const defaultLocale = 'es'
 
 // Definir rutas protegidas con requisitos de roles

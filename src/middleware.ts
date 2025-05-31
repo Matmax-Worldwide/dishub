@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 // Definir los locales soportados
-const locales = ['en', 'es'];
+const locales = ['en', 'es', 'de'];
 const defaultLocale = 'en';
 
 // Crear el middleware de next-intl

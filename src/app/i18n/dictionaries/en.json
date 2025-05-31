@@ -21,9 +21,20 @@
     "next": "Next",
     "skip": "Skip",
     "finalize": "Finalize",
-    "optional": "Optional"
+    "optional": "Optional",
+    "returnToDashboard": "Return to Dashboard"
   },
   "cms": {
+    "title": "CMS",
+    "dashboard": "Dashboard",
+    "pages": "Pages",
+    "menus": "Menus",
+    "forms": "Forms",
+    "media": "Media",
+    "settings": "Settings",
+    "blog": "Blog",
+    "mainNavigation": "Main Navigation",
+    "configuration": "Configuration",
     "createPage": "Create page",
     "createAndContinue": "Create page and continue to edit",
     "unsavedChanges": "Unsaved changes",
@@ -249,5 +260,21 @@
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
     "USER": "User"
+  },
+  "commerce": {
+    "title": "E-COMMERCE"
+  },
+  "bookings": {
+    "title": "Bookings",
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "bookings": "Bookings",
+    "services": "Services",
+    "categories": "Categories",
+    "locations": "Locations",
+    "staff": "Staff",
+    "rules": "Rules",
+    "main": "Main",
+    "management": "Management"
   }
 } 
