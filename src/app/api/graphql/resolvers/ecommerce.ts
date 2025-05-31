@@ -96,6 +96,30 @@ interface PaymentFilterInput {
   dateTo?: string;
 }
 
+type CustomerWithRelations = {
+  id: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  profileImageUrl?: string | null;
+  isActive: boolean;
+  emailVerified?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  orders: Array<{
+    id: string;
+    totalAmount: number;
+    createdAt: Date;
+    items: unknown[];
+  }>;
+  reviews: unknown[];
+  _count: {
+    orders: number;
+    reviews: number;
+  };
+};
+
 export const ecommerceResolvers = {
   Query: {
     // Shop queries
@@ -440,42 +464,144 @@ export const ecommerceResolvers = {
     // Order queries
     orders: async (
       _parent: unknown,
-      _args: { filter?: OrderFilterInput; pagination?: PaginationInput },
+      { filter, pagination }: { filter?: OrderFilterInput; pagination?: PaginationInput },
       context: Context
     ) => {
       try {
+        console.log('Orders resolver called with filter:', filter, 'pagination:', pagination);
+        
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         if (!token) {
-          throw new Error('Not authenticated');
+          console.error('No token provided for orders query');
+          return []; // Return empty array instead of throwing
         }
 
         const decoded = await verifyToken(token) as { userId: string };
         if (!decoded?.userId) {
-          throw new Error('Invalid token');
+          console.error('Invalid token for orders query');
+          return []; // Return empty array instead of throwing
         }
 
-        // For now, return empty array since Order model needs to be properly set up in Prisma
-        // This will be replaced when Order model is fully implemented
-        return [];
+        console.log('User authenticated:', decoded.userId);
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.search) {
+          where.OR = [
+            { customerName: { contains: filter.search, mode: 'insensitive' } },
+            { customerEmail: { contains: filter.search, mode: 'insensitive' } },
+            { id: { contains: filter.search, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.shopId) {
+          where.shopId = filter.shopId;
+        }
+
+        if (filter?.customerId) {
+          where.customerId = filter.customerId;
+        }
+
+        if (filter?.status) {
+          where.status = filter.status;
+        }
+
+        if (filter?.dateFrom || filter?.dateTo) {
+          where.createdAt = {};
+          if (filter.dateFrom) {
+            (where.createdAt as Record<string, unknown>).gte = new Date(filter.dateFrom);
+          }
+          if (filter.dateTo) {
+            (where.createdAt as Record<string, unknown>).lte = new Date(filter.dateTo);
+          }
+        }
+
+        console.log('Query where clause:', JSON.stringify(where, null, 2));
+
+        // First, let's try a simple count to see if the database is accessible
+        const totalCount = await prisma.order.count({ where });
+        console.log('Total orders count:', totalCount);
+
+        // If count works, try the full query
+        const orders = await prisma.order.findMany({
+          where,
+          include: {
+            customer: true,
+            shop: true,
+            currency: true,
+            items: {
+              include: {
+                product: true
+              }
+            }
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
+          orderBy: { createdAt: 'desc' }
+        });
+
+        console.log('Orders query result:', orders ? orders.length : 'null', 'orders found');
+        
+        return orders || []; // Ensure we always return an array
       } catch (error) {
         console.error('Error fetching orders:', error);
-        throw error;
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        return []; // Return empty array instead of throwing
       }
     },
 
-    order: async (_parent: unknown, _args: { id: string }, context: Context) => {
+    order: async (_parent: unknown, { id }: { id: string }, context: Context) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         if (!token) {
-          throw new Error('Not authenticated');
+          console.error('No token provided for order query');
+          return null;
         }
 
-        // For now, return null since Order model needs to be properly set up in Prisma
-        // This will be replaced when Order model is fully implemented
-        return null;
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          console.error('Invalid token for order query');
+          return null;
+        }
+
+        const order = await prisma.order.findUnique({
+          where: { id },
+          include: {
+            customer: true,
+            shop: true,
+            currency: true,
+            items: {
+              include: {
+                product: {
+                  include: {
+                    prices: {
+                      include: {
+                        currency: true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            payments: {
+              include: {
+                currency: true,
+                paymentMethod: {
+                  include: {
+                    provider: true
+                  }
+                },
+                provider: true
+              }
+            },
+            shipments: true
+          }
+        });
+
+        return order; // This can be null if not found, which is fine for nullable field
       } catch (error) {
         console.error('Error fetching order:', error);
-        throw error;
+        return null; // Return null instead of throwing
       }
     },
 
@@ -905,6 +1031,647 @@ export const ecommerceResolvers = {
         return payment;
       } catch (error) {
         console.error('Error fetching payment:', error);
+        throw error;
+      }
+    },
+
+    // Customer queries
+    customers: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: Record<string, unknown>; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const where: Record<string, unknown> = {
+          role: {
+            name: 'CUSTOMER'
+          }
+        };
+
+        if (filter?.search) {
+          where.OR = [
+            { firstName: { contains: filter.search as string, mode: 'insensitive' } },
+            { lastName: { contains: filter.search as string, mode: 'insensitive' } },
+            { email: { contains: filter.search as string, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.isActive !== undefined) {
+          where.isActive = filter.isActive;
+        }
+
+        if (filter?.registeredFrom || filter?.registeredTo) {
+          where.createdAt = {};
+          if (filter.registeredFrom) {
+            (where.createdAt as Record<string, unknown>).gte = new Date(filter.registeredFrom as string);
+          }
+          if (filter.registeredTo) {
+            (where.createdAt as Record<string, unknown>).lte = new Date(filter.registeredTo as string);
+          }
+        }
+
+        const customers = await prisma.user.findMany({
+          where,
+          include: {
+            orders: {
+              include: {
+                items: true
+              }
+            },
+            reviews: true,
+            _count: {
+              select: {
+                orders: true,
+                reviews: true
+              }
+            }
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
+          orderBy: { createdAt: 'desc' }
+        });
+
+        // Transform to include customer-specific fields
+        return customers.map((customer: CustomerWithRelations) => ({
+          ...customer,
+          totalOrders: customer._count.orders,
+          totalSpent: customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0),
+          averageOrderValue: customer._count.orders > 0 
+            ? customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0) / customer._count.orders 
+            : 0,
+          lastOrderDate: customer.orders.length > 0 
+            ? customer.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
+            : null
+        }));
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        throw error;
+      }
+    },
+
+    customer: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const customer = await prisma.user.findUnique({
+          where: { id },
+          include: {
+            orders: {
+              include: {
+                items: true
+              }
+            },
+            reviews: true,
+            _count: {
+              select: {
+                orders: true,
+                reviews: true
+              }
+            }
+          }
+        });
+
+        if (!customer) {
+          throw new Error('Customer not found');
+        }
+
+        return {
+          ...customer,
+          totalOrders: customer._count.orders,
+          totalSpent: customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0),
+          averageOrderValue: customer._count.orders > 0 
+            ? customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0) / customer._count.orders 
+            : 0,
+          lastOrderDate: customer.orders.length > 0 
+            ? customer.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
+            : null
+        };
+      } catch (error) {
+        console.error('Error fetching customer:', error);
+        throw error;
+      }
+    },
+
+    customerByEmail: async (_parent: unknown, { email }: { email: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const customer = await prisma.user.findUnique({
+          where: { email },
+          include: {
+            orders: {
+              include: {
+                items: true
+              }
+            },
+            reviews: true,
+            _count: {
+              select: {
+                orders: true,
+                reviews: true
+              }
+            }
+          }
+        });
+
+        if (!customer) {
+          throw new Error('Customer not found');
+        }
+
+        return {
+          ...customer,
+          totalOrders: customer._count.orders,
+          totalSpent: customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0),
+          averageOrderValue: customer._count.orders > 0 
+            ? customer.orders.reduce((sum: number, order) => sum + order.totalAmount, 0) / customer._count.orders 
+            : 0,
+          lastOrderDate: customer.orders.length > 0 
+            ? customer.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
+            : null
+        };
+      } catch (error) {
+        console.error('Error fetching customer by email:', error);
+        throw error;
+      }
+    },
+
+    customerStats: async (_parent: unknown, _args: unknown, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const totalCustomers = await prisma.user.count({
+          where: {
+            role: {
+              name: 'CUSTOMER'
+            }
+          }
+        });
+
+        const thisMonth = new Date();
+        thisMonth.setDate(1);
+        thisMonth.setHours(0, 0, 0, 0);
+
+        const newCustomersThisMonth = await prisma.user.count({
+          where: {
+            role: {
+              name: 'CUSTOMER'
+            },
+            createdAt: {
+              gte: thisMonth
+            }
+          }
+        });
+
+        const activeCustomers = await prisma.user.count({
+          where: {
+            role: {
+              name: 'CUSTOMER'
+            },
+            orders: {
+              some: {
+                createdAt: {
+                  gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // Last 90 days
+                }
+              }
+            }
+          }
+        });
+
+        const orderStats = await prisma.order.aggregate({
+          _avg: {
+            totalAmount: true
+          }
+        });
+
+        const topCustomers = await prisma.user.findMany({
+          where: {
+            role: {
+              name: 'CUSTOMER'
+            }
+          },
+          include: {
+            orders: true,
+            _count: {
+              select: {
+                orders: true
+              }
+            }
+          },
+          take: 5
+        });
+
+        return {
+          totalCustomers,
+          newCustomersThisMonth,
+          activeCustomers,
+          averageOrderValue: orderStats._avg.totalAmount || 0,
+          topCustomers: topCustomers.map(customer => ({
+            ...customer,
+            totalOrders: customer._count.orders,
+            totalSpent: customer.orders.reduce((sum, order) => sum + order.totalAmount, 0),
+            averageOrderValue: customer._count.orders > 0 
+              ? customer.orders.reduce((sum, order) => sum + order.totalAmount, 0) / customer._count.orders 
+              : 0,
+            lastOrderDate: customer.orders.length > 0 
+              ? customer.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
+              : null
+          }))
+        };
+      } catch (error) {
+        console.error('Error fetching customer stats:', error);
+        throw error;
+      }
+    },
+
+    // Discount queries
+    discounts: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: Record<string, unknown>; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.search) {
+          where.OR = [
+            { code: { contains: filter.search as string, mode: 'insensitive' } },
+            { name: { contains: filter.search as string, mode: 'insensitive' } },
+            { description: { contains: filter.search as string, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.type) {
+          where.type = filter.type;
+        }
+
+        if (filter?.isActive !== undefined) {
+          where.isActive = filter.isActive;
+        }
+
+        if (filter?.startsFrom || filter?.startsTo) {
+          where.startsAt = {};
+          if (filter.startsFrom) {
+            (where.startsAt as Record<string, unknown>).gte = new Date(filter.startsFrom as string);
+          }
+          if (filter.startsTo) {
+            (where.startsAt as Record<string, unknown>).lte = new Date(filter.startsTo as string);
+          }
+        }
+
+        if (filter?.expiresFrom || filter?.expiresTo) {
+          where.expiresAt = {};
+          if (filter.expiresFrom) {
+            (where.expiresAt as Record<string, unknown>).gte = new Date(filter.expiresFrom as string);
+          }
+          if (filter.expiresTo) {
+            (where.expiresAt as Record<string, unknown>).lte = new Date(filter.expiresTo as string);
+          }
+        }
+
+        const discounts = await prisma.discount.findMany({
+          where,
+          include: {
+            applicableProducts: {
+              include: {
+                product: true
+              }
+            },
+            applicableCategories: {
+              include: {
+                category: true
+              }
+            },
+            orders: true
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
+          orderBy: { createdAt: 'desc' }
+        });
+
+        return discounts;
+      } catch (error) {
+        console.error('Error fetching discounts:', error);
+        throw error;
+      }
+    },
+
+    discount: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const discount = await prisma.discount.findUnique({
+          where: { id },
+          include: {
+            applicableProducts: {
+              include: {
+                product: true
+              }
+            },
+            applicableCategories: {
+              include: {
+                category: true
+              }
+            },
+            orders: true
+          }
+        });
+
+        if (!discount) {
+          throw new Error('Discount not found');
+        }
+
+        return discount;
+      } catch (error) {
+        console.error('Error fetching discount:', error);
+        throw error;
+      }
+    },
+
+    discountByCode: async (_parent: unknown, { code }: { code: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const discount = await prisma.discount.findUnique({
+          where: { code },
+          include: {
+            applicableProducts: {
+              include: {
+                product: true
+              }
+            },
+            applicableCategories: {
+              include: {
+                category: true
+              }
+            },
+            orders: true
+          }
+        });
+
+        if (!discount) {
+          throw new Error('Discount not found');
+        }
+
+        return discount;
+      } catch (error) {
+        console.error('Error fetching discount by code:', error);
+        throw error;
+      }
+    },
+
+    validateDiscount: async (
+      _parent: unknown,
+      { code, orderTotal, customerId }: { code: string; orderTotal: number; customerId?: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const discount = await prisma.discount.findUnique({
+          where: { code },
+          include: {
+            orders: customerId ? {
+              where: {
+                customerId: customerId
+              }
+            } : true
+          }
+        });
+
+        if (!discount) {
+          return {
+            isValid: false,
+            discount: null,
+            discountAmount: 0,
+            message: 'Discount code not found',
+            errors: ['Invalid discount code']
+          };
+        }
+
+        const errors: string[] = [];
+        let discountAmount = 0;
+
+        // Check if discount is active
+        if (!discount.isActive) {
+          errors.push('Discount is not active');
+        }
+
+        // Check if discount has started
+        if (discount.startsAt && new Date() < discount.startsAt) {
+          errors.push('Discount has not started yet');
+        }
+
+        // Check if discount has expired
+        if (discount.expiresAt && new Date() > discount.expiresAt) {
+          errors.push('Discount has expired');
+        }
+
+        // Check minimum order amount
+        if (discount.minimumOrderAmount && orderTotal < discount.minimumOrderAmount) {
+          errors.push(`Minimum order amount of ${discount.minimumOrderAmount} required`);
+        }
+
+        // Check usage limit
+        if (discount.usageLimit && discount.usageCount >= discount.usageLimit) {
+          errors.push('Discount usage limit reached');
+        }
+
+        // Check customer usage limit
+        if (customerId && discount.customerUsageLimit) {
+          const customerUsage = discount.orders.filter(order => order.customerId === customerId).length;
+          if (customerUsage >= discount.customerUsageLimit) {
+            errors.push('Customer usage limit reached');
+          }
+        }
+
+        // Calculate discount amount if valid
+        if (errors.length === 0) {
+          switch (discount.type) {
+            case 'PERCENTAGE':
+              discountAmount = (orderTotal * discount.value) / 100;
+              if (discount.maximumDiscountAmount && discountAmount > discount.maximumDiscountAmount) {
+                discountAmount = discount.maximumDiscountAmount;
+              }
+              break;
+            case 'FIXED_AMOUNT':
+              discountAmount = Math.min(discount.value, orderTotal);
+              break;
+            case 'FREE_SHIPPING':
+              // This would need to be calculated based on shipping costs
+              discountAmount = 0; // Placeholder
+              break;
+            default:
+              discountAmount = 0;
+          }
+        }
+
+        return {
+          isValid: errors.length === 0,
+          discount: errors.length === 0 ? discount : null,
+          discountAmount,
+          message: errors.length === 0 ? 'Discount is valid' : 'Discount is not valid',
+          errors
+        };
+      } catch (error) {
+        console.error('Error validating discount:', error);
+        return {
+          isValid: false,
+          discount: null,
+          discountAmount: 0,
+          message: 'Error validating discount',
+          errors: ['Internal server error']
+        };
+      }
+    },
+
+    // Review queries
+    reviews: async (
+      _parent: unknown,
+      { filter, pagination }: { filter?: Record<string, unknown>; pagination?: PaginationInput },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const where: Record<string, unknown> = {};
+
+        if (filter?.search) {
+          where.OR = [
+            { title: { contains: filter.search as string, mode: 'insensitive' } },
+            { comment: { contains: filter.search as string, mode: 'insensitive' } },
+            { customerName: { contains: filter.search as string, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.productId) {
+          where.productId = filter.productId;
+        }
+
+        if (filter?.customerId) {
+          where.customerId = filter.customerId;
+        }
+
+        if (filter?.rating) {
+          where.rating = filter.rating;
+        }
+
+        if (filter?.isVerified !== undefined) {
+          where.isVerified = filter.isVerified;
+        }
+
+        if (filter?.isApproved !== undefined) {
+          where.isApproved = filter.isApproved;
+        }
+
+        if (filter?.isReported !== undefined) {
+          where.isReported = filter.isReported;
+        }
+
+        if (filter?.dateFrom || filter?.dateTo) {
+          where.createdAt = {};
+          if (filter.dateFrom) {
+            (where.createdAt as Record<string, unknown>).gte = new Date(filter.dateFrom as string);
+          }
+          if (filter.dateTo) {
+            (where.createdAt as Record<string, unknown>).lte = new Date(filter.dateTo as string);
+          }
+        }
+
+        const reviews = await prisma.review.findMany({
+          where,
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: true,
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          },
+          take: pagination?.limit || pagination?.pageSize || 50,
+          skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
+          orderBy: { createdAt: 'desc' }
+        });
+
+        return reviews;
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+        throw error;
+      }
+    },
+
+    review: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const review = await prisma.review.findUnique({
+          where: { id },
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: true,
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          }
+        });
+
+        if (!review) {
+          throw new Error('Review not found');
+        }
+
+        return review;
+      } catch (error) {
+        console.error('Error fetching review:', error);
         throw error;
       }
     }
@@ -1524,6 +2291,11 @@ export const ecommerceResolvers = {
           throw new Error('Invalid token');
         }
 
+        const updateData: Record<string, unknown> = {};
+        if (input.status) updateData.status = input.status as string;
+        if (input.customerName) updateData.customerName = input.customerName as string;
+        if (input.customerEmail) updateData.customerEmail = input.customerEmail as string;
+
         const payment = await prisma.payment.update({
           where: { id },
           data: {
@@ -1591,6 +2363,187 @@ export const ecommerceResolvers = {
           success: false,
           message: error instanceof Error ? error.message : 'Failed to delete payment',
           payment: null
+        };
+      }
+    },
+
+    // Order mutations
+    createOrder: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Validate shop exists
+        const shop = await prisma.shop.findUnique({
+          where: { id: input.shopId as string }
+        });
+        if (!shop) {
+          throw new Error('Shop not found');
+        }
+
+        // Calculate total amount from items
+        const items = input.items as Array<{ productId: string; quantity: number; unitPrice: number }>;
+        const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+
+        // Create order with items
+        const order = await prisma.order.create({
+          data: {
+            customerId: input.customerId as string || null,
+            customerName: input.customerName as string,
+            customerEmail: input.customerEmail as string,
+            shopId: input.shopId as string,
+            totalAmount,
+            currencyId: shop.defaultCurrencyId,
+            items: {
+              create: items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                totalPrice: item.quantity * item.unitPrice
+              }))
+            }
+          },
+          include: {
+            customer: true,
+            shop: true,
+            currency: true,
+            items: {
+              include: {
+                product: true
+              }
+            }
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Order created successfully',
+          order
+        };
+      } catch (error) {
+        console.error('Error creating order:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create order',
+          order: null
+        };
+      }
+    },
+
+    updateOrder: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const updateData: Record<string, unknown> = {};
+        if (input.status) updateData.status = input.status as string;
+        if (input.customerName) updateData.customerName = input.customerName as string;
+        if (input.customerEmail) updateData.customerEmail = input.customerEmail as string;
+
+        const order = await prisma.order.update({
+          where: { id },
+          data: updateData,
+          include: {
+            customer: true,
+            shop: true,
+            currency: true,
+            items: {
+              include: {
+                product: true
+              }
+            }
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Order updated successfully',
+          order
+        };
+      } catch (error) {
+        console.error('Error updating order:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update order',
+          order: null
+        };
+      }
+    },
+
+    deleteOrder: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if order has payments or shipments
+        const orderWithRelations = await prisma.order.findUnique({
+          where: { id },
+          include: {
+            payments: true,
+            shipments: true
+          }
+        });
+
+        if (!orderWithRelations) {
+          throw new Error('Order not found');
+        }
+
+        if (orderWithRelations.payments.length > 0) {
+          throw new Error('Cannot delete order with associated payments');
+        }
+
+        if (orderWithRelations.shipments.length > 0) {
+          throw new Error('Cannot delete order with associated shipments');
+        }
+
+        await prisma.order.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Order deleted successfully',
+          order: null
+        };
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete order',
+          order: null
         };
       }
     }
@@ -1671,6 +2624,20 @@ export const ecommerceResolvers = {
         where: { productId: parent.id as string },
         include: {
           currency: true
+        }
+      });
+    },
+
+    product: async (parent: Record<string, unknown>) => {
+      return await prisma.product.findUnique({
+        where: { id: parent.productId as string },
+        include: {
+          shop: true,
+          prices: {
+            include: {
+              currency: true
+            }
+          }
         }
       });
     }
@@ -1831,6 +2798,179 @@ export const ecommerceResolvers = {
     provider: async (parent: Record<string, unknown>) => {
       return await prisma.paymentProvider.findUnique({
         where: { id: parent.providerId as string }
+      });
+    }
+  },
+
+  Order: {
+    customer: async (parent: Record<string, unknown>) => {
+      if (!parent.customerId) return null;
+      return await prisma.user.findUnique({
+        where: { id: parent.customerId as string }
+      });
+    },
+
+    shop: async (parent: Record<string, unknown>) => {
+      return await prisma.shop.findUnique({
+        where: { id: parent.shopId as string },
+        include: {
+          defaultCurrency: true,
+          adminUser: true
+        }
+      });
+    },
+
+    currency: async (parent: Record<string, unknown>) => {
+      return await prisma.currency.findUnique({
+        where: { id: parent.currencyId as string }
+      });
+    },
+
+    items: async (parent: Record<string, unknown>) => {
+      return await prisma.orderItem.findMany({
+        where: { orderId: parent.id as string },
+        include: {
+          product: {
+            include: {
+              prices: {
+                include: {
+                  currency: true
+                }
+              }
+            }
+          }
+        }
+      });
+    },
+
+    shipments: async (parent: Record<string, unknown>) => {
+      return await prisma.shipment.findMany({
+        where: { orderId: parent.id as string },
+        include: {
+          shippingMethod: {
+            include: {
+              provider: true
+            }
+          }
+        }
+      });
+    }
+  },
+
+  OrderItem: {
+    order: async (parent: Record<string, unknown>) => {
+      return await prisma.order.findUnique({
+        where: { id: parent.orderId as string },
+        include: {
+          customer: true,
+          shop: true,
+          currency: true
+        }
+      });
+    },
+
+    product: async (parent: Record<string, unknown>) => {
+      return await prisma.product.findUnique({
+        where: { id: parent.productId as string },
+        include: {
+          shop: true,
+          prices: {
+            include: {
+              currency: true
+            }
+          }
+        }
+      });
+    }
+  },
+
+  Customer: {
+    orders: async (parent: Record<string, unknown>) => {
+      return await prisma.order.findMany({
+        where: { customerId: parent.id as string },
+        include: {
+          items: {
+            include: {
+              product: true
+            }
+          },
+          shop: true,
+          currency: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    },
+
+    reviews: async (parent: Record<string, unknown>) => {
+      return await prisma.review.findMany({
+        where: { customerId: parent.id as string },
+        include: {
+          product: true,
+          images: true,
+          response: {
+            include: {
+              responder: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    },
+
+    addresses: async (parent: Record<string, unknown>) => {
+      return await prisma.customerAddress.findMany({
+        where: { customerId: parent.id as string },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }]
+      });
+    }
+  },
+
+  Review: {
+    product: async (parent: Record<string, unknown>) => {
+      return await prisma.product.findUnique({
+        where: { id: parent.productId as string },
+        include: {
+          shop: true,
+          prices: {
+            include: {
+              currency: true
+            }
+          }
+        }
+      });
+    },
+
+    customer: async (parent: Record<string, unknown>) => {
+      if (!parent.customerId) return null;
+      return await prisma.user.findUnique({
+        where: { id: parent.customerId as string }
+      });
+    },
+
+    orderItem: async (parent: Record<string, unknown>) => {
+      if (!parent.orderItemId) return null;
+      return await prisma.orderItem.findUnique({
+        where: { id: parent.orderItemId as string },
+        include: {
+          order: true,
+          product: true
+        }
+      });
+    },
+
+    images: async (parent: Record<string, unknown>) => {
+      return await prisma.reviewImage.findMany({
+        where: { reviewId: parent.id as string },
+        orderBy: { order: 'asc' }
+      });
+    },
+
+    response: async (parent: Record<string, unknown>) => {
+      return await prisma.reviewResponse.findUnique({
+        where: { reviewId: parent.id as string },
+        include: {
+          responder: true
+        }
       });
     }
   }
