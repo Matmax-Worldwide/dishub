@@ -426,67 +426,11 @@ export default function HeaderSection({
   }, [hasUnsavedChanges, localMenuId, saveHeaderStyle]);
   */
   
-  // Optimize update handler with debouncing
-  const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
-    if (onUpdate) {
-      // Mark that we're in editing mode
-      isEditingRef.current = true;
-      
-      // Clear any pending debounce
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      
-      // Prepare data to update
-      const updateData = {
-        title: localTitle,
-        subtitle: localSubtitle,
-        menuId: localMenuId,
-        logoUrl,
-        transparency,
-        headerSize,
-        menuAlignment,
-        menuButtonStyle,
-        mobileMenuStyle,
-        mobileMenuPosition,
-        transparentHeader,
-        borderBottom,
-        fixedHeader,
-        advancedOptions,
-        menuIcon,
-        showButton,
-        buttonText,
-        buttonAction,
-        buttonColor,
-        buttonTextColor,
-        buttonSize,
-        buttonBorderRadius,
-        buttonShadow,
-        buttonBorderColor,
-        buttonBorderWidth,
-        buttonWidth,
-        buttonHeight,
-        buttonPosition,
-        buttonDropdown,
-        buttonDropdownItems
-      };
-      
-      // Update the specific field with the new value
-      (updateData as Record<string, unknown>)[field] = value;
-      
-      // Set up a debounced update
-      debounceRef.current = setTimeout(() => {
-        onUpdate(updateData);
-        // Reset the editing ref after a short delay
-        setTimeout(() => {
-          isEditingRef.current = false;
-        }, 300);
-      }, 500);
-    }
-  }, [
-    localTitle, 
-    localSubtitle, 
-    localMenuId, 
+  // Create refs to store current values to avoid dependency issues
+  const currentValuesRef = useRef({
+    localTitle,
+    localSubtitle,
+    localMenuId,
     logoUrl,
     transparency,
     headerSize,
@@ -513,9 +457,136 @@ export default function HeaderSection({
     buttonHeight,
     buttonPosition,
     buttonDropdown,
-    buttonDropdownItems,
-    onUpdate
+    buttonDropdownItems
+  });
+
+  // Update the ref whenever values change
+  useEffect(() => {
+    currentValuesRef.current = {
+      localTitle,
+      localSubtitle,
+      localMenuId,
+      logoUrl,
+      transparency,
+      headerSize,
+      menuAlignment,
+      menuButtonStyle,
+      mobileMenuStyle,
+      mobileMenuPosition,
+      transparentHeader,
+      borderBottom,
+      fixedHeader,
+      advancedOptions,
+      menuIcon,
+      showButton,
+      buttonText,
+      buttonAction,
+      buttonColor,
+      buttonTextColor,
+      buttonSize,
+      buttonBorderRadius,
+      buttonShadow,
+      buttonBorderColor,
+      buttonBorderWidth,
+      buttonWidth,
+      buttonHeight,
+      buttonPosition,
+      buttonDropdown,
+      buttonDropdownItems
+    };
+  }, [
+    localTitle,
+    localSubtitle,
+    localMenuId,
+    logoUrl,
+    transparency,
+    headerSize,
+    menuAlignment,
+    menuButtonStyle,
+    mobileMenuStyle,
+    mobileMenuPosition,
+    transparentHeader,
+    borderBottom,
+    fixedHeader,
+    advancedOptions,
+    menuIcon,
+    showButton,
+    buttonText,
+    buttonAction,
+    buttonColor,
+    buttonTextColor,
+    buttonSize,
+    buttonBorderRadius,
+    buttonShadow,
+    buttonBorderColor,
+    buttonBorderWidth,
+    buttonWidth,
+    buttonHeight,
+    buttonPosition,
+    buttonDropdown,
+    buttonDropdownItems
   ]);
+
+  const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
+    if (onUpdate) {
+      // Mark that we're in editing mode
+      isEditingRef.current = true;
+      
+      // Clear any pending debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      // Get current values from ref to avoid dependency issues
+      const currentValues = currentValuesRef.current;
+      
+      // Prepare data to update
+      const updateData = {
+        title: currentValues.localTitle,
+        subtitle: currentValues.localSubtitle,
+        menuId: currentValues.localMenuId,
+        logoUrl: currentValues.logoUrl,
+        transparency: currentValues.transparency,
+        headerSize: currentValues.headerSize,
+        menuAlignment: currentValues.menuAlignment,
+        menuButtonStyle: currentValues.menuButtonStyle,
+        mobileMenuStyle: currentValues.mobileMenuStyle,
+        mobileMenuPosition: currentValues.mobileMenuPosition,
+        transparentHeader: currentValues.transparentHeader,
+        borderBottom: currentValues.borderBottom,
+        fixedHeader: currentValues.fixedHeader,
+        advancedOptions: currentValues.advancedOptions,
+        menuIcon: currentValues.menuIcon,
+        showButton: currentValues.showButton,
+        buttonText: currentValues.buttonText,
+        buttonAction: currentValues.buttonAction,
+        buttonColor: currentValues.buttonColor,
+        buttonTextColor: currentValues.buttonTextColor,
+        buttonSize: currentValues.buttonSize,
+        buttonBorderRadius: currentValues.buttonBorderRadius,
+        buttonShadow: currentValues.buttonShadow,
+        buttonBorderColor: currentValues.buttonBorderColor,
+        buttonBorderWidth: currentValues.buttonBorderWidth,
+        buttonWidth: currentValues.buttonWidth,
+        buttonHeight: currentValues.buttonHeight,
+        buttonPosition: currentValues.buttonPosition,
+        buttonDropdown: currentValues.buttonDropdown,
+        buttonDropdownItems: currentValues.buttonDropdownItems
+      };
+      
+      // Update the specific field with the new value
+      (updateData as Record<string, unknown>)[field] = value;
+      
+      // Set up a debounced update
+      debounceRef.current = setTimeout(() => {
+        onUpdate(updateData);
+        // Reset the editing ref after a short delay
+        setTimeout(() => {
+          isEditingRef.current = false;
+        }, 300);
+      }, 500);
+    }
+  }, [onUpdate]); // Only depend on onUpdate
   
   // Clean up on unmount - Updated: Only cleanup debounce since auto-save is removed
   useEffect(() => {

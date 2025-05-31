@@ -4567,6 +4567,26 @@ export const cmsOperations = {
         sku?: string;
       };
     }>;
+    shipments: Array<{
+      id: string;
+      trackingNumber?: string | null;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED' | 'CANCELLED';
+      shippingCost: number;
+      shippedAt?: string | null;
+      estimatedDelivery?: string | null;
+      deliveredAt?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+    }>;
     createdAt: string;
     updatedAt: string;
   }>> {
@@ -4653,6 +4673,26 @@ export const cmsOperations = {
           id: string;
           name: string;
           sku?: string;
+        };
+      }>;
+      shipments: Array<{
+        id: string;
+        trackingNumber?: string | null;
+        status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED' | 'CANCELLED';
+        shippingCost: number;
+        shippedAt?: string | null;
+        estimatedDelivery?: string | null;
+        deliveredAt?: string | null;
+        createdAt: string;
+        updatedAt: string;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+            type: string;
+          };
         };
       }>;
       createdAt: string;
