@@ -11,7 +11,7 @@ import {
   Package,
   ShoppingCart,
   Users,
-  Warehouse,
+  Store,
   Tags,
   Truck,
   CreditCard,
@@ -22,7 +22,11 @@ import {
   LogOut,
   ChevronDown,
   Percent,
-  Star
+  Star,
+  DollarSign,
+  Receipt,
+  Globe,
+  Warehouse
 } from 'lucide-react';
 
 import {
@@ -41,11 +45,15 @@ interface CommerceSidebarProps {
   dictionary?: {
     commerce?: {
       dashboard: string;
+      shops: string;
       products: string;
       orders: string;
       customers: string;
       inventory: string;
       categories: string;
+      pricing: string;
+      currencies: string;
+      taxes: string;
       shipping: string;
       payments: string;
       discounts: string;
@@ -93,11 +101,15 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   // Default navigation items if dictionary is not provided
   const nav = dictionary?.commerce || {
     dashboard: 'Dashboard',
+    shops: 'Shops',
     products: 'Products',
     orders: 'Orders',
     customers: 'Customers',
     inventory: 'Inventory',
     categories: 'Categories',
+    pricing: 'Pricing',
+    currencies: 'Currencies',
+    taxes: 'Taxes',
     shipping: 'Shipping',
     payments: 'Payments',
     discounts: 'Discounts',
@@ -113,9 +125,9 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
-      name: nav.products,
-      href: `/${locale}/commerce/products`,
-      icon: <Package className="h-4 w-4" />
+      name: nav.shops,
+      href: `/${locale}/commerce/shops`,
+      icon: <Store className="h-4 w-4" />
     },
     {
       name: nav.orders,
@@ -129,11 +141,11 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
     },
   ];
 
-  const inventoryItems = [
+  const catalogItems = [
     {
-      name: nav.inventory,
-      href: `/${locale}/commerce/inventory`,
-      icon: <Warehouse className="h-4 w-4" />
+      name: nav.products,
+      href: `/${locale}/commerce/products`,
+      icon: <Package className="h-4 w-4" />
     },
     {
       name: nav.categories,
@@ -141,22 +153,45 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
       icon: <Tags className="h-4 w-4" />
     },
     {
-      name: nav.shipping,
-      href: `/${locale}/commerce/shipping`,
-      icon: <Truck className="h-4 w-4" />
+      name: nav.inventory,
+      href: `/${locale}/commerce/inventory`,
+      icon: <Warehouse className="h-4 w-4" />
     },
   ];
 
-  const salesItems = [
+  const pricingItems = [
     {
-      name: nav.payments,
-      href: `/${locale}/commerce/payments`,
-      icon: <CreditCard className="h-4 w-4" />
+      name: nav.pricing,
+      href: `/${locale}/commerce/pricing`,
+      icon: <DollarSign className="h-4 w-4" />
+    },
+    {
+      name: nav.currencies,
+      href: `/${locale}/commerce/currencies`,
+      icon: <Globe className="h-4 w-4" />
+    },
+    {
+      name: nav.taxes,
+      href: `/${locale}/commerce/taxes`,
+      icon: <Receipt className="h-4 w-4" />
     },
     {
       name: nav.discounts,
       href: `/${locale}/commerce/discounts`,
       icon: <Percent className="h-4 w-4" />
+    },
+  ];
+
+  const operationsItems = [
+    {
+      name: nav.shipping,
+      href: `/${locale}/commerce/shipping`,
+      icon: <Truck className="h-4 w-4" />
+    },
+    {
+      name: nav.payments,
+      href: `/${locale}/commerce/payments`,
+      icon: <CreditCard className="h-4 w-4" />
     },
     {
       name: nav.reviews,
@@ -320,8 +355,8 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
               ))}
             </SidebarGroup>
             
-            <SidebarGroup title="Inventory & Catalog">
-              {inventoryItems.map((item) => (
+            <SidebarGroup title="Catalog Management">
+              {catalogItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
@@ -338,8 +373,26 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
               ))}
             </SidebarGroup>
             
-            <SidebarGroup title="Sales & Marketing">
-              {salesItems.map((item) => (
+            <SidebarGroup title="Pricing & Finance">
+              {pricingItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="block"
+                  onClick={(e) => handleNavigation(item.href, e)}
+                >
+                  <SidebarItem
+                    icon={item.icon}
+                    active={isActiveLink(item.href)}
+                  >
+                    {item.name}
+                  </SidebarItem>
+                </Link>
+              ))}
+            </SidebarGroup>
+            
+            <SidebarGroup title="Operations">
+              {operationsItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}

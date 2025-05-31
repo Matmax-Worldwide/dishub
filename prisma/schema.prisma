@@ -7,56 +7,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model ContactFormSubmission {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String
-  createdAt DateTime @default(now())
-}
 
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  password        String
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  firstName       String
-  lastName        String
-  phoneNumber     String?
-  bio             String?
-  department      String?
-  isActive        Boolean        @default(true)
-  position        String?
-  profileImageUrl String?
-  roleId          String?
-  accounts        Account[]
-  appointments    Appointment[]
-  clients         Client[]
-  documents       Document[]
-  employee        Employee?
-  notifications   Notification[]
-  performances    Performance[]
-  projects        Project[]
-  sessions        Session[]
-  tasksAssigned   Task[]         @relation("TaskAssignee")
-  tasksCreated    Task[]         @relation("TaskCreator")
-  timeEntries     TimeEntry[]
-  role            RoleModel?     @relation(fields: [roleId], references: [id])
-  settings        UserSettings?
-  posts           Post[]
-  staffProfile    StaffProfile? // Relation to StaffProfile for booking module
-  bookings        Booking[]     // Bookings made by this user as a customer
-}
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String?
+  firstName        String?
+  lastName         String?
+  phoneNumber      String?
+  profileImageUrl  String?
+  isActive         Boolean   @default(true)
+  emailVerified    DateTime?
+  emailVerifiedAt  DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relations
+  roleId           String?
+  role             RoleModel?           @relation(fields: [roleId], references: [id])
+  accounts         Account[]
+  sessions         Session[]
+  documents        Document[]
+  projects         Project[]
+  appointments     Appointment[]
+  tasksAssigned    Task[]               @relation("TaskAssignee")
+  tasksCreated     Task[]               @relation("TaskCreator")
+  timeEntries      TimeEntry[]
+  notifications    Notification[]
+  performances     Performance[]
+  settings         UserSettings?
+  employee         Employee?
+  shops            Shop[]
+  bookings         Booking[]
+  staffProfile     StaffProfile?
+  orders           Order[]              @relation("CustomerOrders")
+  clients          Client[]
+  posts            Post[]
+  reviews          Review[]             // Customer reviews
+  reviewResponses  ReviewResponse[]     // Admin responses to reviews
+
+  @@index([email])
+  @@index([roleId])
 }
 
 model Account {
@@ -135,6 +128,42 @@ model Appointment {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  date        String
+  hours       Float
+  description String
+  userId      String
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project? @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model ContactFormSubmission {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+
+
 model Task {
   id          String     @id @default(cuid())
   title       String
@@ -152,18 +181,6 @@ model Task {
   project     Project?   @relation(fields: [projectId], references: [id])
 }
 
-model TimeEntry {
-  id          String   @id @default(cuid())
-  date        String
-  hours       Float
-  description String
-  userId      String
-  projectId   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  project     Project? @relation(fields: [projectId], references: [id])
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
 model Notification {
   id              String           @id @default(cuid())
@@ -213,6 +230,143 @@ model HelpArticle {
   tags      String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Shop {
+  id                String  @id @default(cuid())
+  name              String
+  defaultCurrencyId String
+  adminUserId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  defaultCurrency    Currency                 @relation("ShopDefaultCurrency", fields: [defaultCurrencyId], references: [id])
+  acceptedCurrencies ShopAcceptedCurrencies[] // Relation to the explicit join table
+
+  adminUser         User?             @relation(fields: [adminUserId], references: [id])
+  locations         Location[]
+  products          Product[]
+  productCategories ProductCategory[]
+  taxes             Tax[] // A shop can have specific taxes
+  orders            Order[]
+
+  // @@index([adminUserId]) // Optional: if querying shops by admin user is frequent
+  @@index([defaultCurrencyId])
+}
+
+model ShopAcceptedCurrencies {
+  shopId     String
+  currencyId String
+
+  shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  currency Currency @relation("ShopAcceptedCurrencies", fields: [currencyId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) // Optional: to track when a currency was added to a shop
+
+  @@id([shopId, currencyId])
+  @@index([currencyId]) // Index for querying shops by accepted currency
+}
+
+model Tax {
+  id          String  @id @default(cuid())
+  name        String // e.g., "VAT", "Sales Tax"
+  rate        Float // e.g., 0.07 for 7%
+  isInclusive Boolean @default(false) // Tax is included in the price
+  country     String? // For regional taxes
+  region      String? // Optional, sub-division of country
+  isGlobal    Boolean @default(false) // Applies to all shops/products unless overridden
+  shopId      String? // Optional, if a tax is specific to a shop
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop       Shop?      @relation(fields: [shopId], references: [id])
+  priceTaxes PriceTax[] // Relation to the explicit join table for prices
+
+  @@index([shopId])
+  @@index([isGlobal])
+  @@index([country])
+}
+
+model Product {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  sku           String? @unique
+  stockQuantity Int?
+  shopId        String
+  categoryId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop       Shop             @relation(fields: [shopId], references: [id])
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+  prices     Price[]          // Relation to its prices in different currencies
+  orderItems OrderItem[]
+  reviews    Review[]         // Product reviews
+
+  @@index([shopId])
+  @@index([categoryId])
+}
+
+model ProductCategory {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  slug        String  @unique
+  parentId    String?
+  isActive    Boolean @default(true)
+  shopId      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop            Shop?             @relation(fields: [shopId], references: [id])
+  parent          ProductCategory?  @relation("CategoryToParent", fields: [parentId], references: [id])
+  children        ProductCategory[] @relation("CategoryToParent")
+  products        Product[]
+
+  @@index([shopId])
+  @@index([parentId])
+  @@index([slug])
+}
+
+model Price {
+  id               String  @id @default(cuid())
+  amount           Float
+  currencyId       String
+  productId        String?
+  serviceId        String?
+  priceIncludesTax Boolean @default(false) // Indicates if 'amount' already includes 'isInclusive' taxes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  currency   Currency   @relation(fields: [currencyId], references: [id])
+  product    Product?   @relation(fields: [productId], references: [id], onDelete: Cascade) // Cascade delete if product is removed
+  service    Service?   @relation(fields: [serviceId], references: [id], onDelete: Cascade) // Cascade delete if service is removed
+  priceTaxes PriceTax[] // Relation to the explicit join table for taxes
+
+  @@index([currencyId])
+  @@index([productId])
+  @@index([serviceId])
+}
+
+model PriceTax {
+  priceId   String
+  taxId     String
+  appliedAt DateTime @default(now()) // Optional: to track when a tax was associated with a price
+
+  price Price @relation(fields: [priceId], references: [id], onDelete: Cascade)
+  tax   Tax   @relation(fields: [taxId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) // It's good practice for join tables too
+  updatedAt DateTime @updatedAt // Though less frequently updated
+
+  @@id([priceId, taxId])
+  @@index([taxId]) // Index on taxId can be useful for finding all prices with a specific tax
 }
 
 model RoleModel {
@@ -468,11 +622,11 @@ model Payroll {
 }
 
 model Page {
-  id              String        @id @default(cuid())
+  id              String       @id @default(cuid())
   title           String
-  slug            String        @unique
+  slug            String       @unique
   description     String?
-  isPublished     Boolean       @default(false)
+  isPublished     Boolean      @default(false)
   publishDate     DateTime?
   featuredImage   String?
   metaTitle       String?
@@ -480,57 +634,57 @@ model Page {
   createdById     String
   updatedById     String?
   parentId        String?
-  order           Int           @default(0)
-  pageType        PageType      @default(CONTENT)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  locale          String        @default("en")
-  template        String        @default("default")
-  isDefault       Boolean       @default(false)
+  order           Int          @default(0)
+  pageType        PageType     @default(CONTENT)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  locale          String       @default("en")
+  template        String       @default("default")
+  isDefault       Boolean      @default(false)
   forms           Form[]
   menuItems       MenuItem[]
-  parent          Page?         @relation("PageToPage", fields: [parentId], references: [id])
-  children        Page[]        @relation("PageToPage")
+  parent          Page?        @relation("PageToPage", fields: [parentId], references: [id])
+  children        Page[]       @relation("PageToPage")
   seo             PageSEO?
-  sections        CMSSection[]  @relation("PageToSection")
+  sections        CMSSection[] @relation("PageToSection")
 }
 
 model CMSSection {
-  id          String             @id @default(cuid())
-  sectionId   String             @unique
-  lastUpdated DateTime           @default(now())
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  createdBy   String?
-  description String?
-  name        String?
+  id              String             @id @default(cuid())
+  sectionId       String             @unique
+  lastUpdated     DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdBy       String?
+  description     String?
+  name            String?
   backgroundImage String?
-  backgroundType  String?         @default("gradient")
-  gridDesign   String?           @default("basic")
-  components  SectionComponent[]
-  pages       Page[]             @relation("PageToSection")
-  media       Media[]
-  order       Int                @default(0)
+  backgroundType  String?            @default("gradient")
+  gridDesign      String?            @default("basic")
+  components      SectionComponent[]
+  pages           Page[]             @relation("PageToSection")
+  media           Media[]
+  order           Int                @default(0)
 
   @@map("CMSSection")
 }
 
 model Media {
-  id            String       @id @default(cuid())
-  title         String?
-  description   String?
-  fileUrl       String
-  fileName      String
-  fileSize      Int?
-  fileType      String?
-  altText       String?
-  cmsSectionId  String?      
-  uploadedById  String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  cmsSection    CMSSection?  @relation(fields: [cmsSectionId], references: [id])
-  posts         Post[]       @relation("PostMedia")
-  featuredInPosts Post[]     @relation("PostFeaturedImage")
+  id              String      @id @default(cuid())
+  title           String?
+  description     String?
+  fileUrl         String
+  fileName        String
+  fileSize        Int?
+  fileType        String?
+  altText         String?
+  cmsSectionId    String?
+  uploadedById    String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
+  posts           Post[]      @relation("PostMedia")
+  featuredInPosts Post[]      @relation("PostFeaturedImage")
 }
 
 model PageSEO {
@@ -763,21 +917,21 @@ model HeaderStyle {
 }
 
 model FooterStyle {
-  id                String   @id @default(cuid())
-  transparency      Int?     @default(0)
-  columnLayout      String?  @default("grid")
-  socialAlignment   String?  @default("left")
-  borderTop         Boolean? @default(false)
-  alignment         String?  @default("left")
-  padding           String?  @default("medium")
-  width             String?  @default("container")
-  advancedOptions   Json?
-  
-  menuId            String   @unique
-  menu              Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              String   @id @default(cuid())
+  transparency    Int?     @default(0)
+  columnLayout    String?  @default("grid")
+  socialAlignment String?  @default("left")
+  borderTop       Boolean? @default(false)
+  alignment       String?  @default("left")
+  padding         String?  @default("medium")
+  width           String?  @default("container")
+  advancedOptions Json?
+
+  menuId String @unique
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Form {
@@ -1068,29 +1222,29 @@ model Blog {
 }
 
 model Post {
-  id              String    @id @default(cuid())
-  title           String
-  slug            String    @unique
-  content         String    @db.Text
-  excerpt         String?
-  featuredImage   String?
-  
-  featuredImageId String?
-  status          PostStatus @default(DRAFT)
-  publishedAt     DateTime?
-  blogId          String
-  authorId        String
-  metaTitle       String?
-  metaDescription String?
-  tags            String[]
-  categories      String[]
-  readTime        Int?      @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  blog            Blog      @relation(fields: [blogId], references: [id])
-  author          User      @relation(fields: [authorId], references: [id])
-  featuredImageMedia Media? @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
-  media           Media[]   @relation("PostMedia")
+  id            String  @id @default(cuid())
+  title         String
+  slug          String  @unique
+  content       String  @db.Text
+  excerpt       String?
+  featuredImage String?
+
+  featuredImageId    String?
+  status             PostStatus @default(DRAFT)
+  publishedAt        DateTime?
+  blogId             String
+  authorId           String
+  metaTitle          String?
+  metaDescription    String?
+  tags               String[]
+  categories         String[]
+  readTime           Int?       @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  blog               Blog       @relation(fields: [blogId], references: [id])
+  author             User       @relation(fields: [authorId], references: [id])
+  featuredImageMedia Media?     @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
+  media              Media[]    @relation("PostMedia")
 }
 
 enum PostStatus {
@@ -1134,23 +1288,29 @@ enum ScheduleType {
   SPECIAL_EVENT
   BLACKOUT_DATE
 }
+
 // --------------- END BOOKING MODULE ENUMS ---------------
 
 // --------------- BOOKING MODULE MODELS ---------------
 model Location {
-  id               String    @id @default(cuid())
-  name             String
-  address          String?
-  phone            String?
-  operatingHours   Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  operatingHours Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  shopId String?
+  shop   Shop?   @relation(fields: [shopId], references: [id])
 
   services         LocationService[]
   staffAssignments StaffLocationAssignment[]
   bookings         Booking[]
   schedules        StaffSchedule[] // Staff schedules specific to this location
-  bookingRules     BookingRule[]   // Booking rules specific to this location
+  bookingRules     BookingRule[] // Booking rules specific to this location
+
+  @@index([shopId])
 }
 
 model ServiceCategory {
@@ -1166,99 +1326,100 @@ model ServiceCategory {
   parentCategory  ServiceCategory?  @relation("ServiceCategoryToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
 
-  @@map("ServiceCategories") 
+  @@map("ServiceCategories")
 }
 
 model Service {
-  id                          String   @id @default(cuid())
-  name                        String
-  description                 String?
-  durationMinutes             Int
-  price                       Float
-  bufferTimeBeforeMinutes     Int      @default(0)
-  bufferTimeAfterMinutes      Int      @default(0)
-  preparationTimeMinutes      Int      @default(0) 
-  cleanupTimeMinutes          Int      @default(0) 
-  maxDailyBookingsPerService  Int?     
-  isActive                    Boolean  @default(true)
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  id                         String   @id @default(cuid())
+  name                       String
+  description                String?
+  durationMinutes            Int
+  // price                      Float // This field is being removed
+  bufferTimeBeforeMinutes    Int      @default(0)
+  bufferTimeAfterMinutes     Int      @default(0)
+  preparationTimeMinutes     Int      @default(0)
+  cleanupTimeMinutes         Int      @default(0)
+  maxDailyBookingsPerService Int?
+  isActive                   Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   serviceCategoryId String
   serviceCategory   ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
 
-  locations LocationService[] 
-  staff     StaffService[]    
+  locations LocationService[]
+  staff     StaffService[]
   bookings  Booking[]
+  prices    Price[] // This field is being added
 }
 
 model StaffProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique 
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio             String?
-  specializations String[]  @default([]) 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  specializations String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   schedules           StaffSchedule[]
   assignedServices    StaffService[]
   locationAssignments StaffLocationAssignment[]
-  bookings            Booking[]             @relation("StaffBookings")
+  bookings            Booking[]                 @relation("StaffBookings")
 }
 
 model StaffSchedule {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   staffProfileId String
-  staffProfile   StaffProfile  @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
-  
-  locationId     String?       
-  location       Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
 
-  date           DateTime?     
-  dayOfWeek      DayOfWeek?    
-  
-  startTime      String        // Format "HH:MM"
-  endTime        String        // Format "HH:MM"
-  
-  scheduleType   ScheduleType  
-  isAvailable    Boolean       @default(true) 
-  notes          String?
-  
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  date      DateTime?
+  dayOfWeek DayOfWeek?
+
+  startTime String // Format "HH:MM"
+  endTime   String // Format "HH:MM"
+
+  scheduleType ScheduleType
+  isAvailable  Boolean      @default(true)
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([staffProfileId, date])
   @@index([staffProfileId, dayOfWeek])
 }
 
 model Booking {
-  id           String   @id @default(cuid())
-  customerId   String   
-  customer     User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  serviceId    String
-  service      Service  @relation(fields: [serviceId], references: [id])
-  
-  staffProfileId String?  
+  id         String @id @default(cuid())
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  staffProfileId String?
   staffProfile   StaffProfile? @relation("StaffBookings", fields: [staffProfileId], references: [id], onDelete: SetNull)
-  
-  locationId   String
-  location     Location @relation(fields: [locationId], references: [id])
-  
-  bookingDate  DateTime 
-  startTime    DateTime 
-  endTime      DateTime 
-  durationMinutes Int   
 
-  status       BookingStatus @default(PENDING)
-  notes        String?       
-  
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  bookingDate     DateTime
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int
+
+  status BookingStatus @default(PENDING)
+  notes  String?
+
   communicationPreferences CommunicationMethod[] @default([])
-  reminderSentAt         DateTime?
+  reminderSentAt           DateTime?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([customerId])
   @@index([serviceId])
@@ -1269,31 +1430,31 @@ model Booking {
 }
 
 model BookingRule {
-  id            String  @id @default(cuid())
-  locationId    String? @unique 
+  id         String  @id @default(cuid())
+  locationId String? @unique
   // serviceId  String? // Potentially rules per service too
-  
-  advanceBookingHoursMin Int     
-  advanceBookingDaysMax  Int     
-  sameDayCutoffTime      String? 
-  
-  bufferBetweenAppointmentsMinutes Int @default(0) 
-  maxAppointmentsPerDayPerStaff  Int?
-  bookingSlotIntervalMinutes     Int     @default(15) 
+
+  advanceBookingHoursMin Int
+  advanceBookingDaysMax  Int
+  sameDayCutoffTime      String?
+
+  bufferBetweenAppointmentsMinutes Int  @default(0)
+  maxAppointmentsPerDayPerStaff    Int?
+  bookingSlotIntervalMinutes       Int  @default(15)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location  Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
 
 model LocationService {
   locationId String
   serviceId  String
-  isActive   Boolean  @default(true) 
+  isActive   Boolean @default(true)
 
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1308,7 +1469,7 @@ model StaffService {
 
   staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
   service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
 
   @@id([staffProfileId, serviceId])
@@ -1327,4 +1488,339 @@ model StaffLocationAssignment {
   @@id([staffProfileId, locationId])
   @@map("StaffLocationAssignments")
 }
+
 // --------------- END BOOKING MODULE MODELS ---------------
+
+model Currency {
+  id     String @id @default(cuid())
+  code   String @unique // e.g., "USD", "EUR", "PEN"
+  name   String // e.g., "United States Dollar", "Euro", "Peruvian Sol"
+  symbol String // e.g., "$", "€", "S/"
+
+  // Relations defined in plan - will be fully effective when Shop and Price models are added
+  shopsAcceptedIn ShopAcceptedCurrencies[] @relation("ShopAcceptedCurrencies")
+  shopsDefaultIn  Shop[]                   @relation("ShopDefaultCurrency")
+  prices          Price[]
+  orders          Order[]
+  payments        Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  customerId    String?
+  customer      User?       @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerName  String
+  customerEmail String
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  currencyId    String
+  currency      Currency    @relation(fields: [currencyId], references: [id])
+  shopId        String
+  shop          Shop        @relation(fields: [shopId], references: [id])
+  
+  items         OrderItem[]
+  payments      Payment[]
+  shipments     Shipment[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([customerId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  reviews    Review[]  // Reviews for this order item
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model PaymentProvider {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "Stripe", "PayPal", "Square"
+  type        String  // e.g., "CREDIT_CARD", "DIGITAL_WALLET", "BANK_TRANSFER"
+  isActive    Boolean @default(true)
+  apiKey      String?
+  secretKey   String?
+  webhookUrl  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  paymentMethods PaymentMethod[]
+  payments       Payment[]
+  
+  @@unique([name])
+}
+
+model PaymentMethod {
+  id                String  @id @default(cuid())
+  name              String  // e.g., "Visa", "MasterCard", "PayPal"
+  type              String  // e.g., "CREDIT_CARD", "DEBIT_CARD", "DIGITAL_WALLET"
+  providerId        String
+  isActive          Boolean @default(true)
+  processingFeeRate Float?  // Percentage fee
+  fixedFee          Float?  // Fixed fee amount
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  provider PaymentProvider @relation(fields: [providerId], references: [id])
+  payments Payment[]
+  
+  @@index([providerId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String?
+  amount          Float
+  currencyId      String
+  status          PaymentStatus @default(PENDING)
+  paymentMethodId String
+  providerId      String
+  transactionId   String?       // External transaction ID from payment provider
+  gatewayResponse String?       // JSON response from payment gateway
+  failureReason   String?
+  refundAmount    Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  order         Order?          @relation(fields: [orderId], references: [id])
+  currency      Currency        @relation(fields: [currencyId], references: [id])
+  paymentMethod PaymentMethod   @relation(fields: [paymentMethodId], references: [id])
+  provider      PaymentProvider @relation(fields: [providerId], references: [id])
+  
+  @@index([orderId])
+  @@index([currencyId])
+  @@index([paymentMethodId])
+  @@index([providerId])
+  @@index([status])
+}
+
+// --------------- SHIPPING MODULE MODELS ---------------
+
+model ShippingProvider {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "FedEx", "UPS", "DHL", "USPS"
+  type        String  // e.g., "COURIER", "POSTAL", "FREIGHT"
+  isActive    Boolean @default(true)
+  apiKey      String?
+  secretKey   String?
+  webhookUrl  String?
+  trackingUrl String? // Base URL for tracking packages
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingMethods ShippingMethod[]
+  
+  @@unique([name])
+}
+
+model ShippingMethod {
+  id                String  @id @default(cuid())
+  name              String  // e.g., "Standard Shipping", "Express", "Overnight"
+  description       String?
+  providerId        String
+  isActive          Boolean @default(true)
+  estimatedDaysMin  Int?    // Minimum delivery days
+  estimatedDaysMax  Int?    // Maximum delivery days
+  trackingEnabled   Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  provider      ShippingProvider @relation(fields: [providerId], references: [id])
+  shippingRates ShippingRate[]
+  shipments     Shipment[]
+  
+  @@index([providerId])
+}
+
+model ShippingZone {
+  id          String  @id @default(cuid())
+  name        String  // e.g., "Domestic", "International", "Europe"
+  description String?
+  countries   String[] // Array of country codes
+  states      String[] // Array of state/province codes
+  postalCodes String[] // Array of postal code patterns
+  isActive    Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingRates ShippingRate[]
+}
+
+model ShippingRate {
+  id               String  @id @default(cuid())
+  shippingMethodId String
+  shippingZoneId   String
+  minWeight        Float?  // Minimum weight in kg
+  maxWeight        Float?  // Maximum weight in kg
+  minValue         Float?  // Minimum order value
+  maxValue         Float?  // Maximum order value
+  baseRate         Float   // Base shipping cost
+  perKgRate        Float?  // Additional cost per kg
+  freeShippingMin  Float?  // Minimum order value for free shipping
+  isActive         Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  shippingZone   ShippingZone   @relation(fields: [shippingZoneId], references: [id])
+  
+  @@index([shippingMethodId])
+  @@index([shippingZoneId])
+}
+
+enum ShipmentStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  RETURNED
+  CANCELLED
+}
+
+model Shipment {
+  id               String         @id @default(cuid())
+  orderId          String
+  shippingMethodId String
+  trackingNumber   String?
+  status           ShipmentStatus @default(PENDING)
+  shippingCost     Float
+  weight           Float?
+  dimensions       String?        // JSON string with width, height, length
+  
+  // Shipping addresses
+  fromAddress      String         // JSON string with sender address
+  toAddress        String         // JSON string with recipient address
+  
+  // Tracking information
+  shippedAt        DateTime?
+  estimatedDelivery DateTime?
+  deliveredAt      DateTime?
+  
+  // Provider response data
+  providerResponse String?        // JSON response from shipping provider
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  order          Order          @relation(fields: [orderId], references: [id])
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  
+  @@index([orderId])
+  @@index([shippingMethodId])
+  @@index([trackingNumber])
+  @@index([status])
+}
+
+// --------------- END SHIPPING MODULE MODELS ---------------
+
+// --------------- REVIEW MODULE MODELS ---------------
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    User?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName String
+  customerEmail String
+  rating      Int      // 1-5 stars
+  title       String?
+  comment     String?
+  isVerified  Boolean  @default(false) // Verified purchase
+  isApproved  Boolean  @default(false) // Admin approval
+  isHelpful   Int      @default(0) // Helpful votes count
+  isReported  Boolean  @default(false)
+  reportReason String?
+  
+  // Review metadata
+  orderItemId String? // Link to order item for verification
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  
+  // Review images
+  images      ReviewImage[]
+  
+  // Admin response
+  response    ReviewResponse?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([productId])
+  @@index([customerId])
+  @@index([rating])
+  @@index([isApproved])
+  @@index([createdAt])
+}
+
+model ReviewImage {
+  id        String @id @default(cuid())
+  reviewId  String
+  review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  altText   String?
+  order     Int    @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([reviewId])
+}
+
+model ReviewResponse {
+  id        String @id @default(cuid())
+  reviewId  String @unique
+  review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  responderId String
+  responder User   @relation(fields: [responderId], references: [id], onDelete: Cascade)
+  response  String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --------------- END REVIEW MODULE MODELS ---------------

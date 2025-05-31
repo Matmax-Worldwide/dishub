@@ -1,7 +1,38 @@
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
-import { Prisma, ScheduleType, DayOfWeek, BookingStatus } from '@prisma/client';
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
+
+// Define enums based on Prisma schema
+enum DayOfWeek {
+  MONDAY = 'MONDAY',
+  TUESDAY = 'TUESDAY',
+  WEDNESDAY = 'WEDNESDAY',
+  THURSDAY = 'THURSDAY',
+  FRIDAY = 'FRIDAY',
+  SATURDAY = 'SATURDAY',
+  SUNDAY = 'SUNDAY'
+}
+
+
+
+enum ScheduleType {
+  REGULAR_HOURS = 'REGULAR_HOURS',
+  OVERRIDE_HOURS = 'OVERRIDE_HOURS',
+  BREAK = 'BREAK',
+  TIME_OFF = 'TIME_OFF',
+  SPECIAL_EVENT = 'SPECIAL_EVENT',
+  BLACKOUT_DATE = 'BLACKOUT_DATE'
+}
+
+enum BookingStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
+  NO_SHOW = 'NO_SHOW',
+  RESCHEDULED = 'RESCHEDULED'
+}
 
 // Define proper context type
 interface GraphQLContext {
@@ -46,23 +77,22 @@ interface UpdateServiceCategoryInput {
 
 interface CreateLocationInput {
   name: string;
-  address?: string;
-  phone?: string;
-  operatingHours?: Record<string, unknown>;
+  address?: string | null;
+  phone?: string | null;
+  operatingHours?: unknown;
 }
 
 interface UpdateLocationInput {
   name?: string;
   address?: string;
   phone?: string;
-  operatingHours?: Record<string, unknown>;
+  operatingHours?: unknown;
 }
 
 interface CreateServiceInput {
   name: string;
   description?: string;
   durationMinutes: number;
-  price: number;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;
@@ -77,7 +107,6 @@ interface UpdateServiceInput {
   name?: string;
   description?: string;
   durationMinutes?: number;
-  price?: number;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;
@@ -132,6 +161,150 @@ interface GlobalBookingRuleInput {
   maxAppointmentsPerDayPerStaff?: number;
   bookingSlotIntervalMinutes: number;
 }
+
+// Define types based on Prisma schema
+type BookingWhereInput = {
+  bookingDate?: {
+    gte?: Date;
+    lte?: Date;
+  };
+  status?: BookingStatus;
+  locationId?: string;
+  serviceId?: string;
+  staffProfileId?: string;
+  customerId?: string;
+  OR?: Array<{
+    notes?: { contains: string; mode: 'insensitive' };
+    customer?: {
+      OR: Array<{
+        firstName?: { contains: string; mode: 'insensitive' };
+        lastName?: { contains: string; mode: 'insensitive' };
+        email?: { contains: string; mode: 'insensitive' };
+      }>;
+    };
+  }>;
+};
+
+type StaffProfileWhereInput = {
+  assignedServices?: {
+    some: {
+      serviceId: string;
+    };
+  };
+  locationAssignments?: {
+    some: {
+      locationId: string;
+    };
+  };
+};
+
+
+type ServiceCategoryCreateInput = {
+  name: string;
+  description?: string;
+  displayOrder?: number;
+  parentCategory?: { connect: { id: string } };
+};
+
+type ServiceCategoryUpdateInput = {
+  name?: string;
+  description?: string;
+  displayOrder?: number;
+  parentCategory?: { disconnect: true } | { connect: { id: string } };
+};
+
+type ServiceCreateInput = {
+  name: string;
+  description?: string | null;
+  durationMinutes: number;
+  bufferTimeBeforeMinutes?: number;
+  bufferTimeAfterMinutes?: number;
+  preparationTimeMinutes?: number;
+  cleanupTimeMinutes?: number;
+  maxDailyBookingsPerService?: number | null;
+  isActive?: boolean;
+  serviceCategory: { connect: { id: string } };
+};
+
+type ServiceUpdateInput = {
+  name?: string;
+  description?: string;
+  durationMinutes?: number;
+  bufferTimeBeforeMinutes?: number;
+  bufferTimeAfterMinutes?: number;
+  preparationTimeMinutes?: number;
+  cleanupTimeMinutes?: number;
+  maxDailyBookingsPerService?: number;
+  isActive?: boolean;
+  serviceCategory?: { connect: { id: string } };
+};
+
+type StaffProfileCreateInput = {
+  user: { connect: { id: string } };
+  bio?: string | null;
+  specializations?: string[];
+};
+
+type StaffProfileUpdateInput = {
+  user?: { connect: { id: string } };
+  bio?: string;
+  specializations?: string[];
+};
+
+type StaffScheduleCreateManyInput = {
+  staffProfileId: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  scheduleType: ScheduleType;
+  locationId?: string | null;
+  notes?: string | null;
+};
+
+type StaffScheduleWhereInput = {
+  staffProfileId: string;
+  scheduleType?: ScheduleType;
+};
+
+// Define booking type for map functions
+type BookingWithRelations = {
+  id: string;
+  bookingDate: Date;
+  startTime: Date;
+  endTime: Date;
+  customer?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phoneNumber?: string | null;
+  } | null;
+  customerId?: string | null;
+  staffProfile?: unknown | null;
+  location?: unknown;
+  service?: unknown;
+};
+
+// Define location type for map functions
+type LocationWithId = {
+  id: string;
+  name?: string;
+};
+
+// Define service location type for map functions
+type LocationServiceWithLocation = {
+  location: LocationWithId;
+};
+
+// Define staff service type for map functions
+type StaffServiceWithService = {
+  service: LocationWithId;
+};
+
+// Define staff location type for map functions
+type StaffLocationWithLocation = {
+  location: LocationWithId;
+};
 
 const isAdminUser = (context: GraphQLContext): boolean => {
   // Temporary bypass for debugging
@@ -255,7 +428,7 @@ export const calendarResolvers = {
       // if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
  
       try {
-        const where: Prisma.BookingWhereInput = {};
+        const where: BookingWhereInput = {};
         if (filter) {
           if (filter.dateFrom && filter.dateTo) {
             where.bookingDate = { gte: new Date(filter.dateFrom), lte: new Date(filter.dateTo) };
@@ -324,7 +497,7 @@ export const calendarResolvers = {
         console.log('Bookings query - items count:', items.length);
 
         // Transform to BookingConnection structure
-        const edges = items.map((booking, index) => ({
+        const edges = items.map((booking: BookingWithRelations, index: number) => ({
           node: booking,
           cursor: Buffer.from(`${skip + index}`).toString('base64')
         }));
@@ -489,7 +662,7 @@ export const calendarResolvers = {
           const slotEndTime = new Date(currentSlot.getTime() + (service.durationMinutes * 60000));
           
           // Check if slot conflicts with existing bookings
-          const hasConflict = existingBookings.some(booking => {
+          const hasConflict = existingBookings.some((booking: BookingWithRelations) => {
             const bookingStart = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.startTime}`);
             const bookingEnd = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${booking.endTime}`);
             
@@ -525,7 +698,7 @@ export const calendarResolvers = {
       try {
         console.log('staffForService resolver called with:', { serviceId, locationId });
         
-        const whereCondition: Prisma.StaffProfileWhereInput = {
+        const whereCondition: StaffProfileWhereInput = {
           assignedServices: {
             some: {
               serviceId: serviceId
@@ -571,13 +744,15 @@ export const calendarResolvers = {
     createLocation: async (_parent: unknown, { input }: { input: CreateLocationInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const data: Prisma.LocationCreateInput = {
+        const data = {
           name: input.name,
           address: input.address || null,
           phone: input.phone || null,
-          operatingHours: input.operatingHours ? input.operatingHours as Prisma.InputJsonValue : undefined,
+          operatingHours: input.operatingHours as Prisma.InputJsonValue || {},
         };
-        const location = await prisma.location.create({ data });
+        const location = await prisma.location.create({ 
+          data
+        });
         return {
           success: true,
           message: 'Location created successfully',
@@ -599,11 +774,13 @@ export const calendarResolvers = {
       
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const data: Prisma.LocationUpdateInput = {
+        const data = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.address !== undefined && { address: input.address }),
           ...(input.phone !== undefined && { phone: input.phone }),
-          ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours as Prisma.InputJsonValue }),
+          ...(input.operatingHours !== undefined && { 
+            operatingHours: input.operatingHours ? input.operatingHours as Prisma.InputJsonValue : Prisma.DbNull 
+          }),
         };
         console.log('updateLocation prisma data:', data);
         const location = await prisma.location.update({ where: { id }, data });
@@ -650,7 +827,7 @@ export const calendarResolvers = {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
         const { parentId, ...categoryData } = input;
-        const data: Prisma.ServiceCategoryCreateInput = { 
+        const data: ServiceCategoryCreateInput = { 
           ...categoryData,
           ...(parentId && parentId !== '' ? { parentCategory: { connect: { id: parentId } } } : {})
         };
@@ -698,7 +875,7 @@ export const calendarResolvers = {
         }
         
         const { parentId, ...categoryData } = input;
-        const data: Prisma.ServiceCategoryUpdateInput = { 
+        const data: ServiceCategoryUpdateInput = { 
           ...categoryData,
           ...(parentId !== undefined ? 
             (parentId === '' || parentId === null ? 
@@ -746,13 +923,13 @@ export const calendarResolvers = {
         
         // Check if category has services
         if (existingCategory.services.length > 0) {
-          const serviceNames = existingCategory.services.map(s => s.name).join(', ');
+          const serviceNames = existingCategory.services.map((s: { id: string; name: string }) => s.name).join(', ');
           throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.services.length} associated service${existingCategory.services.length === 1 ? '' : 's'}: ${serviceNames}. Please reassign or delete these services first.`);
         }
         
         // Check if category has child categories
         if (existingCategory.childCategories.length > 0) {
-          const childNames = existingCategory.childCategories.map(c => c.name).join(', ');
+          const childNames = existingCategory.childCategories.map((c: { id: string; name: string }) => c.name).join(', ');
           throw new Error(`Cannot delete "${existingCategory.name}" because it has ${existingCategory.childCategories.length} child categor${existingCategory.childCategories.length === 1 ? 'y' : 'ies'}: ${childNames}. Please reassign or delete these categories first.`);
         }
         
@@ -793,17 +970,16 @@ export const calendarResolvers = {
             where: { id: { in: input.locationIds } }
           });
           if (existingLocations.length !== input.locationIds.length) {
-            const foundIds = existingLocations.map(loc => loc.id);
+            const foundIds = existingLocations.map((loc: LocationWithId) => loc.id);
             const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
             throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
           }
         }
         
-        const serviceData: Prisma.ServiceCreateInput = {
+        const serviceData: ServiceCreateInput = {
           name: input.name,
           description: input.description || null,
           durationMinutes: input.durationMinutes,
-          price: input.price,
           bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes || 0,
           bufferTimeAfterMinutes: input.bufferTimeAfterMinutes || 0,
           preparationTimeMinutes: input.preparationTimeMinutes || 0,
@@ -901,17 +1077,16 @@ export const calendarResolvers = {
             where: { id: { in: input.locationIds } }
           });
           if (existingLocations.length !== input.locationIds.length) {
-            const foundIds = existingLocations.map(loc => loc.id);
+            const foundIds = existingLocations.map((loc: LocationWithId) => loc.id);
             const missingIds = input.locationIds.filter(id => !foundIds.includes(id));
             throw new Error(`Location(s) not found: ${missingIds.join(', ')}`);
           }
         }
         
-        const data: Prisma.ServiceUpdateInput = {
+        const data: ServiceUpdateInput = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
           ...(input.durationMinutes !== undefined && { durationMinutes: input.durationMinutes }),
-          ...(input.price !== undefined && { price: input.price }),
           ...(input.bufferTimeBeforeMinutes !== undefined && { bufferTimeBeforeMinutes: input.bufferTimeBeforeMinutes }),
           ...(input.bufferTimeAfterMinutes !== undefined && { bufferTimeAfterMinutes: input.bufferTimeAfterMinutes }),
           ...(input.preparationTimeMinutes !== undefined && { preparationTimeMinutes: input.preparationTimeMinutes }),
@@ -988,7 +1163,7 @@ export const calendarResolvers = {
     createStaffProfile: async (_parent: unknown, { input }: { input: CreateStaffProfileInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const staffProfileData: Prisma.StaffProfileCreateInput = {
+        const staffProfileData: StaffProfileCreateInput = {
           user: { connect: { id: input.userId } },
           bio: input.bio || null,
           specializations: input.specializations || [],
@@ -1014,7 +1189,7 @@ export const calendarResolvers = {
     updateStaffProfile: async (_parent: unknown, { id, input }: { id: string; input: UpdateStaffProfileInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const data: Prisma.StaffProfileUpdateInput = {
+        const data: StaffProfileUpdateInput = {
           ...(input.userId !== undefined && { user: { connect: { id: input.userId } } }),
           ...(input.bio !== undefined && { bio: input.bio }),
           ...(input.specializations !== undefined && { specializations: input.specializations }),
@@ -1044,7 +1219,7 @@ export const calendarResolvers = {
     },
     updateStaffSchedule: async (_parent: unknown, { staffProfileId, schedule }: { staffProfileId: string; schedule: StaffScheduleInput[] }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
-      const regularHoursSchedule: Prisma.StaffScheduleCreateManyInput[] = schedule
+      const regularHoursSchedule: StaffScheduleCreateManyInput[] = schedule
         .filter(s => s.scheduleType === 'REGULAR_HOURS')
         .map(s => ({ 
             staffProfileId,
@@ -1146,6 +1321,9 @@ export const calendarResolvers = {
         
         // Check for booking conflicts
         const bookingDate = new Date(input.bookingDate);
+        const startDateTime = new Date(input.startTime);
+        const endDateTime = new Date(input.endTime);
+        
         const existingBookings = await prisma.booking.findMany({
           where: {
             locationId: input.locationId,
@@ -1154,20 +1332,20 @@ export const calendarResolvers = {
             OR: [
               {
                 AND: [
-                  { startTime: { lte: input.startTime } },
-                  { endTime: { gt: input.startTime } }
+                  { startTime: { lte: startDateTime } },
+                  { endTime: { gt: startDateTime } }
                 ]
               },
               {
                 AND: [
-                  { startTime: { lt: input.endTime } },
-                  { endTime: { gte: input.endTime } }
+                  { startTime: { lt: endDateTime } },
+                  { endTime: { gte: endDateTime } }
                 ]
               },
               {
                 AND: [
-                  { startTime: { gte: input.startTime } },
-                  { endTime: { lte: input.endTime } }
+                  { startTime: { gte: startDateTime } },
+                  { endTime: { lte: endDateTime } }
                 ]
               }
             ]
@@ -1204,8 +1382,8 @@ export const calendarResolvers = {
             staffProfileId: input.staffProfileId,
             customerId: customerId,
             bookingDate: bookingDate,
-            startTime: input.startTime,
-            endTime: input.endTime,
+            startTime: startDateTime,
+            endTime: endDateTime,
             notes: input.notes,
             status: 'PENDING'
           },
@@ -1295,9 +1473,22 @@ export const calendarResolvers = {
           where: { serviceId: parent.id, isActive: true }, 
           include: { location: true },
         });
-        return locationServices.map(ls => ls.location) || [];
+        return locationServices.map((ls: LocationServiceWithLocation) => ls.location) || [];
       } catch (error) {
         console.error('Error fetching service locations:', error);
+        return [];
+      }
+    },
+    prices: async (parent: { id: string }) => {
+      try {
+        const prices = await prisma.price.findMany({
+          where: { serviceId: parent.id },
+          include: { currency: true },
+          orderBy: { createdAt: 'desc' }
+        });
+        return prices || [];
+      } catch (error) {
+        console.error('Error fetching service prices:', error);
         return [];
       }
     }
@@ -1313,7 +1504,7 @@ export const calendarResolvers = {
     },
     schedules: async (parent: { id: string }, args?: { scheduleType?: ScheduleType }) => {
       try {
-        const whereCondition: Prisma.StaffScheduleWhereInput = { staffProfileId: parent.id };
+        const whereCondition: StaffScheduleWhereInput = { staffProfileId: parent.id };
         if (args?.scheduleType) {
           whereCondition.scheduleType = args.scheduleType;
         }
@@ -1335,7 +1526,7 @@ export const calendarResolvers = {
           where: { staffProfileId: parent.id },
           include: { service: true }, 
         });
-        return staffServices.map(ss => ss.service) || [];
+        return staffServices.map((ss: StaffServiceWithService) => ss.service) || [];
       } catch (error) {
         console.error('Error fetching assigned services:', error);
         return [];
@@ -1347,7 +1538,7 @@ export const calendarResolvers = {
           where: { staffProfileId: parent.id },
           include: { location: true },
         });
-        return staffLocations.map(sl => sl.location) || [];
+        return staffLocations.map((sl: StaffLocationWithLocation) => sl.location) || [];
       } catch (error) {
         console.error('Error fetching location assignments:', error);
         return [];
@@ -1404,5 +1595,18 @@ export const calendarResolvers = {
     userId: (parent: { customerId?: string }) => {
       return parent.customerId || null;
     },
+  },
+  Price: {
+    currency: async (parent: { currencyId: string }) => {
+      try {
+        return await prisma.currency.findUnique({ where: { id: parent.currencyId } });
+      } catch (error) {
+        console.error('Error fetching price currency:', error);
+        return null;
+      }
+    }
+  },
+  Currency: {
+    // Currency doesn't need any custom resolvers as all fields are direct
   },
 };
