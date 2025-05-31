@@ -21,6 +21,7 @@ import { formResolvers } from './forms';
 import { menuResolvers } from './menus';
 import { calendarResolvers } from './calendarResolvers';
 import { shippingResolvers } from './shipping';
+import { ecommerceResolvers } from './ecommerce';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -474,6 +475,7 @@ const resolvers = {
     ...menuResolvers.Query,
     ...calendarResolvers.Query, // Add calendar queries
     ...shippingResolvers.Query,
+    ...ecommerceResolvers.Query, // Add ecommerce queries
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -493,6 +495,7 @@ const resolvers = {
     ...menuResolvers.Mutation,
     ...calendarResolvers.Mutation, // Add calendar mutations
     ...shippingResolvers.Mutation,
+    ...ecommerceResolvers.Mutation, // Add ecommerce mutations
   },
   
   // Type resolvers
@@ -500,6 +503,17 @@ const resolvers = {
   Service: calendarResolvers.Service,
   StaffProfile: calendarResolvers.StaffProfile, // Add StaffProfile type resolver
   StaffSchedule: calendarResolvers.StaffSchedule, // Add StaffSchedule type resolver
+  Booking: calendarResolvers.Booking, // Add Booking type resolver
+  Price: calendarResolvers.Price, // Add Price type resolver
+  Currency: calendarResolvers.Currency, // Add Currency type resolver
+  // Ecommerce type resolvers
+  Shop: ecommerceResolvers.Shop,
+  Product: ecommerceResolvers.Product,
+  ProductCategory: ecommerceResolvers.ProductCategory,
+  Tax: ecommerceResolvers.Tax,
+  PaymentProvider: ecommerceResolvers.PaymentProvider,
+  PaymentMethod: ecommerceResolvers.PaymentMethod,
+  Payment: ecommerceResolvers.Payment,
 };
 
 // Check if the external links resolver exists
