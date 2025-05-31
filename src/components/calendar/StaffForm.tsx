@@ -47,14 +47,6 @@ export default function StaffForm({
   const [scheduleData, setScheduleData] = useState<Partial<StaffScheduleInput>[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('StaffForm - allUsersForSelect:', allUsersForSelect);
-    console.log('StaffForm - allUsersForSelect length:', allUsersForSelect.length);
-    console.log('StaffForm - allServices:', allServices);
-    console.log('StaffForm - allLocations:', allLocations);
-  }, [allUsersForSelect, allServices, allLocations]);
-
   const getInitialSchedule = useCallback(() => {
     const regularHours = initialData?.schedules?.filter((s: StaffSchedule) => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
     // Ensure all days are present, using defaults for missing ones
@@ -214,7 +206,7 @@ export default function StaffForm({
                 <Label htmlFor="userId">Select User <span className="text-red-500">*</span></Label>
                 <Select value={formData.userId || ''} onValueChange={(val) => handleSelectChange('userId', val)} disabled={isSaving || !!initialData?.id}>
                   <SelectTrigger><SelectValue placeholder="Choose a user" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[60]">
                     {allUsersForSelect.map(user => (
                       <SelectItem key={user.id} value={user.id!}>
                         {user.firstName} {user.lastName} ({user.email})
