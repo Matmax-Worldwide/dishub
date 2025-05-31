@@ -47,6 +47,7 @@ model User {
   posts            Post[]
   reviews          Review[]             // Customer reviews
   reviewResponses  ReviewResponse[]     // Admin responses to reviews
+  addresses        CustomerAddress[]    // Customer addresses
 
   @@index([email])
   @@index([roleId])
@@ -306,6 +307,7 @@ model Product {
   prices     Price[]          // Relation to its prices in different currencies
   orderItems OrderItem[]
   reviews    Review[]         // Product reviews
+  discounts  DiscountProduct[] // Discount relations
 
   @@index([shopId])
   @@index([categoryId])
@@ -327,6 +329,7 @@ model ProductCategory {
   parent          ProductCategory?  @relation("CategoryToParent", fields: [parentId], references: [id])
   children        ProductCategory[] @relation("CategoryToParent")
   products        Product[]
+  discounts       DiscountCategory[] // Discount relations
 
   @@index([shopId])
   @@index([parentId])
@@ -1529,6 +1532,9 @@ model Order {
   currency      Currency    @relation(fields: [currencyId], references: [id])
   shopId        String
   shop          Shop        @relation(fields: [shopId], references: [id])
+  discountId    String?
+  discount      Discount?   @relation(fields: [discountId], references: [id])
+  discountAmount Float?     @default(0)
   
   items         OrderItem[]
   payments      Payment[]
@@ -1824,3 +1830,103 @@ model ReviewResponse {
 }
 
 // --------------- END REVIEW MODULE MODELS ---------------
+
+// --------------- DISCOUNT MODULE MODELS ---------------
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+  BUY_X_GET_Y
+}
+
+model Discount {
+  id                    String       @id @default(cuid())
+  code                  String       @unique
+  name                  String
+  description           String?
+  type                  DiscountType
+  value                 Float        // Percentage (0-100) or fixed amount
+  minimumOrderAmount    Float?       // Minimum order value to apply discount
+  maximumDiscountAmount Float?       // Maximum discount amount (for percentage discounts)
+  usageLimit            Int?         // Total usage limit
+  usageCount            Int          @default(0) // Current usage count
+  customerUsageLimit    Int?         // Per-customer usage limit
+  isActive              Boolean      @default(true)
+  startsAt              DateTime?    // When discount becomes active
+  expiresAt             DateTime?    // When discount expires
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  applicableProducts   DiscountProduct[]   
+  applicableCategories DiscountCategory[]  
+  orders               Order[]
+  
+  @@index([code])
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([expiresAt])
+}
+
+model DiscountProduct {
+  id         String  @id @default(cuid())
+  discountId String
+  productId  String
+  isExcluded Boolean @default(false) // true for excluded, false for applicable
+  
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([discountId, productId, isExcluded])
+  @@index([discountId])
+  @@index([productId])
+}
+
+model DiscountCategory {
+  id         String  @id @default(cuid())
+  discountId String
+  categoryId String
+  isExcluded Boolean @default(false) // true for excluded, false for applicable
+  
+  discount Discount        @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@unique([discountId, categoryId, isExcluded])
+  @@index([discountId])
+  @@index([categoryId])
+}
+
+// --------------- END DISCOUNT MODULE MODELS ---------------
+
+// --------------- CUSTOMER ADDRESS MODULE MODELS ---------------
+
+enum AddressType {
+  BILLING
+  SHIPPING
+}
+
+model CustomerAddress {
+  id         String      @id @default(cuid())
+  customerId String
+  customer   User        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type       AddressType
+  firstName  String
+  lastName   String
+  company    String?
+  address1   String
+  address2   String?
+  city       String
+  state      String
+  postalCode String
+  country    String
+  phone      String?
+  isDefault  Boolean     @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([customerId])
+  @@index([type])
+}
