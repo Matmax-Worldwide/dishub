@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { PaymentStatus } from '@prisma/client';
 
 // Define types for Prisma entities with relations
 type ShopWithRelations = {
   id: string;
   name: string;
   defaultCurrencyId: string;
-  adminUserId: string;
+  adminUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
   defaultCurrency: unknown;
@@ -1526,7 +1527,7 @@ export const ecommerceResolvers = {
         const payment = await prisma.payment.update({
           where: { id },
           data: {
-            status: input.status as string,
+            status: input.status as PaymentStatus,
             transactionId: input.transactionId as string || null,
             gatewayResponse: input.gatewayResponse as string || null,
             failureReason: input.failureReason as string || null,

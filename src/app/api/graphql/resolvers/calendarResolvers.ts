@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError } from 'apollo-server-errors'; 
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
 
 // Define enums based on Prisma schema
 enum DayOfWeek {
@@ -747,7 +748,7 @@ export const calendarResolvers = {
           name: input.name,
           address: input.address || null,
           phone: input.phone || null,
-          operatingHours: input.operatingHours,
+          operatingHours: input.operatingHours as Prisma.InputJsonValue || {},
         };
         const location = await prisma.location.create({ 
           data
@@ -777,7 +778,9 @@ export const calendarResolvers = {
           ...(input.name !== undefined && { name: input.name }),
           ...(input.address !== undefined && { address: input.address }),
           ...(input.phone !== undefined && { phone: input.phone }),
-          ...(input.operatingHours !== undefined && { operatingHours: input.operatingHours }),
+          ...(input.operatingHours !== undefined && { 
+            operatingHours: input.operatingHours ? input.operatingHours as Prisma.InputJsonValue : Prisma.DbNull 
+          }),
         };
         console.log('updateLocation prisma data:', data);
         const location = await prisma.location.update({ where: { id }, data });
@@ -1103,7 +1106,7 @@ export const calendarResolvers = {
           
           try {
             // Use a transaction to ensure atomicity
-            await prisma.$transaction(async (tx: typeof prisma) => {
+            await prisma.$transaction(async (tx) => {
               // First, delete all existing location connections for this service
               await tx.locationService.deleteMany({
                 where: { serviceId: id }
