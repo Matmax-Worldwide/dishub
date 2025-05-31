@@ -31,6 +31,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import graphqlClient from '@/lib/graphql-client';
+import Image from 'next/image';
 
 // Add design template type
 type DesignTemplate = 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern';
@@ -46,6 +47,8 @@ interface CalendarSectionProps {
   customStyles?: Record<string, string>; 
   showStaffSelector?: boolean; // New prop
   designTemplate?: DesignTemplate;
+  // Step order customization
+  stepOrder?: BookingStep[];
   // Configurable text content with defaults
   title?: string;
   subtitle?: string;
@@ -87,6 +90,7 @@ interface CalendarSectionProps {
     customStyles?: Record<string, string>;
     showStaffSelector?: boolean;
     designTemplate?: DesignTemplate;
+    stepOrder?: BookingStep[];
     title?: string;
     subtitle?: string;
     description?: string;
@@ -121,20 +125,31 @@ interface CalendarSectionProps {
 
 type BookingStep = 'locationSelection' | 'serviceSelection' | 'staffSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
 
-const ProgressIndicator = ({ currentStep, steps }: { currentStep: BookingStep, steps: {id: BookingStep, label: string}[] }) => {
+const ProgressIndicator = ({ currentStep, steps, onStepClick }: { 
+  currentStep: BookingStep, 
+  steps: {id: BookingStep, label: string}[], 
+  onStepClick?: (stepId: BookingStep) => void 
+}) => {
   const currentIndex = steps.findIndex(s => s.id === currentStep);
   return (
     <div className="flex justify-center space-x-2 sm:space-x-4 mb-8 overflow-x-auto pb-2">
       {steps.map((step, index) => (
-        <div key={step.id} className="flex flex-col items-center min-w-[60px] sm:min-w-[80px]">
-          <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2
-            ${index < currentIndex ? 'bg-green-500 border-green-500 text-white' : ''}
+        <div 
+          key={step.id} 
+          className="flex flex-col items-center min-w-[60px] sm:min-w-[80px]"
+          onClick={() => onStepClick?.(step.id)}
+        >
+          <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 transition-all duration-200
+            ${index < currentIndex ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' : ''}
             ${index === currentIndex ? 'bg-blue-500 border-blue-500 text-white animate-pulse' : ''}
-            ${index > currentIndex ? 'bg-gray-200 border-gray-300 text-gray-500' : ''}
+            ${index > currentIndex ? 'bg-gray-200 border-gray-300 text-gray-500 hover:bg-gray-300' : ''}
+            ${onStepClick ? 'cursor-pointer hover:scale-110' : ''}
           `}>
             {index < currentIndex ? <CheckCircle size={16} /> : index + 1}
           </div>
-          <p className={`mt-1 text-xs sm:text-sm text-center ${index === currentIndex ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+          <p className={`mt-1 text-xs sm:text-sm text-center transition-colors duration-200 ${
+            index === currentIndex ? 'text-blue-600 font-semibold' : 'text-gray-500'
+          } ${onStepClick ? 'hover:text-blue-500' : ''}`}>
             {step.label}
           </p>
         </div>
@@ -151,6 +166,8 @@ export default function CalendarSection({
   defaultLocation: initialDefaultLocation,
   showStaffSelector: initialShowStaffSelector = true,
   designTemplate: initialDesignTemplate = 'beauty-salon',
+  // Step order customization
+  stepOrder: initialStepOrder = ['locationSelection', 'serviceSelection', 'staffSelection', 'dateTimeSelection', 'detailsForm', 'confirmation'],
   // Configurable text content with defaults
   title: initialTitle = 'Book Your Appointment',
   subtitle: initialSubtitle = 'Choose your preferred service and time',
@@ -196,6 +213,7 @@ export default function CalendarSection({
   const [stepTitles, setStepTitles] = useState(initialStepTitles);
   const [buttonTexts, setButtonTexts] = useState(initialButtonTexts);
   const [placeholderTexts, setPlaceholderTexts] = useState(initialPlaceholderTexts);
+  const [stepOrder, setStepOrder] = useState(initialStepOrder);
   
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
@@ -216,15 +234,16 @@ export default function CalendarSection({
       if (JSON.stringify(initialStepTitles) !== JSON.stringify(stepTitles)) setStepTitles(initialStepTitles);
       if (JSON.stringify(initialButtonTexts) !== JSON.stringify(buttonTexts)) setButtonTexts(initialButtonTexts);
       if (JSON.stringify(initialPlaceholderTexts) !== JSON.stringify(placeholderTexts)) setPlaceholderTexts(initialPlaceholderTexts);
+      if (JSON.stringify(initialStepOrder) !== JSON.stringify(stepOrder)) setStepOrder(initialStepOrder);
     }
-  }, [initialTitle, initialSubtitle, initialDescription, initialShowLocationSelector, initialShowServiceCategories, initialDefaultLocation, initialShowStaffSelector, initialStepTitles, initialButtonTexts, initialPlaceholderTexts]);
+  }, [initialTitle, initialSubtitle, initialDescription, initialShowLocationSelector, initialShowServiceCategories, initialDefaultLocation, initialShowStaffSelector, initialStepTitles, initialButtonTexts, initialPlaceholderTexts, initialStepOrder]);
   
   // Design template state
   const [localDesignTemplate, setLocalDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
   const [isDesignChanging, setIsDesignChanging] = useState(false);
 
   // Update parent with changes
-  const handleUpdateField = useCallback((field: string, value: string | boolean | DesignTemplate | typeof stepTitles | typeof buttonTexts | typeof placeholderTexts, event?: React.SyntheticEvent) => {
+  const handleUpdateField = useCallback((field: string, value: string | boolean | DesignTemplate | typeof stepTitles | typeof buttonTexts | typeof placeholderTexts | BookingStep[], event?: React.SyntheticEvent) => {
     // Solo para los campos que no son title y description, hacemos stopPropagation
     if (event && field !== 'title' && field !== 'description') {
       event.stopPropagation();
@@ -249,6 +268,7 @@ export default function CalendarSection({
         defaultLocation,
         showStaffSelector,
         designTemplate: localDesignTemplate,
+        stepOrder,
         stepTitles,
         buttonTexts,
         placeholderTexts
@@ -280,6 +300,9 @@ export default function CalendarSection({
         case 'designTemplate':
           updateData.designTemplate = value as DesignTemplate;
           break;
+        case 'stepOrder':
+          updateData.stepOrder = value as BookingStep[];
+          break;
         case 'stepTitles':
           updateData.stepTitles = value as typeof stepTitles;
           break;
@@ -302,9 +325,9 @@ export default function CalendarSection({
         console.error("Error updating field:", error);
       }
     }
-  }, [title, subtitle, description, showLocationSelector, showServiceCategories, defaultLocation, showStaffSelector, localDesignTemplate, stepTitles, buttonTexts, placeholderTexts, onUpdate]);
+  }, [title, subtitle, description, showLocationSelector, showServiceCategories, defaultLocation, showStaffSelector, localDesignTemplate, stepOrder, stepTitles, buttonTexts, placeholderTexts, onUpdate]);
   
-  // Define all possible steps
+  // Define all possible steps with their conditions
   const stepDefinitions: {id: BookingStep, label: string, condition?: boolean}[] = [
     { id: 'locationSelection', label: stepTitles.locationSelection || 'Choose Location', condition: showLocationSelector },
     { id: 'serviceSelection', label: stepTitles.serviceSelection || 'Select Service', condition: true },
@@ -314,17 +337,17 @@ export default function CalendarSection({
     { id: 'confirmation', label: stepTitles.confirmation || 'Confirm Booking', condition: true }
   ];
 
-  const allSteps = stepDefinitions.filter(step => step.condition !== false);
+  // Filter and order steps based on stepOrder and conditions
+  const allSteps = stepOrder
+    .map(stepId => stepDefinitions.find(def => def.id === stepId))
+    .filter((step): step is {id: BookingStep, label: string, condition?: boolean} => 
+      step !== undefined && step.condition !== false
+    );
   
   const getInitialStep = (): BookingStep => {
-    if (showLocationSelector && !(defaultLocation || initialLocationIdProp)) return 'locationSelection';
-    // If location is set (either by prop or default), move to service selection or further
-    if (selectedLocationId) {
-        if (!selectedServiceId) return 'serviceSelection';
-        if (showStaffSelector && !selectedStaffId) return 'staffSelection'; // Assuming selectedStaffId needs to be set
-        return 'dateTimeSelection';
-    }
-    return 'serviceSelection'; // Fallback if location selector is hidden but no location set
+    // Return the first step in the custom order that meets its conditions
+    const firstAvailableStep = allSteps[0];
+    return firstAvailableStep ? firstAvailableStep.id : 'serviceSelection';
   };
   
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(defaultLocation || initialLocationIdProp || null);
@@ -436,7 +459,7 @@ export default function CalendarSection({
     loadServiceCategories();
   }, [showServiceCategories]);
 
-  // Load services when component mounts
+  // Load services when component mounts or when location changes
   useEffect(() => {
     async function loadServices() {
       setIsLoadingServices(true);
@@ -488,6 +511,14 @@ export default function CalendarSection({
     loadServices();
   }, []);
 
+  // Filter services by selected location
+  const filteredServices = displayServices.filter(service => {
+    // If no location is selected, show all services
+    if (!selectedLocationId) return true;
+    // Show services that are available at the selected location
+    return (service.locationIds ?? []).includes(selectedLocationId);
+  });
+
   // Load staff when service is selected
   useEffect(() => {
     async function loadStaffForService() {
@@ -506,7 +537,7 @@ export default function CalendarSection({
             id: staff.id,
             user: staff.user,
             bio: staff.bio,
-            specializations: staff.specializations
+            specializations: staff.specializations || []
           }));
           
           setAvailableStaffForService(transformedStaff);
@@ -516,6 +547,8 @@ export default function CalendarSection({
             toast.success(`${transformedStaff.length} staff member${transformedStaff.length !== 1 ? 's' : ''} available`);
           } else {
             console.warn('No staff found for this service and location');
+            // Don't show error toast for empty results, just log it
+            console.log('This might be normal if no staff has been assigned to this service at this location yet.');
           }
         } catch (error) {
           console.error('Error loading staff:', error);
@@ -845,7 +878,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-white/80 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -876,7 +909,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-blue-50">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -907,7 +940,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-white/90 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -937,7 +970,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -966,7 +999,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
@@ -995,7 +1028,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -1024,7 +1057,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
@@ -1053,7 +1086,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -1082,7 +1115,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} />
+          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
@@ -1202,6 +1235,24 @@ export default function CalendarSection({
         <div className="text-center text-sm text-gray-500">
           {locations.length} location{locations.length !== 1 ? 's' : ''} available
         </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={goToPreviousStep}
+            disabled={!getPreviousStep(currentStep)}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={goToNextStep}
+            disabled={!selectedLocationId || !getNextStep(currentStep)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {buttonTexts.next}
+          </button>
+        </div>
       </div>
     );
   };
@@ -1245,7 +1296,7 @@ export default function CalendarSection({
 
         {/* Services */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {displayServices.map((service) => (
+          {filteredServices.map((service) => (
             <div
               key={service.id}
               onClick={() => handleServiceSelect(service.id)}
@@ -1275,7 +1326,41 @@ export default function CalendarSection({
             </div>
                   ))}
                 </div>
-              </div>
+        
+        {/* Show service count */}
+        <div className="text-center text-sm text-gray-500">
+          {selectedLocationId ? (
+            <>
+              {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''} available at selected location
+              {displayServices.length !== filteredServices.length && (
+                <span className="block text-xs text-gray-400 mt-1">
+                  ({displayServices.length - filteredServices.length} service{displayServices.length - filteredServices.length !== 1 ? 's' : ''} available at other locations)
+                </span>
+              )}
+            </>
+          ) : (
+            `${displayServices.length} service${displayServices.length !== 1 ? 's' : ''} available`
+          )}
+        </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={goToPreviousStep}
+            disabled={!getPreviousStep(currentStep)}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={goToNextStep}
+            disabled={!selectedServiceId || !getNextStep(currentStep)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {buttonTexts.next}
+          </button>
+        </div>
+      </div>
     );
   };
 
@@ -1328,10 +1413,12 @@ export default function CalendarSection({
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                     {staff.user?.profileImageUrl ? (
-                      <img 
+                      <Image
                         src={staff.user.profileImageUrl} 
                         alt={`${staff.user.firstName} ${staff.user.lastName}`}
                         className="w-10 h-10 rounded-full object-cover"
+                        width={40}
+                        height={40}
                       />
                     ) : (
                       <User className="w-5 h-5 text-gray-500" />
@@ -1366,6 +1453,24 @@ export default function CalendarSection({
             {availableStaffForService.length} staff member{availableStaffForService.length !== 1 ? 's' : ''} available
           </div>
         )}
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={goToPreviousStep}
+            disabled={!getPreviousStep(currentStep)}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={goToNextStep}
+            disabled={!selectedStaffId || !getNextStep(currentStep)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {buttonTexts.next}
+          </button>
+        </div>
       </div>
     );
   };
@@ -1423,6 +1528,24 @@ export default function CalendarSection({
                         </div>
             </div>
            </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={goToPreviousStep}
+            disabled={!getPreviousStep(currentStep)}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={goToNextStep}
+            disabled={!selectedTimeSlot || !getNextStep(currentStep)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {buttonTexts.next}
+          </button>
+        </div>
       </div>
     );
   };
@@ -1498,7 +1621,7 @@ export default function CalendarSection({
         
         <div className="flex justify-between pt-4">
           <button
-            onClick={() => setCurrentStep('dateTimeSelection')}
+            onClick={goToPreviousStep}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
             {buttonTexts.back}
@@ -1720,6 +1843,77 @@ export default function CalendarSection({
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
                   placeholder="Confirm Booking"
                 />
+              </div>
+            </div>
+          </div>
+          
+          {/* Step Order Configuration */}
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-3 flex items-center">
+              <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
+              Step Order Configuration
+            </h3>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 mb-3">
+                Drag and drop to reorder the booking steps. Disabled steps will be skipped.
+              </p>
+              <div className="space-y-2">
+                {stepOrder.map((stepId, index) => {
+                  const stepDef = stepDefinitions.find(def => def.id === stepId);
+                  const isEnabled = stepDef?.condition !== false;
+                  return (
+                    <div
+                      key={stepId}
+                      className={`flex items-center justify-between p-3 border rounded-md ${
+                        isEnabled ? 'bg-white' : 'bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-500">
+                          {index + 1}.
+                        </span>
+                        <span className={`text-sm ${isEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                          {stepDef?.label || stepId}
+                        </span>
+                        {!isEnabled && (
+                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (index > 0) {
+                              const newOrder = [...stepOrder];
+                              [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+                              setStepOrder(newOrder);
+                              handleUpdateField('stepOrder', newOrder);
+                            }
+                          }}
+                          disabled={index === 0}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (index < stepOrder.length - 1) {
+                              const newOrder = [...stepOrder];
+                              [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                              setStepOrder(newOrder);
+                              handleUpdateField('stepOrder', newOrder);
+                            }
+                          }}
+                          disabled={index === stepOrder.length - 1}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -2045,7 +2239,7 @@ export default function CalendarSection({
   // Handler functions for booking flow
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
-    setCurrentStep('serviceSelection');
+    // Remove automatic step progression - user will click Next button
   };
 
   const handleCategorySelect = (categoryId: string) => {
@@ -2055,16 +2249,12 @@ export default function CalendarSection({
 
   const handleServiceSelect = (serviceId: string) => {
     setSelectedServiceId(serviceId);
-    if (showStaffSelector) {
-      setCurrentStep('staffSelection');
-    } else {
-      setCurrentStep('dateTimeSelection');
-    }
+    // Remove automatic step progression - user will click Next button
   };
 
   const handleStaffSelect = (staffId: string | null) => {
     setSelectedStaffId(staffId);
-    setCurrentStep('dateTimeSelection');
+    // Remove automatic step progression - user will click Next button
   };
 
   const handleDateSelect = (date?: Date) => {
@@ -2074,7 +2264,7 @@ export default function CalendarSection({
 
   const handleTimeSlotSelect = (slot: AvailableTimeSlot) => {
     setSelectedTimeSlot(slot);
-    setCurrentStep('detailsForm');
+    // Remove automatic step progression - user will click Next button
   };
 
   const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -2114,6 +2304,39 @@ export default function CalendarSection({
     } finally {
       setIsBooking(false);
     }
+  };
+
+  // Step navigation functions
+  const getNextStep = (currentStep: BookingStep): BookingStep | null => {
+    const currentIndex = allSteps.findIndex(step => step.id === currentStep);
+    if (currentIndex === -1 || currentIndex === allSteps.length - 1) return null;
+    return allSteps[currentIndex + 1].id;
+  };
+
+  const getPreviousStep = (currentStep: BookingStep): BookingStep | null => {
+    const currentIndex = allSteps.findIndex(step => step.id === currentStep);
+    if (currentIndex <= 0) return null;
+    return allSteps[currentIndex - 1].id;
+  };
+
+  const goToNextStep = () => {
+    const nextStep = getNextStep(currentStep);
+    if (nextStep) {
+      setCurrentStep(nextStep);
+    }
+  };
+
+  const goToPreviousStep = () => {
+    const previousStep = getPreviousStep(currentStep);
+    if (previousStep) {
+      setCurrentStep(previousStep);
+    }
+  };
+
+  // Step click navigation function
+  const handleStepClick = (stepId: BookingStep) => {
+    // Allow navigation to any step
+    setCurrentStep(stepId);
   };
 
   return (
