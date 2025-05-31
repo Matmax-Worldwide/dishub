@@ -124,7 +124,11 @@ export default function ServiceManager() {
         name: data.name!,
         description: data.description,
         durationMinutes: data.durationMinutes!,
-        price: data.price!,
+        prices: data.prices || [{
+          id: '',
+          amount: 0,
+          currencyId: 'default-usd'
+        }],
         bufferTimeBeforeMinutes: data.bufferTimeBeforeMinutes || undefined,
         bufferTimeAfterMinutes: data.bufferTimeAfterMinutes || undefined,
         preparationTimeMinutes: data.preparationTimeMinutes || undefined,
@@ -212,7 +216,7 @@ export default function ServiceManager() {
                 </TableCell>
                 <TableCell className="text-center hidden md:table-cell text-sm text-muted-foreground">{service.durationMinutes}</TableCell>
                 <TableCell className="text-right hidden lg:table-cell text-sm text-muted-foreground">
-                  {service.price != null ? `$${Number(service.price).toFixed(2)}` : 'N/A'}
+                  {service.prices && service.prices.length > 0 ? `$${Number(service.prices[0].amount).toFixed(2)}` : 'N/A'}
                 </TableCell>
                 <TableCell className="hidden xl:table-cell text-sm text-muted-foreground truncate max-w-xs">
                   {service.locations && service.locations.length > 0 
