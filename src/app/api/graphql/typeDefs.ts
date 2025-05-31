@@ -1658,6 +1658,12 @@ export const typeDefs = gql`
     deleteStaffProfile(id: ID!): StaffProfileResult!
     updateStaffSchedule(staffProfileId: ID!, schedule: [StaffScheduleInput!]!): StaffProfileResult!
     
+    # Staff assignment mutations
+    assignStaffToService(staffProfileId: ID!, serviceId: ID!): StaffAssignmentResult!
+    removeStaffFromService(staffProfileId: ID!, serviceId: ID!): StaffAssignmentResult!
+    assignStaffToLocation(staffProfileId: ID!, locationId: ID!): StaffAssignmentResult!
+    removeStaffFromLocation(staffProfileId: ID!, locationId: ID!): StaffAssignmentResult!
+    
     createService(input: CreateServiceInput!): ServiceResult!
     updateService(id: ID!, input: UpdateServiceInput!): ServiceResult!
     deleteService(id: ID!): ServiceResult!
@@ -2271,6 +2277,12 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
     serviceCategory: ServiceCategory
+  }
+
+  type StaffAssignmentResult {
+    success: Boolean!
+    message: String!
+    staffProfile: StaffProfile
   }
 
   # --------------- END BOOKING MODULE INPUTS AND CONNECTIONS --- V1 ---

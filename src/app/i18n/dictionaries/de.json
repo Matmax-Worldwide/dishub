@@ -1,0 +1,280 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "about": "Über uns",
+    "services": "Dienstleistungen",
+    "wellness": "Wellness",
+    "contact": "Kontakt",
+    "login": "Anmelden",
+    "apply": "Bewerben",
+    "loginOrApply": "Hier anmelden oder bewerben"
+  },
+  "common": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "create": "Erstellen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "confirm": "Bestätigen",
+    "loading": "Lädt...",
+    "next": "Weiter",
+    "skip": "Überspringen",
+    "finalize": "Abschließen",
+    "optional": "Optional",
+    "returnToDashboard": "Zurück zum Dashboard"
+  },
+  "cms": {
+    "title": "CMS",
+    "dashboard": "Dashboard",
+    "pages": "Seiten",
+    "menus": "Menüs",
+    "forms": "Formulare",
+    "media": "Medien",
+    "settings": "Einstellungen",
+    "blog": "Blog",
+    "mainNavigation": "Hauptnavigation",
+    "configuration": "Konfiguration",
+    "createPage": "Seite erstellen",
+    "createAndContinue": "Seite erstellen und weiter bearbeiten",
+    "unsavedChanges": "Ungespeicherte Änderungen",
+    "unsavedChangesDescription": "Sie haben ungespeicherte Änderungen. Was möchten Sie tun?",
+    "exitWithoutSaving": "Beenden ohne zu speichern",
+    "saving": "Speichert...",
+    "pageInfo": "Seiteninformationen",
+    "pageInfoDescription": "Geben Sie grundlegende Informationen für Ihre neue Seite ein. Nach dem Erstellen können Sie Komponenten hinzufügen.",
+    "pageTitle": "Seitentitel",
+    "pageSlug": "URL-Slug",
+    "pageDescription": "Beschreibung",
+    "pageTemplate": "Vorlage",
+    "pageType": "Seitentyp",
+    "publishImmediately": "Sofort veröffentlichen",
+    "selectTemplate": "Vorlage auswählen",
+    "selectPageType": "Seitentyp auswählen",
+    "seoSettings": "SEO-Einstellungen",
+    "metaTitle": "Meta-Titel",
+    "metaDescription": "Meta-Beschreibung",
+    "metaTitlePlaceholder": "Titel für Suchmaschinen",
+    "metaDescriptionPlaceholder": "Beschreibung für Suchmaschinen",
+    "slugInfo": "URL: /{locale}/{slug}",
+    "titlePlaceholder": "Seitentitel eingeben",
+    "slugPlaceholder": "url-slug-fuer-seite",
+    "descriptionPlaceholder": "Kurze Beschreibung der Seite",
+    "createNewPage": "Neue Seite erstellen",
+    "successfullyCreated": "Seite erfolgreich erstellt",
+    "generalInformation": "Allgemeine Informationen",
+    "templateAndType": "Vorlage & Typ",
+    "publication": "Veröffentlichung",
+    "generalInfoStepDescription": "Geben Sie die grundlegenden Informationen für Ihre Seite ein",
+    "templateStepDescription": "Wählen Sie eine Vorlage und einen Typ für Ihre Seite",
+    "seoStepDescription": "Optional: Verbessern Sie die SEO-Einstellungen Ihrer Seite",
+    "titleAndSlugRequired": "Titel und URL-Slug sind Pflichtfelder"
+  },
+  "commerce": {
+    "title": "E-COMMERCE"
+  },
+  "bookings": {
+    "title": "Buchungen",
+    "dashboard": "Dashboard",
+    "calendar": "Kalender",
+    "bookings": "Buchungen",
+    "services": "Dienstleistungen",
+    "categories": "Kategorien",
+    "locations": "Standorte",
+    "staff": "Personal",
+    "rules": "Regeln",
+    "main": "Hauptbereich",
+    "management": "Verwaltung"
+  },
+  "sections": {
+    "actions": {
+      "backToDetails": "Zurück zu Details",
+      "saving": "Speichert...",
+      "saveChanges": "Änderungen speichern"
+    },
+    "addComponent": {
+      "title": "Neue Komponente hinzufügen",
+      "description": "Wählen Sie den Typ der Komponente aus, die Sie zu Ihrem Abschnitt hinzufügen möchten.",
+      "cancel": "Abbrechen"
+    },
+    "components": {
+      "hero": {
+        "name": "Hero-Banner",
+        "description": "Hauptbanner mit Bild",
+        "defaultTitle": "Hero-Banner",
+        "defaultHeroTitle": "Hero-Titel",
+        "defaultHeroSubtitle": "Hero-Untertitel",
+        "defaultCtaText": "Aktionsschaltfläche"
+      },
+      "benefit": {
+        "name": "Vorteil",
+        "description": "Vorteilsabschnitt mit Symbol und Animationen",
+        "defaultTitle": "Vorteilsabschnitt",
+        "defaultBenefitTitle": "Vorteilstitel",
+        "defaultDescription": "Detaillierte Beschreibung des Vorteils, den Ihr Service bietet."
+      },
+      "header": {
+        "name": "Kopfzeile",
+        "description": "Titel und Untertitel",
+        "defaultTitle": "Kopfzeile",
+        "defaultMainTitle": "Haupttitel",
+        "defaultSubtitle": "Optionaler Untertitel"
+      },
+      "text": {
+        "name": "Text",
+        "description": "Textinhaltsblock",
+        "defaultTitle": "Textblock",
+        "defaultContentTitle": "Inhaltstitel",
+        "defaultContent": "Bearbeiten Sie diesen Inhalt, um ihn nach Ihren Bedürfnissen anzupassen."
+      },
+      "image": {
+        "name": "Bild",
+        "description": "Bild mit Beschreibung",
+        "defaultTitle": "Bild",
+        "defaultAlt": "Bildbeschreibung",
+        "defaultCaption": "Bildunterschrift"
+      },
+      "card": {
+        "name": "Karte",
+        "description": "Karte mit Titel und Bild",
+        "defaultTitle": "Karte",
+        "defaultCardTitle": "Kartentitel",
+        "defaultDescription": "Kartenbeschreibung",
+        "defaultButtonText": "Mehr lesen"
+      },
+      "feature": {
+        "name": "Feature",
+        "description": "Ein Feature hervorheben",
+        "defaultTitle": "Feature",
+        "defaultFeatureTitle": "Feature-Titel",
+        "defaultDescription": "Feature-Beschreibung"
+      },
+      "testimonial": {
+        "name": "Testimonial",
+        "description": "Zitat mit Autor",
+        "defaultTitle": "Testimonial",
+        "defaultQuote": "Dies ist ein Beispiel-Testimonial.",
+        "defaultAuthor": "Autorenname",
+        "defaultRole": "Position oder Unternehmen"
+      },
+      "default": {
+        "title": "Neue Komponente",
+        "componentTitle": "Komponententitel"
+      }
+    }
+  },
+  "hero": {
+    "tagline": "Übersetzen. Verbinden. Bewirken.",
+    "title": "Professionelle Dolmetschermöglichkeiten",
+    "subtitle": "Überwinden Sie Sprachbarrieren und werden Sie für Ihre Fähigkeiten durch hochwertiges Telefondolmetschen bezahlt.",
+    "cta": "Loslegen"
+  },
+  "about": {
+    "title": "Über E-Voque",
+    "description": "E-Voque ist ein führender Anbieter von Telefondolmetscherdiensten. Wir verbinden Unternehmen und Privatpersonen in Sekundenschnelle mit professionellen Dolmetschern und gewährleisten klare Kommunikation über Sprachbarrieren hinweg.",
+    "mission": "Unsere Mission ist es, nahtlose Kommunikation unabhängig von Sprachunterschieden zu ermöglichen und genaue sowie kulturell sensible Dolmetscherdienste anzubieten."
+  },
+  "services": {
+    "title": "Unsere Dienstleistungen",
+    "medical": {
+      "title": "Medizinisches Dolmetschen",
+      "description": "Professionelles medizinisches Dolmetschen für Gesundheitsdienstleister, um eine genaue Kommunikation zwischen medizinischem Personal und Patienten zu gewährleisten."
+    },
+    "legal": {
+      "title": "Rechtsdolmetschen",
+      "description": "Präzise Rechtsdolmetscherdienste für Anwaltskanzleien, Gerichte und Rechtsberatungen."
+    },
+    "business": {
+      "title": "Geschäftsdolmetschen",
+      "description": "Unterstützung für internationale Geschäftstreffen, Verhandlungen und Kundenservice-Interaktionen."
+    },
+    "emergency": {
+      "title": "Notfalldienste",
+      "description": "24/7 Dolmetscherunterstützung für Notfallsituationen und Krisenmanagement."
+    }
+  },
+  "benefits": {
+    "title": "Warum E-Voque beitreten",
+    "subtitle": "Scrollen Sie nach unten und entdecken Sie, wie wir Ihnen beim Wachstum helfen",
+    "connect": "Erweitern Sie Ihre globale Wirkung sofort",
+    "qualityTitle": "Liefern Sie Exzellenz und fördern Sie Ihre Karriere",
+    "quality": "Erstklassiges Dolmetschen, das neue Möglichkeiten eröffnet",
+    "speed": "Verbinden Sie sich in nur wenigen Sekunden",
+    "availability": "Arbeiten Sie wann und wo Sie wollen",
+    "languages": "Teilen Sie Ihre Leidenschaft für Sprache und Kommunikation",
+    "securityTitle": "Arbeiten Sie mit dem Vertrauen höchster Sicherheitsstandards",
+    "security": "Garantierte Vertraulichkeit und Schutz",
+    "technology": "Bleiben Sie mit innovativer Technologie vorne",
+    "technologyTitle": "Nutzen Sie modernste Tools für den Erfolg"
+  },
+  "contact": {
+    "title": "Werden Sie medizinischer Dolmetscher bei uns!",
+    "description": "Füllen Sie das untenstehende Formular aus, um Ihre Reise als zweisprachiger medizinischer Dolmetscher zu beginnen. Wir freuen uns darauf, mehr über Sie zu erfahren. Das Ausfüllen dieses Formulars ist Ihr erster Schritt zu einer aufregenden Karriere bei uns!",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "address": "Adresse",
+    "form": {
+      "name": "Name",
+      "lastName": "Nachname",
+      "namePlaceholder": "Ihr Name",
+      "lastNamePlaceholder": "Ihr Nachname",
+      "email": "E-Mail",
+      "emailPlaceholder": "Ihre E-Mail",
+      "message": "Nachricht",
+      "submit": "Loslegen"
+    }
+  },
+  "footer": {
+    "rights": "Alle Rechte vorbehalten",
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "notifications": "Benachrichtigungen",
+    "benefits": "Vorteile",
+    "help": "Hilfe",
+    "settings": "Einstellungen",
+    "adminDashboard": "Admin-Dashboard",
+    "createNotifications": "Benachrichtigungen erstellen",
+    "userManagement": "Benutzer",
+    "roleManagement": "Rollen und Berechtigungen",
+    "cms": "CMS",
+    "cmsPages": "Seiten",
+    "cmsMedia": "Medienbibliothek",
+    "cmsMenus": "Menüs",
+    "design": "Design",
+    "tools": "Tools",
+    "bookings": "Buchungen & Terminplan",
+    "cmsSettings": "Einstellungen",
+    "externalLinks": "Links verwalten",
+    "bookNow": "Räume buchen",
+    "staffManagement": "Personalverwaltung",
+    "teamReports": "Team-Berichte",
+    "approveRequests": "Anfragen genehmigen",
+    "user": "Benutzer",
+    "logout": "Abmelden",
+    "adminTools": "Admin-Tools",
+    "adminMessage": "Sie haben vollständigen administrativen Zugriff zur Verwaltung der Plattform und ihrer Benutzer.",
+    "newUser": "Neuer Benutzer",
+    "message": "Nachricht",
+    "externalLinksTitle": "Externe Links",
+    "noExternalLinks": "Keine externen Links für Ihre Rolle verfügbar",
+    "noExternalLinksForRole": "Keine externen Links für Rolle verfügbar: {role}",
+    "viewingAsRole": "Anzeige als {role}",
+    "adminViewingAllLinks": "Als Admin sehen Sie alle verfügbaren Links",
+    "adminRoleSwitchInfo": "Sie betrachten Links als eine andere Rolle, der Zugriff kann eingeschränkt sein",
+    "administration": "Administration",
+    "management": "Verwaltung",
+    "welcome": "Willkommen",
+    "welcomeMessage": "Greifen Sie unten auf Ihre externen Vorteile und Ressourcen zu.",
+    "roleSwitcher": "Anzeigen als: {role}",
+    "defaultRole": "Admin (Standard)"
+  },
+  "roles": {
+    "ADMIN": "Admin",
+    "MANAGER": "Manager",
+    "EMPLOYEE": "Mitarbeiter",
+    "USER": "Benutzer"
+  }
+} 

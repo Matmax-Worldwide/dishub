@@ -2418,6 +2418,20 @@ export const cmsOperations = {
               target
               icon
               order
+              children {
+                id
+                title
+                url
+                pageId
+                target
+                icon
+                order
+              }
+              page {
+                id
+                title
+                slug
+              }
             }
             headerStyle {
               id
@@ -2450,6 +2464,20 @@ export const cmsOperations = {
             target: string | null;
             icon: string | null;
             order: number;
+            children?: Array<{
+              id: string;
+              title: string;
+              url: string | null;
+              pageId: string | null;
+              target: string | null;
+              icon: string | null;
+              order: number;
+            }>;
+            page?: {
+              id: string;
+              title: string;
+              slug: string;
+            };
           }>;
           headerStyle: {
             id: string;
@@ -3230,7 +3258,16 @@ export const cmsOperations = {
               name
               description
               durationMinutes
-              price
+              prices {
+                id
+                amount
+                currencyId
+                currency {
+                  id
+                  code
+                  symbol
+                }
+              }
               isActive
             }
             locationAssignments {
@@ -3367,12 +3404,13 @@ export const cmsOperations = {
                 firstName
                 lastName
                 phoneNumber
-                bio
-                department
-                isActive
-                position
                 profileImageUrl
-                roleId
+                isActive
+                role {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
@@ -3418,12 +3456,13 @@ export const cmsOperations = {
                 firstName
                 lastName
                 phoneNumber
-                bio
-                department
-                isActive
-                position
                 profileImageUrl
-                roleId
+                isActive
+                role {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
@@ -3475,12 +3514,25 @@ export const cmsOperations = {
           updateStaffSchedule(staffProfileId: $staffProfileId, schedule: $schedule) {
             success
             message
+            staffProfile {
+              id
+            }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffSchedule: { success: boolean; message: string } }>(mutation, input);
-      return response.updateStaffSchedule;
+      const response = await gqlRequest<{ 
+        updateStaffSchedule: { 
+          success: boolean; 
+          message: string; 
+          staffProfile?: { id: string } | null;
+        } 
+      }>(mutation, input);
+      
+      return {
+        success: response.updateStaffSchedule.success,
+        message: response.updateStaffSchedule.message
+      };
     } catch (error) {
       console.error('Error updating staff schedule:', error);
       throw error;
@@ -3784,7 +3836,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     bufferTimeBeforeMinutes: number;
     bufferTimeAfterMinutes: number;
     preparationTimeMinutes: number;
@@ -3804,7 +3860,11 @@ export const cmsOperations = {
           name
           description
           durationMinutes
-          price
+          prices {
+            id
+            amount
+            currencyId
+          }
           bufferTimeBeforeMinutes
           bufferTimeAfterMinutes
           preparationTimeMinutes
@@ -3832,7 +3892,11 @@ export const cmsOperations = {
         name: string;
         description?: string;
         durationMinutes: number;
-        price: number;
+        prices: Array<{
+          id: string;
+          amount: number;
+          currencyId: string;
+        }>;
         bufferTimeBeforeMinutes: number;
         bufferTimeAfterMinutes: number;
         preparationTimeMinutes: number;
@@ -3875,7 +3939,11 @@ export const cmsOperations = {
     name: string;
     description?: string | null;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     bufferTimeBeforeMinutes?: number;
     bufferTimeAfterMinutes?: number;
     preparationTimeMinutes?: number;
@@ -3889,7 +3957,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -3902,7 +3974,11 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            price
+            prices {
+              id
+              amount
+              currencyId
+            }
             isActive
           }
         }
@@ -3918,7 +3994,11 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          price: number;
+          prices: Array<{
+            id: string;
+            amount: number;
+            currencyId: string;
+          }>;
           isActive: boolean;
         } | null;
       };
@@ -3937,7 +4017,11 @@ export const cmsOperations = {
       name?: string;
       description?: string | null;
       durationMinutes?: number;
-      price?: number;
+      prices?: Array<{
+        id: string;
+        amount: number;
+        currencyId: string;
+      }>;
       bufferTimeBeforeMinutes?: number;
       bufferTimeAfterMinutes?: number;
       preparationTimeMinutes?: number;
@@ -3952,7 +4036,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -3965,7 +4053,11 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            price
+            prices {
+              id
+              amount
+              currencyId
+            }
             isActive
           }
         }
@@ -3981,7 +4073,11 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          price: number;
+          prices: Array<{
+            id: string;
+            amount: number;
+            currencyId: string;
+          }>;
           isActive: boolean;
         } | null;
       };
@@ -4001,18 +4097,21 @@ export const cmsOperations = {
     const mutation = `
       mutation DeleteService($id: ID!) {
         deleteService(id: $id) {
-          id
-          name
+          success
+          message
         }
       }
     `;
 
     try {
-      await gqlRequest(mutation, { id });
-      return {
-        success: true,
-        message: 'Service deleted successfully'
-      };
+      const response = await gqlRequest<{
+        deleteService: {
+          success: boolean;
+          message: string;
+        };
+      }>(mutation, { id });
+      
+      return response.deleteService;
     } catch (error) {
       console.error('Error deleting service:', error);
       return {
@@ -4154,14 +4253,14 @@ export const cmsOperations = {
   // Calendar Bookings Operations
   async bookings({ filter, pagination }: {
     filter?: {
-      dateFrom?: string;
-      dateTo?: string;
+      startDate?: string;
+      endDate?: string;
       status?: string;
       locationId?: string;
       serviceId?: string;
       staffProfileId?: string;
       customerId?: string;
-      searchQuery?: string;
+      search?: string;
     };
     pagination?: {
       page?: number;
@@ -4520,6 +4619,26 @@ export const cmsOperations = {
         sku?: string;
       };
     }>;
+    shipments: Array<{
+      id: string;
+      trackingNumber?: string | null;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED' | 'CANCELLED';
+      shippingCost: number;
+      shippedAt?: string | null;
+      estimatedDelivery?: string | null;
+      deliveredAt?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+    }>;
     createdAt: string;
     updatedAt: string;
   }>> {
@@ -4606,6 +4725,26 @@ export const cmsOperations = {
           id: string;
           name: string;
           sku?: string;
+        };
+      }>;
+      shipments: Array<{
+        id: string;
+        trackingNumber?: string | null;
+        status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED' | 'CANCELLED';
+        shippingCost: number;
+        shippedAt?: string | null;
+        estimatedDelivery?: string | null;
+        deliveredAt?: string | null;
+        createdAt: string;
+        updatedAt: string;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+            type: string;
+          };
         };
       }>;
       createdAt: string;
@@ -7337,7 +7476,16 @@ const graphqlClient = {
               name
               description
               durationMinutes
-              price
+              prices {
+                id
+                amount
+                currencyId
+                currency {
+                  id
+                  code
+                  symbol
+                }
+              }
               isActive
             }
             locationAssignments {
@@ -7473,12 +7621,13 @@ const graphqlClient = {
                 firstName
                 lastName
                 phoneNumber
-                bio
-                department
-                isActive
-                position
                 profileImageUrl
-                roleId
+                isActive
+                role {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
@@ -7524,12 +7673,13 @@ const graphqlClient = {
                 firstName
                 lastName
                 phoneNumber
-                bio
-                department
-                isActive
-                position
                 profileImageUrl
-                roleId
+                isActive
+                role {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
@@ -7581,14 +7731,128 @@ const graphqlClient = {
           updateStaffSchedule(staffProfileId: $staffProfileId, schedule: $schedule) {
             success
             message
+            staffProfile {
+              id
+            }
           }
         }
       `;
 
-      const response = await gqlRequest<{ updateStaffSchedule: { success: boolean; message: string } }>(mutation, input);
-      return response.updateStaffSchedule;
+      const response = await gqlRequest<{ 
+        updateStaffSchedule: { 
+          success: boolean; 
+          message: string; 
+          staffProfile?: { id: string } | null;
+        } 
+      }>(mutation, input);
+      
+      return {
+        success: response.updateStaffSchedule.success,
+        message: response.updateStaffSchedule.message
+      };
     } catch (error) {
       console.error('Error updating staff schedule:', error);
+      throw error;
+    }
+  },
+
+  // Staff assignment methods
+  async assignStaffToService(input: { staffProfileId: string; serviceId: string }): Promise<{ success: boolean; message: string; staffProfile?: unknown }> {
+    try {
+      const mutation = `
+        mutation AssignStaffToService($staffProfileId: ID!, $serviceId: ID!) {
+          assignStaffToService(staffProfileId: $staffProfileId, serviceId: $serviceId) {
+            success
+            message
+            staffProfile {
+              id
+              userId
+              bio
+              specializations
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ assignStaffToService: { success: boolean; message: string; staffProfile?: unknown } }>(mutation, input);
+      return response.assignStaffToService;
+    } catch (error) {
+      console.error('Error assigning staff to service:', error);
+      throw error;
+    }
+  },
+
+  async removeStaffFromService(input: { staffProfileId: string; serviceId: string }): Promise<{ success: boolean; message: string; staffProfile?: unknown }> {
+    try {
+      const mutation = `
+        mutation RemoveStaffFromService($staffProfileId: ID!, $serviceId: ID!) {
+          removeStaffFromService(staffProfileId: $staffProfileId, serviceId: $serviceId) {
+            success
+            message
+            staffProfile {
+              id
+              userId
+              bio
+              specializations
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ removeStaffFromService: { success: boolean; message: string; staffProfile?: unknown } }>(mutation, input);
+      return response.removeStaffFromService;
+    } catch (error) {
+      console.error('Error removing staff from service:', error);
+      throw error;
+    }
+  },
+
+  async assignStaffToLocation(input: { staffProfileId: string; locationId: string }): Promise<{ success: boolean; message: string; staffProfile?: unknown }> {
+    try {
+      const mutation = `
+        mutation AssignStaffToLocation($staffProfileId: ID!, $locationId: ID!) {
+          assignStaffToLocation(staffProfileId: $staffProfileId, locationId: $locationId) {
+            success
+            message
+            staffProfile {
+              id
+              userId
+              bio
+              specializations
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ assignStaffToLocation: { success: boolean; message: string; staffProfile?: unknown } }>(mutation, input);
+      return response.assignStaffToLocation;
+    } catch (error) {
+      console.error('Error assigning staff to location:', error);
+      throw error;
+    }
+  },
+
+  async removeStaffFromLocation(input: { staffProfileId: string; locationId: string }): Promise<{ success: boolean; message: string; staffProfile?: unknown }> {
+    try {
+      const mutation = `
+        mutation RemoveStaffFromLocation($staffProfileId: ID!, $locationId: ID!) {
+          removeStaffFromLocation(staffProfileId: $staffProfileId, locationId: $locationId) {
+            success
+            message
+            staffProfile {
+              id
+              userId
+              bio
+              specializations
+            }
+          }
+        }
+      `;
+
+      const response = await gqlRequest<{ removeStaffFromLocation: { success: boolean; message: string; staffProfile?: unknown } }>(mutation, input);
+      return response.removeStaffFromLocation;
+    } catch (error) {
+      console.error('Error removing staff from location:', error);
       throw error;
     }
   },
@@ -7596,14 +7860,14 @@ const graphqlClient = {
   // Calendar Bookings Operations
   async bookings({ filter, pagination }: {
     filter?: {
-      dateFrom?: string;
-      dateTo?: string;
+      startDate?: string;
+      endDate?: string;
       status?: string;
       locationId?: string;
       serviceId?: string;
       staffProfileId?: string;
       customerId?: string;
-      searchQuery?: string;
+      search?: string;
     };
     pagination?: {
       page?: number;
@@ -8092,7 +8356,6 @@ async function deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
       deleteFormSubmission(id: $id) {
         success
         message
-        submission
       }
     }
   `;

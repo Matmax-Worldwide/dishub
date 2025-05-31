@@ -25,7 +25,11 @@ const defaultServiceValues: Partial<Service> = {
   name: '',
   description: '',
   durationMinutes: 30,
-  price: 0,
+  prices: [{
+    id: '',
+    amount: 0,
+    currencyId: 'default-usd' // Default currency ID - will be replaced with actual currency
+  }],
   bufferTimeBeforeMinutes: 0,
   bufferTimeAfterMinutes: 0,
   preparationTimeMinutes: 0,
@@ -59,9 +63,25 @@ export default function ServiceForm({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+        // Handle backward compatibility: convert old price field to prices array
+        let prices = initialData.prices;
+        const legacyData = initialData as Partial<Service> & { price?: number };
+        if (!prices && legacyData.price !== undefined) {
+          // Convert old price field to new prices array
+          prices = [{
+            id: '',
+            amount: legacyData.price,
+            currencyId: 'default-usd'
+          }];
+        } else if (!prices) {
+          // Use default if no prices at all
+          prices = defaultServiceValues.prices;
+        }
+
         setFormData({
           ...defaultServiceValues, // Start with defaults
           ...initialData, // Override with initialData
+          prices, // Use the processed prices
           // Ensure locationIds is an array of strings, even if initialData.locations provides full objects
           locationIds: initialData.locations?.map(loc => loc.id) || [], 
         });
@@ -103,7 +123,20 @@ export default function ServiceForm({
     if (type === 'number') {
       processedValue = value === '' ? '' : parseFloat(value);
     }
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
+    
+    // Handle prices array specially
+    if (name === 'prices') {
+      setFormData(prev => ({
+        ...prev,
+        prices: [{
+          id: prev.prices?.[0]?.id || '',
+          amount: processedValue as number,
+          currencyId: prev.prices?.[0]?.currencyId || 'default-usd'
+        }]
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: processedValue }));
+    }
   };
 
   
@@ -151,7 +184,7 @@ export default function ServiceForm({
         toast.error('Duration must be a positive number.');
         return;
     }
-     if (formData.price == null || formData.price < 0) {
+     if (formData.prices?.[0].amount == null || formData.prices?.[0].amount < 0) {
         setFormError('Price must be a non-negative number.');
         toast.error('Price must be a non-negative number.');
         return;
@@ -167,7 +200,9 @@ export default function ServiceForm({
     }
     // Ensure numeric fields are numbers or null
     dataToSave.durationMinutes = Number(dataToSave.durationMinutes) || 0;
-    dataToSave.price = Number(dataToSave.price) || 0;
+    if (dataToSave.prices && dataToSave.prices[0]) {
+      dataToSave.prices[0].amount = Number(dataToSave.prices[0].amount) || 0;
+    }
     dataToSave.bufferTimeBeforeMinutes = Number(dataToSave.bufferTimeBeforeMinutes) || 0;
     dataToSave.bufferTimeAfterMinutes = Number(dataToSave.bufferTimeAfterMinutes) || 0;
     dataToSave.preparationTimeMinutes = Number(dataToSave.preparationTimeMinutes) || 0;
@@ -269,8 +304,8 @@ export default function ServiceForm({
                 <Input id="durationMinutes" name="durationMinutes" type="number" value={formData.durationMinutes || ''} onChange={handleChange} disabled={isSaving} />
               </div>
               <div>
-                <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
-                <Input id="price" name="price" type="number" step="0.01" value={formData.price || ''} onChange={handleChange} disabled={isSaving} />
+                <Label htmlFor="prices">Price <span className="text-red-500">*</span></Label>
+                <Input id="prices" name="prices" type="number" step="0.01" value={formData.prices?.[0].amount || ''} onChange={handleChange} disabled={isSaving} />
               </div>
             </div>
             

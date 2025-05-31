@@ -453,7 +453,7 @@ export default function CalendarSection({
             name: service.name,
             description: service.description || null,
             durationMinutes: service.durationMinutes,
-            price: service.price,
+            prices: service.prices || [],
             serviceCategoryId: service.serviceCategoryId,
             serviceCategory: service.serviceCategory || null,
             bufferTimeBeforeMinutes: service.bufferTimeBeforeMinutes || null,
@@ -1266,8 +1266,8 @@ export default function CalendarSection({
                       <Clock className="w-4 h-4" />
                       {service.durationMinutes} min
                     </span>
-                    {service.price && (
-                      <span className="font-medium text-green-600">${service.price}</span>
+                    {service.prices && service.prices.length > 0 && (
+                      <span className="font-medium text-green-600">${service.prices[0].amount}</span>
                     )}
                             </div>
                         </div>

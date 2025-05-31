@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/hooks/useI18n';
 import { 
   LayoutDashboard,
   FileText,
@@ -32,21 +34,6 @@ import {
   useSidebar
 } from '@/components/ui/sidebar';
 
-interface CMSSidebarProps {
-  dictionary?: {
-    cms?: {
-      dashboard: string;
-      pages: string;
-      menus: string;
-      forms: string;
-      media: string;
-      settings: string;
-      blog: string;
-    };
-  };
-  locale: string;
-}
-
 // Custom component for the collapsible button with dynamic icon
 function CollapsibleButton({ className = "" }) {
   const { collapsed } = useSidebar();
@@ -63,10 +50,11 @@ function CollapsibleButton({ className = "" }) {
   );
 }
 
-export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
+export default function CMSSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { t, locale } = useI18n();
   
   // Unsaved changes context
   const {
@@ -79,55 +67,42 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
     showUnsavedAlert,
     setShowUnsavedAlert,
   } = useUnsavedChanges();
-  
-  // Default navigation items if dictionary is not provided
-  const nav = dictionary?.cms || {
-    dashboard: 'Dashboard',
-    pages: 'Pages',
-    menus: 'Menus',
-    forms: 'Forms',
-    media: 'Media',
-    settings: 'Settings',
-    blog: 'Blog',
-    // Add new dictionary entries for Calendar if they are to be translated
-    // For now, using hardcoded strings.
-  };
 
   const navigationItems = [
     {
-      name: nav.dashboard,
+      name: t('cms.dashboard') || 'Dashboard',
       href: `/${locale}/cms/`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
-      name: nav.pages,
+      name: t('cms.pages') || 'Pages',
       href: `/${locale}/cms/pages`,
       icon: <FileText className="h-4 w-4" />
     },
     {
-      name: nav.menus,
+      name: t('cms.menus') || 'Menus',
       href: `/${locale}/cms/menus`,
       icon: <Menu className="h-4 w-4" />
     },
     {
-      name: nav.forms,
+      name: t('cms.forms') || 'Forms',
       href: `/${locale}/cms/forms`,
       icon: <FormInput className="h-4 w-4" />
     },
     {
-      name: nav.blog,
+      name: t('cms.blog') || 'Blog',
       href: `/${locale}/cms/blog`,
       icon: <BookOpen className="h-4 w-4" />
     },
     {
-      name: nav.media,
+      name: t('cms.media') || 'Media',
       href: `/${locale}/cms/media`,
       icon: <ImageIcon className="h-4 w-4" />
     },
   ];
 
   const settingsNavItem = {
-    name: nav.settings,
+    name: t('cms.settings') || 'Settings',
     href: `/${locale}/cms/settings`,
     icon: <Settings className="h-4 w-4" />
   };
@@ -231,21 +206,22 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
                     className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                    <span>Bookings</span>
+                    <span>{t('bookings.title') || 'Bookings'}</span>
                   </Link>
                   <Link
                     href={`/${locale}/commerce`}
                     className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                    <span>E-COMMERCE</span>
+                    <span>{t('commerce.title') || 'E-COMMERCE'}</span>
                   </Link>
                 </div>
               )}
             </div>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex items-center space-x-2">
+            <LanguageSwitcher />
             <CollapsibleButton className="sidebar-header-collapse-button" />
           </div>
         </SidebarHeader>
@@ -256,7 +232,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
         </div>
         
         <SidebarContent>
-          <SidebarGroup title="Main Navigation">
+          <SidebarGroup title={t('cms.mainNavigation') || 'Main Navigation'}>
             {navigationItems.map((item) => (
               <Link 
                 key={item.name} 
@@ -273,7 +249,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
               </Link>
             ))}
           </SidebarGroup>
-          <SidebarGroup title="Configuration">
+          <SidebarGroup title={t('cms.configuration') || 'Configuration'}>
             <Link
               key={settingsNavItem.name}
               href={settingsNavItem.href}
@@ -300,7 +276,7 @@ export default function CMSSidebar({ dictionary, locale }: CMSSidebarProps) {
               icon={<LogOut className="h-4 w-4" />}
               className="text-muted-foreground hover:text-foreground"
             >
-              Return to Dashboard
+              {t('common.returnToDashboard') || 'Return to Dashboard'}
             </SidebarItem>
           </Link>
         </SidebarFooter>

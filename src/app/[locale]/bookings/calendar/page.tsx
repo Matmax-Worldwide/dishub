@@ -44,7 +44,11 @@ interface Service {
   name: string;
   description?: string;
   durationMinutes: number;
-  price: number;
+  prices: Array<{
+    id: string;
+    amount: number;
+    currencyId: string;
+  }>;
   isActive: boolean;
   serviceCategory: ServiceCategory;
   locations: Array<{ id: string; name: string }>;
@@ -139,8 +143,8 @@ export default function CalendarPage() {
         graphqlClient.staffProfiles(),
         graphqlClient.bookings({
           filter: {
-            dateFrom: getStartOfPeriod(currentDate, viewMode).toISOString().split('T')[0],
-            dateTo: getEndOfPeriod(currentDate, viewMode).toISOString().split('T')[0]
+            startDate: getStartOfPeriod(currentDate, viewMode).toISOString().split('T')[0],
+            endDate: getEndOfPeriod(currentDate, viewMode).toISOString().split('T')[0]
           }
         })
       ]);
@@ -724,7 +728,10 @@ export default function CalendarPage() {
                 <div key={service.id} className="flex justify-between items-center">
                   <span className="text-sm">{service.name}</span>
                   <Badge variant="outline">
-                    ${service.price}
+                    {service.prices && service.prices.length > 0 
+                      ? `$${service.prices[0].amount}` 
+                      : 'No price'
+                    }
                   </Badge>
                 </div>
               ))}

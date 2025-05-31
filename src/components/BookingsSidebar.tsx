@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import { useI18n } from '@/hooks/useI18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { 
   LayoutDashboard,
   Calendar,
@@ -18,8 +20,6 @@ import {
   PanelLeftOpen,
   LogOut,
   Clock,
-  BarChart3,
-  CreditCard,
   ChevronDown
 } from 'lucide-react';
 
@@ -34,24 +34,6 @@ import {
   SidebarCollapseButton,
   useSidebar
 } from '@/components/ui/sidebar';
-
-interface BookingsSidebarProps {
-  dictionary?: {
-    bookings?: {
-      dashboard: string;
-      calendar: string;
-      bookings: string;
-      services: string;
-      categories: string;
-      locations: string;
-      staff: string;
-      rules: string;
-      reports: string;
-      payments: string;
-    };
-  };
-  locale: string;
-}
 
 // Custom component for the collapsible button with dynamic icon
 function CollapsibleButton({ className = "" }) {
@@ -69,10 +51,11 @@ function CollapsibleButton({ className = "" }) {
   );
 }
 
-export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarProps) {
+export default function BookingsSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { t, locale } = useI18n();
   
   // Unsaved changes context
   const {
@@ -85,34 +68,20 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
     showUnsavedAlert,
     setShowUnsavedAlert,
   } = useUnsavedChanges();
-  
-  // Default navigation items if dictionary is not provided
-  const nav = dictionary?.bookings || {
-    dashboard: 'Dashboard',
-    calendar: 'Calendar',
-    bookings: 'Bookings',
-    services: 'Services',
-    categories: 'Categories',
-    locations: 'Locations',
-    staff: 'Staff',
-    rules: 'Rules',
-    reports: 'Reports',
-    payments: 'Payments',
-  };
 
   const mainNavigationItems = [
     {
-      name: nav.dashboard,
+      name: t('bookings.dashboard') || 'Dashboard',
       href: `/${locale}/bookings`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
-      name: nav.calendar,
+      name: t('bookings.calendar') || 'Calendar',
       href: `/${locale}/bookings/calendar`,
       icon: <Calendar className="h-4 w-4" />
     },
     {
-      name: nav.bookings,
+      name: t('bookings.bookings') || 'Bookings',
       href: `/${locale}/bookings/list`,
       icon: <BookOpen className="h-4 w-4" />
     },
@@ -120,45 +89,31 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
 
   const managementItems = [
     {
-      name: nav.services,
+      name: t('bookings.services') || 'Services',
       href: `/${locale}/bookings/services`,
       icon: <Briefcase className="h-4 w-4" />
     },
     {
-      name: nav.categories,
+      name: t('bookings.categories') || 'Categories',
       href: `/${locale}/bookings/categories`,
       icon: <Users className="h-4 w-4" />
     },
     {
-      name: nav.locations,
+      name: t('bookings.locations') || 'Locations',
       href: `/${locale}/bookings/locations`,
       icon: <MapPin className="h-4 w-4" />
     },
     {
-      name: nav.staff,
+      name: t('bookings.staff') || 'Staff',
       href: `/${locale}/bookings/staff`,
       icon: <UserCheck className="h-4 w-4" />
     },
     {
-      name: nav.rules,
+      name: t('bookings.rules') || 'Rules',
       href: `/${locale}/bookings/rules`,
       icon: <Clock className="h-4 w-4" />
     },
   ];
-
-  const analyticsItems = [
-    {
-      name: nav.reports,
-      href: `/${locale}/bookings/reports`,
-      icon: <BarChart3 className="h-4 w-4" />
-    },
-    {
-      name: nav.payments,
-      href: `/${locale}/bookings/payments`,
-      icon: <CreditCard className="h-4 w-4" />
-    },
-  ];
-  
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
@@ -246,7 +201,7 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-between w-full text-lg font-semibold text-foreground sidebar-title hover:bg-gray-100 rounded-md px-2 py-1 transition-colors"
                 >
-                  <span>Bookings</span>
+                  <span>{t('bookings.title') || 'Bookings'}</span>
                   <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
@@ -258,21 +213,22 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
-                      <span>CMS</span>
+                      <span>{t('cms.title') || 'CMS'}</span>
                     </Link>
                     <Link
                       href={`/${locale}/commerce`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
-                      <span>E-COMMERCE</span>
+                      <span>{t('commerce.title') || 'E-COMMERCE'}</span>
                     </Link>
                   </div>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2">
+              <LanguageSwitcher />
               <CollapsibleButton className="sidebar-header-collapse-button" />
             </div>
           </SidebarHeader>
@@ -283,7 +239,7 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
           </div>
           
           <SidebarContent>
-            <SidebarGroup title="Main">
+            <SidebarGroup title={t('bookings.main') || 'Main'}>
               {mainNavigationItems.map((item) => (
                 <Link 
                   key={item.name} 
@@ -301,7 +257,7 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
               ))}
             </SidebarGroup>
             
-            <SidebarGroup title="Management">
+            <SidebarGroup title={t('bookings.management') || 'Management'}>
               {managementItems.map((item) => (
                 <Link
                   key={item.name}
@@ -318,25 +274,6 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                 </Link>
               ))}
             </SidebarGroup>
-            
-            <SidebarGroup title="Analytics">
-              {analyticsItems.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block"
-                  onClick={(e) => handleNavigation(item.href, e)}
-                >
-                  <SidebarItem
-                    icon={item.icon}
-                    active={isActiveLink(item.href)}
-                  >
-                    {item.name}
-                  </SidebarItem>
-                </Link>
-              ))}
-            </SidebarGroup>
-            
           </SidebarContent>
           
           <SidebarFooter>
@@ -349,7 +286,7 @@ export default function BookingsSidebar({ dictionary, locale }: BookingsSidebarP
                 icon={<LogOut className="h-4 w-4" />}
                 className="text-muted-foreground hover:text-foreground"
               >
-                Return to Dashboard
+                {t('common.returnToDashboard') || 'Return to Dashboard'}
               </SidebarItem>
             </Link>
           </SidebarFooter>

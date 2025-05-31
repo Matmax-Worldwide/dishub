@@ -21,9 +21,20 @@
     "next": "Siguiente",
     "skip": "Omitir",
     "finalize": "Finalizar",
-    "optional": "Opcional"
+    "optional": "Opcional",
+    "returnToDashboard": "Volver al Dashboard"
   },
   "cms": {
+    "title": "CMS",
+    "dashboard": "Dashboard",
+    "pages": "Páginas",
+    "menus": "Menús",
+    "forms": "Formularios",
+    "media": "Medios",
+    "settings": "Configuración",
+    "blog": "Blog",
+    "mainNavigation": "Navegación Principal",
+    "configuration": "Configuración",
     "createPage": "Crear página",
     "createAndContinue": "Crear página y continuar a edición",
     "unsavedChanges": "Cambios sin guardar",
@@ -249,5 +260,21 @@
     "MANAGER": "Gerente",
     "EMPLOYEE": "Empleado",
     "USER": "Usuario"
+  },
+  "commerce": {
+    "title": "E-COMMERCE"
+  },
+  "bookings": {
+    "title": "Reservas",
+    "dashboard": "Dashboard",
+    "calendar": "Calendario",
+    "bookings": "Reservas",
+    "services": "Servicios",
+    "categories": "Categorías",
+    "locations": "Ubicaciones",
+    "staff": "Personal",
+    "rules": "Reglas",
+    "main": "Principal",
+    "management": "Gestión"
   }
 } 

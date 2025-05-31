@@ -1930,3 +1930,19 @@ model CustomerAddress {
   @@index([customerId])
   @@index([type])
 }
+
+model Documentation {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  content     String   @db.Text // For large markdown content
+  category    String
+  tags        String[] // Array of tags
+  isPublished Boolean  @default(true)
+  order       Int?     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("documentation")
+}

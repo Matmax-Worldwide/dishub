@@ -40,6 +40,8 @@ export default function LanguageSwitcher({ isContactInView = false }: LanguageSw
         return 'English';
       case 'es':
         return 'Español';
+      case 'de':
+        return 'Deutsch';
       default:
         return locale.toUpperCase();
     }

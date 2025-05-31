@@ -206,7 +206,7 @@ export default function StaffForm({
                 <Label htmlFor="userId">Select User <span className="text-red-500">*</span></Label>
                 <Select value={formData.userId || ''} onValueChange={(val) => handleSelectChange('userId', val)} disabled={isSaving || !!initialData?.id}>
                   <SelectTrigger><SelectValue placeholder="Choose a user" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[60]">
                     {allUsersForSelect.map(user => (
                       <SelectItem key={user.id} value={user.id!}>
                         {user.firstName} {user.lastName} ({user.email})
