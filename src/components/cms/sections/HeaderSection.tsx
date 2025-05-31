@@ -177,9 +177,9 @@ export default function HeaderSection({
   const [buttonBorderWidth, setButtonBorderWidth] = useState(initialButtonBorderWidth);
   const [buttonWidth, setButtonWidth] = useState(initialButtonWidth);
   const [buttonHeight, setButtonHeight] = useState(initialButtonHeight);
-  const [buttonPosition, setButtonPosition] = useState<'left' | 'center' | 'right'>(initialButtonPosition);
-  const [buttonDropdown, setButtonDropdown] = useState(initialButtonDropdown);
-  const [buttonDropdownItems, setButtonDropdownItems] = useState<Array<{id: string; label: string; url: string}>>(initialButtonDropdownItems);
+  const [buttonPosition] = useState<'left' | 'center' | 'right'>(initialButtonPosition);
+  const [buttonDropdown] = useState(initialButtonDropdown);
+  const [buttonDropdownItems] = useState<Array<{id: string; label: string; url: string}>>(initialButtonDropdownItems);
   const [isButtonDropdownOpen, setIsButtonDropdownOpen] = useState(false);
   
   // New states for page selection
@@ -436,7 +436,7 @@ export default function HeaderSection({
   }, [hasUnsavedChanges, localMenuId, saveHeaderStyle]);
   */
   
-  // Create refs to store current values to avoid dependency issues
+  // Initialize currentValuesRef with current values
   const currentValuesRef = useRef({
     localTitle,
     localSubtitle,
@@ -472,77 +472,6 @@ export default function HeaderSection({
     selectedPageId
   });
 
-  // Update the ref whenever values change
-  useEffect(() => {
-    currentValuesRef.current = {
-      localTitle,
-      localSubtitle,
-      localMenuId,
-      logoUrl,
-      transparency,
-      headerSize,
-      menuAlignment,
-      menuButtonStyle,
-      mobileMenuStyle,
-      mobileMenuPosition,
-      transparentHeader,
-      borderBottom,
-      fixedHeader,
-      advancedOptions,
-      menuIcon,
-      showButton,
-      buttonText,
-      buttonAction,
-      buttonColor,
-      buttonTextColor,
-      buttonSize,
-      buttonBorderRadius,
-      buttonShadow,
-      buttonBorderColor,
-      buttonBorderWidth,
-      buttonWidth,
-      buttonHeight,
-      buttonPosition,
-      buttonDropdown,
-      buttonDropdownItems,
-      buttonUrlType,
-      selectedPageId
-    };
-  }, [
-    localTitle,
-    localSubtitle,
-    localMenuId,
-    logoUrl,
-    transparency,
-    headerSize,
-    menuAlignment,
-    menuButtonStyle,
-    mobileMenuStyle,
-    mobileMenuPosition,
-    transparentHeader,
-    borderBottom,
-    fixedHeader,
-    advancedOptions,
-    menuIcon,
-    showButton,
-    buttonText,
-    buttonAction,
-    buttonColor,
-    buttonTextColor,
-    buttonSize,
-    buttonBorderRadius,
-    buttonShadow,
-    buttonBorderColor,
-    buttonBorderWidth,
-    buttonWidth,
-    buttonHeight,
-    buttonPosition,
-    buttonDropdown,
-    buttonDropdownItems,
-    buttonUrlType,
-    selectedPageId
-  ]);
-
   const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
     if (onUpdate) {
       // Mark that we're in editing mode
@@ -552,6 +481,12 @@ export default function HeaderSection({
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      
+      // Update the ref with the new value immediately
+      currentValuesRef.current = {
+        ...currentValuesRef.current,
+        [field]: value
+      };
       
       // Get current values from ref to avoid dependency issues
       const currentValues = currentValuesRef.current;
@@ -1143,188 +1078,13 @@ export default function HeaderSection({
           </div>
         </div>
       </div>
-      
-      {/* Save Button - Removed: Only save on page save
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-        <div className="text-xs text-gray-500">
-          {hasUnsavedChanges ? 'Auto-save in 3 seconds' : 'All changes saved'}
-        </div>
-        <button
-          onClick={saveHeaderStyle}
-          disabled={isSaving || !localMenuId}
-          className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
-            isSaving || !localMenuId
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : hasUnsavedChanges
-                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {isSaving ? (
-            <div className="flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Saving...</span>
-            </div>
-          ) : hasUnsavedChanges ? (
-            'Save Changes'
-          ) : (
-            <div className="flex items-center space-x-2">
-              <CheckIcon className="h-4 w-4" />
-              <span>Saved</span>
-            </div>
-          )}
-        </button>
-      </div>
-      */}
-    </div>
-  );
 
-  const MenuIconSelector = () => (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">Menu Icon</label>
-      <div className="flex flex-col sm:flex-row items-start gap-2">
-        <IconSelector 
-          selectedIcon={menuIcon} 
-          onSelectIcon={setMenuIcon} 
-          className="w-full" 
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          This icon will be used for the mobile menu button
-        </div>
-      </div>
-    </div>
-  );
-
-  const ButtonConfiguration = () => (
-    <div className="space-y-4">
-      <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-        Header Button Configuration
-      </h4>
-      
-      {/* Enable Button */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="showButton"
-          checked={showButton}
-          onChange={handleShowButtonChange}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="showButton" className="text-sm font-medium">
-          Show Button in Header
-        </label>
-      </div>
-      
+      {/* Button Design Section */}
       {showButton && (
-        <div className="space-y-4 pl-4 border-l-2 border-blue-200">
-          {/* Button Text */}
-          <div>
-            <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
-              Button Text
-            </label>
-            <input
-              type="text"
-              id="buttonText"
-              value={buttonText}
-              onChange={handleButtonTextChange}
-              placeholder="Get Started"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          {/* URL Type Selection */}
-          <div>
-            <label className="text-sm font-medium block mb-2">
-              Button URL/Action
-            </label>
-            <div className="space-y-3">
-              {/* URL Type Radio Buttons */}
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="buttonUrlType"
-                    value="custom"
-                    checked={buttonUrlType === 'custom'}
-                    onChange={() => {
-                      setButtonUrlType('custom');
-                      handleUpdateField('buttonUrlType', 'custom');
-                    }}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">Custom URL</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="buttonUrlType"
-                    value="page"
-                    checked={buttonUrlType === 'page'}
-                    onChange={() => {
-                      setButtonUrlType('page');
-                      handleUpdateField('buttonUrlType', 'page');
-                    }}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">Existing Page</span>
-                </label>
-              </div>
-              
-              {/* Custom URL Input */}
-              {buttonUrlType === 'custom' && (
-                <div>
-                  <input
-                    type="text"
-                    id="buttonAction"
-                    value={buttonAction}
-                    onChange={handleButtonActionChange}
-                    placeholder="/contact"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Use relative URLs (/contact) or absolute URLs (https://example.com)
-                  </p>
-                </div>
-              )}
-              
-              {/* Existing Page Selection */}
-              {buttonUrlType === 'page' && (
-                <div>
-                  <select
-                    value={selectedPageId}
-                    onChange={(e) => {
-                      const pageId = e.target.value;
-                      setSelectedPageId(pageId);
-                      
-                      // Find the selected page and set the button action to its slug
-                      const selectedPage = availablePages.find(page => page.id === pageId);
-                      if (selectedPage) {
-                        const pageUrl = `/${selectedPage.slug}`;
-                        setButtonAction(pageUrl);
-                        handleUpdateField('buttonAction', pageUrl);
-                        handleUpdateField('selectedPageId', pageId);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={loadingPages}
-                  >
-                    <option value="">Select a page...</option>
-                    {availablePages.map(page => (
-                      <option key={page.id} value={page.id}>
-                        {page.title} (/{page.slug})
-                      </option>
-                    ))}
-                  </select>
-                  {loadingPages && (
-                    <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
-                  )}
-                  {!loadingPages && availablePages.length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">No pages available</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+            Button Design
+          </h4>
           
           {/* Button Position and Size */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1335,7 +1095,10 @@ export default function HeaderSection({
               <select
                 id="buttonPosition"
                 value={buttonPosition}
-                onChange={handleButtonPositionChange}
+                onChange={(e) => {
+                  const newValue = e.target.value as 'left' | 'center' | 'right';
+                  handleUpdateField('buttonPosition', newValue);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="left">Left</option>
@@ -1408,7 +1171,11 @@ export default function HeaderSection({
                 type="number"
                 id="buttonBorderRadius"
                 value={buttonBorderRadius}
-                onChange={handleButtonBorderRadiusChange}
+                onChange={(e) => {
+                  const numValue = parseInt(e.target.value) || 0;
+                  setButtonBorderRadius(numValue);
+                  handleUpdateField('buttonBorderRadius', numValue);
+                }}
                 min="0"
                 max="50"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1423,7 +1190,11 @@ export default function HeaderSection({
                 type="number"
                 id="buttonBorderWidth"
                 value={buttonBorderWidth}
-                onChange={handleButtonBorderWidthChange}
+                onChange={(e) => {
+                  const numValue = parseInt(e.target.value) || 0;
+                  setButtonBorderWidth(numValue);
+                  handleUpdateField('buttonBorderWidth', numValue);
+                }}
                 min="0"
                 max="10"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1448,13 +1219,17 @@ export default function HeaderSection({
               <label htmlFor="buttonWidth" className="text-sm font-medium block mb-2">
                 Custom Width (optional)
               </label>
-              <input
-                type="text"
-                id="buttonWidth"
+              <StableInput
                 value={buttonWidth}
-                onChange={handleButtonWidthChange}
+                onChange={(newValue: string) => {
+                  setButtonWidth(newValue);
+                  handleUpdateField('buttonWidth', newValue);
+                }}
                 placeholder="auto, 120px, 100%"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonWidth"
+                data-component-type="Header"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Leave empty for auto width
@@ -1465,156 +1240,181 @@ export default function HeaderSection({
               <label htmlFor="buttonHeight" className="text-sm font-medium block mb-2">
                 Custom Height (optional)
               </label>
-              <input
-                type="text"
-                id="buttonHeight"
+              <StableInput
                 value={buttonHeight}
-                onChange={handleButtonHeightChange}
+                onChange={(newValue: string) => {
+                  setButtonHeight(newValue);
+                  handleUpdateField('buttonHeight', newValue);
+                }}
                 placeholder="auto, 40px, 3rem"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonHeight"
+                data-component-type="Header"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Leave empty for auto height
               </p>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const MenuIconSelector = () => (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Menu Icon</label>
+      <div className="flex flex-col sm:flex-row items-start gap-2">
+        <IconSelector 
+          selectedIcon={menuIcon} 
+          onSelectIcon={setMenuIcon} 
+          className="w-full" 
+        />
+        <div className="text-xs text-gray-500 mt-1">
+          This icon will be used for the mobile menu button
+        </div>
+      </div>
+    </div>
+  );
+
+  const ButtonConfiguration = () => (
+    <div className="space-y-4">
+      <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+        Header Button Configuration
+      </h4>
+      
+      {/* Enable Button */}
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="showButton"
+          checked={showButton}
+          onChange={handleShowButtonChange}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="showButton" className="text-sm font-medium">
+          Show Button in Header
+        </label>
+      </div>
+      
+      {showButton && (
+        <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+          {/* Button Text */}
+          <div>
+            <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
+              Button Text
+            </label>
+            <StableInput
+              value={buttonText}
+              onChange={(newValue: string) => {
+                setButtonText(newValue);
+                handleUpdateField('buttonText', newValue);
+              }}
+              placeholder="Get Started"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              debounceTime={300}
+              data-field-id="buttonText"
+              data-component-type="Header"
+            />
+          </div>
           
-          {/* Dropdown Configuration */}
-          <div className="space-y-3 border-t border-gray-200 pt-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="buttonDropdown"
-                checked={buttonDropdown}
-                onChange={handleButtonDropdownChange}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="buttonDropdown" className="text-sm font-medium">
-                Enable Dropdown Menu
-              </label>
-            </div>
-            
-            {buttonDropdown && (
-              <div className="space-y-3 pl-4 border-l-2 border-green-200">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium">Dropdown Items</label>
-                  <button
-                    onClick={() => {
-                      const newItem = {
-                        id: `dropdown-${Date.now()}`,
-                        label: '',
-                        url: ''
-                      };
-                      handleButtonDropdownItemsChange([...buttonDropdownItems, newItem]);
+          {/* URL Type Selection */}
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              Button URL/Action
+            </label>
+            <div className="space-y-3">
+              {/* URL Type Radio Buttons */}
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="buttonUrlType"
+                    value="custom"
+                    checked={buttonUrlType === 'custom'}
+                    onChange={() => {
+                      setButtonUrlType('custom');
+                      handleUpdateField('buttonUrlType', 'custom');
                     }}
-                    className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-                  >
-                    + Add Item
-                  </button>
-                </div>
-                
-                {buttonDropdownItems.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">No dropdown items yet. Click &quot;Add Item&quot; to create one.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {buttonDropdownItems.map((item, index) => (
-                      <div key={item.id} className="flex gap-2 items-center p-3 bg-gray-50 rounded-md">
-                        <div className="flex-1 space-y-2">
-                          <input
-                            type="text"
-                            value={item.label}
-                            onChange={(e) => {
-                              const newItems = [...buttonDropdownItems];
-                              newItems[index] = { ...item, label: e.target.value };
-                              handleButtonDropdownItemsChange(newItems);
-                            }}
-                            placeholder="Menu item label"
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                          
-                          {/* Link Type Selection */}
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-4">
-                              <label className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`linkType-${item.id}`}
-                                  checked={!item.url.startsWith('page:')}
-                                  onChange={() => {
-                                    const newItems = [...buttonDropdownItems];
-                                    newItems[index] = { ...item, url: '' };
-                                    handleButtonDropdownItemsChange(newItems);
-                                  }}
-                                  className="text-blue-600"
-                                />
-                                <span className="text-xs">Custom URL</span>
-                              </label>
-                              <label className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`linkType-${item.id}`}
-                                  checked={item.url.startsWith('page:')}
-                                  onChange={() => {
-                                    const newItems = [...buttonDropdownItems];
-                                    newItems[index] = { ...item, url: 'page:' };
-                                    handleButtonDropdownItemsChange(newItems);
-                                  }}
-                                  className="text-blue-600"
-                                />
-                                <span className="text-xs">Existing Page</span>
-                              </label>
-                            </div>
-                            
-                            {/* URL Input or Page Selection */}
-                            {item.url.startsWith('page:') ? (
-                              <select
-                                value={item.url.replace('page:', '')}
-                                onChange={(e) => {
-                                  const newItems = [...buttonDropdownItems];
-                                  newItems[index] = { ...item, url: `page:${e.target.value}` };
-                                  handleButtonDropdownItemsChange(newItems);
-                                }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                disabled={loadingPages}
-                              >
-                                <option value="">Select a page...</option>
-                                {availablePages.map(page => (
-                                  <option key={page.id} value={page.slug}>
-                                    {page.title} ({page.slug})
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                value={item.url}
-                                onChange={(e) => {
-                                  const newItems = [...buttonDropdownItems];
-                                  newItems[index] = { ...item, url: e.target.value };
-                                  handleButtonDropdownItemsChange(newItems);
-                                }}
-                                placeholder="/page-url or https://external.com"
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const newItems = buttonDropdownItems.filter((_, i) => i !== index);
-                            handleButtonDropdownItemsChange(newItems);
-                          }}
-                          className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors flex-shrink-0"
-                          title="Remove item"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">Custom URL</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="buttonUrlType"
+                    value="page"
+                    checked={buttonUrlType === 'page'}
+                    onChange={() => {
+                      setButtonUrlType('page');
+                      handleUpdateField('buttonUrlType', 'page');
+                    }}
+                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">Existing Page</span>
+                </label>
               </div>
-            )}
+              
+              {/* Custom URL Input */}
+              {buttonUrlType === 'custom' && (
+                <div>
+                  <StableInput
+                    value={buttonAction}
+                    onChange={(newValue: string) => {
+                      setButtonAction(newValue);
+                      handleUpdateField('buttonAction', newValue);
+                    }}
+                    placeholder="/contact"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    debounceTime={300}
+                    data-field-id="buttonAction"
+                    data-component-type="Header"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use relative URLs (/contact) or absolute URLs (https://example.com)
+                  </p>
+                </div>
+              )}
+              
+              {/* Existing Page Selection */}
+              {buttonUrlType === 'page' && (
+                <div>
+                  <select
+                    value={selectedPageId}
+                    onChange={(e) => {
+                      const pageId = e.target.value;
+                      setSelectedPageId(pageId);
+                      
+                      // Find the selected page and set the button action to its slug
+                      const selectedPage = availablePages.find(page => page.id === pageId);
+                      if (selectedPage) {
+                        const pageUrl = `/${selectedPage.slug}`;
+                        setButtonAction(pageUrl);
+                        handleUpdateField('buttonAction', pageUrl);
+                        handleUpdateField('selectedPageId', pageId);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={loadingPages}
+                  >
+                    <option value="">Select a page...</option>
+                    {availablePages.map(page => (
+                      <option key={page.id} value={page.id}>
+                        {page.title} (/{page.slug})
+                      </option>
+                    ))}
+                  </select>
+                  {loadingPages && (
+                    <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
+                  )}
+                  {!loadingPages && availablePages.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No pages available</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Button Preview */}
@@ -1918,20 +1718,6 @@ export default function HeaderSection({
     handleUpdateField('showButton', newValue);
   }, [handleUpdateField]);
 
-  const handleButtonTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setButtonText(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonText', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonActionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setButtonAction(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonAction', newValue);
-  }, [handleUpdateField]);
-
   const handleButtonColorChange = useCallback((color: string) => {
     setButtonColor(color);
     ////setHasUnsavedChanges(true);
@@ -1951,13 +1737,6 @@ export default function HeaderSection({
     handleUpdateField('buttonSize', newValue);
   }, [handleUpdateField]);
 
-  const handleButtonBorderRadiusChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value) || 0;
-    setButtonBorderRadius(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonBorderRadius', newValue);
-  }, [handleUpdateField]);
-
   const handleButtonShadowChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'none' | 'sm' | 'md' | 'lg' | 'xl';
     setButtonShadow(newValue);
@@ -1970,65 +1749,6 @@ export default function HeaderSection({
     ////setHasUnsavedChanges(true);
     handleUpdateField('buttonBorderColor', color);
   }, [handleUpdateField]);
-
-  const handleButtonBorderWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value) || 0;
-    setButtonBorderWidth(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonBorderWidth', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setButtonWidth(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonWidth', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonHeightChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setButtonHeight(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonHeight', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newValue = e.target.value as 'left' | 'center' | 'right';
-    setButtonPosition(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonPosition', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonDropdownChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    setButtonDropdown(newValue);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonDropdown', newValue);
-  }, [handleUpdateField]);
-
-  const handleButtonDropdownItemsChange = useCallback((items: Array<{id: string; label: string; url: string}>) => {
-    setButtonDropdownItems(items);
-    ////setHasUnsavedChanges(true);
-    handleUpdateField('buttonDropdownItems', items);
-  }, [handleUpdateField]);
-
-  // Initialize buttonUrlType and selectedPageId based on current buttonAction and available pages
-  useEffect(() => {
-    if (availablePages.length > 0 && buttonAction) {
-      // Check if buttonAction matches any existing page slug
-      const matchingPage = availablePages.find(page => 
-        buttonAction === `/${page.slug}` || buttonAction === page.slug
-      );
-      
-      if (matchingPage) {
-        setButtonUrlType('page');
-        setSelectedPageId(matchingPage.id);
-      } else {
-        setButtonUrlType('custom');
-        setSelectedPageId('');
-      }
-    }
-  }, [availablePages, buttonAction]);
 
   return (
     <>
