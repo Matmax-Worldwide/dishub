@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ChevronDownIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
 import { cmsOperations } from '@/lib/graphql-client';
 import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
@@ -176,11 +176,9 @@ export default function HeaderSection({
   const [buttonDropdownItems, setButtonDropdownItems] = useState<Array<{id: string; label: string; url: string}>>(initialButtonDropdownItems);
   const [isButtonDropdownOpen, setIsButtonDropdownOpen] = useState(false);
   
-  // Optimistic UI states
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [saveMessage, setSaveMessage] = useState('');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // New states for page selection
+  const [availablePages, setAvailablePages] = useState<Array<{id: string; title: string; slug: string}>>([]);
+  const [loadingPages, setLoadingPages] = useState(false);
   
   const params = useParams();
   const router = useRouter();
@@ -195,10 +193,11 @@ export default function HeaderSection({
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Auto-save timeout
-  const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  // Auto-save timeout - Removed: Only save on page save
+  // const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Function to save header style to the database with optimistic UI
+    // Function to save header style to the database with optimistic UI - Removed: Only save on page save
+    /*
     const saveHeaderStyle = useCallback(async () => {
       if (!localMenuId) {
         setSaveStatus('error');
@@ -271,6 +270,7 @@ export default function HeaderSection({
     }, [localMenuId, transparency, headerSize, menuAlignment, menuButtonStyle, 
         mobileMenuStyle, mobileMenuPosition, transparentHeader, borderBottom, fixedHeader, advancedOptions,
         setSaveStatus, setSaveMessage, setIsSaving, setHasUnsavedChanges]);
+    */
   
   
   // Check if we're in edit mode on mount and URL changes
@@ -317,43 +317,58 @@ export default function HeaderSection({
               console.log(`Found menu with ID ${localMenuId} with header style:`, menuWithStyle);
               setSelectedMenu(menuWithStyle as Menu);
               
-              // If header style exists, set all the style properties
+              // Load header style if available
               if (menuWithStyle.headerStyle) {
                 const style = menuWithStyle.headerStyle;
-                
-                // Set all the style properties
                 setTransparency(style.transparency || 0);
-                setHeaderSize(style.headerSize as HeaderSize || 'md');
-                setMenuAlignment(style.menuAlignment as MenuAlignment || 'right');
-                setMenuButtonStyle(style.menuButtonStyle as MenuButtonStyle || 'default');
-                setMobileMenuStyle(style.mobileMenuStyle as MobileMenuStyle || 'dropdown');
-                setMobileMenuPosition(style.mobileMenuPosition as MobileMenuPosition || 'right');
+                setHeaderSize((style.headerSize as HeaderSize) || 'md');
+                setMenuAlignment((style.menuAlignment as MenuAlignment) || 'right');
+                setMenuButtonStyle((style.menuButtonStyle as MenuButtonStyle) || 'default');
+                setMobileMenuStyle((style.mobileMenuStyle as MobileMenuStyle) || 'dropdown');
+                setMobileMenuPosition((style.mobileMenuPosition as MobileMenuPosition) || 'right');
                 setTransparentHeader(style.transparentHeader || false);
                 setBorderBottom(style.borderBottom || false);
                 setFixedHeader(style.fixedHeader || false);
-                
-                // Set advanced options if they exist
-                if (style.advancedOptions) {
-                  setAdvancedOptions(style.advancedOptions as HeaderAdvancedOptions);
-                }
+                setAdvancedOptions((style.advancedOptions as HeaderAdvancedOptions) || {});
               }
             } else {
-              console.log(`Menu with ID ${localMenuId} not found or has no header style`);
+              // Fallback to find menu by ID in the list
+              const foundMenu = menusData.find((menu) => menu.id === localMenuId);
+              if (foundMenu) {
+                setSelectedMenu(foundMenu as Menu);
+              }
             }
           }
         }
       } catch (error) {
-        console.error('Error loading menus:', error);
+        console.error('Error fetching menus:', error);
       } finally {
         setLoadingMenus(false);
       }
     };
-    
-    // Always fetch menus whether in editing mode or view mode
-    fetchMenus();
-    
-    // Media fetching is now handled by the MediaLibrary component
-    
+
+    const fetchPages = async () => {
+      setLoadingPages(true);
+      try {
+        const pagesData = await cmsOperations.getAllPages();
+        if (Array.isArray(pagesData)) {
+          setAvailablePages(pagesData.map(page => ({
+            id: page.id,
+            title: page.title,
+            slug: page.slug
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching pages:', error);
+      } finally {
+        setLoadingPages(false);
+      }
+    };
+
+    if (isEditing) {
+      fetchMenus();
+      fetchPages();
+    }
   }, [isEditing, localMenuId]);
   
   // Update local state when props change but only if not currently editing
@@ -388,7 +403,8 @@ export default function HeaderSection({
     }
   }, [isEditing]);
   
-  // Auto-save functionality
+  // Auto-save functionality - Removed: Only save on page save
+  /*
   useEffect(() => {
     if (hasUnsavedChanges && localMenuId) {
       // Clear existing timeout
@@ -408,13 +424,13 @@ export default function HeaderSection({
       }
     };
   }, [hasUnsavedChanges, localMenuId, saveHeaderStyle]);
+  */
   
   // Optimize update handler with debouncing
   const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
     if (onUpdate) {
       // Mark that we're in editing mode
       isEditingRef.current = true;
-      setHasUnsavedChanges(true);
       
       // Clear any pending debounce
       if (debounceRef.current) {
@@ -501,15 +517,18 @@ export default function HeaderSection({
     onUpdate
   ]);
   
-  // Clean up on unmount
+  // Clean up on unmount - Updated: Only cleanup debounce since auto-save is removed
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      // Auto-save cleanup removed since auto-save functionality is disabled
+      /*
       if (autoSaveRef.current) {
         clearTimeout(autoSaveRef.current);
       }
+      */
     };
   }, []);
   
@@ -527,7 +546,7 @@ export default function HeaderSection({
   const handleMenuChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const menuId = e.target.value;
     setLocalMenuId(menuId);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     
     // Find selected menu
     const selectedMenu = menus.find(m => m.id === menuId);
@@ -556,19 +575,19 @@ export default function HeaderSection({
 
   const handleBackgroundColorChange = useCallback((color: string) => {
     setBackgroundColor(color);
-    setHasUnsavedChanges(true);
+    // Removed: setHasUnsavedChanges(true) since save functionality is disabled
     handleUpdateField('backgroundColor', color);
   }, [handleUpdateField]);
 
   const handleTextColorChange = useCallback((color: string) => {
     setTextColor(color);
-    setHasUnsavedChanges(true);
+    // Removed: setHasUnsavedChanges(true) since save functionality is disabled
     handleUpdateField('textColor', color);
   }, [handleUpdateField]);
   
   const handleLogoUrlChange = useCallback((newValue: string) => {
     setLogoUrl(newValue);
-    setHasUnsavedChanges(true);
+    // Removed: setHasUnsavedChanges(true) since save functionality is disabled
     handleUpdateField('logoUrl', newValue);
     setShowMediaSelector(false);
   }, [handleUpdateField]);
@@ -683,63 +702,63 @@ export default function HeaderSection({
   const handleTransparentHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setTransparentHeader(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('transparentHeader', newValue);
   }, [handleUpdateField]);
 
   const handleBorderBottomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setBorderBottom(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('borderBottom', newValue);
   }, [handleUpdateField]);
 
   const handleFixedHeaderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setFixedHeader(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('fixedHeader', newValue);
   }, [handleUpdateField]);
 
   const handleMenuAlignmentChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'center' | 'right';
     setMenuAlignment(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('menuAlignment', newValue);
   }, [handleUpdateField]);
 
   const handleMenuButtonStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'default' | 'filled' | 'outline';
     setMenuButtonStyle(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('menuButtonStyle', newValue);
   }, [handleUpdateField]);
 
   const handleMobileMenuStyleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'fullscreen' | 'dropdown' | 'sidebar';
     setMobileMenuStyle(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('mobileMenuStyle', newValue);
   }, [handleUpdateField]);
 
   const handleMobileMenuPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'right';
     setMobileMenuPosition(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('mobileMenuPosition', newValue);
   }, [handleUpdateField]);
 
   // Add handlers for transparency and headerSize
   const handleTransparencyChange = useCallback((transparency: number) => {
     setTransparency(transparency);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('transparency', transparency.toString());
   }, [handleUpdateField]);
   
   const handleHeaderSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as HeaderSize;
     setHeaderSize(newValue);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     handleUpdateField('headerSize', newValue);
   }, [handleUpdateField]);
   
@@ -750,7 +769,7 @@ export default function HeaderSection({
       [key]: value
     };
     setAdvancedOptions(updatedOptions);
-    setHasUnsavedChanges(true);
+    //setHasUnsavedChanges(true);
     // Pass the object directly instead of stringifying it
     handleUpdateField('advancedOptions', updatedOptions);
   }, [advancedOptions, handleUpdateField]);
@@ -854,30 +873,6 @@ export default function HeaderSection({
   // Improved StyleOptions component with better organization
   const StyleOptions = () => (
     <div className="space-y-6">
-      {/* Save Status Banner */}
-      {(saveStatus !== 'idle' || hasUnsavedChanges) && (
-        <div className={`p-3 rounded-md border ${
-          saveStatus === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-          saveStatus === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-          saveStatus === 'saving' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-          'bg-yellow-50 border-yellow-200 text-yellow-800'
-        }`}>
-          <div className="flex items-center space-x-2">
-            {saveStatus === 'success' && <CheckIcon className="h-4 w-4" />}
-            {saveStatus === 'error' && <ExclamationTriangleIcon className="h-4 w-4" />}
-            {saveStatus === 'saving' && (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-            )}
-            {hasUnsavedChanges && saveStatus === 'idle' && (
-              <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-            )}
-            <span className="text-sm font-medium">
-              {saveMessage || (hasUnsavedChanges ? 'You have unsaved changes' : '')}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Layout & Behavior Section */}
       <div className="space-y-4">
         <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
@@ -1060,7 +1055,7 @@ export default function HeaderSection({
         </div>
       </div>
       
-      {/* Save Button */}
+      {/* Save Button - Removed: Only save on page save
       <div className="flex justify-between items-center pt-4 border-t border-gray-200">
         <div className="text-xs text-gray-500">
           {hasUnsavedChanges ? 'Auto-save in 3 seconds' : 'All changes saved'}
@@ -1091,6 +1086,7 @@ export default function HeaderSection({
           )}
         </button>
       </div>
+      */}
     </div>
   );
 
@@ -1160,6 +1156,62 @@ export default function HeaderSection({
                 placeholder="/contact"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Use relative URLs (/contact) or absolute URLs (https://example.com)
+              </p>
+            </div>
+          </div>
+          
+          {/* Button Position and Size */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="buttonPosition" className="text-sm font-medium block mb-2">
+                Button Position
+              </label>
+              <select
+                id="buttonPosition"
+                value={buttonPosition}
+                onChange={handleButtonPositionChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="buttonSize" className="text-sm font-medium block mb-2">
+                Button Size
+              </label>
+              <select
+                id="buttonSize"
+                value={buttonSize}
+                onChange={handleButtonSizeChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="buttonShadow" className="text-sm font-medium block mb-2">
+                Shadow
+              </label>
+              <select
+                id="buttonShadow"
+                value={buttonShadow}
+                onChange={handleButtonShadowChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra Large</option>
+              </select>
             </div>
           </div>
           
@@ -1182,43 +1234,8 @@ export default function HeaderSection({
             </div>
           </div>
           
-          {/* Button Size and Position */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="buttonSize" className="text-sm font-medium block mb-2">
-                Button Size
-              </label>
-              <select
-                id="buttonSize"
-                value={buttonSize}
-                onChange={handleButtonSizeChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="sm">Small</option>
-                <option value="md">Medium</option>
-                <option value="lg">Large</option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="buttonPosition" className="text-sm font-medium block mb-2">
-                Button Position
-              </label>
-              <select
-                id="buttonPosition"
-                value={buttonPosition}
-                onChange={handleButtonPositionChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
-            </div>
-          </div>
-          
           {/* Button Styling */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="buttonBorderRadius" className="text-sm font-medium block mb-2">
                 Border Radius (px)
@@ -1232,24 +1249,6 @@ export default function HeaderSection({
                 max="50"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            
-            <div>
-              <label htmlFor="buttonShadow" className="text-sm font-medium block mb-2">
-                Shadow
-              </label>
-              <select
-                id="buttonShadow"
-                value={buttonShadow}
-                onChange={handleButtonShadowChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="none">None</option>
-                <option value="sm">Small</option>
-                <option value="md">Medium</option>
-                <option value="lg">Large</option>
-                <option value="xl">Extra Large</option>
-              </select>
             </div>
             
             <div>
@@ -1293,6 +1292,9 @@ export default function HeaderSection({
                 placeholder="auto, 120px, 100%"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty for auto width
+              </p>
             </div>
             
             <div>
@@ -1307,11 +1309,14 @@ export default function HeaderSection({
                 placeholder="auto, 40px, 3rem"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty for auto height
+              </p>
             </div>
           </div>
           
           {/* Dropdown Configuration */}
-          <div className="space-y-3">
+          <div className="space-y-3 border-t border-gray-200 pt-4">
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -1326,58 +1331,134 @@ export default function HeaderSection({
             </div>
             
             {buttonDropdown && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dropdown Items</label>
-                {buttonDropdownItems.map((item, index) => (
-                  <div key={item.id} className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={item.label}
-                      onChange={(e) => {
-                        const newItems = [...buttonDropdownItems];
-                        newItems[index] = { ...item, label: e.target.value };
-                        handleButtonDropdownItemsChange(newItems);
-                      }}
-                      placeholder="Label"
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={item.url}
-                      onChange={(e) => {
-                        const newItems = [...buttonDropdownItems];
-                        newItems[index] = { ...item, url: e.target.value };
-                        handleButtonDropdownItemsChange(newItems);
-                      }}
-                      placeholder="URL"
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                    />
-                    <button
-                      onClick={() => {
-                        const newItems = buttonDropdownItems.filter((_, i) => i !== index);
-                        handleButtonDropdownItemsChange(newItems);
-                      }}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-                    >
-                      ×
-                    </button>
+              <div className="space-y-3 pl-4 border-l-2 border-green-200">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium">Dropdown Items</label>
+                  <button
+                    onClick={() => {
+                      const newItem = {
+                        id: `dropdown-${Date.now()}`,
+                        label: '',
+                        url: ''
+                      };
+                      handleButtonDropdownItemsChange([...buttonDropdownItems, newItem]);
+                    }}
+                    className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                  >
+                    + Add Item
+                  </button>
+                </div>
+                
+                {buttonDropdownItems.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No dropdown items yet. Click &quot;Add Item&quot; to create one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {buttonDropdownItems.map((item, index) => (
+                      <div key={item.id} className="flex gap-2 items-center p-3 bg-gray-50 rounded-md">
+                        <div className="flex-1 space-y-2">
+                          <input
+                            type="text"
+                            value={item.label}
+                            onChange={(e) => {
+                              const newItems = [...buttonDropdownItems];
+                              newItems[index] = { ...item, label: e.target.value };
+                              handleButtonDropdownItemsChange(newItems);
+                            }}
+                            placeholder="Menu item label"
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          
+                          {/* Link Type Selection */}
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`linkType-${item.id}`}
+                                  checked={!item.url.startsWith('page:')}
+                                  onChange={() => {
+                                    const newItems = [...buttonDropdownItems];
+                                    newItems[index] = { ...item, url: '' };
+                                    handleButtonDropdownItemsChange(newItems);
+                                  }}
+                                  className="text-blue-600"
+                                />
+                                <span className="text-xs">Custom URL</span>
+                              </label>
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`linkType-${item.id}`}
+                                  checked={item.url.startsWith('page:')}
+                                  onChange={() => {
+                                    const newItems = [...buttonDropdownItems];
+                                    newItems[index] = { ...item, url: 'page:' };
+                                    handleButtonDropdownItemsChange(newItems);
+                                  }}
+                                  className="text-blue-600"
+                                />
+                                <span className="text-xs">Existing Page</span>
+                              </label>
+                            </div>
+                            
+                            {/* URL Input or Page Selection */}
+                            {item.url.startsWith('page:') ? (
+                              <select
+                                value={item.url.replace('page:', '')}
+                                onChange={(e) => {
+                                  const newItems = [...buttonDropdownItems];
+                                  newItems[index] = { ...item, url: `page:${e.target.value}` };
+                                  handleButtonDropdownItemsChange(newItems);
+                                }}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                disabled={loadingPages}
+                              >
+                                <option value="">Select a page...</option>
+                                {availablePages.map(page => (
+                                  <option key={page.id} value={page.slug}>
+                                    {page.title} ({page.slug})
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={item.url}
+                                onChange={(e) => {
+                                  const newItems = [...buttonDropdownItems];
+                                  newItems[index] = { ...item, url: e.target.value };
+                                  handleButtonDropdownItemsChange(newItems);
+                                }}
+                                placeholder="/page-url or https://external.com"
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newItems = buttonDropdownItems.filter((_, i) => i !== index);
+                            handleButtonDropdownItemsChange(newItems);
+                          }}
+                          className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors flex-shrink-0"
+                          title="Remove item"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <button
-                  onClick={() => {
-                    const newItem = {
-                      id: `item-${Date.now()}`,
-                      label: '',
-                      url: ''
-                    };
-                    handleButtonDropdownItemsChange([...buttonDropdownItems, newItem]);
-                  }}
-                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                >
-                  Add Item
-                </button>
+                )}
               </div>
             )}
+          </div>
+          
+          {/* Button Preview */}
+          <div className="border-t border-gray-200 pt-4">
+            <label className="text-sm font-medium block mb-2">Button Preview</label>
+            <div className="p-4 bg-gray-50 rounded-md flex justify-center">
+              {renderHeaderButton()}
+            </div>
           </div>
         </div>
       )}
@@ -1634,22 +1715,31 @@ export default function HeaderSection({
         {/* Button Dropdown */}
         {buttonDropdown && buttonDropdownItems.length > 0 && isButtonDropdownOpen && (
           <div className="absolute top-full right-0 mt-2 py-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-            {buttonDropdownItems.map((item) => (
-              <a
-                key={item.id}
-                href={item.url}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
-                onClick={(e) => {
-                  if (item.url.startsWith('/')) {
-                    e.preventDefault();
-                    router.push(item.url);
-                  }
-                  setIsButtonDropdownOpen(false);
-                }}
-              >
-                {item.label}
-              </a>
-            ))}
+            {buttonDropdownItems.map((item) => {
+              // Determine the final URL
+              let finalUrl = item.url;
+              if (item.url.startsWith('page:')) {
+                const pageSlug = item.url.replace('page:', '');
+                finalUrl = pageSlug ? `/${locale}/${pageSlug}` : '#';
+              }
+              
+              return (
+                <a
+                  key={item.id}
+                  href={finalUrl}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                  onClick={(e) => {
+                    if (finalUrl.startsWith('/')) {
+                      e.preventDefault();
+                      router.push(finalUrl);
+                    }
+                    setIsButtonDropdownOpen(false);
+                  }}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1660,101 +1750,101 @@ export default function HeaderSection({
   const handleShowButtonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setShowButton(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('showButton', newValue);
   }, [handleUpdateField]);
 
   const handleButtonTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setButtonText(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonText', newValue);
   }, [handleUpdateField]);
 
   const handleButtonActionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setButtonAction(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonAction', newValue);
   }, [handleUpdateField]);
 
   const handleButtonColorChange = useCallback((color: string) => {
     setButtonColor(color);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonColor', color);
   }, [handleUpdateField]);
 
   const handleButtonTextColorChange = useCallback((color: string) => {
     setButtonTextColor(color);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonTextColor', color);
   }, [handleUpdateField]);
 
   const handleButtonSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'sm' | 'md' | 'lg';
     setButtonSize(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonSize', newValue);
   }, [handleUpdateField]);
 
   const handleButtonBorderRadiusChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseInt(e.target.value) || 0;
     setButtonBorderRadius(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonBorderRadius', newValue);
   }, [handleUpdateField]);
 
   const handleButtonShadowChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'none' | 'sm' | 'md' | 'lg' | 'xl';
     setButtonShadow(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonShadow', newValue);
   }, [handleUpdateField]);
 
   const handleButtonBorderColorChange = useCallback((color: string) => {
     setButtonBorderColor(color);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonBorderColor', color);
   }, [handleUpdateField]);
 
   const handleButtonBorderWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseInt(e.target.value) || 0;
     setButtonBorderWidth(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonBorderWidth', newValue);
   }, [handleUpdateField]);
 
   const handleButtonWidthChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setButtonWidth(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonWidth', newValue);
   }, [handleUpdateField]);
 
   const handleButtonHeightChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setButtonHeight(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonHeight', newValue);
   }, [handleUpdateField]);
 
   const handleButtonPositionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'left' | 'center' | 'right';
     setButtonPosition(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonPosition', newValue);
   }, [handleUpdateField]);
 
   const handleButtonDropdownChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setButtonDropdown(newValue);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonDropdown', newValue);
   }, [handleUpdateField]);
 
   const handleButtonDropdownItemsChange = useCallback((items: Array<{id: string; label: string; url: string}>) => {
     setButtonDropdownItems(items);
-    setHasUnsavedChanges(true);
+    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonDropdownItems', items);
   }, [handleUpdateField]);
 
@@ -1795,12 +1885,12 @@ export default function HeaderSection({
             <LogoSelector />
             <MenuSelector />
             <MenuIconSelector />
+            <ButtonConfiguration />
           </TabsContent>
 
           {/* STYLES TAB */}
           <TabsContent value="styles" className="space-y-4">
             <StyleOptions />
-            <ButtonConfiguration />
             <AdvancedOptions />
           </TabsContent>
 
@@ -1908,7 +1998,7 @@ export default function HeaderSection({
                   )}
                 </ul>
                 
-                {/* Header Button - positioned based on buttonPosition */}
+                {/* Header Button - positioned in center */}
                 {showButton && buttonPosition === 'center' && (
                   <div className="mx-4">
                     {renderHeaderButton()}
@@ -1918,40 +2008,40 @@ export default function HeaderSection({
 
               {/* Right side - Button and Mobile menu */}
               <div className="flex items-center space-x-4">
-                {/* Header Button - positioned on the right or left */}
+                {/* Header Button - positioned on the right */}
                 {showButton && buttonPosition === 'right' && renderHeaderButton()}
 
-              {/* Mobile menu button */}
-              <div className="md:hidden flex items-center">
-                <button
-                  onClick={() => {
-                    // Toggle all top-level menus
-                    const newState: { [key: string]: boolean } = {};
-                    if (selectedMenu && selectedMenu.items) {
-                      selectedMenu.items.forEach(item => {
-                        newState[item.id] = false; // Close all dropdowns first
-                      });
-                    }
-                    // Then toggle overall menu visibility with a special key
-                    setIsDropdownOpen(prev => ({
-                      ...newState,
-                      mobileMenu: !prev.mobileMenu
-                    }));
-                  }}
-                  className={`p-2 rounded-md focus:outline-none ${
-                    menuButtonStyle === 'filled' ? 'bg-primary text-white' :
-                    menuButtonStyle === 'outline' ? 'border border-current' : ''
-                  }`}
-                  style={{ color: textColor }}
-                >
-                  {isDropdownOpen.mobileMenu ? (
-                    <LucideIcons.X className="h-6 w-6" />
-                  ) : (
-                    renderMenuIcon()
-                  )}
-                </button>
+                {/* Mobile menu button */}
+                <div className="md:hidden flex items-center">
+                  <button
+                    onClick={() => {
+                      // Toggle all top-level menus
+                      const newState: { [key: string]: boolean } = {};
+                      if (selectedMenu && selectedMenu.items) {
+                        selectedMenu.items.forEach(item => {
+                          newState[item.id] = false; // Close all dropdowns first
+                        });
+                      }
+                      // Then toggle overall menu visibility with a special key
+                      setIsDropdownOpen(prev => ({
+                        ...newState,
+                        mobileMenu: !prev.mobileMenu
+                      }));
+                    }}
+                    className={`p-2 rounded-md focus:outline-none ${
+                      menuButtonStyle === 'filled' ? 'bg-primary text-white' :
+                      menuButtonStyle === 'outline' ? 'border border-current' : ''
+                    }`}
+                    style={{ color: textColor }}
+                  >
+                    {isDropdownOpen.mobileMenu ? (
+                      <LucideIcons.X className="h-6 w-6" />
+                    ) : (
+                      renderMenuIcon()
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
             </div>
             
             {/* Header Button - positioned on the left (below logo/title on mobile) */}

@@ -3230,7 +3230,7 @@ export const cmsOperations = {
               name
               description
               durationMinutes
-              price
+              amount
               isActive
             }
             locationAssignments {
@@ -3784,7 +3784,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     bufferTimeBeforeMinutes: number;
     bufferTimeAfterMinutes: number;
     preparationTimeMinutes: number;
@@ -3804,7 +3808,11 @@ export const cmsOperations = {
           name
           description
           durationMinutes
-          price
+          prices {
+            id
+            amount
+            currencyId
+          }
           bufferTimeBeforeMinutes
           bufferTimeAfterMinutes
           preparationTimeMinutes
@@ -3832,7 +3840,11 @@ export const cmsOperations = {
         name: string;
         description?: string;
         durationMinutes: number;
-        price: number;
+        prices: Array<{
+          id: string;
+          amount: number;
+          currencyId: string;
+        }>;
         bufferTimeBeforeMinutes: number;
         bufferTimeAfterMinutes: number;
         preparationTimeMinutes: number;
@@ -3875,7 +3887,11 @@ export const cmsOperations = {
     name: string;
     description?: string | null;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     bufferTimeBeforeMinutes?: number;
     bufferTimeAfterMinutes?: number;
     preparationTimeMinutes?: number;
@@ -3889,7 +3905,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -3902,7 +3922,11 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            price
+            prices {
+              id
+              amount
+              currencyId
+            }
             isActive
           }
         }
@@ -3918,7 +3942,11 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          price: number;
+          prices: Array<{
+            id: string;
+            amount: number;
+            currencyId: string;
+          }>;
           isActive: boolean;
         } | null;
       };
@@ -3937,7 +3965,11 @@ export const cmsOperations = {
       name?: string;
       description?: string | null;
       durationMinutes?: number;
-      price?: number;
+      prices?: Array<{
+        id: string;
+        amount: number;
+        currencyId: string;
+      }>;
       bufferTimeBeforeMinutes?: number;
       bufferTimeAfterMinutes?: number;
       preparationTimeMinutes?: number;
@@ -3952,7 +3984,11 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    price: number;
+    prices: Array<{
+      id: string;
+      amount: number;
+      currencyId: string;
+    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -3965,7 +4001,11 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            price
+            prices {
+              id
+              amount
+              currencyId
+            }
             isActive
           }
         }
@@ -3981,7 +4021,11 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          price: number;
+          prices: Array<{
+            id: string;
+            amount: number;
+            currencyId: string;
+          }>;
           isActive: boolean;
         } | null;
       };
@@ -4001,18 +4045,21 @@ export const cmsOperations = {
     const mutation = `
       mutation DeleteService($id: ID!) {
         deleteService(id: $id) {
-          id
-          name
+          success
+          message
         }
       }
     `;
 
     try {
-      await gqlRequest(mutation, { id });
-      return {
-        success: true,
-        message: 'Service deleted successfully'
-      };
+      const response = await gqlRequest<{
+        deleteService: {
+          success: boolean;
+          message: string;
+        };
+      }>(mutation, { id });
+      
+      return response.deleteService;
     } catch (error) {
       console.error('Error deleting service:', error);
       return {
@@ -7337,7 +7384,7 @@ const graphqlClient = {
               name
               description
               durationMinutes
-              price
+              amount
               isActive
             }
             locationAssignments {
