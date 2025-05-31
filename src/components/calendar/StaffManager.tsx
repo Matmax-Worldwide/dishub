@@ -61,6 +61,13 @@ export default function StaffManager() {
         graphqlClient.services(),   
         graphqlClient.locations(),  
       ]);
+      
+      console.log('StaffManager - Fetched data:');
+      console.log('- staffData:', staffData);
+      console.log('- usersData:', usersData);
+      console.log('- servicesData:', servicesData);
+      console.log('- locationsData:', locationsData);
+      
       setStaffMembers((staffData as unknown as StaffProfile[]) || []);
       setAllUsers(usersData || []);
       setAllServices(servicesData as Service[] || []);
@@ -83,6 +90,13 @@ export default function StaffManager() {
   const usersAvailableForStaffAssignment = allUsers.filter(
     user => user.id && !staffMembers.some(staff => staff.userId === user.id)
   );
+
+  // Debug logging
+  useEffect(() => {
+    console.log('StaffManager - allUsers:', allUsers);
+    console.log('StaffManager - staffMembers:', staffMembers);
+    console.log('StaffManager - usersAvailableForStaffAssignment:', usersAvailableForStaffAssignment);
+  }, [allUsers, staffMembers, usersAvailableForStaffAssignment]);
 
   const handleAddNew = () => {
     setEditingStaffMember(undefined);

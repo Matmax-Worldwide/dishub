@@ -22,7 +22,7 @@ const DocumentationPage = () => {
   useEffect(() => {
     const loadDocuments = async () => {
       try {
-        const docs = getClientDocuments();
+        const docs = await getClientDocuments();
         setDocuments(docs);
         setSelectedDoc(docs[0]?.id || null);
       } catch (error) {
@@ -81,76 +81,78 @@ const DocumentationPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
-              {/* Search */}
-              <div className="mb-6">
-                <div className="relative">
-                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar documentación..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-8 max-h-[calc(100vh-6rem)] overflow-y-auto">
+              <div className="p-6">
+                {/* Search */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar documentación..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Categories */}
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Categorías</h3>
-                <div className="space-y-1">
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        selectedCategory === category
-                          ? 'bg-blue-100 text-blue-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {category === 'all' ? 'Todas' : category}
-                    </button>
-                  ))}
+                {/* Categories */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Categorías</h3>
+                  <div className="space-y-1">
+                    {categories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          selectedCategory === category
+                            ? 'bg-blue-100 text-blue-700 font-medium'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {category === 'all' ? 'Todas' : category}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Document List */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Documentos</h3>
-                <div className="space-y-2">
-                  {filteredDocuments.map(doc => (
-                    <button
-                      key={doc.id}
-                      onClick={() => setSelectedDoc(doc.id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all ${
-                        selectedDoc === doc.id
-                          ? 'border-blue-200 bg-blue-50 shadow-sm'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <FileTextIcon className={`h-5 w-5 mt-0.5 ${
-                          selectedDoc === doc.id ? 'text-blue-600' : 'text-gray-400'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm font-medium truncate ${
-                            selectedDoc === doc.id ? 'text-blue-900' : 'text-gray-900'
-                          }`}>
-                            {doc.title}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                            {doc.description}
-                          </p>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <ClockIcon className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{doc.lastUpdated}</span>
+                {/* Document List */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Documentos</h3>
+                  <div className="space-y-2">
+                    {filteredDocuments.map(doc => (
+                      <button
+                        key={doc.id}
+                        onClick={() => setSelectedDoc(doc.id)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          selectedDoc === doc.id
+                            ? 'border-blue-200 bg-blue-50 shadow-sm'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <FileTextIcon className={`h-5 w-5 mt-0.5 ${
+                            selectedDoc === doc.id ? 'text-blue-600' : 'text-gray-400'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-sm font-medium truncate ${
+                              selectedDoc === doc.id ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                              {doc.title}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {doc.description}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <ClockIcon className="h-3 w-3 text-gray-400" />
+                              <span className="text-xs text-gray-500">{doc.lastUpdated}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1607,6 +1607,8 @@ function SectionManagerBase({
               buttonPosition={component.data.buttonPosition as 'left' | 'center' | 'right' || 'right'}
               buttonDropdown={component.data.buttonDropdown as boolean || false}
               buttonDropdownItems={component.data.buttonDropdownItems as Array<{id: string; label: string; url: string}> || []}
+              buttonUrlType={component.data.buttonUrlType as 'custom' | 'page' || 'custom'}
+              selectedPageId={component.data.selectedPageId as string || ''}
               isEditing={isEditing}
               onUpdate={isEditing ? (data) => handleUpdate(component, data) : undefined}
             />

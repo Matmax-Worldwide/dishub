@@ -358,7 +358,7 @@ const resolvers = {
       }
     },
     
-    // Get all users - admin only
+    // Get all users - admin and manager access
     users: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -373,7 +373,7 @@ const resolvers = {
           throw new Error('Invalid token');
         }
         
-        // Check if user is an admin by fetching the user and their role
+        // Check if user is an admin or manager by fetching the user and their role
         const currentUser = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: {
@@ -387,9 +387,9 @@ const resolvers = {
         
         const userRole = currentUser?.role?.name || 'USER';
         
-        // Only allow admins to access this endpoint
-        if (userRole !== 'ADMIN') {
-          throw new Error('Unauthorized: Admin access required');
+        // Allow both admins and managers to access this endpoint
+        if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
+          throw new Error('Unauthorized: Admin or Manager access required');
         }
         
         // Get all users with their roles

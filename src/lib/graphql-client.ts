@@ -2418,6 +2418,20 @@ export const cmsOperations = {
               target
               icon
               order
+              children {
+                id
+                title
+                url
+                pageId
+                target
+                icon
+                order
+              }
+              page {
+                id
+                title
+                slug
+              }
             }
             headerStyle {
               id
@@ -2450,6 +2464,20 @@ export const cmsOperations = {
             target: string | null;
             icon: string | null;
             order: number;
+            children?: Array<{
+              id: string;
+              title: string;
+              url: string | null;
+              pageId: string | null;
+              target: string | null;
+              icon: string | null;
+              order: number;
+            }>;
+            page?: {
+              id: string;
+              title: string;
+              slug: string;
+            };
           }>;
           headerStyle: {
             id: string;
@@ -3230,7 +3258,16 @@ export const cmsOperations = {
               name
               description
               durationMinutes
-              amount
+              prices {
+                id
+                amount
+                currencyId
+                currency {
+                  id
+                  code
+                  symbol
+                }
+              }
               isActive
             }
             locationAssignments {
@@ -7424,7 +7461,16 @@ const graphqlClient = {
               name
               description
               durationMinutes
-              amount
+              prices {
+                id
+                amount
+                currencyId
+                currency {
+                  id
+                  code
+                  symbol
+                }
+              }
               isActive
             }
             locationAssignments {

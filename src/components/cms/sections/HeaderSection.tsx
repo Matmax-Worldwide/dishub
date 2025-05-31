@@ -182,6 +182,48 @@ export default function HeaderSection({
   const [buttonDropdownItems] = useState<Array<{id: string; label: string; url: string}>>(initialButtonDropdownItems);
   const [isButtonDropdownOpen, setIsButtonDropdownOpen] = useState(false);
   
+  // Debounced button preview states to prevent focus loss
+  const [debouncedButtonText, setDebouncedButtonText] = useState(initialButtonText);
+  const [debouncedButtonColor, setDebouncedButtonColor] = useState(initialButtonColor);
+  const [debouncedButtonTextColor, setDebouncedButtonTextColor] = useState(initialButtonTextColor);
+  const [debouncedButtonSize, setDebouncedButtonSize] = useState<'sm' | 'md' | 'lg'>(initialButtonSize);
+  const [debouncedButtonBorderRadius, setDebouncedButtonBorderRadius] = useState(initialButtonBorderRadius);
+  const [debouncedButtonShadow, setDebouncedButtonShadow] = useState<'none' | 'sm' | 'md' | 'lg' | 'xl'>(initialButtonShadow);
+  const [debouncedButtonBorderColor, setDebouncedButtonBorderColor] = useState(initialButtonBorderColor);
+  const [debouncedButtonBorderWidth, setDebouncedButtonBorderWidth] = useState(initialButtonBorderWidth);
+  const [debouncedButtonWidth, setDebouncedButtonWidth] = useState(initialButtonWidth);
+  const [debouncedButtonHeight, setDebouncedButtonHeight] = useState(initialButtonHeight);
+  
+  // Debounce timeout for button preview
+  const buttonPreviewDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  // Debounce button preview updates to prevent focus loss
+  useEffect(() => {
+    if (buttonPreviewDebounceRef.current) {
+      clearTimeout(buttonPreviewDebounceRef.current);
+    }
+    
+    
+    buttonPreviewDebounceRef.current = setTimeout(() => {
+      setDebouncedButtonText(buttonText);
+      setDebouncedButtonColor(buttonColor);
+      setDebouncedButtonTextColor(buttonTextColor);
+      setDebouncedButtonSize(buttonSize);
+      setDebouncedButtonBorderRadius(buttonBorderRadius);
+      setDebouncedButtonShadow(buttonShadow);
+      setDebouncedButtonBorderColor(buttonBorderColor);
+      setDebouncedButtonBorderWidth(buttonBorderWidth);
+      setDebouncedButtonWidth(buttonWidth);
+      setDebouncedButtonHeight(buttonHeight);
+    }, 500); // 500ms delay for preview updates
+    
+    return () => {
+      if (buttonPreviewDebounceRef.current) {
+        clearTimeout(buttonPreviewDebounceRef.current);
+      }
+    };
+  }, [buttonText, buttonColor, buttonTextColor, buttonSize, buttonBorderRadius, 
+      buttonShadow, buttonBorderColor, buttonBorderWidth, buttonWidth, buttonHeight]);
+  
   // New states for page selection
   const [availablePages, setAvailablePages] = useState<Array<{id: string; title: string; slug: string}>>([]);
   const [loadingPages, setLoadingPages] = useState(false);
@@ -309,27 +351,35 @@ export default function HeaderSection({
     };
   }, []);
   
-  // Load available menus when in editing mode
+  // Load available menus when in editing mode OR when we have a menuId to load
   useEffect(() => {
     const fetchMenus = async () => {
       setLoadingMenus(true);
       try {
+        console.log('HeaderSection: Starting to fetch menus...');
         const menusData = await cmsOperations.getMenus();
+        console.log('HeaderSection: Received menus data:', menusData);
+        
         if (Array.isArray(menusData)) {
           setMenus(menusData as Menu[]);
+          console.log('HeaderSection: Set menus successfully, count:', menusData.length);
           
           // If we have a menuId, find and set the selected menu
           if (localMenuId) {
+            console.log('HeaderSection: Attempting to load menu with ID:', localMenuId);
+            
+            try {
             // Use the new function to get menu with header style
             const menuWithStyle = await cmsOperations.getMenuWithHeaderStyle(localMenuId);
             
             if (menuWithStyle) {
-              console.log(`Found menu with ID ${localMenuId} with header style:`, menuWithStyle);
+                console.log(`HeaderSection: Found menu with ID ${localMenuId} with header style:`, menuWithStyle);
               setSelectedMenu(menuWithStyle as Menu);
               
-              // Load header style if available
-              if (menuWithStyle.headerStyle) {
+                // Load header style if available and in editing mode
+                if (isEditing && menuWithStyle.headerStyle) {
                 const style = menuWithStyle.headerStyle;
+                  console.log('HeaderSection: Loading header style:', style);
                 setTransparency(style.transparency || 0);
                 setHeaderSize((style.headerSize as HeaderSize) || 'md');
                 setMenuAlignment((style.menuAlignment as MenuAlignment) || 'right');
@@ -342,18 +392,39 @@ export default function HeaderSection({
                 setAdvancedOptions((style.advancedOptions as HeaderAdvancedOptions) || {});
               }
             } else {
+                console.log('HeaderSection: Menu with header style not found, trying fallback...');
               // Fallback to find menu by ID in the list
               const foundMenu = menusData.find((menu) => menu.id === localMenuId);
               if (foundMenu) {
+                  console.log('HeaderSection: Found menu in fallback:', foundMenu);
+                setSelectedMenu(foundMenu as Menu);
+                } else {
+                  console.warn('HeaderSection: Menu not found in fallback either, menuId:', localMenuId);
+                }
+              }
+            } catch (menuError) {
+              console.error('HeaderSection: Error loading specific menu:', menuError);
+              // Try fallback even if specific menu loading fails
+              const foundMenu = menusData.find((menu) => menu.id === localMenuId);
+              if (foundMenu) {
+                console.log('HeaderSection: Using fallback menu after error:', foundMenu);
                 setSelectedMenu(foundMenu as Menu);
               }
             }
           }
+        } else {
+          console.warn('HeaderSection: Menus data is not an array:', menusData);
         }
       } catch (error) {
-        console.error('Error fetching menus:', error);
+        console.error('HeaderSection: Error fetching menus:', error);
+        // Provide more detailed error information
+        if (error instanceof Error) {
+          console.error('HeaderSection: Error message:', error.message);
+          console.error('HeaderSection: Error stack:', error.stack);
+        }
       } finally {
         setLoadingMenus(false);
+        console.log('HeaderSection: Finished loading menus');
       }
     };
 
@@ -375,8 +446,13 @@ export default function HeaderSection({
       }
     };
 
-    if (isEditing) {
+    // Always fetch menus if we have a menuId, or if we're in editing mode
+    if (localMenuId || isEditing) {
       fetchMenus();
+    }
+    
+    // Only fetch pages in editing mode
+    if (isEditing) {
       fetchPages();
     }
   }, [isEditing, localMenuId]);
@@ -824,14 +900,17 @@ export default function HeaderSection({
   }, [logoUrl]);
 
   // Separating components for modularity
-  const LogoSelector = () => (
+  const LogoSelector = () => {
+    const [showPreview, setShowPreview] = useState(false);
+    
+    return (
     <div className="space-y-2">
       <label className="text-sm font-medium">Logo</label>
       <div className="flex flex-col sm:flex-row items-start gap-2">
         <div 
           className="border rounded-md h-20 w-20 flex items-center justify-center overflow-hidden bg-gray-50"
         >
-          {logoUrl ? (
+            {logoUrl && showPreview ? (
             <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
               <S3FilePreview
                 src={logoUrl} 
@@ -841,6 +920,16 @@ export default function HeaderSection({
                 height={80}
               />
             </div>
+            ) : logoUrl ? (
+              <div className="text-gray-400 text-sm text-center">
+                Logo selected<br/>
+                <button 
+                  onClick={() => setShowPreview(true)}
+                  className="text-blue-500 hover:underline text-xs mt-1"
+                >
+                  View
+                </button>
+              </div>
           ) : (
             <div className="text-gray-400 text-sm text-center">
               No logo<br/>selected
@@ -856,12 +945,25 @@ export default function HeaderSection({
               Select Logo
             </button>
             {logoUrl && (
+                <>
+                  {showPreview && (
               <button 
-                onClick={() => handleLogoUrlChange('')}
+                      onClick={() => setShowPreview(false)}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                    >
+                      Hide Preview
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => {
+                      handleLogoUrlChange('');
+                      setShowPreview(false);
+                    }}
                 className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
               >
                 Remove
               </button>
+                </>
             )}
           </div>
           <div className="text-xs text-gray-500">
@@ -871,6 +973,7 @@ export default function HeaderSection({
       </div>
     </div>
   );
+  };
 
   const MenuSelector = () => (
     <div className="space-y-2">
@@ -1419,10 +1522,17 @@ export default function HeaderSection({
           
           {/* Button Preview */}
           <div className="border-t border-gray-200 pt-4">
-            <label className="text-sm font-medium block mb-2">Button Preview</label>
-            <div className="p-4 bg-gray-50 rounded-md flex justify-center">
-              {renderHeaderButton()}
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">Button Preview</label>
+              
             </div>
+            <div className="p-4 bg-gray-50 rounded-md flex justify-center relative">
+              {renderHeaderButton()}
+              
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              ✨ Preview updates automatically after you stop typing to prevent focus loss
+            </p>
           </div>
         </div>
       )}
@@ -1535,7 +1645,10 @@ export default function HeaderSection({
     </div>
   );
 
-  const HeaderPreview = () => (
+  const HeaderPreview = () => {
+    const [showLogoPreview, setShowLogoPreview] = useState(false);
+    
+    return (
     <div className="mt-4">
       <h4 className="text-sm font-medium mb-2">Menu Preview</h4>
       <div className="border rounded-md overflow-hidden">
@@ -1550,7 +1663,8 @@ export default function HeaderSection({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 {logoUrl && (
-                  <div className="h-10 w-10 flex-shrink-0" data-field-type="logoUrl" data-component-type="Header">
+                    <div className="h-10 w-10 flex-shrink-0 border rounded bg-gray-50 flex items-center justify-center" data-field-type="logoUrl" data-component-type="Header">
+                      {showLogoPreview ? (
                     <S3FilePreview
                       src={logoUrl} 
                       alt="Logo"
@@ -1558,6 +1672,14 @@ export default function HeaderSection({
                       width={80}
                       height={80}
                     />
+                      ) : (
+                        <button 
+                          onClick={() => setShowLogoPreview(true)}
+                          className="text-xs text-blue-500 hover:underline"
+                        >
+                          View Logo
+                        </button>
+                      )}
                   </div>
                 )}
                 <div>
@@ -1570,9 +1692,27 @@ export default function HeaderSection({
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 sm:gap-4">
-                {selectedMenu && selectedMenu.items && selectedMenu.items.slice(0, 4).map(item => (
+                  {loadingMenus ? (
+                    <div className="text-sm text-gray-500 flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading menu...
+                    </div>
+                  ) : selectedMenu && selectedMenu.items && selectedMenu.items.length > 0 ? (
+                    selectedMenu.items.slice(0, 4).map(item => (
                   <div key={item.id} className="text-sm font-medium">{item.title}</div>
-                ))}
+                    ))
+                  ) : localMenuId ? (
+                    <div className="text-sm text-red-500">
+                      ⚠️ Menu not found (ID: {localMenuId})
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      No menu selected
+                    </div>
+                  )}
                 {selectedMenu && selectedMenu.items && selectedMenu.items.length > 4 && (
                   <div className="text-sm font-medium">+ {selectedMenu.items.length - 4} más</div>
                 )}
@@ -1583,11 +1723,22 @@ export default function HeaderSection({
                 ✓ Posición fija - el header se mantendrá al hacer scroll
               </div>
             )}
+              {/* Debug information */}
+              {isEditing && (
+                <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded border-t">
+                  <strong>Debug Info:</strong><br/>
+                  Menu ID: {localMenuId || 'None'}<br/>
+                  Selected Menu: {selectedMenu ? selectedMenu.name : 'None'}<br/>
+                  Menu Items: {selectedMenu?.items?.length || 0}<br/>
+                  Loading: {loadingMenus ? 'Yes' : 'No'}
+                </div>
+              )}
           </div>
         </div>
       </div>
     </div>
   );
+  };
 
   // Function to render the menu icon
   const renderMenuIcon = () => {
@@ -1604,7 +1755,118 @@ export default function HeaderSection({
   };
 
   // Function to render the configurable button
-  const renderHeaderButton = () => {
+  const renderHeaderButton = useCallback(() => {
+    if (!showButton || !debouncedButtonText) return null;
+
+    const buttonSizeClasses = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-base',
+      lg: 'px-6 py-3 text-lg'
+    };
+
+    const shadowClasses = {
+      none: '',
+      sm: 'shadow-sm',
+      md: 'shadow-md',
+      lg: 'shadow-lg',
+      xl: 'shadow-xl'
+    };
+
+    const buttonStyle: React.CSSProperties = {
+      backgroundColor: debouncedButtonColor || '#3B82F6',
+      color: debouncedButtonTextColor || '#FFFFFF',
+      borderRadius: `${debouncedButtonBorderRadius}px`,
+      borderWidth: `${debouncedButtonBorderWidth}px`,
+      borderColor: debouncedButtonBorderColor || 'transparent',
+      borderStyle: debouncedButtonBorderWidth > 0 ? 'solid' : 'none',
+      width: debouncedButtonWidth || 'auto',
+      height: debouncedButtonHeight || 'auto',
+      transition: 'all 0.2s ease-in-out'
+    };
+
+    const buttonClasses = `
+      ${buttonSizeClasses[debouncedButtonSize]} 
+      ${shadowClasses[debouncedButtonShadow]} 
+      font-medium 
+      transition-all 
+      duration-200 
+      hover:opacity-90 
+      focus:outline-none 
+      focus:ring-2 
+      focus:ring-offset-2 
+      focus:ring-blue-500
+      relative
+    `.trim();
+
+    const handleButtonClick = (e: React.MouseEvent) => {
+      if (buttonDropdown && buttonDropdownItems.length > 0) {
+        e.preventDefault();
+        setIsButtonDropdownOpen(!isButtonDropdownOpen);
+      } else if (buttonAction) {
+        if (buttonAction.startsWith('/')) {
+          e.preventDefault();
+          router.push(buttonAction);
+        } else if (buttonAction.startsWith('http')) {
+          window.open(buttonAction, '_blank');
+        }
+      }
+    };
+
+    return (
+      <div className="relative">
+        <button
+          onClick={handleButtonClick}
+          className={buttonClasses}
+          style={buttonStyle}
+          data-field-type="button"
+          data-component-type="Header"
+        >
+          {debouncedButtonText}
+          {buttonDropdown && buttonDropdownItems.length > 0 && (
+            <ChevronDownIcon className={`ml-2 h-4 w-4 transition-transform duration-200 ${isButtonDropdownOpen ? 'rotate-180' : ''}`} />
+          )}
+        </button>
+
+        {/* Button Dropdown */}
+        {buttonDropdown && buttonDropdownItems.length > 0 && isButtonDropdownOpen && (
+          <div className="absolute top-full right-0 mt-2 py-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+            {buttonDropdownItems.map((item) => {
+              // Determine the final URL
+              let finalUrl = item.url;
+              if (item.url.startsWith('page:')) {
+                const pageSlug = item.url.replace('page:', '');
+                finalUrl = pageSlug ? `/${locale}/${pageSlug}` : '#';
+              }
+              
+              return (
+                <a
+                  key={item.id}
+                  href={finalUrl}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                  onClick={(e) => {
+                    if (finalUrl.startsWith('/')) {
+                      e.preventDefault();
+                      router.push(finalUrl);
+                    }
+                    setIsButtonDropdownOpen(false);
+                  }}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }, [showButton, debouncedButtonText, debouncedButtonColor, debouncedButtonTextColor, 
+      debouncedButtonSize, debouncedButtonBorderRadius, debouncedButtonShadow, 
+      debouncedButtonBorderColor, debouncedButtonBorderWidth, debouncedButtonWidth, 
+      debouncedButtonHeight, buttonDropdown, buttonDropdownItems, isButtonDropdownOpen, 
+      buttonAction, router, locale]);
+
+  // Memoized header button component for the actual header (non-editing mode)
+  const MemoizedHeaderButton = React.memo(() => {
     if (!showButton || !buttonText) return null;
 
     const buttonSizeClasses = {
@@ -1708,45 +1970,42 @@ export default function HeaderSection({
         )}
       </div>
     );
-  };
+  });
+
+  // Add display name for debugging
+  MemoizedHeaderButton.displayName = 'MemoizedHeaderButton';
 
   // Button change handlers
   const handleShowButtonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setShowButton(newValue);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('showButton', newValue);
   }, [handleUpdateField]);
 
   const handleButtonColorChange = useCallback((color: string) => {
     setButtonColor(color);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonColor', color);
   }, [handleUpdateField]);
 
   const handleButtonTextColorChange = useCallback((color: string) => {
     setButtonTextColor(color);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonTextColor', color);
   }, [handleUpdateField]);
 
   const handleButtonSizeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'sm' | 'md' | 'lg';
     setButtonSize(newValue);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonSize', newValue);
   }, [handleUpdateField]);
 
   const handleButtonShadowChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value as 'none' | 'sm' | 'md' | 'lg' | 'xl';
     setButtonShadow(newValue);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonShadow', newValue);
   }, [handleUpdateField]);
 
   const handleButtonBorderColorChange = useCallback((color: string) => {
     setButtonBorderColor(color);
-    ////setHasUnsavedChanges(true);
     handleUpdateField('buttonBorderColor', color);
   }, [handleUpdateField]);
 
@@ -1891,8 +2150,9 @@ export default function HeaderSection({
                   {selectedMenu && selectedMenu.items && selectedMenu.items.length > 0 ? (
                     renderMenuItems(selectedMenu.items)
                   ) : (
-                    // If no menu is selected but we have menuId, attempt to fetch from API directly
-                    menuId && (
+                    // Only show menu loading/error messages in editing mode
+                    // In non-editing mode, just don't render anything if menu is not found
+                    isEditing && menuId && (
                       <div className="text-sm text-gray-500">
                         {loadingMenus ? "Loading menu..." : "Menu not found"}
                       </div>
@@ -1903,7 +2163,7 @@ export default function HeaderSection({
                 {/* Header Button - positioned in center */}
                 {showButton && buttonPosition === 'center' && (
                   <div className="mx-4">
-                    {renderHeaderButton()}
+                    <MemoizedHeaderButton />
                   </div>
                 )}
               </div>
@@ -1911,7 +2171,7 @@ export default function HeaderSection({
               {/* Right side - Button and Mobile menu */}
               <div className="flex items-center space-x-4">
                 {/* Header Button - positioned on the right */}
-                {showButton && buttonPosition === 'right' && renderHeaderButton()}
+                {showButton && buttonPosition === 'right' && <MemoizedHeaderButton />}
 
                 {/* Mobile menu button */}
                 <div className="md:hidden flex items-center">
@@ -1949,7 +2209,7 @@ export default function HeaderSection({
             {/* Header Button - positioned on the left (below logo/title on mobile) */}
             {showButton && buttonPosition === 'left' && (
               <div className="mt-4 md:mt-0 md:absolute md:left-4 md:top-1/2 md:transform md:-translate-y-1/2">
-                {renderHeaderButton()}
+                <MemoizedHeaderButton />
               </div>
             )}
           </div>

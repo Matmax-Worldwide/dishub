@@ -47,6 +47,14 @@ export default function StaffForm({
   const [scheduleData, setScheduleData] = useState<Partial<StaffScheduleInput>[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('StaffForm - allUsersForSelect:', allUsersForSelect);
+    console.log('StaffForm - allUsersForSelect length:', allUsersForSelect.length);
+    console.log('StaffForm - allServices:', allServices);
+    console.log('StaffForm - allLocations:', allLocations);
+  }, [allUsersForSelect, allServices, allLocations]);
+
   const getInitialSchedule = useCallback(() => {
     const regularHours = initialData?.schedules?.filter((s: StaffSchedule) => s.scheduleType === PrismaScheduleType.REGULAR_HOURS) || [];
     // Ensure all days are present, using defaults for missing ones
