@@ -475,7 +475,8 @@ const resolvers = {
     ...menuResolvers.Query,
     ...calendarResolvers.Query, // Add calendar queries
     ...shippingResolvers.Query,
-    ...ecommerceResolvers.Query, // Add ecommerce queries
+    ...ecommerceResolvers.Query,
+
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -495,7 +496,7 @@ const resolvers = {
     ...menuResolvers.Mutation,
     ...calendarResolvers.Mutation, // Add calendar mutations
     ...shippingResolvers.Mutation,
-    ...ecommerceResolvers.Mutation, // Add ecommerce mutations
+    ...ecommerceResolvers.Mutation,
   },
   
   // Type resolvers
@@ -506,14 +507,23 @@ const resolvers = {
   Booking: calendarResolvers.Booking, // Add Booking type resolver
   Price: calendarResolvers.Price, // Add Price type resolver
   Currency: calendarResolvers.Currency, // Add Currency type resolver
+
   // Ecommerce type resolvers
   Shop: ecommerceResolvers.Shop,
   Product: ecommerceResolvers.Product,
   ProductCategory: ecommerceResolvers.ProductCategory,
-  Tax: ecommerceResolvers.Tax,
+
+  Order: ecommerceResolvers.Order,
+  OrderItem: ecommerceResolvers.OrderItem,
+  Payment: ecommerceResolvers.Payment,
   PaymentProvider: ecommerceResolvers.PaymentProvider,
   PaymentMethod: ecommerceResolvers.PaymentMethod,
-  Payment: ecommerceResolvers.Payment,
+  Tax: ecommerceResolvers.Tax,
+  Customer: ecommerceResolvers.Customer,
+  Review: ecommerceResolvers.Review,
+
+
+
 };
 
 // Check if the external links resolver exists

@@ -1484,6 +1484,18 @@ export const typeDefs = gql`
     reviewsByCustomer(customerId: ID!, filter: ReviewFilterInput, pagination: PaginationInput): [Review!]!
     reviewStats(productId: ID): ReviewStats!
     pendingReviews(pagination: PaginationInput): [Review!]!
+    
+    # Customer queries
+    customers(filter: CustomerFilterInput, pagination: PaginationInput): [Customer!]!
+    customer(id: ID!): Customer
+    customerByEmail(email: String!): Customer
+    customerStats: CustomerStats!
+    
+    # Discount queries
+    discounts(filter: DiscountFilterInput, pagination: PaginationInput): [Discount!]!
+    discount(id: ID!): Discount
+    discountByCode(code: String!): Discount
+    validateDiscount(code: String!, orderTotal: Float!, customerId: ID): DiscountValidation!
   }
 
   # Root Mutation
@@ -1732,6 +1744,18 @@ export const typeDefs = gql`
     createReviewResponse(input: CreateReviewResponseInput!): ReviewResponseResult!
     updateReviewResponse(id: ID!, input: UpdateReviewResponseInput!): ReviewResponseResult!
     deleteReviewResponse(id: ID!): ReviewResponseResult!
+    
+    # Customer mutations
+    createCustomer(input: CreateCustomerInput!): CustomerResult!
+    updateCustomer(id: ID!, input: UpdateCustomerInput!): CustomerResult!
+    deleteCustomer(id: ID!): CustomerResult!
+    
+    # Discount mutations
+    createDiscount(input: CreateDiscountInput!): DiscountResult!
+    updateDiscount(id: ID!, input: UpdateDiscountInput!): DiscountResult!
+    deleteDiscount(id: ID!): DiscountResult!
+    activateDiscount(id: ID!): DiscountResult!
+    deactivateDiscount(id: ID!): DiscountResult!
   }
 
   # HeaderStyle type for storing header configuration
@@ -3082,6 +3106,226 @@ export const typeDefs = gql`
   }
 
   # --------------- END REVIEW MODULE TYPES --- V1 ---
+
+  # --------------- CUSTOMER MODULE TYPES --- V1 ---
+
+  type Customer {
+    id: ID!
+    email: String!
+    firstName: String
+    lastName: String
+    phoneNumber: String
+    profileImageUrl: String
+    isActive: Boolean!
+    emailVerified: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    
+    # Customer-specific fields
+    totalOrders: Int!
+    totalSpent: Float!
+    averageOrderValue: Float!
+    lastOrderDate: DateTime
+    
+    # Relations
+    orders: [Order!]!
+    reviews: [Review!]!
+    addresses: [CustomerAddress!]!
+  }
+
+  type CustomerAddress {
+    id: ID!
+    customerId: String!
+    customer: Customer!
+    type: AddressType!
+    firstName: String!
+    lastName: String!
+    company: String
+    address1: String!
+    address2: String
+    city: String!
+    state: String!
+    postalCode: String!
+    country: String!
+    phone: String
+    isDefault: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type CustomerStats {
+    totalCustomers: Int!
+    newCustomersThisMonth: Int!
+    activeCustomers: Int!
+    averageOrderValue: Float!
+    topCustomers: [Customer!]!
+  }
+
+  enum AddressType {
+    BILLING
+    SHIPPING
+  }
+
+  # Customer filter inputs
+  input CustomerFilterInput {
+    search: String
+    isActive: Boolean
+    hasOrders: Boolean
+    registeredFrom: DateTime
+    registeredTo: DateTime
+    totalSpentMin: Float
+    totalSpentMax: Float
+  }
+
+  # Customer input types
+  input CreateCustomerInput {
+    email: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    password: String
+    isActive: Boolean
+  }
+
+  input UpdateCustomerInput {
+    firstName: String
+    lastName: String
+    phoneNumber: String
+    profileImageUrl: String
+    isActive: Boolean
+  }
+
+  input CreateCustomerAddressInput {
+    customerId: String!
+    type: AddressType!
+    firstName: String!
+    lastName: String!
+    company: String
+    address1: String!
+    address2: String
+    city: String!
+    state: String!
+    postalCode: String!
+    country: String!
+    phone: String
+    isDefault: Boolean
+  }
+
+  # Customer result types
+  type CustomerResult {
+    success: Boolean!
+    message: String!
+    customer: Customer
+  }
+
+  # --------------- END CUSTOMER MODULE TYPES --- V1 ---
+
+  # --------------- DISCOUNT MODULE TYPES --- V1 ---
+
+  enum DiscountType {
+    PERCENTAGE
+    FIXED_AMOUNT
+    FREE_SHIPPING
+    BUY_X_GET_Y
+  }
+
+  enum DiscountStatus {
+    ACTIVE
+    INACTIVE
+    EXPIRED
+    SCHEDULED
+  }
+
+  type Discount {
+    id: ID!
+    code: String!
+    name: String!
+    description: String
+    type: DiscountType!
+    value: Float!
+    minimumOrderAmount: Float
+    maximumDiscountAmount: Float
+    usageLimit: Int
+    usageCount: Int!
+    customerUsageLimit: Int
+    isActive: Boolean!
+    startsAt: DateTime
+    exdsAt: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    
+    # Relations
+    applicableProducts: [Product!]!
+    applicableCategories: [ProductCategory!]!
+    excludedProducts: [Product!]!
+    excludedCategories: [ProductCategory!]!
+    orders: [Order!]!
+  }
+
+  type DiscountValidation {
+    isValid: Boolean!
+    discount: Discount
+    discountAmount: Float!
+    message: String!
+    errors: [String!]!
+  }
+
+  # Discount filter inputs
+  input DiscountFilterInput {
+    search: String
+    type: DiscountType
+    isActive: Boolean
+    startsFrom: DateTime
+    startsTo: DateTime
+    expiresFrom: DateTime
+    expiresTo: DateTime
+  }
+
+  # Discount input types
+  input CreateDiscountInput {
+    code: String!
+    name: String!
+    description: String
+    type: DiscountType!
+    value: Float!
+    minimumOrderAmount: Float
+    maximumDiscountAmount: Float
+    usageLimit: Int
+    customerUsageLimit: Int
+    isActive: Boolean
+    startsAt: DateTime
+    expiresAt: DateTime
+    applicableProductIds: [String!]
+    applicableCategoryIds: [String!]
+    excludedProductIds: [String!]
+    excludedCategoryIds: [String!]
+  }
+
+  input UpdateDiscountInput {
+    name: String
+    description: String
+    value: Float
+    minimumOrderAmount: Float
+    maximumDiscountAmount: Float
+    usageLimit: Int
+    customerUsageLimit: Int
+    isActive: Boolean
+    startsAt: DateTime
+    expiresAt: DateTime
+    applicableProductIds: [String!]
+    applicableCategoryIds: [String!]
+    excludedProductIds: [String!]
+    excludedCategoryIds: [String!]
+  }
+
+  # Discount result types
+  type DiscountResult {
+    success: Boolean!
+    message: String!
+    discount: Discount
+  }
+
+  # --------------- END DISCOUNT MODULE TYPES --- V1 ---
 
   # Shipping result types
 `; 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Service, ServiceCategory, StaffProfile, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
+import { Service, ServiceCategory, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { 
   CheckCircle, 
@@ -30,6 +30,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import graphqlClient from '@/lib/graphql-client';
 
 // Add design template type
 type DesignTemplate = 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern';
@@ -339,19 +340,29 @@ export default function CalendarSection({
   const [isBooking, setIsBooking] = useState(false); 
   const [error, setError] = useState<string | null>(null);
 
-  // Mock data for display (these would be fetched from API in real implementation)
-  const locations: Location[] = [];
-  const serviceCategories: ServiceCategory[] = [];
-  const displayServices: Service[] = []; 
-  const availableStaffForService: Partial<StaffProfile>[] = [];
-  const timeSlots: AvailableTimeSlot[] = [];
+  // Data state
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+  const [displayServices, setDisplayServices] = useState<Service[]>([]);
+  const [availableStaffForService, setAvailableStaffForService] = useState<Array<{
+    id: string;
+    user?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      profileImageUrl?: string;
+    };
+    bio?: string;
+    specializations: string[];
+  }>>([]);
+  const [timeSlots, setTimeSlots] = useState<AvailableTimeSlot[]>([]);
   
-  // Loading states (would be used when implementing actual data fetching)
-  const isLoadingLocations = showLocationSelector && !(defaultLocation || initialLocationIdProp);
-  const isLoadingCategories = false;
-  const isLoadingServices = false;
-  const isLoadingStaff = false;
-  const isLoadingSlots = false;
+  // Loading states
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const [customerInfo, setCustomerInfo] = useState({
     fullName: '',
@@ -361,6 +372,216 @@ export default function CalendarSection({
   });
   
   const [confirmedBookingDetails, setConfirmedBookingDetails] = useState<Booking | null>(null);
+
+  // Load locations when component mounts or when showLocationSelector changes
+  useEffect(() => {
+    async function loadLocations() {
+      if (showLocationSelector) {
+        setIsLoadingLocations(true);
+        try {
+          console.log('Loading locations...');
+          const locationsData = await graphqlClient.locations();
+          console.log('Locations loaded:', locationsData);
+          setLocations(locationsData);
+          setError(null);
+          
+          // Show success message only if locations were actually loaded
+          if (locationsData && locationsData.length > 0) {
+            toast.success(`${locationsData.length} location${locationsData.length !== 1 ? 's' : ''} loaded successfully`);
+          } else {
+            console.warn('No locations found in the database');
+          }
+        } catch (error) {
+          console.error('Error loading locations:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load locations. Please try again.';
+          setError(errorMessage);
+          setLocations([]);
+          toast.error('Failed to load locations');
+        } finally {
+          setIsLoadingLocations(false);
+        }
+      } else {
+        setLocations([]);
+        setIsLoadingLocations(false);
+      }
+    }
+
+    loadLocations();
+  }, [showLocationSelector]);
+
+  // Load service categories when component mounts or when showServiceCategories changes
+  useEffect(() => {
+    async function loadServiceCategories() {
+      if (showServiceCategories) {
+        setIsLoadingCategories(true);
+        try {
+          console.log('Loading service categories...');
+          // TODO: Implement graphqlClient.serviceCategories() method
+          // For now, using empty array
+          setServiceCategories([]);
+          setError(null);
+        } catch (error) {
+          console.error('Error loading service categories:', error);
+          setError('Failed to load service categories. Please try again.');
+          setServiceCategories([]);
+        } finally {
+          setIsLoadingCategories(false);
+        }
+      } else {
+        setServiceCategories([]);
+        setIsLoadingCategories(false);
+      }
+    }
+
+    loadServiceCategories();
+  }, [showServiceCategories]);
+
+  // Load services when component mounts
+  useEffect(() => {
+    async function loadServices() {
+      setIsLoadingServices(true);
+      try {
+        console.log('Loading services...');
+        const servicesData = await graphqlClient.services();
+        console.log('Services loaded:', servicesData);
+        
+        // Filter only active services and transform to match our Service type
+        const activeServices = servicesData
+          .filter(service => service.isActive)
+          .map(service => ({
+            id: service.id,
+            name: service.name,
+            description: service.description || null,
+            durationMinutes: service.durationMinutes,
+            price: service.price,
+            serviceCategoryId: service.serviceCategoryId,
+            serviceCategory: service.serviceCategory || null,
+            bufferTimeBeforeMinutes: service.bufferTimeBeforeMinutes || null,
+            bufferTimeAfterMinutes: service.bufferTimeAfterMinutes || null,
+            preparationTimeMinutes: service.preparationTimeMinutes || null,
+            cleanupTimeMinutes: service.cleanupTimeMinutes || null,
+            maxDailyBookingsPerService: service.maxDailyBookingsPerService || null,
+            isActive: service.isActive,
+            locationIds: service.locations?.map(loc => loc.id) || [],
+            locations: service.locations || []
+          }));
+        
+        setDisplayServices(activeServices);
+        setError(null);
+        
+        if (activeServices.length > 0) {
+          toast.success(`${activeServices.length} service${activeServices.length !== 1 ? 's' : ''} loaded successfully`);
+        } else {
+          console.warn('No active services found');
+        }
+      } catch (error) {
+        console.error('Error loading services:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load services. Please try again.';
+        setError(errorMessage);
+        setDisplayServices([]);
+        toast.error('Failed to load services');
+      } finally {
+        setIsLoadingServices(false);
+      }
+    }
+
+    loadServices();
+  }, []);
+
+  // Load staff when service is selected
+  useEffect(() => {
+    async function loadStaffForService() {
+      if (selectedServiceId && showStaffSelector && selectedLocationId) {
+        setIsLoadingStaff(true);
+        try {
+          console.log('Loading staff for service:', selectedServiceId, 'at location:', selectedLocationId);
+          const staffData = await graphqlClient.staffForService({
+            serviceId: selectedServiceId,
+            locationId: selectedLocationId
+          });
+          console.log('Staff loaded:', staffData);
+          
+          // Transform the data to match our expected format
+          const transformedStaff = staffData.map(staff => ({
+            id: staff.id,
+            user: staff.user,
+            bio: staff.bio,
+            specializations: staff.specializations
+          }));
+          
+          setAvailableStaffForService(transformedStaff);
+          setError(null);
+          
+          if (transformedStaff.length > 0) {
+            toast.success(`${transformedStaff.length} staff member${transformedStaff.length !== 1 ? 's' : ''} available`);
+          } else {
+            console.warn('No staff found for this service and location');
+          }
+        } catch (error) {
+          console.error('Error loading staff:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load staff. Please try again.';
+          setError(errorMessage);
+          setAvailableStaffForService([]);
+          toast.error('Failed to load staff');
+        } finally {
+          setIsLoadingStaff(false);
+        }
+      } else {
+        setAvailableStaffForService([]);
+        setIsLoadingStaff(false);
+      }
+    }
+
+    loadStaffForService();
+  }, [selectedServiceId, showStaffSelector, selectedLocationId]);
+
+  // Load time slots when date, service, and staff are selected
+  useEffect(() => {
+    async function loadTimeSlots() {
+      if (selectedDate && selectedServiceId && selectedLocationId && selectedStaffId) {
+        setIsLoadingSlots(true);
+        try {
+          const dateString = format(selectedDate, 'yyyy-MM-dd');
+          console.log('Loading time slots for:', { 
+            serviceId: selectedServiceId, 
+            locationId: selectedLocationId, 
+            staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : selectedStaffId,
+            date: dateString 
+          });
+          
+          const slotsData = await graphqlClient.availableSlots({
+            serviceId: selectedServiceId,
+            locationId: selectedLocationId,
+            staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : selectedStaffId,
+            date: dateString
+          });
+          console.log('Time slots loaded:', slotsData);
+          
+          setTimeSlots(slotsData);
+          setError(null);
+          
+          if (slotsData.length > 0) {
+            toast.success(`${slotsData.length} time slot${slotsData.length !== 1 ? 's' : ''} available`);
+          } else {
+            console.warn('No available time slots found for the selected date');
+          }
+        } catch (error) {
+          console.error('Error loading time slots:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load available time slots. Please try again.';
+          setError(errorMessage);
+          setTimeSlots([]);
+          toast.error('Failed to load time slots');
+        } finally {
+          setIsLoadingSlots(false);
+        }
+      } else {
+        setTimeSlots([]);
+        setIsLoadingSlots(false);
+      }
+    }
+
+    loadTimeSlots();
+  }, [selectedDate, selectedServiceId, selectedLocationId, selectedStaffId]);
 
   // Handle design template change
   const handleDesignTemplateChange = useCallback((template: string) => {
@@ -903,10 +1124,46 @@ export default function CalendarSection({
   // Location Selection Step
   const renderLocationSelection = () => {
     if (isLoadingLocations) {
-  return (
+      return (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Loading locations...</p>
+        </div>
+      );
+    }
+
+    if (locations.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <MapPin className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Locations Available</h3>
+          <p className="text-gray-600 mb-4">
+            There are currently no locations configured for booking appointments.
+          </p>
+          <Button 
+            onClick={() => {
+              // Retry loading locations
+              setError(null);
+              const loadLocations = async () => {
+                setIsLoadingLocations(true);
+                try {
+                  const locationsData = await graphqlClient.locations();
+                  setLocations(locationsData);
+                  setError(null);
+                } catch (error) {
+                  console.error('Error loading locations:', error);
+                  setError('Failed to load locations. Please try again.');
+                  setLocations([]);
+                } finally {
+                  setIsLoadingLocations(false);
+                }
+              };
+              loadLocations();
+            }}
+            variant="outline"
+          >
+            Retry Loading
+          </Button>
         </div>
       );
     }
@@ -932,11 +1189,19 @@ export default function CalendarSection({
                   {location.address && (
                     <p className="text-sm text-gray-600">{location.address}</p>
                   )}
+                  {location.phone && (
+                    <p className="text-sm text-gray-500">{location.phone}</p>
+                  )}
                 </div>
               </div>
             </div>
-              ))}
-            </div>
+          ))}
+        </div>
+        
+        {/* Show location count */}
+        <div className="text-center text-sm text-gray-500">
+          {locations.length} location{locations.length !== 1 ? 's' : ''} available
+        </div>
       </div>
     );
   };
@@ -1021,7 +1286,7 @@ export default function CalendarSection({
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Loading staff...</p>
-            </div>
+        </div>
       );
     }
 
@@ -1048,31 +1313,59 @@ export default function CalendarSection({
         </div>
 
         {/* Individual Staff Members */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {availableStaffForService.map((staff) => (
-            <div
-                  key={staff.id} 
-                  onClick={() => handleStaffSelect(staff.id!)}
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                selectedStaffId === staff.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-500" />
-                </div>
-                   <div>
-                  <h4 className="font-medium">{staff.user?.firstName} {staff.user?.lastName || 'Staff Member'}</h4>
-                  {staff.specializations && staff.specializations.length > 0 && (
-                    <p className="text-sm text-gray-600">{staff.specializations.join(', ')}</p>
-                  )}
+        {availableStaffForService.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {availableStaffForService.map((staff) => (
+              <div
+                key={staff.id} 
+                onClick={() => handleStaffSelect(staff.id)}
+                className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                  selectedStaffId === staff.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    {staff.user?.profileImageUrl ? (
+                      <img 
+                        src={staff.user.profileImageUrl} 
+                        alt={`${staff.user.firstName} ${staff.user.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-500" />
+                    )}
                   </div>
+                  <div>
+                    <h4 className="font-medium">
+                      {staff.user?.firstName} {staff.user?.lastName || 'Staff Member'}
+                    </h4>
+                    {staff.specializations && staff.specializations.length > 0 && (
+                      <p className="text-sm text-gray-600">{staff.specializations.join(', ')}</p>
+                    )}
+                    {staff.bio && (
+                      <p className="text-xs text-gray-500 mt-1">{staff.bio}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-              ))}
-            </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500">
+            <User className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>No specific staff members available for this service.</p>
+            <p className="text-sm">You can still select &quot;Any Available Staff&quot; above.</p>
+          </div>
+        )}
+        
+        {/* Show staff count */}
+        {availableStaffForService.length > 0 && (
+          <div className="text-center text-sm text-gray-500">
+            {availableStaffForService.length} staff member{availableStaffForService.length !== 1 ? 's' : ''} available
+          </div>
+        )}
       </div>
     );
   };
