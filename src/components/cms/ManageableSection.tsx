@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo, useRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo, useRef, lazy, Suspense } from 'react';
 import { cmsOperations } from '@/lib/graphql-client';
-import SectionManager, { Component } from './SectionManager';
-import SectionPreview from './SectionPreview';
+import SectionManager, { Component } from './SectionManager';  
 import { cn } from '@/lib/utils';
 import BackgroundSelector from './BackgroundSelector';
 import MediaSelector from './MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
-import { Palette } from 'lucide-react';
+import { Palette, Eye, EyeOff } from 'lucide-react';
+
+// Lazy load SectionPreview to improve initial load time
+const SectionPreview = lazy(() => import('./SectionPreview'));
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -27,6 +29,18 @@ interface ManageableSectionHandle {
   saveChanges: (skipLoadingState?: boolean) => Promise<void>;
 }
 
+// Loading component for SectionPreview
+const PreviewLoader = memo(() => (
+  <div className="w-1/2 pl-4 flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted">
+    <div className="text-center py-8">
+      <div className="animate-spin h-8 w-8 border-4 border-muted border-t-foreground/30 rounded-full mx-auto mb-3"></div>
+      <p className="text-sm text-muted-foreground">Loading preview...</p>
+    </div>
+  </div>
+));
+
+PreviewLoader.displayName = 'PreviewLoader';
+
 const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionProps>(({
   sectionId,
   isEditing = false,
@@ -41,7 +55,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(sectionName || '');
   // Estado para manejar modo de visualización
-  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('split');
+  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('edit'); // Default to edit mode for better performance
   // Track if there are unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // Track active component in viewport
@@ -63,8 +77,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const [sectionBackgroundType, setSectionBackgroundType] = useState<'image' | 'gradient'>('gradient');
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
-
-
+  
+  // New state for preview loading optimization
+  const [isPreviewLoaded, setIsPreviewLoaded] = useState(false);
+  const [showPreviewButton, setShowPreviewButton] = useState(true);
 
   // Validate and normalize the section ID
   const normalizedSectionId = sectionId;
@@ -815,6 +831,24 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     }
   }, [inspectionMode, handleInspectElement]);
 
+  // Handle preview loading
+  const handleLoadPreview = useCallback(() => {
+    setIsPreviewLoaded(true);
+    setShowPreviewButton(false);
+    if (viewMode === 'edit') {
+      setViewMode('split');
+    }
+  }, [viewMode]);
+
+  // Handle hiding preview
+  const handleHidePreview = useCallback(() => {
+    setIsPreviewLoaded(false);
+    setShowPreviewButton(true);
+    if (viewMode === 'split') {
+      setViewMode('edit');
+    }
+  }, [viewMode]);
+
   return (
     <div 
       className="my-6 manageable-section" 
@@ -876,6 +910,27 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 Background
               </button>
               
+              {/* Preview toggle button */}
+              {showPreviewButton ? (
+                <button
+                  onClick={handleLoadPreview}
+                  className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
+                  title="Load preview"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  Load Preview
+                </button>
+              ) : (
+                <button
+                  onClick={handleHidePreview}
+                  className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
+                  title="Hide preview"
+                >
+                  <EyeOff className="w-3 h-3 mr-1" />
+                  Hide Preview
+                </button>
+              )}
+              
               <div className="flex items-center space-x-1">
                 <button
                   onClick={() => toggleViewMode('edit')}
@@ -888,7 +943,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   Editor
                 </button>
                 <button
-                  onClick={() => toggleViewMode('split')}
+                  onClick={() => {
+                    if (!isPreviewLoaded) {
+                      handleLoadPreview();
+                    } else {
+                      toggleViewMode('split');
+                    }
+                  }}
                   className={`px-3 py-1 text-xs border-t border-b ${
                     viewMode === 'split' 
                       ? 'bg-accent text-accent-foreground border-accent' 
@@ -898,7 +959,12 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   Split
                 </button>
                 <button
-                  onClick={() => toggleViewMode('preview')}
+                  onClick={() => {
+                    if (!isPreviewLoaded) {
+                      handleLoadPreview();
+                    }
+                    toggleViewMode('preview');
+                  }}
                   className={`px-3 py-1 text-xs rounded-r-md border ${
                     viewMode === 'preview' 
                       ? 'bg-accent text-accent-foreground border-accent' 
@@ -944,20 +1010,38 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                 />
               </div>
               
-              {/* Preview section - Using dedicated SectionPreview component */}
-              <SectionPreview
-                pendingComponents={pendingComponents}
-                isEditing={isEditing}
-                inspectionMode={inspectionMode}
-                toggleInspectionMode={toggleInspectionMode}
-                sectionBackground={sectionBackground}
-                sectionBackgroundType={sectionBackgroundType}
-                activeComponentId={activeComponentId}
-                setActiveComponentId={setActiveComponentId}
-                collapsedComponents={collapsedComponents}
-                setCollapsedComponents={setCollapsedComponents}
-                isEditingComponentRef={isEditingComponentRef}
-              />
+              {/* Preview section - Only load if preview is loaded */}
+              {isPreviewLoaded ? (
+                <Suspense fallback={<PreviewLoader />}>
+                  <SectionPreview
+                    pendingComponents={pendingComponents}
+                    isEditing={isEditing}
+                    inspectionMode={inspectionMode}
+                    toggleInspectionMode={toggleInspectionMode}
+                    sectionBackground={sectionBackground}
+                    sectionBackgroundType={sectionBackgroundType}
+                    activeComponentId={activeComponentId}
+                    setActiveComponentId={setActiveComponentId}
+                    collapsedComponents={collapsedComponents}
+                    setCollapsedComponents={setCollapsedComponents}
+                    isEditingComponentRef={isEditingComponentRef}
+                  />
+                </Suspense>
+              ) : (
+                <div className="w-1/2 pl-4 flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted">
+                  <div className="text-center py-12">
+                    <Eye className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium text-muted-foreground mb-2">Preview Not Loaded</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Click &quot;Load Preview&quot; to see your changes in real-time</p>
+                    <button
+                      onClick={handleLoadPreview}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                    >
+                      Load Preview
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -998,23 +1082,41 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                     backgroundRepeat: sectionBackgroundType === 'image' ? 'no-repeat' : undefined
                   }}
                 >
-                  <SectionManager
-                    initialComponents={pendingComponents}
-                    isEditing={false}
-                    componentClassName={(type) => {
-                      // Allow headers to use their own positioning logic (sticky in preview)
-                      const isVideoComponent = type.toLowerCase() === 'video';
-                      let classNames = `component-${type.toLowerCase()}`;
-                      
-                      if (isVideoComponent) {
-                        classNames += ' video-component';
-                      }
-                      
-                      return classNames;
-                    }}
-                    sectionBackground={sectionBackground}
-                    sectionBackgroundType={sectionBackgroundType}
-                  />
+                  {isPreviewLoaded ? (
+                    <Suspense fallback={<PreviewLoader />}>
+                      <SectionManager
+                        initialComponents={pendingComponents}
+                        isEditing={false}
+                        componentClassName={(type: string) => {
+                          // Allow headers to use their own positioning logic (sticky in preview)
+                          const isVideoComponent = type.toLowerCase() === 'video';
+                          let classNames = `component-${type.toLowerCase()}`;
+                          
+                          if (isVideoComponent) {
+                            classNames += ' video-component';
+                          }
+                          
+                          return classNames;
+                        }}
+                        sectionBackground={sectionBackground}
+                        sectionBackgroundType={sectionBackgroundType}
+                      />
+                    </Suspense>
+                  ) : (
+                    <div className="flex items-center justify-center py-24 bg-muted/10 rounded-lg border-2 border-dashed border-muted">
+                      <div className="text-center">
+                        <Eye className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                        <h3 className="text-xl font-medium text-muted-foreground mb-2">Preview Not Loaded</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Load the preview to see how your section will look</p>
+                        <button
+                          onClick={handleLoadPreview}
+                          className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                        >
+                          Load Preview
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

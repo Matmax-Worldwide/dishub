@@ -55,6 +55,8 @@ interface HeaderSectionProps {
   buttonPosition?: 'left' | 'center' | 'right';
   buttonDropdown?: boolean;
   buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+  buttonUrlType?: 'custom' | 'page';
+  selectedPageId?: string;
   isEditing?: boolean;
   onUpdate?: (data: { 
     title?: string; 
@@ -89,6 +91,8 @@ interface HeaderSectionProps {
     buttonPosition?: 'left' | 'center' | 'right';
     buttonDropdown?: boolean;
     buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+    buttonUrlType?: 'custom' | 'page';
+    selectedPageId?: string;
   }) => void;
 }
 
@@ -125,6 +129,8 @@ export default function HeaderSection({
   buttonPosition: initialButtonPosition = 'center',
   buttonDropdown: initialButtonDropdown = false,
   buttonDropdownItems: initialButtonDropdownItems = [],
+  buttonUrlType: initialButtonUrlType = 'custom',
+  selectedPageId: initialSelectedPageId = '',
   isEditing = false, 
   onUpdate 
 }: HeaderSectionProps) {
@@ -179,6 +185,10 @@ export default function HeaderSection({
   // New states for page selection
   const [availablePages, setAvailablePages] = useState<Array<{id: string; title: string; slug: string}>>([]);
   const [loadingPages, setLoadingPages] = useState(false);
+  
+  // New states for button URL type selection
+  const [buttonUrlType, setButtonUrlType] = useState<'custom' | 'page'>(initialButtonUrlType);
+  const [selectedPageId, setSelectedPageId] = useState<string>(initialSelectedPageId);
   
   const params = useParams();
   const router = useRouter();
@@ -457,7 +467,9 @@ export default function HeaderSection({
     buttonHeight,
     buttonPosition,
     buttonDropdown,
-    buttonDropdownItems
+    buttonDropdownItems,
+    buttonUrlType,
+    selectedPageId
   });
 
   // Update the ref whenever values change
@@ -492,7 +504,9 @@ export default function HeaderSection({
       buttonHeight,
       buttonPosition,
       buttonDropdown,
-      buttonDropdownItems
+      buttonDropdownItems,
+      buttonUrlType,
+      selectedPageId
     };
   }, [
     localTitle,
@@ -524,7 +538,9 @@ export default function HeaderSection({
     buttonHeight,
     buttonPosition,
     buttonDropdown,
-    buttonDropdownItems
+    buttonDropdownItems,
+    buttonUrlType,
+    selectedPageId
   ]);
 
   const handleUpdateField = useCallback((field: string, value: string | number | boolean | Record<string, unknown> | Array<{id: string; label: string; url: string}>) => {
@@ -571,7 +587,9 @@ export default function HeaderSection({
         buttonHeight: currentValues.buttonHeight,
         buttonPosition: currentValues.buttonPosition,
         buttonDropdown: currentValues.buttonDropdown,
-        buttonDropdownItems: currentValues.buttonDropdownItems
+        buttonDropdownItems: currentValues.buttonDropdownItems,
+        buttonUrlType: currentValues.buttonUrlType,
+        selectedPageId: currentValues.selectedPageId
       };
       
       // Update the specific field with the new value
@@ -1199,37 +1217,112 @@ export default function HeaderSection({
       
       {showButton && (
         <div className="space-y-4 pl-4 border-l-2 border-blue-200">
-          {/* Button Text and Action */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
-                Button Text
-              </label>
-              <input
-                type="text"
-                id="buttonText"
-                value={buttonText}
-                onChange={handleButtonTextChange}
-                placeholder="Get Started"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="buttonAction" className="text-sm font-medium block mb-2">
-                Button URL/Action
-              </label>
-              <input
-                type="text"
-                id="buttonAction"
-                value={buttonAction}
-                onChange={handleButtonActionChange}
-                placeholder="/contact"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use relative URLs (/contact) or absolute URLs (https://example.com)
-              </p>
+          {/* Button Text */}
+          <div>
+            <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
+              Button Text
+            </label>
+            <input
+              type="text"
+              id="buttonText"
+              value={buttonText}
+              onChange={handleButtonTextChange}
+              placeholder="Get Started"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          {/* URL Type Selection */}
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              Button URL/Action
+            </label>
+            <div className="space-y-3">
+              {/* URL Type Radio Buttons */}
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="buttonUrlType"
+                    value="custom"
+                    checked={buttonUrlType === 'custom'}
+                    onChange={() => {
+                      setButtonUrlType('custom');
+                      handleUpdateField('buttonUrlType', 'custom');
+                    }}
+                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">Custom URL</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="buttonUrlType"
+                    value="page"
+                    checked={buttonUrlType === 'page'}
+                    onChange={() => {
+                      setButtonUrlType('page');
+                      handleUpdateField('buttonUrlType', 'page');
+                    }}
+                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">Existing Page</span>
+                </label>
+              </div>
+              
+              {/* Custom URL Input */}
+              {buttonUrlType === 'custom' && (
+                <div>
+                  <input
+                    type="text"
+                    id="buttonAction"
+                    value={buttonAction}
+                    onChange={handleButtonActionChange}
+                    placeholder="/contact"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use relative URLs (/contact) or absolute URLs (https://example.com)
+                  </p>
+                </div>
+              )}
+              
+              {/* Existing Page Selection */}
+              {buttonUrlType === 'page' && (
+                <div>
+                  <select
+                    value={selectedPageId}
+                    onChange={(e) => {
+                      const pageId = e.target.value;
+                      setSelectedPageId(pageId);
+                      
+                      // Find the selected page and set the button action to its slug
+                      const selectedPage = availablePages.find(page => page.id === pageId);
+                      if (selectedPage) {
+                        const pageUrl = `/${selectedPage.slug}`;
+                        setButtonAction(pageUrl);
+                        handleUpdateField('buttonAction', pageUrl);
+                        handleUpdateField('selectedPageId', pageId);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={loadingPages}
+                  >
+                    <option value="">Select a page...</option>
+                    {availablePages.map(page => (
+                      <option key={page.id} value={page.id}>
+                        {page.title} (/{page.slug})
+                      </option>
+                    ))}
+                  </select>
+                  {loadingPages && (
+                    <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
+                  )}
+                  {!loadingPages && availablePages.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No pages available</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
@@ -1918,6 +2011,24 @@ export default function HeaderSection({
     ////setHasUnsavedChanges(true);
     handleUpdateField('buttonDropdownItems', items);
   }, [handleUpdateField]);
+
+  // Initialize buttonUrlType and selectedPageId based on current buttonAction and available pages
+  useEffect(() => {
+    if (availablePages.length > 0 && buttonAction) {
+      // Check if buttonAction matches any existing page slug
+      const matchingPage = availablePages.find(page => 
+        buttonAction === `/${page.slug}` || buttonAction === page.slug
+      );
+      
+      if (matchingPage) {
+        setButtonUrlType('page');
+        setSelectedPageId(matchingPage.id);
+      } else {
+        setButtonUrlType('custom');
+        setSelectedPageId('');
+      }
+    }
+  }, [availablePages, buttonAction]);
 
   return (
     <>
