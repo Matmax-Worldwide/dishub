@@ -784,9 +784,6 @@ function SectionManagerBase({
     if (debouncedPendingUpdate) {
       const { component, data } = debouncedPendingUpdate;
       
-      // Guardar referencia al elemento activo
-      activeElementRef.current = document.activeElement;
-      
       // Crear componente actualizado
       const updatedComponent = {
         ...component,
@@ -826,6 +823,14 @@ function SectionManagerBase({
       setPendingUpdate(null);
     }
   }, [debouncedPendingUpdate]); // Only dependency should be the debounced update
+
+  // Efecto para enviar cambios al padre - OPTIMIZED: Remove unnecessary dependencies
+  useEffect(() => {
+    // Notificar al padre cuando los componentes cambian, si hay un callback
+    if (onComponentsChange && components !== initialComponents) {
+      onComponentsChange(components);
+    }
+  }, [components, onComponentsChange]); // Removed initialComponents dependency
 
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -1048,14 +1053,6 @@ function SectionManagerBase({
       }, 10);
     }
   }, [components]);
-
-  // Efecto para enviar cambios al padre
-  useEffect(() => {
-    // Notificar al padre cuando los componentes cambian, si hay un callback
-    if (onComponentsChange && components !== initialComponents) {
-      onComponentsChange(components);
-    }
-  }, [components, onComponentsChange, initialComponents]);
 
   // Initialize components as collapsed by default
   useEffect(() => {

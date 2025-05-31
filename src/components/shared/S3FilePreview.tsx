@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
+import { useS3FileCache } from '@/hooks/useS3FileCache';
 import { 
   FileIcon, 
   FileTextIcon, 
@@ -25,10 +26,8 @@ interface S3FilePreviewProps {
 }
 
 /**
- * Componente para mostrar previsualizaciones de archivos de S3 a través de nuestra API
- * 
- * Este componente detecta automáticamente si es una URL de S3 y utiliza nuestra API 
- * para mostrar el archivo, evitando problemas de CORS
+ * Componente optimizado para mostrar previsualizaciones de archivos de S3
+ * Usa caché global para evitar múltiples llamadas a la API
  */
 const S3FilePreview = ({ 
   src, 
@@ -39,49 +38,14 @@ const S3FilePreview = ({
   fileType: providedFileType,
   fileName
 }: S3FilePreviewProps) => {
-  const [isS3Url, setIsS3Url] = useState(false);
-  const [s3Key, setS3Key] = useState<string | null>(null);
-  const [isImage, setIsImage] = useState(false);
-  const [isPdf, setIsPdf] = useState(false);
-  const [isVideo, setIsVideo] = useState(false);
-  const [fileCategory, setFileCategory] = useState<string>('other');
   const [imageError, setImageError] = useState(false);
-  const [isSvg, setIsSvg] = useState(false);
   
-  useEffect(() => {
-    // No hacer nada si no hay URL
-    if (!src) return;
-    
-    console.log('S3FilePreview: Processing src:', src);
-    
-    // Reset error state on src change
-    setImageError(false);
-    
-    // Detectar si es una URL de S3
-    if (src.includes('s3.amazonaws.com') || 
-        src.includes('vercelvendure') ||
-        (process.env.NEXT_PUBLIC_S3_URL_PREFIX && src.startsWith(process.env.NEXT_PUBLIC_S3_URL_PREFIX))) {
-      // Es una URL de S3, extraer la clave
-      setIsS3Url(true);
-      
-      try {
-        // Intentar extraer la clave de S3 de la URL
-        const url = new URL(src);
-        const pathParts = url.pathname.split('/');
-        // Eliminar la primera parte vacía del pathname que comienza con /
-        pathParts.shift();
-        
-        // La clave es el resto del path
-        const key = pathParts.join('/');
-        setS3Key(key);
-      } catch (error) {
-        console.error('Error parsing S3 URL:', error);
-        setS3Key(null);
-      }
-    } else {
-      setIsS3Url(false);
-      setS3Key(null);
-    }
+  // Use the S3 file cache hook
+  const { finalUrl, isS3Url, s3Key } = useS3FileCache(src);
+  
+  // Memoize the file analysis to avoid recalculation on every render
+  const fileAnalysis = useMemo(() => {
+    if (!src) return null;
     
     // Determinar el tipo de archivo
     let detectedFileType = providedFileType || getFileTypeFromUrl(src);
@@ -90,26 +54,34 @@ const S3FilePreview = ({
     if (!detectedFileType.includes('pdf') && 
         (src.toLowerCase().endsWith('.pdf') || 
          (fileName && fileName.toLowerCase().endsWith('.pdf')))) {
-      console.log('Detected PDF by filename extension');
       detectedFileType = 'application/pdf';
     }
     
-    console.log(`File type detection for ${src}: ${detectedFileType}`);
-    console.log(`SVG detection: isSvg=${detectedFileType === 'image/svg+xml' || (src && src.toLowerCase().endsWith('.svg')) || getFileTypeFromUrl(src) === 'image/svg+xml'}, detectedFileType=${detectedFileType}, srcEndsWithSvg=${src && src.toLowerCase().endsWith('.svg')}`);
-    
     // Actualizar estados derivados del tipo de archivo
-    setIsImage(detectedFileType.startsWith('image/'));
-    setIsPdf(detectedFileType === 'application/pdf');
-    setIsVideo(detectedFileType.startsWith('video/'));
+    const isImage = detectedFileType.startsWith('image/');
+    const isPdf = detectedFileType === 'application/pdf';
+    const isVideo = detectedFileType.startsWith('video/');
+    const isSvg = detectedFileType === 'image/svg+xml' || 
+                  (src && src.toLowerCase().endsWith('.svg')) ||
+                  getFileTypeFromUrl(src) === 'image/svg+xml';
     
     // Determinar la categoría del archivo
-    setFileCategory(categorizeFileType(detectedFileType));
+    const fileCategory = categorizeFileType(detectedFileType);
     
-    // Set SVG flag based on file type
-    setIsSvg(detectedFileType === 'image/svg+xml' || 
-             (src && src.toLowerCase().endsWith('.svg')) ||
-             getFileTypeFromUrl(src) === 'image/svg+xml');
+    return {
+      detectedFileType,
+      isImage,
+      isPdf,
+      isVideo,
+      isSvg,
+      fileCategory
+    };
   }, [src, providedFileType, fileName]);
+
+  // Reset error state when src changes
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
 
   // Función para determinar el tipo de archivo a partir de la URL
   const getFileTypeFromUrl = (url: string): string => {
@@ -199,92 +171,22 @@ const S3FilePreview = ({
   
   // Handler for image error
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    // Log each property individually to identify which ones are undefined
-    console.error("S3FilePreview: Error loading image - Individual properties:");
-    console.error("- src:", src);
-    console.error("- isS3Url:", isS3Url);
-    console.error("- s3Key:", s3Key);
-    console.error("- providedFileType:", providedFileType);
-    console.error("- fileName:", fileName);
-    
-    let finalUrl = 'failed to get URL';
-    try {
-      finalUrl = getFileUrl();
-    } catch (e) {
-      finalUrl = `error getting URL: ${e instanceof Error ? e.message : 'unknown error'}`;
-    }
-    console.error("- finalUrl:", finalUrl);
-    
-    if (error) {
-      console.error("- error.type:", error.type);
-      console.error("- error.currentTarget:", error.currentTarget);
-      if (error.currentTarget) {
-        console.error("- error.currentTarget.src:", error.currentTarget.src);
-        console.error("- error.currentTarget.tagName:", error.currentTarget.tagName);
-      }
-    } else {
-      console.error("- error: no error event provided");
-    }
-    
-    // Also try the original object approach
-    const errorDetails = {
-      src: src || 'undefined',
-      isS3Url: Boolean(isS3Url),
-      s3Key: s3Key || 'null',
-      finalUrl: finalUrl,
-      fileType: providedFileType || 'not provided',
-      fileName: fileName || 'not provided',
-      hasError: Boolean(error),
-      errorType: error?.type || 'no type'
-    };
-    
-    console.error("S3FilePreview: Error details object:", JSON.stringify(errorDetails, null, 2));
+    console.error("S3FilePreview: Error loading image:", {
+      src,
+      finalUrl,
+      isS3Url,
+      s3Key,
+      error: error?.type || 'unknown'
+    });
     setImageError(true);
   };
   
-  // Ensure URL is properly encoded
-  const getSafeUrl = (url: string): string => {
-    if (!url) return '';
-    
-    try {
-      // Try to parse the URL
-      const parsedUrl = new URL(url);
-      
-      // Properly encode the pathname segments while preserving the slashes
-      const encodedPathSegments = parsedUrl.pathname
-        .split('/')
-        .map(segment => segment ? encodeURIComponent(segment) : '')
-        .join('/');
-      
-      // Rebuild the URL with encoded path
-      parsedUrl.pathname = encodedPathSegments;
-      
-      return parsedUrl.toString();
-    } catch {
-      // If URL parsing fails, try basic encoding
-      return url
-        .split('/')
-        .map((part, i) => i === 0 ? part : encodeURIComponent(part))
-        .join('/');
-    }
-  };
-  
-  // Obtener la URL de visualización
-  const getFileUrl = (): string => {
-    if (isS3Url && s3Key) {
-      const apiUrl = `/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`;
-      console.log('S3FilePreview: Converting S3 URL to API route:', { original: src, s3Key, apiUrl });
-      return apiUrl;
-    }
-    const safeUrl = getSafeUrl(src);
-    console.log('S3FilePreview: Using direct URL:', { original: src, safeUrl });
-    return safeUrl;
-  };
-  
-  // Mostrar nada si no hay URL
-  if (!src) {
+  // Mostrar nada si no hay URL o análisis
+  if (!src || !fileAnalysis) {
     return null;
   }
+  
+  const { isImage, isPdf, isVideo, isSvg, fileCategory } = fileAnalysis;
   
   // Determinar el nombre del archivo para descargas
   const displayFileName = fileName || src.split('/').pop() || 'download';
@@ -319,8 +221,6 @@ const S3FilePreview = ({
   
   // Renderizar componente de imagen
   const renderImage = () => {
-    const imageUrl = getFileUrl();
-    
     if (imageError) {
       return (
         <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-400 p-4 text-center">
@@ -336,7 +236,7 @@ const S3FilePreview = ({
     if (isSvg) {
       return (
         <img 
-          src={imageUrl} 
+          src={finalUrl} 
           alt={alt}
           className={`object-contain ${className}`}
           width={width} 
@@ -352,7 +252,7 @@ const S3FilePreview = ({
     if (isS3Url && s3Key) {
       return (
         <img 
-          src={imageUrl} 
+          src={finalUrl} 
           alt={alt}
           className={`object-contain ${className}`}
           width={width} 
@@ -366,7 +266,7 @@ const S3FilePreview = ({
     // For non-S3 images, use Next.js Image component
     return (
       <Image 
-        src={imageUrl}
+        src={finalUrl}
         alt={alt}
         width={width}
         height={height}
@@ -389,7 +289,7 @@ const S3FilePreview = ({
             {displayFileName}
           </span>
           <a 
-            href={getFileUrl()} 
+            href={finalUrl} 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-xs text-blue-500 hover:underline mt-1"
@@ -401,7 +301,7 @@ const S3FilePreview = ({
       ) : isVideo ? (
         // Para videos, usar un tag de video
         <video 
-          src={getFileUrl()} 
+          src={finalUrl} 
           controls 
           className={className || "max-h-full max-w-full"}
           onClick={(e) => e.stopPropagation()}
@@ -417,8 +317,6 @@ const S3FilePreview = ({
           </span>
         </div>
       )}
-      
-    
     </div>
   );
 };

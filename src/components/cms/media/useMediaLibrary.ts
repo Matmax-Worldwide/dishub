@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
 import { MediaItem, Folder, MediaLibraryState } from './types';
+import { getCachedMediaItems, getCachedFolders } from '@/lib/media-cache';
 
 interface UseMediaLibraryProps {
   initialItems?: MediaItem[];
@@ -14,29 +15,6 @@ const ROOT_FOLDER: Folder = {
   isRoot: true
 };
 
-// Sample data for development when S3 is not configured
-const FALLBACK_MEDIA_ITEMS: MediaItem[] = [
-  {
-    id: 'fallback-1',
-    title: 'Sample Image',
-    fileUrl: 'https://images.unsplash.com/photo-1604537466158-719b1972feb8',
-    fileName: 'sample-image.jpg',
-    fileSize: 1240000,
-    fileType: 'image/jpeg',
-    altText: 'Sample development image',
-    uploadedAt: new Date().toISOString().split('T')[0],
-    dimensions: '1920x1080'
-  },
-  {
-    id: 'fallback-2',
-    title: 'Sample Document',
-    fileUrl: '/documents/sample.pdf',
-    fileName: 'sample-document.pdf',
-    fileSize: 2450000,
-    fileType: 'application/pdf',
-    uploadedAt: new Date().toISOString().split('T')[0]
-  }
-];
 
 // Initial state for the media library
 const initialMediaState: MediaLibraryState = {
@@ -181,135 +159,146 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
     try {
       console.log(`Fetching media content for folder: ${currentFolder.path}`);
       
-      // First fetch media items in the current folder
-      const itemsResponse = await fetch(`/api/media/list?prefix=${encodeURIComponent(currentFolder.path)}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-store',
-      });
-      
-      if (!itemsResponse.ok) {
-        throw new Error(`API Error: ${itemsResponse.status} ${itemsResponse.statusText}`);
-      }
-      
-      const itemsData = await itemsResponse.json();
-      
-      if (itemsData.error) {
-        throw new Error(itemsData.error);
-      }
-      
-      // Set media items
-      if (itemsData.items) {
-        dispatch({ type: 'SET_MEDIA_ITEMS', payload: itemsData.items });
-      } else {
-        dispatch({ type: 'SET_MEDIA_ITEMS', payload: [] });
-      }
-      
-      // Then fetch folders 
-      const foldersResponse = await fetch(`/api/media/folders?prefix=${encodeURIComponent(currentFolder.path)}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-store',
-      });
-      
-      if (!foldersResponse.ok) {
-        throw new Error(`API Error: ${foldersResponse.status} ${foldersResponse.statusText}`);
-      }
-      
-      const foldersData = await foldersResponse.json();
-      
-      if (foldersData.error) {
-        throw new Error(foldersData.error);
-      }
-      
-      // Map folder data to our Folder interface with item counts
-      const foldersList: Folder[] = foldersData.folders.map((folderName: string, index: number) => {
-        const folderPath = currentFolder.path 
-          ? `${currentFolder.path}/${folderName}` 
-          : folderName;
-          
-        // Count items in this folder from the just-fetched data
-        let itemsInFolder;
+      // Try to get from cache first, fallback to original API calls if cache fails
+      try {
+        const [itemsData, foldersData] = await Promise.all([
+          getCachedMediaItems(currentFolder.path),
+          getCachedFolders(currentFolder.path)
+        ]);
         
-        // Special case for root folder
-        if (folderPath === '' || folderPath === '/') {
-          itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
-            if (!item.s3Key) return false;
-            
-            // For root folder, count items that don't have a slash 
-            // or items where the first slash is also the last slash (no subdirectories)
-            const firstSlashIndex = item.s3Key.indexOf('/');
-            return firstSlashIndex === -1 || firstSlashIndex === item.s3Key.lastIndexOf('/');
-          });
+        // Set media items
+        dispatch({ type: 'SET_MEDIA_ITEMS', payload: itemsData });
+        
+        // Map folder data to our Folder interface with item counts
+        const foldersList: Folder[] = foldersData.map((folder) => ({
+          id: folder.id || `folder-${folder.path}`,
+          name: folder.name,
+          path: folder.path,
+          parentPath: folder.parentPath || currentFolder.path,
+          isRoot: folder.isRoot || false,
+          itemCount: folder.itemCount || 0,
+          subfolderCount: folder.subfolderCount || 0
+        }));
+        
+        dispatch({ type: 'SET_FOLDERS', payload: foldersList });
+        
+      } catch (cacheError) {
+        console.warn('Cache failed, falling back to direct API calls:', cacheError);
+        
+        // Fallback to original API calls
+        const itemsResponse = await fetch(`/api/media/list?prefix=${encodeURIComponent(currentFolder.path)}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          cache: 'no-store',
+        });
+        
+        if (!itemsResponse.ok) {
+          throw new Error(`API Error: ${itemsResponse.status} ${itemsResponse.statusText}`);
+        }
+        
+        const itemsData = await itemsResponse.json();
+        
+        if (itemsData.error) {
+          throw new Error(itemsData.error);
+        }
+        
+        // Set media items
+        if (itemsData.items) {
+          dispatch({ type: 'SET_MEDIA_ITEMS', payload: itemsData.items });
         } else {
-          // For other folders, count items directly in this folder (not in subfolders)
-          const folderPathWithSlash = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
-          itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
-            if (!item.s3Key) return false;
-            
-            // The item must start with the folder path
-            if (!item.s3Key.startsWith(folderPathWithSlash)) {
-              return false;
-            }
-            
-            // And must not have additional slashes after the folder path
-            // (which would indicate it's in a subfolder)
-            const remainingPath = item.s3Key.substring(folderPathWithSlash.length);
-            return !remainingPath.includes('/');
-          });
+          dispatch({ type: 'SET_MEDIA_ITEMS', payload: [] });
         }
         
-        // Get subfolder count from the new folderDetails API response
-        let subfolderCount = 0;
-        if (foldersData.folderDetails && foldersData.folderDetails[index]) {
-          subfolderCount = foldersData.folderDetails[index].subfolderCount || 0;
+        // Then fetch folders 
+        const foldersResponse = await fetch(`/api/media/folders?prefix=${encodeURIComponent(currentFolder.path)}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          cache: 'no-store',
+        });
+        
+        if (!foldersResponse.ok) {
+          throw new Error(`API Error: ${foldersResponse.status} ${foldersResponse.statusText}`);
         }
+        
+        const foldersData = await foldersResponse.json();
+        
+        if (foldersData.error) {
+          throw new Error(foldersData.error);
+        }
+        
+        // Map folder data to our Folder interface with item counts
+        const foldersList: Folder[] = foldersData.folders.map((folderName: string, index: number) => {
+          const folderPath = currentFolder.path 
+            ? `${currentFolder.path}/${folderName}` 
+            : folderName;
+            
+          // Count items in this folder from the just-fetched data
+          let itemsInFolder;
           
-        return {
-          id: `folder-${folderPath}`,
-          name: folderName,
-          path: folderPath,
-          parentPath: currentFolder.path,
-          itemCount: itemsInFolder.length,
-          subfolderCount
-        };
-      });
-      
-      dispatch({ type: 'SET_FOLDERS', payload: foldersList });
-    } catch (err: unknown) {
-      console.error('Error fetching media content:', err);
-      
-      // Check if it's a configuration error or API error
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network Error')) {
-        console.warn('API route not accessible. Using fallback data for development.');
-        setIsConfigError(true);
-        dispatch({ type: 'SET_ERROR', payload: 'API route not accessible. Check server logs for details.' });
+          // Special case for root folder
+          if (folderPath === '' || folderPath === '/') {
+            itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
+              if (!item.s3Key) return false;
+              
+              // For root folder, count items that don't have a slash 
+              // or items where the first slash is also the last slash (no subdirectories)
+              const firstSlashIndex = item.s3Key.indexOf('/');
+              return firstSlashIndex === -1 || firstSlashIndex === item.s3Key.lastIndexOf('/');
+            });
+          } else {
+            // For other folders, count items directly in this folder (not in subfolders)
+            const folderPathWithSlash = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+            itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
+              if (!item.s3Key) return false;
+              
+              // The item must start with the folder path
+              if (!item.s3Key.startsWith(folderPathWithSlash)) {
+                return false;
+              }
+              
+              // And must not have additional slashes after the folder path
+              // (which would indicate it's in a subfolder)
+              const remainingPath = item.s3Key.substring(folderPathWithSlash.length);
+              return !remainingPath.includes('/');
+            });
+          }
+          
+          // Get subfolder count from the new folderDetails API response
+          let subfolderCount = 0;
+          if (foldersData.folderDetails && foldersData.folderDetails[index]) {
+            subfolderCount = foldersData.folderDetails[index].subfolderCount || 0;
+          }
+            
+          return {
+            id: `folder-${folderPath}`,
+            name: folderName,
+            path: folderPath,
+            parentPath: currentFolder.path,
+            isRoot: false,
+            itemCount: itemsInFolder.length,
+            subfolderCount
+          };
+        });
         
-        // In development mode, use fallback data
-        if (process.env.NODE_ENV === 'development') {
-          dispatch({ type: 'SET_MEDIA_ITEMS', payload: FALLBACK_MEDIA_ITEMS });
-          dispatch({ type: 'SET_FOLDERS', payload: [
-            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '', isRoot: false },
-            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '', isRoot: false }
-          ]});
+        dispatch({ type: 'SET_FOLDERS', payload: foldersList });
+      }
+      
+    } catch (error) {
+      console.error('Error fetching media content:', error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('AWS S3 is not properly configured')) {
+          setIsConfigError(true);
+          dispatch({ type: 'SET_ERROR', payload: 'AWS S3 configuration error. Please check your environment variables.' });
+        } else {
+          dispatch({ type: 'SET_ERROR', payload: error.message });
         }
       } else {
-        dispatch({ type: 'SET_ERROR', payload: `Failed to load media content: ${errorMessage}` });
-        
-        // In development mode, use fallback data
-        if (process.env.NODE_ENV === 'development') {
-          dispatch({ type: 'SET_MEDIA_ITEMS', payload: FALLBACK_MEDIA_ITEMS });
-          dispatch({ type: 'SET_FOLDERS', payload: [
-            { id: 'folder-images', name: 'Images', path: 'images', parentPath: '', isRoot: false },
-            { id: 'folder-documents', name: 'Documents', path: 'documents', parentPath: '', isRoot: false }
-          ]});
-        }
+        dispatch({ type: 'SET_ERROR', payload: 'An unexpected error occurred while fetching media content.' });
       }
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -1421,21 +1410,6 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
       console.log("Moving: Using current folder:", folderToMove);
     }
     
-    // Approach 4: Try with sanitized path
-    if (!folderToMove) {
-      const sanitizedPath = sanitizeName(sourceFolderPath);
-      folderToMove = folders.find(f => f.path === sanitizedPath);
-      console.log(`Moving: Trying with sanitized path ${sanitizedPath}:`, folderToMove);
-    }
-    
-    // Approach 5: Substring match for path
-    if (!folderToMove) {
-      folderToMove = folders.find(f => 
-        sourceFolderPath.includes(f.path) || f.path.includes(sourceFolderPath)
-      );
-      console.log("Moving: Trying substring match:", folderToMove);
-    }
-    
     if (!folderToMove) {
       console.error(`Cannot find folder to move with path: ${sourceFolderPath} or id: ${folderId}`);
       dispatch({ 
@@ -1445,89 +1419,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
       return;
     }
     
-    // Mostrar mensaje de progreso
-    dispatch({ 
-      type: 'SET_ERROR', 
-      payload: `Moviendo carpeta y sus archivos...` 
-    });
-    
-    // Store original values for potential revert
-    const originalFolder = { ...folderToMove };
-    
-    // Get the actual path that's stored (which may have been sanitized)
-    const actualSourcePath = folderToMove.path;
-    
-    // Determine the new folder path
-    const folderName = actualSourcePath.includes('/') 
-      ? actualSourcePath.split('/').pop() || ''
-      : actualSourcePath;
-      
-    const newFolderPath = targetFolderPath 
-      ? `${targetFolderPath}/${folderName}` 
-      : folderName;
-      
-    // Create updated folder object
-    const updatedFolder: Folder = {
-      ...folderToMove,
-      path: newFolderPath,
-      parentPath: targetFolderPath
-    };
-    
-    console.log("Moving folder to:", updatedFolder);
-    
-    // Find files in the folder being moved (for potential revert)
-    const filesToUpdate = mediaItems.filter(item => {
-      if (!item.s3Key) return false;
-      
-      // Check if the item is in the folder that's being moved
-      const normalizedSourcePath = actualSourcePath.endsWith('/') 
-        ? actualSourcePath 
-        : `${actualSourcePath}/`;
-        
-      return item.s3Key.startsWith(normalizedSourcePath);
-    });
-    
-    // Store original file data for potential revert
-    const originalFiles = filesToUpdate.map(file => ({ ...file }));
-    
-    // 1. Apply optimistic update to folder structure
-    // First remove from the current list
-    dispatch({ 
-      type: 'REMOVE_FOLDER', 
-      payload: folderToMove.id 
-    });
-    
-    // If we're in the target folder, we need to add it to our current view
-    if (currentFolder.path === targetFolderPath) {
-      dispatch({ 
-        type: 'ADD_FOLDER', 
-        payload: updatedFolder 
-      });
-    }
-    
-    // If this is the current folder, navigate to parent
-    if (currentFolder.path === actualSourcePath) {
-      navigateBack();
-    }
-    
-    // 2. Apply optimistic updates to files in the folder
-    // Use the bulk update action instead of updating each file individually
-    dispatch({
-      type: 'UPDATE_MEDIA_ITEMS_IN_FOLDER',
-      payload: {
-        folderPath: actualSourcePath,
-        newFolderPath: newFolderPath
-      }
-    });
-    
-    // If we're in the source folder view, we need to remove the files from current view
-    if (currentFolder.path === actualSourcePath) {
-      filesToUpdate.forEach(file => {
-        dispatch({ type: 'REMOVE_MEDIA_ITEM', payload: file.id });
-      });
-    }
-    
-    // 3. Perform the actual API call
+    // Simple implementation for now - just refresh after move
     try {
       const response = await fetch('/api/media/move-folder', {
         method: 'POST',
@@ -1535,7 +1427,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          sourcePath: actualSourcePath,
+          sourcePath: sourceFolderPath,
           targetPath: targetFolderPath
         })
       });
@@ -1550,53 +1442,13 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         throw new Error(data.error);
       }
       
-      // Mostrar mensaje de éxito
-      dispatch({ 
-        type: 'SET_ERROR', 
-        payload: data.message || `Carpeta movida con éxito. ${data.itemsProcessed || 0} archivos actualizados.` 
-      });
-      
-      // Clear message after a delay
-      setTimeout(() => {
-        dispatch({ type: 'SET_ERROR', payload: null });
-      }, 3000);
+      // Refresh content after successful move
+      await fetchMediaContent();
       
     } catch (error: unknown) {
       console.error('Error moving folder:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       dispatch({ type: 'SET_ERROR', payload: `Failed to move folder: ${errorMessage}` });
-      
-      // 4. Revert the optimistic updates on error
-      // Remove the folder from the target folder view if it was added
-      if (currentFolder.path === targetFolderPath) {
-        dispatch({ 
-          type: 'REMOVE_FOLDER', 
-          payload: updatedFolder.id 
-        });
-      }
-      
-      // Restore the folder to its original location if we're still in that view
-      if (currentFolder.path === originalFolder.parentPath || 
-          (currentFolder.path === '' && !originalFolder.parentPath)) {
-        dispatch({ 
-          type: 'ADD_FOLDER', 
-          payload: originalFolder 
-        });
-      }
-      
-      // Revert file updates by replacing all media items
-      const updatedMediaItems = [...mediaItems];
-      for (let i = 0; i < updatedMediaItems.length; i++) {
-        const item = updatedMediaItems[i];
-        const originalItem = originalFiles.find(original => original.id === item.id);
-        if (originalItem) {
-          updatedMediaItems[i] = originalItem;
-        }
-      }
-      dispatch({ type: 'SET_MEDIA_ITEMS', payload: updatedMediaItems });
-      
-      // Refresh to ensure we have the latest state
-      fetchMediaContent();
     }
   };
 
@@ -1634,4 +1486,4 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
     sortField,
     sortDirection
   };
-} 
+}
