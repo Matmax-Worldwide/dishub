@@ -476,6 +476,7 @@ const resolvers = {
     ...calendarResolvers.Query, // Add calendar queries
     ...shippingResolvers.Query,
     ...ecommerceResolvers.Query,
+
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -506,11 +507,12 @@ const resolvers = {
   Booking: calendarResolvers.Booking, // Add Booking type resolver
   Price: calendarResolvers.Price, // Add Price type resolver
   Currency: calendarResolvers.Currency, // Add Currency type resolver
-  
+
   // Ecommerce type resolvers
   Shop: ecommerceResolvers.Shop,
   Product: ecommerceResolvers.Product,
   ProductCategory: ecommerceResolvers.ProductCategory,
+
   Order: ecommerceResolvers.Order,
   OrderItem: ecommerceResolvers.OrderItem,
   Payment: ecommerceResolvers.Payment,
@@ -519,6 +521,12 @@ const resolvers = {
   Tax: ecommerceResolvers.Tax,
   Customer: ecommerceResolvers.Customer,
   Review: ecommerceResolvers.Review,
+
+  Tax: ecommerceResolvers.Tax,
+  PaymentProvider: ecommerceResolvers.PaymentProvider,
+  PaymentMethod: ecommerceResolvers.PaymentMethod,
+  Payment: ecommerceResolvers.Payment,
+
 };
 
 // Check if the external links resolver exists
