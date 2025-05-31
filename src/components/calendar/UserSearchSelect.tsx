@@ -149,7 +149,7 @@ export default function UserSearchSelect({
 
           {/* Dropdown Results */}
           {isOpen && !disabled && (
-            <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-64 overflow-hidden shadow-lg border">
+            <Card className="absolute top-full left-0 right-0 mt-1 z-[9999] max-h-64 overflow-hidden shadow-lg border">
               <CardContent className="p-0">
                 {filteredUsers.length > 0 ? (
                   <div className="max-h-64 overflow-y-auto">
@@ -197,7 +197,7 @@ export default function UserSearchSelect({
       {/* Click outside to close */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-[9998]" 
           onClick={() => setIsOpen(false)}
         />
       )}

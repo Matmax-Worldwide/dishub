@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
-import { StaffProfile, User, Service, Location, StaffScheduleInput } from '@/types/calendar';
-import StaffForm from './StaffForm';
+import { StaffProfile, User } from '@/types/calendar';
+import StaffCreator from './StaffCreator';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -37,14 +37,11 @@ import { Card } from '@/components/ui/card';
 export default function StaffManager() {
   const [staffMembers, setStaffMembers] = useState<StaffProfile[]>([]);
   const [allUsers, setAllUsers] = useState<Partial<User>[]>([]);
-  const [allServices, setAllServices] = useState<Service[]>([]);
-  const [allLocations, setAllLocations] = useState<Location[]>([]);
   
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingStaffMember, setEditingStaffMember] = useState<StaffProfile | undefined>(undefined);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -55,17 +52,13 @@ export default function StaffManager() {
     setError(null);
     try {
       // Ensure GraphQL queries are named correctly as per schema
-      const [staffData, usersData, servicesData, locationsData] = await Promise.all([
+      const [staffData, usersData] = await Promise.all([
         graphqlClient.staffProfiles(), 
         graphqlClient.users(),      
-        graphqlClient.services(),   
-        graphqlClient.locations(),  
       ]);
       
       setStaffMembers((staffData as unknown as StaffProfile[]) || []);
       setAllUsers(usersData || []);
-      setAllServices(servicesData as Service[] || []);
-      setAllLocations(locationsData || []);
       if(showToasts) toast.success("Staff data refreshed");
     } catch (err: unknown) {
       console.error('Failed to fetch staff management data:', err);
@@ -86,13 +79,7 @@ export default function StaffManager() {
   );
 
   const handleAddNew = () => {
-    setEditingStaffMember(undefined);
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = (staffMember: StaffProfile) => {
-    setEditingStaffMember(staffMember);
-    setIsFormOpen(true);
+    setIsCreatorOpen(true);
   };
 
   const handleDeleteConfirmation = (staffMember: StaffProfile) => {
@@ -116,55 +103,9 @@ export default function StaffManager() {
     }
   };
 
-  const handleSaveStaff = async (data: { staffProfileData: Partial<StaffProfile>; scheduleData: Partial<StaffScheduleInput>[] }) => {
-    setIsSaving(true);
-    setError(null);
-    const { staffProfileData, scheduleData } = data;
-
-    try {
-      let savedProfile: StaffProfile;
-      
-      if (!staffProfileData.userId) {
-        throw new Error('User ID is required');
-      }
-
-      const profileInput = {
-          userId: staffProfileData.userId,
-          bio: staffProfileData.bio || undefined,
-          specializations: staffProfileData.specializations || [],
-      };
-
-      if (editingStaffMember?.id) { 
-        savedProfile = await graphqlClient.updateStaffProfile({ id: editingStaffMember.id, input: profileInput }) as unknown as StaffProfile;
-        toast.success(`Staff member "${savedProfile.user?.firstName}" updated.`);
-      } else { 
-        savedProfile = await graphqlClient.createStaffProfile({ input: profileInput }) as unknown as StaffProfile;
-        toast.success(`Staff member "${savedProfile.user?.firstName}" created.`);
-      }
-
-      if (savedProfile && savedProfile.id && scheduleData) {
-        const typedScheduleData = scheduleData.map(s => ({
-            staffProfileId: savedProfile.id,
-            dayOfWeek: s.dayOfWeek,
-            startTime: s.startTime || '',
-            endTime: s.endTime || '',
-            scheduleType: 'REGULAR_HOURS' as const,
-            isAvailable: s.isAvailable ?? true
-        }));
-        await graphqlClient.updateStaffSchedule({ staffProfileId: savedProfile.id, schedule: typedScheduleData });
-        toast.success(`Schedule updated for ${savedProfile.user?.firstName}.`);
-      }
-      
-      fetchData(false); 
-      setIsFormOpen(false);
-      setEditingStaffMember(undefined);
-    } catch (err: unknown) {
-      const errorMsg = `Failed to save staff: ${err instanceof Error ? err.message : 'Unknown error'}`;
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setIsSaving(false);
-    }
+  const handleStaffCreated = (staffProfile: StaffProfile) => {
+    console.log('Staff created:', staffProfile);
+    fetchData(false); // Refresh the staff list
   };
 
   if (isLoadingData && staffMembers.length === 0) {
@@ -237,7 +178,7 @@ export default function StaffManager() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(staff)}>
+                      <DropdownMenuItem onClick={() => toast.info('Edit functionality coming soon!')}>
                         <Edit className="mr-2 h-4 w-4" /> Edit Profile & Schedule
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDeleteConfirmation(staff)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
@@ -252,15 +193,10 @@ export default function StaffManager() {
         </Table>
       </Card>
 
-      <StaffForm
-        isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setEditingStaffMember(undefined); }}
-        onSave={handleSaveStaff}
-        initialData={editingStaffMember as Partial<StaffProfile> & { schedules?: Partial<StaffScheduleInput>[] }}
-        allUsersForSelect={usersAvailableForStaffAssignment} // Corrected variable name
-        allServices={allServices}
-        allLocations={allLocations}
-        isSaving={isSaving}
+      <StaffCreator
+        isOpen={isCreatorOpen}
+        onClose={() => setIsCreatorOpen(false)}
+        onSuccess={handleStaffCreated}
       />
 
       {staffToDelete && (

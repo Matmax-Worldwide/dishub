@@ -143,8 +143,8 @@ export default function CalendarPage() {
         graphqlClient.staffProfiles(),
         graphqlClient.bookings({
           filter: {
-            dateFrom: getStartOfPeriod(currentDate, viewMode).toISOString().split('T')[0],
-            dateTo: getEndOfPeriod(currentDate, viewMode).toISOString().split('T')[0]
+            startDate: getStartOfPeriod(currentDate, viewMode).toISOString().split('T')[0],
+            endDate: getEndOfPeriod(currentDate, viewMode).toISOString().split('T')[0]
           }
         })
       ]);

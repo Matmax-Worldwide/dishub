@@ -49,15 +49,15 @@ interface BookingListItem {
 }
 
 interface BookingFilterInput {
-  dateFrom?: string | null;
-  dateTo?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
   status?: string | null; // BookingStatus enum as string
   locationId?: string | null;
   serviceId?: string | null;
   staffProfileId?: string | null;
   userId?: string | null;
   customerEmail?: string | null;
-  searchQuery?: string | null;
+  search?: string | null;
 }
 
 // Example BookingStatus enum (ensure this matches your GQL schema)
@@ -134,7 +134,7 @@ const BookingsList: React.FC = () => {
     setTempFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  const handleDateFilterChange = (key: 'dateFrom' | 'dateTo', date: Date | undefined) => {
+  const handleDateFilterChange = (key: 'startDate' | 'endDate', date: Date | undefined) => {
     setTempFilters(prev => ({ ...prev, [key]: date ? format(date, 'yyyy-MM-dd') : null }));
   };
 
@@ -195,8 +195,8 @@ const BookingsList: React.FC = () => {
             {/* Search Query */}
             <Input
               placeholder="Search by name, email, notes..."
-              value={tempFilters.searchQuery || ''}
-              onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+              value={tempFilters.search || ''}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
               className="col-span-full sm:col-span-1"
             />
 
@@ -205,17 +205,17 @@ const BookingsList: React.FC = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className={`w-full justify-start text-left font-normal ${!tempFilters.dateFrom && "text-muted-foreground"}`}
+                  className={`w-full justify-start text-left font-normal ${!tempFilters.startDate && "text-muted-foreground"}`}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {tempFilters.dateFrom ? format(new Date(tempFilters.dateFrom), "PPP") : <span>Date from</span>}
+                  {tempFilters.startDate ? format(new Date(tempFilters.startDate), "PPP") : <span>Date from</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={tempFilters.dateFrom ? new Date(tempFilters.dateFrom) : undefined}
-                  onSelect={(date) => handleDateFilterChange('dateFrom', date)}
+                  selected={tempFilters.startDate ? new Date(tempFilters.startDate) : undefined}
+                  onSelect={(date) => handleDateFilterChange('startDate', date)}
                   initialFocus
                 />
               </PopoverContent>
@@ -226,17 +226,17 @@ const BookingsList: React.FC = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className={`w-full justify-start text-left font-normal ${!tempFilters.dateTo && "text-muted-foreground"}`}
+                  className={`w-full justify-start text-left font-normal ${!tempFilters.endDate && "text-muted-foreground"}`}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {tempFilters.dateTo ? format(new Date(tempFilters.dateTo), "PPP") : <span>Date to</span>}
+                  {tempFilters.endDate ? format(new Date(tempFilters.endDate), "PPP") : <span>Date to</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={tempFilters.dateTo ? new Date(tempFilters.dateTo) : undefined}
-                  onSelect={(date) => handleDateFilterChange('dateTo', date)}
+                  selected={tempFilters.endDate ? new Date(tempFilters.endDate) : undefined}
+                  onSelect={(date) => handleDateFilterChange('endDate', date)}
                   initialFocus
                 />
               </PopoverContent>
