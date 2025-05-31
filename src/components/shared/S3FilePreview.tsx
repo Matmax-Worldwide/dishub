@@ -25,6 +25,92 @@ interface S3FilePreviewProps {
   fileName?: string;
 }
 
+// Función para determinar el tipo de archivo a partir de la URL
+const getFileTypeFromUrl = (url: string): string => {
+  // Check for query params and get the real file extension
+  const cleanUrl = url.split('?')[0];
+  const extension = cleanUrl.split('.').pop()?.toLowerCase();
+  
+  if (!extension) {
+    // Try to detect PDFs from the pattern in S3 key
+    if (url.includes('-') && url.toLowerCase().includes('pdf')) {
+      return 'application/pdf';
+    }
+    return 'application/octet-stream';
+  }
+  
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'pdf':
+      return 'application/pdf';
+    case 'mp4':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'mov':
+      return 'video/quicktime';
+    case 'doc':
+    case 'docx':
+      return 'application/msword';
+    case 'xls':
+    case 'xlsx':
+      return 'application/vnd.ms-excel';
+    case 'ppt':
+    case 'pptx':
+      return 'application/vnd.ms-powerpoint';
+    case 'csv':
+      return 'text/csv';
+    case 'txt':
+      return 'text/plain';
+    case 'json':
+      return 'application/json';
+    case 'html':
+    case 'htm':
+      return 'text/html';
+    case 'css':
+      return 'text/css';
+    case 'js':
+      return 'application/javascript';
+    case 'zip':
+    case 'rar':
+      return 'application/zip';
+    case 'mp3':
+    case 'wav':
+    case 'ogg':
+      return 'audio/mpeg';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+// Función para categorizar tipos de archivos
+const categorizeFileType = (fileType: string): string => {
+  if (fileType.startsWith('image/')) return 'image';
+  if (fileType.startsWith('video/')) return 'video';
+  if (fileType.startsWith('audio/')) return 'audio';
+  if (fileType === 'application/pdf') return 'pdf';
+  if (fileType === 'application/msword' || fileType.includes('wordprocessingml')) return 'document';
+  if (fileType === 'application/vnd.ms-excel' || fileType.includes('spreadsheetml')) return 'spreadsheet';
+  if (fileType === 'application/vnd.ms-powerpoint' || fileType.includes('presentationml')) return 'presentation';
+  if (fileType === 'text/csv') return 'csv';
+  if (fileType === 'text/plain') return 'text';
+  if (fileType === 'application/json' || fileType === 'text/json') return 'json';
+  if (fileType.includes('html')) return 'html';
+  if (fileType.includes('javascript') || fileType.includes('typescript')) return 'code';
+  if (fileType.includes('zip') || fileType.includes('compressed') || fileType.includes('archive')) return 'archive';
+  return 'other';
+};
+
 /**
  * Componente optimizado para mostrar previsualizaciones de archivos de S3
  * Usa caché global para evitar múltiples llamadas a la API
@@ -83,92 +169,6 @@ const S3FilePreview = ({
     setImageError(false);
   }, [src]);
 
-  // Función para determinar el tipo de archivo a partir de la URL
-  const getFileTypeFromUrl = (url: string): string => {
-    // Check for query params and get the real file extension
-    const cleanUrl = url.split('?')[0];
-    const extension = cleanUrl.split('.').pop()?.toLowerCase();
-    
-    if (!extension) {
-      // Try to detect PDFs from the pattern in S3 key
-      if (url.includes('-') && url.toLowerCase().includes('pdf')) {
-        return 'application/pdf';
-      }
-      return 'application/octet-stream';
-    }
-    
-    switch (extension) {
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'gif':
-        return 'image/gif';
-      case 'webp':
-        return 'image/webp';
-      case 'svg':
-        return 'image/svg+xml';
-      case 'pdf':
-        return 'application/pdf';
-      case 'mp4':
-        return 'video/mp4';
-      case 'webm':
-        return 'video/webm';
-      case 'mov':
-        return 'video/quicktime';
-      case 'doc':
-      case 'docx':
-        return 'application/msword';
-      case 'xls':
-      case 'xlsx':
-        return 'application/vnd.ms-excel';
-      case 'ppt':
-      case 'pptx':
-        return 'application/vnd.ms-powerpoint';
-      case 'csv':
-        return 'text/csv';
-      case 'txt':
-        return 'text/plain';
-      case 'json':
-        return 'application/json';
-      case 'html':
-      case 'htm':
-        return 'text/html';
-      case 'css':
-        return 'text/css';
-      case 'js':
-        return 'application/javascript';
-      case 'zip':
-      case 'rar':
-        return 'application/zip';
-      case 'mp3':
-      case 'wav':
-      case 'ogg':
-        return 'audio/mpeg';
-      default:
-        return 'application/octet-stream';
-    }
-  };
-  
-  // Función para categorizar tipos de archivos
-  const categorizeFileType = (fileType: string): string => {
-    if (fileType.startsWith('image/')) return 'image';
-    if (fileType.startsWith('video/')) return 'video';
-    if (fileType.startsWith('audio/')) return 'audio';
-    if (fileType === 'application/pdf') return 'pdf';
-    if (fileType === 'application/msword' || fileType.includes('wordprocessingml')) return 'document';
-    if (fileType === 'application/vnd.ms-excel' || fileType.includes('spreadsheetml')) return 'spreadsheet';
-    if (fileType === 'application/vnd.ms-powerpoint' || fileType.includes('presentationml')) return 'presentation';
-    if (fileType === 'text/csv') return 'csv';
-    if (fileType === 'text/plain') return 'text';
-    if (fileType === 'application/json' || fileType === 'text/json') return 'json';
-    if (fileType.includes('html')) return 'html';
-    if (fileType.includes('javascript') || fileType.includes('typescript')) return 'code';
-    if (fileType.includes('zip') || fileType.includes('compressed') || fileType.includes('archive')) return 'archive';
-    return 'other';
-  };
-  
   // Handler for image error
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error("S3FilePreview: Error loading image:", {
