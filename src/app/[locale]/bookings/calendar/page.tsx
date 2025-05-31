@@ -728,7 +728,10 @@ export default function CalendarPage() {
                 <div key={service.id} className="flex justify-between items-center">
                   <span className="text-sm">{service.name}</span>
                   <Badge variant="outline">
-                    ${service.prices[0].amount}
+                    {service.prices && service.prices.length > 0 
+                      ? `$${service.prices[0].amount}` 
+                      : 'No price'
+                    }
                   </Badge>
                 </div>
               ))}

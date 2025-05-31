@@ -247,7 +247,7 @@ export default function ProductsPage() {
           : "space-y-4"
         }>
           {filteredProducts.map((product) => {
-            const primaryPrice = product.prices[0];
+            const primaryPrice = product.prices && product.prices.length > 0 ? product.prices[0] : null;
             return (
               <ProductCard
                 key={product.id}
