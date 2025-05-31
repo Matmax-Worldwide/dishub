@@ -4482,6 +4482,1221 @@ export const cmsOperations = {
     }
   },
 
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
+  // Product Category functions
+  async getProductCategories(filter?: {
+    search?: string;
+    shopId?: string;
+    parentId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive: boolean;
+    shopId?: string;
+    productCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetProductCategories($filter: ProductCategoryFilterInput, $pagination: PaginationInput) {
+        productCategories(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          slug
+          parentId
+          isActive
+          shopId
+          productCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ productCategories: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.productCategories || [];
+  },
+
+  async getProductCategory(id: string): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive: boolean;
+    shopId?: string;
+    productCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetProductCategory($id: ID!) {
+        productCategory(id: $id) {
+          id
+          name
+          description
+          slug
+          parentId
+          isActive
+          shopId
+          productCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ productCategory: {
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.productCategory;
+  },
+
+  async createProductCategory(input: {
+    name: string;
+    description?: string;
+    slug: string;
+    parentId?: string;
+    isActive?: boolean;
+    shopId?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    category?: {
+      id: string;
+      name: string;
+      description?: string;
+      slug: string;
+      parentId?: string;
+      isActive: boolean;
+      shopId?: string;
+      productCount: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }> {
+    const mutation = `
+      mutation CreateProductCategory($input: CreateProductCategoryInput!) {
+        createProductCategory(input: $input) {
+          success
+          message
+          category {
+            id
+            name
+            description
+            slug
+            parentId
+            isActive
+            shopId
+            productCount
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createProductCategory: {
+      success: boolean;
+      message: string;
+      category?: {
+        id: string;
+        name: string;
+        description?: string;
+        slug: string;
+        parentId?: string;
+        isActive: boolean;
+        shopId?: string;
+        productCount: number;
+        createdAt: string;
+        updatedAt: string;
+      };
+    } }>(mutation, { input });
+
+    return result.createProductCategory;
+  },
+
+  // Payment Provider functions
+  async getPaymentProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentProviders($filter: PaymentProviderFilterInput, $pagination: PaginationInput) {
+        paymentProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentProviders || [];
+  },
+
+  async getPaymentProvider(id: string): Promise<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetPaymentProvider($id: ID!) {
+        paymentProvider(id: $id) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentProvider: {
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.paymentProvider;
+  },
+
+  // Payment Method functions
+  async getPaymentMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    providerId: string;
+    isActive: boolean;
+    processingFeeRate?: number;
+    fixedFee?: number;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentMethods($filter: PaymentMethodFilterInput, $pagination: PaginationInput) {
+        paymentMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          providerId
+          isActive
+          processingFeeRate
+          fixedFee
+          provider {
+            id
+            name
+            type
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+      providerId: string;
+      isActive: boolean;
+      processingFeeRate?: number;
+      fixedFee?: number;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentMethods || [];
+  },
+
+  // Payment functions
+  async getPayments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    providerId?: string;
+    paymentMethodId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId?: string;
+    amount: number;
+    status: string;
+    transactionId?: string;
+    failureReason?: string;
+    refundAmount?: number;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    paymentMethod: {
+      id: string;
+      name: string;
+      type: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    order?: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPayments($filter: PaymentFilterInput, $pagination: PaginationInput) {
+        payments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          amount
+          status
+          transactionId
+          failureReason
+          refundAmount
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+          paymentMethod {
+            id
+            name
+            type
+            provider {
+              id
+              name
+              type
+            }
+          }
+          provider {
+            id
+            name
+            type
+          }
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            shop {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ payments: Array<{
+      id: string;
+      orderId?: string;
+      amount: number;
+      status: string;
+      transactionId?: string;
+      failureReason?: string;
+      refundAmount?: number;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      paymentMethod: {
+        id: string;
+        name: string;
+        type: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      order?: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.payments || [];
+  },
+
+  async createPaymentProvider(input: {
+    name: string;
+    type: string;
+    isActive?: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    provider?: {
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+    };
+  }> {
+    const mutation = `
+      mutation CreatePaymentProvider($input: CreatePaymentProviderInput!) {
+        createPaymentProvider(input: $input) {
+          success
+          message
+          provider {
+            id
+            name
+            type
+            isActive
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createPaymentProvider: {
+      success: boolean;
+      message: string;
+      provider?: {
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+      };
+    } }>(mutation, { input });
+
+    return result.createPaymentProvider;
+  },
+
+  // Shipping functions
+  async getShippingProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    trackingUrl?: string;
+    shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingProviders($filter: ShippingProviderFilterInput, $pagination: PaginationInput) {
+        shippingProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          trackingUrl
+          shippingMethods {
+            id
+            name
+            description
+            isActive
+            estimatedDaysMin
+            estimatedDaysMax
+            trackingEnabled
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      trackingUrl?: string;
+      shippingMethods: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        isActive: boolean;
+        estimatedDaysMin?: number;
+        estimatedDaysMax?: number;
+        trackingEnabled: boolean;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingProviders || [];
+  },
+
+  async getShippingMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    providerId: string;
+    isActive: boolean;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    trackingEnabled: boolean;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      minWeight?: number;
+      maxWeight?: number;
+      shippingZone: {
+        id: string;
+        name: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingMethods($filter: ShippingMethodFilterInput, $pagination: PaginationInput) {
+        shippingMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          providerId
+          isActive
+          estimatedDaysMin
+          estimatedDaysMax
+          trackingEnabled
+          provider {
+            id
+            name
+            type
+          }
+          shippingRates {
+            id
+            baseRate
+            minWeight
+            maxWeight
+            shippingZone {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        providerId?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      providerId: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        minWeight?: number;
+        maxWeight?: number;
+        shippingZone: {
+          id: string;
+          name: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingMethods || [];
+  },
+
+  async getShippingZones(filter?: {
+    search?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    countries: string[];
+    states: string[];
+    postalCodes: string[];
+    isActive: boolean;
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+        };
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingZones($filter: ShippingZoneFilterInput, $pagination: PaginationInput) {
+        shippingZones(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          countries
+          states
+          postalCodes
+          isActive
+          shippingRates {
+            id
+            baseRate
+            shippingMethod {
+              id
+              name
+              provider {
+                id
+                name
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingZones: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      countries: string[];
+      states: string[];
+      postalCodes: string[];
+      isActive: boolean;
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+          };
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingZones || [];
+  },
+
+  async getShipments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    shippingMethodId?: string;
+    trackingNumber?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId: string;
+    trackingNumber?: string;
+    status: string;
+    shippingCost: number;
+    weight?: number;
+    dimensions?: string;
+    fromAddress: string;
+    toAddress: string;
+    shippedAt?: string;
+    estimatedDelivery?: string;
+    deliveredAt?: string;
+    order: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    shippingMethod: {
+      id: string;
+      name: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShipments($filter: ShipmentFilterInput, $pagination: PaginationInput) {
+        shipments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          trackingNumber
+          status
+          shippingCost
+          weight
+          dimensions
+          fromAddress
+          toAddress
+          shippedAt
+          estimatedDelivery
+          deliveredAt
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            currency {
+              id
+              code
+              symbol
+            }
+            shop {
+              id
+              name
+            }
+          }
+          shippingMethod {
+            id
+            name
+            provider {
+              id
+              name
+              type
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        shippingMethodId?: string;
+        trackingNumber?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shipments: Array<{
+      id: string;
+      orderId: string;
+      trackingNumber?: string;
+      status: string;
+      shippingCost: number;
+      weight?: number;
+      dimensions?: string;
+      fromAddress: string;
+      toAddress: string;
+      shippedAt?: string;
+      estimatedDelivery?: string;
+      deliveredAt?: string;
+      order: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shipments || [];
+  },
+
 };
 
 // Form Builder API functions
@@ -6530,6 +7745,139 @@ const graphqlClient = {
     }
   },
 
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
 };
 
 // Export all functions
@@ -6759,3 +8107,1631 @@ async function deleteFormSubmission(id: string): Promise<FormSubmissionResult> {
     return { success: false, message: 'Error deleting form submission', submission: null };
   }
 }
+
+// E-commerce functions
+export const ecommerce = {
+  // Shop functions
+  async getShops(filter?: {
+    search?: string;
+    adminUserId?: string;
+    currencyId?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    defaultCurrency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    acceptedCurrencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    }>;
+    adminUser?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email: string;
+    };
+    products: Array<{
+      id: string;
+      name: string;
+      sku?: string;
+      stockQuantity?: number;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShops($filter: ShopFilterInput, $pagination: PaginationInput) {
+        shops(filter: $filter, pagination: $pagination) {
+          id
+          name
+          defaultCurrency {
+            id
+            code
+            name
+            symbol
+          }
+          acceptedCurrencies {
+            id
+            code
+            name
+            symbol
+          }
+          adminUser {
+            id
+            firstName
+            lastName
+            email
+          }
+          products {
+            id
+            name
+            sku
+            stockQuantity
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ shops: Array<{
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+      products: Array<{
+        id: string;
+        name: string;
+        sku?: string;
+        stockQuantity?: number;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.shops || [];
+  },
+
+  async getShop(id: string): Promise<{
+    id: string;
+    name: string;
+    defaultCurrency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    acceptedCurrencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    }>;
+    adminUser?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email: string;
+    };
+    products: Array<{
+      id: string;
+      name: string;
+      sku?: string;
+      stockQuantity?: number;
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetShop($id: ID!) {
+        shop(id: $id) {
+          id
+          name
+          defaultCurrency {
+            id
+            code
+            name
+            symbol
+          }
+          acceptedCurrencies {
+            id
+            code
+            name
+            symbol
+          }
+          adminUser {
+            id
+            firstName
+            lastName
+            email
+          }
+          products {
+            id
+            name
+            sku
+            stockQuantity
+            prices {
+              id
+              amount
+              currency {
+                id
+                code
+                symbol
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ shop: {
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+      products: Array<{
+        id: string;
+        name: string;
+        sku?: string;
+        stockQuantity?: number;
+        prices: Array<{
+          id: string;
+          amount: number;
+          currency: {
+            id: string;
+            code: string;
+            symbol: string;
+          };
+        }>;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.shop;
+  },
+
+  // Product functions
+  async getProducts(filter?: {
+    search?: string;
+    shopId?: string;
+    inStock?: boolean;
+    minPrice?: number;
+    maxPrice?: number;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    stockQuantity?: number;
+    shop: {
+      id: string;
+      name: string;
+    };
+    prices: Array<{
+      id: string;
+      amount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetProducts($filter: ProductFilterInput, $pagination: PaginationInput) {
+        products(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          sku
+          stockQuantity
+          shop {
+            id
+            name
+          }
+          prices {
+            id
+            amount
+            currency {
+              id
+              code
+              symbol
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ products: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      sku?: string;
+      stockQuantity?: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.products || [];
+  },
+
+  async getProduct(id: string): Promise<{
+    id: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    stockQuantity?: number;
+    shop: {
+      id: string;
+      name: string;
+    };
+    prices: Array<{
+      id: string;
+      amount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetProduct($id: ID!) {
+        product(id: $id) {
+          id
+          name
+          description
+          sku
+          stockQuantity
+          shop {
+            id
+            name
+          }
+          prices {
+            id
+            amount
+            currency {
+              id
+              code
+              symbol
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ product: {
+      id: string;
+      name: string;
+      description?: string;
+      sku?: string;
+      stockQuantity?: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+      prices: Array<{
+        id: string;
+        amount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.product;
+  },
+
+  // Currency functions
+  async getCurrencies(): Promise<Array<{
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetCurrencies {
+        currencies {
+          id
+          code
+          name
+          symbol
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ currencies: Array<{
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query);
+
+    return result.currencies || [];
+  },
+
+  async getCurrency(id: string): Promise<{
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query GetCurrency($id: ID!) {
+        currency(id: $id) {
+          id
+          code
+          name
+          symbol
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+      createdAt: string;
+      updatedAt: string;
+    } | null }>(query, { id });
+
+    return result.currency;
+  },
+
+  // Tax functions
+  async getTaxes(shopId?: string): Promise<Array<{
+    id: string;
+    name: string;
+    rate: number;
+    isActive: boolean;
+    shop: {
+      id: string;
+      name: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetTaxes($shopId: String) {
+        taxes(shopId: $shopId) {
+          id
+          name
+          rate
+          isActive
+          shop {
+            id
+            name
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ taxes: Array<{
+      id: string;
+      name: string;
+      rate: number;
+      isActive: boolean;
+      shop: {
+        id: string;
+        name: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { shopId });
+
+    return result.taxes || [];
+  },
+
+  // Mutation functions
+  async createShop(input: {
+    name: string;
+    defaultCurrencyId: string;
+    adminUserId: string;
+    acceptedCurrencyIds?: string[];
+  }): Promise<{
+    success: boolean;
+    message: string;
+    shop: {
+      id: string;
+      name: string;
+      defaultCurrency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      acceptedCurrencies: Array<{
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      }>;
+      adminUser?: {
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email: string;
+      };
+    } | null;
+  }> {
+    const mutation = `
+      mutation CreateShop($input: CreateShopInput!) {
+        createShop(input: $input) {
+          success
+          message
+          shop {
+            id
+            name
+            defaultCurrency {
+              id
+              code
+              name
+              symbol
+            }
+            acceptedCurrencies {
+              id
+              code
+              name
+              symbol
+            }
+            adminUser {
+              id
+              firstName
+              lastName
+              email
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createShop: {
+      success: boolean;
+      message: string;
+      shop: {
+        id: string;
+        name: string;
+        defaultCurrency: {
+          id: string;
+          code: string;
+          name: string;
+          symbol: string;
+        };
+        acceptedCurrencies: Array<{
+          id: string;
+          code: string;
+          name: string;
+          symbol: string;
+        }>;
+        adminUser?: {
+          id: string;
+          firstName?: string;
+          lastName?: string;
+          email: string;
+        };
+      } | null;
+    } }>(mutation, { input });
+
+    return result.createShop;
+  },
+
+  async createCurrency(input: {
+    code: string;
+    name: string;
+    symbol: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    } | null;
+  }> {
+    const mutation = `
+      mutation CreateCurrency($input: CreateCurrencyInput!) {
+        createCurrency(input: $input) {
+          success
+          message
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ createCurrency: {
+      success: boolean;
+      message: string;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      } | null;
+    } }>(mutation, { input });
+
+    return result.createCurrency;
+  },
+
+  async getOrders(filter?: {
+    search?: string;
+    shopId?: string;
+    customerId?: string;
+    status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+    totalAmount: number;
+    currency: {
+      id: string;
+      code: string;
+      symbol: string;
+    };
+    shop: {
+      id: string;
+      name: string;
+    };
+    items: Array<{
+      id: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      product: {
+        id: string;
+        name: string;
+        sku?: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetOrders($filter: OrderFilterInput, $pagination: PaginationInput) {
+        orders(filter: $filter, pagination: $pagination) {
+          id
+          customerName
+          customerEmail
+          status
+          totalAmount
+          currency {
+            id
+            code
+            symbol
+          }
+          shop {
+            id
+            name
+          }
+          items {
+            id
+            quantity
+            unitPrice
+            totalPrice
+            product {
+              id
+              name
+              sku
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        shopId?: string;
+        customerId?: string;
+        status?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ orders: Array<{
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+      items: Array<{
+        id: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        product: {
+          id: string;
+          name: string;
+          sku?: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.orders || [];
+  },
+
+  // Payment functions
+  async getPayments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    providerId?: string;
+    paymentMethodId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId?: string;
+    amount: number;
+    status: string;
+    transactionId?: string;
+    failureReason?: string;
+    refundAmount?: number;
+    currency: {
+      id: string;
+      code: string;
+      name: string;
+      symbol: string;
+    };
+    paymentMethod: {
+      id: string;
+      name: string;
+      type: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    order?: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPayments($filter: PaymentFilterInput, $pagination: PaginationInput) {
+        payments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          amount
+          status
+          transactionId
+          failureReason
+          refundAmount
+          currency {
+            id
+            code
+            name
+            symbol
+          }
+          paymentMethod {
+            id
+            name
+            type
+            provider {
+              id
+              name
+              type
+            }
+          }
+          provider {
+            id
+            name
+            type
+          }
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            shop {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        providerId?: string;
+        paymentMethodId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ payments: Array<{
+      id: string;
+      orderId?: string;
+      amount: number;
+      status: string;
+      transactionId?: string;
+      failureReason?: string;
+      refundAmount?: number;
+      currency: {
+        id: string;
+        code: string;
+        name: string;
+        symbol: string;
+      };
+      paymentMethod: {
+        id: string;
+        name: string;
+        type: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      order?: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.payments || [];
+  },
+
+  async getPaymentProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentProviders($filter: PaymentProviderFilterInput, $pagination: PaginationInput) {
+        paymentProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          paymentMethods {
+            id
+            name
+            type
+          }
+          payments {
+            id
+            amount
+            status
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ paymentProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      paymentMethods: Array<{
+        id: string;
+        name: string;
+        type: string;
+      }>;
+      payments: Array<{
+        id: string;
+        amount: number;
+        status: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.paymentProviders || [];
+  },
+
+  async getPaymentMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    providerId: string;
+    isActive: boolean;
+    processingFeeRate?: number;
+    fixedFee?: number;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetPaymentMethods($filter: PaymentMethodFilterInput, $pagination: PaginationInput) {
+        paymentMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          providerId
+          isActive
+          processingFeeRate
+          fixedFee
+          provider {
+            id
+            name
+            type
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const result = await gqlRequest<{ paymentMethods: Array<{
+      id: string;
+      name: string;
+      type: string;
+      providerId: string;
+      isActive: boolean;
+      processingFeeRate?: number;
+      fixedFee?: number;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, { filter, pagination });
+
+    return result.paymentMethods || [];
+  },
+
+  // Shipping functions
+  async getShippingProviders(filter?: {
+    search?: string;
+    type?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    apiKey?: string;
+    secretKey?: string;
+    webhookUrl?: string;
+    trackingUrl?: string;
+    shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingProviders($filter: ShippingProviderFilterInput, $pagination: PaginationInput) {
+        shippingProviders(filter: $filter, pagination: $pagination) {
+          id
+          name
+          type
+          isActive
+          apiKey
+          secretKey
+          webhookUrl
+          trackingUrl
+          shippingMethods {
+            id
+            name
+            description
+            isActive
+            estimatedDaysMin
+            estimatedDaysMax
+            trackingEnabled
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        type?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingProviders: Array<{
+      id: string;
+      name: string;
+      type: string;
+      isActive: boolean;
+      apiKey?: string;
+      secretKey?: string;
+      webhookUrl?: string;
+      trackingUrl?: string;
+      shippingMethods: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        isActive: boolean;
+        estimatedDaysMin?: number;
+        estimatedDaysMax?: number;
+        trackingEnabled: boolean;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingProviders || [];
+  },
+
+  async getShippingMethods(filter?: {
+    search?: string;
+    providerId?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    providerId: string;
+    isActive: boolean;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    trackingEnabled: boolean;
+    provider: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      minWeight?: number;
+      maxWeight?: number;
+      shippingZone: {
+        id: string;
+        name: string;
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingMethods($filter: ShippingMethodFilterInput, $pagination: PaginationInput) {
+        shippingMethods(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          providerId
+          isActive
+          estimatedDaysMin
+          estimatedDaysMax
+          trackingEnabled
+          provider {
+            id
+            name
+            type
+          }
+          shippingRates {
+            id
+            baseRate
+            minWeight
+            maxWeight
+            shippingZone {
+              id
+              name
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        providerId?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingMethods: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      providerId: string;
+      isActive: boolean;
+      estimatedDaysMin?: number;
+      estimatedDaysMax?: number;
+      trackingEnabled: boolean;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        minWeight?: number;
+        maxWeight?: number;
+        shippingZone: {
+          id: string;
+          name: string;
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingMethods || [];
+  },
+
+  async getShippingZones(filter?: {
+    search?: string;
+    isActive?: boolean;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    countries: string[];
+    states: string[];
+    postalCodes: string[];
+    isActive: boolean;
+    shippingRates: Array<{
+      id: string;
+      baseRate: number;
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+        };
+      };
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShippingZones($filter: ShippingZoneFilterInput, $pagination: PaginationInput) {
+        shippingZones(filter: $filter, pagination: $pagination) {
+          id
+          name
+          description
+          countries
+          states
+          postalCodes
+          isActive
+          shippingRates {
+            id
+            baseRate
+            shippingMethod {
+              id
+              name
+              provider {
+                id
+                name
+              }
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        isActive?: boolean;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shippingZones: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      countries: string[];
+      states: string[];
+      postalCodes: string[];
+      isActive: boolean;
+      shippingRates: Array<{
+        id: string;
+        baseRate: number;
+        shippingMethod: {
+          id: string;
+          name: string;
+          provider: {
+            id: string;
+            name: string;
+          };
+        };
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shippingZones || [];
+  },
+
+  async getShipments(filter?: {
+    search?: string;
+    orderId?: string;
+    status?: string;
+    shippingMethodId?: string;
+    trackingNumber?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Array<{
+    id: string;
+    orderId: string;
+    trackingNumber?: string;
+    status: string;
+    shippingCost: number;
+    weight?: number;
+    dimensions?: string;
+    fromAddress: string;
+    toAddress: string;
+    shippedAt?: string;
+    estimatedDelivery?: string;
+    deliveredAt?: string;
+    order: {
+      id: string;
+      customerName: string;
+      customerEmail: string;
+      totalAmount: number;
+      currency: {
+        id: string;
+        code: string;
+        symbol: string;
+      };
+      shop: {
+        id: string;
+        name: string;
+      };
+    };
+    shippingMethod: {
+      id: string;
+      name: string;
+      provider: {
+        id: string;
+        name: string;
+        type: string;
+      };
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetShipments($filter: ShipmentFilterInput, $pagination: PaginationInput) {
+        shipments(filter: $filter, pagination: $pagination) {
+          id
+          orderId
+          trackingNumber
+          status
+          shippingCost
+          weight
+          dimensions
+          fromAddress
+          toAddress
+          shippedAt
+          estimatedDelivery
+          deliveredAt
+          order {
+            id
+            customerName
+            customerEmail
+            totalAmount
+            currency {
+              id
+              code
+              symbol
+            }
+            shop {
+              id
+              name
+            }
+          }
+          shippingMethod {
+            id
+            name
+            provider {
+              id
+              name
+              type
+            }
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    const variables: {
+      filter?: {
+        search?: string;
+        orderId?: string;
+        status?: string;
+        shippingMethodId?: string;
+        trackingNumber?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      };
+      pagination?: {
+        limit?: number;
+        offset?: number;
+        page?: number;
+        pageSize?: number;
+      };
+    } = {};
+
+    if (filter) {
+      variables.filter = filter;
+    }
+
+    if (pagination) {
+      variables.pagination = pagination;
+    }
+
+    const result = await gqlRequest<{ shipments: Array<{
+      id: string;
+      orderId: string;
+      trackingNumber?: string;
+      status: string;
+      shippingCost: number;
+      weight?: number;
+      dimensions?: string;
+      fromAddress: string;
+      toAddress: string;
+      shippedAt?: string;
+      estimatedDelivery?: string;
+      deliveredAt?: string;
+      order: {
+        id: string;
+        customerName: string;
+        customerEmail: string;
+        totalAmount: number;
+        currency: {
+          id: string;
+          code: string;
+          symbol: string;
+        };
+        shop: {
+          id: string;
+          name: string;
+        };
+      };
+      shippingMethod: {
+        id: string;
+        name: string;
+        provider: {
+          id: string;
+          name: string;
+          type: string;
+        };
+      };
+      createdAt: string;
+      updatedAt: string;
+    }> }>(query, variables);
+
+    return result.shipments || [];
+  },
+
+};

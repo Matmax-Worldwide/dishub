@@ -57,6 +57,13 @@ export async function loginHandler(req: Request) {
     }
 
     // Verify password
+    if (!user.password) {
+      return NextResponse.json(
+        { error: 'Invalid user account' },
+        { status: 401 }
+      );
+    }
+
     const passwordValid = await comparePasswords(password, user.password);
 
     if (!passwordValid) {

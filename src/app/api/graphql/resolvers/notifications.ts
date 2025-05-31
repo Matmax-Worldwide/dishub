@@ -15,8 +15,8 @@ interface CreateNotificationInput {
 interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   role?: {
     id: string;
     name: string;

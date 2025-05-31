@@ -27,6 +27,8 @@ import { menuResolvers } from './resolvers/menus';
 import { formResolvers } from './resolvers/forms';
 import { blogResolvers } from './resolvers/blogs';
 import { calendarResolvers } from './resolvers/calendarResolvers';
+import { ecommerceResolvers } from './resolvers/ecommerce';
+import { reviewResolvers } from './resolvers/reviews';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -689,6 +691,285 @@ const resolvers = {
     post: blogResolvers.Query.post,
     posts: blogResolvers.Query.posts,
     postBySlug: blogResolvers.Query.postBySlug,
+
+    // Add e-commerce queries
+    shops: ecommerceResolvers.Query.shops,
+    shop: ecommerceResolvers.Query.shop,
+    products: ecommerceResolvers.Query.products,
+    product: ecommerceResolvers.Query.product,
+    productBySku: ecommerceResolvers.Query.productBySku,
+    productCategories: ecommerceResolvers.Query.productCategories,
+    productCategory: ecommerceResolvers.Query.productCategory,
+    productCategoryBySlug: ecommerceResolvers.Query.productCategoryBySlug,
+    currencies: ecommerceResolvers.Query.currencies,
+    currency: ecommerceResolvers.Query.currency,
+    currencyByCode: ecommerceResolvers.Query.currencyByCode,
+    taxes: ecommerceResolvers.Query.taxes,
+    tax: ecommerceResolvers.Query.tax,
+    
+    // Payment queries
+    paymentProviders: ecommerceResolvers.Query.paymentProviders,
+    paymentProvider: ecommerceResolvers.Query.paymentProvider,
+    paymentMethods: ecommerceResolvers.Query.paymentMethods,
+    paymentMethod: ecommerceResolvers.Query.paymentMethod,
+    payments: ecommerceResolvers.Query.payments,
+    payment: ecommerceResolvers.Query.payment,
+    
+    // Shipping queries
+    shippingProviders: async () => {
+      try {
+        const providers = await prisma.shippingProvider.findMany({
+          include: {
+            shippingMethods: {
+              include: {
+                shippingRates: {
+                  include: {
+                    shippingZone: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: { name: 'asc' }
+        });
+        
+        return providers;
+      } catch (error) {
+        console.error('Error fetching shipping providers:', error);
+        return [];
+      }
+    },
+    
+    shippingMethods: async () => {
+      try {
+        const methods = await prisma.shippingMethod.findMany({
+          include: {
+            provider: true,
+            shippingRates: {
+              include: {
+                shippingZone: true
+              }
+            }
+          },
+          orderBy: { name: 'asc' }
+        });
+        
+        return methods;
+      } catch (error) {
+        console.error('Error fetching shipping methods:', error);
+        return [];
+      }
+    },
+    
+    shippingZones: async () => {
+      try {
+        const zones = await prisma.shippingZone.findMany({
+          include: {
+            shippingRates: {
+              include: {
+                shippingMethod: {
+                  include: {
+                    provider: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: { name: 'asc' }
+        });
+        
+        return zones;
+      } catch (error) {
+        console.error('Error fetching shipping zones:', error);
+        return [];
+      }
+    },
+    
+    shipments: async () => {
+      try {
+        const shipments = await prisma.shipment.findMany({
+          include: {
+            order: {
+              include: {
+                currency: true,
+                shop: true
+              }
+            },
+            shippingMethod: {
+              include: {
+                provider: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        return shipments;
+      } catch (error) {
+        console.error('Error fetching shipments:', error);
+        return [];
+      }
+    },
+    
+    // Review queries
+    reviews: async () => {
+      try {
+        const reviews = await prisma.review.findMany({
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: {
+              orderBy: { order: 'asc' }
+            },
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        return reviews;
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+        return [];
+      }
+    },
+    
+    reviewsByProduct: async (_parent: unknown, { productId }: { productId: string }) => {
+      try {
+        const reviews = await prisma.review.findMany({
+          where: { 
+            productId,
+            isApproved: true
+          },
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: {
+              orderBy: { order: 'asc' }
+            },
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        return reviews;
+      } catch (error) {
+        console.error('Error fetching reviews by product:', error);
+        return [];
+      }
+    },
+    
+    reviewsByCustomer: async (_parent: unknown, { customerId }: { customerId: string }) => {
+      try {
+        const reviews = await prisma.review.findMany({
+          where: { customerId },
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: {
+              orderBy: { order: 'asc' }
+            },
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        return reviews;
+      } catch (error) {
+        console.error('Error fetching reviews by customer:', error);
+        return [];
+      }
+    },
+    
+    reviewStats: async (_parent: unknown, { productId }: { productId?: string }) => {
+      try {
+        const where = productId ? { productId } : {};
+        
+        const [
+          totalReviews,
+          averageRating,
+          ratingDistribution,
+          verifiedReviews,
+          pendingReviews
+        ] = await Promise.all([
+          prisma.review.count({ where: { ...where, isApproved: true } }),
+          prisma.review.aggregate({
+            where: { ...where, isApproved: true },
+            _avg: { rating: true }
+          }),
+          prisma.review.groupBy({
+            by: ['rating'],
+            where: { ...where, isApproved: true },
+            _count: { rating: true }
+          }),
+          prisma.review.count({ where: { ...where, isApproved: true, isVerified: true } }),
+          prisma.review.count({ where: { ...where, isApproved: false } })
+        ]);
+        
+        const ratingCounts = [1, 2, 3, 4, 5].map(rating => {
+          const found = ratingDistribution.find((r: { rating: number; _count: { rating: number } }) => r.rating === rating);
+          return found ? found._count.rating : 0;
+        });
+        
+        return {
+          totalReviews,
+          averageRating: averageRating._avg.rating || 0,
+          ratingDistribution: ratingCounts,
+          verifiedReviews,
+          pendingReviews
+        };
+      } catch (error) {
+        console.error('Error fetching review stats:', error);
+        return {
+          totalReviews: 0,
+          averageRating: 0,
+          ratingDistribution: [0, 0, 0, 0, 0],
+          verifiedReviews: 0,
+          pendingReviews: 0
+        };
+      }
+    },
+    
+    pendingReviews: async () => {
+      try {
+        const reviews = await prisma.review.findMany({
+          where: { isApproved: false },
+          include: {
+            product: true,
+            customer: true,
+            orderItem: true,
+            images: {
+              orderBy: { order: 'asc' }
+            },
+            response: {
+              include: {
+                responder: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+        
+        return reviews;
+      } catch (error) {
+        console.error('Error fetching pending reviews:', error);
+        return [];
+      }
+    },
   },
   
   Mutation: {
@@ -719,6 +1000,10 @@ const resolvers = {
       
       if (!user) {
         throw new Error('No user found with this email');
+      }
+      
+      if (!user.password) {
+        throw new Error('Invalid user account');
       }
       
       const valid = await bcrypt.compare(inputPassword, user.password);
@@ -1137,6 +1422,36 @@ const resolvers = {
     createPost: blogResolvers.Mutation.createPost,
     updatePost: blogResolvers.Mutation.updatePost,
     deletePost: blogResolvers.Mutation.deletePost,
+
+    // Add e-commerce mutations
+    createShop: ecommerceResolvers.Mutation.createShop,
+    createCurrency: ecommerceResolvers.Mutation.createCurrency,
+    createProductCategory: ecommerceResolvers.Mutation.createProductCategory,
+    updateProductCategory: ecommerceResolvers.Mutation.updateProductCategory,
+    deleteProductCategory: ecommerceResolvers.Mutation.deleteProductCategory,
+    
+    // Payment mutations
+    createPaymentProvider: ecommerceResolvers.Mutation.createPaymentProvider,
+    updatePaymentProvider: ecommerceResolvers.Mutation.updatePaymentProvider,
+    deletePaymentProvider: ecommerceResolvers.Mutation.deletePaymentProvider,
+    createPaymentMethod: ecommerceResolvers.Mutation.createPaymentMethod,
+    updatePaymentMethod: ecommerceResolvers.Mutation.updatePaymentMethod,
+    deletePaymentMethod: ecommerceResolvers.Mutation.deletePaymentMethod,
+    createPayment: ecommerceResolvers.Mutation.createPayment,
+    updatePayment: ecommerceResolvers.Mutation.updatePayment,
+    deletePayment: ecommerceResolvers.Mutation.deletePayment,
+    
+    // Review mutations
+    createReview: reviewResolvers.Mutation.createReview,
+    updateReview: reviewResolvers.Mutation.updateReview,
+    deleteReview: reviewResolvers.Mutation.deleteReview,
+    approveReview: reviewResolvers.Mutation.approveReview,
+    rejectReview: reviewResolvers.Mutation.rejectReview,
+    reportReview: reviewResolvers.Mutation.reportReview,
+    markReviewHelpful: reviewResolvers.Mutation.markReviewHelpful,
+    createReviewResponse: reviewResolvers.Mutation.createReviewResponse,
+    updateReviewResponse: reviewResolvers.Mutation.updateReviewResponse,
+    deleteReviewResponse: reviewResolvers.Mutation.deleteReviewResponse,
   },
 
   // Include form type resolvers
@@ -1154,6 +1469,18 @@ const resolvers = {
   StaffProfile: calendarResolvers.StaffProfile,
   Location: calendarResolvers.Location,
   StaffSchedule: calendarResolvers.StaffSchedule,
+
+  // Add e-commerce type resolvers
+  Shop: ecommerceResolvers.Shop,
+  Product: ecommerceResolvers.Product,
+  ProductCategory: ecommerceResolvers.ProductCategory,
+  Price: ecommerceResolvers.Price,
+  Tax: ecommerceResolvers.Tax,
+  
+  // Payment type resolvers
+  PaymentProvider: ecommerceResolvers.PaymentProvider,
+  PaymentMethod: ecommerceResolvers.PaymentMethod,
+  Payment: ecommerceResolvers.Payment,
 };
 
 export default resolvers; 
