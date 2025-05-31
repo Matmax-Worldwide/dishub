@@ -522,10 +522,7 @@ const resolvers = {
   Customer: ecommerceResolvers.Customer,
   Review: ecommerceResolvers.Review,
 
-  Tax: ecommerceResolvers.Tax,
-  PaymentProvider: ecommerceResolvers.PaymentProvider,
-  PaymentMethod: ecommerceResolvers.PaymentMethod,
-  Payment: ecommerceResolvers.Payment,
+
 
 };
 
