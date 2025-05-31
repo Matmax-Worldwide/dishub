@@ -1673,6 +1673,24 @@ export const ecommerceResolvers = {
           currency: true
         }
       });
+    },
+
+    reviews: async (parent: Record<string, unknown>) => {
+      try {
+        return await prisma.review.findMany({
+          where: { productId: parent.id as string },
+          include: {
+            customer: true,
+            orderItem: true,
+            images: true,
+            response: true
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      } catch (error) {
+        console.error('Error fetching product reviews:', error);
+        return [];
+      }
     }
   },
 
