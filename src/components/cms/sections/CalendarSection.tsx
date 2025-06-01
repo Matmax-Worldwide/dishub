@@ -4,7 +4,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Service, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { 
-  CheckCircle, 
   User, 
   Calendar, 
   Check, 
@@ -16,12 +15,9 @@ import {
   Building,
   Settings,
   Clock,
-  FileText,
-  LayoutPanelTop,
-  FormInput,
-  Palette,
   Briefcase,
-  Search
+  Search,
+  Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
@@ -194,35 +190,172 @@ interface CalendarSectionProps {
 
 type BookingStep = 'selectionMethod' | 'dynamicSelection' | 'completeSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
 
-const ProgressIndicator = ({ currentStep, steps, onStepClick }: { 
+const ProgressIndicator = ({ currentStep, steps, onStepClick, template }: { 
   currentStep: BookingStep, 
   steps: {id: BookingStep, label: string}[], 
-  onStepClick?: (stepId: BookingStep) => void 
+  onStepClick?: (stepId: BookingStep) => void,
+  template?: DesignTemplate
 }) => {
-  const currentIndex = steps.findIndex(s => s.id === currentStep);
+  const currentIndex = steps.findIndex(step => step.id === currentStep);
+  
+  // Get template-specific colors
+  const getTemplateColors = (template: DesignTemplate = 'beauty-salon') => {
+    switch (template) {
+      case 'beauty-salon':
+        return {
+          completed: 'bg-pink-500 text-white border-pink-500',
+          current: 'bg-white text-pink-600 border-pink-500 ring-2 ring-pink-200',
+          upcoming: 'bg-pink-100 text-pink-600 border-pink-300',
+          line: 'bg-pink-200',
+          completedLine: 'bg-pink-500'
+        };
+      case 'medical':
+        return {
+          completed: 'bg-blue-600 text-white border-blue-600',
+          current: 'bg-white text-blue-700 border-blue-600 ring-2 ring-blue-200',
+          upcoming: 'bg-blue-100 text-blue-600 border-blue-300',
+          line: 'bg-blue-200',
+          completedLine: 'bg-blue-600'
+        };
+      case 'fitness':
+        return {
+          completed: 'bg-orange-500 text-white border-orange-500',
+          current: 'bg-white text-orange-700 border-orange-500 ring-2 ring-orange-200',
+          upcoming: 'bg-orange-100 text-orange-600 border-orange-300',
+          line: 'bg-orange-200',
+          completedLine: 'bg-orange-500'
+        };
+      case 'restaurant':
+        return {
+          completed: 'bg-amber-600 text-white border-amber-600',
+          current: 'bg-white text-amber-700 border-amber-600 ring-2 ring-amber-200',
+          upcoming: 'bg-amber-100 text-amber-600 border-amber-300',
+          line: 'bg-amber-200',
+          completedLine: 'bg-amber-600'
+        };
+      case 'corporate':
+        return {
+          completed: 'bg-gray-700 text-white border-gray-700',
+          current: 'bg-white text-gray-800 border-gray-700 ring-2 ring-gray-300',
+          upcoming: 'bg-gray-100 text-gray-700 border-gray-400',
+          line: 'bg-gray-300',
+          completedLine: 'bg-gray-700'
+        };
+      case 'spa':
+        return {
+          completed: 'bg-green-600 text-white border-green-600',
+          current: 'bg-white text-green-700 border-green-600 ring-2 ring-green-200',
+          upcoming: 'bg-green-100 text-green-600 border-green-300',
+          line: 'bg-green-200',
+          completedLine: 'bg-green-600'
+        };
+      case 'automotive':
+        return {
+          completed: 'bg-slate-700 text-white border-slate-700',
+          current: 'bg-white text-slate-800 border-slate-700 ring-2 ring-slate-300',
+          upcoming: 'bg-slate-100 text-slate-700 border-slate-400',
+          line: 'bg-slate-300',
+          completedLine: 'bg-slate-700'
+        };
+      case 'education':
+        return {
+          completed: 'bg-indigo-600 text-white border-indigo-600',
+          current: 'bg-white text-indigo-700 border-indigo-600 ring-2 ring-indigo-200',
+          upcoming: 'bg-indigo-100 text-indigo-600 border-indigo-300',
+          line: 'bg-indigo-200',
+          completedLine: 'bg-indigo-600'
+        };
+      case 'modern':
+        return {
+          completed: 'bg-black text-white border-black',
+          current: 'bg-white text-gray-900 border-black ring-2 ring-gray-300',
+          upcoming: 'bg-gray-100 text-gray-700 border-gray-400',
+          line: 'bg-gray-300',
+          completedLine: 'bg-black'
+        };
+      default:
+        return {
+          completed: 'bg-pink-500 text-white border-pink-500',
+          current: 'bg-white text-pink-600 border-pink-500 ring-2 ring-pink-200',
+          upcoming: 'bg-pink-100 text-pink-600 border-pink-300',
+          line: 'bg-pink-200',
+          completedLine: 'bg-pink-500'
+        };
+    }
+  };
+
+  const colors = getTemplateColors(template);
+
   return (
-    <div className="flex justify-center space-x-2 sm:space-x-4 mb-8 overflow-x-auto pb-2">
-      {steps.map((step, index) => (
-        <div 
-          key={step.id} 
-          className="flex flex-col items-center min-w-[60px] sm:min-w-[80px]"
-          onClick={() => onStepClick?.(step.id)}
-        >
-          <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 transition-all duration-200
-            ${index < currentIndex ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' : ''}
-            ${index === currentIndex ? 'bg-blue-500 border-blue-500 text-white animate-pulse' : ''}
-            ${index > currentIndex ? 'bg-gray-200 border-gray-300 text-gray-500 hover:bg-gray-300' : ''}
-            ${onStepClick ? 'cursor-pointer hover:scale-110' : ''}
-          `}>
-            {index < currentIndex ? <CheckCircle size={16} /> : index + 1}
+    <div className="flex items-center justify-between w-full max-w-2xl mx-auto">
+      {steps.map((step, index) => {
+        const isCompleted = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        const isClickable = onStepClick && (isCompleted || isCurrent);
+        
+        let stepClasses = `
+          w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium
+          transition-all duration-200 relative z-10
+        `;
+        
+        if (isCompleted) {
+          stepClasses += ` ${colors.completed}`;
+        } else if (isCurrent) {
+          stepClasses += ` ${colors.current}`;
+        } else {
+          stepClasses += ` ${colors.upcoming}`;
+        }
+        
+        if (isClickable) {
+          stepClasses += ' cursor-pointer hover:scale-105';
+        }
+
+        return (
+          <div key={step.id} className="flex items-center flex-1">
+            <div className="flex flex-col items-center">
+              <button
+                onClick={() => isClickable && onStepClick?.(step.id)}
+                disabled={!isClickable}
+                className={stepClasses}
+              >
+                {isCompleted ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <span>{index + 1}</span>
+                )}
+              </button>
+              <span className={`text-xs mt-1 text-center max-w-16 leading-tight ${
+                isCurrent 
+                  ? template === 'modern' || template === 'corporate' || template === 'automotive'
+                    ? 'text-gray-800 font-medium'
+                    : template === 'medical'
+                    ? 'text-blue-700 font-medium'
+                    : template === 'fitness'
+                    ? 'text-orange-700 font-medium'
+                    : template === 'restaurant'
+                    ? 'text-amber-700 font-medium'
+                    : template === 'spa'
+                    ? 'text-green-700 font-medium'
+                    : template === 'education'
+                    ? 'text-indigo-700 font-medium'
+                    : 'text-pink-700 font-medium'
+                  : 'text-white/90'
+              }`}>
+                {step.label}
+              </span>
+            </div>
+            
+            {index < steps.length - 1 && (
+              <div className="flex-1 h-0.5 mx-2 relative">
+                <div className={`absolute inset-0 ${colors.line}`} />
+                {isCompleted && (
+                  <div className={`absolute inset-0 ${colors.completedLine}`} />
+                )}
+              </div>
+            )}
           </div>
-          <p className={`mt-1 text-xs sm:text-sm text-center transition-colors duration-200 ${
-            index === currentIndex ? 'text-blue-600 font-semibold' : 'text-gray-500'
-          } ${onStepClick ? 'hover:text-blue-500' : ''}`}>
-            {step.label}
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
@@ -327,36 +460,35 @@ export default function CalendarSection({
   className = ''
 }: CalendarSectionProps) {
   
-  // Local state management
-  const [title, setTitle] = useState(initialTitle);
-  const [subtitle, setSubtitle] = useState(initialSubtitle);
-  const [description, setDescription] = useState(initialDescription);
+  // State variables for configuration
   const [showLocationSelector, setShowLocationSelector] = useState(initialShowLocationSelector);
   const [showServiceCategories, setShowServiceCategories] = useState(initialShowServiceCategories);
   const [defaultLocation, setDefaultLocation] = useState(initialDefaultLocation);
   const [showStaffSelector, setShowStaffSelector] = useState(initialShowStaffSelector);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [designTemplate, setDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [enableMultiStepBooking, setEnableMultiStepBooking] = useState(initialEnableMultiStepBooking);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [enabledSelectionMethods, setEnabledSelectionMethods] = useState(initialEnabledSelectionMethods);
+  const [enabledSelectionMethods, setEnabledSelectionMethods] = useState<SelectionMethod[]>(initialEnabledSelectionMethods);
+  const [stepOrder, setStepOrder] = useState<BookingStep[]>(initialStepOrder);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [requiredSteps, setRequiredSteps] = useState<BookingStep[]>(initialRequiredSteps);
+  const [title, setTitle] = useState(initialTitle);
+  const [subtitle, setSubtitle] = useState(initialSubtitle);
+  const [description, setDescription] = useState(initialDescription);
   const [stepTitles, setStepTitles] = useState(initialStepTitles);
   const [buttonTexts, setButtonTexts] = useState(initialButtonTexts);
   const [placeholderTexts, setPlaceholderTexts] = useState(initialPlaceholderTexts);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectionMethodTexts, setSelectionMethodTexts] = useState(initialSelectionMethodTexts);
-  const [stepOrder, setStepOrder] = useState(initialStepOrder);
-  
-  // Enhanced step configuration state
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [requiredSteps, setRequiredSteps] = useState(initialRequiredSteps);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [skipLocationSelection, setSkipLocationSelection] = useState(initialSkipLocationSelection);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [skipStaffSelection, setSkipStaffSelection] = useState(initialSkipStaffSelection);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [skipServiceSelection, setSkipServiceSelection] = useState(initialSkipServiceSelection);
-  
-  
+
   // Multi-step booking state
   const [selectedBookingMethod, setSelectedBookingMethod] = useState<SelectionMethod | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -918,6 +1050,7 @@ export default function CalendarSection({
   const designTemplates = {
     'beauty-salon': {
       name: 'Beauty Salon',
+      description: 'Elegant design for beauty and wellness services',
       colors: {
         primary: 'from-pink-500 to-purple-600',
         secondary: 'from-pink-50 to-purple-50',
@@ -935,6 +1068,7 @@ export default function CalendarSection({
     },
     'medical': {
       name: 'Medical',
+      description: 'Professional design for healthcare services',
       colors: {
         primary: 'from-blue-600 to-cyan-600',
         secondary: 'from-blue-50 to-cyan-50',
@@ -952,6 +1086,7 @@ export default function CalendarSection({
     },
     'fitness': {
       name: 'Fitness',
+      description: 'Energetic design for fitness and sports',
       colors: {
         primary: 'from-green-500 to-emerald-600',
         secondary: 'from-green-50 to-emerald-50',
@@ -969,6 +1104,7 @@ export default function CalendarSection({
     },
     'restaurant': {
       name: 'Restaurant',
+      description: 'Warm design for dining and hospitality',
       colors: {
         primary: 'from-orange-500 to-red-600',
         secondary: 'from-orange-50 to-red-50',
@@ -986,6 +1122,7 @@ export default function CalendarSection({
     },
     'corporate': {
       name: 'Corporate',
+      description: 'Professional design for business services',
       colors: {
         primary: 'from-gray-700 to-slate-800',
         secondary: 'from-gray-50 to-slate-50',
@@ -1003,6 +1140,7 @@ export default function CalendarSection({
     },
     'spa': {
       name: 'Spa & Wellness',
+      description: 'Calming design for wellness and relaxation',
       colors: {
         primary: 'from-teal-500 to-cyan-600',
         secondary: 'from-teal-50 to-cyan-50',
@@ -1020,6 +1158,7 @@ export default function CalendarSection({
     },
     'automotive': {
       name: 'Automotive',
+      description: 'Industrial design for automotive services',
       colors: {
         primary: 'from-slate-600 to-gray-700',
         secondary: 'from-slate-50 to-gray-50',
@@ -1037,6 +1176,7 @@ export default function CalendarSection({
     },
     'education': {
       name: 'Education',
+      description: 'Academic design for educational services',
       colors: {
         primary: 'from-indigo-500 to-purple-600',
         secondary: 'from-indigo-50 to-purple-50',
@@ -1054,6 +1194,7 @@ export default function CalendarSection({
     },
     'modern': {
       name: 'Modern',
+      description: 'Minimalist design for contemporary services',
       colors: {
         primary: 'from-violet-500 to-purple-600',
         secondary: 'from-violet-50 to-purple-50',
@@ -1114,28 +1255,26 @@ export default function CalendarSection({
 
   // Beauty Salon Design Template
   const renderBeautySalonDesign = () => {
-    const { colors } = designTemplates['beauty-salon'];
-    
+    if (isEditing) {
+      return renderEditingInterface();
+    }
+
     return (
-      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-3xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
-          <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="w-8 h-8" />
-            <h2 className="text-2xl font-bold">{title}</h2>
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-pink-100">{subtitle}</p>
+            </div>
           </div>
-          <p className="text-purple-100">{subtitle}</p>
-          {description && (
-            <p className="text-sm text-purple-200 mt-2">{description}</p>
-          )}
+          
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
-        
-        {/* Progress Indicator */}
-        <div className="px-6 py-4 bg-white/80 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
-        </div>
-        
-        {/* Content */}
+
         <div className="p-6">
           {renderStepContent()}
         </div>
@@ -1145,28 +1284,26 @@ export default function CalendarSection({
 
   // Medical Design Template
   const renderMedicalDesign = () => {
-    const { colors, icons } = designTemplates['medical'];
-    
+    if (isEditing) {
+      return renderEditingInterface();
+    }
+
     return (
-      <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-blue-100 overflow-hidden">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
-          <div className="flex items-center gap-3 mb-2">
-            <icons.calendar className="w-8 h-8" />
-            <h2 className="text-2xl font-semibold">{title}</h2>
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-blue-100 overflow-hidden">
+        <div className="bg-blue-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-blue-100">{subtitle}</p>
+            </div>
           </div>
-          <p className="text-blue-100">{subtitle}</p>
-          {description && (
-            <p className="text-sm text-blue-200 mt-2">{description}</p>
-          )}
+          
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
-        
-        {/* Progress Indicator */}
-        <div className="px-6 py-4 bg-blue-50">
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
-        </div>
-        
-        {/* Content */}
+
         <div className="p-6">
           {renderStepContent()}
         </div>
@@ -1176,28 +1313,26 @@ export default function CalendarSection({
 
   // Fitness Design Template
   const renderFitnessDesign = () => {
-    const { colors } = designTemplates['fitness'];
-    
+    if (isEditing) {
+      return renderEditingInterface();
+    }
+
     return (
-      <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-orange-50 to-red-50 rounded-3xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${colors.primary} text-white p-6`}>
-          <div className="flex items-center gap-3 mb-2">
-            <Heart className="w-8 h-8" />
-            <h2 className="text-2xl font-bold">{title}</h2>
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <Heart className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-orange-100">{subtitle}</p>
+            </div>
           </div>
-          <p className="text-orange-100">{subtitle}</p>
-          {description && (
-            <p className="text-sm text-orange-200 mt-2">{description}</p>
-          )}
+          
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
-        
-        {/* Progress Indicator */}
-        <div className="px-6 py-4 bg-white/90 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
-        </div>
-        
-        {/* Content */}
+
         <div className="p-6">
           {renderStepContent()}
         </div>
@@ -1212,22 +1347,22 @@ export default function CalendarSection({
     }
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <Star className="w-8 h-8" />
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-amber-100 overflow-hidden">
+        <div className="bg-amber-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <Star className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">Reserve Your Table</h2>
-              <p className="text-amber-100 text-lg">Experience culinary excellence</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-amber-100">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
-        <div className="p-8">
+        <div className="p-6">
           {renderStepContent()}
         </div>
       </div>
@@ -1242,18 +1377,18 @@ export default function CalendarSection({
 
     return (
       <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-6">
+        <div className="bg-gray-700 text-white p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white/20 rounded">
               <Building className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold">Schedule Meeting</h2>
-              <p className="text-gray-300">Professional business services</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-gray-300">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
         <div className="p-6">
@@ -1270,22 +1405,22 @@ export default function CalendarSection({
     }
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-green-50 via-white to-blue-50 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <Heart className="w-8 h-8" />
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-green-100 overflow-hidden">
+        <div className="bg-green-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">Book Your Wellness Journey</h2>
-              <p className="text-green-100 text-lg">Relax, rejuvenate, and restore</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-green-100">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
-        <div className="p-8">
+        <div className="p-6">
           {renderStepContent()}
         </div>
       </div>
@@ -1299,19 +1434,19 @@ export default function CalendarSection({
     }
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-700 to-gray-800 text-white p-6">
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+        <div className="bg-slate-700 text-white p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white/20 rounded">
               <Settings className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold">Schedule Service</h2>
-              <p className="text-slate-300">Professional automotive care</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-slate-300">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
         <div className="p-6">
@@ -1328,22 +1463,22 @@ export default function CalendarSection({
     }
 
     return (
-      <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <User className="w-8 h-8" />
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-indigo-100 overflow-hidden">
+        <div className="bg-indigo-600 text-white p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-white/20 rounded">
+              <User className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">Book Your Session</h2>
-              <p className="text-indigo-100 text-lg">Learn with expert instructors</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-indigo-100">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
-        <div className="p-8">
+        <div className="p-6">
           {renderStepContent()}
         </div>
       </div>
@@ -1364,12 +1499,12 @@ export default function CalendarSection({
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold">Book Appointment</h2>
-              <p className="text-gray-300">Modern booking experience</p>
+              <h2 className="text-2xl font-semibold">{title}</h2>
+              <p className="text-gray-300">{subtitle}</p>
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} template={localDesignTemplate} />
         </div>
 
         <div className="p-6">
@@ -2158,314 +2293,236 @@ export default function CalendarSection({
 
   // Details Tab Component
   const DetailsTab = () => {
-    // Estado local para los inputs
-    const [localTitle, setLocalTitle] = useState(title);
-    const [localSubtitle, setLocalSubtitle] = useState(subtitle);
-    const [localDescription, setLocalDescription] = useState(description);
-    
-    // Manejador de submit para los inputs
-    const handleInputSubmit = useCallback(() => {
-      // Solo actualizar si los valores han cambiado
-      if (localTitle !== title) {
-        setTitle(localTitle);
-        handleUpdateField('title', localTitle);
-      }
-      
-      if (localSubtitle !== subtitle) {
-        setSubtitle(localSubtitle);
-        handleUpdateField('subtitle', localSubtitle);
-      }
-      
-      if (localDescription !== description) {
-        setDescription(localDescription);
-        handleUpdateField('description', localDescription);
-      }
-    }, [localTitle, localSubtitle, localDescription, title, subtitle, description]);
-
-    // Actualizar estado local cuando cambian las props
-    useEffect(() => {
-      setLocalTitle(title);
-      setLocalSubtitle(subtitle);
-      setLocalDescription(description);
-    }, [title, subtitle, description]);
-    
     return (
       <div className="space-y-6">
-        {/* Text Configuration Section */}
+        {/* Title and Subtitle Configuration */}
         <div className="space-y-4">
-          <div className="flex items-start space-x-2">
-            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-            <div className="flex-1">
-              <div className="isolate" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-sm font-medium mb-2 text-foreground">
-                  Section Title
-                </label>
-                <input
-                  type="text"
-                  value={localTitle}
-                  onChange={(e) => setLocalTitle(e.target.value)}
-                  onBlur={handleInputSubmit}
-                  placeholder="Book Your Appointment"
-                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground font-medium text-xl"
-                />
-              </div>
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
           
-          <div className="flex items-start space-x-2">
-            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-            <div className="flex-1">
-              <div className="isolate" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-sm font-medium mb-2 text-foreground">
-                  Section Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={localSubtitle}
-                  onChange={(e) => setLocalSubtitle(e.target.value)}
-                  onBlur={handleInputSubmit}
-                  placeholder="Choose your preferred service and time"
-                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground"
-                />
-              </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  if (onUpdate) {
+                    onUpdate({ title: newTitle });
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter title..."
+              />
             </div>
-          </div>
-          
-          <div className="flex items-start space-x-2">
-            <FormInput className="h-5 w-5 mt-1 text-muted-foreground" />
-            <div className="flex-1">
-              <div className="isolate" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-sm font-medium mb-2 text-foreground">
-                  Section Description
-                </label>
-                <textarea
-                  value={localDescription}
-                  onChange={(e) => setLocalDescription(e.target.value)}
-                  onBlur={handleInputSubmit}
-                  placeholder="Select from our available services and book your appointment in just a few simple steps."
-                  className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground text-foreground text-muted-foreground"
-                  rows={3}
-                />
-              </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subtitle
+              </label>
+              <input
+                type="text"
+                value={subtitle}
+                onChange={(e) => {
+                  const newSubtitle = e.target.value;
+                  if (onUpdate) {
+                    onUpdate({ subtitle: newSubtitle });
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter subtitle..."
+              />
             </div>
-          </div>
-          
-          {/* Step Titles Configuration */}
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-medium mb-3 flex items-center">
-              <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-              Step Titles
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Selection Method Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.selectionMethod}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, selectionMethod: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Choose Method"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Dynamic Selection Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.dynamicSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, dynamicSelection: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Make Selection"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Complete Selection Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.completeSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, completeSelection: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Complete Selection"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Date & Time Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.dateTimeSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, dateTimeSelection: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Pick Date & Time"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Details Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.detailsForm}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, detailsForm: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Your Details"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Confirmation Step</label>
-                <input
-                  type="text"
-                  value={stepTitles.confirmation}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, confirmation: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Confirm Booking"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Step Order Configuration */}
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-medium mb-3 flex items-center">
-              <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
-              Step Order Configuration
-            </h3>
-              <div className="space-y-2">
-                {stepOrder.map((stepId, index) => {
-                const stepDef = stepConfigurations.find(def => def.id === stepId);
-                const isEnabled = stepDef?.condition() !== false;
-                  return (
-                  <div key={stepId} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                        isEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <span className={`font-medium ${isEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {stepDef?.label || stepId}
-                        </span>
-                      {stepDef?.required && (
-                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Required</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                              const newOrder = [...stepOrder];
-                          if (index > 0) {
-                              [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
-                              setStepOrder(newOrder);
-                              handleUpdateField('stepOrder', newOrder);
-                            }
-                          }}
-                          disabled={index === 0}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => {
-                              const newOrder = [...stepOrder];
-                          if (index < stepOrder.length - 1) {
-                              [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                              setStepOrder(newOrder);
-                              handleUpdateField('stepOrder', newOrder);
-                            }
-                          }}
-                          disabled={index === stepOrder.length - 1}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                        >
-                          ↓
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-          
-          {/* Button Texts Configuration */}
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-medium mb-3 flex items-center">
-              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-              Button Texts
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Next Button</label>
-                <input
-                  type="text"
-                  value={buttonTexts.next}
-                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, next: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Next"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Back Button</label>
-                <input
-                  type="text"
-                  value={buttonTexts.back}
-                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, back: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Back"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Submit Button</label>
-                <input
-                  type="text"
-                  value={buttonTexts.submit}
-                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, submit: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Submit"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Book Now Button</label>
-                <input
-                  type="text"
-                  value={buttonTexts.bookNow}
-                  onChange={(e) => handleUpdateField('buttonTexts', { ...buttonTexts, bookNow: e.target.value })}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Book Now"
-                />
-              </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => {
+                  const newDescription = e.target.value;
+                  if (onUpdate) {
+                    onUpdate({ description: newDescription });
+                  }
+                }}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter description..."
+              />
             </div>
           </div>
         </div>
-        
-        {/* Configuration Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+
+        {/* Design Template Selection */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Design Template</h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(designTemplates).map(([key, template]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  if (onUpdate) {
+                    onUpdate({ designTemplate: key as DesignTemplate });
+                  }
+                }}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  designTemplate === key
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-sm font-medium">{template.name}</div>
+                <div className="text-xs text-gray-500 mt-1">{template.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Multi-Step Booking Configuration */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Booking Configuration</h3>
+          
           <div className="space-y-3">
-            <h5 className="font-medium text-gray-900">Booking Flow Options</h5>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Location Selector</label>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={enableMultiStepBooking}
+                onChange={(e) => {
+                  if (onUpdate) {
+                    onUpdate({ enableMultiStepBooking: e.target.checked });
+                  }
+                }}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Enable Multi-Step Booking</span>
+            </label>
+
+            {enableMultiStepBooking && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selection Methods
+                  </label>
+                  <div className="space-y-2">
+                    {(['service', 'location', 'specialist'] as SelectionMethod[]).map((method) => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={enabledSelectionMethods.includes(method)}
+                          onChange={(e) => {
+                            const newMethods = e.target.checked
+                              ? [...enabledSelectionMethods, method]
+                              : enabledSelectionMethods.filter(m => m !== method);
+                            if (onUpdate) {
+                              onUpdate({ enabledSelectionMethods: newMethods });
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 capitalize">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={skipLocationSelection}
+                      onChange={(e) => {
+                        if (onUpdate) {
+                          onUpdate({ skipLocationSelection: e.target.checked });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Skip Location Selection</span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={skipStaffSelection}
+                      onChange={(e) => {
+                        if (onUpdate) {
+                          onUpdate({ skipStaffSelection: e.target.checked });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Skip Staff Selection</span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={skipServiceSelection}
+                      onChange={(e) => {
+                        if (onUpdate) {
+                          onUpdate({ skipServiceSelection: e.target.checked });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Skip Service Selection</span>
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Basic Configuration */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Display Options</h3>
+          
+          <div className="space-y-3">
+            <label className="flex items-center">
               <input
                 type="checkbox"
                 checked={showLocationSelector}
-                onChange={(e) => handleUpdateField('showLocationSelector', e.target.checked)}
+                onChange={(e) => {
+                  if (onUpdate) {
+                    onUpdate({ showLocationSelector: e.target.checked });
+                  }
+                }}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Service Categories</label>
+              <span className="ml-2 text-sm text-gray-700">Show Location Selector</span>
+            </label>
+
+            <label className="flex items-center">
               <input
                 type="checkbox"
                 checked={showServiceCategories}
-                onChange={(e) => handleUpdateField('showServiceCategories', e.target.checked)}
+                onChange={(e) => {
+                  if (onUpdate) {
+                    onUpdate({ showServiceCategories: e.target.checked });
+                  }
+                }}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">Show Staff Selector</label>
+              <span className="ml-2 text-sm text-gray-700">Show Service Categories</span>
+            </label>
+
+            <label className="flex items-center">
               <input
                 type="checkbox"
                 checked={showStaffSelector}
-                onChange={(e) => handleUpdateField('showStaffSelector', e.target.checked)}
+                onChange={(e) => {
+                  if (onUpdate) {
+                    onUpdate({ showStaffSelector: e.target.checked });
+                  }
+                }}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-            </div>
+              <span className="ml-2 text-sm text-gray-700">Show Staff Selector</span>
+            </label>
           </div>
         </div>
       </div>
