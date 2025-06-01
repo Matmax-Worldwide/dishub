@@ -4,8 +4,12 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
 import StyleControls from '../StyleControls';
-import { CmsTabs } from '../CmsTabs';
-import { FileText, Palette } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { 
   ComponentStyling, 
   ComponentStyleProps, 
@@ -116,55 +120,99 @@ export default function TextSection({
 
   if (isEditing) {
     return (
-      <div className="w-full">
-        <CmsTabs
-          tabs={[
-            {
-              id: 'content',
-              label: 'Content',
-              icon: <FileText className="w-4 h-4" />,
-              content: (
-                <div className="space-y-4">
-                  <StableInput
-                    value={localTitle}
-                    onChange={handleTitleChange}
-                    placeholder="Enter section title..."
-                    className="font-medium text-lg"
-                    label="Section Title (optional)"
-                    debounceTime={300}
-                    data-field-id="title"
-                    data-component-type="Text"
-                  />
-                  
-                  <StableInput
-                    value={localContent}
-                    onChange={handleContentChange}
-                    placeholder="Enter content..."
-                    isTextArea={true}
-                    rows={8}
-                    className="text-base"
-                    label="Content"
-                    debounceTime={300}
-                    data-field-id="content"
-                    data-component-type="Text"
-                  />
-                </div>
-              )
-            },
-            {
-              id: 'styling',
-              label: 'Styling',
-              icon: <Palette className="w-4 h-4" />,
-              content: (
-                <StyleControls
-                  styling={localStyling}
-                  onStylingChange={handleStylingChange}
-                  showAdvanced={true}
+      <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-50 to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+            <TabsTrigger 
+              value="content" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Content
+            </TabsTrigger>
+            <TabsTrigger 
+              value="styling" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Styling
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preview" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Preview
+            </TabsTrigger>
+          </TabsList>
+
+          {/* CONTENT TAB */}
+          <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Text Content</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <StableInput
+                  value={localTitle}
+                  onChange={handleTitleChange}
+                  placeholder="Enter section title..."
+                  className="font-medium text-lg"
+                  label="Section Title (optional)"
+                  debounceTime={300}
+                  data-field-id="title"
+                  data-component-type="Text"
                 />
-              )
-            }
-          ]}
-        />
+                
+                <StableInput
+                  value={localContent}
+                  onChange={handleContentChange}
+                  placeholder="Enter content..."
+                  isTextArea={true}
+                  rows={8}
+                  className="text-base"
+                  label="Content"
+                  debounceTime={300}
+                  data-field-id="content"
+                  data-component-type="Text"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* STYLING TAB */}
+          <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <StyleControls
+              styling={localStyling}
+              onStylingChange={handleStylingChange}
+              showAdvanced={true}
+            />
+          </TabsContent>
+
+          {/* PREVIEW TAB */}
+          <TabsContent value="preview" className="p-6 space-y-6 max-h-[600px] overflow-y-auto">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div className="w-full max-w-4xl mx-auto">
+                  {localTitle && (
+                    <h3 className="text-xl font-medium mb-4">
+                      {localTitle}
+                    </h3>
+                  )}
+                  <div className="text-base leading-relaxed whitespace-pre-wrap">
+                    {(localContent || '').split('\n').map((paragraph, index) => (
+                      <p key={index} className="mb-4">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }

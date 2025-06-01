@@ -9,8 +9,12 @@ import S3FilePreview from '@/components/shared/S3FilePreview';
 import MediaSelector from '@/components/cms/MediaSelector';
 import ColorSelector from '@/components/cms/ColorSelector';
 import TransparencySelector from '@/components/cms/TransparencySelector';
-import { CmsTabs } from '@/components/cms/CmsTabs';
-import { FileText, Palette, Video, Eye } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useOptimizedVideo, useOptimizedImage } from '@/hooks/useOptimizedMedia';
 import { videoPreloader } from '@/lib/video-preloader';
 import { RichStableInput } from '@/components/cms/sections/RichStableInput';
@@ -1739,84 +1743,86 @@ const VideoSection = React.memo(function VideoSection({
       >
         {isEditing ? (
           <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
-            <CmsTabs
-              className="w-full"
-              contentClassName="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-              tabs={[
-                {
-                  id: "content",
-                  label: "Details",
-                  icon: <FileText className="w-4 h-4" />,
-                  content: (
-                    <div className="space-y-8">
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-900">Content Configuration</h3>
-                        </div>
-                        <div className="pl-6">
-                          <ContentTab />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  id: "video",
-                  label: "Media",
-                  icon: <Video className="w-4 h-4" />,
-                  content: (
-                    <div className="space-y-8">
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-900">Video Settings</h3>
-                        </div>
-                        <div className="pl-6">
-                          <VideoTab />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  id: "styling",
-                  label: "Styles",
-                  icon: <Palette className="w-4 h-4" />,
-                  content: (
-                    <div className="space-y-8">
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-900">Visual Styling</h3>
-                        </div>
-                        <div className="pl-6">
-                          <StylingTab />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  id: "preview",
-                  label: "Preview",
-                  icon: <Eye className="w-4 h-4" />,
-                  content: (
-                    <div className="space-y-8">
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
-                        </div>
-                        <div className="pl-6">
-                          <PreviewTab />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
-              ]}
-            />
+            <Tabs defaultValue="content" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-50 to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+                <TabsTrigger 
+                  value="content" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+                >
+                  Details
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="video" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+                >
+                  Media
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="styling" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+                >
+                  Styles
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="preview" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+                >
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+
+              {/* CONTENT TAB */}
+              <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-gray-900">Content Configuration</h3>
+                  </div>
+                  <div className="pl-6">
+                    <ContentTab />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* VIDEO TAB */}
+              <TabsContent value="video" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-gray-900">Video Settings</h3>
+                  </div>
+                  <div className="pl-6">
+                    <VideoTab />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* STYLING TAB */}
+              <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-gray-900">Visual Styling</h3>
+                  </div>
+                  <div className="pl-6">
+                    <StylingTab />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* PREVIEW TAB */}
+              <TabsContent value="preview" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+                  </div>
+                  <div className="pl-6">
+                    <PreviewTab />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="w-full h-full relative">

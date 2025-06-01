@@ -1194,12 +1194,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
                     setNewSectionName('');
                   }}
                   onStartCreating={() => setIsCreatingSection(true)}
-                  onSectionNameChange={(newName) => {
-                    setPageSections(prev => prev.map((section, idx) => 
-                      idx === 0 ? { ...section, name: newName } : section
-                    ));
-                    setHasUnsavedChanges(true);
-                  }}
                   onBackClick={() => setActiveTab('details')}
                   onSavePage={handleSavePage}
                   sectionRef={sectionRef}
