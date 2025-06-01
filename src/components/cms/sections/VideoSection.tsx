@@ -1738,32 +1738,82 @@ const VideoSection = React.memo(function VideoSection({
         }}
       >
         {isEditing ? (
-          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
             <CmsTabs
+              className="w-full"
+              contentClassName="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
               tabs={[
                 {
                   id: "content",
-                  label: "Content",
+                  label: "Details",
                   icon: <FileText className="w-4 h-4" />,
-                  content: <ContentTab />
+                  content: (
+                    <div className="space-y-8">
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-900">Content Configuration</h3>
+                        </div>
+                        <div className="pl-6">
+                          <ContentTab />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 },
                 {
                   id: "video",
-                  label: "Video",
+                  label: "Media",
                   icon: <Video className="w-4 h-4" />,
-                  content: <VideoTab />
+                  content: (
+                    <div className="space-y-8">
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-900">Video Settings</h3>
+                        </div>
+                        <div className="pl-6">
+                          <VideoTab />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 },
                 {
                   id: "styling",
-                  label: "Styling",
+                  label: "Styles",
                   icon: <Palette className="w-4 h-4" />,
-                  content: <StylingTab />
+                  content: (
+                    <div className="space-y-8">
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-900">Visual Styling</h3>
+                        </div>
+                        <div className="pl-6">
+                          <StylingTab />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 },
                 {
                   id: "preview",
                   label: "Preview",
                   icon: <Eye className="w-4 h-4" />,
-                  content: <PreviewTab />
+                  content: (
+                    <div className="space-y-8">
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+                        </div>
+                        <div className="pl-6">
+                          <PreviewTab />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 }
               ]}
             />
