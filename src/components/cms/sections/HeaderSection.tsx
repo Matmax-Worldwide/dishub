@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
@@ -95,6 +95,178 @@ interface HeaderSectionProps {
     selectedPageId?: string;
   }) => void;
 }
+
+// Button configuration handlers (moved outside component to prevent recreating)
+const ButtonConfiguration = React.memo(({
+  showButton,
+  buttonText,
+  buttonAction,
+  buttonUrlType,
+  selectedPageId,
+  availablePages,
+  loadingPages,
+  onShowButtonChange,
+  onButtonTextChange,
+  onButtonActionChange,
+  onButtonUrlTypeChange,
+  onSelectedPageIdChange,
+  renderHeaderButton
+}: {
+  showButton: boolean;
+  buttonText: string;
+  buttonAction: string;
+  buttonUrlType: 'custom' | 'page';
+  selectedPageId: string;
+  availablePages: Array<{id: string; title: string; slug: string}>;
+  loadingPages: boolean;
+  buttonDropdown: boolean;
+  buttonDropdownItems: Array<{id: string; label: string; url: string}>;
+  onShowButtonChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onButtonTextChange: (value: string) => void;
+  onButtonActionChange: (value: string) => void;
+  onButtonUrlTypeChange: (type: 'custom' | 'page') => void;
+  onSelectedPageIdChange: (pageId: string, pageUrl: string) => void;
+  renderHeaderButton: () => React.ReactNode;
+}) => (
+  <div className="space-y-4">
+    <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+      Header Button Configuration
+    </h4>
+    
+    {/* Enable Button */}
+    <div className="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        id="showButton"
+        checked={showButton}
+        onChange={onShowButtonChange}
+        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      />
+      <label htmlFor="showButton" className="text-sm font-medium">
+        Show Button in Header
+      </label>
+    </div>
+    
+    {showButton && (
+      <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+        {/* Button Text */}
+        <div>
+          <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
+            Button Text
+          </label>
+          <StableInput
+            value={buttonText}
+            onChange={onButtonTextChange}
+            placeholder="Get Started"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            debounceTime={300}
+            data-field-id="buttonText"
+            data-component-type="Header"
+          />
+        </div>
+        
+        {/* URL Type Selection */}
+        <div>
+          <label className="text-sm font-medium block mb-2">
+            Button URL/Action
+          </label>
+          <div className="space-y-3">
+            {/* URL Type Radio Buttons */}
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="buttonUrlType"
+                  value="custom"
+                  checked={buttonUrlType === 'custom'}
+                  onChange={() => onButtonUrlTypeChange('custom')}
+                  className="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">Custom URL</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="buttonUrlType"
+                  value="page"
+                  checked={buttonUrlType === 'page'}
+                  onChange={() => onButtonUrlTypeChange('page')}
+                  className="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">Existing Page</span>
+              </label>
+            </div>
+            
+            {/* Custom URL Input */}
+            {buttonUrlType === 'custom' && (
+              <div>
+                <StableInput
+                  value={buttonAction}
+                  onChange={onButtonActionChange}
+                  placeholder="/contact"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  debounceTime={300}
+                  data-field-id="buttonAction"
+                  data-component-type="Header"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use relative URLs (/contact) or absolute URLs (https://example.com)
+                </p>
+              </div>
+            )}
+            
+            {/* Existing Page Selection */}
+            {buttonUrlType === 'page' && (
+              <div>
+                <select
+                  value={selectedPageId}
+                  onChange={(e) => {
+                    const pageId = e.target.value;
+                    const selectedPage = availablePages.find(page => page.id === pageId);
+                    if (selectedPage) {
+                      const pageUrl = `/${selectedPage.slug}`;
+                      onSelectedPageIdChange(pageId, pageUrl);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loadingPages}
+                >
+                  <option value="">Select a page...</option>
+                  {availablePages.map(page => (
+                    <option key={page.id} value={page.id}>
+                      {page.title} (/{page.slug})
+                    </option>
+                  ))}
+                </select>
+                {loadingPages && (
+                  <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
+                )}
+                {!loadingPages && availablePages.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No pages available</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Button Preview */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium">Button Preview</label>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-md flex justify-center relative">
+            {renderHeaderButton()}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            ✨ Preview updates automatically after you stop typing to prevent focus loss
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+));
+
+ButtonConfiguration.displayName = 'ButtonConfiguration';
 
 export default function HeaderSection({ 
   title, 
@@ -1894,165 +2066,6 @@ export default function HeaderSection({
     handleUpdateField('buttonBorderColor', color);
   }, [handleUpdateField]);
 
-  // Create memoized ButtonConfiguration to prevent re-creation
-  const ButtonConfiguration = useMemo(() => {
-    const ButtonConfigurationComponent = () => (
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-          Header Button Configuration
-        </h4>
-        
-        {/* Enable Button */}
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="showButton"
-            checked={showButton}
-            onChange={handleShowButtonChange}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label htmlFor="showButton" className="text-sm font-medium">
-            Show Button in Header
-          </label>
-        </div>
-        
-        {showButton && (
-          <div className="space-y-4 pl-4 border-l-2 border-blue-200">
-            {/* Button Text */}
-            <div>
-              <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
-                Button Text
-              </label>
-              <StableInput
-                value={buttonText}
-                onChange={handleButtonTextChange}
-                placeholder="Get Started"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                debounceTime={300}
-                data-field-id="buttonText"
-                data-component-type="Header"
-              />
-            </div>
-            
-            {/* URL Type Selection */}
-            <div>
-              <label className="text-sm font-medium block mb-2">
-                Button URL/Action
-              </label>
-              <div className="space-y-3">
-                {/* URL Type Radio Buttons */}
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="buttonUrlType"
-                      value="custom"
-                      checked={buttonUrlType === 'custom'}
-                      onChange={() => handleButtonUrlTypeChange('custom')}
-                      className="mr-2 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm">Custom URL</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="buttonUrlType"
-                      value="page"
-                      checked={buttonUrlType === 'page'}
-                      onChange={() => handleButtonUrlTypeChange('page')}
-                      className="mr-2 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm">Existing Page</span>
-                  </label>
-                </div>
-                
-                {/* Custom URL Input */}
-                {buttonUrlType === 'custom' && (
-                  <div>
-                    <StableInput
-                      value={buttonAction}
-                      onChange={handleButtonActionChange}
-                      placeholder="/contact"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      debounceTime={300}
-                      data-field-id="buttonAction"
-                      data-component-type="Header"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Use relative URLs (/contact) or absolute URLs (https://example.com)
-                    </p>
-                  </div>
-                )}
-                
-                {/* Existing Page Selection */}
-                {buttonUrlType === 'page' && (
-                  <div>
-                    <select
-                      value={selectedPageId}
-                      onChange={(e) => {
-                        const pageId = e.target.value;
-                        const selectedPage = availablePages.find(page => page.id === pageId);
-                        if (selectedPage) {
-                          const pageUrl = `/${selectedPage.slug}`;
-                          handleSelectedPageIdChange(pageId, pageUrl);
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={loadingPages}
-                    >
-                      <option value="">Select a page...</option>
-                      {availablePages.map(page => (
-                        <option key={page.id} value={page.id}>
-                          {page.title} (/{page.slug})
-                        </option>
-                      ))}
-                    </select>
-                    {loadingPages && (
-                      <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
-                    )}
-                    {!loadingPages && availablePages.length === 0 && (
-                      <p className="text-xs text-gray-500 mt-1">No pages available</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Button Preview */}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium">Button Preview</label>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-md flex justify-center relative">
-                {renderHeaderButton()}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                ✨ Preview updates automatically after you stop typing to prevent focus loss
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
-    ButtonConfigurationComponent.displayName = 'ButtonConfigurationComponent';
-    return ButtonConfigurationComponent;
-  }, [
-    showButton,
-    buttonText,
-    buttonAction,
-    buttonUrlType,
-    selectedPageId,
-    availablePages,
-    loadingPages,
-    handleShowButtonChange,
-    handleButtonTextChange,
-    handleButtonActionChange,
-    handleButtonUrlTypeChange,
-    handleSelectedPageIdChange,
-    renderHeaderButton
-  ]);
-
   return (
     <>
       {isEditing ? (
@@ -2106,7 +2119,23 @@ export default function HeaderSection({
               <LogoSelector />
               <MenuSelector />
               <MenuIconSelector />
-              <ButtonConfiguration />
+              <ButtonConfiguration
+                showButton={showButton}
+                buttonText={buttonText}
+                buttonAction={buttonAction}
+                buttonUrlType={buttonUrlType}
+                selectedPageId={selectedPageId}
+                availablePages={availablePages}
+                loadingPages={loadingPages}
+                buttonDropdown={buttonDropdown}
+                buttonDropdownItems={buttonDropdownItems}
+                onShowButtonChange={handleShowButtonChange}
+                onButtonTextChange={handleButtonTextChange}
+                onButtonActionChange={handleButtonActionChange}
+                onButtonUrlTypeChange={handleButtonUrlTypeChange}
+                onSelectedPageIdChange={handleSelectedPageIdChange}
+                renderHeaderButton={renderHeaderButton}
+              />
             </TabsContent>
 
             {/* STYLES TAB */}

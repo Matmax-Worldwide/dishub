@@ -16,8 +16,7 @@ import {
   Settings,
   Clock,
   Briefcase,
-  Search,
-  Palette
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
@@ -2332,12 +2331,14 @@ export default function CalendarSection({
   // Details Tab Component
   const DetailsTab = () => {
     return (
-      <div className="space-y-6">
-        {/* Title and Subtitle Configuration */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
-          
-          <div className="grid grid-cols-1 gap-4">
+      <div className="space-y-8">
+        {/* Content Settings Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
+          </div>
+          <div className="pl-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title
@@ -2394,37 +2395,43 @@ export default function CalendarSection({
           </div>
         </div>
 
-        {/* Design Template Selection */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Design Template</h3>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(designTemplates).map(([key, template]) => (
-              <button
-                key={key}
-                onClick={() => {
-                  if (onUpdate) {
-                    onUpdate({ designTemplate: key as DesignTemplate });
-                  }
-                }}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  localDesignTemplate === key
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="text-sm font-medium">{template.name}</div>
-                <div className="text-xs text-gray-500 mt-1">{template.description}</div>
-              </button>
-            ))}
+        {/* Design Template Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Design Template</h3>
+          </div>
+          <div className="pl-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(designTemplates).map(([key, template]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (onUpdate) {
+                      onUpdate({ designTemplate: key as DesignTemplate });
+                    }
+                  }}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    localDesignTemplate === key
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="text-sm font-medium">{template.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">{template.description}</div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Multi-Step Booking Configuration */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Booking Configuration</h3>
-          
-          <div className="space-y-3">
+        {/* Booking Configuration Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Booking Configuration</h3>
+          </div>
+          <div className="pl-6 space-y-4">
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -2440,7 +2447,7 @@ export default function CalendarSection({
             </label>
 
             {enableMultiStepBooking && (
-              <>
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Selection Methods
@@ -2510,16 +2517,18 @@ export default function CalendarSection({
                     <span className="ml-2 text-sm text-gray-700">Skip Service Selection</span>
                   </label>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Basic Configuration */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Display Options</h3>
-          
-          <div className="space-y-3">
+        {/* Display Options Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Display Options</h3>
+          </div>
+          <div className="pl-6 space-y-4">
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -2572,99 +2581,105 @@ export default function CalendarSection({
     const { colors, name } = currentTemplate;
     
     return (
-      <div className="space-y-6">
-        <h3 className="text-sm font-medium mb-2 flex items-center">
-          <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
-          Calendar Design Style
-        </h3>
-        
-        {/* Visual Design Template Selector */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900">Choose Design Template</h4>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Current:</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
-                {name}
-              </span>
-            </div>
+      <div className="space-y-8">
+        {/* Design Template Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Choose Design Template</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(designTemplates).map(([key, template]) => (
-              <div
-                key={key}
-                onClick={() => handleDesignTemplateChange(key)}
-                className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
-                  localDesignTemplate === key 
-                    ? 'border-blue-500 ring-2 ring-blue-200' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {/* Template Preview */}
-                <div className="p-4">
-                  {/* Header Preview */}
-                  <div className={`h-16 rounded-lg bg-gradient-to-r ${template.colors.primary} mb-3 flex items-center px-4`}>
-                    <div className="flex items-center gap-2 text-white">
-                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                        <template.icons.calendar className="w-3 h-3" />
+          <div className="pl-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-700">Current Template</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Active:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${colors.primary} text-white`}>
+                  {name}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(designTemplates).map(([key, template]) => (
+                <div
+                  key={key}
+                  onClick={() => handleDesignTemplateChange(key)}
+                  className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                    localDesignTemplate === key 
+                      ? 'border-blue-500 ring-2 ring-blue-200' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {/* Template Preview */}
+                  <div className="p-4">
+                    {/* Header Preview */}
+                    <div className={`h-16 rounded-lg bg-gradient-to-r ${template.colors.primary} mb-3 flex items-center px-4`}>
+                      <div className="flex items-center gap-2 text-white">
+                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                          <template.icons.calendar className="w-3 h-3" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold">{template.name}</div>
+                          <div className="text-xs opacity-80">Book Appointment</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold">{template.name}</div>
-                        <div className="text-xs opacity-80">Book Appointment</div>
+                    </div>
+                    
+                    {/* Content Preview */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-2 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="h-6 bg-gray-100 rounded"></div>
+                        <div className="h-6 bg-gray-100 rounded"></div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Content Preview */}
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-2 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      <div className="h-6 bg-gray-100 rounded"></div>
-                      <div className="h-6 bg-gray-100 rounded"></div>
-                    </div>
+                  {/* Template Info */}
+                  <div className="px-4 pb-4">
+                    <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">{template.style} style</div>
                   </div>
+                  
+                  {/* Selected Indicator */}
+                  {localDesignTemplate === key && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  )}
                 </div>
-                
-                {/* Template Info */}
-                <div className="px-4 pb-4">
-                  <div className="text-sm font-medium text-gray-900">{template.name}</div>
-                  <div className="text-xs text-gray-500 capitalize">{template.style} style</div>
-                </div>
-                
-                {/* Selected Indicator */}
-                {localDesignTemplate === key && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Check className="w-4 h-4 text-white" />
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
         
-        {/* Template Preview */}
-        <div className="space-y-3">
-          <h5 className="font-medium text-gray-900">Template Preview</h5>
-          <div className={`p-4 rounded-lg bg-gradient-to-r ${colors.secondary} border`}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 bg-gradient-to-r ${colors.primary} rounded-lg`}>
-                <currentTemplate.icons.calendar className="w-5 h-5 text-white" />
+        {/* Template Preview Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-teal-500 to-teal-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Template Preview</h3>
+          </div>
+          <div className="pl-6 space-y-4">
+            <div className={`p-4 rounded-lg bg-gradient-to-r ${colors.secondary} border`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 bg-gradient-to-r ${colors.primary} rounded-lg`}>
+                  <currentTemplate.icons.calendar className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">{name}</div>
+                  <div className="text-sm text-gray-600 capitalize">{currentTemplate.style} design</div>
+                </div>
               </div>
-              <div>
-                <div className="font-medium text-gray-900">{name}</div>
-                <div className="text-sm text-gray-600 capitalize">{currentTemplate.style} design</div>
+              <div className="text-xs text-gray-500">
+                This template features {currentTemplate.style} styling with {name.toLowerCase()} branding and color scheme.
               </div>
-            </div>
-            <div className="text-xs text-gray-500">
-              This template features {currentTemplate.style} styling with {name.toLowerCase()} branding and color scheme.
             </div>
           </div>
         </div>
@@ -2677,89 +2692,106 @@ export default function CalendarSection({
     const { name } = currentTemplate;
     
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-900">Calendar Preview</h4>
-          <div className="text-sm text-gray-500">
-            Template: <span className="font-medium">{name}</span>
+      <div className="space-y-8">
+        {/* Live Preview Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
           </div>
-        </div>
-        
-        {/* Live Preview */}
-        <div className="border rounded-lg overflow-hidden bg-gray-50">
-          <div className="p-4 bg-white border-b">
-            <h4 className="font-medium text-gray-900 mb-1">Live Preview</h4>
-            <p className="text-sm text-gray-600">This is how your calendar will appear to visitors</p>
-          </div>
-          
-          <div className="p-6 bg-gray-50">
-            <div className="max-w-3xl mx-auto">
-              {isDesignChanging ? (
-                <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center min-h-[300px]">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-600">Updating design preview...</p>
-                  </div>
+          <div className="pl-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-700">Calendar Preview</h4>
+              <div className="text-sm text-gray-500">
+                Template: <span className="font-medium">{name}</span>
+              </div>
+            </div>
+            
+            {/* Live Preview Container */}
+            <div className="border rounded-lg overflow-hidden bg-gray-50">
+              <div className="p-4 bg-white border-b">
+                <h4 className="font-medium text-gray-900 mb-1">Interactive Preview</h4>
+                <p className="text-sm text-gray-600">This is how your calendar will appear to visitors</p>
+              </div>
+              
+              <div className="p-6 bg-gray-50">
+                <div className="max-w-3xl mx-auto">
+                  {isDesignChanging ? (
+                    <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center min-h-[300px]">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-600">Updating design preview...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                      {/* Render the actual calendar component in preview mode */}
+                      {renderCalendarContent()}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                  {/* Render the actual calendar component in preview mode */}
-                  {renderCalendarContent()}
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
         
-        {/* Template Information */}
-        <div className="p-4 border rounded-md bg-blue-50">
-          <h5 className="text-sm font-medium text-blue-900 mb-2">Current Template: {name}</h5>
-          <div className="text-xs text-blue-700">
-            {localDesignTemplate === 'beauty-salon' && 'Pink/purple gradient with sparkles icon and beauty salon branding'}
-            {localDesignTemplate === 'medical' && 'Blue professional theme with calendar icon and medical styling'}
-            {localDesignTemplate === 'fitness' && 'Orange/red gradient with heart icon and fitness branding'}
-            {localDesignTemplate === 'restaurant' && 'Amber/orange theme with star icon and restaurant styling'}
-            {localDesignTemplate === 'corporate' && 'Gray professional theme with building icon and corporate branding'}
-            {localDesignTemplate === 'spa' && 'Green/teal wellness theme with spa styling'}
-            {localDesignTemplate === 'automotive' && 'Slate/gray theme with settings icon and automotive branding'}
-            {localDesignTemplate === 'education' && 'Indigo/purple theme with user icon and education styling'}
-            {localDesignTemplate === 'modern' && 'Black/gray minimalist theme with modern styling'}
+        {/* Template Information Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-amber-600 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-900">Template Information</h3>
           </div>
-        </div>
-        
-        {/* Live Preview Button */}
-        <div className="pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              // Toggle to preview mode temporarily
-              const previewElement = document.createElement('div');
-              previewElement.innerHTML = `
-                <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-                    <div class="p-4 border-b flex justify-between items-center">
-                      <h3 class="font-semibold">Template Preview: ${name}</h3>
-                      <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                      </button>
-                    </div>
-                    <div class="p-6">
-                      <div class="text-center text-gray-500">
-                        <p>Live preview would show the ${name} template in action</p>
-                        <p class="text-sm mt-2">This would render the actual booking flow with the selected template</p>
+          <div className="pl-6 space-y-4">
+            <div className="p-4 border rounded-md bg-blue-50">
+              <h5 className="text-sm font-medium text-blue-900 mb-2">Current Template: {name}</h5>
+              <div className="text-xs text-blue-700">
+                {localDesignTemplate === 'beauty-salon' && 'Pink/purple gradient with sparkles icon and beauty salon branding'}
+                {localDesignTemplate === 'medical' && 'Blue professional theme with calendar icon and medical styling'}
+                {localDesignTemplate === 'fitness' && 'Orange/red gradient with heart icon and fitness branding'}
+                {localDesignTemplate === 'restaurant' && 'Amber/orange theme with star icon and restaurant styling'}
+                {localDesignTemplate === 'corporate' && 'Gray professional theme with building icon and corporate branding'}
+                {localDesignTemplate === 'spa' && 'Green/teal wellness theme with spa styling'}
+                {localDesignTemplate === 'automotive' && 'Slate/gray theme with settings icon and automotive branding'}
+                {localDesignTemplate === 'education' && 'Indigo/purple theme with user icon and education styling'}
+                {localDesignTemplate === 'modern' && 'Black/gray minimalist theme with modern styling'}
+              </div>
+            </div>
+            
+            {/* Preview Actions */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  // Toggle to preview mode temporarily
+                  const previewElement = document.createElement('div');
+                  previewElement.innerHTML = `
+                    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                      <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+                        <div class="p-4 border-b flex justify-between items-center">
+                          <h3 class="font-semibold">Template Preview: ${name}</h3>
+                          <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                        </div>
+                        <div class="p-6">
+                          <div class="text-center text-gray-500">
+                            <p>Live preview would show the ${name} template in action</p>
+                            <p class="text-sm mt-2">This would render the actual booking flow with the selected template</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              `;
-              document.body.appendChild(previewElement);
-            }}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <Calendar className="w-4 h-4" />
-            Preview Template
-          </button>
+                  `;
+                  document.body.appendChild(previewElement);
+                }}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Preview Template
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -2767,26 +2799,41 @@ export default function CalendarSection({
 
   const renderEditingInterface = () => {
     return (
-      <div className="w-full p-6">
-        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
-            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+      <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-50 to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+            <TabsTrigger 
+              value="details" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Details
+            </TabsTrigger>
+            <TabsTrigger 
+              value="styles" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Styles
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preview" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Preview
+            </TabsTrigger>
           </TabsList>
 
           {/* DETAILS TAB */}
-          <TabsContent value="details" className="space-y-4">
+          <TabsContent value="details" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <DetailsTab />
           </TabsContent>
 
           {/* STYLES TAB */}
-          <TabsContent value="styles" className="space-y-4">
+          <TabsContent value="styles" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <StylesTab />
           </TabsContent>
 
           {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-4">
+          <TabsContent value="preview" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <PreviewTab />
           </TabsContent>
         </Tabs>
