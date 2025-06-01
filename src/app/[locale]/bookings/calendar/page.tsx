@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
+import MultiStepBookingForm from '@/components/calendar/MultiStepBookingForm';
 
 // Types
 interface Location {
@@ -124,6 +125,10 @@ export default function CalendarPage() {
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Booking form state
+  const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
 
   // Fetch data
   const fetchData = async () => {
@@ -550,6 +555,64 @@ export default function CalendarPage() {
     );
   };
 
+  // Handle booking creation
+  const handleCreateBooking = async (formData: {
+    selectionMethod: 'service' | 'location' | 'specialist' | null;
+    selectedServiceId?: string;
+    selectedLocationId?: string;
+    selectedStaffId?: string;
+    finalServiceId?: string;
+    finalLocationId?: string;
+    finalStaffId?: string;
+    bookingDate?: string;
+    startTime?: string;
+    endTime?: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    notes?: string;
+  }) => {
+    try {
+      setIsCreatingBooking(true);
+
+      // Determine final values based on selection method
+      const serviceId = formData.finalServiceId || formData.selectedServiceId;
+      const locationId = formData.finalLocationId || formData.selectedLocationId;
+      const staffProfileId = formData.finalStaffId || formData.selectedStaffId;
+
+      // Validate required fields
+      if (!serviceId || !locationId || !formData.bookingDate || !formData.startTime || 
+          !formData.customerName || !formData.customerEmail) {
+        throw new Error('Missing required booking information');
+      }
+
+      const bookingInput = {
+        serviceId: serviceId!,
+        locationId: locationId!,
+        staffProfileId: staffProfileId === 'ANY_AVAILABLE' ? undefined : staffProfileId,
+        bookingDate: formData.bookingDate!,
+        startTime: formData.startTime!,
+        endTime: formData.endTime || formData.startTime!,
+        customerName: formData.customerName!,
+        customerEmail: formData.customerEmail!,
+        customerPhone: formData.customerPhone,
+        notes: formData.notes,
+      };
+
+      await graphqlClient.createBooking({ input: bookingInput });
+      
+      // Refresh the calendar data
+      await fetchData();
+      
+      toast.success('Booking created successfully!');
+    } catch (error) {
+      console.error('Failed to create booking:', error);
+      throw error; // Re-throw to let the form handle the error
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -579,7 +642,7 @@ export default function CalendarPage() {
             <RefreshCwIcon className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setIsBookingFormOpen(true)}>
             <PlusIcon className="w-4 h-4 mr-2" />
             New Booking
           </Button>
@@ -762,6 +825,17 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
         </div>
+
+      {/* Multi-Step Booking Form */}
+      <MultiStepBookingForm
+        isOpen={isBookingFormOpen}
+        onClose={() => setIsBookingFormOpen(false)}
+        onSubmit={handleCreateBooking}
+        services={services}
+        locations={locations}
+        staff={staff}
+        isSubmitting={isCreatingBooking}
+      />
     </div>
   );
 } 

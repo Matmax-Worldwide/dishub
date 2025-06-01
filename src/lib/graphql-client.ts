@@ -3939,11 +3939,6 @@ export const cmsOperations = {
     name: string;
     description?: string | null;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     bufferTimeBeforeMinutes?: number;
     bufferTimeAfterMinutes?: number;
     preparationTimeMinutes?: number;
@@ -4017,11 +4012,6 @@ export const cmsOperations = {
       name?: string;
       description?: string | null;
       durationMinutes?: number;
-      prices?: Array<{
-        id: string;
-        amount: number;
-        currencyId: string;
-      }>;
       bufferTimeBeforeMinutes?: number;
       bufferTimeAfterMinutes?: number;
       preparationTimeMinutes?: number;

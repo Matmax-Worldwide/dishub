@@ -14,6 +14,8 @@ interface StableInputProps {
   label?: string;
   debounceTime?: number;
   disabled?: boolean;
+  id?: string;
+  forceUpdate?: boolean;
   'data-field-id'?: string;
   'data-component-type'?: string;
 }
@@ -34,6 +36,8 @@ export default function StableInput({
   label,
   debounceTime = 500,
   disabled = false,
+  id,
+  forceUpdate = false,
   'data-field-id': fieldId,
   'data-component-type': componentType
 }: StableInputProps) {
@@ -65,22 +69,20 @@ export default function StableInput({
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       lastExternalValueRef.current = value;
+      setLocalValue(value);
       return;
     }
     
-    // Only update if:
-    // 1. We're not actively editing
-    // 2. We don't have focus
-    // 3. The value actually changed from the last external value
-    // 4. The new value is different from our local value
-    if (!isEditingRef.current && 
-        !hasFocusRef.current && 
-        value !== lastExternalValueRef.current && 
-        value !== localValue) {
-      setLocalValue(value);
+    // Force update if forceUpdate is true or if external value changed
+    if (forceUpdate || value !== lastExternalValueRef.current) {
       lastExternalValueRef.current = value;
+      
+      // Update local value if we're not actively editing, don't have focus, or forceUpdate is true
+      if (!isEditingRef.current && !hasFocusRef.current || forceUpdate) {
+        setLocalValue(value);
+      }
     }
-  }, [value, localValue]);
+  }, [value, forceUpdate]);
   
   // Handle input changes with debounce to notify parent
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -174,6 +176,7 @@ export default function StableInput({
   // Render textarea or input based on configuration
   const renderInput = () => {
     const baseProps = {
+      id,
       value: localValue,
       onChange: handleChange,
       onKeyDown: handleKeyDown,
@@ -223,6 +226,7 @@ export default function StableInput({
     >
       {label && (
         <label 
+          htmlFor={id}
           className="block text-sm font-medium mb-2 text-foreground"
           onClick={stopAllPropagation}
         >

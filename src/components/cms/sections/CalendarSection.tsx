@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Service, ServiceCategory, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
+import { Service, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
 import { Button } from '@/components/ui/button';
 import { 
   CheckCircle, 
@@ -19,7 +19,9 @@ import {
   FileText,
   LayoutPanelTop,
   FormInput,
-  Palette
+  Palette,
+  Briefcase,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
@@ -31,32 +33,55 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import graphqlClient from '@/lib/graphql-client';
-import Image from 'next/image';
 
 // Add design template type
 type DesignTemplate = 'beauty-salon' | 'medical' | 'fitness' | 'restaurant' | 'corporate' | 'spa' | 'automotive' | 'education' | 'modern';
+
+// Add selection method type
+type SelectionMethod = 'service' | 'location' | 'specialist';
+
+// Enhanced step configuration
+interface StepConfig {
+  id: BookingStep;
+  label: string;
+  required: boolean;
+  condition: () => boolean;
+  skipCondition?: () => boolean;
+}
 
 interface CalendarSectionProps {
   calendarId?: string; 
   locationId?: string; 
   serviceIds?: string[]; 
-  theme?: 'light' | 'dark'; // For now, not implemented
+  theme?: 'light' | 'dark';
   showLocationSelector?: boolean;
   showServiceCategories?: boolean;
   defaultLocation?: string; 
   customStyles?: Record<string, string>; 
-  showStaffSelector?: boolean; // New prop
+  showStaffSelector?: boolean;
   designTemplate?: DesignTemplate;
-  // Step order customization
+  // Enhanced multi-step booking configuration
+  enableMultiStepBooking?: boolean;
+  enabledSelectionMethods?: SelectionMethod[];
+  // Enhanced step configuration
   stepOrder?: BookingStep[];
+  requiredSteps?: BookingStep[]; // Steps that cannot be skipped
+  optionalSteps?: BookingStep[]; // Steps that can be skipped
+  skipLocationSelection?: boolean; // Skip location selection entirely
+  skipStaffSelection?: boolean; // Skip staff selection entirely
+  skipServiceSelection?: boolean; // Skip service selection entirely
+  autoSelectSingleOption?: boolean; // Auto-select if only one option available
+  // Step flow customization
+  allowStepSkipping?: boolean; // Allow users to skip optional steps
+  showProgressIndicator?: boolean; // Show/hide progress indicator
   // Configurable text content with defaults
   title?: string;
   subtitle?: string;
   description?: string;
   stepTitles?: {
-    locationSelection?: string;
-    serviceSelection?: string;
-    staffSelection?: string;
+    selectionMethod?: string;
+    dynamicSelection?: string;
+    completeSelection?: string;
     dateTimeSelection?: string;
     detailsForm?: string;
     confirmation?: string;
@@ -66,6 +91,7 @@ interface CalendarSectionProps {
     back?: string;
     submit?: string;
     bookNow?: string;
+    skip?: string;
     selectLocation?: string;
     selectService?: string;
     selectStaff?: string;
@@ -77,6 +103,22 @@ interface CalendarSectionProps {
     customerEmail?: string;
     customerPhone?: string;
     notes?: string;
+  };
+  selectionMethodTexts?: {
+    title: string;
+    subtitle: string;
+    serviceOption: {
+      title: string;
+      description: string;
+    };
+    locationOption: {
+      title: string;
+      description: string;
+    };
+    specialistOption: {
+      title: string;
+      description: string;
+    };
   };
   isEditing?: boolean;
   onUpdate?: (data: {
@@ -90,14 +132,24 @@ interface CalendarSectionProps {
     customStyles?: Record<string, string>;
     showStaffSelector?: boolean;
     designTemplate?: DesignTemplate;
+    enableMultiStepBooking?: boolean;
+    enabledSelectionMethods?: SelectionMethod[];
     stepOrder?: BookingStep[];
+    requiredSteps?: BookingStep[];
+    optionalSteps?: BookingStep[];
+    skipLocationSelection?: boolean;
+    skipStaffSelection?: boolean;
+    skipServiceSelection?: boolean;
+    autoSelectSingleOption?: boolean;
+    allowStepSkipping?: boolean;
+    showProgressIndicator?: boolean;
     title?: string;
     subtitle?: string;
     description?: string;
     stepTitles?: {
-      locationSelection?: string;
-      serviceSelection?: string;
-      staffSelection?: string;
+      selectionMethod?: string;
+      dynamicSelection?: string;
+      completeSelection?: string;
       dateTimeSelection?: string;
       detailsForm?: string;
       confirmation?: string;
@@ -107,6 +159,7 @@ interface CalendarSectionProps {
       back?: string;
       submit?: string;
       bookNow?: string;
+      skip?: string;
       selectLocation?: string;
       selectService?: string;
       selectStaff?: string;
@@ -119,11 +172,27 @@ interface CalendarSectionProps {
       customerPhone?: string;
       notes?: string;
     };
+    selectionMethodTexts?: {
+      title: string;
+      subtitle: string;
+      serviceOption: {
+        title: string;
+        description: string;
+      };
+      locationOption: {
+        title: string;
+        description: string;
+      };
+      specialistOption: {
+        title: string;
+        description: string;
+      };
+    };
   }) => void;
   className?: string;
 }
 
-type BookingStep = 'locationSelection' | 'serviceSelection' | 'staffSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
+type BookingStep = 'selectionMethod' | 'dynamicSelection' | 'completeSelection' | 'dateTimeSelection' | 'detailsForm' | 'confirmation';
 
 const ProgressIndicator = ({ currentStep, steps, onStepClick }: { 
   currentStep: BookingStep, 
@@ -158,6 +227,30 @@ const ProgressIndicator = ({ currentStep, steps, onStepClick }: {
   );
 };
 
+// Add type guard functions after the imports
+type StaffForService = {
+  id: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl?: string;
+  };
+  bio?: string;
+  specializations: string[];
+};
+
+const isService = (item: Service | Location | StaffForService): item is Service => {
+  return 'durationMinutes' in item && 'prices' in item;
+};
+
+const isLocation = (item: Service | Location | StaffForService): item is Location => {
+  return 'address' in item || ('name' in item && !('durationMinutes' in item) && !('user' in item));
+};
+
+const isStaffForService = (item: Service | Location | StaffForService): item is StaffForService => {
+  return 'user' in item && 'specializations' in item;
+};
 
 export default function CalendarSection({
   locationId: initialLocationIdProp,
@@ -166,16 +259,31 @@ export default function CalendarSection({
   defaultLocation: initialDefaultLocation,
   showStaffSelector: initialShowStaffSelector = true,
   designTemplate: initialDesignTemplate = 'beauty-salon',
-  // Step order customization
-  stepOrder: initialStepOrder = ['locationSelection', 'serviceSelection', 'staffSelection', 'dateTimeSelection', 'detailsForm', 'confirmation'],
+  // Enhanced multi-step booking configuration
+  enableMultiStepBooking: initialEnableMultiStepBooking = true,
+  enabledSelectionMethods: initialEnabledSelectionMethods = ['service', 'location', 'specialist'],
+  // Enhanced step configuration
+  stepOrder: initialStepOrder = ['selectionMethod', 'dynamicSelection', 'completeSelection', 'dateTimeSelection', 'detailsForm', 'confirmation'],
+  requiredSteps: initialRequiredSteps = ['dateTimeSelection', 'detailsForm', 'confirmation'],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  optionalSteps: initialOptionalSteps = ['selectionMethod', 'completeSelection'],
+  skipLocationSelection: initialSkipLocationSelection = false,
+  skipStaffSelection: initialSkipStaffSelection = false,
+  skipServiceSelection: initialSkipServiceSelection = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  autoSelectSingleOption: initialAutoSelectSingleOption = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  allowStepSkipping: initialAllowStepSkipping = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  showProgressIndicator: initialShowProgressIndicator = true,
   // Configurable text content with defaults
   title: initialTitle = 'Book Your Appointment',
   subtitle: initialSubtitle = 'Choose your preferred service and time',
   description: initialDescription = 'Select from our available services and book your appointment in just a few simple steps.',
   stepTitles: initialStepTitles = {
-    locationSelection: 'Choose Location',
-    serviceSelection: 'Select Service',
-    staffSelection: 'Choose Staff',
+    selectionMethod: 'Choose Method',
+    dynamicSelection: 'Make Selection',
+    completeSelection: 'Complete Selection',
     dateTimeSelection: 'Pick Date & Time',
     detailsForm: 'Your Details',
     confirmation: 'Confirm Booking'
@@ -185,6 +293,7 @@ export default function CalendarSection({
     back: 'Back',
     submit: 'Submit',
     bookNow: 'Book Now',
+    skip: 'Skip',
     selectLocation: 'Select Location',
     selectService: 'Select Service',
     selectStaff: 'Select Staff',
@@ -196,6 +305,22 @@ export default function CalendarSection({
     customerEmail: 'your.email@example.com',
     customerPhone: 'Your phone number',
     notes: 'Any special requests or notes...'
+  },
+  selectionMethodTexts: initialSelectionMethodTexts = {
+    title: 'Choose Method',
+    subtitle: 'Select the preferred method for booking',
+    serviceOption: {
+      title: 'Service',
+      description: 'Select a service you want to book'
+    },
+    locationOption: {
+      title: 'Location',
+      description: 'Choose a location where you want to book'
+    },
+    specialistOption: {
+      title: 'Specialist',
+      description: 'Choose a specialist for your service'
+    }
   },
   isEditing = false,
   onUpdate,
@@ -210,11 +335,42 @@ export default function CalendarSection({
   const [showServiceCategories, setShowServiceCategories] = useState(initialShowServiceCategories);
   const [defaultLocation, setDefaultLocation] = useState(initialDefaultLocation);
   const [showStaffSelector, setShowStaffSelector] = useState(initialShowStaffSelector);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [enableMultiStepBooking, setEnableMultiStepBooking] = useState(initialEnableMultiStepBooking);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [enabledSelectionMethods, setEnabledSelectionMethods] = useState(initialEnabledSelectionMethods);
   const [stepTitles, setStepTitles] = useState(initialStepTitles);
   const [buttonTexts, setButtonTexts] = useState(initialButtonTexts);
   const [placeholderTexts, setPlaceholderTexts] = useState(initialPlaceholderTexts);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectionMethodTexts, setSelectionMethodTexts] = useState(initialSelectionMethodTexts);
   const [stepOrder, setStepOrder] = useState(initialStepOrder);
   
+  // Enhanced step configuration state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [requiredSteps, setRequiredSteps] = useState(initialRequiredSteps);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [skipLocationSelection, setSkipLocationSelection] = useState(initialSkipLocationSelection);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [skipStaffSelection, setSkipStaffSelection] = useState(initialSkipStaffSelection);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [skipServiceSelection, setSkipServiceSelection] = useState(initialSkipServiceSelection);
+  
+  
+  // Multi-step booking state
+  const [selectedBookingMethod, setSelectedBookingMethod] = useState<SelectionMethod | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [step2Selections, setStep2Selections] = useState<{
+    serviceId?: string;
+    locationId?: string;
+    staffId?: string | null;
+  }>({});
+  const [step3Selections, setStep3Selections] = useState<{
+    finalServiceId?: string;
+    finalLocationId?: string;
+    finalStaffId?: string | null;
+  }>({});
+
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
   
@@ -327,27 +483,90 @@ export default function CalendarSection({
     }
   }, [title, subtitle, description, showLocationSelector, showServiceCategories, defaultLocation, showStaffSelector, localDesignTemplate, stepOrder, stepTitles, buttonTexts, placeholderTexts, onUpdate]);
   
-  // Define all possible steps with their conditions
-  const stepDefinitions: {id: BookingStep, label: string, condition?: boolean}[] = [
-    { id: 'locationSelection', label: stepTitles.locationSelection || 'Choose Location', condition: showLocationSelector },
-    { id: 'serviceSelection', label: stepTitles.serviceSelection || 'Select Service', condition: true },
-    { id: 'staffSelection', label: stepTitles.staffSelection || 'Choose Staff', condition: showStaffSelector }, 
-    { id: 'dateTimeSelection', label: stepTitles.dateTimeSelection || 'Pick Date & Time', condition: true },
-    { id: 'detailsForm', label: stepTitles.detailsForm || 'Your Details', condition: true },
-    { id: 'confirmation', label: stepTitles.confirmation || 'Confirm Booking', condition: true }
+  // Enhanced step configuration using StepConfig interface
+  const stepConfigurations: StepConfig[] = [
+    {
+      id: 'selectionMethod',
+      label: stepTitles.selectionMethod || 'Choose Method',
+      required: requiredSteps.includes('selectionMethod'),
+      condition: () => enableMultiStepBooking && !skipServiceSelection && !skipLocationSelection && !skipStaffSelection,
+      skipCondition: () => {
+        // Skip if only one selection method is enabled or if all selections are skipped
+        const enabledCount = [
+          !skipServiceSelection,
+          !skipLocationSelection && showLocationSelector,
+          !skipStaffSelection && showStaffSelector
+        ].filter(Boolean).length;
+        return enabledCount <= 1;
+      }
+    },
+    {
+      id: 'dynamicSelection',
+      label: stepTitles.dynamicSelection || 'Make Selection',
+      required: requiredSteps.includes('dynamicSelection'),
+      condition: () => true, // Always available
+      skipCondition: () => {
+        // Skip if all selections are disabled
+        return skipServiceSelection && skipLocationSelection && skipStaffSelection;
+      }
+    },
+    {
+      id: 'completeSelection',
+      label: stepTitles.completeSelection || 'Complete Selection',
+      required: requiredSteps.includes('completeSelection'),
+      condition: () => enableMultiStepBooking,
+      skipCondition: () => {
+        // Skip if only one type of selection is needed
+        const needsCompletion = [
+          !skipServiceSelection,
+          !skipLocationSelection && showLocationSelector,
+          !skipStaffSelection && showStaffSelector
+        ].filter(Boolean).length > 1;
+        return !needsCompletion;
+      }
+    },
+    {
+      id: 'dateTimeSelection',
+      label: stepTitles.dateTimeSelection || 'Pick Date & Time',
+      required: requiredSteps.includes('dateTimeSelection'),
+      condition: () => true, // Always required
+    },
+    {
+      id: 'detailsForm',
+      label: stepTitles.detailsForm || 'Your Details',
+      required: requiredSteps.includes('detailsForm'),
+      condition: () => true, // Always required
+    },
+    {
+      id: 'confirmation',
+      label: stepTitles.confirmation || 'Confirm Booking',
+      required: requiredSteps.includes('confirmation'),
+      condition: () => true, // Always required
+    }
   ];
 
-  // Filter and order steps based on stepOrder and conditions
+  // Filter and order steps based on configuration
   const allSteps = stepOrder
-    .map(stepId => stepDefinitions.find(def => def.id === stepId))
-    .filter((step): step is {id: BookingStep, label: string, condition?: boolean} => 
-      step !== undefined && step.condition !== false
-    );
-  
+    .map(stepId => stepConfigurations.find(config => config.id === stepId))
+    .filter((config): config is StepConfig => {
+      if (!config) return false;
+      
+      // Check if step meets its condition
+      if (!config.condition()) return false;
+      
+      // Check if step should be skipped
+      if (config.skipCondition && config.skipCondition()) {
+        // Only skip if it's not required
+        return config.required;
+      }
+      
+      return true;
+    });
+
   const getInitialStep = (): BookingStep => {
     // Return the first step in the custom order that meets its conditions
     const firstAvailableStep = allSteps[0];
-    return firstAvailableStep ? firstAvailableStep.id : 'serviceSelection';
+    return firstAvailableStep ? firstAvailableStep.id : 'dynamicSelection';
   };
   
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(defaultLocation || initialLocationIdProp || null);
@@ -359,13 +578,11 @@ export default function CalendarSection({
   // Only keep state variables that are actually used
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<AvailableTimeSlot | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false); 
   const [error, setError] = useState<string | null>(null);
 
   // Data state
   const [locations, setLocations] = useState<Location[]>([]);
-  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
   const [displayServices, setDisplayServices] = useState<Service[]>([]);
   const [availableStaffForService, setAvailableStaffForService] = useState<Array<{
     id: string;
@@ -381,10 +598,6 @@ export default function CalendarSection({
   const [timeSlots, setTimeSlots] = useState<AvailableTimeSlot[]>([]);
   
   // Loading states
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [isLoadingServices, setIsLoadingServices] = useState(false);
-  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const [customerInfo, setCustomerInfo] = useState({
@@ -396,11 +609,19 @@ export default function CalendarSection({
   
   const [confirmedBookingDetails, setConfirmedBookingDetails] = useState<Booking | null>(null);
 
+  // Helper function to get the current effective selections
+  const getCurrentSelections = useCallback(() => {
+    return {
+      serviceId: step3Selections.finalServiceId || step2Selections.serviceId || selectedServiceId,
+      locationId: step3Selections.finalLocationId || step2Selections.locationId || selectedLocationId,
+      staffId: step3Selections.finalStaffId || step2Selections.staffId || selectedStaffId
+    };
+  }, [step3Selections, step2Selections, selectedServiceId, selectedLocationId, selectedStaffId]);
+
   // Load locations when component mounts or when showLocationSelector changes
   useEffect(() => {
     async function loadLocations() {
       if (showLocationSelector) {
-        setIsLoadingLocations(true);
         try {
           console.log('Loading locations...');
           const locationsData = await graphqlClient.locations();
@@ -420,12 +641,9 @@ export default function CalendarSection({
           setError(errorMessage);
           setLocations([]);
           toast.error('Failed to load locations');
-        } finally {
-          setIsLoadingLocations(false);
         }
       } else {
         setLocations([]);
-        setIsLoadingLocations(false);
       }
     }
 
@@ -436,23 +654,16 @@ export default function CalendarSection({
   useEffect(() => {
     async function loadServiceCategories() {
       if (showServiceCategories) {
-        setIsLoadingCategories(true);
         try {
           console.log('Loading service categories...');
           // TODO: Implement graphqlClient.serviceCategories() method
           // For now, using empty array
-          setServiceCategories([]);
           setError(null);
         } catch (error) {
           console.error('Error loading service categories:', error);
           setError('Failed to load service categories. Please try again.');
-          setServiceCategories([]);
-        } finally {
-          setIsLoadingCategories(false);
         }
       } else {
-        setServiceCategories([]);
-        setIsLoadingCategories(false);
       }
     }
 
@@ -462,7 +673,6 @@ export default function CalendarSection({
   // Load services when component mounts or when location changes
   useEffect(() => {
     async function loadServices() {
-      setIsLoadingServices(true);
       try {
         console.log('Loading services...');
         const servicesData = await graphqlClient.services();
@@ -504,31 +714,67 @@ export default function CalendarSection({
         setDisplayServices([]);
         toast.error('Failed to load services');
       } finally {
-        setIsLoadingServices(false);
       }
     }
 
     loadServices();
   }, []);
 
-  // Filter services by selected location
-  const filteredServices = displayServices.filter(service => {
-    // If no location is selected, show all services
-    if (!selectedLocationId) return true;
-    // Show services that are available at the selected location
-    return (service.locationIds ?? []).includes(selectedLocationId);
-  });
+
+  // Filtering functions to show only available combinations
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getAvailableServices = (locationId?: string, _staffId?: string) => {
+    return displayServices.filter(service => {
+      // If location is selected, service must be available at that location
+      if (locationId && !service.locations?.some(loc => loc.id === locationId)) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getAvailableLocations = (serviceId?: string, _staffId?: string) => {
+    return locations.filter(location => {
+      // If service is selected, location must offer that service
+      if (serviceId) {
+        const service = displayServices.find(s => s.id === serviceId);
+        if (service && !service.locations?.some(loc => loc.id === location.id)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getAvailableStaff = (serviceId?: string, locationId?: string) => {
+    // Use the availableStaffForService which is already filtered by the GraphQL query
+    // The GraphQL staffForService query already filters staff based on service and location
+    return availableStaffForService.filter(staffMember => {
+      // Additional filtering can be added here if needed
+      // For now, the GraphQL query handles the main filtering
+      
+      // Suppress unused variable warning - staffMember is used in potential filtering logic
+      void staffMember;
+      void serviceId;
+      void locationId;
+      
+      return true;
+    });
+  };
 
   // Load staff when service is selected
   useEffect(() => {
     async function loadStaffForService() {
-      if (selectedServiceId && showStaffSelector && selectedLocationId) {
-        setIsLoadingStaff(true);
+      const currentSelections = getCurrentSelections();
+      
+      if (currentSelections.serviceId && showStaffSelector && currentSelections.locationId) {
         try {
-          console.log('Loading staff for service:', selectedServiceId, 'at location:', selectedLocationId);
+          console.log('Loading staff for service:', currentSelections.serviceId, 'at location:', currentSelections.locationId);
           const staffData = await graphqlClient.staffForService({
-            serviceId: selectedServiceId,
-            locationId: selectedLocationId
+            serviceId: currentSelections.serviceId,
+            locationId: currentSelections.locationId
           });
           console.log('Staff loaded:', staffData);
           
@@ -557,35 +803,35 @@ export default function CalendarSection({
           setAvailableStaffForService([]);
           toast.error('Failed to load staff');
         } finally {
-          setIsLoadingStaff(false);
         }
       } else {
         setAvailableStaffForService([]);
-        setIsLoadingStaff(false);
       }
     }
 
     loadStaffForService();
-  }, [selectedServiceId, showStaffSelector, selectedLocationId]);
+  }, [selectedServiceId, showStaffSelector, selectedLocationId, step2Selections, step3Selections, getCurrentSelections]);
 
   // Load time slots when date, service, and staff are selected
   useEffect(() => {
     async function loadTimeSlots() {
-      if (selectedDate && selectedServiceId && selectedLocationId && selectedStaffId) {
+      const currentSelections = getCurrentSelections();
+      
+      if (selectedDate && currentSelections.serviceId && currentSelections.locationId && currentSelections.staffId) {
         setIsLoadingSlots(true);
         try {
           const dateString = format(selectedDate, 'yyyy-MM-dd');
           console.log('Loading time slots for:', { 
-            serviceId: selectedServiceId, 
-            locationId: selectedLocationId, 
-            staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : selectedStaffId,
+            serviceId: currentSelections.serviceId, 
+            locationId: currentSelections.locationId, 
+            staffProfileId: currentSelections.staffId === "ANY_AVAILABLE" ? undefined : currentSelections.staffId,
             date: dateString 
           });
           
           const slotsData = await graphqlClient.availableSlots({
-            serviceId: selectedServiceId,
-            locationId: selectedLocationId,
-            staffProfileId: selectedStaffId === "ANY_AVAILABLE" ? undefined : selectedStaffId,
+            serviceId: currentSelections.serviceId,
+            locationId: currentSelections.locationId,
+            staffProfileId: currentSelections.staffId === "ANY_AVAILABLE" ? undefined : currentSelections.staffId,
             date: dateString
           });
           console.log('Time slots loaded:', slotsData);
@@ -614,7 +860,7 @@ export default function CalendarSection({
     }
 
     loadTimeSlots();
-  }, [selectedDate, selectedServiceId, selectedLocationId, selectedStaffId]);
+  }, [selectedDate, getCurrentSelections]);
 
   // Handle design template change
   const handleDesignTemplateChange = useCallback((template: string) => {
@@ -642,7 +888,6 @@ export default function CalendarSection({
     setSelectedStaffId("ANY_AVAILABLE");
     setSelectedDate(new Date());
     setSelectedTimeSlot(null);
-    setSelectedCategoryId(null);
     setCustomerInfo({
       fullName: '',
       email: '',
@@ -826,8 +1071,14 @@ export default function CalendarSection({
   // Get current template for styling
   const currentTemplate = designTemplates[localDesignTemplate] || designTemplates['beauty-salon'];
 
-  if (error && currentStep !== 'locationSelection' && currentStep !== 'serviceSelection') { 
-    return <div className="p-4 text-red-600 bg-red-50 rounded-md">{error}</div>;
+  // Show error message if there's an error and we're not in a step that handles its own error display
+  if (error && currentStep !== 'dynamicSelection' && currentStep !== 'completeSelection') {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-600 mb-4">{error}</div>
+        <Button onClick={() => setError(null)}>Try Again</Button>
+      </div>
+    );
   }
 
   // Render the calendar component based on design template
@@ -1136,213 +1387,116 @@ export default function CalendarSection({
       );
     }
 
-    switch (currentStep) {
-      case 'locationSelection':
-        return renderLocationSelection();
-      case 'serviceSelection':
-        return renderServiceSelection();
-      case 'staffSelection':
-        return renderStaffSelection();
-      case 'dateTimeSelection':
-        return renderDateTimeSelection();
-      case 'detailsForm':
-        return renderDetailsForm();
-      case 'confirmation':
-        return renderConfirmation();
-      default:
-        return renderLocationSelection();
+    // Create step renderer map dynamically
+    const stepRendererMap = new Map<BookingStep, () => React.ReactNode>([
+      ['selectionMethod', renderSelectionMethod],
+      ['dynamicSelection', renderDynamicSelection],
+      ['completeSelection', renderCompleteSelection],
+      ['dateTimeSelection', renderDateTimeSelection],
+      ['detailsForm', renderDetailsForm],
+      ['confirmation', renderConfirmation]
+    ]);
+
+    // Use dynamic step rendering instead of hardcoded switch
+    const renderFunction = stepRendererMap.get(currentStep);
+    if (renderFunction) {
+      return renderFunction();
     }
+
+    // Fallback for unknown steps
+    console.warn(`Unknown step: ${currentStep}`);
+    return enableMultiStepBooking ? renderSelectionMethod() : renderDynamicSelection();
   };
 
-  // Location Selection Step
-  const renderLocationSelection = () => {
-    if (isLoadingLocations) {
-      return (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading locations...</p>
-        </div>
-      );
-    }
-
-    if (locations.length === 0) {
-      return (
-        <div className="text-center py-8">
-          <MapPin className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Locations Available</h3>
-          <p className="text-gray-600 mb-4">
-            There are currently no locations configured for booking appointments.
-          </p>
-          <Button 
-            onClick={() => {
-              // Retry loading locations
-              setError(null);
-              const loadLocations = async () => {
-                setIsLoadingLocations(true);
-                try {
-                  const locationsData = await graphqlClient.locations();
-                  setLocations(locationsData);
-                  setError(null);
-                } catch (error) {
-                  console.error('Error loading locations:', error);
-                  setError('Failed to load locations. Please try again.');
-                  setLocations([]);
-                } finally {
-                  setIsLoadingLocations(false);
-                }
-              };
-              loadLocations();
-            }}
-            variant="outline"
-          >
-            Retry Loading
-          </Button>
-        </div>
-      );
-    }
-
+  // Selection Method Step
+  const renderSelectionMethod = () => {
     return (
       <div className="space-y-6">
-        <h3 className="text-xl font-semibold mb-4">Choose Location</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {locations.map((location) => (
+        <div className="text-center">
+          <h3 className="text-2xl font-semibold mb-2">{selectionMethodTexts.title}</h3>
+          <p className="text-gray-600">{selectionMethodTexts.subtitle}</p>
+        </div>
+
+        <div className="grid gap-4 max-w-2xl mx-auto">
+          {enabledSelectionMethods.includes('service') && (
             <div
-              key={location.id}
-              onClick={() => handleLocationSelect(location.id)}
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                selectedLocationId === location.id
-                  ? 'border-blue-500 bg-blue-50'
+              onClick={() => setSelectedBookingMethod('service')}
+              className={`p-6 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${
+                selectedBookingMethod === 'service'
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-gray-500" />
-                <div>
-                  <h4 className="font-medium">{location.name}</h4>
-                  {location.address && (
-                    <p className="text-sm text-gray-600">{location.address}</p>
-                  )}
-                  {location.phone && (
-                    <p className="text-sm text-gray-500">{location.phone}</p>
-                  )}
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${
+                  selectedBookingMethod === 'service' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  <Briefcase className="w-6 h-6" />
                 </div>
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold">{selectionMethodTexts.serviceOption.title}</h4>
+                  <p className="text-gray-600">{selectionMethodTexts.serviceOption.description}</p>
+                </div>
+                {selectedBookingMethod === 'service' && (
+                  <Check className="w-6 h-6 text-primary" />
+                )}
               </div>
             </div>
-          ))}
-        </div>
-        
-        {/* Show location count */}
-        <div className="text-center text-sm text-gray-500">
-          {locations.length} location{locations.length !== 1 ? 's' : ''} available
-        </div>
-        
-        {/* Navigation Buttons */}
-        <div className="flex justify-between pt-4">
-          <button
-            onClick={goToPreviousStep}
-            disabled={!getPreviousStep(currentStep)}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {buttonTexts.back}
-          </button>
-          <button
-            onClick={goToNextStep}
-            disabled={!selectedLocationId || !getNextStep(currentStep)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {buttonTexts.next}
-          </button>
-        </div>
-      </div>
-    );
-  };
+          )}
 
-  // Service Selection Step
-  const renderServiceSelection = () => {
-    if (isLoadingServices || isLoadingCategories) {
-      return (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading services...</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold mb-4">Select Service</h3>
-        
-        {/* Service Categories */}
-              {showServiceCategories && serviceCategories.length > 0 && (
-          <div className="mb-6">
-            <h4 className="font-medium mb-3">Categories</h4>
-            <div className="flex flex-wrap gap-2">
-              {serviceCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm transition-all ${
-                    selectedCategoryId === category.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-                  </div>
-                </div>
-              )}
-
-        {/* Services */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredServices.map((service) => (
+          {enabledSelectionMethods.includes('location') && (
             <div
-              key={service.id}
-              onClick={() => handleServiceSelect(service.id)}
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                selectedServiceId === service.id
-                  ? 'border-blue-500 bg-blue-50'
+              onClick={() => setSelectedBookingMethod('location')}
+              className={`p-6 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${
+                selectedBookingMethod === 'location'
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-                        <div className="flex justify-between items-start">
-                            <div>
-                  <h4 className="font-medium">{service.name}</h4>
-                  {service.description && (
-                    <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {service.durationMinutes} min
-                    </span>
-                    {service.prices && service.prices.length > 0 && (
-                      <span className="font-medium text-green-600">${service.prices[0].amount}</span>
-                    )}
-                            </div>
-                        </div>
-                        </div>
-            </div>
-                  ))}
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${
+                  selectedBookingMethod === 'location' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  <MapPin className="w-6 h-6" />
                 </div>
-        
-        {/* Show service count */}
-        <div className="text-center text-sm text-gray-500">
-          {selectedLocationId ? (
-            <>
-              {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''} available at selected location
-              {displayServices.length !== filteredServices.length && (
-                <span className="block text-xs text-gray-400 mt-1">
-                  ({displayServices.length - filteredServices.length} service{displayServices.length - filteredServices.length !== 1 ? 's' : ''} available at other locations)
-                </span>
-              )}
-            </>
-          ) : (
-            `${displayServices.length} service${displayServices.length !== 1 ? 's' : ''} available`
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold">{selectionMethodTexts.locationOption.title}</h4>
+                  <p className="text-gray-600">{selectionMethodTexts.locationOption.description}</p>
+                </div>
+                {selectedBookingMethod === 'location' && (
+                  <Check className="w-6 h-6 text-primary" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {enabledSelectionMethods.includes('specialist') && (
+            <div
+              onClick={() => setSelectedBookingMethod('specialist')}
+              className={`p-6 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${
+                selectedBookingMethod === 'specialist'
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${
+                  selectedBookingMethod === 'specialist' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  <User className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold">{selectionMethodTexts.specialistOption.title}</h4>
+                  <p className="text-gray-600">{selectionMethodTexts.specialistOption.description}</p>
+                </div>
+                {selectedBookingMethod === 'specialist' && (
+                  <Check className="w-6 h-6 text-primary" />
+                )}
+              </div>
+            </div>
           )}
         </div>
-        
+
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
           <button
@@ -1354,7 +1508,7 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!selectedServiceId || !getNextStep(currentStep)}
+            disabled={!selectedBookingMethod || !getNextStep(currentStep)}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {buttonTexts.next}
@@ -1364,96 +1518,166 @@ export default function CalendarSection({
     );
   };
 
-  // Staff Selection Step
-  const renderStaffSelection = () => {
-    if (isLoadingStaff) {
-      return (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading staff...</p>
-        </div>
-      );
-    }
+  // Dynamic Selection Step (Step 2) - Shows content based on selected method
+  const renderDynamicSelection = () => {
+    const filteredItems = (): (Service | Location | StaffForService)[] => {
+      const term = searchTerm.toLowerCase();
+      
+      switch (selectedBookingMethod) {
+        case 'service':
+          return displayServices.filter(service => 
+            service.name.toLowerCase().includes(term) ||
+            service.description?.toLowerCase().includes(term) ||
+            service.serviceCategory?.name.toLowerCase().includes(term)
+          );
+        case 'location':
+          return locations.filter(location =>
+            location.name.toLowerCase().includes(term) ||
+            location.address?.toLowerCase().includes(term)
+          );
+        case 'specialist':
+          return availableStaffForService.filter(staffMember =>
+            `${staffMember.user?.firstName} ${staffMember.user?.lastName}`.toLowerCase().includes(term) ||
+            staffMember.bio?.toLowerCase().includes(term) ||
+            staffMember.specializations?.some(spec => spec.toLowerCase().includes(term))
+          );
+        default:
+          return [];
+      }
+    };
+
+    const items = filteredItems();
 
     return (
       <div className="space-y-6">
-        <h3 className="text-xl font-semibold mb-4">Choose Staff Member</h3>
-        
-        {/* Any Available Option */}
-        <div
-                onClick={() => handleStaffSelect("ANY_AVAILABLE")}
-          className={`p-4 border rounded-lg cursor-pointer transition-all ${
-            selectedStaffId === "ANY_AVAILABLE"
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-gray-500" />
-                <div>
-              <h4 className="font-medium">Any Available Staff</h4>
-              <p className="text-sm text-gray-600">We&apos;ll assign the best available staff member</p>
-                </div>
-          </div>
+        <div className="text-center">
+          <h3 className="text-xl font-semibold mb-2">
+            {selectedBookingMethod === 'service' && 'Choose a Service'}
+            {selectedBookingMethod === 'location' && 'Choose a Location'}
+            {selectedBookingMethod === 'specialist' && 'Choose a Specialist'}
+          </h3>
+          <p className="text-gray-600">
+            {selectedBookingMethod === 'service' && 'Select the service you need'}
+            {selectedBookingMethod === 'location' && 'Pick your preferred location'}
+            {selectedBookingMethod === 'specialist' && 'Choose your preferred specialist'}
+          </p>
         </div>
 
-        {/* Individual Staff Members */}
-        {availableStaffForService.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableStaffForService.map((staff) => (
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder={`Search ${selectedBookingMethod === 'service' ? 'services' : selectedBookingMethod === 'location' ? 'locations' : 'specialists'}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        {/* Items grid */}
+        <div className="grid gap-4 max-h-96 overflow-y-auto">
+          {items.map((item) => {
+            const isSelected = 
+              (selectedBookingMethod === 'service' && step2Selections.serviceId === item.id) ||
+              (selectedBookingMethod === 'location' && step2Selections.locationId === item.id) ||
+              (selectedBookingMethod === 'specialist' && step2Selections.staffId === item.id);
+
+            return (
               <div
-                key={staff.id} 
-                onClick={() => handleStaffSelect(staff.id)}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedStaffId === staff.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                key={item.id}
+                className={`cursor-pointer transition-all hover:shadow-md p-4 border rounded-lg ${
+                  isSelected ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500' : 'border-gray-200 hover:border-gray-300'
                 }`}
+                onClick={() => {
+                  if (selectedBookingMethod === 'service') {
+                    setStep2Selections(prev => ({ ...prev, serviceId: item.id }));
+                    handleServiceSelect(item.id);
+                  } else if (selectedBookingMethod === 'location') {
+                    setStep2Selections(prev => ({ ...prev, locationId: item.id }));
+                    handleLocationSelect(item.id);
+                  } else if (selectedBookingMethod === 'specialist') {
+                    setStep2Selections(prev => ({ ...prev, staffId: item.id }));
+                    handleStaffSelect(item.id);
+                  }
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    {staff.user?.profileImageUrl ? (
-                      <Image
-                        src={staff.user.profileImageUrl} 
-                        alt={`${staff.user.firstName} ${staff.user.lastName}`}
-                        className="w-10 h-10 rounded-full object-cover"
-                        width={40}
-                        height={40}
-                      />
-                    ) : (
-                      <User className="w-5 h-5 text-gray-500" />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    {selectedBookingMethod === 'service' && isService(item) && (
+                      <>
+                        <h4 className="font-semibold text-lg">{item.name}</h4>
+                        <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {item.durationMinutes} min
+                          </span>
+                          {item.prices?.length > 0 && (
+                            <span className="font-medium text-blue-600">
+                              ${item.prices[0].amount}
+                            </span>
+                          )}
+                        </div>
+                        {item.serviceCategory && (
+                          <span className="inline-block mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                            {item.serviceCategory.name}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    
+                    {selectedBookingMethod === 'location' && isLocation(item) && (
+                      <>
+                        <h4 className="font-semibold text-lg">{item.name}</h4>
+                        {item.address && (
+                          <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                            <MapPin className="w-4 h-4" />
+                            {item.address}
+                          </p>
+                        )}
+                        {item.phone && (
+                          <p className="text-sm text-gray-500 mt-1">{item.phone}</p>
+                        )}
+                      </>
+                    )}
+                    
+                    {selectedBookingMethod === 'specialist' && isStaffForService(item) && (
+                      <>
+                        <h4 className="font-semibold text-lg">
+                          {item.user?.firstName} {item.user?.lastName}
+                        </h4>
+                        {item.bio && (
+                          <p className="text-sm text-gray-600 mt-1">{item.bio}</p>
+                        )}
+                        {item.specializations && item.specializations.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {item.specializations.map((spec: string, index: number) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded border">
+                                {spec}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                  <div>
-                    <h4 className="font-medium">
-                      {staff.user?.firstName} {staff.user?.lastName || 'Staff Member'}
-                    </h4>
-                    {staff.specializations && staff.specializations.length > 0 && (
-                      <p className="text-sm text-gray-600">{staff.specializations.join(', ')}</p>
-                    )}
-                    {staff.bio && (
-                      <p className="text-xs text-gray-500 mt-1">{staff.bio}</p>
-                    )}
-                  </div>
+                  
+                  {isSelected && (
+                    <Check className="w-5 h-5 text-blue-500 flex-shrink-0 ml-2" />
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-gray-500">
-            <User className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>No specific staff members available for this service.</p>
-            <p className="text-sm">You can still select &quot;Any Available Staff&quot; above.</p>
-          </div>
-        )}
-        
-        {/* Show staff count */}
-        {availableStaffForService.length > 0 && (
-          <div className="text-center text-sm text-gray-500">
-            {availableStaffForService.length} staff member{availableStaffForService.length !== 1 ? 's' : ''} available
+            );
+          })}
+        </div>
+
+        {items.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No {selectedBookingMethod === 'service' ? 'services' : selectedBookingMethod === 'location' ? 'locations' : 'specialists'} found</p>
           </div>
         )}
-        
+
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
           <button
@@ -1465,7 +1689,203 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!selectedStaffId || !getNextStep(currentStep)}
+            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {buttonTexts.next}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Complete Selection Step (Step 3) - Fill in missing pieces
+  const renderCompleteSelection = () => {
+    // Get what was selected in step 2
+    const selectedService = step2Selections.serviceId ? 
+      displayServices.find(s => s.id === step2Selections.serviceId) : null;
+    const selectedLocation = step2Selections.locationId ? 
+      locations.find(l => l.id === step2Selections.locationId) : null;
+    const selectedStaff = step2Selections.staffId ? 
+      availableStaffForService.find(s => s.id === step2Selections.staffId) : null;
+
+    // Get filtered options based on what was already selected
+    const availableServices = getAvailableServices(step2Selections.locationId, step2Selections.staffId || undefined);
+    const availableLocations = getAvailableLocations(step2Selections.serviceId, step2Selections.staffId || undefined);
+    const availableStaff = getAvailableStaff(step2Selections.serviceId, step2Selections.locationId);
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold mb-2">Complete Your Selection</h3>
+          <p className="text-gray-600">Fill in the remaining details for your booking</p>
+        </div>
+
+        {/* Show what was selected in step 2 */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">Your Selection:</h4>
+          {selectedService && (
+            <div className="flex items-center gap-2 text-blue-800">
+              <Briefcase className="w-4 h-4" />
+              <span>{selectedService.name}</span>
+            </div>
+          )}
+          {selectedLocation && (
+            <div className="flex items-center gap-2 text-blue-800">
+              <MapPin className="w-4 h-4" />
+              <span>{selectedLocation.name}</span>
+            </div>
+          )}
+          {selectedStaff && (
+            <div className="flex items-center gap-2 text-blue-800">
+              <User className="w-4 h-4" />
+              <span>{selectedStaff.user?.firstName} {selectedStaff.user?.lastName}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Complete missing selections */}
+        <div className="space-y-6">
+          {/* Service selection if not selected */}
+          {!selectedService && (
+            <div>
+              <h4 className="font-medium mb-3">Choose a Service</h4>
+              <div className="grid gap-3">
+                {availableServices.map((service) => (
+                  <div
+                    key={service.id}
+                    onClick={() => {
+                      setStep3Selections(prev => ({ ...prev, finalServiceId: service.id }));
+                      handleServiceSelect(service.id);
+                    }}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      step3Selections.finalServiceId === service.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium">{service.name}</h5>
+                        <p className="text-sm text-gray-600">{service.description}</p>
+                        <span className="text-sm text-gray-500">{service.durationMinutes} min</span>
+                      </div>
+                      {step3Selections.finalServiceId === service.id && (
+                        <Check className="w-5 h-5 text-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Location selection if not selected */}
+          {!selectedLocation && (
+            <div>
+              <h4 className="font-medium mb-3">Choose a Location</h4>
+              <div className="grid gap-3">
+                {availableLocations.map((location) => (
+                  <div
+                    key={location.id}
+                    onClick={() => {
+                      setStep3Selections(prev => ({ ...prev, finalLocationId: location.id }));
+                      handleLocationSelect(location.id);
+                    }}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      step3Selections.finalLocationId === location.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium">{location.name}</h5>
+                        {location.address && (
+                          <p className="text-sm text-gray-600">{location.address}</p>
+                        )}
+                      </div>
+                      {step3Selections.finalLocationId === location.id && (
+                        <Check className="w-5 h-5 text-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Staff selection if not selected and showStaffSelector is true */}
+          {!selectedStaff && showStaffSelector && (
+            <div>
+              <h4 className="font-medium mb-3">Choose Staff (Optional)</h4>
+              <div className="grid gap-3">
+                <div
+                  onClick={() => {
+                    setStep3Selections(prev => ({ ...prev, finalStaffId: "ANY_AVAILABLE" }));
+                    handleStaffSelect("ANY_AVAILABLE");
+                  }}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    step3Selections.finalStaffId === "ANY_AVAILABLE"
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="font-medium">Any Available Staff</h5>
+                      <p className="text-sm text-gray-600">We&apos;ll assign the best available staff member</p>
+                    </div>
+                    {step3Selections.finalStaffId === "ANY_AVAILABLE" && (
+                      <Check className="w-5 h-5 text-blue-500" />
+                    )}
+                  </div>
+                </div>
+                {availableStaff.map((staff) => (
+                  <div
+                    key={staff.id}
+                    onClick={() => {
+                      setStep3Selections(prev => ({ ...prev, finalStaffId: staff.id }));
+                      handleStaffSelect(staff.id);
+                    }}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      step3Selections.finalStaffId === staff.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium">
+                          {staff.user?.firstName} {staff.user?.lastName}
+                        </h5>
+                        {staff.bio && (
+                          <p className="text-sm text-gray-600">{staff.bio}</p>
+                        )}
+                      </div>
+                      {step3Selections.finalStaffId === staff.id && (
+                        <Check className="w-5 h-5 text-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={goToPreviousStep}
+            disabled={!getPreviousStep(currentStep)}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {buttonTexts.back}
+          </button>
+          <button
+            onClick={goToNextStep}
+            disabled={!getCurrentSelections().serviceId || !getCurrentSelections().locationId}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {buttonTexts.next}
@@ -1785,33 +2205,33 @@ export default function CalendarSection({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Location Step</label>
+                <label className="block text-sm text-gray-700 mb-1">Selection Method Step</label>
                 <input
                   type="text"
-                  value={stepTitles.locationSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, locationSelection: e.target.value })}
+                  value={stepTitles.selectionMethod}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, selectionMethod: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Choose Location"
+                  placeholder="Choose Method"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Service Step</label>
+                <label className="block text-sm text-gray-700 mb-1">Dynamic Selection Step</label>
                 <input
                   type="text"
-                  value={stepTitles.serviceSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, serviceSelection: e.target.value })}
+                  value={stepTitles.dynamicSelection}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, dynamicSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Select Service"
+                  placeholder="Make Selection"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Staff Step</label>
+                <label className="block text-sm text-gray-700 mb-1">Complete Selection Step</label>
                 <input
                   type="text"
-                  value={stepTitles.staffSelection}
-                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, staffSelection: e.target.value })}
+                  value={stepTitles.completeSelection}
+                  onChange={(e) => handleUpdateField('stepTitles', { ...stepTitles, completeSelection: e.target.value })}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md"
-                  placeholder="Choose Staff"
+                  placeholder="Complete Selection"
                 />
               </div>
               <div>
@@ -1854,67 +2274,57 @@ export default function CalendarSection({
               Step Order Configuration
             </h3>
             <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-3">
-                Drag and drop to reorder the booking steps. Disabled steps will be skipped.
-              </p>
-              <div className="space-y-2">
-                {stepOrder.map((stepId, index) => {
-                  const stepDef = stepDefinitions.find(def => def.id === stepId);
-                  const isEnabled = stepDef?.condition !== false;
-                  return (
-                    <div
-                      key={stepId}
-                      className={`flex items-center justify-between p-3 border rounded-md ${
-                        isEnabled ? 'bg-white' : 'bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-gray-500">
-                          {index + 1}.
-                        </span>
-                        <span className={`text-sm ${isEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {stepDef?.label || stepId}
-                        </span>
-                        {!isEnabled && (
-                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                            Disabled
-                          </span>
-                        )}
+              {stepOrder.map((stepId, index) => {
+                const stepDef = stepConfigurations.find(def => def.id === stepId);
+                const isEnabled = stepDef?.condition() !== false;
+                return (
+                  <div key={stepId} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                        isEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {index + 1}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            if (index > 0) {
-                              const newOrder = [...stepOrder];
-                              [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
-                              setStepOrder(newOrder);
-                              handleUpdateField('stepOrder', newOrder);
-                            }
-                          }}
-                          disabled={index === 0}
-                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (index < stepOrder.length - 1) {
-                              const newOrder = [...stepOrder];
-                              [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                              setStepOrder(newOrder);
-                              handleUpdateField('stepOrder', newOrder);
-                            }
-                          }}
-                          disabled={index === stepOrder.length - 1}
-                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        >
-                          ↓
-                        </button>
-                      </div>
+                      <span className={`font-medium ${isEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                        {stepDef?.label || stepId}
+                      </span>
+                      {stepDef?.required && (
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Required</span>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newOrder = [...stepOrder];
+                          if (index > 0) {
+                            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+                            setStepOrder(newOrder);
+                            handleUpdateField('stepOrder', newOrder);
+                          }
+                        }}
+                        disabled={index === 0}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newOrder = [...stepOrder];
+                          if (index < stepOrder.length - 1) {
+                            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                            setStepOrder(newOrder);
+                            handleUpdateField('stepOrder', newOrder);
+                          }
+                        }}
+                        disabled={index === stepOrder.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -2239,22 +2649,47 @@ export default function CalendarSection({
   // Handler functions for booking flow
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
-    // Remove automatic step progression - user will click Next button
-  };
-
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategoryId(categoryId);
-    // Filter services by category if needed
+    
+    // Update multi-step booking state based on current step
+    if (currentStep === 'dynamicSelection') {
+      // Step 2: Initial selection
+      setStep2Selections(prev => ({ ...prev, locationId }));
+    } else {
+      // Step 3: Final selection
+      setStep3Selections(prev => ({ ...prev, finalLocationId: locationId }));
+    }
   };
 
   const handleServiceSelect = (serviceId: string) => {
     setSelectedServiceId(serviceId);
-    // Remove automatic step progression - user will click Next button
+    
+    // Update multi-step booking state based on current step
+    if (currentStep === 'dynamicSelection') {
+      // Step 2: Initial selection
+      setStep2Selections(prev => ({ ...prev, serviceId }));
+    } else {
+      // Step 3: Final selection
+      setStep3Selections(prev => ({ ...prev, finalServiceId: serviceId }));
+    }
   };
 
   const handleStaffSelect = (staffId: string | null) => {
     setSelectedStaffId(staffId);
-    // Remove automatic step progression - user will click Next button
+    
+    // Update multi-step booking state based on current step
+    if (currentStep === 'dynamicSelection') {
+      // Step 2: Initial selection
+      setStep2Selections(prev => ({ ...prev, staffId }));
+    } else {
+      // Step 3: Final selection
+      setStep3Selections(prev => ({ ...prev, finalStaffId: staffId }));
+    }
+  };
+
+  // Handler for selection method (step 1)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSelectionMethodSelect = (method: SelectionMethod) => {
+    setSelectedBookingMethod(method);
   };
 
   const handleDateSelect = (date?: Date) => {

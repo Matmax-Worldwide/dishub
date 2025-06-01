@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import graphqlClient from '@/lib/graphql-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,11 +34,18 @@ import {
   ShieldIcon,
   XIcon,
   SaveIcon,
-  Loader2Icon
+  Loader2Icon,
+  ArrowLeft,
+  ArrowRight,
+  CheckIcon,
+  UserIcon,
+  LockIcon,
+  PhoneIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 
 // User interface
 interface User {
@@ -78,6 +85,290 @@ interface CalendarUserWithRole {
   updatedAt: Date | string;
 }
 
+// Form data interface
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  role: string;
+}
+
+// MultiStepUserForm props interface
+interface MultiStepUserFormProps {
+  formData: FormData;
+  currentStep: number;
+  totalSteps: number;
+  createLoading: boolean;
+  roles: Role[];
+  onFirstNameChange: (value: string) => void;
+  onLastNameChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onPhoneChange: (value: string) => void;
+  onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRoleChange: (value: string) => void;
+  onNextStep: () => void;
+  onPrevStep: () => void;
+  onCancel: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  validateStep: (step: number, currentFormData: FormData) => boolean;
+}
+
+// MultiStepUserForm component moved outside to prevent recreation
+const MultiStepUserForm = memo(({
+  formData,
+  currentStep,
+  totalSteps,
+  createLoading,
+  roles,
+  onFirstNameChange,
+  onLastNameChange,
+  onEmailChange,
+  onPhoneChange,
+  onPasswordChange,
+  onRoleChange,
+  onNextStep,
+  onPrevStep,
+  onCancel,
+  onSubmit,
+  validateStep
+}: MultiStepUserFormProps) => {
+  const progress = (currentStep / totalSteps) * 100;
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <UserIcon className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Personal Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="step1-firstName">First Name *</Label>
+                <Input
+                  id="step1-firstName"
+                  value={formData.firstName}
+                  onChange={(e) => onFirstNameChange(e.target.value)}
+                  disabled={createLoading}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="step1-lastName">Last Name *</Label>
+                <Input
+                  id="step1-lastName"
+                  value={formData.lastName}
+                  onChange={(e) => onLastNameChange(e.target.value)}
+                  disabled={createLoading}
+                  placeholder="Enter last name"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <PhoneIcon className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Contact Information</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="step2-email">Email Address *</Label>
+                <Input
+                  id="step2-email"
+                  value={formData.email}
+                  onChange={(e) => onEmailChange(e.target.value)}
+                  disabled={createLoading}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="step2-phoneNumber">Phone Number</Label>
+                <Input
+                  id="step2-phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => onPhoneChange(e.target.value)}
+                  disabled={createLoading}
+                  placeholder="Enter phone number (optional)"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <LockIcon className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Security</h3>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="step3-password">Password *</Label>
+              <Input
+                id="step3-password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={onPasswordChange}
+                required
+                disabled={createLoading}
+                minLength={6}
+                placeholder="Enter password (min 6 characters)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters long
+              </p>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldIcon className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Role & Permissions</h3>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="step4-role">User Role *</Label>
+              <Select value={formData.role} onValueChange={onRoleChange} disabled={createLoading}>
+                <SelectTrigger id="step4-role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      <div className="flex items-center gap-2">
+                        <ShieldIcon className="h-4 w-4" />
+                        <span>{role.name}</span>
+                        {role.description && (
+                          <span className="text-xs text-muted-foreground">
+                            - {role.description}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Summary */}
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-medium mb-2">Review User Details</h4>
+              <div className="space-y-1 text-sm">
+                <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
+                <p><strong>Email:</strong> {formData.email}</p>
+                {formData.phoneNumber && <p><strong>Phone:</strong> {formData.phoneNumber}</p>}
+                <p><strong>Role:</strong> {formData.role}</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlusIcon className="h-5 w-5" />
+              Create New User
+            </CardTitle>
+            <CardDescription>
+              Step {currentStep} of {totalSteps}: Complete the form to create a new user account
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Progress</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <form onSubmit={currentStep === totalSteps ? onSubmit : (e) => e.preventDefault()} key={`step-${currentStep}`}>
+          {renderStepContent()}
+          
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6 mt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onPrevStep}
+              disabled={currentStep === 1 || createLoading}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={createLoading}
+              >
+                Cancel
+              </Button>
+              
+              {currentStep === totalSteps ? (
+                <Button
+                  type="submit"
+                  disabled={!validateStep(currentStep, formData) || createLoading}
+                >
+                  {createLoading ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckIcon className="h-4 w-4 mr-2" />
+                      Create User
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={onNextStep}
+                  disabled={!validateStep(currentStep, formData) || createLoading}
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+});
+
+MultiStepUserForm.displayName = 'MultiStepUserForm';
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -92,6 +383,11 @@ export default function UserManagementPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showMultiStepForm, setShowMultiStepForm] = useState(false);
+  const totalSteps = 4;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -155,7 +451,7 @@ export default function UserManagementPage() {
   }, []);
   
   // Apply filters to users data and update state
-  const applyFiltersAndUpdateState = (users: User[]) => {
+  const applyFiltersAndUpdateState = useCallback((users: User[]) => {
     let filtered = users;
     
     // Apply search filter
@@ -175,21 +471,19 @@ export default function UserManagementPage() {
     }
     
     setFilteredUsers(filtered);
-  };
+  }, [searchTerm, selectedRole]);
 
-  // Apply filters when search term or role filter changes
+  // Apply filters when search term or role filter changes - ONLY when these specific values change
   useEffect(() => {
-    applyFiltersAndUpdateState(users);
-  }, [searchTerm, selectedRole, users]);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
+    if (users.length > 0) {
+      applyFiltersAndUpdateState(users);
+    }
+  }, [searchTerm, selectedRole, users.length]); // Changed dependency to users.length instead of users array
+  
   const handleRoleFilter = (role: string | null) => {
     setSelectedRole(role);
   };
-
+  
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -203,7 +497,7 @@ export default function UserManagementPage() {
       return 'Invalid Date';
     }
   };
-
+  
   const getRoleBadgeColor = (role: string) => {
     switch (role.toUpperCase()) {
       case 'ADMIN':
@@ -217,7 +511,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       firstName: '',
       lastName: '',
@@ -226,16 +520,65 @@ export default function UserManagementPage() {
       password: '',
       role: 'USER'
     });
-  };
+    setCurrentStep(1);
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // StableInput handlers that accept string values
+  const handleFirstNameChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, firstName: value }));
+  }, []);
+
+  const handleLastNameChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, lastName: value }));
+  }, []);
+
+  const handleEmailChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, email: value }));
+  }, []);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, phoneNumber: value }));
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleRoleChange = (value: string) => {
+  const handleRoleChange = useCallback((value: string) => {
     setFormData(prev => ({ ...prev, role: value }));
-  };
+  }, []);
+
+  const nextStep = useCallback(() => {
+    setCurrentStep(prev => prev < totalSteps ? prev + 1 : prev);
+  }, [totalSteps]); // Removed currentStep dependency
+
+  const prevStep = useCallback(() => {
+    setCurrentStep(prev => prev > 1 ? prev - 1 : prev);
+  }, []); // Removed currentStep dependency
+
+  const validateStep = useCallback((step: number, currentFormData: FormData): boolean => {
+    switch (step) {
+      case 1:
+        // Paso 1: Información Personal - Ambos campos son obligatorios
+        return !!(currentFormData.firstName.trim() && currentFormData.lastName.trim());
+      case 2:
+        // Paso 2: Información de Contacto - Solo email es obligatorio
+        return !!(currentFormData.email.trim() && currentFormData.email.includes('@') && currentFormData.email.includes('.'));
+      case 3:
+        // Paso 3: Seguridad - Password es obligatorio (mínimo 6 caracteres)
+        return !!(currentFormData.password.trim() && currentFormData.password.length >= 6);
+      case 4:
+        // Paso 4: Rol - Role es obligatorio
+        return !!(currentFormData.role.trim());
+      default:
+        return false;
+    }
+  }, []); // Sin dependencias para evitar re-renders
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,6 +600,7 @@ export default function UserManagementPage() {
       });
 
       toast.success(`User "${newUser.firstName} ${newUser.lastName}" created successfully!`);
+      setShowMultiStepForm(false);
       setShowAddForm(false);
       resetForm();
       fetchData(); // Refresh the users list
@@ -280,15 +624,16 @@ export default function UserManagementPage() {
     });
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingUserId(null);
     resetForm();
-  };
+  }, [resetForm]);
 
-  const handleCancelAdd = () => {
+  const handleCancelAdd = useCallback(() => {
     setShowAddForm(false);
+    setShowMultiStepForm(false);
     resetForm();
-  };
+  }, [resetForm]);
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,141 +684,6 @@ export default function UserManagementPage() {
     }
   };
 
-  const UserForm = ({ isEdit = false, onSubmit, onCancel, loading }: {
-    isEdit?: boolean;
-    onSubmit: (e: React.FormEvent) => void;
-    onCancel: () => void;
-    loading: boolean;
-  }) => (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          {isEdit ? 'Edit User' : 'Add New User'}
-          <Button variant="ghost" size="sm" onClick={onCancel}>
-            <XIcon className="h-4 w-4" />
-          </Button>
-        </CardTitle>
-        <CardDescription>
-          {isEdit ? 'Update user information' : 'Create a new user account in the system'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              disabled={loading}
-            />
-          </div>
-          
-          {!isEdit && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-                minLength={6}
-              />
-              <p className="text-xs text-muted-foreground">
-                Password must be at least 6 characters long
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="phoneNumber">Phone Number</Label>
-            <Input
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleInputChange}
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="role">Role *</Label>
-            <Select value={formData.role} onValueChange={handleRoleChange} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.name}>
-                    <div className="flex items-center gap-2">
-                      <ShieldIcon className="h-4 w-4" />
-                      <span>{role.name}</span>
-                      {role.description && (
-                        <span className="text-xs text-muted-foreground">
-                          - {role.description}
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                  {isEdit ? "Updating..." : "Creating..."}
-                </>
-              ) : (
-                <>
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  {isEdit ? "Update User" : "Create User"}
-                </>
-              )}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-  
   return (
     <div className="space-y-6">
       <div className="flex flex-col">
@@ -484,22 +694,129 @@ export default function UserManagementPage() {
       </div>
 
       {/* Add User Form */}
-      {showAddForm && (
-        <UserForm
-          onSubmit={handleAddUser}
+      {(showAddForm && showMultiStepForm) && (
+        <MultiStepUserForm
+          formData={formData}
+          currentStep={currentStep}
+          totalSteps={totalSteps}
+          createLoading={createLoading}
+          roles={roles}
+          onFirstNameChange={handleFirstNameChange}
+          onLastNameChange={handleLastNameChange}
+          onEmailChange={handleEmailChange}
+          onPhoneChange={handlePhoneChange}
+          onPasswordChange={handleInputChange}
+          onRoleChange={handleRoleChange}
+          onNextStep={nextStep}
+          onPrevStep={prevStep}
           onCancel={handleCancelAdd}
-          loading={createLoading}
+          onSubmit={handleAddUser}
+          validateStep={validateStep}
         />
       )}
 
       {/* Edit User Form */}
       {editingUserId && (
-        <UserForm
-          isEdit={true}
-          onSubmit={handleUpdateUser}
-          onCancel={handleCancelEdit}
-          loading={updateLoading}
-        />
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+              Edit User
+              <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </CardTitle>
+        <CardDescription>
+              Update user information
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                  <Label htmlFor="edit-firstName">First Name *</Label>
+              <Input
+                    id="edit-firstName"
+                value={formData.firstName}
+                    onChange={(e) => handleFirstNameChange(e.target.value)}
+                    disabled={updateLoading}
+              />
+            </div>
+            <div className="space-y-2">
+                  <Label htmlFor="edit-lastName">Last Name *</Label>
+              <Input
+                    id="edit-lastName"
+                value={formData.lastName}
+                    onChange={(e) => handleLastNameChange(e.target.value)}
+                    disabled={updateLoading}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+                <Label htmlFor="edit-email">Email *</Label>
+            <Input
+                  id="edit-email"
+              value={formData.email}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  disabled={updateLoading}
+            />
+          </div>
+          
+            <div className="space-y-2">
+                <Label htmlFor="edit-phoneNumber">Phone Number</Label>
+              <Input
+                  id="edit-phoneNumber"
+              value={formData.phoneNumber}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  disabled={updateLoading}
+            />
+          </div>
+          
+          <div className="space-y-2">
+                <Label htmlFor="edit-role">Role *</Label>
+                <Select value={formData.role} onValueChange={handleRoleChange} disabled={updateLoading}>
+                  <SelectTrigger id="edit-role">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        <div className="flex items-center gap-2">
+                          <ShieldIcon className="h-4 w-4" />
+                          <span>{role.name}</span>
+                          {role.description && (
+                            <span className="text-xs text-muted-foreground">
+                              - {role.description}
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex gap-2 pt-4">
+                <Button type="submit" disabled={updateLoading}>
+                  {updateLoading ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+              <SaveIcon className="h-4 w-4 mr-2" />
+                      Update User
+                    </>
+                  )}
+            </Button>
+                <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={updateLoading}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
       )}
 
       {/* Main Content */}
@@ -515,13 +832,14 @@ export default function UserManagementPage() {
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
                 <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={handleSearch}
+                    <Input
+                  id="search-users"
+                      placeholder="Search users..."
+                      value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-8 w-full sm:w-[300px]"
-                />
-              </div>
+                    />
+                  </div>
               <Select value={selectedRole || 'all'} onValueChange={(value) => handleRoleFilter(value === 'all' ? null : value)}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <FilterIcon className="h-4 w-4 mr-2" />
@@ -536,90 +854,93 @@ export default function UserManagementPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <Button onClick={() => setShowAddForm(true)} disabled={Boolean(showAddForm || editingUserId)}>
+                    </div>
+            <Button onClick={() => {
+              setShowAddForm(true);
+              setShowMultiStepForm(true);
+            }} disabled={Boolean(showAddForm || editingUserId)}>
               <UserPlusIcon className="h-4 w-4 mr-2" />
               Add New User
             </Button>
-          </div>
-
-          {/* Users Table */}
+                </div>
+                
+                {/* Users Table */}
           <Card>
             <CardContent className="p-0">
-              {loading ? (
+                {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2Icon className="h-8 w-8 animate-spin" />
                   <span className="ml-2">Loading users...</span>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.length === 0 ? (
-                      <TableRow>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.length === 0 ? (
+                          <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           {searchTerm || selectedRole ? 'No users found matching your filters.' : 'No users found.'}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
+                            </TableCell>
+                          </TableRow>
+                        ) : (
                       filteredUsers.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            {user.firstName} {user.lastName}
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
+                              <TableCell className="font-medium">
+                                {user.firstName} {user.lastName}
+                              </TableCell>
+                              <TableCell>{user.email}</TableCell>
                           <TableCell>{user.phoneNumber || '-'}</TableCell>
-                          <TableCell>
-                            <Badge className={getRoleBadgeColor(user.role.name)}>
-                              {user.role.name}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(user.createdAt)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
+                              <TableCell>
+                                <Badge className={getRoleBadgeColor(user.role.name)}>
+                                  {user.role.name}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{formatDate(user.createdAt)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button 
                                 variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditUser(user)}
+                                    size="sm" 
+                                    onClick={() => handleEditUser(user)}
                                 disabled={editingUserId === user.id || showAddForm}
-                              >
+                                  >
                                 <Edit2Icon className="h-4 w-4" />
-                              </Button>
-                              <Button
+                                  </Button>
+                                  <Button 
                                 variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteClick(user)}
+                                    size="sm" 
+                                    onClick={() => handleDeleteClick(user)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2Icon className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              )}
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                )}
             </CardContent>
           </Card>
-
+                
           {/* Summary */}
           <div className="text-sm text-muted-foreground">
-            Showing {filteredUsers.length} of {users.length} users
+                    Showing {filteredUsers.length} of {users.length} users
             {(searchTerm || selectedRole) && (
-              <Button
+                    <Button 
                 variant="link"
-                size="sm"
+                      size="sm" 
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedRole(null);
@@ -627,9 +948,9 @@ export default function UserManagementPage() {
                 className="ml-2 h-auto p-0"
               >
                 Clear filters
-              </Button>
-            )}
-          </div>
+                      </Button>
+                    )}
+                  </div>
         </TabsContent>
         
         <TabsContent value="roles" className="space-y-4">
@@ -650,16 +971,16 @@ export default function UserManagementPage() {
                         <h3 className="font-medium">{role.name}</h3>
                         <Badge className={getRoleBadgeColor(role.name)}>
                           {role.name}
-                        </Badge>
-                      </div>
+                            </Badge>
+                            </div>
                       {role.description && (
                         <p className="text-sm text-muted-foreground mt-1">
                           {role.description}
                         </p>
                       )}
-                    </div>
-                  </div>
-                ))}
+              </div>
+                            </div>
+                      ))}
               </div>
             </CardContent>
           </Card>
@@ -681,7 +1002,7 @@ export default function UserManagementPage() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
-              onClick={confirmDelete} 
+              onClick={confirmDelete}
               disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700"
             >

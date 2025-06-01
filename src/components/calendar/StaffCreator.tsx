@@ -35,7 +35,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, UserPlus, Calendar, MapPin, Briefcase, Check, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { User, UserPlus, Calendar, MapPin, Briefcase, Check, ArrowLeft, ArrowRight, X, PlusCircle, Users, Filter, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import graphqlClient from '@/lib/graphql-client';
 import { StaffProfile, User as UserType, Service, Location, StaffScheduleInput, PrismaDayOfWeek, PrismaScheduleType } from '@/types/calendar';
@@ -43,6 +43,10 @@ import UserSearchSelect from './UserSearchSelect';
 import MultiSelectGrid from './MultiSelectGrid';
 import MultiStepProgress from './MultiStepProgress';
 import WeeklyScheduleEditor from './WeeklyScheduleEditor';
+import MultiStepServiceForm, { ServiceFormData, ServiceCategory } from './MultiStepServiceForm';
+import MultiStepLocationForm, { LocationFormData } from './MultiStepLocationForm';
+import MultiStepUserForm, { UserFormData, Role } from './MultiStepUserForm';
+import { useI18n } from '@/hooks/useI18n';
 
 interface UserWithRole extends Partial<UserType> {
   role?: {
@@ -100,6 +104,7 @@ export default function StaffCreator({
   onClose,
   onSuccess
 }: StaffCreatorProps) {
+  const { t } = useI18n();
   const [currentStep, setCurrentStep] = useState('user');
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,8 +112,61 @@ export default function StaffCreator({
   
   // Data states
   const [availableUsers, setAvailableUsers] = useState<UserWithRole[]>([]);
+  const [allUsers, setAllUsers] = useState<UserWithRole[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allCategories, setAllCategories] = useState<ServiceCategory[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  
+  // User view and search states
+  const [showAllUsers, setShowAllUsers] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<UserWithRole[]>([]);
+  
+  // User creation form state
+  const [showUserCreationForm, setShowUserCreationForm] = useState(false);
+  const [userFormData, setUserFormData] = useState<UserFormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    role: 'USER'
+  });
+  const [userFormStep, setUserFormStep] = useState(1);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const totalUserFormSteps = 4;
+
+  // Service creation form state
+  const [showServiceCreationForm, setShowServiceCreationForm] = useState(false);
+  const [serviceFormData, setServiceFormData] = useState<ServiceFormData>({
+    name: '',
+    description: '',
+    durationMinutes: 60,
+    serviceCategoryId: '',
+    bufferTimeBeforeMinutes: 0,
+    bufferTimeAfterMinutes: 0,
+    preparationTimeMinutes: 0,
+    cleanupTimeMinutes: 0,
+    maxDailyBookingsPerService: 10,
+    isActive: true,
+    locationIds: []
+  });
+  const [serviceFormStep, setServiceFormStep] = useState(1);
+  const [isCreatingService, setIsCreatingService] = useState(false);
+  const totalServiceFormSteps = 4;
+
+  // Location creation form state
+  const [showLocationCreationForm, setShowLocationCreationForm] = useState(false);
+  const [locationFormData, setLocationFormData] = useState<LocationFormData>({
+    name: '',
+    address: '',
+    phone: '',
+    operatingHours: {}
+  });
+  const [locationFormStep, setLocationFormStep] = useState(1);
+  const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const totalLocationFormSteps = 4;
   
   // Form data
   const [staffData, setStaffData] = useState<StaffCreationData>({
@@ -129,22 +187,34 @@ export default function StaffCreator({
     
     setIsLoading(true);
     try {
-      const [usersData, servicesData, locationsData, staffData] = await Promise.all([
+      const [usersData, servicesData, locationsData, staffData, rolesData, categoriesData] = await Promise.all([
         graphqlClient.users(),
         graphqlClient.services(),
         graphqlClient.locations(),
-        graphqlClient.staffProfiles()
+        graphqlClient.staffProfiles(),
+        graphqlClient.getRoles(),
+        graphqlClient.serviceCategories()
       ]);
 
+      // Store all users
+      const allUsersData = (usersData || []) as UserWithRole[];
+      setAllUsers(allUsersData);
+
       // Filter out users who are already staff
-      const existingStaffUserIds = staffData.map(staff => staff.userId);
-      const availableUsersFiltered = (usersData || []).filter(
+      const existingStaffUserIds = staffData.map((staff: { userId: string }) => staff.userId);
+      const availableUsersFiltered = allUsersData.filter(
         user => user.id && !existingStaffUserIds.includes(user.id)
       );
 
-      setAvailableUsers(availableUsersFiltered as UserWithRole[]);
+      setAvailableUsers(availableUsersFiltered);
       setAllServices(servicesData || []);
       setAllLocations(locationsData || []);
+      setAllCategories(categoriesData || []);
+      setRoles(rolesData || []);
+      
+      // Debug: Log categories to see if they're being loaded
+      console.log('Loaded categories:', categoriesData);
+      console.log('Categories count:', (categoriesData || []).length);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
@@ -152,6 +222,30 @@ export default function StaffCreator({
       setIsLoading(false);
     }
   }, [isOpen]);
+
+  // Filter users based on search term and view mode
+  const filterUsers = useCallback(() => {
+    const usersToFilter = showAllUsers ? allUsers : availableUsers;
+    
+    if (!userSearchTerm.trim()) {
+      setFilteredUsers(usersToFilter);
+      return;
+    }
+
+    const searchLower = userSearchTerm.toLowerCase();
+    const filtered = usersToFilter.filter(user => 
+      user.firstName?.toLowerCase().includes(searchLower) ||
+      user.lastName?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower)
+    );
+    
+    setFilteredUsers(filtered);
+  }, [showAllUsers, allUsers, availableUsers, userSearchTerm]);
+
+  // Update filtered users when dependencies change
+  useEffect(() => {
+    filterUsers();
+  }, [filterUsers]);
 
   useEffect(() => {
     loadData();
@@ -292,6 +386,373 @@ export default function StaffCreator({
     setStaffData(prev => ({ ...prev, schedule }));
   };
 
+  // User creation handlers
+  const handleCreateUserClick = () => {
+    setShowUserCreationForm(true);
+  };
+
+  const handleCancelUserCreation = () => {
+    setShowUserCreationForm(false);
+    setUserFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      password: '',
+      role: 'USER'
+    });
+    setUserFormStep(1);
+  };
+
+  const handleUserFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!userFormData.email || !userFormData.password || !userFormData.firstName || !userFormData.lastName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIsCreatingUser(true);
+      const newUser = await graphqlClient.createUser({
+        email: userFormData.email,
+        password: userFormData.password,
+        firstName: userFormData.firstName,
+        lastName: userFormData.lastName,
+        phoneNumber: userFormData.phoneNumber || undefined,
+        role: userFormData.role
+      });
+
+      toast.success(`User "${newUser.firstName} ${newUser.lastName}" created successfully!`);
+      
+      // Add the new user to available users and select them
+      const newUserWithRole: UserWithRole = {
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        phoneNumber: newUser.phoneNumber,
+        role: newUser.role
+      };
+      
+      setAvailableUsers(prev => [...prev, newUserWithRole]);
+      setStaffData(prev => ({ ...prev, selectedUser: newUserWithRole }));
+      
+      // Close the user creation form
+      handleCancelUserCreation();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  // User form validation
+  const validateUserFormStep = (step: number, currentFormData: UserFormData): boolean => {
+    switch (step) {
+      case 1:
+        return !!(currentFormData.firstName.trim() && currentFormData.lastName.trim());
+      case 2:
+        return !!(currentFormData.email.trim() && currentFormData.email.includes('@') && currentFormData.email.includes('.'));
+      case 3:
+        return !!(currentFormData.password.trim() && currentFormData.password.length >= 6);
+      case 4:
+        return !!(currentFormData.role.trim());
+      default:
+        return false;
+    }
+  };
+
+  // User form handlers
+  const handleUserFirstNameChange = (value: string) => {
+    setUserFormData(prev => ({ ...prev, firstName: value }));
+  };
+
+  const handleUserLastNameChange = (value: string) => {
+    setUserFormData(prev => ({ ...prev, lastName: value }));
+  };
+
+  const handleUserEmailChange = (value: string) => {
+    setUserFormData(prev => ({ ...prev, email: value }));
+  };
+
+  const handleUserPhoneChange = (value: string) => {
+    setUserFormData(prev => ({ ...prev, phoneNumber: value }));
+  };
+
+  const handleUserPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUserFormData(prev => ({ ...prev, password: e.target.value }));
+  };
+
+  const handleUserRoleChange = (value: string) => {
+    setUserFormData(prev => ({ ...prev, role: value }));
+  };
+
+  const handleUserFormNextStep = () => {
+    setUserFormStep(prev => prev < totalUserFormSteps ? prev + 1 : prev);
+  };
+
+  const handleUserFormPrevStep = () => {
+    setUserFormStep(prev => prev > 1 ? prev - 1 : prev);
+  };
+
+  // Service creation handlers
+  const handleCreateServiceClick = () => {
+    setShowServiceCreationForm(true);
+  };
+
+  const handleCancelServiceCreation = () => {
+    setShowServiceCreationForm(false);
+    setServiceFormData({
+      name: '',
+      description: '',
+      durationMinutes: 60,
+      serviceCategoryId: '',
+      bufferTimeBeforeMinutes: 0,
+      bufferTimeAfterMinutes: 0,
+      preparationTimeMinutes: 0,
+      cleanupTimeMinutes: 0,
+      maxDailyBookingsPerService: 10,
+      isActive: true,
+      locationIds: []
+    });
+    setServiceFormStep(1);
+  };
+
+  const handleServiceFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!serviceFormData.name || !serviceFormData.serviceCategoryId || !serviceFormData.durationMinutes) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIsCreatingService(true);
+      const newService = await graphqlClient.createService({
+        input: {
+          name: serviceFormData.name,
+          description: serviceFormData.description || undefined,
+          durationMinutes: serviceFormData.durationMinutes,
+          serviceCategoryId: serviceFormData.serviceCategoryId,
+          bufferTimeBeforeMinutes: serviceFormData.bufferTimeBeforeMinutes || undefined,
+          bufferTimeAfterMinutes: serviceFormData.bufferTimeAfterMinutes || undefined,
+          preparationTimeMinutes: serviceFormData.preparationTimeMinutes || undefined,
+          cleanupTimeMinutes: serviceFormData.cleanupTimeMinutes || undefined,
+          maxDailyBookingsPerService: serviceFormData.maxDailyBookingsPerService || undefined,
+          isActive: serviceFormData.isActive,
+          locationIds: serviceFormData.locationIds.length > 0 ? serviceFormData.locationIds : undefined
+        }
+      });
+
+      toast.success(`Service "${newService.name}" created successfully!`);
+      
+      // Add the new service to available services and select it
+      const newServiceForList: Service = {
+        id: newService.id,
+        name: newService.name,
+        description: newService.description,
+        durationMinutes: newService.durationMinutes,
+        prices: newService.prices || [],
+        isActive: newService.isActive,
+        serviceCategoryId: serviceFormData.serviceCategoryId,
+        bufferTimeBeforeMinutes: serviceFormData.bufferTimeBeforeMinutes,
+        bufferTimeAfterMinutes: serviceFormData.bufferTimeAfterMinutes,
+        preparationTimeMinutes: serviceFormData.preparationTimeMinutes,
+        cleanupTimeMinutes: serviceFormData.cleanupTimeMinutes,
+        maxDailyBookingsPerService: serviceFormData.maxDailyBookingsPerService
+      };
+      
+      setAllServices(prev => [...prev, newServiceForList]);
+      setStaffData(prev => ({ 
+        ...prev, 
+        selectedServiceIds: [...prev.selectedServiceIds, newService.id] 
+      }));
+      
+      // Close the service creation form
+      handleCancelServiceCreation();
+    } catch (error) {
+      console.error('Error creating service:', error);
+      toast.error(`Failed to create service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCreatingService(false);
+    }
+  };
+
+  // Service form validation
+  const validateServiceFormStep = (step: number, currentFormData: ServiceFormData): boolean => {
+    switch (step) {
+      case 1:
+        return !!(currentFormData.name.trim() && currentFormData.durationMinutes > 0);
+      case 2:
+        return true; // All timing fields are optional
+      case 3:
+        return !!(currentFormData.serviceCategoryId.trim());
+      case 4:
+        return true; // Review step
+      default:
+        return false;
+    }
+  };
+
+  // Service form handlers
+  const handleServiceNameChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, name: value }));
+  };
+
+  const handleServiceDescriptionChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, description: value }));
+  };
+
+  const handleServiceDurationChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, durationMinutes: parseInt(value) || 0 }));
+  };
+
+  const handleServiceCategoryChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, serviceCategoryId: value }));
+  };
+
+  const handleServiceBufferBeforeChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, bufferTimeBeforeMinutes: parseInt(value) || 0 }));
+  };
+
+  const handleServiceBufferAfterChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, bufferTimeAfterMinutes: parseInt(value) || 0 }));
+  };
+
+  const handleServicePreparationTimeChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, preparationTimeMinutes: parseInt(value) || 0 }));
+  };
+
+  const handleServiceCleanupTimeChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, cleanupTimeMinutes: parseInt(value) || 0 }));
+  };
+
+  const handleServiceMaxBookingsChange = (value: string) => {
+    setServiceFormData(prev => ({ ...prev, maxDailyBookingsPerService: parseInt(value) || 0 }));
+  };
+
+  const handleServiceActiveChange = (checked: boolean) => {
+    setServiceFormData(prev => ({ ...prev, isActive: checked }));
+  };
+
+  const handleServiceLocationIdsChange = (locationIds: string[]) => {
+    setServiceFormData(prev => ({ ...prev, locationIds }));
+  };
+
+  const handleServiceFormNextStep = () => {
+    setServiceFormStep(prev => prev < totalServiceFormSteps ? prev + 1 : prev);
+  };
+
+  const handleServiceFormPrevStep = () => {
+    setServiceFormStep(prev => prev > 1 ? prev - 1 : prev);
+  };
+
+  // Location creation handlers
+  const handleCreateLocationClick = () => {
+    setShowLocationCreationForm(true);
+  };
+
+  const handleCancelLocationCreation = () => {
+    setShowLocationCreationForm(false);
+    setLocationFormData({
+      name: '',
+      address: '',
+      phone: '',
+      operatingHours: {}
+    });
+    setLocationFormStep(1);
+  };
+
+  const handleLocationFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!locationFormData.name) {
+      toast.error('Please fill in the location name');
+      return;
+    }
+
+    try {
+      setIsCreatingLocation(true);
+      const newLocation = await graphqlClient.createLocation({
+        input: {
+          name: locationFormData.name,
+          address: locationFormData.address || undefined,
+          phone: locationFormData.phone || undefined,
+          operatingHours: Object.keys(locationFormData.operatingHours).length > 0 
+            ? locationFormData.operatingHours 
+            : undefined
+        }
+      });
+
+      toast.success(`Location "${newLocation.name}" created successfully!`);
+      
+      // Add the new location to available locations and select it
+      const newLocationForList: Location = {
+        id: newLocation.id,
+        name: newLocation.name,
+        address: newLocation.address,
+        phone: newLocation.phone
+      };
+      
+      setAllLocations(prev => [...prev, newLocationForList]);
+      setStaffData(prev => ({ 
+        ...prev, 
+        selectedLocationIds: [...prev.selectedLocationIds, newLocation.id] 
+      }));
+      
+      // Close the location creation form
+      handleCancelLocationCreation();
+    } catch (error) {
+      console.error('Error creating location:', error);
+      toast.error(`Failed to create location: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCreatingLocation(false);
+    }
+  };
+
+  // Location form validation
+  const validateLocationFormStep = (step: number, currentFormData: LocationFormData): boolean => {
+    switch (step) {
+      case 1:
+        return !!(currentFormData.name.trim());
+      case 2:
+        return true; // Contact details are optional
+      case 3:
+        return true; // Operating hours are optional
+      case 4:
+        return true; // Review step
+      default:
+        return false;
+    }
+  };
+
+  // Location form handlers
+  const handleLocationNameChange = (value: string) => {
+    setLocationFormData(prev => ({ ...prev, name: value }));
+  };
+
+  const handleLocationAddressChange = (value: string) => {
+    setLocationFormData(prev => ({ ...prev, address: value }));
+  };
+
+  const handleLocationPhoneChange = (value: string) => {
+    setLocationFormData(prev => ({ ...prev, phone: value }));
+  };
+
+  const handleLocationOperatingHoursChange = (hours: LocationFormData['operatingHours']) => {
+    setLocationFormData(prev => ({ ...prev, operatingHours: hours }));
+  };
+
+  const handleLocationFormNextStep = () => {
+    setLocationFormStep(prev => prev < totalLocationFormSteps ? prev + 1 : prev);
+  };
+
+  const handleLocationFormPrevStep = () => {
+    setLocationFormStep(prev => prev > 1 ? prev - 1 : prev);
+  };
+
   const handleSubmit = async () => {
     if (!staffData.selectedUser?.id) {
       toast.error('Please select a user');
@@ -392,28 +853,150 @@ export default function StaffCreator({
       case 'user':
         return (
           <div className="space-y-4">
-            <div className="text-center mb-6">
-              <UserPlus className="h-12 w-12 text-primary mx-auto mb-2" />
-              <h3 className="text-lg font-medium">Select User to Make Staff</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose a user from your organization to create a staff profile
-              </p>
-            </div>
-            
-            <UserSearchSelect
-              users={availableUsers}
-              selectedUserId={staffData.selectedUser?.id}
-              onUserSelect={handleUserSelect}
-              disabled={isLoading}
-              placeholder="Search for a user to make staff..."
-            />
+            {!showUserCreationForm ? (
+              <>
+                <div className="text-center mb-6">
+                  <UserPlus className="h-12 w-12 text-primary mx-auto mb-2" />
+                  <h3 className="text-lg font-medium">{t('staffCreator.selectUser')}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t('staffCreator.selectUserDescription')}
+                  </p>
+                </div>
 
-            {availableUsers.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-muted-foreground">
-                <User className="h-8 w-8 mx-auto mb-2" />
-                <p>No users available to make staff</p>
-                <p className="text-xs">All users may already be staff members</p>
-              </div>
+                {/* User Filter and Search Controls */}
+                <Card className="mb-4">
+                  <CardContent className="pt-4">
+                    <div className="space-y-4">
+                      {/* View Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Filter className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{t('staffCreator.filterUsers')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant={!showAllUsers ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setShowAllUsers(false)}
+                            className="text-xs"
+                          >
+                            {t('staffCreator.showAvailableOnly')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={showAllUsers ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setShowAllUsers(true)}
+                            className="text-xs"
+                          >
+                            {t('staffCreator.showAllUsers')}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder={t('staffCreator.searchUsers')}
+                          value={userSearchTerm}
+                          onChange={(e) => setUserSearchTerm(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+
+                      {/* User Statistics */}
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4">
+                          <span>
+                            {t('staffCreator.totalUsers')}: {allUsers.length}
+                          </span>
+                          <span>
+                            {t('staffCreator.availableUsers')}: {availableUsers.length}
+                          </span>
+                          <span>
+                            {t('staffCreator.staffMembers')}: {allUsers.length - availableUsers.length}
+                          </span>
+                        </div>
+                        <div>
+                          {showAllUsers ? t('staffCreator.allUsersInSystem') : t('staffCreator.availableUsersOnly')}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* User Selection */}
+                <UserSearchSelect
+                  users={filteredUsers}
+                  selectedUserId={staffData.selectedUser?.id}
+                  onUserSelect={handleUserSelect}
+                  disabled={isLoading}
+                  placeholder={t('staffCreator.searchUsers')}
+                />
+
+                {filteredUsers.length === 0 && !isLoading && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto mb-2" />
+                    {userSearchTerm ? (
+                      <div>
+                        <p>No users found matching &quot;{userSearchTerm}&quot;</p>
+                        <p className="text-xs">Try adjusting your search or view settings</p>
+                      </div>
+                    ) : showAllUsers ? (
+                      <div>
+                        <p>No users in the system</p>
+                        <p className="text-xs">Create a new user to get started</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p>{t('staffCreator.noUsersAvailable')}</p>
+                        <p className="text-xs">{t('staffCreator.allUsersAreStaff')}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Create User Button */}
+                <div className="text-center pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {t('staffCreator.dontSeeUser')}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCreateUserClick}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    {t('staffCreator.createNewUser')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <MultiStepUserForm
+                formData={userFormData}
+                currentStep={userFormStep}
+                totalSteps={totalUserFormSteps}
+                createLoading={isCreatingUser}
+                roles={roles}
+                onFirstNameChange={handleUserFirstNameChange}
+                onLastNameChange={handleUserLastNameChange}
+                onEmailChange={handleUserEmailChange}
+                onPhoneChange={handleUserPhoneChange}
+                onPasswordChange={handleUserPasswordChange}
+                onRoleChange={handleUserRoleChange}
+                onNextStep={handleUserFormNextStep}
+                onPrevStep={handleUserFormPrevStep}
+                onCancel={handleCancelUserCreation}
+                onSubmit={handleUserFormSubmit}
+                validateStep={validateUserFormStep}
+                title={t('staffCreator.createNewUser')}
+                description={t('staffCreator.createUserDescription')}
+                submitButtonText={t('staffCreator.createUserAndContinue')}
+              />
             )}
           </div>
         );
@@ -471,56 +1054,180 @@ export default function StaffCreator({
       case 'assignments':
         return (
           <div className="space-y-6">
-            <div className="text-center mb-6">
-              <div className="flex justify-center space-x-2 mb-2">
-                <Briefcase className="h-6 w-6 text-primary" />
-                <MapPin className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-medium">Service & Location Assignments</h3>
-              <p className="text-sm text-muted-foreground">
-                Assign services and locations for {staffData.selectedUser?.firstName}
-              </p>
-            </div>
+            {!showServiceCreationForm && !showLocationCreationForm ? (
+              <>
+                <div className="text-center mb-6">
+                  <div className="flex justify-center space-x-2 mb-2">
+                    <Briefcase className="h-6 w-6 text-primary" />
+                    <MapPin className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-medium">Service & Location Assignments</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Assign services and locations for {staffData.selectedUser?.firstName}
+                  </p>
+                </div>
 
-            <div className="space-y-8">
-              <MultiSelectGrid
-                items={allServices.map(service => ({
-                  id: service.id,
-                  name: service.name,
-                  description: service.description || undefined,
-                  isActive: service.isActive ?? true
-                }))}
-                selectedIds={staffData.selectedServiceIds}
-                onSelectionChange={handleServiceSelection}
-                title="Services"
-                type="services"
-                disabled={isSaving}
+                <div className="space-y-8">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-base font-medium flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Services
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateServiceClick}
+                        className="text-xs"
+                      >
+                        <PlusCircle className="h-3 w-3 mr-1" />
+                        Create Service
+                      </Button>
+                    </div>
+                    <MultiSelectGrid
+                      items={allServices.map(service => ({
+                        id: service.id,
+                        name: service.name,
+                        description: service.description || undefined,
+                        isActive: service.isActive ?? true
+                      }))}
+                      selectedIds={staffData.selectedServiceIds}
+                      onSelectionChange={handleServiceSelection}
+                      title=""
+                      type="services"
+                      disabled={isSaving}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-base font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Locations
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateLocationClick}
+                        className="text-xs"
+                      >
+                        <PlusCircle className="h-3 w-3 mr-1" />
+                        Create Location
+                      </Button>
+                    </div>
+                    <MultiSelectGrid
+                      items={allLocations.map(location => ({
+                        id: location.id,
+                        name: location.name,
+                        description: location.address || undefined,
+                        isActive: true // Location type doesn't have isActive property
+                      }))}
+                      selectedIds={staffData.selectedLocationIds}
+                      onSelectionChange={handleLocationSelection}
+                      title=""
+                      type="locations"
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
+
+                {staffData.selectedServiceIds.length === 0 && staffData.selectedLocationIds.length === 0 && (
+                  <div className="text-center py-4 text-blue-600 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm">
+                      <strong>Optional:</strong> You can assign services and locations now or later. Staff members without assignments can still be created and managed.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : showServiceCreationForm ? (
+              <>
+                {allCategories.length === 0 && (
+                  <div className="mb-4 p-4 text-amber-600 bg-amber-50 rounded-lg border border-amber-200">
+                    <p className="text-sm mb-3">
+                      <strong>No service categories available.</strong> You need to create service categories first before creating services.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const defaultCategory = await graphqlClient.createServiceCategory({
+                            input: {
+                              name: 'General Services',
+                              description: 'Default category for general services',
+                              displayOrder: 1
+                            }
+                          });
+                          setAllCategories([defaultCategory]);
+                          toast.success('Default service category created!');
+                        } catch (error) {
+                          console.error('Error creating default category:', error);
+                          toast.error('Failed to create default category');
+                        }
+                      }}
+                      className="text-xs"
+                    >
+                      Create Default Category
+                    </Button>
+                  </div>
+                )}
+                <MultiStepServiceForm
+                  formData={serviceFormData}
+                  currentStep={serviceFormStep}
+                  totalSteps={totalServiceFormSteps}
+                  createLoading={isCreatingService}
+                  categories={allCategories}
+                  locations={allLocations.map(location => ({
+                    id: location.id,
+                    name: location.name,
+                    address: location.address || undefined
+                  }))}
+                  onNameChange={handleServiceNameChange}
+                  onDescriptionChange={handleServiceDescriptionChange}
+                  onDurationChange={handleServiceDurationChange}
+                  onCategoryChange={handleServiceCategoryChange}
+                  onBufferBeforeChange={handleServiceBufferBeforeChange}
+                  onBufferAfterChange={handleServiceBufferAfterChange}
+                  onPreparationTimeChange={handleServicePreparationTimeChange}
+                  onCleanupTimeChange={handleServiceCleanupTimeChange}
+                  onMaxBookingsChange={handleServiceMaxBookingsChange}
+                  onActiveChange={handleServiceActiveChange}
+                  onLocationIdsChange={handleServiceLocationIdsChange}
+                  onNextStep={handleServiceFormNextStep}
+                  onPrevStep={handleServiceFormPrevStep}
+                  onCancel={handleCancelServiceCreation}
+                  onSubmit={handleServiceFormSubmit}
+                  validateStep={validateServiceFormStep}
+                  title="Create New Service"
+                  description="Create a service that can be assigned to staff"
+                  submitButtonText="Create Service & Continue"
+                />
+              </>
+            ) : showLocationCreationForm ? (
+              <MultiStepLocationForm
+                formData={locationFormData}
+                currentStep={locationFormStep}
+                totalSteps={totalLocationFormSteps}
+                createLoading={isCreatingLocation}
+                onNameChange={handleLocationNameChange}
+                onAddressChange={handleLocationAddressChange}
+                onPhoneChange={handleLocationPhoneChange}
+                onOperatingHoursChange={handleLocationOperatingHoursChange}
+                onNextStep={handleLocationFormNextStep}
+                onPrevStep={handleLocationFormPrevStep}
+                onCancel={handleCancelLocationCreation}
+                onSubmit={handleLocationFormSubmit}
+                validateStep={validateLocationFormStep}
+                title="Create New Location"
+                description="Create a location that can be assigned to staff"
+                submitButtonText="Create Location & Continue"
               />
-
-              <Separator />
-
-              <MultiSelectGrid
-                items={allLocations.map(location => ({
-                  id: location.id,
-                  name: location.name,
-                  description: location.address || undefined,
-                  isActive: true // Location type doesn't have isActive property
-                }))}
-                selectedIds={staffData.selectedLocationIds}
-                onSelectionChange={handleLocationSelection}
-                title="Locations"
-                type="locations"
-                disabled={isSaving}
-              />
-            </div>
-
-            {staffData.selectedServiceIds.length === 0 && staffData.selectedLocationIds.length === 0 && (
-              <div className="text-center py-4 text-blue-600 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm">
-                  <strong>Optional:</strong> You can assign services and locations now or later. Staff members without assignments can still be created and managed.
-                </p>
-              </div>
-            )}
+            ) : null}
           </div>
         );
 

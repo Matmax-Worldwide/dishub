@@ -5,27 +5,17 @@ import { usePathname, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  HomeIcon,
-  UserIcon,
-  CalendarIcon,
-  SettingsIcon,
-  HelpCircleIcon,
-  BellIcon,
   LogOutIcon,
   MenuIcon,
   XIcon,
-  UsersIcon,
-  MessageSquareIcon,
-  ClipboardListIcon,
-  BarChartIcon,
-  UserPlusIcon,
-  LineChartIcon,
-  LockIcon,
-  LinkIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  EyeIcon
-} from 'lucide-react';
+  EyeIcon,
+  UserIcon,
+  LockIcon,
+  BellIcon,
+  MessageSquareIcon,
+  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
@@ -34,6 +24,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import React from 'react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { 
+  sidebarConfig, 
+  getIconComponent, 
+  sortRoles,
+  type NavItem 
+} from '@/config/DashboardSidebar';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`
@@ -86,23 +82,6 @@ const GET_ALL_ROLES = gql`
     }
   }
 `;
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-  children?: NavItem[];
-  roles?: string[];
-  permissions?: string[];
-  badge?: {
-    key: string;
-    value: number;
-  };
-  disabled?: boolean;
-  locked?: boolean;
-  accessType?: string;
-  allowedRoles?: string[];
-}
 
 interface ExternalLinkType {
   id: string;
@@ -161,19 +140,7 @@ export function DashboardSidebar() {
   // Sort roles in the required order: admin, manager, employee, user, others
   const sortedRoles = React.useMemo(() => {
     if (!rolesData?.roles) return [];
-    
-    const roleOrder = {
-      'ADMIN': 1,
-      'MANAGER': 2,
-      'EMPLOYEE': 3, 
-      'USER': 4
-    };
-    
-    return [...rolesData.roles].sort((a, b) => {
-      const orderA = roleOrder[a.name as keyof typeof roleOrder] || 999;
-      const orderB = roleOrder[b.name as keyof typeof roleOrder] || 999;
-      return orderA - orderB;
-    });
+    return sortRoles(rolesData.roles);
   }, [rolesData?.roles]);
 
   // Determinar el rol efectivo para mostrar (rol simulado o rol real del usuario)
@@ -288,139 +255,31 @@ export function DashboardSidebar() {
     }
   }, [pathname]);
 
-  // Generate base navigation items (for all users)
-  const baseNavigationItems: NavItem[] = [
-    { name: t('sidebar.dashboard'), href: `/${params.locale}/dashboard`, icon: HomeIcon },
-    { 
-      name: t('sidebar.notifications'), 
-      href: `/${params.locale}/dashboard/notifications`, 
-      icon: BellIcon,
-      permissions: ['notifications:read'],
-      badge: {
-        key: 'unread',
-        value: unreadCount
-      }
-    },
-    { name: t('sidebar.benefits'), href: `/${params.locale}/dashboard/benefits`, icon: UserIcon },
-    { name: t('sidebar.help'), href: `/${params.locale}/dashboard/help`, icon: HelpCircleIcon },
-    { name: t('sidebar.settings'), href: `/${params.locale}/dashboard/settings`, icon: SettingsIcon },
-  ];
+  // Get navigation items from config with translations
+  const baseNavigationItems: NavItem[] = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
+    ...item,
+    name: t(item.name),
+    badge: item.badge?.key === 'unread' ? { ...item.badge, value: unreadCount } : item.badge
+  }));
 
-  // Admin-specific navigation items
-  const adminNavigationItems: NavItem[] = [
-    { 
-      name: t('sidebar.adminDashboard'), 
-      href: `/${params.locale}/admin`, 
-      icon: BarChartIcon, 
-      permissions: ['admin:view']
-    },
+  const adminNavigationItems: NavItem[] = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
+    ...item,
+    name: t(item.name)
+  }));
 
-    { 
-      name: t('sidebar.userManagement'), 
-      href: `/${params.locale}/admin/users`, 
-      icon: UsersIcon, 
-      permissions: ['users:read']
-    },
-    {
-      name: t('sidebar.externalLinks'),
-      href: `/${params.locale}/admin/external-links`,
-      icon: LinkIcon,
-      permissions: ['admin:view']
-    },
-    { 
-      name: t('sidebar.bookNow'), 
-      href: `/${params.locale}/bookings`, 
-      icon: CalendarIcon,
-      disabled: true,
-      locked: true
-    },
-  ];
+  const managerNavigationItems: NavItem[] = sidebarConfig.managerNavigationItems(params.locale as string).map(item => ({
+    ...item,
+    name: t(item.name)
+  }));
 
-  // Manager-specific navigation items
-  const managerNavigationItems: NavItem[] = [
-    { 
-      name: t('sidebar.createNotifications'), 
-      href: `/${params.locale}/admin/notifications`, 
-      icon: MessageSquareIcon,
-      permissions: ['notifications:create']
-    },
-    {
-      name: t('sidebar.staffManagement'),
-      href: `/${params.locale}/manager/staff`,
-      icon: UsersIcon,
-      permissions: ['staff:view', 'staff:manage']
-    },
-  ];
-
-  const toolsNavigationItems: NavItem[] = [
-    {
-      name: t('sidebar.cms'),
-      href: `/${params.locale}/cms`,
-      icon: ClipboardListIcon,
-      permissions: ['cms:access'],
-      roles: ['ADMIN', 'MANAGER'],
-      children: [
-        {
-          name: t('sidebar.cmsPages'),
-          href: `/${params.locale}/cms/pages`,
-          icon: LineChartIcon,
-          permissions: ['cms:access'],
-          roles: ['ADMIN', 'MANAGER']
-        },
-        {
-          name: t('sidebar.cmsMedia'),
-          href: `/${params.locale}/cms/media`,
-          icon: LinkIcon,
-          permissions: ['cms:access'],
-          roles: ['ADMIN', 'MANAGER']
-        },
-        {
-          name: t('sidebar.cmsMenus'),
-          href: `/${params.locale}/cms/menus`,
-          icon: MenuIcon,
-          permissions: ['cms:access'],
-          roles: ['ADMIN', 'MANAGER']
-        },
-        {
-          name: t('sidebar.cmsSettings'),
-          href: `/${params.locale}/cms/settings`,
-          icon: SettingsIcon,
-          permissions: ['cms:access'],
-          roles: ['ADMIN', 'MANAGER']
-        }
-      ]
-    },
-    {
-      name: t('sidebar.bookings'),
-      href: `/${params.locale}/bookings`,
-      icon: CalendarIcon,
-      permissions: ['bookings:access'],
-      roles: ['ADMIN', 'MANAGER']
-    }
-  ]
-
-  // Convertir los enlaces externos del API a objetos NavItem
-  const getIconComponent = (iconName: string): React.ElementType => {
-    const icons: { [key: string]: React.ElementType } = {
-      HomeIcon,
-      UserIcon,
-      CalendarIcon,
-      SettingsIcon,
-      HelpCircleIcon,
-      BellIcon,
-      LogOutIcon,
-      UsersIcon,
-      MessageSquareIcon,
-      ClipboardListIcon,
-      BarChartIcon,
-      UserPlusIcon,
-      LineChartIcon,
-      LockIcon,
-      LinkIcon
-    };
-    
-    return icons[iconName] || UserIcon; // Default to UserIcon if not found
-  };
+  const toolsNavigationItems: NavItem[] = sidebarConfig.toolsNavigationItems(params.locale as string).map(item => ({
+    ...item,
+    name: t(item.name),
+    children: item.children?.map(child => ({
+      ...child,
+      name: t(child.name)
+    }))
+  }));
 
   // Filtrar enlaces externos basados en el rol efectivo
   const getFilteredExternalLinks = (): NavItem[] => {
@@ -1014,7 +873,7 @@ export function DashboardSidebar() {
                   className="flex items-center justify-center gap-2"
                   onClick={() => window.location.href = `/${params.locale}/admin/users`}
                 >
-                  <UserPlusIcon className="h-3 w-3" />
+                  <UserIcon className="h-3 w-3" />
                   {t('sidebar.newUser')}
                 </Button>
                 <Button 
@@ -1287,7 +1146,7 @@ export function DashboardSidebar() {
                           setIsOpen(false);
                         }}
                       >
-                        <UserPlusIcon className="h-3 w-3" />
+                        <UserIcon className="h-3 w-3" />
                         {t('sidebar.newUser')}
                       </Button>
                       <Button 

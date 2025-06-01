@@ -1270,38 +1270,44 @@ export default function HeaderSection({
               <label htmlFor="buttonBorderRadius" className="text-sm font-medium block mb-2">
                 Border Radius (px)
               </label>
-              <input
-                type="number"
-                id="buttonBorderRadius"
-                value={buttonBorderRadius}
-                onChange={(e) => {
-                  const numValue = parseInt(e.target.value) || 0;
+              <StableInput
+                value={buttonBorderRadius.toString()}
+                onChange={(newValue: string) => {
+                  const numValue = parseInt(newValue) || 0;
                   setButtonBorderRadius(numValue);
                   handleUpdateField('buttonBorderRadius', numValue);
                 }}
-                min="0"
-                max="50"
+                placeholder="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonBorderRadius"
+                data-component-type="Header"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 0-50px
+              </p>
             </div>
             
             <div>
               <label htmlFor="buttonBorderWidth" className="text-sm font-medium block mb-2">
                 Border Width (px)
               </label>
-              <input
-                type="number"
-                id="buttonBorderWidth"
-                value={buttonBorderWidth}
-                onChange={(e) => {
-                  const numValue = parseInt(e.target.value) || 0;
+              <StableInput
+                value={buttonBorderWidth.toString()}
+                onChange={(newValue: string) => {
+                  const numValue = parseInt(newValue) || 0;
                   setButtonBorderWidth(numValue);
                   handleUpdateField('buttonBorderWidth', numValue);
                 }}
-                min="0"
-                max="10"
+                placeholder="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonBorderWidth"
+                data-component-type="Header"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 0-10px
+              </p>
             </div>
           </div>
           
@@ -1596,13 +1602,14 @@ export default function HeaderSection({
             <label htmlFor="customClass" className="text-sm block mb-1">
               Custom CSS Class
             </label>
-            <input
-              type="text"
-              id="customClass"
+            <StableInput
               value={advancedOptions?.customClass || ''}
-              onChange={(e) => handleAdvancedOptionChange('customClass', e.target.value)}
+              onChange={(newValue: string) => handleAdvancedOptionChange('customClass', newValue)}
               placeholder="e.g. my-header-class"
               className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              debounceTime={300}
+              data-field-id="customClass"
+              data-component-type="Header"
             />
           </div>
           

@@ -124,11 +124,6 @@ export default function ServiceManager() {
         name: data.name!,
         description: data.description,
         durationMinutes: data.durationMinutes!,
-        prices: data.prices || [{
-          id: '',
-          amount: 0,
-          currencyId: 'default-usd'
-        }],
         bufferTimeBeforeMinutes: data.bufferTimeBeforeMinutes || undefined,
         bufferTimeAfterMinutes: data.bufferTimeAfterMinutes || undefined,
         preparationTimeMinutes: data.preparationTimeMinutes || undefined,
