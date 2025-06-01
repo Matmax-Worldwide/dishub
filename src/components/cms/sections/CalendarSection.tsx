@@ -370,7 +370,7 @@ export default function CalendarSection({
     finalLocationId?: string;
     finalStaffId?: string | null;
   }>({});
-
+  
   // Track if we're actively editing to prevent props from overriding local state
   const isEditingRef = useRef(false);
   
@@ -565,7 +565,7 @@ export default function CalendarSection({
 
   // Steps to show in progress indicator (exclude confirmation)
   const visibleSteps = allSteps.filter(step => step.id !== 'confirmation');
-
+  
   const getInitialStep = (): BookingStep => {
     // Return the first step in the custom order that meets its conditions
     const firstAvailableStep = allSteps[0];
@@ -1413,7 +1413,7 @@ export default function CalendarSection({
 
   // Selection Method Step
   const renderSelectionMethod = () => {
-    return (
+      return (
       <div className="space-y-6">
         <div className="text-center">
           <h3 className="text-2xl font-semibold mb-2">{selectionMethodTexts.title}</h3>
@@ -1435,7 +1435,7 @@ export default function CalendarSection({
                   selectedBookingMethod === 'service' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
                 }`}>
                   <Briefcase className="w-6 h-6" />
-                </div>
+        </div>
                 <div className="flex-1">
                   <h4 className="text-lg font-semibold">{selectionMethodTexts.serviceOption.title}</h4>
                   <p className="text-gray-600">{selectionMethodTexts.serviceOption.description}</p>
@@ -1491,15 +1491,15 @@ export default function CalendarSection({
                 <div className="flex-1">
                   <h4 className="text-lg font-semibold">{selectionMethodTexts.specialistOption.title}</h4>
                   <p className="text-gray-600">{selectionMethodTexts.specialistOption.description}</p>
-                </div>
+              </div>
                 {selectedBookingMethod === 'specialist' && (
                   <Check className="w-6 h-6 text-primary" />
                 )}
-              </div>
             </div>
+        </div>
           )}
         </div>
-
+        
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
           <button
@@ -1511,8 +1511,18 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!selectedBookingMethod || !getNextStep(currentStep)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
+              localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
+              localDesignTemplate === 'fitness' ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700' :
+              localDesignTemplate === 'restaurant' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+              localDesignTemplate === 'corporate' ? 'bg-gray-700 text-white hover:bg-gray-800' :
+              localDesignTemplate === 'spa' ? 'bg-green-600 text-white hover:bg-green-700' :
+              localDesignTemplate === 'automotive' ? 'bg-slate-700 text-white hover:bg-slate-800' :
+              localDesignTemplate === 'education' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
+              'bg-black text-white hover:bg-gray-800'
+            }`}
           >
             {buttonTexts.next}
           </button>
@@ -1576,7 +1586,7 @@ export default function CalendarSection({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-        </div>
+                  </div>
 
         {/* Items grid */}
         <div className="grid gap-4 max-h-96 overflow-y-auto">
@@ -1612,16 +1622,16 @@ export default function CalendarSection({
                         <h4 className="font-semibold text-lg">{item.name}</h4>
                         <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
                             {item.durationMinutes} min
-                          </span>
+                    </span>
                           {item.prices?.length > 0 && (
                             <span className="font-medium text-blue-600">
                               ${item.prices[0].amount}
                             </span>
-                          )}
-                        </div>
+                    )}
+                            </div>
                         {item.serviceCategory && (
                           <span className="inline-block mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
                             {item.serviceCategory.name}
@@ -1658,13 +1668,13 @@ export default function CalendarSection({
                             {item.specializations.map((spec: string, index: number) => (
                               <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded border">
                                 {spec}
-                              </span>
+                </span>
                             ))}
                           </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+              )}
+            </>
+          )}
+        </div>
                   
                   {isSelected && (
                     <Check className="w-5 h-5 text-blue-500 flex-shrink-0 ml-2" />
@@ -1680,7 +1690,7 @@ export default function CalendarSection({
             <p>No {selectedBookingMethod === 'service' ? 'services' : selectedBookingMethod === 'location' ? 'locations' : 'specialists'} found</p>
           </div>
         )}
-
+        
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
           <button
@@ -1693,7 +1703,17 @@ export default function CalendarSection({
           <button
             onClick={goToNextStep}
             disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
+              localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
+              localDesignTemplate === 'fitness' ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700' :
+              localDesignTemplate === 'restaurant' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+              localDesignTemplate === 'corporate' ? 'bg-gray-700 text-white hover:bg-gray-800' :
+              localDesignTemplate === 'spa' ? 'bg-green-600 text-white hover:bg-green-700' :
+              localDesignTemplate === 'automotive' ? 'bg-slate-700 text-white hover:bg-slate-800' :
+              localDesignTemplate === 'education' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
+              'bg-black text-white hover:bg-gray-800'
+            }`}
           >
             {buttonTexts.next}
           </button>
@@ -1761,23 +1781,23 @@ export default function CalendarSection({
                       setStep3Selections(prev => ({ ...prev, finalServiceId: service.id }));
                       handleServiceSelect(service.id);
                     }}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+          className={`p-4 border rounded-lg cursor-pointer transition-all ${
                       step3Selections.finalServiceId === service.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
                     <div className="flex items-center justify-between">
-                      <div>
+                <div>
                         <h5 className="font-medium">{service.name}</h5>
                         <p className="text-sm text-gray-600">{service.description}</p>
                         <span className="text-sm text-gray-500">{service.durationMinutes} min</span>
-                      </div>
+                </div>
                       {step3Selections.finalServiceId === service.id && (
                         <Check className="w-5 h-5 text-blue-500" />
                       )}
-                    </div>
-                  </div>
+          </div>
+        </div>
                 ))}
               </div>
             </div>
@@ -1795,19 +1815,19 @@ export default function CalendarSection({
                       setStep3Selections(prev => ({ ...prev, finalLocationId: location.id }));
                       handleLocationSelect(location.id);
                     }}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                className={`p-4 border rounded-lg cursor-pointer transition-all ${
                       step3Selections.finalLocationId === location.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
                     <div className="flex items-center justify-between">
                       <div>
                         <h5 className="font-medium">{location.name}</h5>
                         {location.address && (
                           <p className="text-sm text-gray-600">{location.address}</p>
-                        )}
-                      </div>
+                    )}
+                  </div>
                       {step3Selections.finalLocationId === location.id && (
                         <Check className="w-5 h-5 text-blue-500" />
                       )}
@@ -1820,7 +1840,7 @@ export default function CalendarSection({
 
           {/* Staff selection if not selected and showStaffSelector is true */}
           {!selectedStaff && showStaffSelector && (
-            <div>
+                  <div>
               <h4 className="font-medium mb-3">Choose Staff (Optional)</h4>
               <div className="grid gap-3">
                 <div
@@ -1862,21 +1882,21 @@ export default function CalendarSection({
                         <h5 className="font-medium">
                           {staff.user?.firstName} {staff.user?.lastName}
                         </h5>
-                        {staff.bio && (
+                    {staff.bio && (
                           <p className="text-sm text-gray-600">{staff.bio}</p>
-                        )}
-                      </div>
+                    )}
+                  </div>
                       {step3Selections.finalStaffId === staff.id && (
                         <Check className="w-5 h-5 text-blue-500" />
                       )}
-                    </div>
-                  </div>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-
+            ))}
+          </div>
+          </div>
+        )}
+          </div>
+        
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-4">
           <button
@@ -1888,8 +1908,18 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!getCurrentSelections().serviceId || !getCurrentSelections().locationId}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
+              localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
+              localDesignTemplate === 'fitness' ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700' :
+              localDesignTemplate === 'restaurant' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+              localDesignTemplate === 'corporate' ? 'bg-gray-700 text-white hover:bg-gray-800' :
+              localDesignTemplate === 'spa' ? 'bg-green-600 text-white hover:bg-green-700' :
+              localDesignTemplate === 'automotive' ? 'bg-slate-700 text-white hover:bg-slate-800' :
+              localDesignTemplate === 'education' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
+              'bg-black text-white hover:bg-gray-800'
+            }`}
           >
             {buttonTexts.next}
           </button>
@@ -1964,7 +1994,17 @@ export default function CalendarSection({
           <button
             onClick={goToNextStep}
             disabled={!selectedTimeSlot || !getNextStep(currentStep)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
+              localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
+              localDesignTemplate === 'fitness' ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700' :
+              localDesignTemplate === 'restaurant' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+              localDesignTemplate === 'corporate' ? 'bg-gray-700 text-white hover:bg-gray-800' :
+              localDesignTemplate === 'spa' ? 'bg-green-600 text-white hover:bg-green-700' :
+              localDesignTemplate === 'automotive' ? 'bg-slate-700 text-white hover:bg-slate-800' :
+              localDesignTemplate === 'education' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
+              'bg-black text-white hover:bg-gray-800'
+            }`}
           >
             {buttonTexts.next}
           </button>
@@ -2052,7 +2092,17 @@ export default function CalendarSection({
           <button
             onClick={handleBookingSubmit}
             disabled={isBooking || !customerInfo.fullName || !customerInfo.email}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
+              localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
+              localDesignTemplate === 'fitness' ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700' :
+              localDesignTemplate === 'restaurant' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+              localDesignTemplate === 'corporate' ? 'bg-gray-700 text-white hover:bg-gray-800' :
+              localDesignTemplate === 'spa' ? 'bg-green-600 text-white hover:bg-green-700' :
+              localDesignTemplate === 'automotive' ? 'bg-slate-700 text-white hover:bg-slate-800' :
+              localDesignTemplate === 'education' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
+              'bg-black text-white hover:bg-gray-800'
+            }`}
           >
             {isBooking ? 'Processing...' : buttonTexts.submit}
           </button>
@@ -2276,58 +2326,58 @@ export default function CalendarSection({
               <LayoutPanelTop className="h-4 w-4 mr-2 text-muted-foreground" />
               Step Order Configuration
             </h3>
-            <div className="space-y-2">
-              {stepOrder.map((stepId, index) => {
+              <div className="space-y-2">
+                {stepOrder.map((stepId, index) => {
                 const stepDef = stepConfigurations.find(def => def.id === stepId);
                 const isEnabled = stepDef?.condition() !== false;
-                return (
+                  return (
                   <div key={stepId} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                         isEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
                       }`}>
                         {index + 1}
                       </div>
                       <span className={`font-medium ${isEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {stepDef?.label || stepId}
-                      </span>
+                          {stepDef?.label || stepId}
+                        </span>
                       {stepDef?.required && (
                         <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Required</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const newOrder = [...stepOrder];
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                              const newOrder = [...stepOrder];
                           if (index > 0) {
-                            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
-                            setStepOrder(newOrder);
-                            handleUpdateField('stepOrder', newOrder);
-                          }
-                        }}
-                        disabled={index === 0}
+                              [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+                              setStepOrder(newOrder);
+                              handleUpdateField('stepOrder', newOrder);
+                            }
+                          }}
+                          disabled={index === 0}
                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => {
-                          const newOrder = [...stepOrder];
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => {
+                              const newOrder = [...stepOrder];
                           if (index < stepOrder.length - 1) {
-                            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                            setStepOrder(newOrder);
-                            handleUpdateField('stepOrder', newOrder);
-                          }
-                        }}
-                        disabled={index === stepOrder.length - 1}
+                              [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                              setStepOrder(newOrder);
+                              handleUpdateField('stepOrder', newOrder);
+                            }
+                          }}
+                          disabled={index === stepOrder.length - 1}
                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                      >
-                        ↓
-                      </button>
+                        >
+                          ↓
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
           
