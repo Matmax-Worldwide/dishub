@@ -883,231 +883,264 @@ export default function BlogSection({
 
   if (isEditing) {
     return (
-      <div className="space-y-4 w-full max-w-full overflow-x-hidden">
-        {/* Save Status Bar */}
-        <div className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">Blog Section Settings</h3>
-            {hasUnsavedChanges && (
-              <Badge variant="outline" className="text-amber-600 border-amber-300">
-                Unsaved Changes
-              </Badge>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Save Status */}
-            {saveStatus === 'saving' && (
-              <div className="flex items-center gap-2 text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm">Saving...</span>
-              </div>
-            )}
-            
-            {saveStatus === 'success' && (
-              <div className="flex items-center gap-2 text-green-600">
-                <Check className="h-4 w-4" />
-                <span className="text-sm">Saved</span>
-              </div>
-            )}
-            
-            {saveStatus === 'error' && (
-              <div className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="text-sm">Error</span>
-              </div>
-            )}
-            
-            {/* Manual Save Button */}
-            <Button 
-              onClick={saveBlogSectionStyle}
-              disabled={isSaving || !hasUnsavedChanges}
-              size="sm"
+      <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-50 to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+            <TabsTrigger 
+              value="details" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Save Message */}
-        {saveMessage && (
-          <div className={`p-3 rounded-lg text-sm ${
-            saveStatus === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            saveStatus === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
-            {saveMessage}
-          </div>
-        )}
-
-        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
-            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
+              Details
+            </TabsTrigger>
+            <TabsTrigger 
+              value="styles" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Styles
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preview" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Preview
+            </TabsTrigger>
           </TabsList>
 
           {/* DETAILS TAB */}
-          <TabsContent value="details" className="space-y-6 p-6 border rounded-lg">
-            {/* Debug Info in Development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-                <p className="font-medium text-blue-800 mb-1">Debug Info:</p>
-                <p className="text-blue-700">Fixed Header: {localFixedHeaderHeight}px</p>
-                <p className="text-blue-700">Top Padding: {localTopPadding} ({getPaddingClass(localTopPadding, 'top')})</p>
-                <p className="text-blue-700">Bottom Padding: {localBottomPadding} ({getPaddingClass(localBottomPadding, 'bottom')})</p>
-                <p className="text-blue-700">Total Top Spacing: {localFixedHeaderHeight > 0 ? `${localFixedHeaderHeight + 48}px` : 'Default (pt-12)'}</p>
+          <TabsContent value="details" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {/* Save Status Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Blog Configuration</h3>
               </div>
-            )}
-            
-        <StableInput
-              value={localTitle}
-          onChange={(value) => handleUpdateField('title', value)}
-          placeholder="Blog section title..."
-          label="Section Title"
-          className="text-2xl font-bold"
-        />
-        
-        <StableInput
-              value={localSubtitle}
-          onChange={(value) => handleUpdateField('subtitle', value)}
-          placeholder="Section subtitle..."
-          label="Subtitle"
-        />
-        
-        {/* Blog Selection */}
-        <div>
-          <label className="text-sm font-medium mb-2 block">Select Blog</label>
-              <Select value={localBlogId || 'none'} onValueChange={(value) => handleUpdateField('blogId', value === 'none' ? '' : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choose a blog to display posts from..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No blog selected</SelectItem>
-              {blogs.map(blog => (
-                <SelectItem key={blog.id} value={blog.id}>
-                  {blog.title} {!blog.isActive && '(Inactive)'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-              {localBlogId && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Posts from the selected blog will be automatically fetched and displayed.
-            </p>
-          )}
-        </div>
-        
-            {/* Basic Layout Options */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium">Layout</label>
-                <Select value={localLayout} onValueChange={(value) => handleUpdateField('layout', value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="grid">Grid</SelectItem>
-                <SelectItem value="list">List</SelectItem>
-                <SelectItem value="carousel">Carousel</SelectItem>
-                    <SelectItem value="masonry">Masonry</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Posts Per Page</label>
-            <Input
-              type="number"
-                  value={localPostsPerPage}
-              onChange={(e) => handleUpdateField('postsPerPage', parseInt(e.target.value))}
-              min={1}
-              max={50}
-            />
-          </div>
-        </div>
-        
-            {/* Display Options */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Display Options</label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localSearchEnabled}
-                onChange={(e) => handleUpdateField('searchEnabled', e.target.checked)}
-              />
-              <span className="text-sm">Enable Search</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localFiltersEnabled}
-                onChange={(e) => handleUpdateField('filtersEnabled', e.target.checked)}
-              />
-              <span className="text-sm">Enable Filters</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localShowFeaturedImage}
-                onChange={(e) => handleUpdateField('showFeaturedImage', e.target.checked)}
-              />
-              <span className="text-sm">Show Featured Images</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localShowAuthor}
-                onChange={(e) => handleUpdateField('showAuthor', e.target.checked)}
-              />
-              <span className="text-sm">Show Author</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localShowDate}
-                onChange={(e) => handleUpdateField('showDate', e.target.checked)}
-              />
-              <span className="text-sm">Show Date</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localShowTags}
-                onChange={(e) => handleUpdateField('showTags', e.target.checked)}
-              />
-              <span className="text-sm">Show Tags</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                    checked={localShowExcerpt}
-                onChange={(e) => handleUpdateField('showExcerpt', e.target.checked)}
-              />
-              <span className="text-sm">Show Excerpt</span>
-            </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={localShowImageOverlay}
-                    onChange={(e) => handleUpdateField('showImageOverlay', e.target.checked)}
-                  />
-                  <span className="text-sm">Image Hover Overlay</span>
-            </label>
-          </div>
-        </div>
+              <div className="pl-6 space-y-4">
+                {/* Save Status Bar */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <h4 className="font-medium text-gray-700">Status</h4>
+                    {hasUnsavedChanges && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                        Unsaved Changes
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* Save Status */}
+                    {saveStatus === 'saving' && (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm">Saving...</span>
+                      </div>
+                    )}
+                    
+                    {saveStatus === 'success' && (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <Check className="h-4 w-4" />
+                        <span className="text-sm">Saved</span>
+                      </div>
+                    )}
+                    
+                    {saveStatus === 'error' && (
+                      <div className="flex items-center gap-2 text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">Error</span>
+                      </div>
+                    )}
+                    
+                    {/* Manual Save Button */}
+                    <Button 
+                      onClick={saveBlogSectionStyle}
+                      disabled={isSaving || !hasUnsavedChanges}
+                      size="sm"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Save Message */}
+                {saveMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    saveStatus === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+                    saveStatus === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+                    'bg-blue-50 text-blue-800 border border-blue-200'
+                  }`}>
+                    {saveMessage}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Content Settings Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                {/* Debug Info in Development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+                    <p className="font-medium text-blue-800 mb-1">Debug Info:</p>
+                    <p className="text-blue-700">Fixed Header: {localFixedHeaderHeight}px</p>
+                    <p className="text-blue-700">Top Padding: {localTopPadding} ({getPaddingClass(localTopPadding, 'top')})</p>
+                    <p className="text-blue-700">Bottom Padding: {localBottomPadding} ({getPaddingClass(localBottomPadding, 'bottom')})</p>
+                    <p className="text-blue-700">Total Top Spacing: {localFixedHeaderHeight > 0 ? `${localFixedHeaderHeight + 48}px` : 'Default (pt-12)'}</p>
+                  </div>
+                )}
+                
+                <StableInput
+                  value={localTitle}
+                  onChange={(value) => handleUpdateField('title', value)}
+                  placeholder="Blog section title..."
+                  label="Section Title"
+                  className="text-2xl font-bold"
+                />
+                
+                <StableInput
+                  value={localSubtitle}
+                  onChange={(value) => handleUpdateField('subtitle', value)}
+                  placeholder="Section subtitle..."
+                  label="Subtitle"
+                />
+                
+                {/* Blog Selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select Blog</label>
+                  <Select value={localBlogId || 'none'} onValueChange={(value) => handleUpdateField('blogId', value === 'none' ? '' : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a blog to display posts from..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No blog selected</SelectItem>
+                      {blogs.map(blog => (
+                        <SelectItem key={blog.id} value={blog.id}>
+                          {blog.title} {!blog.isActive && '(Inactive)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {localBlogId && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Posts from the selected blog will be automatically fetched and displayed.
+                    </p>
+                  )}
+                </div>
+                
+                {/* Basic Layout Options */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Layout</label>
+                    <Select value={localLayout} onValueChange={(value) => handleUpdateField('layout', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="grid">Grid</SelectItem>
+                        <SelectItem value="list">List</SelectItem>
+                        <SelectItem value="carousel">Carousel</SelectItem>
+                        <SelectItem value="masonry">Masonry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium">Posts Per Page</label>
+                    <Input
+                      type="number"
+                      value={localPostsPerPage}
+                      onChange={(e) => handleUpdateField('postsPerPage', parseInt(e.target.value))}
+                      min={1}
+                      max={50}
+                    />
+                  </div>
+                </div>
+                
+                {/* Display Options */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Display Options</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localSearchEnabled}
+                        onChange={(e) => handleUpdateField('searchEnabled', e.target.checked)}
+                      />
+                      <span className="text-sm">Enable Search</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localFiltersEnabled}
+                        onChange={(e) => handleUpdateField('filtersEnabled', e.target.checked)}
+                      />
+                      <span className="text-sm">Enable Filters</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowFeaturedImage}
+                        onChange={(e) => handleUpdateField('showFeaturedImage', e.target.checked)}
+                      />
+                      <span className="text-sm">Show Featured Images</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowAuthor}
+                        onChange={(e) => handleUpdateField('showAuthor', e.target.checked)}
+                      />
+                      <span className="text-sm">Show Author</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowDate}
+                        onChange={(e) => handleUpdateField('showDate', e.target.checked)}
+                      />
+                      <span className="text-sm">Show Date</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowTags}
+                        onChange={(e) => handleUpdateField('showTags', e.target.checked)}
+                      />
+                      <span className="text-sm">Show Tags</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowExcerpt}
+                        onChange={(e) => handleUpdateField('showExcerpt', e.target.checked)}
+                      />
+                      <span className="text-sm">Show Excerpt</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={localShowImageOverlay}
+                        onChange={(e) => handleUpdateField('showImageOverlay', e.target.checked)}
+                      />
+                      <span className="text-sm">Image Hover Overlay</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           {/* STYLES TAB */}
-          <TabsContent value="styles" className="space-y-6 p-6 border rounded-lg">
+          <TabsContent value="styles" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {/* Background Section */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Background
-              </h4>
-              
-              <div className="space-y-3">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Background Settings</h3>
+              </div>
+              <div className="pl-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">Background Style</label>
                   <Button
@@ -1147,286 +1180,299 @@ export default function BlogSection({
             </div>
 
             {/* Spacing and Layout Section */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Spacing & Layout
-              </h4>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Top Padding</label>
-                  <Select value={localTopPadding} onValueChange={(value) => handleUpdateField('topPadding', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="small">Small</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="large">Large</SelectItem>
-                      <SelectItem value="extra-large">Extra Large</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium">Bottom Padding</label>
-                  <Select value={localBottomPadding} onValueChange={(value) => handleUpdateField('bottomPadding', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="small">Small</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="large">Large</SelectItem>
-                      <SelectItem value="extra-large">Extra Large</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Spacing & Layout</h3>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Background Color</label>
-                  <Select value={localBackgroundColor} onValueChange={(value) => handleUpdateField('backgroundColor', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="transparent">Transparent</SelectItem>
-                      <SelectItem value="white">White</SelectItem>
-                      <SelectItem value="gray">Light Gray</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="pl-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Top Padding</label>
+                    <Select value={localTopPadding} onValueChange={(value) => handleUpdateField('topPadding', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                        <SelectItem value="extra-large">Extra Large</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium">Bottom Padding</label>
+                    <Select value={localBottomPadding} onValueChange={(value) => handleUpdateField('bottomPadding', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                        <SelectItem value="extra-large">Extra Large</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                
-                <div>
-                  <label className="text-sm font-medium">Image Aspect Ratio</label>
-                  <Select value={localImageAspectRatio} onValueChange={(value) => handleUpdateField('imageAspectRatio', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
-                      <SelectItem value="4:3">4:3 (Standard)</SelectItem>
-                      <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                      <SelectItem value="3:2">3:2 (Classic)</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Background Color</label>
+                    <Select value={localBackgroundColor} onValueChange={(value) => handleUpdateField('backgroundColor', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="transparent">Transparent</SelectItem>
+                        <SelectItem value="white">White</SelectItem>
+                        <SelectItem value="gray">Light Gray</SelectItem>
+                        <SelectItem value="dark">Dark</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium">Image Aspect Ratio</label>
+                    <Select value={localImageAspectRatio} onValueChange={(value) => handleUpdateField('imageAspectRatio', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
+                        <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                        <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                        <SelectItem value="3:2">3:2 (Classic)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Fixed Header Configuration */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Header Integration
-              </h4>
-              
-              <div>
-                <label className="text-sm font-medium">Fixed Header Height (px)</label>
-                <Input
-                  type="number"
-                  value={localFixedHeaderHeight}
-                  onChange={(e) => handleUpdateField('fixedHeaderHeight', parseInt(e.target.value) || 0)}
-                  min={0}
-                  max={200}
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Set to 0 if no fixed header. Common values: 64px, 80px, 96px
-                </p>
+            {/* Header Integration Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-teal-500 to-teal-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Header Integration</h3>
               </div>
-            </div>
-
-            {/* Height Control Configuration */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Height Control
-              </h4>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> By default, the blog section flows naturally without height restrictions. 
-                  Only use height limits if you need to constrain the section within a specific viewport area.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+              <div className="pl-6 space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Max Height</label>
-                  <Select value={localMaxHeight} onValueChange={(value) => handleUpdateField('maxHeight', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Limit (Recommended)</SelectItem>
-                      <SelectItem value="screen">Full Screen</SelectItem>
-                      <SelectItem value="half-screen">Half Screen</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm font-medium">Fixed Header Height (px)</label>
+                  <Input
+                    type="number"
+                    value={localFixedHeaderHeight}
+                    onChange={(e) => handleUpdateField('fixedHeaderHeight', parseInt(e.target.value) || 0)}
+                    min={0}
+                    max={200}
+                    placeholder="0"
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
-                    &quot;No Limit&quot; allows natural content flow and scrolling
+                    Set to 0 if no fixed header. Common values: 64px, 80px, 96px
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Height Control Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-cyan-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Height Control</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>Note:</strong> By default, the blog section flows naturally without height restrictions. 
+                    Only use height limits if you need to constrain the section within a specific viewport area.
                   </p>
                 </div>
                 
-                {localMaxHeight === 'custom' && (
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Custom Height (px)</label>
-                    <Input
-                      type="number"
-                      value={localCustomMaxHeight}
-                      onChange={(e) => handleUpdateField('customMaxHeight', parseInt(e.target.value) || 800)}
-                      min={200}
-                      max={2000}
-                      placeholder="800"
-                    />
+                    <label className="text-sm font-medium">Max Height</label>
+                    <Select value={localMaxHeight} onValueChange={(value) => handleUpdateField('maxHeight', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Limit (Recommended)</SelectItem>
+                        <SelectItem value="screen">Full Screen</SelectItem>
+                        <SelectItem value="half-screen">Half Screen</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Content will scroll within this height
+                      &quot;No Limit&quot; allows natural content flow and scrolling
                     </p>
                   </div>
-                )}
+                  
+                  {localMaxHeight === 'custom' && (
+                    <div>
+                      <label className="text-sm font-medium">Custom Height (px)</label>
+                      <Input
+                        type="number"
+                        value={localCustomMaxHeight}
+                        onChange={(e) => handleUpdateField('customMaxHeight', parseInt(e.target.value) || 800)}
+                        min={200}
+                        max={2000}
+                        placeholder="800"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Content will scroll within this height
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Performance Options */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Performance
-              </h4>
-              
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={localEnableVirtualization}
-                    onChange={(e) => handleUpdateField('enableVirtualization', e.target.checked)}
-                  />
-                  <span className="text-sm font-medium">Enable Virtualization</span>
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Limits posts to 20 per page for better performance with large datasets. 
-                  Recommended for blogs with many posts.
-                </p>
+            {/* Performance Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Performance</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={localEnableVirtualization}
+                      onChange={(e) => handleUpdateField('enableVirtualization', e.target.checked)}
+                    />
+                    <span className="text-sm font-medium">Enable Virtualization</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Limits posts to 20 per page for better performance with large datasets. 
+                    Recommended for blogs with many posts.
+                  </p>
+                </div>
               </div>
             </div>
           </TabsContent>
 
           {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-6 p-6 border rounded-lg">
-        {/* Preview */}
-            <div>
-              <h4 className="text-sm font-medium mb-4">Blog Section Preview</h4>
-              {!localBlogId ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-            <p className="text-sm text-muted-foreground">
-              Select a blog to see a preview of the posts that will be displayed.
-            </p>
-                </div>
-          ) : loading ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">Loading posts...</p>
-                </div>
-          ) : posts.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-            <p className="text-sm text-muted-foreground">
-              No published posts found in the selected blog.
-            </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Configuration Summary */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h5 className="text-sm font-medium text-blue-900 mb-2">Configuration Summary</h5>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
-                      <div>Posts: {posts.length} available</div>
-                      <div>Layout: {localLayout}</div>
-                      <div>Per page: {localPostsPerPage}</div>
-                      <div>Background: {localBackgroundColor}</div>
-                      <div>Padding: {localTopPadding} / {localBottomPadding}</div>
-                      <div>Image ratio: {localImageAspectRatio}</div>
+          <TabsContent value="preview" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {/* Live Preview Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                {!localBlogId ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
                     </div>
-                    {localEnableVirtualization && localPostsPerPage > 20 && (
-                      <p className="text-xs text-amber-600 mt-2">
-                        ⚡ Virtualization enabled: Limited to 20 posts per page for performance
-                      </p>
-                    )}
-                    {localMaxHeight !== 'none' && (
-                      <p className="text-xs text-blue-600 mt-2">
-                        📏 Height limit: {localMaxHeight === 'custom' ? `${localCustomMaxHeight}px` : localMaxHeight}
-                      </p>
-                    )}
-                    {localFixedHeaderHeight > 0 && (
-                      <p className="text-xs text-green-600 mt-2">
-                        📐 Fixed header spacing: {localFixedHeaderHeight + 48}px (header: {localFixedHeaderHeight}px + padding: 48px)
-          </p>
-          )}
-        </div>
+                    <p className="text-sm text-muted-foreground">
+                      Select a blog to see a preview of the posts that will be displayed.
+                    </p>
+                  </div>
+                ) : loading ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                    <p className="text-sm text-muted-foreground">Loading posts...</p>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      No published posts found in the selected blog.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Configuration Summary */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h5 className="text-sm font-medium text-blue-900 mb-2">Configuration Summary</h5>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
+                        <div>Posts: {posts.length} available</div>
+                        <div>Layout: {localLayout}</div>
+                        <div>Per page: {localPostsPerPage}</div>
+                        <div>Background: {localBackgroundColor}</div>
+                        <div>Padding: {localTopPadding} / {localBottomPadding}</div>
+                        <div>Image ratio: {localImageAspectRatio}</div>
+                      </div>
+                      {localEnableVirtualization && localPostsPerPage > 20 && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          ⚡ Virtualization enabled: Limited to 20 posts per page for performance
+                        </p>
+                      )}
+                      {localMaxHeight !== 'none' && (
+                        <p className="text-xs text-blue-600 mt-2">
+                          📏 Height limit: {localMaxHeight === 'custom' ? `${localCustomMaxHeight}px` : localMaxHeight}
+                        </p>
+                      )}
+                      {localFixedHeaderHeight > 0 && (
+                        <p className="text-xs text-green-600 mt-2">
+                          📐 Fixed header spacing: {localFixedHeaderHeight + 48}px (header: {localFixedHeaderHeight}px + padding: 48px)
+                        </p>
+                      )}
+                    </div>
 
-                  {/* Sample Posts Preview */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b">
-                      <h6 className="text-sm font-medium">Sample Posts ({Math.min(3, posts.length)} of {posts.length})</h6>
-                    </div>
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {posts.slice(0, 3).map((post, index) => (
-                          <div key={index} className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                            {localShowFeaturedImage && (
-                              <div className={`w-full ${getImageAspectRatio(localImageAspectRatio)} bg-gray-200 flex items-center justify-center`}>
-                                {post.featuredImage ? (
-                                  <Image
-                                    src={post.featuredImage}
-                                    alt={post.title}
-                                    width={200}
-                                    height={150}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  generateFallbackImage(post.title, post.category)
-                                )}
-                              </div>
-                            )}
-                            <div className="p-3">
-                              <h6 className="font-medium text-sm line-clamp-2 mb-2">{post.title}</h6>
-                              {localShowExcerpt && post.excerpt && (
-                                <p className="text-xs text-gray-600 line-clamp-2 mb-2">{post.excerpt}</p>
-                              )}
-                              <div className="flex items-center justify-between text-xs text-gray-500">
-                                {localShowAuthor && post.author && (
-                                  <span>{post.author.name}</span>
-                                )}
-                                {localShowDate && post.publishedAt && (
-                                  <span>{formatDate(post.publishedAt)}</span>
-                                )}
-                              </div>
-                              {localShowTags && post.tags && post.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {post.tags.slice(0, 2).map(tag => (
-                                    <Badge key={tag} variant="outline" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
+                    {/* Sample Posts Preview */}
+                    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                      <div className="bg-gray-50 px-4 py-3 border-b">
+                        <h6 className="text-sm font-medium text-gray-900">Sample Posts ({Math.min(3, posts.length)} of {posts.length})</h6>
+                      </div>
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {posts.slice(0, 3).map((post, index) => (
+                            <div key={index} className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                              {localShowFeaturedImage && (
+                                <div className={`w-full ${getImageAspectRatio(localImageAspectRatio)} bg-gray-200 flex items-center justify-center`}>
+                                  {post.featuredImage ? (
+                                    <Image
+                                      src={post.featuredImage}
+                                      alt={post.title}
+                                      width={200}
+                                      height={150}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    generateFallbackImage(post.title, post.category)
+                                  )}
                                 </div>
                               )}
+                              <div className="p-3">
+                                <h6 className="font-medium text-sm line-clamp-2 mb-2">{post.title}</h6>
+                                {localShowExcerpt && post.excerpt && (
+                                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">{post.excerpt}</p>
+                                )}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  {localShowAuthor && post.author && (
+                                    <span>{post.author.name}</span>
+                                  )}
+                                  {localShowDate && post.publishedAt && (
+                                    <span>{formatDate(post.publishedAt)}</span>
+                                  )}
+                                </div>
+                                {localShowTags && post.tags && post.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {post.tags.slice(0, 2).map(tag => (
+                                      <Badge key={tag} variant="outline" className="text-xs">
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>
