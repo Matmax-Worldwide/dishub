@@ -650,11 +650,13 @@ model Page {
   children        Page[]       @relation("PageToPage")
   seo             PageSEO?
   sections        CMSSection[] @relation("PageToSection")
+  directSections  CMSSection[] @relation("SectionToPage")
 }
 
 model CMSSection {
   id              String             @id @default(cuid())
   sectionId       String             @unique
+  pageId          String?            // Add direct page relationship
   lastUpdated     DateTime           @default(now())
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -665,6 +667,7 @@ model CMSSection {
   backgroundType  String?            @default("gradient")
   gridDesign      String?            @default("basic")
   components      SectionComponent[]
+  page            Page?              @relation("SectionToPage", fields: [pageId], references: [id])
   pages           Page[]             @relation("PageToSection")
   media           Media[]
   order           Int                @default(0)
