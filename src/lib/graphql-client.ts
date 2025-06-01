@@ -5836,6 +5836,174 @@ export const cmsOperations = {
     return result.shipments || [];
   },
 
+  // User Management Operations (Admin only)
+  async createUser(input: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    role: string;
+  }): Promise<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    role: {
+      id: string;
+      name: string;
+      description?: string;
+    };
+    createdAt: string;
+  }> {
+    const mutation = `
+      mutation CreateUser($input: CreateUserInput!) {
+        createUser(input: $input) {
+          id
+          email
+          firstName
+          lastName
+          phoneNumber
+          role {
+            id
+            name
+            description
+          }
+          createdAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        createUser: {
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          phoneNumber?: string;
+          role: {
+            id: string;
+            name: string;
+            description?: string;
+          };
+          createdAt: string;
+        };
+      }>(mutation, { input });
+      return response.createUser;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  },
+
+  async updateUser(id: string, input: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phoneNumber?: string;
+    role?: string;
+  }): Promise<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    role: {
+      id: string;
+      name: string;
+      description?: string;
+    };
+    createdAt: string;
+  }> {
+    const mutation = `
+      mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
+        updateUser(id: $id, input: $input) {
+          id
+          email
+          firstName
+          lastName
+          phoneNumber
+          role {
+            id
+            name
+            description
+          }
+          createdAt
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        updateUser: {
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          phoneNumber?: string;
+          role: {
+            id: string;
+            name: string;
+            description?: string;
+          };
+          createdAt: string;
+        };
+      }>(mutation, { id, input });
+      return response.updateUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  },
+
+  async deleteUser(id: string): Promise<boolean> {
+    const mutation = `
+      mutation DeleteUser($id: ID!) {
+        deleteUser(id: $id)
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{ deleteUser: boolean }>(mutation, { id });
+      return response.deleteUser;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+
+  async getRoles(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+  }>> {
+    const query = `
+      query GetRoles {
+        roles {
+          id
+          name
+          description
+        }
+      }
+    `;
+
+    try {
+      const response = await gqlRequest<{
+        roles: Array<{
+          id: string;
+          name: string;
+          description?: string;
+        }>;
+      }>(query);
+      return response.roles || [];
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      return [];
+    }
+  },
+
 };
 
 // Form Builder API functions

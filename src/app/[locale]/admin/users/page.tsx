@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { gql, useQuery, useMutation } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { useState, useEffect } from 'react';
+import graphqlClient from '@/lib/graphql-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -34,12 +33,12 @@ import {
   Trash2Icon,
   ShieldIcon,
   XIcon,
-  SaveIcon
+  SaveIcon,
+  Loader2Icon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useRouter, useParams } from 'next/navigation';
 
 // User interface
 interface User {
@@ -56,86 +55,33 @@ interface User {
   createdAt: string;
 }
 
-// GraphQL queries
-const GET_USERS = gql`
-  query GetUsers {
-    users {
-      id
-      email
-      firstName
-      lastName
-      phoneNumber
-      role {
-        id
-        name
-        description
-      }
-      createdAt
-    }
-  }
-`;
+// Role interface
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
 
-// GraphQL mutations
-const CREATE_USER = gql`
-  mutation CreateUser($email: String!, $password: String!, $firstName: String!, $lastName: String!, $phoneNumber: String, $role: String!) {
-    createUser(input: {
-      email: $email,
-      password: $password,
-      firstName: $firstName,
-      lastName: $lastName,
-      phoneNumber: $phoneNumber,
-      role: $role
-    }) {
-      id
-      email
-      firstName
-      lastName
-      phoneNumber
-      role {
-        id
-        name
-        description
-      }
-      createdAt
-    }
-  }
-`;
-
-const UPDATE_USER = gql`
-  mutation UpdateUser($id: ID!, $firstName: String, $lastName: String, $email: String, $phoneNumber: String, $role: String) {
-    updateUser(id: $id, input: {
-      firstName: $firstName,
-      lastName: $lastName,
-      email: $email,
-      phoneNumber: $phoneNumber,
-      role: $role
-    }) {
-      id
-      email
-      firstName
-      lastName
-      phoneNumber
-      role {
-        id
-        name
-        description
-      }
-      createdAt
-    }
-  }
-`;
-
-const DELETE_USER = gql`
-  mutation DeleteUser($id: ID!) {
-    deleteUser(id: $id)
-  }
-`;
+// Extended CalendarUser with role for GraphQL response
+interface CalendarUserWithRole {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  role?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
 
 export default function UserManagementPage() {
-  const router = useRouter();
-  const params = useParams();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -143,7 +89,9 @@ export default function UserManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [roles, setRoles] = useState<string[]>([]);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -155,164 +103,117 @@ export default function UserManagementPage() {
     role: 'USER'
   });
   
-  // Get users
-  const { error, refetch } = useQuery(GET_USERS, {
-    client,
-    fetchPolicy: 'network-only',
-    onCompleted: (data: { users: User[] }) => {
-      if (data?.users) {
-        applyFiltersAndUpdateState(data.users);
-      }
+  // Load users and roles
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching users and roles...');
+      
+      const [usersData, rolesData] = await Promise.all([
+        graphqlClient.users().catch(err => {
+          console.error('Error fetching users:', err);
+          throw new Error(`Failed to fetch users: ${err.message}`);
+        }) as Promise<CalendarUserWithRole[]>,
+        graphqlClient.getRoles().catch(err => {
+          console.error('Error fetching roles:', err);
+          console.error('Full error object:', err);
+          throw new Error(`Failed to fetch roles: ${err.message}`);
+        })
+      ]);
+      
+      console.log('Users data:', usersData);
+      console.log('Roles data:', rolesData);
+      
+      // Transform users data to match interface
+      const transformedUsers: User[] = usersData.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber || undefined,
+        role: user.role || {
+          id: 'default',
+          name: 'USER',
+          description: undefined
+        },
+        createdAt: typeof user.createdAt === 'string' ? user.createdAt : user.createdAt.toISOString()
+      }));
+      
+      setUsers(transformedUsers);
+      setRoles(rolesData);
+      applyFiltersAndUpdateState(transformedUsers);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      toast.error(`Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
       setLoading(false);
-    },
-    onError: (error) => {
-      console.error('Error fetching users:', error);
-      setLoading(false);
-      toast.error('Error loading users');
     }
-  });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   
   // Apply filters to users data and update state
   const applyFiltersAndUpdateState = (users: User[]) => {
-    // Update main users array
-    setUsers(users);
+    let filtered = users;
     
-    // Apply any active filters
-    if (selectedRole) {
-      const filtered = users.filter((user: User) => 
-        user.role.name === selectedRole
-      );
-      setFilteredUsers(filtered);
-    } else if (searchTerm) {
-      const filtered = users.filter((user: User) => 
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((user: User) => 
         user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
     }
     
-    // Extract and update role options
-    const roleNames: string[] = [];
-    users.forEach((user: User) => {
-      if (user?.role?.name) {
-        roleNames.push(user.role.name);
-      }
-    });
-    setRoles([...new Set(roleNames)]);
-    
-    // If the selected role no longer exists, reset the filter
-    if (selectedRole && !roleNames.includes(selectedRole)) {
-      setSelectedRole(null);
+    // Apply role filter
+    if (selectedRole) {
+      filtered = filtered.filter((user: User) => 
+        user.role.name === selectedRole
+      );
     }
+    
+    setFilteredUsers(filtered);
   };
 
-  // Mutations
-  const [createUser, { loading: createLoading }] = useMutation(CREATE_USER, {
-    client,
-    onCompleted: () => {
-      setShowAddForm(false);
-      resetForm();
-      
-      // Fetch the latest data
-      refetch().then((response) => {
-        if (response.data?.users) {
-          applyFiltersAndUpdateState(response.data.users);
-        }
-      });
-      
-      toast.success("User created successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error creating user: ${error.message}`);
-    }
-  });
+  // Apply filters when search term or role filter changes
+  useEffect(() => {
+    applyFiltersAndUpdateState(users);
+  }, [searchTerm, selectedRole, users]);
 
-  const [updateUser, { loading: updateLoading }] = useMutation(UPDATE_USER, {
-    client,
-    onCompleted: () => {
-      setEditingUserId(null);
-      resetForm();
-      
-      // Fetch the latest data
-      refetch().then((response) => {
-        if (response.data?.users) {
-          applyFiltersAndUpdateState(response.data.users);
-        }
-      });
-      
-      toast.success("User updated successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error updating user: ${error.message}`);
-    }
-  });
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
-  const [deleteUser, { loading: deleteLoading }] = useMutation(DELETE_USER, {
-    client,
-    onCompleted: () => {
-      setIsDeleteDialogOpen(false);
-      setUserToDelete(null);
-      
-      // Fetch the latest data
-      refetch().then((response) => {
-        if (response.data?.users) {
-          applyFiltersAndUpdateState(response.data.users);
-        }
-      });
-      
-      toast.success("User deleted successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error deleting user: ${error.message}`);
-    }
-  });
-  
   const handleRoleFilter = (role: string | null) => {
-    setSelectedRole(role === selectedRole ? null : role);
+    setSelectedRole(role);
   };
-  
+
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Fecha no disponible';
-    
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        console.log('Invalid date:', dateString);
-        return 'Fecha no disponible';
-      }
-      
-      // Nombres de los meses en español
-      const meses = [
-        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-      ];
-      
-      const dia = date.getDate();
-      const mes = meses[date.getMonth()];
-      const anio = date.getFullYear();
-      const hora = date.getHours().toString().padStart(2, '0');
-      const minutos = date.getMinutes().toString().padStart(2, '0');
-      
-      return `${dia} de ${mes} de ${anio}, ${hora}:${minutos}`;
-    } catch (error) {
-      console.error('Error formatting date:', error, dateString);
-      return 'Fecha no disponible';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
     }
   };
-  
+
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
+    switch (role.toUpperCase()) {
       case 'ADMIN':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'MANAGER':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'EMPLOYEE':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -336,18 +237,35 @@ export default function UserManagementPage() {
     setFormData(prev => ({ ...prev, role: value }));
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    createUser({ 
-      variables: { 
+    
+    if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      const newUser = await graphqlClient.createUser({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber || null,
+        phoneNumber: formData.phoneNumber || undefined,
         role: formData.role
-      } 
-    });
+      });
+
+      toast.success(`User "${newUser.firstName} ${newUser.lastName}" created successfully!`);
+      setShowAddForm(false);
+      resetForm();
+      fetchData(); // Refresh the users list
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
   const handleEditUser = (user: User) => {
@@ -372,20 +290,30 @@ export default function UserManagementPage() {
     resetForm();
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUserId) return;
     
-    updateUser({ 
-      variables: { 
-        id: editingUserId,
+    try {
+      setUpdateLoading(true);
+      const updatedUser = await graphqlClient.updateUser(editingUserId, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phoneNumber: formData.phoneNumber || null,
+        phoneNumber: formData.phoneNumber || undefined,
         role: formData.role
-      } 
-    });
+      });
+
+      toast.success(`User "${updatedUser.firstName} ${updatedUser.lastName}" updated successfully!`);
+      setEditingUserId(null);
+      resetForm();
+      fetchData(); // Refresh the users list
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error(`Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUpdateLoading(false);
+    }
   };
 
   const handleDeleteClick = (user: User) => {
@@ -393,9 +321,22 @@ export default function UserManagementPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!userToDelete) return;
-    deleteUser({ variables: { id: userToDelete.id } });
+    
+    try {
+      setDeleteLoading(true);
+      await graphqlClient.deleteUser(userToDelete.id);
+      toast.success(`User "${userToDelete.firstName} ${userToDelete.lastName}" deleted successfully!`);
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+      fetchData(); // Refresh the users list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const UserForm = ({ isEdit = false, onSubmit, onCancel, loading }: {
@@ -420,29 +361,31 @@ export default function UserManagementPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName">First Name *</Label>
               <Input
                 id="firstName"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName">Last Name *</Label>
               <Input
                 id="lastName"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
+                disabled={loading}
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               name="email"
@@ -450,12 +393,13 @@ export default function UserManagementPage() {
               value={formData.email}
               onChange={handleInputChange}
               required
+              disabled={loading}
             />
           </div>
           
           {!isEdit && (
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 name="password"
@@ -463,7 +407,12 @@ export default function UserManagementPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
+                disabled={loading}
+                minLength={6}
               />
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters long
+              </p>
             </div>
           )}
           
@@ -474,30 +423,49 @@ export default function UserManagementPage() {
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleInputChange}
+              disabled={loading}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={formData.role} onValueChange={handleRoleChange}>
+            <Label htmlFor="role">Role *</Label>
+            <Select value={formData.role} onValueChange={handleRoleChange} disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USER">User</SelectItem>
-                <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                <SelectItem value="MANAGER">Manager</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.name}>
+                    <div className="flex items-center gap-2">
+                      <ShieldIcon className="h-4 w-4" />
+                      <span>{role.name}</span>
+                      {role.description && (
+                        <span className="text-xs text-muted-foreground">
+                          - {role.description}
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           
           <div className="flex gap-2 pt-4">
             <Button type="submit" disabled={loading}>
-              <SaveIcon className="h-4 w-4 mr-2" />
-              {loading ? (isEdit ? "Updating..." : "Creating...") : (isEdit ? "Update User" : "Create User")}
+              {loading ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  {isEdit ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  {isEdit ? "Update User" : "Create User"}
+                </>
+              )}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
               Cancel
             </Button>
           </div>
@@ -511,7 +479,7 @@ export default function UserManagementPage() {
       <div className="flex flex-col">
         <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground">
-          View and manage all users in the system.
+          Create, view, and manage all users in the system.
         </p>
       </div>
 
@@ -527,283 +495,89 @@ export default function UserManagementPage() {
       {/* Edit User Form */}
       {editingUserId && (
         <UserForm
-          isEdit
+          isEdit={true}
           onSubmit={handleUpdateUser}
           onCancel={handleCancelEdit}
           loading={updateLoading}
         />
       )}
-      
-      <Tabs defaultValue="all-users">
+
+      {/* Main Content */}
+      <Tabs defaultValue="users" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all-users">All Users</TabsTrigger>
-          <TabsTrigger value="admins">Admins</TabsTrigger>
-          <TabsTrigger value="recent">Recently Added</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="roles">Roles</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="all-users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Directory</CardTitle>
-              <CardDescription>
-                Manage the users of the application. Filter, search, or select to perform actions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-4">
-                {/* Search and Filters */}
-                <div className="flex flex-col md:flex-row gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      placeholder="Search users..."
-                      className="pl-8"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm whitespace-nowrap flex items-center">
-                      <FilterIcon className="h-4 w-4 mr-1" /> Filter by role:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {roles.map(role => (
-                        <Badge 
-                          key={role}
-                          variant={selectedRole === role ? "default" : "outline"}
-                          className="cursor-pointer"
-                          onClick={() => handleRoleFilter(role)}
-                        >
-                          {role}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Users Table */}
-                {loading ? (
-                  <div className="text-center py-8">Loading users...</div>
-                ) : error ? (
-                  <div className="text-center py-8 text-red-500">Error loading users</div>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center">
-                              No users found matching the criteria
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredUsers.map(user => (
-                            <TableRow key={user.id} className={editingUserId === user.id ? 'bg-blue-50' : ''}>
-                              <TableCell className="font-medium">
-                                {user.firstName} {user.lastName}
-                              </TableCell>
-                              <TableCell>{user.email}</TableCell>
-                              <TableCell>
-                                <Badge className={getRoleBadgeColor(user.role.name)}>
-                                  {user.role.name}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{formatDate(user.createdAt)}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => handleEditUser(user)}
-                                    disabled={editingUserId === user.id}
-                                  >
-                                    <Edit2Icon className="h-4 w-4 mr-1" />
-                                    {editingUserId === user.id ? 'Editing' : 'Edit'}
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="text-red-500"
-                                    onClick={() => handleDeleteClick(user)}
-                                  >
-                                    <Trash2Icon className="h-4 w-4 mr-1" />
-                                    Delete
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="text-blue-600"
-                                    onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
-                                  >
-                                    <ShieldIcon className="h-4 w-4 mr-1" />
-                                    Permisos
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-                
-                <div className="flex justify-between mt-4">
-                  <span className="text-sm text-gray-500">
-                    Showing {filteredUsers.length} of {users.length} users
-                  </span>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => router.push(`/${params.locale}/admin/roles`)}
-                    >
-                      <ShieldIcon className="h-4 w-4" />
-                      Manage Roles
-                    </Button>
-                    {!showAddForm && !editingUserId && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center gap-1"
-                        onClick={() => setShowAddForm(true)}
-                      >
-                        <UserPlusIcon className="h-4 w-4" />
-                        Add User
-                      </Button>
-                    )}
-                  </div>
-                </div>
+        <TabsContent value="users" className="space-y-4">
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="pl-8 w-full sm:w-[300px]"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="admins">
+              <Select value={selectedRole || 'all'} onValueChange={(value) => handleRoleFilter(value === 'all' ? null : value)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <FilterIcon className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => setShowAddForm(true)} disabled={Boolean(showAddForm || editingUserId)}>
+              <UserPlusIcon className="h-4 w-4 mr-2" />
+              Add New User
+            </Button>
+          </div>
+
+          {/* Users Table */}
           <Card>
-            <CardHeader>
-              <CardTitle>Admins Only</CardTitle>
-              <CardDescription>
-                View and manage admin users.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2Icon className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading users...</span>
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users
-                      .filter(user => user.role.name === 'ADMIN')
-                      .map(user => (
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          {searchTerm || selectedRole ? 'No users found matching your filters.' : 'No users found.'}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredUsers.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">
                             {user.firstName} {user.lastName}
                           </TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-red-100 text-red-800">
-                              {user.role.name}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(user.createdAt)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleEditUser(user)}
-                              >
-                                <Edit2Icon className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-red-500"
-                                onClick={() => handleDeleteClick(user)}
-                              >
-                                <Trash2Icon className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-blue-600"
-                                onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
-                              >
-                                <ShieldIcon className="h-4 w-4 mr-1" />
-                                Permisos
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="recent">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recently Added Users</CardTitle>
-              <CardDescription>
-                Users added in the last 30 days.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users
-                      .filter(user => {
-                        const thirtyDaysAgo = new Date();
-                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        
-                        try {
-                          const userDate = new Date(user.createdAt);
-                          return !isNaN(userDate.getTime()) && userDate >= thirtyDaysAgo;
-                        } catch (error) {
-                          console.error('Error comparing dates:', error);
-                          return false;
-                        }
-                      })
-                      .map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            {user.firstName} {user.lastName}
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.phoneNumber || '-'}</TableCell>
                           <TableCell>
                             <Badge className={getRoleBadgeColor(user.role.name)}>
                               {user.role.name}
@@ -812,62 +586,113 @@ export default function UserManagementPage() {
                           <TableCell>{formatDate(user.createdAt)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleEditUser(user)}
+                                disabled={editingUserId === user.id || showAddForm}
                               >
-                                <Edit2Icon className="h-4 w-4 mr-1" />
-                                Edit
+                                <Edit2Icon className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-red-500"
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleDeleteClick(user)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
-                                <Trash2Icon className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-blue-600"
-                                onClick={() => router.push(`/${params.locale}/admin/users/${user.id}/permissions`)}
-                              >
-                                <ShieldIcon className="h-4 w-4 mr-1" />
-                                Permisos
+                                <Trash2Icon className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                    )}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Summary */}
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredUsers.length} of {users.length} users
+            {(searchTerm || selectedRole) && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedRole(null);
+                }}
+                className="ml-2 h-auto p-0"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="roles" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Roles</CardTitle>
+              <CardDescription>
+                Available roles in the system and their descriptions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {roles.map((role) => (
+                  <div key={role.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ShieldIcon className="h-5 w-5" />
+                        <h3 className="font-medium">{role.name}</h3>
+                        <Badge className={getRoleBadgeColor(role.name)}>
+                          {role.name}
+                        </Badge>
+                      </div>
+                      {role.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {role.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Delete User Confirmation - Keep this as it's more subtle */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will permanently delete the user &quot;{userToDelete?.firstName} {userToDelete?.lastName}&quot;. 
-              This action cannot be undone.
+              This action cannot be undone. This will permanently delete the user account for{' '}
+              <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)} disabled={deleteLoading}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-red-500 hover:bg-red-600"
+              onClick={confirmDelete} 
               disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

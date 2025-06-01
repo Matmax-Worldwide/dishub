@@ -11,15 +11,25 @@ declare global {
 let prismaClient: PrismaClient;
 
 if (process.env.NODE_ENV === 'production') {
-  // Production: Always create a new PrismaClient instance
+  // Production: Always create a new PrismaClient instance with optimized settings for Neon
   prismaClient = new PrismaClient({
     log: ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 } else {
   // Development: Use global to preserve connection between hot reloads
   if (!global.prisma) {
     global.prisma = new PrismaClient({
       log: ['query', 'error', 'warn'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
     });
   } 
   prismaClient = global.prisma;
@@ -33,5 +43,10 @@ prismaClient.$connect()
   .catch((err: Error) => {
     console.error('Failed to connect to database:', err);
   });
+
+// Graceful shutdown
+process.on('beforeExit', async () => {
+  await prismaClient.$disconnect();
+});
 
 export const prisma = prismaClient; 
