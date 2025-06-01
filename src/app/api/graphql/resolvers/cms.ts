@@ -1226,7 +1226,7 @@ export const cmsResolvers = {
         locale?: string;
         isDefault?: boolean;
         seo?: PageSEOInput;
-        sectionIds?: string[]; // Lista de IDs de secciones
+        sections?: string[]; // Lista de IDs de secciones
       } 
     }) => {
       console.log('======== START updatePage resolver ========');
@@ -1348,6 +1348,7 @@ export const cmsResolvers = {
             ...(input.order !== undefined && { order: input.order }),
             ...(input.pageType !== undefined && { pageType: input.pageType as PageType }),
             ...(input.locale !== undefined && { locale: input.locale }),
+            ...(input.isDefault !== undefined && { isDefault: input.isDefault }),
             updatedAt: new Date()
           },
           include: {
@@ -1401,9 +1402,9 @@ export const cmsResolvers = {
           }
         }
         
-        // Si se proporcionan sectionIds, actualizar las secciones de la página
-        if (input.sectionIds && Array.isArray(input.sectionIds)) {
-          console.log(`Actualizando secciones para la página: ${input.sectionIds.join(', ')}`);
+        // Si se proporcionan sections, actualizar las secciones de la página
+        if (input.sections && Array.isArray(input.sections)) {
+          console.log(`Actualizando secciones para la página: ${input.sections.join(', ')}`);
           
           try {
             // Primero desconectar todas las secciones actuales
@@ -1417,12 +1418,12 @@ export const cmsResolvers = {
             });
             
             // Ahora conectar las nuevas secciones
-            if (input.sectionIds.length > 0) {
+            if (input.sections.length > 0) {
               await prisma.page.update({
                 where: { id },
                 data: {
                   sections: {
-                    connect: input.sectionIds.map(sectionId => ({ id: sectionId }))
+                    connect: input.sections.map(sectionId => ({ id: sectionId }))
                   }
                 }
               });
