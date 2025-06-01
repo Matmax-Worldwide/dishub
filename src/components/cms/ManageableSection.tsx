@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import BackgroundSelector from './BackgroundSelector';
 import MediaSelector from './MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
-import { Eye } from 'lucide-react';
+import { Edit, Eye } from 'lucide-react';
 import { useViewMode } from '@/contexts/ViewModeContext';
 
 // ComponentType type is compatible with SectionManager's ComponentType
@@ -518,7 +518,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   }}
                   title="Click to switch to Preview Mode"
                 >
-                  Change to Preview Mode
+                  <div className="flex items-center">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Change to Preview Mode
+                  </div>
                 </h3>
               </div>
               <div className={cn(
@@ -550,7 +553,10 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   }}
                   title="Click to switch to Edit Mode"
                 >
-                  Change to Editor Mode
+                  <div className="flex items-center">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Change to Editor Mode
+                  </div>
                 </h3>
               </div>
               

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircleIcon, XIcon, LoaderIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface DeletePageDialogProps {
   open: boolean;
@@ -19,6 +20,13 @@ export const DeletePageDialog: React.FC<DeletePageDialogProps> = ({
   pageTitle,
   isLoading = false
 }) => {
+  const router = useRouter();
+  
+  const handleConfirm = async () => {
+    await onConfirm();
+    router.push('/cms/pages/edit');
+  };
+  
   if (!open) return null;
   
   return (
@@ -66,7 +74,7 @@ export const DeletePageDialog: React.FC<DeletePageDialogProps> = ({
             </Button>
             <Button 
               variant="destructive" 
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="flex-1 h-8 text-xs rounded"
               disabled={isLoading}
             >
