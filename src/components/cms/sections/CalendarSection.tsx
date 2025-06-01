@@ -2725,8 +2725,154 @@ export default function CalendarSection({
                     </div>
                   ) : (
                     <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                      {/* Render the actual calendar component in preview mode */}
-                      {renderCalendarContent()}
+                      {/* Render the actual calendar booking interface directly */}
+                      {localDesignTemplate === 'beauty-salon' && (
+                        <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                          <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-white/20 rounded">
+                                <Sparkles className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <h2 className="text-2xl font-semibold">{title}</h2>
+                                <p className="text-pink-100">{subtitle}</p>
+                              </div>
+                            </div>
+                            <ProgressIndicator currentStep="dynamicSelection" steps={visibleSteps} template={localDesignTemplate} />
+                          </div>
+                          <div className="p-6">
+                            <div className="text-center">
+                              <h3 className="text-xl font-semibold mb-2">Choose a Service</h3>
+                              <p className="text-gray-600 mb-4">Select the service you need</p>
+                              <div className="grid gap-4">
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Hair Cut & Style</h4>
+                                  <p className="text-sm text-gray-600">Professional haircut with styling</p>
+                                  <span className="text-sm text-gray-500">60 min • $75</span>
+                                </div>
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Facial Treatment</h4>
+                                  <p className="text-sm text-gray-600">Relaxing facial with skincare</p>
+                                  <span className="text-sm text-gray-500">90 min • $120</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {localDesignTemplate === 'medical' && (
+                        <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-blue-100 overflow-hidden">
+                          <div className="bg-blue-600 text-white p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-white/20 rounded">
+                                <Calendar className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <h2 className="text-2xl font-semibold">{title}</h2>
+                                <p className="text-blue-100">{subtitle}</p>
+                              </div>
+                            </div>
+                            <ProgressIndicator currentStep="dynamicSelection" steps={visibleSteps} template={localDesignTemplate} />
+                          </div>
+                          <div className="p-6">
+                            <div className="text-center">
+                              <h3 className="text-xl font-semibold mb-2">Choose a Service</h3>
+                              <p className="text-gray-600 mb-4">Select your medical appointment</p>
+                              <div className="grid gap-4">
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">General Consultation</h4>
+                                  <p className="text-sm text-gray-600">Routine medical checkup</p>
+                                  <span className="text-sm text-gray-500">30 min • $150</span>
+                                </div>
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Specialist Consultation</h4>
+                                  <p className="text-sm text-gray-600">Specialized medical consultation</p>
+                                  <span className="text-sm text-gray-500">45 min • $250</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {localDesignTemplate === 'fitness' && (
+                        <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
+                          <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-white/20 rounded">
+                                <Heart className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <h2 className="text-2xl font-semibold">{title}</h2>
+                                <p className="text-orange-100">{subtitle}</p>
+                              </div>
+                            </div>
+                            <ProgressIndicator currentStep="dynamicSelection" steps={visibleSteps} template={localDesignTemplate} />
+                          </div>
+                          <div className="p-6">
+                            <div className="text-center">
+                              <h3 className="text-xl font-semibold mb-2">Choose a Service</h3>
+                              <p className="text-gray-600 mb-4">Select your fitness session</p>
+                              <div className="grid gap-4">
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Personal Training</h4>
+                                  <p className="text-sm text-gray-600">One-on-one fitness session</p>
+                                  <span className="text-sm text-gray-500">60 min • $80</span>
+                                </div>
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Group Class</h4>
+                                  <p className="text-sm text-gray-600">High-energy group workout</p>
+                                  <span className="text-sm text-gray-500">45 min • $25</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Default fallback for other templates */}
+                      {!['beauty-salon', 'medical', 'fitness'].includes(localDesignTemplate) && (
+                        <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                          <div className={`${
+                            localDesignTemplate === 'restaurant' ? 'bg-amber-600' :
+                            localDesignTemplate === 'corporate' ? 'bg-gray-700' :
+                            localDesignTemplate === 'spa' ? 'bg-green-600' :
+                            localDesignTemplate === 'automotive' ? 'bg-slate-700' :
+                            localDesignTemplate === 'education' ? 'bg-indigo-600' :
+                            'bg-black'
+                          } text-white p-6`}>
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-white/20 rounded">
+                                <Calendar className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <h2 className="text-2xl font-semibold">{title}</h2>
+                                <p className="text-gray-100">{subtitle}</p>
+                              </div>
+                            </div>
+                            <ProgressIndicator currentStep="dynamicSelection" steps={visibleSteps} template={localDesignTemplate} />
+                          </div>
+                          <div className="p-6">
+                            <div className="text-center">
+                              <h3 className="text-xl font-semibold mb-2">Choose a Service</h3>
+                              <p className="text-gray-600 mb-4">Select the service you need</p>
+                              <div className="grid gap-4">
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Service Option 1</h4>
+                                  <p className="text-sm text-gray-600">Description of the service</p>
+                                  <span className="text-sm text-gray-500">Duration • Price</span>
+                                </div>
+                                <div className="p-4 border rounded-lg border-gray-200 hover:border-gray-300 cursor-pointer">
+                                  <h4 className="font-semibold">Service Option 2</h4>
+                                  <p className="text-sm text-gray-600">Description of the service</p>
+                                  <span className="text-sm text-gray-500">Duration • Price</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
