@@ -947,6 +947,44 @@ export default function CalendarSection({
     loadStaffForService();
   }, [selectedServiceId, showStaffSelector, selectedLocationId, step2Selections, step3Selections, getCurrentSelections]);
 
+  // Load all staff profiles when "specialist" is selected as booking method
+  useEffect(() => {
+    async function loadAllStaffProfiles() {
+      if (selectedBookingMethod === 'specialist') {
+        try {
+          console.log('Loading all staff profiles for specialist selection');
+          const staffData = await graphqlClient.staffProfiles();
+          console.log('All staff profiles loaded:', staffData);
+          
+          // Transform the data to match our expected format
+          const transformedStaff = staffData.map(staff => ({
+            id: staff.id,
+            user: staff.user,
+            bio: staff.bio,
+            specializations: staff.specializations || []
+          }));
+          
+          setAvailableStaffForService(transformedStaff);
+          setError(null);
+          
+          if (transformedStaff.length > 0) {
+            toast.success(`${transformedStaff.length} specialist${transformedStaff.length !== 1 ? 's' : ''} available`);
+          } else {
+            console.warn('No staff profiles found');
+          }
+        } catch (error) {
+          console.error('Error loading staff profiles:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load specialists. Please try again.';
+          setError(errorMessage);
+          setAvailableStaffForService([]);
+          toast.error('Failed to load specialists');
+        }
+      }
+    }
+
+    loadAllStaffProfiles();
+  }, [selectedBookingMethod]);
+
   // Load time slots when date, service, and staff are selected
   useEffect(() => {
     async function loadTimeSlots() {
@@ -1646,7 +1684,7 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            disabled={!selectedBookingMethod}
             className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
               localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
@@ -1837,7 +1875,7 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            disabled={!selectedBookingMethod}
             className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
               localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
@@ -2043,7 +2081,7 @@ export default function CalendarSection({
           </button>
           <button
             onClick={goToNextStep}
-            disabled={!step2Selections.serviceId && !step2Selections.locationId && !step2Selections.staffId}
+            disabled={!selectedBookingMethod}
             className={`px-6 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               localDesignTemplate === 'beauty-salon' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' :
               localDesignTemplate === 'medical' ? 'bg-blue-600 text-white hover:bg-blue-700' :
@@ -2370,7 +2408,7 @@ export default function CalendarSection({
                   }
                 }}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  designTemplate === key
+                  localDesignTemplate === key
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}

@@ -1172,6 +1172,24 @@ export interface HeaderStyleInput {
   borderBottom?: boolean;
   fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
+  // Button configuration fields
+  showButton?: boolean;
+  buttonText?: string;
+  buttonAction?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  buttonSize?: string;
+  buttonBorderRadius?: number;
+  buttonShadow?: string;
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: string;
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+  buttonUrlType?: string;
+  selectedPageId?: string;
 }
 
 export interface FooterStyleInput {
@@ -2319,6 +2337,24 @@ export const cmsOperations = {
       borderBottom: boolean;
       fixedHeader: boolean;
       advancedOptions?: Record<string, unknown>;
+      // Button configuration fields
+      showButton?: boolean;
+      buttonText?: string;
+      buttonAction?: string;
+      buttonColor?: string;
+      buttonTextColor?: string;
+      buttonSize?: string;
+      buttonBorderRadius?: number;
+      buttonShadow?: string;
+      buttonBorderColor?: string;
+      buttonBorderWidth?: number;
+      buttonWidth?: string;
+      buttonHeight?: string;
+      buttonPosition?: string;
+      buttonDropdown?: boolean;
+      buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+      buttonUrlType?: string;
+      selectedPageId?: string;
     };
   }> => {
     try {
@@ -2340,6 +2376,23 @@ export const cmsOperations = {
               borderBottom
               fixedHeader
               advancedOptions
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              buttonDropdownItems
+              buttonUrlType
+              selectedPageId
               createdAt
               updatedAt
             }
@@ -2369,6 +2422,23 @@ export const cmsOperations = {
             borderBottom: boolean;
             fixedHeader: boolean;
             advancedOptions?: Record<string, unknown>;
+            showButton?: boolean;
+            buttonText?: string;
+            buttonAction?: string;
+            buttonColor?: string;
+            buttonTextColor?: string;
+            buttonSize?: string;
+            buttonBorderRadius?: number;
+            buttonShadow?: string;
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: string;
+            buttonDropdown?: boolean;
+            buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+            buttonUrlType?: string;
+            selectedPageId?: string;
             createdAt: string;
             updatedAt: string;
           } | null;
@@ -2445,6 +2515,23 @@ export const cmsOperations = {
               borderBottom
               advancedOptions
               fixedHeader
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              buttonDropdownItems
+              buttonUrlType
+              selectedPageId
             }
           }
         }
@@ -2491,6 +2578,23 @@ export const cmsOperations = {
             borderBottom: boolean;
             fixedHeader?: boolean;
             advancedOptions?: Record<string, unknown>;
+            showButton?: boolean;
+            buttonText?: string;
+            buttonAction?: string;
+            buttonColor?: string;
+            buttonTextColor?: string;
+            buttonSize?: string;
+            buttonBorderRadius?: number;
+            buttonShadow?: string;
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: string;
+            buttonDropdown?: boolean;
+            buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+            buttonUrlType?: string;
+            selectedPageId?: string;
           } | null;
         } | null;
       }>(query, variables);

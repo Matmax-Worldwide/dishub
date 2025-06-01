@@ -914,6 +914,24 @@ model HeaderStyle {
   borderBottom       Boolean  @default(false)
   fixedHeader        Boolean  @default(false)
   advancedOptions    Json?
+  // Button configuration fields
+  showButton         Boolean? @default(false)
+  buttonText         String?
+  buttonAction       String?
+  buttonColor        String?
+  buttonTextColor    String?
+  buttonSize         String?  @default("md")
+  buttonBorderRadius Int?     @default(0)
+  buttonShadow       String?  @default("none")
+  buttonBorderColor  String?
+  buttonBorderWidth  Int?     @default(0)
+  buttonWidth        String?
+  buttonHeight       String?
+  buttonPosition     String?  @default("center")
+  buttonDropdown     Boolean? @default(false)
+  buttonDropdownItems Json?
+  buttonUrlType      String?  @default("custom")
+  selectedPageId     String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   menu               Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)

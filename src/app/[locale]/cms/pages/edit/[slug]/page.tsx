@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { PageEditor } from '@/components/cms/page-editor';
 import { useTabContext } from '@/contexts/TabContext';
+import { ViewModeProvider } from '@/contexts/ViewModeContext';
 
 interface PageParams {
   locale: string;
@@ -11,7 +12,8 @@ interface PageParams {
   [key: string]: string;
 }
 
-export default function EditPageWithSections() {
+// Componente principal con el provider
+const EditPageContent = () => {
   const params = useParams<PageParams>();
   const { locale, slug } = params;
   const { activeTab, setActiveTab } = useTabContext();
@@ -28,5 +30,15 @@ export default function EditPageWithSections() {
     console.log('EditPageWithSections: activeTab changed to', activeTab);
   }, [activeTab]);
   
-  return <PageEditor slug={slug} locale={locale} />;
+  return (
+    <PageEditor slug={slug} locale={locale} />
+  );
+};
+
+export default function EditPageWithSections() {
+  return (
+    <ViewModeProvider>
+      <EditPageContent />
+    </ViewModeProvider>
+  );
 }

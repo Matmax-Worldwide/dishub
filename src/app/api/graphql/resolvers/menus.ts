@@ -56,6 +56,24 @@ interface HeaderStyleInput {
   borderBottom?: boolean;
   fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
+  // Button configuration fields
+  showButton?: boolean;
+  buttonText?: string;
+  buttonAction?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  buttonSize?: string;
+  buttonBorderRadius?: number;
+  buttonShadow?: string;
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: string;
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+  buttonUrlType?: string;
+  selectedPageId?: string;
 }
 
 interface FooterStyleInput {

@@ -101,6 +101,24 @@ export interface HeaderStyle {
   borderBottom?: boolean;
   fixedHeader?: boolean;
   advancedOptions?: Record<string, unknown>;
+  // Button configuration fields
+  showButton?: boolean;
+  buttonText?: string;
+  buttonAction?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  buttonSize?: 'sm' | 'md' | 'lg';
+  buttonBorderRadius?: number;
+  buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: 'left' | 'center' | 'right';
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+  buttonUrlType?: 'custom' | 'page';
+  selectedPageId?: string;
 }
 
 // Tipo para estilo de footer

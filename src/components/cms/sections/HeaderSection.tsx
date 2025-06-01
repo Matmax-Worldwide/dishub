@@ -390,6 +390,20 @@ export default function HeaderSection({
                 setBorderBottom(style.borderBottom || false);
                 setFixedHeader(style.fixedHeader || false);
                 setAdvancedOptions((style.advancedOptions as HeaderAdvancedOptions) || {});
+                
+                // Load button configuration
+                if (style.showButton !== undefined) setShowButton(style.showButton);
+                if (style.buttonText) setButtonText(style.buttonText);
+                if (style.buttonAction) setButtonAction(style.buttonAction);
+                if (style.buttonColor) setButtonColor(style.buttonColor);
+                if (style.buttonTextColor) setButtonTextColor(style.buttonTextColor);
+                if (style.buttonSize) setButtonSize(style.buttonSize as 'sm' | 'md' | 'lg');
+                if (style.buttonBorderRadius !== undefined) setButtonBorderRadius(style.buttonBorderRadius);
+                if (style.buttonShadow) setButtonShadow(style.buttonShadow as 'none' | 'sm' | 'md' | 'lg' | 'xl');
+                if (style.buttonBorderColor) setButtonBorderColor(style.buttonBorderColor);
+                if (style.buttonBorderWidth !== undefined) setButtonBorderWidth(style.buttonBorderWidth);
+                if (style.buttonWidth) setButtonWidth(style.buttonWidth);
+                if (style.buttonHeight) setButtonHeight(style.buttonHeight);
               }
             } else {
                 console.log('HeaderSection: Menu with header style not found, trying fallback...');
