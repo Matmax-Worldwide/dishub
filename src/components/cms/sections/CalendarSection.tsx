@@ -563,6 +563,9 @@ export default function CalendarSection({
       return true;
     });
 
+  // Steps to show in progress indicator (exclude confirmation)
+  const visibleSteps = allSteps.filter(step => step.id !== 'confirmation');
+
   const getInitialStep = (): BookingStep => {
     // Return the first step in the custom order that meets its conditions
     const firstAvailableStep = allSteps[0];
@@ -1129,7 +1132,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-white/80 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -1160,7 +1163,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-blue-50">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -1191,7 +1194,7 @@ export default function CalendarSection({
         
         {/* Progress Indicator */}
         <div className="px-6 py-4 bg-white/90 backdrop-blur-sm">
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
         
         {/* Content */}
@@ -1221,7 +1224,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -1250,7 +1253,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
@@ -1279,7 +1282,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -1308,7 +1311,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
@@ -1337,7 +1340,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-8">
@@ -1366,7 +1369,7 @@ export default function CalendarSection({
             </div>
           </div>
           
-          <ProgressIndicator currentStep={currentStep} steps={allSteps} onStepClick={handleStepClick} />
+          <ProgressIndicator currentStep={currentStep} steps={visibleSteps} onStepClick={handleStepClick} />
         </div>
 
         <div className="p-6">
