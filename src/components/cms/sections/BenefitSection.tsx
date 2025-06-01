@@ -40,21 +40,6 @@ const getIconByType = (iconType: string, color: string) => {
   return <LucideIcons.CheckCircle className={iconClassName} />;
 };
 
-// Tab component for the editing interface
-const TabButton = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "px-4 py-2 text-sm font-medium rounded-t-lg transition-colors",
-      active
-        ? "bg-white text-blue-600 border-t border-l border-r border-gray-200"
-        : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-    )}
-  >
-    {children}
-  </button>
-);
-
 const BenefitSection = React.memo(function BenefitSection({
   title,
   description,
@@ -283,200 +268,6 @@ const BenefitSection = React.memo(function BenefitSection({
 
   // Icon background color calculation (20% opacity of accent color)
   const iconBg = `bg-[${localAccentColor}]/20`;
-
-  // Content Tab Component
-  const ContentTab = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-medium text-gray-700">Icon Type</label>
-        <div className="flex flex-col space-y-1">
-          <IconSelector 
-            selectedIcon={localIconType}
-            onSelectIcon={handleIconTypeChange}
-            className="w-full"
-          />
-          <p className="text-xs text-gray-500">Select any icon from the available Lucide icons library</p>
-        </div>
-      </div>
-      
-      <StableInput
-        value={localTitle}
-        onChange={handleTitleChange}
-        placeholder="Benefit title..."
-        className="text-foreground font-bold text-xl"
-        label="Title"
-        debounceTime={300}
-        data-field-id="title"
-        data-component-type="Benefit"
-      />
-      
-      <StableInput
-        value={localDescription}
-        onChange={handleDescriptionChange}
-        placeholder="Benefit description..."
-        className="text-muted-foreground"
-        multiline={true}
-        label="Description"
-        debounceTime={300}
-        data-field-id="description"
-        data-component-type="Benefit"
-      />
-    </div>
-  );
-
-  // Styles Tab Component
-  const StylesTab = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-medium text-gray-700">Accent Color</label>
-        <div className="flex items-center space-x-2">
-          <input
-            type="color"
-            value={localAccentColor}
-            onChange={(e) => handleAccentColorChange(e.target.value)}
-            className="h-10 w-10 rounded"
-            id="accent-color-picker"
-          />
-          <input
-            type="text"
-            value={localAccentColor}
-            onChange={(e) => handleAccentColorChange(e.target.value)}
-            className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-            placeholder="#01319c"
-            aria-labelledby="accent-color-picker"
-          />
-        </div>
-      </div>
-      
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-medium text-gray-700">Background</label>
-        <div 
-          className="h-32 mb-3 rounded-md border border-gray-200 overflow-hidden relative"
-          style={{
-            ...(localBackgroundType === 'image' && localBackgroundImage ? {
-              backgroundImage: `url(${localBackgroundImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
-            } : {
-              background: localBackgroundImage || (localBackgroundColor ? `linear-gradient(to bottom right, ${localBackgroundColor})` : BACKGROUND_TEMPLATES[0].value)
-            })
-          }}
-        >
-          {(!localBackgroundImage && !localBackgroundColor) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
-              No background selected
-            </div>
-          )}
-          
-          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs py-1 px-2 rounded">
-            {localBackgroundType === 'image' ? 'Image' : 'Gradient'}
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setShowBackgroundSelector(true)}
-            className="flex-1 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-          >
-            Select Background
-          </button>
-          
-          {localBackgroundImage && (
-            <button
-              type="button"
-              onClick={() => {
-                setLocalBackgroundImage('');
-                setLocalBackgroundType('gradient');
-                if (onUpdate) {
-                  onUpdate({
-                    backgroundImage: '',
-                    backgroundType: 'gradient'
-                  });
-                }
-              }}
-              className="bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm font-medium text-red-600 hover:bg-gray-50 focus:outline-none"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        
-        <div className="mt-3">
-          <label className="text-sm font-medium text-gray-700">Gradient Colors (When not using image)</label>
-          <input
-            type="text"
-            value={localBackgroundColor}
-            onChange={(e) => handleBackgroundColorChange(e.target.value)}
-            className={`mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md ${localBackgroundType === 'image' ? 'opacity-50' : ''}`}
-            placeholder="from-[#ffffff] to-[#f0f9ff]"
-            disabled={localBackgroundType === 'image'}
-          />
-          <p className="text-xs text-gray-500">Format: from-[#color1] to-[#color2]</p>
-        </div>
-      </div>
-      
-      {/* Toggle options */}
-      <div className="flex flex-col space-y-4">
-        <h4 className="text-sm font-medium text-gray-700">Visual Effects</h4>
-        
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="showGrid"
-            checked={localShowGrid}
-            onChange={(e) => handleShowGridChange(e.target.checked)}
-            className="h-4 w-4 text-primary focus:ring-primary rounded"
-          />
-          <label htmlFor="showGrid" className="text-sm font-medium text-gray-700">
-            Show background grid
-          </label>
-        </div>
-        
-        {localShowGrid && (
-          <div className="ml-6 mt-2">
-            <label className="text-sm font-medium text-gray-700 block mb-2">Grid Design</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['basic', 'diagonal', 'dots', 'circles', 'wave'] as const).map((design) => (
-                <div 
-                  key={design}
-                  onClick={() => handleGridDesignChange(design)}
-                  className={`p-2 border rounded-md cursor-pointer transition-all ${
-                    localGridDesign === design 
-                      ? 'border-primary bg-primary/10 ring-1 ring-primary' 
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="h-16 bg-gray-50 rounded relative overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
-                      {design.charAt(0).toUpperCase() + design.slice(1)}
-                    </div>
-                    <div className="opacity-50">
-                      {renderGridBackground(design, localAccentColor)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="showDots"
-            checked={localShowDots}
-            onChange={(e) => handleShowDotsChange(e.target.checked)}
-            className="h-4 w-4 text-primary focus:ring-primary rounded"
-          />
-          <label htmlFor="showDots" className="text-sm font-medium text-gray-700">
-            Show animated particles and dots
-          </label>
-        </div>
-      </div>
-    </div>
-  );
 
   // Preview Component (shows the actual rendered section)
   const PreviewTab = () => (
@@ -802,36 +593,293 @@ const BenefitSection = React.memo(function BenefitSection({
       
       {isEditing ? (
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          {/* Tab Navigation */}
-          <div className="flex space-x-1 mb-6 border-b border-gray-200">
-            <TabButton
-              active={activeTab === 'content'}
-              onClick={() => setActiveTab('content')}
-            >
-              <LucideIcons.FileText className="w-4 h-4 inline mr-2" />
-              Content
-            </TabButton>
-            <TabButton
-              active={activeTab === 'styles'}
-              onClick={() => setActiveTab('styles')}
-            >
-              <LucideIcons.Palette className="w-4 h-4 inline mr-2" />
-              Styles
-            </TabButton>
-            <TabButton
-              active={activeTab === 'preview'}
-              onClick={() => setActiveTab('preview')}
-            >
-              <LucideIcons.Eye className="w-4 h-4 inline mr-2" />
-              Preview
-            </TabButton>
-          </div>
-          
-          {/* Tab Content */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 min-h-[500px]">
-            {activeTab === 'content' && <ContentTab />}
-            {activeTab === 'styles' && <StylesTab />}
-            {activeTab === 'preview' && <PreviewTab />}
+          <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+            {/* Tab Navigation */}
+            <div className="flex space-x-1  to-gray-100/80 p-2 rounded-t-xl border-b border-gray-200/50">
+              <button
+                onClick={() => setActiveTab('content')}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/60 active:scale-[0.98]",
+                  activeTab === 'content'
+                    ? "bg-white shadow-md shadow-gray-900/10 ring-1 ring-gray-900/5 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                <LucideIcons.FileText className="w-4 h-4" />
+                Content
+              </button>
+              <button
+                onClick={() => setActiveTab('styles')}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/60 active:scale-[0.98]",
+                  activeTab === 'styles'
+                    ? "bg-white shadow-md shadow-gray-900/10 ring-1 ring-gray-900/5 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                <LucideIcons.Palette className="w-4 h-4" />
+                Styles
+              </button>
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/60 active:scale-[0.98]",
+                  activeTab === 'preview'
+                    ? "bg-white shadow-md shadow-gray-900/10 ring-1 ring-gray-900/5 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                <LucideIcons.Eye className="w-4 h-4" />
+                Preview
+              </button>
+            </div>
+            
+            {/* Tab Content */}
+            <div className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {activeTab === 'content' && (
+                <div className="space-y-8">
+                  {/* Icon Configuration Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-900">Icon Configuration</h3>
+                    </div>
+                    <div className="pl-6 space-y-4">
+                      <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Icon Type</label>
+                        <div className="flex flex-col space-y-1">
+                          <IconSelector 
+                            selectedIcon={localIconType}
+                            onSelectIcon={handleIconTypeChange}
+                            className="w-full"
+                          />
+                          <p className="text-xs text-gray-500">Select any icon from the available Lucide icons library</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Settings Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
+                    </div>
+                    <div className="pl-6 space-y-4">
+                      <StableInput
+                        value={localTitle}
+                        onChange={handleTitleChange}
+                        placeholder="Benefit title..."
+                        className="text-foreground font-bold text-xl"
+                        label="Title"
+                        debounceTime={300}
+                        data-field-id="title"
+                        data-component-type="Benefit"
+                      />
+                      
+                      <StableInput
+                        value={localDescription}
+                        onChange={handleDescriptionChange}
+                        placeholder="Benefit description..."
+                        className="text-muted-foreground"
+                        multiline={true}
+                        label="Description"
+                        debounceTime={300}
+                        data-field-id="description"
+                        data-component-type="Benefit"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'styles' && (
+                <div className="space-y-8">
+                  {/* Color Settings Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-900">Color Settings</h3>
+                    </div>
+                    <div className="pl-6 space-y-4">
+                      <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Accent Color</label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="color"
+                            value={localAccentColor}
+                            onChange={(e) => handleAccentColorChange(e.target.value)}
+                            className="h-10 w-10 rounded"
+                            id="accent-color-picker"
+                          />
+                          <input
+                            type="text"
+                            value={localAccentColor}
+                            onChange={(e) => handleAccentColorChange(e.target.value)}
+                            className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
+                            placeholder="#01319c"
+                            aria-labelledby="accent-color-picker"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Background Settings Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-900">Background Settings</h3>
+                    </div>
+                    <div className="pl-6 space-y-4">
+                      <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Background</label>
+                        <div 
+                          className="h-32 mb-3 rounded-md border border-gray-200 overflow-hidden relative"
+                          style={{
+                            ...(localBackgroundType === 'image' && localBackgroundImage ? {
+                              backgroundImage: `url(${localBackgroundImage})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              backgroundRepeat: 'no-repeat'
+                            } : {
+                              background: localBackgroundImage || (localBackgroundColor ? `linear-gradient(to bottom right, ${localBackgroundColor})` : BACKGROUND_TEMPLATES[0].value)
+                            })
+                          }}
+                        >
+                          {(!localBackgroundImage && !localBackgroundColor) && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
+                              No background selected
+                            </div>
+                          )}
+                          
+                          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs py-1 px-2 rounded">
+                            {localBackgroundType === 'image' ? 'Image' : 'Gradient'}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowBackgroundSelector(true)}
+                            className="flex-1 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+                          >
+                            Select Background
+                          </button>
+                          
+                          {localBackgroundImage && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLocalBackgroundImage('');
+                                setLocalBackgroundType('gradient');
+                                if (onUpdate) {
+                                  onUpdate({
+                                    backgroundImage: '',
+                                    backgroundType: 'gradient'
+                                  });
+                                }
+                              }}
+                              className="bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm font-medium text-red-600 hover:bg-gray-50 focus:outline-none"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="mt-3">
+                          <label className="text-sm font-medium text-gray-700">Gradient Colors (When not using image)</label>
+                          <input
+                            type="text"
+                            value={localBackgroundColor}
+                            onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                            className={`mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md ${localBackgroundType === 'image' ? 'opacity-50' : ''}`}
+                            placeholder="from-[#ffffff] to-[#f0f9ff]"
+                            disabled={localBackgroundType === 'image'}
+                          />
+                          <p className="text-xs text-gray-500">Format: from-[#color1] to-[#color2]</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visual Effects Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-900">Visual Effects</h3>
+                    </div>
+                    <div className="pl-6 space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="showGrid"
+                          checked={localShowGrid}
+                          onChange={(e) => handleShowGridChange(e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary rounded"
+                        />
+                        <label htmlFor="showGrid" className="text-sm font-medium text-gray-700">
+                          Show background grid
+                        </label>
+                      </div>
+                      
+                      {localShowGrid && (
+                        <div className="ml-6 mt-2">
+                          <label className="text-sm font-medium text-gray-700 block mb-2">Grid Design</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(['basic', 'diagonal', 'dots', 'circles', 'wave'] as const).map((design) => (
+                              <div 
+                                key={design}
+                                onClick={() => handleGridDesignChange(design)}
+                                className={`p-2 border rounded-md cursor-pointer transition-all ${
+                                  localGridDesign === design 
+                                    ? 'border-primary bg-primary/10 ring-1 ring-primary' 
+                                    : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                              >
+                                <div className="h-16 bg-gray-50 rounded relative overflow-hidden">
+                                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                                    {design.charAt(0).toUpperCase() + design.slice(1)}
+                                  </div>
+                                  <div className="opacity-50">
+                                    {renderGridBackground(design, localAccentColor)}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="showDots"
+                          checked={localShowDots}
+                          onChange={(e) => handleShowDotsChange(e.target.checked)}
+                          className="h-4 w-4 text-primary focus:ring-primary rounded"
+                        />
+                        <label htmlFor="showDots" className="text-sm font-medium text-gray-700">
+                          Show animated particles and dots
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'preview' && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
+                    <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+                  </div>
+                  <div className="pl-6">
+                    <PreviewTab />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (

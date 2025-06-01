@@ -236,109 +236,137 @@ export default function CtaButtonSection({
   return (
     <div className="w-full" data-section-id="cta-button">
       {isEditing ? (
-        <Tabs defaultValue="content" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="content" className="flex-1 min-w-[100px]">Content</TabsTrigger>
-            <TabsTrigger value="styling" className="flex-1 min-w-[100px]">Styling</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
-          </TabsList>
+        <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+          <Tabs defaultValue="content" className="w-full">
+            <TabsList className="grid w-full grid-cols-3  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+              <TabsTrigger 
+                value="content" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Content
+              </TabsTrigger>
+              <TabsTrigger 
+                value="styling" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Styling
+              </TabsTrigger>
+              <TabsTrigger 
+                value="preview" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-          {/* CONTENT TAB */}
-          <TabsContent value="content" className="space-y-4">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Button Content</h3>
-                
-                <StableInput
-                  value={buttonText}
-                  onChange={handleButtonTextChange}
-                  placeholder="Button text..."
-                  label="Button Text"
-                  debounceTime={300}
-                  data-field-id="buttonText"
-                  data-component-type="CtaButton"
-                />
-                
-                <StableInput
-                  value={buttonUrl}
-                  onChange={handleButtonUrlChange}
-                  placeholder="Button URL..."
-                  label="Button URL"
-                  debounceTime={300}
-                  data-field-id="buttonUrl"
-                  data-component-type="CtaButton"
-                />
-              </div>
-
-              <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    id="showDropdown"
-                    checked={showDropdown}
-                    onChange={(e) => handleShowDropdownChange(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="showDropdown" className="text-sm font-medium text-gray-700">
-                    Enable dropdown menu
-                  </label>
+            {/* CONTENT TAB */}
+            <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {/* Button Content Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Button Content</h3>
                 </div>
-
-                {showDropdown && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-700">Dropdown Links</h4>
-                      <button
-                        onClick={addDropdownLink}
-                        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        <PlusIcon className="h-4 w-4" />
-                        Add Link
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {dropdownLinks.map((link) => (
-                        <div key={link.id} className="flex items-center gap-2 p-3 bg-white rounded border">
-                          <div className="flex-1 grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              value={link.label}
-                              onChange={(e) => updateDropdownLink(link.id, 'label', e.target.value)}
-                              placeholder="Link label..."
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
-                            />
-                            <input
-                              type="text"
-                              value={link.url}
-                              onChange={(e) => updateDropdownLink(link.id, 'url', e.target.value)}
-                              placeholder="Link URL..."
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
-                            />
-                          </div>
-                          <button
-                            onClick={() => removeDropdownLink(link.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* STYLING TAB */}
-          <TabsContent value="styling" className="space-y-4">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Colors</h3>
+                <div className="pl-6 space-y-4">
+                  <StableInput
+                    value={buttonText}
+                    onChange={handleButtonTextChange}
+                    placeholder="Button text..."
+                    label="Button Text"
+                    debounceTime={300}
+                    data-field-id="buttonText"
+                    data-component-type="CtaButton"
+                  />
                   
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <StableInput
+                    value={buttonUrl}
+                    onChange={handleButtonUrlChange}
+                    placeholder="Button URL..."
+                    label="Button URL"
+                    debounceTime={300}
+                    data-field-id="buttonUrl"
+                    data-component-type="CtaButton"
+                  />
+                </div>
+              </div>
+
+              {/* Dropdown Configuration Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Dropdown Configuration</h3>
+                </div>
+                <div className="pl-6 space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="showDropdown"
+                      checked={showDropdown}
+                      onChange={(e) => handleShowDropdownChange(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="showDropdown" className="text-sm font-medium text-gray-700">
+                      Enable dropdown menu
+                    </label>
+                  </div>
+
+                  {showDropdown && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-gray-700">Dropdown Links</h4>
+                        <button
+                          onClick={addDropdownLink}
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                          Add Link
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {dropdownLinks.map((link) => (
+                          <div key={link.id} className="flex items-center gap-2 p-3 bg-white rounded border">
+                            <div className="flex-1 grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                value={link.label}
+                                onChange={(e) => updateDropdownLink(link.id, 'label', e.target.value)}
+                                placeholder="Link label..."
+                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                              <input
+                                type="text"
+                                value={link.url}
+                                onChange={(e) => updateDropdownLink(link.id, 'url', e.target.value)}
+                                placeholder="Link URL..."
+                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+                            <button
+                              onClick={() => removeDropdownLink(link.id)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* STYLING TAB */}
+            <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {/* Color Settings Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Color Settings</h3>
+                </div>
+                <div className="pl-6 space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <ColorSelector
                       label="Background Color"
                       value={backgroundColor}
@@ -352,47 +380,57 @@ export default function CtaButtonSection({
                     />
                   </div>
                 </div>
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Shape</h3>
-                  
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Border Radius: {borderRadius}px
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="50"
-                        value={borderRadius}
-                        onChange={(e) => handleBorderRadiusChange(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>0px (Square)</span>
-                        <span>50px (Rounded)</span>
-                      </div>
+              </div>
+              
+              {/* Shape Settings Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Shape Settings</h3>
+                </div>
+                <div className="pl-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Border Radius: {borderRadius}px
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      value={borderRadius}
+                      onChange={(e) => handleBorderRadiusChange(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0px (Square)</span>
+                      <span>50px (Rounded)</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
-                <span className="text-sm text-gray-500">This is how your CTA button will look</span>
+            {/* PREVIEW TAB */}
+            <TabsContent value="preview" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {/* Live Preview Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+                </div>
+                <div className="pl-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-gray-700">CTA Button Preview</h4>
+                    <div className="text-sm text-gray-500">This is how your button will look</div>
+                  </div>
+                  <div className="border rounded-lg p-8 bg-gray-50 flex items-center justify-center">
+                    {renderCtaButton()}
+                  </div>
+                </div>
               </div>
-              <div className="border rounded-lg p-8 bg-gray-50 flex items-center justify-center">
-                {renderCtaButton()}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       ) : (
         <div className="flex items-center justify-center py-8">
           {renderCtaButton()}

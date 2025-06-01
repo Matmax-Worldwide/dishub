@@ -41,7 +41,7 @@ export function CmsTabs({
       className={cn("w-full", className)}
     >
       <TabsList className={cn(
-        "grid w-full bg-gradient-to-r from-gray-50 to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner",
+        "grid w-full  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner",
         fullWidth ? `grid-cols-${tabs.length}` : "inline-flex"
       )}>
         {tabs.map((tab) => (
