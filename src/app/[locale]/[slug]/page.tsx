@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
 import { optimizedQueries, graphqlOptimizer } from '@/lib/graphql-optimizations'; // Import graphqlOptimizer
@@ -48,7 +48,6 @@ interface PageData {
   metaDescription?: string | null;
   featuredImage?: string | null;
   sections?: Array<{id: string; sectionId: string; order?: number; name?: string}>;
-  isDefault: boolean;
 }
 
 // Define section data type for rendering
@@ -217,7 +216,7 @@ export default function CMSPage() {
   };
   
   // Load current page from cache or fetch
-  const loadCurrentPage = useCallback(async () => {
+  const loadCurrentPage = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -307,79 +306,8 @@ export default function CMSPage() {
           });
           
         } else {
-          // If page not found by slug, check if there's a default page for this locale
-          // This handles the case where someone might access a default page by its slug
-          console.log(`Page not found with slug "${slug}", checking for default page...`);
-          
-          try {
-            const defaultPageData = await cmsOperations.getDefaultPage(locale);
-            
-            if (defaultPageData && defaultPageData.slug === slug) {
-              console.log(`Found default page matching slug "${slug}":`, defaultPageData.title);
-              setPageData(defaultPageData as unknown as PageData);
-              
-              // Load sections for the default page
-              let pageSectionsData: SectionData[] = [];
-              
-              if (defaultPageData.sections && defaultPageData.sections.length > 0) {
-                const sectionIds = defaultPageData.sections
-                  .map(s => s.sectionId)
-                  .filter((id): id is string => !!id);
-
-                if (sectionIds.length > 0) {
-                  const GET_SECTION_COMPONENTS_OPTIMIZED_QUERY = `
-                    query GetSectionComponentsOptimized($sectionId: ID!) {
-                      getSectionComponents(sectionId: $sectionId) {
-                        components { id type data }
-                        lastUpdated
-                      }
-                    }
-                  `;
-                  try {
-                    const sectionsDataResults = await Promise.all(
-                      sectionIds.map(sectionId =>
-                        graphqlOptimizer.executeQuery( 
-                          GET_SECTION_COMPONENTS_OPTIMIZED_QUERY,
-                          { sectionId },
-                          { cache: true, ttl: 5 * 60 * 1000, dependencies: [`section:${sectionId}`], batch: true }
-                        )
-                      )
-                    );
-
-                    pageSectionsData = (sectionsDataResults as SectionComponentsResult[]).map((result: SectionComponentsResult, index: number) => {
-                      const originalSectionInfo = defaultPageData.sections?.find(s => s.sectionId === sectionIds[index]);
-                      const components = result?.getSectionComponents?.components || [];
-                      return {
-                        id: originalSectionInfo?.id || `fallback-id-${index}`,
-                        order: originalSectionInfo?.order || 0,
-                        title: originalSectionInfo?.name,
-                        components: components
-                      };
-                    }).sort((a, b) => a.order - b.order);
-                  
-                  } catch (sectionError) {
-                    console.error('Error fetching sections for default page:', sectionError);
-                  }
-                }
-              }
-              
-              setSections(pageSectionsData);
-              
-              // Cache for future use
-              globalPageCache.set(cacheKey, {
-                page: defaultPageData as unknown as PageData,
-                sections: pageSectionsData,
-                timestamp: Date.now()
-              });
-              
-            } else {
-              console.error(`Page not found with any method: ${slug}`);
-              setError('Página no encontrada');
-            }
-          } catch (defaultPageError) {
-            console.error('Error checking for default page:', defaultPageError);
-            setError('Página no encontrada');
-          }
+          console.error(`Page not found with any method: ${slug}`);
+          setError('Página no encontrada');
         }
       } else {
         // Process optimized page data
@@ -425,10 +353,10 @@ export default function CMSPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [slug, locale]);
+  };
   
   // Navigation function for instant page switching
-  const navigateToPage = useCallback((targetSlug: string, targetLocale: string = locale) => {
+  const navigateToPage = (targetSlug: string, targetLocale: string = locale) => {
     const cacheKey = `${targetLocale}-${targetSlug}`;
     
     if (globalPageCache.has(cacheKey)) {
@@ -438,7 +366,7 @@ export default function CMSPage() {
       // If not cached, still navigate but it will load normally
       router.push(`/${targetLocale}/${targetSlug}`);
     }
-  }, [locale, router]);
+  };
 
   // Expose navigation function globally for HeaderSection
   useEffect(() => {
@@ -945,15 +873,6 @@ export default function CMSPage() {
     );
   }
   
-  // Banner for default pages
-  if (pageData?.isDefault) {
-    return (
-      <div className="bg-blue-600 text-white py-2 px-4 text-center">
-        <span className="font-medium">Página por defecto</span> - Esta página se muestra en la URL raíz del sitio
-      </div>
-    );
-  }
-  
   // Function to convert component type to proper case for SectionManager
   const formatComponentType = (type: string): ComponentType => {
     // Convert types like 'hero', 'text', etc. to 'Hero', 'Text', etc.
@@ -1005,7 +924,6 @@ export default function CMSPage() {
           Vista previa - Esta página no está publicada
         </div>
       )}
-      
       
       {/* Page content with sections */}
       <main className={containerClassName}>
