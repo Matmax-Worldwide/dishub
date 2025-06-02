@@ -15,8 +15,9 @@ import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
 
 // Imports for DataLoader
 import DataLoader from 'dataloader';
-import { batchSectionsByPageIds } from './dataloaders/sectionLoader'; // Path relative to route.ts
-import { CMSSection } from '@prisma/client'; // For DataLoader typing
+import { batchSectionsByPageIds } from './dataloaders/sectionLoader'; 
+import { CMSSection } from '@prisma/client'; 
+import { batchPostsByBlogIds, EnrichedPost } from './dataloaders/postsByBlogIdLoader'; // New DataLoader import
 
 // Create the base schema
 const baseSchema = makeExecutableSchema({
@@ -40,7 +41,6 @@ interface DecodedToken {
 }
 
 // Define the structure of your context, including loaders
-// This would ideally be in a types.ts file and imported.
 export interface GraphQLContext {
   req: NextRequest;
   user: {
@@ -51,26 +51,27 @@ export interface GraphQLContext {
   } | null;
   loaders: {
     sectionLoader: DataLoader<string, CMSSection[], string>;
-    // userLoader?: DataLoader<string, User, string>; // Example for another loader
+    postsByBlogIdLoader: DataLoader<string, EnrichedPost[], string>; // Added postsByBlogIdLoader
+    // userLoader?: DataLoader<string, User, string>; 
   };
-  // tenantId?: string | null; // Example if you add tenantId to context
+  // tenantId?: string | null; 
 }
 
 
-const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, { // Specify GraphQLContext
+const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, { 
   context: async (req) => {
-    // Initialize loaders for each request for request-scoped caching
     const loaders = {
       sectionLoader: new DataLoader<string, CMSSection[], string>(
         (keys) => batchSectionsByPageIds(keys), 
         { cacheKeyFn: (key: string) => key }
       ),
-      // userLoader: new DataLoader(...) // etc.
+      postsByBlogIdLoader: new DataLoader<string, EnrichedPost[], string>( // Instantiate new loader
+        (keys) => batchPostsByBlogIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
     };
 
     const token = req.headers.get('authorization')?.split(' ')[1];
-    
-    // Base context structure for unauthenticated user
     let userContext = null;
     
     if (token) {
@@ -87,14 +88,13 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
         };
       } catch (error) {
         console.error('Error verifying token for GraphQL context:', error.message);
-        // User remains null if token is invalid
       }
     }
     
     return { 
       req,
       user: userContext,
-      loaders, // Add loaders to the context
+      loaders, 
     };
   },
 });
