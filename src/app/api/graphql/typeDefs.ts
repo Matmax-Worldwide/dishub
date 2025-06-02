@@ -792,6 +792,7 @@ export const typeDefs = gql`
     createdBy: String
     components: [SectionComponent!]
     order: Int
+    pageId: String # Campo para asociar directamente con una página
   }
 
   # Definición del componente de sección

@@ -5839,6 +5839,42 @@ export const cmsOperations = {
     return result.shipments || [];
   },
 
+  // Función para obtener roles
+  async getRoles(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetRoles {
+        roles {
+          id
+          name
+          description
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ roles: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(query);
+
+      return result.roles || [];
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      throw error;
+    }
+  },
+
 };
 
 // Form Builder API functions
