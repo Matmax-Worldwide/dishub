@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-// Assuming 'next-axiom' or a similar logger is set up.
-// If not, replace log.warn, log.error with console.warn, console.error or appropriate logger.
-// For the purpose of this subtask, we'll assume a generic logger interface might be available via `console`.
-// import { log } from 'next-axiom';
-import { n1DetectorPlugin } from './prisma-plugins/n1-detector'; // Added import
+import { withAccelerate } from '@prisma/extension-accelerate';
+import { withRetry } from '@prisma/extension-retry'; // Assuming this is the correct package/path
+import { n1DetectorPlugin } from './prisma-plugins/n1-detector'; 
 
 // Define the PrismaManager class
 class PrismaManager {
@@ -14,7 +12,6 @@ class PrismaManager {
   private constructor() {
     this.baseDatabaseUrl = process.env.DATABASE_URL!;
     if (!this.baseDatabaseUrl) {
-      // In a real app, consider a more robust way to handle missing env vars at startup.
       console.error('DATABASE_URL environment variable is not set.');
       throw new Error('DATABASE_URL environment variable is not set.');
     }
@@ -46,44 +43,49 @@ class PrismaManager {
         },
       });
 
-      // Log slow queries
-      newClient.$on('query', (e) => {
-        if (e.duration > 100) { // Configurable threshold
+      let extendedClient: any = newClient; // Start with the base client, use 'any' for progressive extension typing
+
+      // Apply Accelerate - Conditionally based on environment variable
+      if (process.env.PRISMA_ACCELERATE_URL || process.env.ACCELERATE_ENABLED === 'true') {
+        console.log(`PrismaManager: Applying withAccelerate() for client key '${key}'.`);
+        extendedClient = extendedClient.$extends(withAccelerate());
+      } else {
+        console.log(`PrismaManager: Skipping withAccelerate() for client key '${key}' (ACCELERATE_ENABLED not 'true' or PRISMA_ACCELERATE_URL not set).`);
+      }
+
+      // Apply Retry
+      const retryOptions = { retries: 3, delay: 100, maxDelay: 500 };
+      console.log(`PrismaManager: Applying withRetry() for client key '${key}' with options:`, retryOptions);
+      extendedClient = extendedClient.$extends(withRetry(retryOptions));
+
+      // Attach event listeners to the final extendedClient
+      extendedClient.$on('query', (e: any) => { // Use 'any' for event type if extensions change it
+        if (e.duration > 100) { 
           console.warn(`Slow query (client: ${key}, duration: ${e.duration}ms): ${e.query.substring(0,200)}...`, { params: e.params });
-          // log.warn('Slow query', { clientKey: key, duration: e.duration, query: e.query, params: e.params });
         }
       });
-      newClient.$on('error', (e) => {
+      extendedClient.$on('error', (e: any) => {
         console.error(`Prisma error (client: ${key})`, { target: e.target, message: e.message, timestamp: e.timestamp });
-        // log.error('Prisma error', { clientKey: key, target: e.target, message: e.message, timestamp: e.timestamp });
       });
-      newClient.$on('warn', (e) => {
+      extendedClient.$on('warn', (e: any) => {
         console.warn(`Prisma warning (client: ${key})`, { target: e.target, message: e.message, timestamp: e.timestamp });
-        // log.warn('Prisma warning', { clientKey: key, target: e.target, message: e.message, timestamp: e.timestamp });
       });
-
-      // Placeholder for Accelerate extension
-      // const clientWithAccelerate = newClient.$extends(withAccelerate());
-
-      // Placeholder for Retry extension
-      // const clientWithRetry = clientWithAccelerate.$extends(withRetry());
-      // this.clients.set(key, clientWithRetry);
-
-      // ***** INTEGRATE N+1 DETECTOR PLUGIN *****
+      
+      // Apply N+1 Detector to the final extendedClient
       if (process.env.NODE_ENV === 'development') {
         console.log(`Applying N+1 detector plugin for Prisma client: ${key}`);
-        newClient.$use(n1DetectorPlugin());
+        extendedClient.$use(n1DetectorPlugin());
       }
-      // *****************************************
 
-      this.clients.set(key, newClient); // Replace with clientWithRetry if extensions are used
-
-      newClient.$connect()
+      this.clients.set(key, extendedClient as PrismaClient); // Cast back to PrismaClient for storage
+      
+      console.log(`Prisma client for key '${key}' configured. Attempting connection...`);
+      (extendedClient as PrismaClient).$connect()
         .then(() => {
           console.log(`Database connection established successfully for Prisma client: ${key}`);
         })
         .catch((err: Error) => {
-          console.error(`Failed to connect to database for Prisma client: ${key}:`, err);
+          console.error(`Failed to connect to database for Prisma client: ${key}:`, err.message);
         });
     }
     return this.clients.get(key)!;
@@ -93,8 +95,6 @@ class PrismaManager {
     if (!tenantId || tenantId === 'default') {
       return this.baseDatabaseUrl;
     }
-    // For Phase 1, we use schema-based separation
-    // Ensure DATABASE_URL does not already contain query parameters if appending directly
     const separator = this.baseDatabaseUrl.includes('?') ? '&' : '?';
     return `${this.baseDatabaseUrl}${separator}schema=${tenantId}`;
   }
@@ -108,33 +108,21 @@ class PrismaManager {
   }
 }
 
-// Export the singleton instance of PrismaManager
 export const prismaManager = PrismaManager.getInstance();
-
-// Export a default Prisma client instance for convenience
 export const prisma = prismaManager.getClient();
 
-// Graceful shutdown for the application
 process.on('beforeExit', async () => {
   console.log('beforeExit hook: Disconnecting PrismaManager.');
   await prismaManager.disconnect();
 });
 
-// Optional: Keep global prisma for development hot-reloading convenience for the default client.
-// PrismaManager itself is a singleton and handles its client instances.
-// This can help minimize immediate refactoring of existing `import { prisma } from '...'`
-// if they expect the global pattern.
-// Note: If 'src/lib/prisma.ts' is deleted, this global declaration here is the primary one.
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
 if (process.env.NODE_ENV !== 'production') {
   if (!global.prisma) {
-    // In development, the default prisma client exported can be assigned to global.prisma.
-    // PrismaManager ensures that getClient() will return the same instance for the 'default' key.
     global.prisma = prisma;
-    console.log("Development mode: Global Prisma client set for hot reloading in prisma_manager.ts") // This log might be slightly misleading now
+    console.log("Development mode: Global Prisma client set for hot reloading.")
   }
 }

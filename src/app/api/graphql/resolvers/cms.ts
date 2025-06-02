@@ -8,7 +8,7 @@ import { GraphQLError } from 'graphql';
 interface ResolverContext {
   user?: {
     id: string;
-    role: string;
+    role: string; 
     permissions: string[];
   };
 }
@@ -144,7 +144,7 @@ export const cmsResolvers = {
             }
           }
         });
-
+        
         if (sectionFromDB) {
           const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
             id: sc.id,
@@ -171,9 +171,9 @@ export const cmsResolvers = {
               updatedAt: timestamp
             }
           });
-          return {
-            components: [],
-            lastUpdated: newSection.lastUpdated.toISOString()
+          return { 
+            components: [], 
+            lastUpdated: newSection.lastUpdated.toISOString() 
           };
         }
       } catch (error) {
@@ -233,7 +233,7 @@ export const cmsResolvers = {
         });
         return pages.map(page => ({
           ...page,
-          sections: page.sections.filter(section =>
+          sections: page.sections.filter(section => 
             section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
           )
         }));
@@ -253,7 +253,7 @@ export const cmsResolvers = {
         if (!section) return [];
         console.log(`Sección encontrada: ${section.id} (${section.name})`);
         const pages = await prisma.$queryRaw<any[]>`
-          SELECT p.* FROM "Page" p
+          SELECT p.* FROM "Page" p 
           JOIN "_PageToSection" pts ON p."id" = pts."B" 
           JOIN "CMSSection" s ON s."id" = pts."A"
           WHERE s."id" = ${sectionId} OR s."sectionId" = ${sectionId}
@@ -310,7 +310,7 @@ export const cmsResolvers = {
         sectionId: string; 
         components: Array<{ id: string; type: string; data: Record<string, unknown> }> 
       } 
-    }, context: ResolverContext) => {
+    }, context: ResolverContext) => { 
       try {
         console.log('========================================');
         const { input } = args;
@@ -354,7 +354,7 @@ export const cmsResolvers = {
           const uniqueTypes = [...new Set(validComponents.map(c => c.type))];
           const existingComponents = await tx.cMSComponent.findMany({ where: { slug: { in: uniqueTypes } } });
           const existingComponentMap = new Map(existingComponents.map(comp => [comp.slug, comp]));
-
+          
           const missingTypes = uniqueTypes.filter(type => !existingComponentMap.has(type));
           if (missingTypes.length > 0) {
             await tx.cMSComponent.createMany({
@@ -366,9 +366,9 @@ export const cmsResolvers = {
             const createdComponents = await tx.cMSComponent.findMany({ where: { slug: { in: missingTypes } } });
             createdComponents.forEach(comp => existingComponentMap.set(comp.slug, comp));
           }
-
+          
           await tx.sectionComponent.deleteMany({ where: { sectionId: section.id } });
-
+          
           if (validComponents.length > 0) {
             const sectionComponentsData = validComponents.map((component, index) => {
               const cmsComponent = existingComponentMap.get(component.type);
@@ -383,7 +383,7 @@ export const cmsResolvers = {
           }
           return { success: true, message: 'Components saved successfully', lastUpdated: timestamp.toISOString() };
         });
-
+        
         console.log('Save result:', result);
         console.log('========================================');
         return result;
@@ -507,10 +507,10 @@ export const cmsResolvers = {
     // createPage (Updated to use ResolverContext for createdById)
     createPage: async (_parent: unknown, args: { 
       input: { 
-        title: string; slug: string; description?: string; template?: string;
-        isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null;
-        metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null;
-        order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[];
+        title: string; slug: string; description?: string; template?: string; 
+        isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; 
+        metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; 
+        order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[]; 
       } 
     }, context: ResolverContext) => {
       console.log('======== START createPage resolver ========');
@@ -668,8 +668,8 @@ export const cmsResolvers = {
     // createCMSSection (Updated to use ResolverContext for createdBy)
     createCMSSection: async (_parent: unknown, args: { 
       input: { 
-        sectionId: string; name: string; description?: string;
-        backgroundImage?: string; backgroundType?: string;
+        sectionId: string; name: string; description?: string; 
+        backgroundImage?: string; backgroundType?: string; 
       } 
     }, context: ResolverContext) => { // Using ResolverContext
       console.log('📝 Starting createCMSSection resolver');
@@ -685,7 +685,7 @@ export const cmsResolvers = {
             backgroundImage: input.backgroundImage || null, backgroundType: input.backgroundType || 'gradient',
             lastUpdated: timestamp.toISOString(), createdAt: timestamp, updatedAt: timestamp,
             createdBy: context.user?.id || 'system', // Using context.user.id
-            order: 0
+            order: 0 
           }
         });
         return { success: true, message: 'Sección CMS creada correctamente', section: { id: newSection.id, sectionId: newSection.sectionId, name: newSection.name, order: newSection.order || 0 } };

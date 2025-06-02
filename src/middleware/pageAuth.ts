@@ -31,7 +31,7 @@ export const withPageAuth: MiddlewareFunction = async (req, res) => {
     );
     // Depending on security posture, you might want to redirect to an error page or login.
     // For now, we'll let it pass, assuming other layers handle missing auth.
-    return;
+    return; 
   }
 
   let isProtectedRoute = false;
@@ -46,8 +46,8 @@ export const withPageAuth: MiddlewareFunction = async (req, res) => {
     // Ensure routeKey starts with '/' for consistency if pathWithoutLocale does
     const normalizedRouteKey = routeKey.startsWith('/') ? routeKey : '/' + routeKey;
 
-    if (pathWithoutLocale === normalizedRouteKey ||
-        (pathWithoutLocale.startsWith(normalizedRouteKey) &&
+    if (pathWithoutLocale === normalizedRouteKey || 
+        (pathWithoutLocale.startsWith(normalizedRouteKey) && 
          normalizedRouteKey !== '/' && // Avoid matching everything if routeKey is just '/'
          pathWithoutLocale.charAt(normalizedRouteKey.length) === '/')) {
       if (normalizedRouteKey.length > matchedRouteKey.length) {
@@ -63,13 +63,13 @@ export const withPageAuth: MiddlewareFunction = async (req, res) => {
         }
     }
   }
-
+  
   if (isProtectedRoute && matchedConfig) {
     console.log(`withPageAuth: Path '${pathWithoutLocale}' is protected by rule '${matchedRouteKey}'. Required roles: ${matchedConfig.roles.join(', ')}. User role: ${userRole}`);
     if (!matchedConfig.roles.includes(userRole)) {
       console.log(`withPageAuth: Access DENIED for role '${userRole}' to path '${pathWithoutLocale}'. Redirecting to access-denied.`);
       const accessDeniedUrl = new URL(`/${activeLocale}/access-denied`, req.nextUrl.origin);
-
+      
       // Try to get the original full pathname for the 'from' parameter
       // 'x-original-url' is not a standard header, rely on req.nextUrl if it's not set by previous middleware.
       // The pathname from req.nextUrl should be the full, original one.
@@ -83,5 +83,5 @@ export const withPageAuth: MiddlewareFunction = async (req, res) => {
 
   // If access is granted or the route is not protected by this specific middleware,
   // return void (do nothing) to allow the request to proceed in the chain.
-  return;
+  return; 
 };

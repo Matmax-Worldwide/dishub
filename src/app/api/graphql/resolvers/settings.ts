@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma';
 // import { JWTPayload } from 'jose'; // No longer needed if DecodedToken is removed or not used
 
 // Using GraphQLError for consistency if specific Apollo errors are not essential
-import { GraphQLError } from 'graphql';
+import { GraphQLError } from 'graphql'; 
 // Keep AuthenticationError if it's used by refactored resolvers for non-shield auth issues
-import { AuthenticationError } from 'apollo-server-errors';
+import { AuthenticationError } from 'apollo-server-errors'; 
 
 
 // Define input types to avoid 'any'
@@ -48,7 +48,7 @@ interface UpdateSiteSettingsInput {
 // DecodedToken is no longer needed if all resolvers use ResolverContext
 // interface DecodedToken extends JWTPayload {
 //   userId: string;
-//   role?: string;
+//   role?: string; 
 // }
 
 // ResolverContext for refactored resolvers
@@ -58,7 +58,7 @@ interface ResolverContext {
     role: string;
     permissions: string[];
   };
-  // req?: NextRequest;
+  // req?: NextRequest; 
 }
 
 export const settingsResolvers = {
@@ -75,7 +75,7 @@ export const settingsResolvers = {
         let settings = await prisma.userSettings.findUnique({
           where: { userId: userId },
           include: {
-            user: {
+            user: { 
               select: { id: true, firstName: true, lastName: true, email: true }
             }
           }
@@ -85,13 +85,13 @@ export const settingsResolvers = {
           settings = await prisma.userSettings.create({
             data: {
               userId: userId,
-              emailNotifications: true,
-              theme: 'light',
-              language: 'en',
-              timeFormat: '12h',
-              dateFormat: 'MM/DD/YYYY'
+              emailNotifications: true, 
+              theme: 'light', 
+              language: 'en', 
+              timeFormat: '12h', 
+              dateFormat: 'MM/DD/YYYY' 
             },
-            include: {
+            include: { 
               user: {
                 select: { id: true, firstName: true, lastName: true, email: true }
               }
@@ -101,7 +101,7 @@ export const settingsResolvers = {
         return settings;
       } catch (error) {
         console.error('Get user settings error:', error.message);
-        if (error instanceof AuthenticationError) throw error;
+        if (error instanceof AuthenticationError) throw error; 
         throw new GraphQLError('Could not fetch user settings.');
       }
     },
@@ -122,7 +122,7 @@ export const settingsResolvers = {
     updateUserSettings: async (
       _parent: unknown, 
       { input }: { input: UpdateUserSettingsInput }, 
-      context: ResolverContext
+      context: ResolverContext 
     ) => {
       try {
         if (!context.user || !context.user.id) {
@@ -161,7 +161,7 @@ export const settingsResolvers = {
     updateSiteSettings: async (
       _parent: unknown,
       { input }: { input: UpdateSiteSettingsInput },
-      context: ResolverContext
+      context: ResolverContext 
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -192,7 +192,7 @@ export const settingsResolvers = {
             metaDescription: input.metaDescription || null,
             metaTitle: input.metaTitle || null,
             ogImage: input.ogImage || null,
-            socialLinks: input.socialLinks || Prisma.JsonNull,
+            socialLinks: input.socialLinks || Prisma.JsonNull, 
             supportedLocales: input.supportedLocales && input.supportedLocales.length > 0 ? input.supportedLocales : ['en'],
             twitterCardType: input.twitterCardType || null,
             twitterHandle: input.twitterHandle || null,
@@ -204,7 +204,7 @@ export const settingsResolvers = {
         if (currentSettings) {
           updatedSiteSettings = await prisma.siteSettings.update({
             where: { id: currentSettings.id },
-            data: input,
+            data: input, 
           });
         } else {
           updatedSiteSettings = await prisma.siteSettings.create({
@@ -214,7 +214,7 @@ export const settingsResolvers = {
         return updatedSiteSettings;
       } catch (error) {
         console.error('Update site settings error:', error.message);
-        throw new GraphQLError('Could not update site settings.');
+        throw new GraphQLError('Could not update site settings.'); 
       }
     }
   }

@@ -32,7 +32,7 @@ interface DecodedToken {
   userId: string;
   role?: RoleName; // Use RoleName type
   // permissions array from token is removed, as it will be derived from role.
-  tenants?: Array<{ id: string; role: string; status: string }>;
+  tenants?: Array<{ id: string; role: string; status: string }>; 
 }
 
 // Context function to provide necessary data to resolvers and shield rules
@@ -40,9 +40,9 @@ const handler = startServerAndCreateNextHandler(server, {
   context: async (req: NextRequest) => {
     const token = req.headers.get('authorization')?.split(' ')[1];
     
-    const baseContext = {
+    const baseContext = { 
       req,
-      user: null,
+      user: null, 
     };
     
     if (!token) {
@@ -60,7 +60,7 @@ const handler = startServerAndCreateNextHandler(server, {
           id: decoded.userId,
           role: userRoleName,
           permissions: resolvedPermissions, // Use permissions derived from role
-          tenants: decoded.tenants || [],
+          tenants: decoded.tenants || [], 
         }
       };
     } catch (error) {

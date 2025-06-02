@@ -25,7 +25,7 @@ interface UpdateUserInput {
 interface ResolverContext {
   user?: { // User will be present if resolver is reached past isAuthenticated shield rule
     id: string;
-    role: string;
+    role: string; 
     permissions: string[];
   };
   // req?: NextRequest; // Could still be part of the context if needed for non-auth reasons
@@ -40,7 +40,7 @@ export const userResolvers = {
     // createUser (Already Refactored)
     createUser: async (_parent: unknown, 
       { input }: { input: CreateUserInput }, 
-      context: ResolverContext
+      context: ResolverContext 
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -91,14 +91,14 @@ export const userResolvers = {
         };
       } catch (error) {
         console.error('Create user error:', error.message);
-        throw error;
+        throw error; 
       }
     },
     
     // updateUser (Already Refactored)
     updateUser: async (_parent: unknown, 
       { id, input }: { id: string; input: UpdateUserInput }, 
-      context: ResolverContext
+      context: ResolverContext 
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -119,7 +119,7 @@ export const userResolvers = {
           }
         }
         
-        const updateData: any = {
+        const updateData: any = { 
           ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
           ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
           ...(input.email !== undefined ? { email: input.email } : {}),
@@ -145,20 +145,20 @@ export const userResolvers = {
         
         return {
           ...updatedUser,
-          role: updatedUser.role || null,
+          role: updatedUser.role || null, 
           createdAt: updatedUser.createdAt.toISOString(),
           updatedAt: updatedUser.updatedAt.toISOString()
         };
       } catch (error) {
         console.error('Update user error:', error.message);
-        throw error;
+        throw error; 
       }
     },
     
     // deleteUser (Refactored)
     deleteUser: async (_parent: unknown, 
       { id }: { id: string }, 
-      context: ResolverContext
+      context: ResolverContext 
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -168,7 +168,7 @@ export const userResolvers = {
           // if the intent is to only allow authenticated users to even attempt deletion.
           // If shield allows unauthenticated users here, this check is critical.
           console.error('DeleteUser: User context not available. This might indicate a shield misconfiguration if authentication is expected.');
-          throw new Error('Authentication required to perform this action.');
+          throw new Error('Authentication required to perform this action.'); 
         }
 
         const userToDelete = await prisma.user.findUnique({
