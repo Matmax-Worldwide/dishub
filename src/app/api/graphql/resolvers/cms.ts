@@ -1226,7 +1226,7 @@ export const cmsResolvers = {
         locale?: string;
         isDefault?: boolean;
         seo?: PageSEOInput;
-        sections?: string[]; // Lista de IDs de secciones
+        sectionIds?: string[]; // Lista de IDs de secciones
       } 
     }) => {
       console.log('======== START updatePage resolver ========');
@@ -1348,7 +1348,6 @@ export const cmsResolvers = {
             ...(input.order !== undefined && { order: input.order }),
             ...(input.pageType !== undefined && { pageType: input.pageType as PageType }),
             ...(input.locale !== undefined && { locale: input.locale }),
-            ...(input.isDefault !== undefined && { isDefault: input.isDefault }),
             updatedAt: new Date()
           },
           include: {
@@ -1402,9 +1401,9 @@ export const cmsResolvers = {
           }
         }
         
-        // Si se proporcionan sections, actualizar las secciones de la página
-        if (input.sections && Array.isArray(input.sections)) {
-          console.log(`Actualizando secciones para la página: ${input.sections.join(', ')}`);
+        // Si se proporcionan sectionIds, actualizar las secciones de la página
+        if (input.sectionIds && Array.isArray(input.sectionIds)) {
+          console.log(`Actualizando secciones para la página: ${input.sectionIds.join(', ')}`);
           
           try {
             // Primero desconectar todas las secciones actuales
@@ -1418,12 +1417,12 @@ export const cmsResolvers = {
             });
             
             // Ahora conectar las nuevas secciones
-            if (input.sections.length > 0) {
+            if (input.sectionIds.length > 0) {
               await prisma.page.update({
                 where: { id },
                 data: {
                   sections: {
-                    connect: input.sections.map(sectionId => ({ id: sectionId }))
+                    connect: input.sectionIds.map(sectionId => ({ id: sectionId }))
                   }
                 }
               });
@@ -1572,6 +1571,7 @@ export const cmsResolvers = {
         description?: string;
         backgroundImage?: string;
         backgroundType?: string;
+        pageId?: string; // Agregar pageId opcional
       } 
     }, context: { user?: { id: string } }) => {
       // Registrar la operación
@@ -1606,6 +1606,9 @@ export const cmsResolvers = {
         }
         
         console.log(`🔍 Creating new CMS section: ${input.name} (${input.sectionId})`);
+        if (input.pageId) {
+          console.log(`🔗 Assigning to page: ${input.pageId}`);
+        }
         
         // Crear un nuevo timestamp para createdAt y updatedAt
         const timestamp = new Date();
@@ -1623,7 +1626,8 @@ export const cmsResolvers = {
               createdAt: timestamp,
               updatedAt: timestamp,
               createdBy: context?.user?.id || 'system',
-              order: 0 // Establecer orden predeterminado
+              order: 0, // Establecer orden predeterminado
+              pageId: input.pageId || null // Asignar pageId si se proporciona
             }
           });
           
@@ -1631,7 +1635,8 @@ export const cmsResolvers = {
             id: newSection.id,
             sectionId: newSection.sectionId,
             name: newSection.name,
-            order: newSection.order
+            order: newSection.order,
+            pageId: newSection.pageId
           });
           
           // Devolver el resultado exitoso con todos los campos necesarios
@@ -1642,7 +1647,8 @@ export const cmsResolvers = {
               id: newSection.id,
               sectionId: newSection.sectionId,
               name: newSection.name,
-              order: newSection.order || 0 // Asegurar que order esté definido
+              order: newSection.order || 0, // Asegurar que order esté definido
+              pageId: newSection.pageId
             }
           };
         } catch (dbError) {
@@ -1733,10 +1739,10 @@ export const cmsResolvers = {
           };
         }
         
-        // Actualizar la sección con el orden proporcionado
+        // Actualizar la sección con el orden proporcionado y el pageId
         await prisma.$executeRaw`
           UPDATE "CMSSection" 
-          SET "order" = ${order}
+          SET "order" = ${order}, "pageId" = ${pageId}
           WHERE "id" = ${sectionId}
         `;
         
@@ -1818,6 +1824,13 @@ export const cmsResolvers = {
             }
           }
         });
+        
+        // Limpiar el pageId de la sección cuando se desasocia
+        await prisma.$executeRaw`
+          UPDATE "CMSSection" 
+          SET "pageId" = NULL 
+          WHERE "id" = ${sectionId}
+        `;
         
         // Verificar si la sección está conectada a otras páginas
         const pagesUsingSection = await prisma.page.count({

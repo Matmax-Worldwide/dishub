@@ -1748,7 +1748,8 @@ export const cmsOperations = {
       const sectionResult = await cmsOperations.createCMSSection({
         sectionId: sectionIdentifier,
         name: defaultSectionName,
-        description: `Sección principal para la página "${createdPage.title}"`
+        description: `Sección principal para la página "${createdPage.title}"`,
+        pageId: createdPage.id // Pasar el pageId para asociar directamente
       });
       
       console.log(`🔧 [${requestId}] Section creation result:`, sectionResult);
@@ -2008,10 +2009,11 @@ export const cmsOperations = {
     sectionId: string; 
     name: string; 
     description?: string; 
+    pageId?: string; // Agregar pageId opcional
   }): Promise<{ 
     success: boolean; 
     message: string; 
-    section: { id: string; sectionId: string; name: string; order?: number } | null;
+    section: { id: string; sectionId: string; name: string; order?: number; pageId?: string } | null;
   }> => {
     try {
       if (!input.sectionId || !input.name) {
@@ -2035,6 +2037,7 @@ export const cmsOperations = {
               sectionId
               name
               order
+              pageId
             }
           }
         }
@@ -2045,7 +2048,7 @@ export const cmsOperations = {
         createCMSSection?: { 
           success: boolean; 
           message: string; 
-          section: { id: string; sectionId: string; name: string; order?: number } | null;
+          section: { id: string; sectionId: string; name: string; order?: number; pageId?: string } | null;
         }
       }>(mutation, { input }, 30000);
       

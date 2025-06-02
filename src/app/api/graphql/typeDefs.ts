@@ -1010,6 +1010,7 @@ export const typeDefs = gql`
     backgroundImage: String
     backgroundType: String
     gridDesign: String
+    pageId: String # Agregar pageId opcional para asociar directamente a una página
   }
 
   # Result type for CMS section operations
