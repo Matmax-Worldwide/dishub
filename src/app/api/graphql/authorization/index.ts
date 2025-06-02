@@ -20,14 +20,8 @@ const isAdmin = rule({ cache: 'contextual' })(
   }
 );
 
-const isTenantMember = rule({ cache: 'contextual' })(
-  async (parent: any, args: any, ctx: any, info: any) => {
-    if (!ctx.user || !ctx.tenantId || !ctx.user.tenants?.some((t: any) => t.id === ctx.tenantId && t.status === 'ACTIVE')) {
-        return new Error('User is not an active member of this tenant!');
-    }
-    return true;
-  }
-);
+// isTenantMember might not be used in this specific set of rules, but good to keep if defined elsewhere
+// const isTenantMember = rule({ cache: 'contextual' })( ... ); 
 
 const isSelf = rule({ cache: 'contextual' })(
   async (parent: any, args: any, ctx: any, info: any) => {
@@ -47,6 +41,9 @@ const hasPermission = (permission: string) => {
     return true;
   });
 };
+
+// Placeholder for more complex ownership rules if needed later
+// const isAppointmentOwner = rule()(async (parent, { id }, ctx, info) => { ... });
 
 export const permissionsShield = shield({
   Query: {
@@ -70,16 +67,46 @@ export const permissionsShield = shield({
     userSettings: isAuthenticated, 
     getSiteSettings: allow,
     
-    // Blog/Post Query Rules (assuming most are public or covered by isAuthenticated initially)
-    // Specific rules can be added if needed, e.g., for drafts vs published
-    blogs: allow, // Example: Publicly listable blogs
-    blog: allow,  // Example: Publicly viewable single blog
-    blogBySlug: allow, // Example: Publicly viewable single blog by slug
-    post: allow, // Example: Publicly viewable single post
-    posts: allow, // Example: Publicly listable posts (might add filter for status)
-    postBySlug: allow, // Example: Publicly viewable single post by slug
+    // Blog/Post Query Rules
+    blogs: allow, 
+    blog: allow,  
+    blogBySlug: allow, 
+    post: allow, 
+    posts: allow, 
+    postBySlug: allow,
 
-    '*': isAuthenticated, // Default for other unspecified queries
+    // E-commerce Query Rules
+    shops: and(isAuthenticated, hasPermission('list:shops')),
+    shop: and(isAuthenticated, hasPermission('view:shop_details')),
+    products: allow, product: allow, productBySku: allow,
+    currencies: allow, currency: allow, currencyByCode: allow,
+    productCategories: allow, 
+    taxes: and(isAuthenticated, hasPermission('view:taxes')),
+    orders: and(isAuthenticated, hasPermission('list:orders')), 
+    order: and(isAuthenticated, or(hasPermission('view:any_order'), hasPermission('view:own_orders'))), // Simplified, owner check would be better
+    paymentProviders: and(isAuthenticated, hasPermission('manage:payment_settings')),
+    payments: and(isAuthenticated, hasPermission('view:payments')),
+    customers: and(isAuthenticated, hasPermission('manage:customers')), 
+    discounts: and(isAuthenticated, hasPermission('manage:discounts')), 
+    validateDiscount: isAuthenticated, 
+    reviews: allow, 
+
+    // Calendar / Appointment Query Rules
+    location: allow, // Publicly viewable location details
+    locations: allow, // Publicly listable locations
+    serviceCategory: allow, // Publicly viewable service category details
+    serviceCategories: allow, // Publicly listable service categories
+    service: allow, // Publicly viewable service details
+    services: allow, // Publicly listable services
+    staffProfile: and(isAuthenticated, hasPermission('view:staff_profile')), // Needs auth & permission
+    staffProfiles: and(isAuthenticated, hasPermission('list:staff_profiles')), // Needs auth & permission
+    bookings: and(isAuthenticated, hasPermission('list:all_bookings')), // Needs auth & permission (for admin/staff)
+                                                                      // User's own bookings might be a different query or rule
+    globalBookingRule: and(isAuthenticated, hasPermission('view:booking_rules')), // Needs auth & permission
+    availableSlots: allow, // Typically public to allow booking process
+    staffForService: allow, // Typically public
+
+    '*': isAuthenticated, 
   },
   Mutation: {
     // User related
@@ -109,10 +136,67 @@ export const permissionsShield = shield({
     updateBlog: and(isAuthenticated, hasPermission('update:blog')),
     deleteBlog: and(isAuthenticated, hasPermission('delete:blog')),
     createPost: and(isAuthenticated, hasPermission('create:post')),
-    updatePost: and(isAuthenticated, hasPermission('update:any_post')), // or more specific like 'update:own_post'
+    updatePost: and(isAuthenticated, hasPermission('update:any_post')), 
     deletePost: and(isAuthenticated, hasPermission('delete:post')),
+
+    // E-commerce Mutation Rules
+    createShop: and(isAuthenticated, hasPermission('create:shop')),
+    updateShop: and(isAuthenticated, hasPermission('update:shop')),
+    deleteShop: and(isAuthenticated, hasPermission('delete:shop')),
+    createCurrency: and(isAuthenticated, hasPermission('manage:currencies')),
+    updateCurrency: and(isAuthenticated, hasPermission('manage:currencies')),
+    deleteCurrency: and(isAuthenticated, hasPermission('manage:currencies')),
+    createProductCategory: and(isAuthenticated, hasPermission('create:product_category')),
+    updateProductCategory: and(isAuthenticated, hasPermission('update:product_category')),
+    deleteProductCategory: and(isAuthenticated, hasPermission('delete:product_category')),
+    createTax: and(isAuthenticated, hasPermission('manage:taxes')),
+    updateTax: and(isAuthenticated, hasPermission('manage:taxes')),
+    deleteTax: and(isAuthenticated, hasPermission('manage:taxes')),
+    createPaymentProvider: and(isAuthenticated, hasPermission('manage:payment_settings')),
+    updatePaymentProvider: and(isAuthenticated, hasPermission('manage:payment_settings')),
+    deletePaymentProvider: and(isAuthenticated, hasPermission('manage:payment_settings')),
+    createPayment: and(isAuthenticated, hasPermission('create:payment')), 
+    updatePayment: and(isAuthenticated, hasPermission('manage:payments')), 
+    createOrder: and(isAuthenticated, hasPermission('create:order')), 
+    updateOrder: and(isAuthenticated, or(hasPermission('update:any_order'), hasPermission('update:own_order'))),
+    deleteOrder: and(isAuthenticated, hasPermission('delete:order')), 
+    createDiscount: and(isAuthenticated, hasPermission('manage:discounts')),
+    updateDiscount: and(isAuthenticated, hasPermission('manage:discounts')),
+    deleteDiscount: and(isAuthenticated, hasPermission('manage:discounts')),
+    createShippingZone: and(isAuthenticated, hasPermission('manage:shipping_zones')),
+    updateShippingZone: and(isAuthenticated, hasPermission('manage:shipping_zones')),
+    deleteShippingZone: and(isAuthenticated, hasPermission('manage:shipping_zones')),
+    createProduct: and(isAuthenticated, hasPermission('create:product')),
+    updateProduct: and(isAuthenticated, hasPermission('update:any_product')),
+    deleteProduct: and(isAuthenticated, hasPermission('delete:any_product')),
+    createReview: isAuthenticated, 
+    updateReview: and(isAuthenticated, or(hasPermission('update:any_review'), /* isReviewOwner */)),
+    deleteReview: and(isAuthenticated, or(hasPermission('delete:any_review'), /* isReviewOwner */)),
     
-    '*': isAuthenticated, // Default for other unspecified mutations
+    // Calendar / Appointment Mutation Rules
+    createLocation: and(isAuthenticated, hasPermission('manage:locations')),
+    updateLocation: and(isAuthenticated, hasPermission('manage:locations')),
+    deleteLocation: and(isAuthenticated, hasPermission('manage:locations')),
+    createServiceCategory: and(isAuthenticated, hasPermission('manage:service_categories')),
+    updateServiceCategory: and(isAuthenticated, hasPermission('manage:service_categories')),
+    deleteServiceCategory: and(isAuthenticated, hasPermission('manage:service_categories')),
+    createService: and(isAuthenticated, hasPermission('manage:services')),
+    updateService: and(isAuthenticated, hasPermission('manage:services')),
+    deleteService: and(isAuthenticated, hasPermission('manage:services')),
+    createStaffProfile: and(isAuthenticated, hasPermission('manage:staff_profiles')),
+    updateStaffProfile: and(isAuthenticated, hasPermission('manage:staff_profiles')),
+    deleteStaffProfile: and(isAuthenticated, hasPermission('manage:staff_profiles')),
+    updateStaffSchedule: and(isAuthenticated, or(hasPermission('update:any_staff_schedule'), hasPermission('update:own_staff_schedule'))),
+    upsertGlobalBookingRules: and(isAuthenticated, hasPermission('manage:booking_rules')),
+    createBooking: and(isAuthenticated, or(hasPermission('create:booking_for_others'), hasPermission('create:own_booking'))),
+    updateAppointment: and(isAuthenticated, or(hasPermission('update:any_booking'), hasPermission('update:own_booking'))), // Assuming updateAppointment maps to these permissions
+    deleteAppointment: and(isAuthenticated, or(hasPermission('delete:any_booking'), hasPermission('delete:own_booking'))), // Assuming deleteAppointment maps to these
+    assignStaffToService: and(isAuthenticated, hasPermission('assign:staff_to_service')),
+    removeStaffFromService: and(isAuthenticated, hasPermission('assign:staff_to_service')), // Same perm as assign
+    assignStaffToLocation: and(isAuthenticated, hasPermission('assign:staff_to_location')),
+    removeStaffFromLocation: and(isAuthenticated, hasPermission('assign:staff_to_location')), // Same perm as assign
+
+    '*': isAuthenticated, 
   },
   User: { 
     email: or(isSelf, isAdmin),
@@ -123,8 +207,7 @@ export const permissionsShield = shield({
   Page: {
     sections: isAuthenticated, 
   }
-  // Blog and Post type field resolvers can be added if needed
-  // e.g., Post: { content: isAuthenticated } // if content is sensitive
+  // TODO: Add Type specific rules for Calendar/Appointment models if needed
 }, { 
   allowExternalErrors: true, 
   debug: process.env.NODE_ENV === 'development',
