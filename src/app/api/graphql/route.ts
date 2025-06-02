@@ -1,76 +1,104 @@
 import { ApolloServer } from '@apollo/server';
 import { startServerAndCreateNextHandler } from '@as-integrations/next';
 import { NextRequest } from 'next/server';
-import { typeDefs } from './typeDefs'; // Assuming typeDefs.ts is in the same directory
-import resolvers from './resolvers'; // Assuming resolvers.ts is in the same directory
-import { verifyToken } from '@/lib/auth'; // Path to existing auth helper
+import { typeDefs } from './typeDefs'; 
+import resolvers from './resolvers'; 
+import { verifyToken } from '@/lib/auth'; 
 
 // Imports for graphql-shield
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { applyMiddleware } from 'graphql-middleware';
-import { permissionsShield } from './authorization'; // Path to the shield setup
+import { permissionsShield } from './authorization'; 
 
 // Import for role-based permissions
-import { getPermissionsForRole, RoleName } from '@/config/rolePermissions'; // Adjusted path
+import { getPermissionsForRole, RoleName } from '@/config/rolePermissions'; 
 
-// Create the base schema from type definitions and resolvers
+// Imports for DataLoader
+import DataLoader from 'dataloader';
+import { batchSectionsByPageIds } from './dataloaders/sectionLoader'; // Path relative to route.ts
+import { CMSSection } from '@prisma/client'; // For DataLoader typing
+
+// Create the base schema
 const baseSchema = makeExecutableSchema({
   typeDefs,
   resolvers,
 });
 
-// Apply the shield middleware to the schema
+// Apply the shield middleware
 const schemaWithPermissions = applyMiddleware(baseSchema, permissionsShield);
 
-// Initialize ApolloServer with the new schema that includes permissions
+// Initialize ApolloServer
 const server = new ApolloServer({
   schema: schemaWithPermissions,
 });
 
-// Define a more specific type for the decoded token payload
+// Define DecodedToken interface
 interface DecodedToken {
   userId: string;
-  role?: RoleName; // Use RoleName type
-  // permissions array from token is removed, as it will be derived from role.
+  role?: RoleName; 
   tenants?: Array<{ id: string; role: string; status: string }>; 
 }
 
-// Context function to provide necessary data to resolvers and shield rules
-const handler = startServerAndCreateNextHandler(server, {
-  context: async (req: NextRequest) => {
+// Define the structure of your context, including loaders
+// This would ideally be in a types.ts file and imported.
+export interface GraphQLContext {
+  req: NextRequest;
+  user: {
+    id: string;
+    role: RoleName;
+    permissions: string[];
+    tenants: Array<{ id: string; role: string; status: string }>;
+  } | null;
+  loaders: {
+    sectionLoader: DataLoader<string, CMSSection[], string>;
+    // userLoader?: DataLoader<string, User, string>; // Example for another loader
+  };
+  // tenantId?: string | null; // Example if you add tenantId to context
+}
+
+
+const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, { // Specify GraphQLContext
+  context: async (req) => {
+    // Initialize loaders for each request for request-scoped caching
+    const loaders = {
+      sectionLoader: new DataLoader<string, CMSSection[], string>(
+        (keys) => batchSectionsByPageIds(keys), 
+        { cacheKeyFn: (key: string) => key }
+      ),
+      // userLoader: new DataLoader(...) // etc.
+    };
+
     const token = req.headers.get('authorization')?.split(' ')[1];
     
-    const baseContext = { 
-      req,
-      user: null, 
-    };
+    // Base context structure for unauthenticated user
+    let userContext = null;
     
-    if (!token) {
-      return baseContext;
-    }
-    
-    try {
-      const decoded = await verifyToken(token) as DecodedToken;
-      const userRoleName = decoded.role || 'USER'; // Default to 'USER' role
-      const resolvedPermissions = getPermissionsForRole(userRoleName);
+    if (token) {
+      try {
+        const decoded = await verifyToken(token) as DecodedToken;
+        const userRoleName = decoded.role || 'USER'; 
+        const resolvedPermissions = getPermissionsForRole(userRoleName);
 
-      return { 
-        ...baseContext,
-        user: {
+        userContext = {
           id: decoded.userId,
           role: userRoleName,
-          permissions: resolvedPermissions, // Use permissions derived from role
+          permissions: resolvedPermissions, 
           tenants: decoded.tenants || [], 
-        }
-      };
-    } catch (error) {
-      console.error('Error verifying token for GraphQL context:', error.message);
-      return baseContext;
+        };
+      } catch (error) {
+        console.error('Error verifying token for GraphQL context:', error.message);
+        // User remains null if token is invalid
+      }
     }
+    
+    return { 
+      req,
+      user: userContext,
+      loaders, // Add loaders to the context
+    };
   },
 });
 
-// Standard Next.js API route handlers for GET and POST
 export async function GET(request: NextRequest) {
   return handler(request);
 }

@@ -1,17 +1,9 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma, PageType } from '@prisma/client';
-import { verifySession } from '@/app/api/utils/auth'; // Kept for other mutations if they use it
-import { Context } from '@/app/api/graphql/types'; // Kept for other mutations if they use it
+import { Prisma, PageType, Page as PrismaPage, CMSSection as PrismaCMSSection } from '@prisma/client'; // Added PrismaPage for typing parentPage
+import { Context } from '@/app/api/graphql/types'; // Using the main Context from types.ts
 import { GraphQLError } from 'graphql';
 
-// Context type for refactored mutations (can be defined globally or per-resolver file)
-interface ResolverContext {
-  user?: {
-    id: string;
-    role: string; 
-    permissions: string[];
-  };
-}
+// Local ResolverContext is removed, using Context from types.ts
 
 // Tipo para los componentes de una sección (from original)
 type SectionComponentWithRelation = {
@@ -43,21 +35,13 @@ type PageSEOInput = {
 
 export const cmsResolvers = {
   Query: {
-    // Keeping all original Query resolvers
     getAllCMSSections: async () => {
+      // ... (original logic preserved)
       console.log('======== START getAllCMSSections resolver ========');
       try {
         const sections = await prisma.cMSSection.findMany({
-          include: {
-            components: {
-              include: {
-                component: true
-              }
-            }
-          },
-          orderBy: {
-            updatedAt: 'desc'
-          }
+          include: { components: { include: { component: true } } },
+          orderBy: { updatedAt: 'desc' }
         });
         console.log(`Se encontraron ${sections.length} secciones`);
         return sections;
@@ -67,41 +51,35 @@ export const cmsResolvers = {
       }
     },
     
-    getPageBySlug: async (_parent: unknown, args: { slug: string }) => {
-      console.log('======== START getPageBySlug resolver ========');
+    getPageBySlug: async (_parent: unknown, args: { slug: string }, context: Context) => {
+      console.log('======== START getPageBySlug resolver (Dataloader for sections) ========');
       try {
         const { slug } = args;
         const page = await prisma.page.findUnique({
           where: { slug },
-          include: {
-            sections: true,
-            seo: true
+          include: { 
+            seo: true 
+            // Removed: sections: true (will be handled by Page.sections field resolver)
           }
         });
-        if (!page) return null;
-        const filteredPage = {
-          ...page,
-          sections: page.sections.filter(section => 
-            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
-        };
-        return filteredPage;
+        // The 'sections' field will be resolved by the Page.sections resolver using DataLoader
+        return page; 
       } catch (error) {
         console.error('Error in getPageBySlug:', error);
         return null;
       }
     },
     
-    page: async (_parent: unknown, args: { id: string }) => {
-      console.log('======== START page resolver ========');
+    page: async (_parent: unknown, args: { id: string }, context: Context) => {
+      console.log('======== START page resolver (Dataloader for sections) ========');
       try {
         const { id } = args;
         console.log(`Looking for page with ID: ${id}`);
         const page = await prisma.page.findUnique({
           where: { id },
-          include: {
-            sections: true,
-            seo: true
+          include: { 
+            seo: true 
+            // Removed: sections: true
           }
         });
         if (!page) {
@@ -109,13 +87,7 @@ export const cmsResolvers = {
           return null;
         }
         console.log(`Found page: ${page.title} (${page.slug})`);
-        const filteredPage = {
-          ...page,
-          sections: page.sections.filter(section => 
-            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
-        };
-        return filteredPage;
+        return page;
       } catch (error) {
         console.error('Error in page resolver:', error);
         return null;
@@ -123,6 +95,7 @@ export const cmsResolvers = {
     },
     
     getSectionComponents: async (_parent: unknown, args: { sectionId: string }) => {
+      // ... (original logic preserved, as it fetches components for a specific section, not sections for a page)
       console.log('======== START getSectionComponents resolver ========');
       try {
         console.log('========================================');
@@ -156,10 +129,9 @@ export const cmsResolvers = {
             lastUpdated: sectionFromDB.lastUpdated.toISOString()
           };
         } else {
-          // Logic for handling non-existent section or creating new one (simplified from original for brevity)
           console.log('Section not found or creating new for ID:', sectionId);
           const timestamp = new Date();
-          const newSection = await prisma.cMSSection.upsert({ // Use upsert for simplicity here
+          const newSection = await prisma.cMSSection.upsert({ 
             where: { sectionId: sectionId },
             update: { lastUpdated: timestamp },
             create: {
@@ -185,6 +157,7 @@ export const cmsResolvers = {
     },
 
     getAllCMSComponents: async () => {
+      // ... (original logic preserved)
       console.log('======== START getAllCMSComponents resolver ========');
       try {
         const components = await prisma.cMSComponent.findMany({ orderBy: { updatedAt: 'desc' } });
@@ -197,6 +170,7 @@ export const cmsResolvers = {
     },
 
     getCMSComponent: async (_parent: unknown, args: { id: string }) => {
+      // ... (original logic preserved)
       console.log('======== START getCMSComponent resolver ========');
       try {
         const { id } = args;
@@ -210,6 +184,7 @@ export const cmsResolvers = {
     },
 
     getCMSComponentsByType: async (_parent: unknown, args: { type: string }) => {
+      // ... (original logic preserved)
       console.log('======== START getCMSComponentsByType resolver ========');
       try {
         const { type } = args;
@@ -224,27 +199,27 @@ export const cmsResolvers = {
       }
     },
 
-    getAllCMSPages: async () => {
-      console.log('======== START getAllCMSPages resolver ========');
+    getAllCMSPages: async (_parent: unknown, _args: any, context: Context) => {
+      console.log('======== START getAllCMSPages resolver (Dataloader for sections) ========');
       try {
         const pages = await prisma.page.findMany({
-          include: { sections: true },
+          include: { 
+            seo: true 
+            // Removed: sections: true
+          },
           orderBy: { createdAt: 'desc' }
         });
-        return pages.map(page => ({
-          ...page,
-          sections: page.sections.filter(section => 
-            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
-        }));
+        // Sections for each page will be resolved by Page.sections field resolver
+        return pages;
       } catch (error) {
         console.error('Error in getAllCMSPages:', error);
         return [];
       }
     },
 
-    getPagesUsingSectionId: async (_parent: unknown, args: { sectionId: string }) => {
-      // Preserving original complex logic
+    getPagesUsingSectionId: async (_parent: unknown, args: { sectionId: string }, context: Context) => {
+      // ... (original logic preserved - this fetches pages, not sections for a page, so DataLoader isn't directly applied here for sections)
+      // If sections of these pages are needed, the Page.sections resolver will handle it.
       console.log('======== START getPagesUsingSectionId resolver ========');
       try {
         const { sectionId } = args;
@@ -252,50 +227,35 @@ export const cmsResolvers = {
         const section = await prisma.cMSSection.findFirst({ where: { sectionId } });
         if (!section) return [];
         console.log(`Sección encontrada: ${section.id} (${section.name})`);
-        const pages = await prisma.$queryRaw<any[]>`
+        const pages = await prisma.$queryRaw<PrismaPage[]>`
           SELECT p.* FROM "Page" p 
           JOIN "_PageToSection" pts ON p."id" = pts."B" 
           JOIN "CMSSection" s ON s."id" = pts."A"
-          WHERE s."id" = ${sectionId} OR s."sectionId" = ${sectionId}
+          WHERE s."id" = ${section.id} OR s."sectionId" = ${sectionId}
           ORDER BY p."updatedAt" DESC
         `;
         if (!Array.isArray(pages) || pages.length === 0) return [];
-        const pagesWithSections = await Promise.all(
-          pages.map(async (page) => {
-            const sectionsData = await prisma.page.findUnique({
-              where: { id: page.id },
-              select: { sections: { select: { id: true, sectionId: true, order: true, name: true, description: true }, orderBy: { order: 'asc' } } }
-            });
-            let filteredSections: any[] = [];
-            if (sectionsData?.sections) {
-              filteredSections = sectionsData.sections.filter(s => s && typeof s === 'object' && 'sectionId' in s && s.sectionId !== null);
-            }
-            return { ...page, sections: filteredSections || [] };
-          })
-        );
-        return pagesWithSections;
+        // The sections field of these page objects will be resolved by Page.sections resolver
+        return pages;
       } catch (error) {
         console.error(`Error al obtener páginas usando sectionId ${args.sectionId}:`, error);
         return [];
       }
     },
 
-    getDefaultPage: async (_parent: unknown, args: { locale: string }) => {
-      console.log('======== START getDefaultPage resolver ========');
+    getDefaultPage: async (_parent: unknown, args: { locale: string }, context: Context) => {
+      console.log('======== START getDefaultPage resolver (Dataloader for sections) ========');
       try {
         const { locale } = args;
         const page = await prisma.page.findFirst({
           where: { isDefault: true, locale, isPublished: true },
-          include: { sections: true, seo: true }
+          include: { 
+            seo: true
+            // Removed: sections: true 
+          }
         });
-        if (!page) return null;
-        const filteredPage = {
-          ...page,
-          sections: page.sections.filter(section => 
-            section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
-        };
-        return filteredPage;
+        // Sections will be resolved by Page.sections field resolver
+        return page;
       } catch (error) {
         console.error('Error in getDefaultPage:', error);
         return null;
@@ -304,86 +264,54 @@ export const cmsResolvers = {
   },
   
   Mutation: {
-    // saveSectionComponents (Refactored)
+    // saveSectionComponents (Already refactored to use Context)
     saveSectionComponents: async (_parent: unknown, args: { 
       input: { 
         sectionId: string; 
         components: Array<{ id: string; type: string; data: Record<string, unknown> }> 
       } 
-    }, context: ResolverContext) => { 
+    }, context: Context) => { // Changed ResolverContext to Context
       try {
+        // ... (original refactored logic from Turn 79, ensuring context type is updated)
         console.log('========================================');
         const { input } = args;
         const { components } = input;
         let { sectionId } = input;
-        
-        if (sectionId && sectionId.includes('?')) {
-          sectionId = sectionId.split('?')[0];
-        }
+        if (sectionId && sectionId.includes('?')) sectionId = sectionId.split('?')[0];
         console.log(`CMS RESOLVER (refactored): Saving ${components?.length || 0} components for section ${sectionId}`);
-        
-        if (!components || !Array.isArray(components)) {
-          return { success: false, message: 'No valid components array provided', lastUpdated: null };
-        }
-        
+        if (!components || !Array.isArray(components)) return { success: false, message: 'No valid components array provided', lastUpdated: null };
         const validComponents = components.filter(c => c.id && c.type);
-        if (validComponents.length !== components.length) {
-          console.warn(`Found ${components.length - validComponents.length} invalid components.`);
-        }
-        
+        if (validComponents.length !== components.length) console.warn(`Found ${components.length - validComponents.length} invalid components.`);
         const timestamp = new Date();
-        
         const result = await prisma.$transaction(async (tx) => {
           let section = await tx.cMSSection.findUnique({ where: { sectionId } });
           if (!section) {
             section = await tx.cMSSection.create({
-              data: {
-                sectionId,
-                name: sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                description: `Sección "${sectionId}"`,
-                lastUpdated: timestamp, createdAt: timestamp, updatedAt: timestamp
-              }
+              data: { sectionId, name: sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), description: `Sección "${sectionId}"`, lastUpdated: timestamp, createdAt: timestamp, updatedAt: timestamp }
             });
           } else {
-            section = await tx.cMSSection.update({
-              where: { id: section.id },
-              data: { lastUpdated: timestamp, updatedAt: timestamp }
-            });
+            section = await tx.cMSSection.update({ where: { id: section.id }, data: { lastUpdated: timestamp, updatedAt: timestamp } });
           }
-          
           const uniqueTypes = [...new Set(validComponents.map(c => c.type))];
           const existingComponents = await tx.cMSComponent.findMany({ where: { slug: { in: uniqueTypes } } });
           const existingComponentMap = new Map(existingComponents.map(comp => [comp.slug, comp]));
-          
           const missingTypes = uniqueTypes.filter(type => !existingComponentMap.has(type));
           if (missingTypes.length > 0) {
-            await tx.cMSComponent.createMany({
-              data: missingTypes.map(type => ({
-                name: type, slug: type, description: `Componente tipo ${type}`,
-                schema: {}, isActive: true, createdAt: timestamp, updatedAt: timestamp
-              }))
-            });
+            await tx.cMSComponent.createMany({ data: missingTypes.map(type => ({ name: type, slug: type, description: `Componente tipo ${type}`, schema: {}, isActive: true, createdAt: timestamp, updatedAt: timestamp })) });
             const createdComponents = await tx.cMSComponent.findMany({ where: { slug: { in: missingTypes } } });
             createdComponents.forEach(comp => existingComponentMap.set(comp.slug, comp));
           }
-          
           await tx.sectionComponent.deleteMany({ where: { sectionId: section.id } });
-          
           if (validComponents.length > 0) {
             const sectionComponentsData = validComponents.map((component, index) => {
               const cmsComponent = existingComponentMap.get(component.type);
               if (!cmsComponent) throw new Error(`Component type ${component.type} not found.`);
-              return {
-                id: component.id, sectionId: section.id, componentId: cmsComponent.id,
-                order: index, data: component.data as Prisma.InputJsonValue || {},
-                createdAt: timestamp, updatedAt: timestamp
-              };
+              return { id: component.id, sectionId: section.id, componentId: cmsComponent.id, order: index, data: component.data as Prisma.InputJsonValue || {}, createdAt: timestamp, updatedAt: timestamp };
             });
             await tx.sectionComponent.createMany({ data: sectionComponentsData });
           }
           return { success: true, message: 'Components saved successfully', lastUpdated: timestamp.toISOString() };
         });
-        
         console.log('Save result:', result);
         console.log('========================================');
         return result;
@@ -391,14 +319,96 @@ export const cmsResolvers = {
         console.error('========================================');
         console.error('ERROR: Error saving section data (refactored):', error);
         console.error('========================================');
-        return {
-          success: false,
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          lastUpdated: null,
-        };
+        return { success: false, message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, lastUpdated: null, };
+      }
+    },
+    
+    // createCMSSection (Already refactored to use Context for createdBy)
+    createCMSSection: async (_parent: unknown, args: { 
+      input: { sectionId: string; name: string; description?: string; backgroundImage?: string; backgroundType?: string; } 
+    }, context: Context) => { // Changed ResolverContext to Context
+      console.log('📝 Starting createCMSSection resolver');
+      try {
+        const { input } = args;
+        if (!input.sectionId || !input.name) return { success: false, message: 'Los campos sectionId y name son requeridos', section: null };
+        const existingSection = await prisma.cMSSection.findFirst({ where: { sectionId: input.sectionId } });
+        if (existingSection) return { success: false, message: `Ya existe una sección con el ID: ${input.sectionId}`, section: null };
+        const timestamp = new Date();
+        const newSection = await prisma.cMSSection.create({
+          data: {
+            sectionId: input.sectionId, name: input.name, description: input.description || '',
+            backgroundImage: input.backgroundImage || null, backgroundType: input.backgroundType || 'gradient',
+            lastUpdated: timestamp.toISOString(), createdAt: timestamp, updatedAt: timestamp,
+            createdBy: context.user?.id || 'system', order: 0
+          }
+        });
+        return { success: true, message: 'Sección CMS creada correctamente', section: { id: newSection.id, sectionId: newSection.sectionId, name: newSection.name, order: newSection.order || 0 } };
+      } catch (error) {
+        console.error('❌ Unexpected error in createCMSSection resolver:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Error inesperado al crear la sección CMS', section: null };
       }
     },
 
+    // createPage (Already refactored to use Context for createdById)
+    createPage: async (_parent: unknown, args: { 
+      input: { title: string; slug: string; description?: string; template?: string; isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[]; } 
+    }, context: Context) => { // Changed ResolverContext to Context
+      console.log('======== START createPage resolver ========');
+      try {
+        const { input } = args;
+        // ... (original logic from Turn 79, ensuring context.user.id is used for createdById)
+        if (!input.title || !input.slug) throw new Error('El título y el slug son campos requeridos');
+        const existingPage = await prisma.page.findFirst({ where: { slug: input.slug } });
+        if (existingPage) return { success: false, message: `Ya existe una página con el slug: ${input.slug}`, page: null };
+        const localeToUse = input.locale || "en";
+        let shouldSetAsDefault = input.isDefault || false;
+        if (!shouldSetAsDefault) {
+          const existingPagesCount = await prisma.page.count({ where: { locale: localeToUse } });
+          if (existingPagesCount === 0) shouldSetAsDefault = true;
+        }
+        if (shouldSetAsDefault) {
+          const existingDefault = await prisma.page.findFirst({ where: { locale: localeToUse, isDefault: true } });
+          if (existingDefault) await prisma.page.update({ where: { id: existingDefault.id }, data: { isDefault: false } });
+        }
+        const timestamp = new Date();
+        const newPageData: Prisma.PageCreateInput = {
+            title: input.title, slug: input.slug, description: input.description || null,
+            template: input.template || "default", isPublished: input.isPublished || false,
+            publishDate: input.publishDate ? new Date(input.publishDate) : null,
+            featuredImage: input.featuredImage || null, metaTitle: input.metaTitle || null,
+            metaDescription: input.metaDescription || null, parentId: input.parentId || null,
+            order: input.order !== undefined ? input.order : 0,
+            pageType: (input.pageType as PrismaPageType) || PrismaPageType.CONTENT,
+            locale: localeToUse, isDefault: shouldSetAsDefault,
+            createdById: context.user?.id || "system", 
+            createdAt: timestamp, updatedAt: timestamp
+        };
+        const newPage = await prisma.page.create({ data: newPageData });
+        if (input.sections && input.sections.length > 0) {
+          for (let i = 0; i < input.sections.length; i++) {
+            const sectionIdInput = input.sections[i]; // Use a different variable name
+            const section = await prisma.cMSSection.findFirst({ where: { sectionId: sectionIdInput } });
+            if (section) {
+              await prisma.page.update({ where: { id: newPage.id }, data: { sections: { connect: { id: section.id } } } });
+              // The order of sections on a page is complex with implicit M2M.
+              // This $executeRaw might not work as intended or be schema-dependent.
+              // Consider an explicit join table for ordered sections if this is problematic.
+              // await prisma.$executeRaw`UPDATE "CMSSection" SET "order" = ${i} WHERE "id" = ${section.id}`;
+            }
+          }
+        }
+        const pageWithSections = await prisma.page.findUnique({
+          where: { id: newPage.id },
+          include: { /* seo: true */ } // Sections removed, will be handled by Page.sections
+        });
+        return { success: true, message: `Página "${input.title}" creada correctamente${shouldSetAsDefault ? ' y marcada como predeterminada' : ''}`, page: pageWithSections };
+      } catch (error) {
+        console.error('Error al crear página CMS:', error);
+        return { success: false, message: `Error al crear página: ${error instanceof Error ? error.message : 'Error desconocido'}`, page: null };
+      }
+    },
+    // ... (Other mutations like deleteCMSSection, createCMSComponent etc. remain unchanged from previous state)
+    // ... (Make sure to copy them over accurately)
     deleteCMSSection: async (_parent: unknown, args: { sectionId: string }) => {
       console.log('======== START deleteCMSSection resolver ========');
       try {
@@ -503,76 +513,12 @@ export const cmsResolvers = {
         return { success: false, message: `Error al actualizar sección: ${error instanceof Error ? error.message : 'Error desconocido'}`, lastUpdated: null };
       }
     },
-
-    // createPage (Updated to use ResolverContext for createdById)
-    createPage: async (_parent: unknown, args: { 
-      input: { 
-        title: string; slug: string; description?: string; template?: string; 
-        isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; 
-        metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; 
-        order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[]; 
-      } 
-    }, context: ResolverContext) => {
-      console.log('======== START createPage resolver ========');
-      try {
-        const { input } = args;
-        if (!input.title || !input.slug) throw new Error('El título y el slug son campos requeridos');
-        const existingPage = await prisma.page.findFirst({ where: { slug: input.slug } });
-        if (existingPage) return { success: false, message: `Ya existe una página con el slug: ${input.slug}`, page: null };
-        const localeToUse = input.locale || "en";
-        let shouldSetAsDefault = input.isDefault || false;
-        if (!shouldSetAsDefault) {
-          const existingPagesCount = await prisma.page.count({ where: { locale: localeToUse } });
-          if (existingPagesCount === 0) shouldSetAsDefault = true;
-        }
-        if (shouldSetAsDefault) {
-          const existingDefault = await prisma.page.findFirst({ where: { locale: localeToUse, isDefault: true } });
-          if (existingDefault) await prisma.page.update({ where: { id: existingDefault.id }, data: { isDefault: false } });
-        }
-        const timestamp = new Date();
-        const newPage = await prisma.page.create({
-          data: {
-            title: input.title, slug: input.slug, description: input.description || null,
-            template: input.template || "default", isPublished: input.isPublished || false,
-            publishDate: input.publishDate ? new Date(input.publishDate) : null,
-            featuredImage: input.featuredImage || null, metaTitle: input.metaTitle || null,
-            metaDescription: input.metaDescription || null, parentId: input.parentId || null,
-            order: input.order !== undefined ? input.order : 0,
-            pageType: (input.pageType as PageType) || PageType.CONTENT,
-            locale: localeToUse, isDefault: shouldSetAsDefault,
-            createdById: context.user?.id || "system", // Using context.user.id
-            createdAt: timestamp, updatedAt: timestamp
-          }
-        });
-        if (input.sections && input.sections.length > 0) {
-          for (let i = 0; i < input.sections.length; i++) {
-            const sectionId = input.sections[i];
-            const section = await prisma.cMSSection.findFirst({ where: { sectionId } });
-            if (section) {
-              await prisma.page.update({ where: { id: newPage.id }, data: { sections: { connect: { id: section.id } } } });
-              await prisma.$executeRaw`UPDATE "CMSSection" SET "order" = ${i} WHERE "id" = ${section.id}`;
-            }
-          }
-        }
-        const pageWithSections = await prisma.page.findUnique({
-          where: { id: newPage.id },
-          include: { sections: { select: { id: true, order: true }, orderBy: { order: 'asc' } } }
-        });
-        return { success: true, message: `Página "${input.title}" creada correctamente${shouldSetAsDefault ? ' y marcada como predeterminada' : ''}`, page: pageWithSections };
-      } catch (error) {
-        console.error('Error al crear página CMS:', error);
-        return { success: false, message: `Error al crear página: ${error instanceof Error ? error.message : 'Error desconocido'}`, page: null };
-      }
-    },
-
     updatePage: async (_parent: unknown, args: { id: string; input: { title?: string; slug?: string; description?: string | null; template?: string; isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; order?: number; pageType?: string; locale?: string; isDefault?: boolean; seo?: PageSEOInput; sections?: string[]; } }) => {
-      // Preserving original complex logic (context not used for createdBy here)
       console.log('======== START updatePage resolver ========');
       try {
         const { id, input } = args;
         const existingPage = await prisma.page.findUnique({ where: { id }, include: { sections: true, seo: true } });
         if (!existingPage) return { success: false, message: `No se encontró ninguna página con ID: ${id}`, page: null };
-
         if (input.isDefault === true) {
           const localeToUse = input.locale || existingPage.locale;
           const existingDefault = await prisma.page.findFirst({ where: { locale: localeToUse, isDefault: true, id: { not: id } } });
@@ -587,7 +533,6 @@ export const cmsResolvers = {
         else if (seoData.title !== undefined && input.metaTitle === undefined) input.metaTitle = seoData.title;
         if (input.metaDescription !== undefined && seoData.description === undefined) seoData.description = input.metaDescription;
         else if (seoData.description !== undefined && input.metaDescription === undefined) input.metaDescription = seoData.description;
-        
         const updatedPage = await prisma.page.update({
           where: { id },
           data: {
@@ -602,12 +547,12 @@ export const cmsResolvers = {
             ...(input.metaDescription !== undefined && { metaDescription: input.metaDescription }),
             ...(input.parentId !== undefined && { parentId: input.parentId }),
             ...(input.order !== undefined && { order: input.order }),
-            ...(input.pageType !== undefined && { pageType: input.pageType as PageType }),
+            ...(input.pageType !== undefined && { pageType: input.pageType as PrismaPageType }),
             ...(input.locale !== undefined && { locale: input.locale }),
             ...(input.isDefault !== undefined && { isDefault: input.isDefault }),
             updatedAt: new Date()
           },
-          include: { sections: true, seo: true }
+          include: { seo: true } // sections removed
         });
         if (input.seo || input.metaTitle !== undefined || input.metaDescription !== undefined) {
           const seoUpdateData = {
@@ -631,8 +576,8 @@ export const cmsResolvers = {
           await prisma.page.update({ where: { id }, data: { sections: { set: [] } } });
           if (input.sections.length > 0) await prisma.page.update({ where: { id }, data: { sections: { connect: input.sections.map(sectionId => ({ id: sectionId })) } } });
         }
-        const pageWithSections = await prisma.page.findUnique({ where: { id }, include: { sections: { orderBy: { order: 'asc' } }, seo: true } });
-        return { success: true, message: `Página "${updatedPage.title}" actualizada correctamente`, page: pageWithSections };
+        // const pageWithSections = await prisma.page.findUnique({ where: { id }, include: { sections: { orderBy: { order: 'asc' } }, seo: true } });
+        return { success: true, message: `Página "${updatedPage.title}" actualizada correctamente`, page: updatedPage }; // Return updatedPage, sections will be resolved by Page.sections
       } catch (error) {
         console.error('Error al actualizar página CMS:', error);
         return { success: false, message: `Error al actualizar página: ${error instanceof Error ? error.message : 'Error desconocido'}`, page: null };
@@ -640,7 +585,6 @@ export const cmsResolvers = {
     },
 
     deletePage: async (_parent: unknown, args: { id: string }) => {
-      // Preserving original complex logic
       console.log('======== START deletePage resolver ========');
       try {
         const { id } = args;
@@ -664,39 +608,7 @@ export const cmsResolvers = {
         return { success: false, message: `Error al eliminar página: ${error instanceof Error ? error.message : 'Error desconocido'}` };
       }
     },
-
-    // createCMSSection (Updated to use ResolverContext for createdBy)
-    createCMSSection: async (_parent: unknown, args: { 
-      input: { 
-        sectionId: string; name: string; description?: string; 
-        backgroundImage?: string; backgroundType?: string; 
-      } 
-    }, context: ResolverContext) => { // Using ResolverContext
-      console.log('📝 Starting createCMSSection resolver');
-      try {
-        const { input } = args;
-        if (!input.sectionId || !input.name) return { success: false, message: 'Los campos sectionId y name son requeridos', section: null };
-        const existingSection = await prisma.cMSSection.findFirst({ where: { sectionId: input.sectionId } });
-        if (existingSection) return { success: false, message: `Ya existe una sección con el ID: ${input.sectionId}`, section: null };
-        const timestamp = new Date();
-        const newSection = await prisma.cMSSection.create({
-          data: {
-            sectionId: input.sectionId, name: input.name, description: input.description || '',
-            backgroundImage: input.backgroundImage || null, backgroundType: input.backgroundType || 'gradient',
-            lastUpdated: timestamp.toISOString(), createdAt: timestamp, updatedAt: timestamp,
-            createdBy: context.user?.id || 'system', // Using context.user.id
-            order: 0 
-          }
-        });
-        return { success: true, message: 'Sección CMS creada correctamente', section: { id: newSection.id, sectionId: newSection.sectionId, name: newSection.name, order: newSection.order || 0 } };
-      } catch (error) {
-        console.error('❌ Unexpected error in createCMSSection resolver:', error);
-        return { success: false, message: error instanceof Error ? error.message : 'Error inesperado al crear la sección CMS', section: null };
-      }
-    },
-
     associateSectionToPage: async (_parent: unknown, args: { pageId: string; sectionId: string; order: number; }) => {
-      // Preserving original complex logic
       console.log('======== START associateSectionToPage resolver ========');
       try {
         const { pageId, sectionId, order } = args;
@@ -706,7 +618,7 @@ export const cmsResolvers = {
         if (!existingSection) return { success: false, message: `No se encontró ninguna sección con ID: ${sectionId}`, page: null };
         await prisma.$executeRaw`UPDATE "CMSSection" SET "order" = ${order} WHERE "id" = ${sectionId}`;
         await prisma.page.update({ where: { id: pageId }, data: { sections: { connect: { id: sectionId } } } });
-        const updatedPage = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: true } });
+        const updatedPage = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: true } }); // sections needed for immediate return
         return { success: true, message: 'Sección asociada a la página correctamente', page: updatedPage };
       } catch (error) {
         console.error('Error al asociar sección a página:', error);
@@ -715,7 +627,6 @@ export const cmsResolvers = {
     },
 
     dissociateSectionFromPage: async (_parent: unknown, args: { pageId: string; sectionId: string; }) => {
-      // Preserving original complex logic
       console.log('======== START dissociateSectionFromPage resolver ========');
       try {
         const { pageId, sectionId } = args;
@@ -731,7 +642,7 @@ export const cmsResolvers = {
           await prisma.cMSSection.delete({ where: { id: sectionId } });
           sectionDeleted = true;
         }
-        const updatedPage = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: true } });
+        const updatedPage = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: true } }); // sections needed for immediate return
         return { success: true, message: sectionDeleted ? 'Sección desasociada de la página y eliminada correctamente' : 'Sección desasociada de la página correctamente', page: updatedPage };
       } catch (error) {
         console.error('Error al desasociar sección de página:', error);
@@ -740,7 +651,23 @@ export const cmsResolvers = {
     }
   },
   
-  JSON: { // Scalar resolver (from original)
+  Page: { // Added Page type resolver for sections
+    sections: async (parentPage: PrismaPage, _args: any, context: Context, _info: any) => {
+      if (!parentPage.id) {
+        console.log(`Page.sections resolver: parentPage.id is missing for page titled "${parentPage.title}"`);
+        return []; 
+      }
+      try {
+        console.log(`Page.sections resolver: Loading sections for page ID: ${parentPage.id}`);
+        return await context.loaders.sectionLoader.load(parentPage.id);
+      } catch (error) {
+        console.error(`Error loading sections for page ${parentPage.id} via DataLoader:`, error);
+        return []; 
+      }
+    }
+  },
+
+  JSON: { 
     __serialize(value: unknown) {
       return value;
     },

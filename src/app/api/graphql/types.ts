@@ -1,28 +1,46 @@
 import { NextRequest } from 'next/server';
+import DataLoader from 'dataloader';
+import { CMSSection, User as PrismaUser, Page as PrismaPage, PageType as PrismaPageType } from '@prisma/client';
+import { RoleName } from '@/config/rolePermissions'; // Assuming RoleName is defined here
+
+// Defines the user object structure available in the GraphQL context after authentication
+export interface AuthenticatedUser {
+  id: string;
+  role: RoleName; 
+  permissions: string[];
+  tenants?: Array<{ id: string; role: string; status: string }>;
+}
+
+// Defines the structure of DataLoaders available in the context
+export interface MyLoaders {
+  sectionLoader: DataLoader<string, CMSSection[], string>;
+  // Example: userLoader?: DataLoader<string, PrismaUser, string>; 
+}
 
 // Definición de los tipos de usuario y sesión
+// This User interface is likely for the GraphQL User type, not the context user.
 export interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  role: {
-    id: string;
-    name: string;
-  };
-  permissions?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  role: RoleGQL; // Changed to RoleGQL
+  permissions?: string[]; // Typically permissions are checked via shield, not directly exposed unless intended
+  createdAt: Date; // Or string if serialized
+  updatedAt: Date; // Or string
 }
 
-export interface Session {
-  user: User;
-}
+// Session is replaced by AuthenticatedUser in the main Context
+// export interface Session {
+// user: User;
+// }
 
 // Contexto para los resolvers de GraphQL
 export interface Context {
-  req: NextRequest;
-  session?: Session;
+  req?: NextRequest; // Made optional as it might not always be needed directly
+  user: AuthenticatedUser | null; // Updated to use AuthenticatedUser
+  loaders: MyLoaders; // Added loaders
+  // tenantId?: string | null; // Example if you add tenantId directly to context
 }
 
 // Tipo para permisos específicos de usuario
@@ -35,13 +53,13 @@ export interface UserPermission {
   updatedAt: Date;
 }
 
-// Tipo para roles
-export interface Role {
+// Tipo para roles (GraphQL type)
+export interface RoleGQL { // Renamed to avoid conflict with RoleName
   id: string;
-  name: string;
+  name: string; // This should align with RoleName values
   description?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  // createdAt: Date; // Usually not exposed in GQL Role type
+  // updatedAt: Date;
 }
 
 // Tipo para permisos
@@ -279,26 +297,13 @@ export interface PageSEO {
 }
 
 // Tipo completo para página
-export interface Page {
-  id: string;
-  title: string;
-  slug: string;
-  description?: string | null;
-  template: string;
-  isPublished: boolean;
-  publishDate?: string | Date | null;
-  featuredImage?: string | null;
-  metaTitle?: string | null;
-  metaDescription?: string | null;
-  parentId?: string | null;
-  order?: number;
-  pageType: PageType | string;
-  locale?: string;
-  scrollType?: ScrollType | string;
-  createdAt: string | Date;
+// Using PrismaPage and PrismaPageType for the Page GraphQL type for consistency
+// This means your GraphQL schema for Page should align with Prisma's Page model.
+export interface Page extends Omit<PrismaPage, 'pageType' | 'sections' | 'seo' | 'createdAt' | 'updatedAt'> { // Omit to redefine with local/GraphQL types
+  pageType: PrismaPageType | string; // Use Prisma's enum
+  sections?: CMSSection[]; // Use Prisma's CMSSection type for consistency with DataLoader
+  seo?: PageSEO | null; // Use local PageSEO GraphQL type
+  // Ensure createdAt/updatedAt are string if serialized, or Date if not.
+  createdAt: string | Date; 
   updatedAt: string | Date;
-  parent?: Page | null;
-  children?: Page[];
-  seo?: PageSEO | null;
-  sections?: CMSSection[];
 }
