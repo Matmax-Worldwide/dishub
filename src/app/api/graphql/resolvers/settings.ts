@@ -1,9 +1,13 @@
-import { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+// import { NextRequest } from 'next/server'; // No longer needed if all resolvers refactored from direct req access
+// import { verifyToken } from '@/lib/auth'; // No longer needed
 import { prisma } from '@/lib/prisma';
-import { JWTPayload } from 'jose';
+// import { JWTPayload } from 'jose'; // No longer needed if DecodedToken is removed or not used
 
-import { AuthenticationError, ForbiddenError } from 'apollo-server-errors'; // Or your project's error types
+// Using GraphQLError for consistency if specific Apollo errors are not essential
+import { GraphQLError } from 'graphql';
+// Keep AuthenticationError if it's used by refactored resolvers for non-shield auth issues
+import { AuthenticationError } from 'apollo-server-errors';
+
 
 // Define input types to avoid 'any'
 interface UpdateUserSettingsInput {
@@ -41,35 +45,35 @@ interface UpdateSiteSettingsInput {
   twitterHandle?: string;
 }
 
-interface DecodedToken extends JWTPayload {
-  userId: string;
-  role?: string; // Assuming role is part of the token
-  // Add other fields from your token payload if necessary
-}
+// DecodedToken is no longer needed if all resolvers use ResolverContext
+// interface DecodedToken extends JWTPayload {
+//   userId: string;
+//   role?: string;
+// }
 
+// ResolverContext for refactored resolvers
+interface ResolverContext {
+  user?: {
+    id: string;
+    role: string;
+    permissions: string[];
+  };
+  // req?: NextRequest;
+}
 
 export const settingsResolvers = {
   Query: {
-    userSettings: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    // userSettings (Already Refactored)
+    userSettings: async (_parent: unknown, _args: unknown, context: ResolverContext) => {
       try {
-        const tokenHeader = context.req.headers.get('authorization');
-        if (!tokenHeader) {
-          throw new AuthenticationError('Authorization header missing');
+        if (!context.user || !context.user.id) {
+          console.error('UserSettings: User context not available.');
+          throw new AuthenticationError('Authentication required: User context not available.');
         }
-        const token = tokenHeader.split(' ')[1];
-        if (!token) {
-          throw new AuthenticationError('Token missing');
-        }
+        const userId = context.user.id;
 
-        const decoded = await verifyToken(token) as DecodedToken;
-        if (!decoded || !decoded.userId) {
-          throw new AuthenticationError('Invalid token');
-        }
-        
-        // Find user settings, or create if they don't exist (upsert logic)
-        // Prisma's findUniqueOrThrow might be an option if settings are guaranteed post-creation
         let settings = await prisma.userSettings.findUnique({
-          where: { userId: decoded.userId },
+          where: { userId: userId },
           include: {
             user: {
               select: { id: true, firstName: true, lastName: true, email: true }
@@ -80,12 +84,12 @@ export const settingsResolvers = {
         if (!settings) {
           settings = await prisma.userSettings.create({
             data: {
-              userId: decoded.userId,
-              emailNotifications: true, // Default value
-              theme: 'light', // Default value
-              language: 'en', // Default value
-              timeFormat: '12h', // Default value
-              dateFormat: 'MM/DD/YYYY' // Default value
+              userId: userId,
+              emailNotifications: true,
+              theme: 'light',
+              language: 'en',
+              timeFormat: '12h',
+              dateFormat: 'MM/DD/YYYY'
             },
             include: {
               user: {
@@ -94,49 +98,38 @@ export const settingsResolvers = {
             }
           });
         }
-        
         return settings;
       } catch (error) {
-        console.error('Get user settings error:', error);
+        console.error('Get user settings error:', error.message);
         if (error instanceof AuthenticationError) throw error;
-        throw new Error('Could not fetch user settings.');
+        throw new GraphQLError('Could not fetch user settings.');
       }
     },
+    // getSiteSettings (Original - public)
     getSiteSettings: async () => {
       try {
         const settings = await prisma.siteSettings.findFirst();
-        // It's okay if settings are null (e.g., not configured yet)
-        // Client-side should handle null and perhaps prompt for setup if user is admin
         return settings;
       } catch (error) {
         console.error('Get site settings error:', error);
-        throw new Error('Could not fetch site settings.');
+        throw new GraphQLError('Could not fetch site settings.');
       }
     }
   },
   
   Mutation: {
+    // updateUserSettings (Refactored)
     updateUserSettings: async (
       _parent: unknown, 
       { input }: { input: UpdateUserSettingsInput }, 
-      context: { req: NextRequest }
+      context: ResolverContext
     ) => {
       try {
-        const tokenHeader = context.req.headers.get('authorization');
-        if (!tokenHeader) {
-          throw new AuthenticationError('Authorization header missing');
+        if (!context.user || !context.user.id) {
+          console.error('UpdateUserSettings: User context not available.');
+          throw new AuthenticationError('Authentication required: User context not available.');
         }
-        const token = tokenHeader.split(' ')[1];
-        if (!token) {
-          throw new AuthenticationError('Token missing');
-        }
-
-        const decoded = await verifyToken(token) as DecodedToken;
-         if (!decoded || !decoded.userId) {
-          throw new AuthenticationError('Invalid token');
-        }
-        
-        const { userId } = decoded;
+        const userId = context.user.id;
 
         const updatedSettings = await prisma.userSettings.upsert({
           where: { userId: userId },
@@ -158,91 +151,70 @@ export const settingsResolvers = {
         
         return updatedSettings;
       } catch (error) {
-        console.error('Update user settings error:', error);
+        console.error('Update user settings error:', error.message);
         if (error instanceof AuthenticationError) throw error;
-        throw new Error('Could not update user settings.');
+        throw new GraphQLError('Could not update user settings.');
       }
     },
+
+    // updateSiteSettings (Already Refactored)
     updateSiteSettings: async (
       _parent: unknown,
       { input }: { input: UpdateSiteSettingsInput },
-      context: { req: NextRequest }
+      context: ResolverContext
     ) => {
       try {
-        const tokenHeader = context.req.headers.get('authorization');
-        if (!tokenHeader) {
-          throw new AuthenticationError('Authorization header missing');
-        }
-        const token = tokenHeader.split(' ')[1];
-        if (!token) {
-          throw new AuthenticationError('Token missing');
-        }
-
-        const decoded = await verifyToken(token) as DecodedToken;
-        if (!decoded || !decoded.userId || !decoded.role) {
-          throw new AuthenticationError('Invalid token or role missing');
-        }
-
-        // Authorization: Check if user is admin
-        // TODO: Standardize role names, e.g., use an enum or constants
-        if (decoded.role !== 'ADMIN' && decoded.role !== 'SUPER_ADMIN') { 
-          throw new ForbiddenError('Not authorized to update site settings.');
-        }
-
+        // Auth handled by graphql-shield
+        // if (!context.user) { // This check might be redundant if shield ensures isAuthenticated
+        //   throw new AuthenticationError("Authentication required for updateSiteSettings.");
+        // }
         const currentSettings = await prisma.siteSettings.findFirst();
-        
         let updatedSiteSettings;
+
+        const createData = {
+            siteName: input.siteName || 'My Website',
+            siteDescription: input.siteDescription || null,
+            logoUrl: input.logoUrl || null,
+            faviconUrl: input.faviconUrl || null,
+            primaryColor: input.primaryColor || null,
+            secondaryColor: input.secondaryColor || null,
+            googleAnalyticsId: input.googleAnalyticsId || null,
+            facebookPixelId: input.facebookPixelId || null,
+            customCss: input.customCss || null,
+            customJs: input.customJs || null,
+            contactEmail: input.contactEmail || null,
+            contactPhone: input.contactPhone || null,
+            address: input.address || null,
+            accentColor: input.accentColor || null,
+            defaultLocale: input.defaultLocale || 'en',
+            footerText: input.footerText || null,
+            maintenanceMode: input.maintenanceMode ?? false,
+            metaDescription: input.metaDescription || null,
+            metaTitle: input.metaTitle || null,
+            ogImage: input.ogImage || null,
+            socialLinks: input.socialLinks || Prisma.JsonNull,
+            supportedLocales: input.supportedLocales && input.supportedLocales.length > 0 ? input.supportedLocales : ['en'],
+            twitterCardType: input.twitterCardType || null,
+            twitterHandle: input.twitterHandle || null,
+        };
+        if (createData.supportedLocales.length === 0) {
+            createData.supportedLocales = ['en'];
+        }
+
         if (currentSettings) {
           updatedSiteSettings = await prisma.siteSettings.update({
             where: { id: currentSettings.id },
             data: input,
           });
         } else {
-          // If no settings exist, create them.
-          // Ensure all required fields for SiteSettings are present in input or have defaults
-          const createData = {
-            siteName: input.siteName || 'My Website', // Required field with default
-            siteDescription: input.siteDescription,
-            logoUrl: input.logoUrl,
-            faviconUrl: input.faviconUrl,
-            primaryColor: input.primaryColor,
-            secondaryColor: input.secondaryColor,
-            googleAnalyticsId: input.googleAnalyticsId,
-            facebookPixelId: input.facebookPixelId,
-            customCss: input.customCss,
-            customJs: input.customJs,
-            contactEmail: input.contactEmail,
-            contactPhone: input.contactPhone,
-            address: input.address,
-            accentColor: input.accentColor,
-            defaultLocale: input.defaultLocale || 'en',
-            footerText: input.footerText,
-            maintenanceMode: input.maintenanceMode ?? false,
-            metaDescription: input.metaDescription,
-            metaTitle: input.metaTitle,
-            ogImage: input.ogImage,
-            socialLinks: input.socialLinks,
-            supportedLocales: input.supportedLocales || ['en'],
-            twitterCardType: input.twitterCardType,
-            twitterHandle: input.twitterHandle,
-          };
-          
-          if (createData.supportedLocales && Array.isArray(createData.supportedLocales)) {
-            // Ensure it's not empty if the schema requires it
-             if(createData.supportedLocales.length === 0) createData.supportedLocales = ['en'];
-          } else {
-            createData.supportedLocales = ['en']; // Default if not provided
-          }
-
           updatedSiteSettings = await prisma.siteSettings.create({
             data: createData,
           });
         }
         return updatedSiteSettings;
       } catch (error) {
-        console.error('Update site settings error:', error);
-        if (error instanceof AuthenticationError || error instanceof ForbiddenError) throw error;
-        throw new Error('Could not update site settings.');
+        console.error('Update site settings error:', error.message);
+        throw new GraphQLError('Could not update site settings.');
       }
     }
   }

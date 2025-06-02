@@ -1,16 +1,10 @@
 import { rule, shield, and, or, not, allow, deny } from 'graphql-shield';
-import { IRule } from 'graphql-shield/dist/types'; // Will cause error if graphql-shield not installed
-
-// TODO: Import or define your GraphQL Context type. This is crucial.
-// Example: import { Context } from '../context'; // Adjust to your actual context definition
-// For now, we'll use 'any' for ctx type in rules for boilerplate purposes.
+import { GraphQLError } from 'graphql';
 
 // --- Reusable Rule Fragments ---
-
 const isAuthenticated = rule({ cache: 'contextual' })(
   async (parent: any, args: any, ctx: any, info: any) => {
     if (!ctx.user || !ctx.user.id) {
-      // Consider throwing a specific error type or returning a boolean
       return new Error('Not authenticated!');
     }
     return true;
@@ -26,7 +20,6 @@ const isAdmin = rule({ cache: 'contextual' })(
   }
 );
 
-// Placeholder - will need proper context.tenantId and user.tenants structure
 const isTenantMember = rule({ cache: 'contextual' })(
   async (parent: any, args: any, ctx: any, info: any) => {
     if (!ctx.user || !ctx.tenantId || !ctx.user.tenants?.some((t: any) => t.id === ctx.tenantId && t.status === 'ACTIVE')) {
@@ -38,7 +31,7 @@ const isTenantMember = rule({ cache: 'contextual' })(
 
 const isSelf = rule({ cache: 'contextual' })(
   async (parent: any, args: any, ctx: any, info: any) => {
-    const targetUserId = args.id || parent?.userId || parent?.id; // Common patterns for ID
+    const targetUserId = args.id || parent?.userId || parent?.id;
     if (!ctx.user || !targetUserId || ctx.user.id !== targetUserId) {
         return new Error('Cannot access resource belonging to another user!');
     }
@@ -55,69 +48,76 @@ const hasPermission = (permission: string) => {
   });
 };
 
-// Example resource access rule - highly dependent on actual data models and context
-const canAccessResource = (resourceType: string) =>
-  rule({ cache: 'contextual' })(async (parent: any, args: { id?: string }, ctx: any, info: any) => {
-    const resourceId = args.id || parent?.id; // ID might be in args or parent
-    // Placeholder: In a real scenario, this would involve checking user's rights to this specific resource,
-    // potentially involving a database lookup using ctx.user.id, ctx.tenantId, resourceType, resourceId.
-    console.log(`canAccessResource (placeholder): Checking access for user ${ctx.user?.id} to ${resourceType} ${resourceId}`);
-    // For now, let's assume being a tenant member is enough for some resources.
-    // This is a simplified placeholder.
-    if (await isTenantMember(parent, args, ctx, info) === true) {
-        return true;
-    }
-    return new Error(`Access to resource ${resourceType} denied.`);
-});
-
 export const permissionsShield = shield({
   Query: {
-    // Public access examples:
-    // somePublicData: allow,
-    // specificPublicPost: allow,
-
-    // Authenticated access examples:
+    // User related
     viewerProfile: isAuthenticated,
     userById: and(isAuthenticated, or(isAdmin, isSelf)),
 
-    // Tenant-specific & permission-based examples:
-    // tenantDashboardData: and(isAuthenticated, isTenantMember, hasPermission('read:dashboard')),
-    // listTenantUsers: and(isAuthenticated, isTenantMember, isAdmin, hasPermission('list:users')),
+    // CMS Query Rules
+    getAllCMSSections: and(isAuthenticated, hasPermission('read:cms_section_definitions')),
+    getPageBySlug: allow,
+    page: allow, // Assuming public access, could be: and(isAuthenticated, hasPermission('read:any_page')),
+    getSectionComponents: allow,
+    getAllCMSComponents: and(isAuthenticated, hasPermission('browse:cms_components')),
+    getCMSComponent: and(isAuthenticated, hasPermission('read:cms_component_definition')),
+    getCMSComponentsByType: and(isAuthenticated, hasPermission('browse:cms_components')),
+    getAllCMSPages: and(isAuthenticated, hasPermission('list:all_pages')),
+    getPagesUsingSectionId: and(isAuthenticated, hasPermission('find:pages_by_section')),
+    getDefaultPage: allow,
 
-    // Default for unspecified queries - choose allow or deny based on security posture
-    '*': isAuthenticated, // Example: require auth for all other queries by default
+    // Settings Query Rules
+    userSettings: isAuthenticated,
+    getSiteSettings: allow,
+
+    '*': isAuthenticated, // Default for other unspecified queries
   },
   Mutation: {
-    // Examples:
-    // updateProfile: and(isAuthenticated, isSelf, hasPermission('update:own_profile')),
-    // createUser: and(isAuthenticated, isAdmin, hasPermission('create:user')),
-    // publishPost: and(isAuthenticated, isTenantMember, hasPermission('publish:post')),
+    // User related
+    createUser: and(isAuthenticated, hasPermission('create:user')),
+    updateUser: and(isAuthenticated, hasPermission('update:user')),
+    deleteUser: and(isAuthenticated, hasPermission('delete:user')),
 
-    // Default for unspecified mutations
-    '*': isAuthenticated, // Example: require auth for all mutations by default
+    // CMS Mutation Rules
+    saveSectionComponents: and(isAuthenticated, hasPermission('edit:cms_content')),
+    deleteCMSSection: and(isAuthenticated, hasPermission('delete:cms_section')),
+    createCMSComponent: and(isAuthenticated, hasPermission('create:cms_component_definition')),
+    updateCMSComponent: and(isAuthenticated, hasPermission('update:cms_component_definition')),
+    deleteCMSComponent: and(isAuthenticated, hasPermission('delete:cms_component_definition')),
+    updateCMSSection: and(isAuthenticated, hasPermission('update:cms_section_metadata')),
+    createPage: and(isAuthenticated, hasPermission('create:page')),
+    updatePage: and(isAuthenticated, hasPermission('edit:page')),
+    deletePage: and(isAuthenticated, hasPermission('delete:page')),
+    associateSectionToPage: and(isAuthenticated, hasPermission('edit:page_structure')),
+    dissociateSectionFromPage: and(isAuthenticated, hasPermission('edit:page_structure')),
+
+    // Settings Mutation Rules
+    updateUserSettings: isAuthenticated,
+    updateSiteSettings: and(isAuthenticated, hasPermission('update:site_settings')),
+
+    '*': isAuthenticated, // Default for other unspecified mutations
   },
-  User: { // Field-level permissions on User type
+  User: {
     email: or(isSelf, isAdmin),
-    // other fields on User might be 'allow' by default if the parent query was allowed.
   },
-  // Add other Type specific field permissions as needed
-  // Example:
-  // Post: {
-  //   authorEmail: and(isAuthenticated, or(isAdmin, isSelf /* if self is author */)),
-  //   views: isAdmin,
-  // },
-
-  // Fallback Rules
+  CMSSection: {
+    components: isAuthenticated,
+  },
+  Page: {
+    sections: isAuthenticated,
+  }
 }, {
   allowExternalErrors: true,
   debug: process.env.NODE_ENV === 'development',
-  fallbackRule: deny, // Deny access if no rule explicitly allows for a field/type
+  fallbackRule: deny,
   fallbackError: (error: any, parent: any, args: any, context: any, info: any) => {
-    if (error) {
-      console.error('GraphQL Shield Triggered Error:', error.message, { path: info.path });
-      return error; // Return the specific error from the rule
+    const pathKey = info.path?.key || 'unknown path';
+    if (error && error.message && error.message !== 'Not Authorised!') {
+      console.error(`GraphQL Shield Triggered Error at path '${pathKey}':`, error.message);
+      return error;
     }
-    console.warn('GraphQL Shield: Access denied by fallback rule for path:', info.path.key);
-    return new Error(`Not authorized to access '${info.path.key}'.`);
+    return new GraphQLError(`Not authorized to access '${pathKey}'. Access denied.`, {
+      extensions: { code: 'FORBIDDEN' }
+    });
   }
 });
