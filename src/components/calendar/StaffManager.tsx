@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import graphqlClient from '@/lib/graphql-client';
 import { StaffProfile, User } from '@/types/calendar';
 import StaffCreator from './StaffCreator';
@@ -35,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
 export default function StaffManager() {
+  const router = useRouter();
   const [staffMembers, setStaffMembers] = useState<StaffProfile[]>([]);
   const [allUsers, setAllUsers] = useState<Partial<User>[]>([]);
   
@@ -108,6 +110,10 @@ export default function StaffManager() {
     fetchData(false); // Refresh the staff list
   };
 
+  const handleEdit = (staffId: string) => {
+    router.push(`/bookings/staff/edit?id=${staffId}`);
+  };
+
   if (isLoadingData && staffMembers.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -178,8 +184,8 @@ export default function StaffManager() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast.info('Edit functionality coming soon!')}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Profile & Schedule
+                      <DropdownMenuItem onClick={() => handleEdit(staff.id)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit Profile & Assignments
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDeleteConfirmation(staff)} className="text-red-600 focus:text-red-600 focus:bg-red-50">
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Staff

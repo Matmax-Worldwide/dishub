@@ -118,7 +118,10 @@ export default function CategoryManager() {
     try {
       let result;
       if (editingCategory?.id) { 
-        result = await graphqlClient.updateServiceCategory({ id: editingCategory.id, input: data });
+        // Remove id from input data as it's passed separately as a parameter
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...inputData } = data;
+        result = await graphqlClient.updateServiceCategory({ id: editingCategory.id, input: inputData });
         toast.success(`Category "${result.name}" updated successfully.`);
       } else { 
         result = await graphqlClient.createServiceCategory({ input: data });

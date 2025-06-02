@@ -13,7 +13,9 @@ export default function CMSLayout({
   return (
     <UnsavedChangesProvider>
       <div className="flex h-screen">
+
         <CMSSidebar />
+
         <div className="flex-1 overflow-auto">
         {/* This is a nested layout inside the admin layout */}
         {children}

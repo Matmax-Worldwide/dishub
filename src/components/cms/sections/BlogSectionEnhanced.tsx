@@ -509,189 +509,225 @@ export default function BlogSectionEnhanced({
 
   if (isEditing) {
     return (
-      <div className="space-y-6 p-6 border rounded-lg">
+      <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="display">Display</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+            <TabsTrigger 
+              value="content"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Details
+            </TabsTrigger>
+            <TabsTrigger 
+              value="display"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Display
+            </TabsTrigger>
+            <TabsTrigger 
+              value="advanced"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Advanced
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="content" className="space-y-4">
-            <StableInput
-              value={title}
-              onChange={(value) => handleUpdateField('title', value)}
-              placeholder="Blog section title..."
-              label="Section Title"
-              className="text-2xl font-bold"
-            />
-            
-            <StableInput
-              value={subtitle}
-              onChange={(value) => handleUpdateField('subtitle', value)}
-              placeholder="Section subtitle..."
-              label="Subtitle"
-            />
-            
-            {/* Blog Selection */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Select Blog</Label>
-              <Select value={blogId || 'none'} onValueChange={(value) => handleUpdateField('blogId', value === 'none' ? '' : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a blog to display posts from..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No blog selected</SelectItem>
-                  {blogs.map(blog => (
-                    <SelectItem key={blog.id} value={blog.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{blog.title}</span>
-                        {!blog.isActive && <Badge variant="outline" className="ml-2">Inactive</Badge>}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {blogId && (
-                <div className="mt-2 p-3 bg-muted rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-2">Blog Statistics:</p>
-                  {blogs.find(b => b.id === blogId)?.stats && (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>Posts: {blogs.find(b => b.id === blogId)?.stats?.totalPosts}</div>
-                      <div>Published: {blogs.find(b => b.id === blogId)?.stats?.publishedPosts}</div>
-                      <div>Views: {blogs.find(b => b.id === blogId)?.stats?.totalViews}</div>
-                      <div>Engagement: {blogs.find(b => b.id === blogId)?.stats?.avgEngagement}%</div>
+          <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Content Configuration</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <StableInput
+                  value={title}
+                  onChange={(value) => handleUpdateField('title', value)}
+                  placeholder="Blog section title..."
+                  label="Section Title"
+                  className="text-2xl font-bold"
+                />
+                
+                <StableInput
+                  value={subtitle}
+                  onChange={(value) => handleUpdateField('subtitle', value)}
+                  placeholder="Section subtitle..."
+                  label="Subtitle"
+                />
+                
+                {/* Blog Selection */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Select Blog</Label>
+                  <Select value={blogId || 'none'} onValueChange={(value) => handleUpdateField('blogId', value === 'none' ? '' : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a blog to display posts from..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No blog selected</SelectItem>
+                      {blogs.map(blog => (
+                        <SelectItem key={blog.id} value={blog.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{blog.title}</span>
+                            {!blog.isActive && <Badge variant="outline" className="ml-2">Inactive</Badge>}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {blogId && (
+                    <div className="mt-2 p-3 bg-muted rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-2">Blog Statistics:</p>
+                      {blogs.find(b => b.id === blogId)?.stats && (
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>Posts: {blogs.find(b => b.id === blogId)?.stats?.totalPosts}</div>
+                          <div>Published: {blogs.find(b => b.id === blogId)?.stats?.publishedPosts}</div>
+                          <div>Views: {blogs.find(b => b.id === blogId)?.stats?.totalViews}</div>
+                          <div>Engagement: {blogs.find(b => b.id === blogId)?.stats?.avgEngagement}%</div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="display" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium">Layout</Label>
-                <Select value={layout} onValueChange={(value) => handleUpdateField('layout', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grid</SelectItem>
-                    <SelectItem value="list">List</SelectItem>
-                    <SelectItem value="carousel">Carousel</SelectItem>
-                    <SelectItem value="masonry">Masonry</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label className="text-sm font-medium">Posts Per Page</Label>
-                <Input
-                  type="number"
-                  value={postsPerPage}
-                  onChange={(e) => handleUpdateField('postsPerPage', parseInt(e.target.value))}
-                  min={1}
-                  max={50}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Display Options</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={searchEnabled}
-                    onCheckedChange={(checked) => handleUpdateField('searchEnabled', checked)}
-                  />
-                  <Label className="text-sm">Enable Search</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={filtersEnabled}
-                    onCheckedChange={(checked) => handleUpdateField('filtersEnabled', checked)}
-                  />
-                  <Label className="text-sm">Enable Filters</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showFeaturedImage}
-                    onCheckedChange={(checked) => handleUpdateField('showFeaturedImage', checked)}
-                  />
-                  <Label className="text-sm">Show Featured Images</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showAuthor}
-                    onCheckedChange={(checked) => handleUpdateField('showAuthor', checked)}
-                  />
-                  <Label className="text-sm">Show Author</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showDate}
-                    onCheckedChange={(checked) => handleUpdateField('showDate', checked)}
-                  />
-                  <Label className="text-sm">Show Date</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showTags}
-                    onCheckedChange={(checked) => handleUpdateField('showTags', checked)}
-                  />
-                  <Label className="text-sm">Show Tags</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showExcerpt}
-                    onCheckedChange={(checked) => handleUpdateField('showExcerpt', checked)}
-                  />
-                  <Label className="text-sm">Show Excerpt</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showStats}
-                    onCheckedChange={(checked) => handleUpdateField('showStats', checked)}
-                  />
-                  <Label className="text-sm">Show Statistics</Label>
-                </div>
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="advanced" className="space-y-4">
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Advanced Features</Label>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={showAnalytics}
-                    onCheckedChange={(checked) => handleUpdateField('showAnalytics', checked)}
-                  />
-                  <Label className="text-sm">Show Analytics View</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={autoRefresh}
-                    onCheckedChange={(checked) => handleUpdateField('autoRefresh', checked)}
-                  />
-                  <Label className="text-sm">Auto Refresh Content</Label>
-                </div>
-                
-                {autoRefresh && (
+          <TabsContent value="display" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Display Settings</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">Refresh Interval (seconds)</Label>
+                    <Label className="text-sm font-medium">Layout</Label>
+                    <Select value={layout} onValueChange={(value) => handleUpdateField('layout', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="grid">Grid</SelectItem>
+                        <SelectItem value="list">List</SelectItem>
+                        <SelectItem value="carousel">Carousel</SelectItem>
+                        <SelectItem value="masonry">Masonry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium">Posts Per Page</Label>
                     <Input
                       type="number"
-                      value={refreshInterval / 1000}
-                      onChange={(e) => handleUpdateField('refreshInterval', parseInt(e.target.value) * 1000)}
-                      min={10}
-                      max={300}
+                      value={postsPerPage}
+                      onChange={(e) => handleUpdateField('postsPerPage', parseInt(e.target.value))}
+                      min={1}
+                      max={50}
                     />
                   </div>
-                )}
+                </div>
+                
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Display Options</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={searchEnabled}
+                        onCheckedChange={(checked) => handleUpdateField('searchEnabled', checked)}
+                      />
+                      <Label className="text-sm">Enable Search</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={filtersEnabled}
+                        onCheckedChange={(checked) => handleUpdateField('filtersEnabled', checked)}
+                      />
+                      <Label className="text-sm">Enable Filters</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showFeaturedImage}
+                        onCheckedChange={(checked) => handleUpdateField('showFeaturedImage', checked)}
+                      />
+                      <Label className="text-sm">Show Featured Images</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showAuthor}
+                        onCheckedChange={(checked) => handleUpdateField('showAuthor', checked)}
+                      />
+                      <Label className="text-sm">Show Author</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showDate}
+                        onCheckedChange={(checked) => handleUpdateField('showDate', checked)}
+                      />
+                      <Label className="text-sm">Show Date</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showTags}
+                        onCheckedChange={(checked) => handleUpdateField('showTags', checked)}
+                      />
+                      <Label className="text-sm">Show Tags</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showExcerpt}
+                        onCheckedChange={(checked) => handleUpdateField('showExcerpt', checked)}
+                      />
+                      <Label className="text-sm">Show Excerpt</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={showStats}
+                        onCheckedChange={(checked) => handleUpdateField('showStats', checked)}
+                      />
+                      <Label className="text-sm">Show Statistics</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Advanced Features</h3>
+              </div>
+              <div className="pl-6 space-y-3">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={showAnalytics}
+                      onCheckedChange={(checked) => handleUpdateField('showAnalytics', checked)}
+                    />
+                    <Label className="text-sm">Show Analytics View</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={autoRefresh}
+                      onCheckedChange={(checked) => handleUpdateField('autoRefresh', checked)}
+                    />
+                    <Label className="text-sm">Auto Refresh Content</Label>
+                  </div>
+                  
+                  {autoRefresh && (
+                    <div>
+                      <Label className="text-sm font-medium">Refresh Interval (seconds)</Label>
+                      <Input
+                        type="number"
+                        value={refreshInterval / 1000}
+                        onChange={(e) => handleUpdateField('refreshInterval', parseInt(e.target.value) * 1000)}
+                        min={10}
+                        max={300}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </TabsContent>

@@ -705,6 +705,7 @@ function SectionManagerBase({
   sectionBackground,
   sectionBackgroundType
 }: SectionManagerProps) {
+  
   const [components, setComponents] = useState<Component[]>(initialComponents);
   // Track collapsed components by ID - initialize with empty set (all expanded)
   const [collapsedComponents, setCollapsedComponents] = useState<Set<string>>(new Set());
@@ -1921,6 +1922,8 @@ function SectionManagerBase({
       data-section-manager="true"
       data-cms-editor={isEditing ? "true" : "false"}
     >
+ 
+
       {isEditing && (
         <div className="flex justify-between items-center mb-4 p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
           <div className="flex items-center">
@@ -1944,6 +1947,8 @@ function SectionManagerBase({
               </button>
             </div>
           </div>
+          
+    
         </div>
       )}
 
@@ -2010,6 +2015,8 @@ function SectionManagerBase({
     </div>
   );
 }
+
+
 
 // Exportamos el componente memoizado
 export default memo(SectionManagerBase); 

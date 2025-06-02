@@ -1778,6 +1778,24 @@ export const typeDefs = gql`
     borderBottom: Boolean
     fixedHeader: Boolean
     advancedOptions: JSON
+    # Button configuration fields
+    showButton: Boolean
+    buttonText: String
+    buttonAction: String
+    buttonColor: String
+    buttonTextColor: String
+    buttonSize: String
+    buttonBorderRadius: Int
+    buttonShadow: String
+    buttonBorderColor: String
+    buttonBorderWidth: Int
+    buttonWidth: String
+    buttonHeight: String
+    buttonPosition: String
+    buttonDropdown: Boolean
+    buttonDropdownItems: JSON
+    buttonUrlType: String
+    selectedPageId: String
     createdAt: DateTime
     updatedAt: DateTime
   }
@@ -1883,6 +1901,24 @@ export const typeDefs = gql`
     borderBottom: Boolean
     fixedHeader: Boolean
     advancedOptions: JSON
+    # Button configuration fields
+    showButton: Boolean
+    buttonText: String
+    buttonAction: String
+    buttonColor: String
+    buttonTextColor: String
+    buttonSize: String
+    buttonBorderRadius: Int
+    buttonShadow: String
+    buttonBorderColor: String
+    buttonBorderWidth: Int
+    buttonWidth: String
+    buttonHeight: String
+    buttonPosition: String
+    buttonDropdown: Boolean
+    buttonDropdownItems: JSON
+    buttonUrlType: String
+    selectedPageId: String
   }
 
   # Input for header advanced options

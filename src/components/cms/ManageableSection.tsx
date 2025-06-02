@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, memo, useRef } from 'react';
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';  
 import { cn } from '@/lib/utils';
 import BackgroundSelector from './BackgroundSelector';
 import MediaSelector from './MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
-import { Palette, Eye, EyeOff } from 'lucide-react';
-
-// Lazy load SectionPreview to improve initial load time
-const SectionPreview = lazy(() => import('./SectionPreview'));
+import { Edit, Eye } from 'lucide-react';
+import { useViewMode } from '@/contexts/ViewModeContext';
 
 // ComponentType type is compatible with SectionManager's ComponentType
 // The string union in SectionManager is more restrictive
@@ -21,7 +19,6 @@ interface ManageableSectionProps {
   isEditing?: boolean;
   onComponentsChange?: () => void;
   sectionName?: string;
-  onSectionNameChange?: (newName: string) => void;
 }
 
 // Definir la interfaz para el handle del ref
@@ -29,9 +26,9 @@ interface ManageableSectionHandle {
   saveChanges: (skipLoadingState?: boolean) => Promise<void>;
 }
 
-// Loading component for SectionPreview
+// Loading component for Preview
 const PreviewLoader = memo(() => (
-  <div className="w-1/2 pl-4 flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted">
+  <div className="w-full flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted">
     <div className="text-center py-8">
       <div className="animate-spin h-8 w-8 border-4 border-muted border-t-foreground/30 rounded-full mx-auto mb-3"></div>
       <p className="text-sm text-muted-foreground">Loading preview...</p>
@@ -46,16 +43,14 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   isEditing = false,
   onComponentsChange,
   sectionName,
-  onSectionNameChange,
 }, ref) => {
+  // Use global view mode context
+  const { viewMode, isPreviewLoaded, setIsPreviewLoaded, setViewMode } = useViewMode();
+  
   // Estado local para manejar los componentes
   const [pendingComponents, setPendingComponents] = useState<Component[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(sectionName || '');
-  // Estado para manejar modo de visualización
-  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('edit'); // Default to edit mode for better performance
   // Track if there are unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // Track active component in viewport
@@ -66,21 +61,13 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
   const isEditingComponentRef = useRef(false);
   // Track error message
   const [errorMessage, setErrorMessage] = useState<string>('');
-  // Track saving state for optimistic UI
-  const [isSaving, setIsSaving] = useState(false);
   // Estado para gestionar componentes colapsados
   const [collapsedComponents, setCollapsedComponents] = useState<Record<string, boolean>>({});
-  // Track inspection mode
-  const [inspectionMode, setInspectionMode] = useState(false);
   // Background management state
   const [sectionBackground, setSectionBackground] = useState<string>('');
   const [sectionBackgroundType, setSectionBackgroundType] = useState<'image' | 'gradient'>('gradient');
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showMediaSelectorForBackground, setShowMediaSelectorForBackground] = useState(false);
-  
-  // New state for preview loading optimization
-  const [isPreviewLoaded, setIsPreviewLoaded] = useState(false);
-  const [showPreviewButton, setShowPreviewButton] = useState(true);
 
   // Validate and normalize the section ID
   const normalizedSectionId = sectionId;
@@ -230,59 +217,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
     loadComponents();
   }, [sectionId]);
 
-  useEffect(() => {
-    if (sectionName) {
-      setEditedTitle(sectionName);
-    }
-  }, [sectionName]);
-
-  const handleTitleClick = () => {
-    if (isEditing) {
-      setIsEditingTitle(true);
-    }
-  };
-
-  const handleTitleSave = () => {
-    setIsEditingTitle(false);
-    if (onSectionNameChange && editedTitle !== sectionName) {
-      onSectionNameChange(editedTitle);
-      
-      // Also update the section name in the database
-      if (normalizedSectionId) {
-        console.log(`Updating section name in database to: ${editedTitle}`);
-        // Use a debounce here to prevent immediate API calls during typing
-        if (componentChangeTimeoutRef.current) {
-          clearTimeout(componentChangeTimeoutRef.current);
-        }
-        
-        componentChangeTimeoutRef.current = setTimeout(() => {
-        cmsOperations.updateSectionName(normalizedSectionId, editedTitle)
-          .then(result => {
-            if (result.success) {
-              console.log('Section name updated in database successfully');
-            } else {
-              console.error('Failed to update section name in database:', result.message);
-            }
-          })
-          .catch(error => {
-            console.error('Error updating section name in database:', error);
-          });
-        }, 500);
-      }
-    }
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent default to avoid form submission
-      handleTitleSave();
-    } else if (e.key === 'Escape') {
-      // Cancel editing and revert to previous title
-      setIsEditingTitle(false);
-      setEditedTitle(sectionName || '');
-    }
-  };
-
   // Memoizar la función handleComponentsChange para evitar recreaciones
   const handleComponentsChange = useCallback((newComponents: Component[]) => {
     // Mark that we're editing to prevent focus loss
@@ -369,7 +303,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         // Show subtle saving indicator without disrupting the UI
         if (!skipLoadingState) {
           // Instead of setIsLoading(true), show a subtle indicator
-          setIsSaving(true);
           console.log('💾 Saving changes...');
         }
         
@@ -417,7 +350,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
             
             // Restore view mode
             if (currentViewMode !== viewMode) {
-              setViewMode(currentViewMode);
+              setIsPreviewLoaded(true);
             }
             
             // Restore focus and selection
@@ -448,153 +381,16 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         }, 0);
         
         // Clear saving indicator
-        setIsSaving(false);
         
         resolve();
       } catch (error) {
         console.error('❌ OPTIMISTIC UI: Error saving section:', error);
-        setIsSaving(false);
         setErrorMessage('Error al guardar la sección. Por favor intenta de nuevo.');
         setTimeout(() => setErrorMessage(''), 5000);
         reject(error);
       }
     });
-  }, [sectionId, activeComponentId, collapsedComponents, viewMode]);
-
-  // Function to toggle view mode
-  const toggleViewMode = useCallback((mode: 'split' | 'edit' | 'preview') => {
-    setViewMode(mode);
-  }, []);
-
-  // Add pulsating button animations
-  useEffect(() => {
-    // Create a style element
-    const styleEl = document.createElement('style');
-    styleEl.id = 'pulsating-buttons-styles';
-    styleEl.innerHTML = `
-      /* Pulsating button animations - more subtle for global buttons */
-      .expand-button-global {
-        animation: pulseExpandButtonSubtle 3s infinite;
-        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-        transform-origin: center;
-      }
-      
-      .collapse-button-global {
-        animation: pulseCollapseButtonSubtle 3s infinite;
-        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-        transform-origin: center;
-      }
-      
-      /* Smaller toggle buttons for components */
-      .small-toggle-button {
-        padding: 0.15rem !important;
-        width: 1.5rem;
-        height: 1.5rem;
-      }
-      
-      .small-toggle-button svg {
-        width: 0.8rem;
-        height: 0.8rem;
-      }
-      
-      /* Regular animation for component-level buttons */
-      .expand-button {
-        animation: pulseExpandButton 2s infinite;
-        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-        transform-origin: center;
-      }
-      
-      .collapse-button {
-        animation: pulseCollapseButton 2s infinite;
-        box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-        transform-origin: center;
-      }
-      
-      @keyframes pulseExpandButtonSubtle {
-        0% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
-          transform: scale(1);
-        }
-        
-        50% {
-          box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
-          transform: scale(1.05);
-        }
-        
-        100% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          transform: scale(1);
-        }
-      }
-      
-      @keyframes pulseCollapseButtonSubtle {
-        0% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
-          transform: scale(1);
-        }
-        
-        50% {
-          box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
-          transform: scale(0.97);
-        }
-        
-        100% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          transform: scale(1);
-        }
-      }
-      
-      @keyframes pulseExpandButton {
-        0% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-          transform: scale(1);
-        }
-        
-        50% {
-          box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
-          transform: scale(1.15);
-        }
-        
-        100% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          transform: scale(1);
-        }
-      }
-      
-      @keyframes pulseCollapseButton {
-        0% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-          transform: scale(1);
-        }
-        
-        50% {
-          box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
-          transform: scale(0.9);
-        }
-        
-        100% {
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          transform: scale(1);
-        }
-      }
-    `;
-    
-    // Add it to the document
-    document.head.appendChild(styleEl);
-    
-    return () => {
-      // Clean up
-      const existingStyle = document.getElementById('pulsating-buttons-styles');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    };
-  }, []);
-
-  // Toggle inspection mode
-  const toggleInspectionMode = useCallback(() => {
-    setInspectionMode(!inspectionMode);
-  }, [inspectionMode]);
+  }, [sectionId, activeComponentId, collapsedComponents, viewMode, setIsPreviewLoaded]);
 
   // Background selection handlers
   const handleBackgroundSelect = useCallback((background: string, type: 'image' | 'gradient') => {
@@ -645,8 +441,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
   // Handle element inspection
   const handleInspectElement = useCallback((e: MouseEvent) => {
-    if (!inspectionMode) return;
-    
     e.preventDefault();
     e.stopPropagation();
     
@@ -673,181 +467,25 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       
       // Set view mode to edit if in preview mode
       if (viewMode === 'preview') {
-        setViewMode('split');
+        setIsPreviewLoaded(true);
       }
       
       // Make sure component is expanded
       const newCollapsedState = { ...collapsedComponents };
       delete newCollapsedState[componentId];
       setCollapsedComponents(newCollapsedState);
-      
-      // Exit inspection mode
-      setInspectionMode(false);
     }
-  }, [inspectionMode, collapsedComponents, viewMode]);
+  }, [collapsedComponents, viewMode, setIsPreviewLoaded]);
 
   // Set up and clean up inspection mode listener
   useEffect(() => {
-    if (inspectionMode) {
-      // Add hover highlights to elements that can be inspected
-      document.body.classList.add('inspection-mode');
-      
-      // Listen for click events to inspect elements
-      document.addEventListener('click', handleInspectElement);
-      
-      // Add inspection styles
-      const styleEl = document.createElement('style');
-      styleEl.id = 'inspection-mode-styles';
-      styleEl.innerHTML = `
-        .inspection-mode [data-component-id]:hover {
-          outline: 2px dashed #3b82f6 !important;
-          cursor: crosshair !important;
-          position: relative;
-        }
-        .inspection-mode [data-field-type]:hover {
-          outline: 2px solid #ec4899 !important;
-          cursor: crosshair !important;
-          position: relative;
-        }
-        
-        /* Pulsating button animations - more subtle for global buttons */
-        .expand-button-global {
-          animation: pulseExpandButtonSubtle 3s infinite;
-          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-          transform-origin: center;
-        }
-        
-        .collapse-button-global {
-          animation: pulseCollapseButtonSubtle 3s infinite;
-          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-          transform-origin: center;
-        }
-        
-        /* Smaller toggle buttons for components */
-        .small-toggle-button {
-          padding: 0.15rem !important;
-          width: 1.5rem;
-          height: 1.5rem;
-        }
-        
-        .small-toggle-button svg {
-          width: 0.8rem;
-          height: 0.8rem;
-        }
-        
-        /* Regular animation for component-level buttons */
-        .expand-button {
-          animation: pulseExpandButton 2s infinite;
-          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-          transform-origin: center;
-        }
-        
-        .collapse-button {
-          animation: pulseCollapseButton 2s infinite;
-          box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-          transform-origin: center;
-        }
-        
-        @keyframes pulseExpandButtonSubtle {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
-            transform: scale(1);
-          }
-          
-          50% {
-            box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
-            transform: scale(1.05);
-          }
-          
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            transform: scale(1);
-          }
-        }
-        
-        @keyframes pulseCollapseButtonSubtle {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
-            transform: scale(1);
-          }
-          
-          50% {
-            box-shadow: 0 0 0 5px rgba(14, 165, 233, 0);
-            transform: scale(0.97);
-          }
-          
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            transform: scale(1);
-          }
-        }
-        
-        @keyframes pulseExpandButton {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-            transform: scale(1);
-          }
-          
-          50% {
-            box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
-            transform: scale(1.15);
-          }
-          
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            transform: scale(1);
-          }
-        }
-        
-        @keyframes pulseCollapseButton {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-            transform: scale(1);
-          }
-          
-          50% {
-            box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
-            transform: scale(0.9);
-          }
-          
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            transform: scale(1);
-          }
-        }
-      `;
-      document.head.appendChild(styleEl);
-      
-      return () => {
-        document.body.classList.remove('inspection-mode');
-        document.removeEventListener('click', handleInspectElement);
-        
-        // Remove inspection styles
-        const existingStyle = document.getElementById('inspection-mode-styles');
-        if (existingStyle) {
-          existingStyle.remove();
-        }
-      };
-    }
-  }, [inspectionMode, handleInspectElement]);
-
-  // Handle preview loading
-  const handleLoadPreview = useCallback(() => {
-    setIsPreviewLoaded(true);
-    setShowPreviewButton(false);
-    if (viewMode === 'edit') {
-      setViewMode('split');
-    }
-  }, [viewMode]);
-
-  // Handle hiding preview
-  const handleHidePreview = useCallback(() => {
-    setIsPreviewLoaded(false);
-    setShowPreviewButton(true);
-    if (viewMode === 'split') {
-      setViewMode('edit');
-    }
-  }, [viewMode]);
+    // Listen for click events to inspect elements
+    document.addEventListener('click', handleInspectElement);
+    
+    return () => {
+      document.removeEventListener('click', handleInspectElement);
+    };
+  }, [handleInspectElement]);
 
   return (
     <div 
@@ -857,129 +495,6 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
       data-preview-mode={!isEditing ? "true" : "false"}
       style={{ zIndex: 1, position: 'relative' }}
     >
-      {isEditing && (
-        <div className="mb-4">
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              {isEditingTitle ? (
-                <div className="flex items-center mb-2">
-                  <input
-                    type="text"
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onBlur={handleTitleSave}
-                    onKeyDown={handleTitleKeyDown}
-                    className="border border-input rounded-md px-3 py-1 mr-2 text-sm font-medium w-full focus:outline-none focus:ring-1 focus:ring-ring"
-                    autoFocus
-                  />
-                  <button 
-                    onClick={handleTitleSave}
-                    className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-md hover:bg-muted/80 transition-colors"
-                  >
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <div 
-                  onClick={handleTitleClick} 
-                  className="text-lg font-medium text-foreground hover:text-accent-foreground cursor-pointer mb-2 inline-flex items-center"
-                >
-                  {editedTitle || "Untitled Section"}
-                  <span className="ml-2 text-xs text-muted-foreground">(click to edit)</span>
-                </div>
-              )}
-            </div>
-            
-            {/* View mode toggle buttons */}
-            <div className="flex items-center space-x-2">
-              {/* Subtle saving indicator */}
-              {isSaving && (
-                <div className="flex items-center px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded-md border border-blue-200">
-                  <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent mr-1"></div>
-                  Saving...
-                </div>
-              )}
-              
-              {/* Background selection button */}
-              <button
-                onClick={() => setShowBackgroundSelector(true)}
-                className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
-                title="Change section background"
-              >
-                <Palette className="w-3 h-3 mr-1" />
-                Background
-              </button>
-              
-              {/* Preview toggle button */}
-              {showPreviewButton ? (
-                <button
-                  onClick={handleLoadPreview}
-                  className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
-                  title="Load preview"
-                >
-                  <Eye className="w-3 h-3 mr-1" />
-                  Load Preview
-                </button>
-              ) : (
-                <button
-                  onClick={handleHidePreview}
-                  className="flex items-center px-3 py-1.5 text-xs rounded-md border border-border bg-background text-muted-foreground hover:bg-muted/30 transition-colors"
-                  title="Hide preview"
-                >
-                  <EyeOff className="w-3 h-3 mr-1" />
-                  Hide Preview
-                </button>
-              )}
-              
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => toggleViewMode('edit')}
-                  className={`px-3 py-1 text-xs rounded-l-md border ${
-                    viewMode === 'edit' 
-                      ? 'bg-accent text-accent-foreground border-accent' 
-                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                  }`}
-                >
-                  Editor
-                </button>
-                <button
-                  onClick={() => {
-                    if (!isPreviewLoaded) {
-                      handleLoadPreview();
-                    } else {
-                      toggleViewMode('split');
-                    }
-                  }}
-                  className={`px-3 py-1 text-xs border-t border-b ${
-                    viewMode === 'split' 
-                      ? 'bg-accent text-accent-foreground border-accent' 
-                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                  }`}
-                >
-                  Split
-                </button>
-                <button
-                  onClick={() => {
-                    if (!isPreviewLoaded) {
-                      handleLoadPreview();
-                    }
-                    toggleViewMode('preview');
-                  }}
-                  className={`px-3 py-1 text-xs rounded-r-md border ${
-                    viewMode === 'preview' 
-                      ? 'bg-accent text-accent-foreground border-accent' 
-                      : 'bg-background text-muted-foreground border-border hover:bg-muted/30'
-                  }`}
-                >
-                  Preview
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="h-px bg-border w-full mt-2 mb-4"></div>
-        </div>
-      )}
-    
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">
           <div className="animate-spin h-8 w-8 border-4 border-muted border-t-foreground/30 rounded-full mx-auto mb-3"></div>
@@ -991,65 +506,23 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
         </div>
       ) : (
         <>
-          {/* Split View (edit + preview) */}
-          {viewMode === 'split' && (
-            <div className="w-full flex flex-row">
-              {/* Editor section */}
-              <div className={cn(
-                "w-1/2 pr-4 border-r",
-                activeComponentId ? "overflow-y-auto" : ""
-              )}>
-                <SectionManager
-                  initialComponents={pendingComponents}
-                  isEditing={true}
-                  onComponentsChange={handleComponentsChange}
-                  activeComponentId={activeComponentId}
-                  onClickComponent={setActiveComponentId}
-                  sectionBackground={sectionBackground}
-                  sectionBackgroundType={sectionBackgroundType}
-                />
-              </div>
-              
-              {/* Preview section - Only load if preview is loaded */}
-              {isPreviewLoaded ? (
-                <Suspense fallback={<PreviewLoader />}>
-                  <SectionPreview
-                    pendingComponents={pendingComponents}
-                    isEditing={isEditing}
-                    inspectionMode={inspectionMode}
-                    toggleInspectionMode={toggleInspectionMode}
-                    sectionBackground={sectionBackground}
-                    sectionBackgroundType={sectionBackgroundType}
-                    activeComponentId={activeComponentId}
-                    setActiveComponentId={setActiveComponentId}
-                    collapsedComponents={collapsedComponents}
-                    setCollapsedComponents={setCollapsedComponents}
-                    isEditingComponentRef={isEditingComponentRef}
-                  />
-                </Suspense>
-              ) : (
-                <div className="w-1/2 pl-4 flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted">
-                  <div className="text-center py-12">
-                    <Eye className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <h3 className="text-lg font-medium text-muted-foreground mb-2">Preview Not Loaded</h3>
-                    <p className="text-sm text-muted-foreground mb-4">Click &quot;Load Preview&quot; to see your changes in real-time</p>
-                    <button
-                      onClick={handleLoadPreview}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      Load Preview
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Edit View */}
           {viewMode === 'edit' && (
             <div className="w-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-muted-foreground">Modo Editor</h3>
+                <h3 
+                  className="text-sm font-mediuEditm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => {
+                    setViewMode('preview');
+                    setIsPreviewLoaded(true);
+                  }}
+                  title="Click to switch to Preview Mode"
+                >
+                  <div className="flex items-center">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Change to Preview Mode
+                  </div>
+                </h3>
               </div>
               <div className={cn(
                 "w-full",
@@ -1069,7 +542,24 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
 
           {/* Preview View */}
           {viewMode === 'preview' && (
-            <div className="w-full">
+            <div className="w-full relative">
+              {/* Floating Edit Button */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 
+                  className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => {
+                    setViewMode('edit');
+                    setIsPreviewLoaded(false);
+                  }}
+                  title="Click to switch to Edit Mode"
+                >
+                  <div className="flex items-center">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Change to Editor Mode
+                  </div>
+                </h3>
+              </div>
+              
               <div className="relative mx-auto">
                 <div 
                   className="w-full overflow-hidden transition-all duration-300 border rounded-md shadow-sm"
@@ -1083,25 +573,23 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                   }}
                 >
                   {isPreviewLoaded ? (
-                    <Suspense fallback={<PreviewLoader />}>
-                      <SectionManager
-                        initialComponents={pendingComponents}
-                        isEditing={false}
-                        componentClassName={(type: string) => {
-                          // Allow headers to use their own positioning logic (sticky in preview)
-                          const isVideoComponent = type.toLowerCase() === 'video';
-                          let classNames = `component-${type.toLowerCase()}`;
-                          
-                          if (isVideoComponent) {
-                            classNames += ' video-component';
-                          }
-                          
-                          return classNames;
-                        }}
-                        sectionBackground={sectionBackground}
-                        sectionBackgroundType={sectionBackgroundType}
-                      />
-                    </Suspense>
+                    <SectionManager
+                      initialComponents={pendingComponents}
+                      isEditing={false}
+                      componentClassName={(type: string) => {
+                        // Allow headers to use their own positioning logic (sticky in preview)
+                        const isVideoComponent = type.toLowerCase() === 'video';
+                        let classNames = `component-${type.toLowerCase()}`;
+                        
+                        if (isVideoComponent) {
+                          classNames += ' video-component';
+                        }
+                        
+                        return classNames;
+                      }}
+                      sectionBackground={sectionBackground}
+                      sectionBackgroundType={sectionBackgroundType}
+                    />
                   ) : (
                     <div className="flex items-center justify-center py-24 bg-muted/10 rounded-lg border-2 border-dashed border-muted">
                       <div className="text-center">
@@ -1109,7 +597,7 @@ const ManageableSection = forwardRef<ManageableSectionHandle, ManageableSectionP
                         <h3 className="text-xl font-medium text-muted-foreground mb-2">Preview Not Loaded</h3>
                         <p className="text-sm text-muted-foreground mb-6">Load the preview to see how your section will look</p>
                         <button
-                          onClick={handleLoadPreview}
+                          onClick={() => setIsPreviewLoaded(true)}
                           className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                         >
                           Load Preview

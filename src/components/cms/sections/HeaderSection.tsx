@@ -96,6 +96,178 @@ interface HeaderSectionProps {
   }) => void;
 }
 
+// Button configuration handlers (moved outside component to prevent recreating)
+const ButtonConfiguration = React.memo(({
+  showButton,
+  buttonText,
+  buttonAction,
+  buttonUrlType,
+  selectedPageId,
+  availablePages,
+  loadingPages,
+  onShowButtonChange,
+  onButtonTextChange,
+  onButtonActionChange,
+  onButtonUrlTypeChange,
+  onSelectedPageIdChange,
+  renderHeaderButton
+}: {
+  showButton: boolean;
+  buttonText: string;
+  buttonAction: string;
+  buttonUrlType: 'custom' | 'page';
+  selectedPageId: string;
+  availablePages: Array<{id: string; title: string; slug: string}>;
+  loadingPages: boolean;
+  buttonDropdown: boolean;
+  buttonDropdownItems: Array<{id: string; label: string; url: string}>;
+  onShowButtonChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onButtonTextChange: (value: string) => void;
+  onButtonActionChange: (value: string) => void;
+  onButtonUrlTypeChange: (type: 'custom' | 'page') => void;
+  onSelectedPageIdChange: (pageId: string, pageUrl: string) => void;
+  renderHeaderButton: () => React.ReactNode;
+}) => (
+  <div className="space-y-4">
+    <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
+      Header Button Configuration
+    </h4>
+    
+    {/* Enable Button */}
+    <div className="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        id="showButton"
+        checked={showButton}
+        onChange={onShowButtonChange}
+        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      />
+      <label htmlFor="showButton" className="text-sm font-medium">
+        Show Button in Header
+      </label>
+    </div>
+    
+    {showButton && (
+      <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+        {/* Button Text */}
+        <div>
+          <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
+            Button Text
+          </label>
+          <StableInput
+            value={buttonText}
+            onChange={onButtonTextChange}
+            placeholder="Get Started"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            debounceTime={300}
+            data-field-id="buttonText"
+            data-component-type="Header"
+          />
+        </div>
+        
+        {/* URL Type Selection */}
+        <div>
+          <label className="text-sm font-medium block mb-2">
+            Button URL/Action
+          </label>
+          <div className="space-y-3">
+            {/* URL Type Radio Buttons */}
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="buttonUrlType"
+                  value="custom"
+                  checked={buttonUrlType === 'custom'}
+                  onChange={() => onButtonUrlTypeChange('custom')}
+                  className="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">Custom URL</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="buttonUrlType"
+                  value="page"
+                  checked={buttonUrlType === 'page'}
+                  onChange={() => onButtonUrlTypeChange('page')}
+                  className="mr-2 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">Existing Page</span>
+              </label>
+            </div>
+            
+            {/* Custom URL Input */}
+            {buttonUrlType === 'custom' && (
+              <div>
+                <StableInput
+                  value={buttonAction}
+                  onChange={onButtonActionChange}
+                  placeholder="/contact"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  debounceTime={300}
+                  data-field-id="buttonAction"
+                  data-component-type="Header"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use relative URLs (/contact) or absolute URLs (https://example.com)
+                </p>
+              </div>
+            )}
+            
+            {/* Existing Page Selection */}
+            {buttonUrlType === 'page' && (
+              <div>
+                <select
+                  value={selectedPageId}
+                  onChange={(e) => {
+                    const pageId = e.target.value;
+                    const selectedPage = availablePages.find(page => page.id === pageId);
+                    if (selectedPage) {
+                      const pageUrl = `/${selectedPage.slug}`;
+                      onSelectedPageIdChange(pageId, pageUrl);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loadingPages}
+                >
+                  <option value="">Select a page...</option>
+                  {availablePages.map(page => (
+                    <option key={page.id} value={page.id}>
+                      {page.title} (/{page.slug})
+                    </option>
+                  ))}
+                </select>
+                {loadingPages && (
+                  <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
+                )}
+                {!loadingPages && availablePages.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No pages available</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Button Preview */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium">Button Preview</label>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-md flex justify-center relative">
+            {renderHeaderButton()}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            ✨ Preview updates automatically after you stop typing to prevent focus loss
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+));
+
+ButtonConfiguration.displayName = 'ButtonConfiguration';
+
 export default function HeaderSection({ 
   title, 
   subtitle, 
@@ -390,6 +562,20 @@ export default function HeaderSection({
                 setBorderBottom(style.borderBottom || false);
                 setFixedHeader(style.fixedHeader || false);
                 setAdvancedOptions((style.advancedOptions as HeaderAdvancedOptions) || {});
+                
+                // Load button configuration
+                if (style.showButton !== undefined) setShowButton(style.showButton);
+                if (style.buttonText) setButtonText(style.buttonText);
+                if (style.buttonAction) setButtonAction(style.buttonAction);
+                if (style.buttonColor) setButtonColor(style.buttonColor);
+                if (style.buttonTextColor) setButtonTextColor(style.buttonTextColor);
+                if (style.buttonSize) setButtonSize(style.buttonSize as 'sm' | 'md' | 'lg');
+                if (style.buttonBorderRadius !== undefined) setButtonBorderRadius(style.buttonBorderRadius);
+                if (style.buttonShadow) setButtonShadow(style.buttonShadow as 'none' | 'sm' | 'md' | 'lg' | 'xl');
+                if (style.buttonBorderColor) setButtonBorderColor(style.buttonBorderColor);
+                if (style.buttonBorderWidth !== undefined) setButtonBorderWidth(style.buttonBorderWidth);
+                if (style.buttonWidth) setButtonWidth(style.buttonWidth);
+                if (style.buttonHeight) setButtonHeight(style.buttonHeight);
               }
             } else {
                 console.log('HeaderSection: Menu with header style not found, trying fallback...');
@@ -1270,38 +1456,44 @@ export default function HeaderSection({
               <label htmlFor="buttonBorderRadius" className="text-sm font-medium block mb-2">
                 Border Radius (px)
               </label>
-              <input
-                type="number"
-                id="buttonBorderRadius"
-                value={buttonBorderRadius}
-                onChange={(e) => {
-                  const numValue = parseInt(e.target.value) || 0;
+              <StableInput
+                value={buttonBorderRadius.toString()}
+                onChange={(newValue: string) => {
+                  const numValue = parseInt(newValue) || 0;
                   setButtonBorderRadius(numValue);
                   handleUpdateField('buttonBorderRadius', numValue);
                 }}
-                min="0"
-                max="50"
+                placeholder="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonBorderRadius"
+                data-component-type="Header"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 0-50px
+              </p>
             </div>
             
             <div>
               <label htmlFor="buttonBorderWidth" className="text-sm font-medium block mb-2">
                 Border Width (px)
               </label>
-              <input
-                type="number"
-                id="buttonBorderWidth"
-                value={buttonBorderWidth}
-                onChange={(e) => {
-                  const numValue = parseInt(e.target.value) || 0;
+              <StableInput
+                value={buttonBorderWidth.toString()}
+                onChange={(newValue: string) => {
+                  const numValue = parseInt(newValue) || 0;
                   setButtonBorderWidth(numValue);
                   handleUpdateField('buttonBorderWidth', numValue);
                 }}
-                min="0"
-                max="10"
+                placeholder="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                debounceTime={300}
+                data-field-id="buttonBorderWidth"
+                data-component-type="Header"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 0-10px
+              </p>
             </div>
           </div>
           
@@ -1381,164 +1573,6 @@ export default function HeaderSection({
     </div>
   );
 
-  const ButtonConfiguration = () => (
-    <div className="space-y-4">
-      <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-        Header Button Configuration
-      </h4>
-      
-      {/* Enable Button */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="showButton"
-          checked={showButton}
-          onChange={handleShowButtonChange}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="showButton" className="text-sm font-medium">
-          Show Button in Header
-        </label>
-      </div>
-      
-      {showButton && (
-        <div className="space-y-4 pl-4 border-l-2 border-blue-200">
-          {/* Button Text */}
-          <div>
-            <label htmlFor="buttonText" className="text-sm font-medium block mb-2">
-              Button Text
-            </label>
-            <StableInput
-              value={buttonText}
-              onChange={(newValue: string) => {
-                setButtonText(newValue);
-                handleUpdateField('buttonText', newValue);
-              }}
-              placeholder="Get Started"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              debounceTime={300}
-              data-field-id="buttonText"
-              data-component-type="Header"
-            />
-          </div>
-          
-          {/* URL Type Selection */}
-          <div>
-            <label className="text-sm font-medium block mb-2">
-              Button URL/Action
-            </label>
-            <div className="space-y-3">
-              {/* URL Type Radio Buttons */}
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="buttonUrlType"
-                    value="custom"
-                    checked={buttonUrlType === 'custom'}
-                    onChange={() => {
-                      setButtonUrlType('custom');
-                      handleUpdateField('buttonUrlType', 'custom');
-                    }}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">Custom URL</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="buttonUrlType"
-                    value="page"
-                    checked={buttonUrlType === 'page'}
-                    onChange={() => {
-                      setButtonUrlType('page');
-                      handleUpdateField('buttonUrlType', 'page');
-                    }}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">Existing Page</span>
-                </label>
-              </div>
-              
-              {/* Custom URL Input */}
-              {buttonUrlType === 'custom' && (
-                <div>
-                  <StableInput
-                    value={buttonAction}
-                    onChange={(newValue: string) => {
-                      setButtonAction(newValue);
-                      handleUpdateField('buttonAction', newValue);
-                    }}
-                    placeholder="/contact"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    debounceTime={300}
-                    data-field-id="buttonAction"
-                    data-component-type="Header"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Use relative URLs (/contact) or absolute URLs (https://example.com)
-                  </p>
-                </div>
-              )}
-              
-              {/* Existing Page Selection */}
-              {buttonUrlType === 'page' && (
-                <div>
-                  <select
-                    value={selectedPageId}
-                    onChange={(e) => {
-                      const pageId = e.target.value;
-                      setSelectedPageId(pageId);
-                      
-                      // Find the selected page and set the button action to its slug
-                      const selectedPage = availablePages.find(page => page.id === pageId);
-                      if (selectedPage) {
-                        const pageUrl = `/${selectedPage.slug}`;
-                        setButtonAction(pageUrl);
-                        handleUpdateField('buttonAction', pageUrl);
-                        handleUpdateField('selectedPageId', pageId);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={loadingPages}
-                  >
-                    <option value="">Select a page...</option>
-                    {availablePages.map(page => (
-                      <option key={page.id} value={page.id}>
-                        {page.title} (/{page.slug})
-                      </option>
-                    ))}
-                  </select>
-                  {loadingPages && (
-                    <p className="text-xs text-gray-500 mt-1">Loading pages...</p>
-                  )}
-                  {!loadingPages && availablePages.length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">No pages available</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Button Preview */}
-          <div className="border-t border-gray-200 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Button Preview</label>
-              
-            </div>
-            <div className="p-4 bg-gray-50 rounded-md flex justify-center relative">
-              {renderHeaderButton()}
-              
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              ✨ Preview updates automatically after you stop typing to prevent focus loss
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const AdvancedOptions = () => (
     <div className="mt-4 border-t pt-2">
       <button
@@ -1596,13 +1630,14 @@ export default function HeaderSection({
             <label htmlFor="customClass" className="text-sm block mb-1">
               Custom CSS Class
             </label>
-            <input
-              type="text"
-              id="customClass"
+            <StableInput
               value={advancedOptions?.customClass || ''}
-              onChange={(e) => handleAdvancedOptionChange('customClass', e.target.value)}
+              onChange={(newValue: string) => handleAdvancedOptionChange('customClass', newValue)}
               placeholder="e.g. my-header-class"
               className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              debounceTime={300}
+              data-field-id="customClass"
+              data-component-type="Header"
             />
           </div>
           
@@ -1982,6 +2017,28 @@ export default function HeaderSection({
     handleUpdateField('showButton', newValue);
   }, [handleUpdateField]);
 
+  const handleButtonTextChange = useCallback((newValue: string) => {
+    setButtonText(newValue);
+    handleUpdateField('buttonText', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonActionChange = useCallback((newValue: string) => {
+    setButtonAction(newValue);
+    handleUpdateField('buttonAction', newValue);
+  }, [handleUpdateField]);
+
+  const handleButtonUrlTypeChange = useCallback((type: 'custom' | 'page') => {
+    setButtonUrlType(type);
+    handleUpdateField('buttonUrlType', type);
+  }, [handleUpdateField]);
+
+  const handleSelectedPageIdChange = useCallback((pageId: string, pageUrl: string) => {
+    setSelectedPageId(pageId);
+    setButtonAction(pageUrl);
+    handleUpdateField('buttonAction', pageUrl);
+    handleUpdateField('selectedPageId', pageId);
+  }, [handleUpdateField]);
+
   const handleButtonColorChange = useCallback((color: string) => {
     setButtonColor(color);
     handleUpdateField('buttonColor', color);
@@ -2012,53 +2069,86 @@ export default function HeaderSection({
   return (
     <>
       {isEditing ? (
-        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
-            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
-          </TabsList>
+        <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-3  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+              <TabsTrigger 
+                value="details" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Details
+              </TabsTrigger>
+              <TabsTrigger 
+                value="styles" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Styles
+              </TabsTrigger>
+              <TabsTrigger 
+                value="preview" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-          {/* DETAILS TAB */}
-          <TabsContent value="details" className="space-y-4">
-            <StableInput
-              value={localTitle}
-              onChange={handleTitleChange}
-              placeholder="Enter title (optional)..."
-              className="font-medium text-xl"
-              label="Title (optional)"
-              debounceTime={300}
-              data-field-id="title"
-              data-component-type="Header"
-            />
-            
-            <StableInput
-              value={localSubtitle}
-              onChange={handleSubtitleChange}
-              placeholder="Enter subtitle (optional)..."
-              className="text-muted-foreground"
-              label="Subtitle (optional)"
-              debounceTime={300}
-              data-field-id="subtitle"
-              data-component-type="Header"
-            />
-            
-            <LogoSelector />
-            <MenuSelector />
-            <MenuIconSelector />
-            <ButtonConfiguration />
-          </TabsContent>
+            {/* DETAILS TAB */}
+            <TabsContent value="details" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <StableInput
+                value={localTitle}
+                onChange={handleTitleChange}
+                placeholder="Enter title (optional)..."
+                className="font-medium text-xl"
+                label="Title (optional)"
+                debounceTime={300}
+                data-field-id="title"
+                data-component-type="Header"
+              />
+              
+              <StableInput
+                value={localSubtitle}
+                onChange={handleSubtitleChange}
+                placeholder="Enter subtitle (optional)..."
+                className="text-muted-foreground"
+                label="Subtitle (optional)"
+                debounceTime={300}
+                data-field-id="subtitle"
+                data-component-type="Header"
+              />
+              
+              <LogoSelector />
+              <MenuSelector />
+              <MenuIconSelector />
+              <ButtonConfiguration
+                showButton={showButton}
+                buttonText={buttonText}
+                buttonAction={buttonAction}
+                buttonUrlType={buttonUrlType}
+                selectedPageId={selectedPageId}
+                availablePages={availablePages}
+                loadingPages={loadingPages}
+                buttonDropdown={buttonDropdown}
+                buttonDropdownItems={buttonDropdownItems}
+                onShowButtonChange={handleShowButtonChange}
+                onButtonTextChange={handleButtonTextChange}
+                onButtonActionChange={handleButtonActionChange}
+                onButtonUrlTypeChange={handleButtonUrlTypeChange}
+                onSelectedPageIdChange={handleSelectedPageIdChange}
+                renderHeaderButton={renderHeaderButton}
+              />
+            </TabsContent>
 
-          {/* STYLES TAB */}
-          <TabsContent value="styles" className="space-y-4">
-            <StyleOptions />
-            <AdvancedOptions />
-          </TabsContent>
+            {/* STYLES TAB */}
+            <TabsContent value="styles" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <StyleOptions />
+              <AdvancedOptions />
+            </TabsContent>
 
-          {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-4">
-            <HeaderPreview />
-          </TabsContent>
+            {/* PREVIEW TAB */}
+            <TabsContent value="preview" className="p-6 space-y-6 max-h-[600px] overflow-y-auto">
+              <HeaderPreview />
+            </TabsContent>
+          </Tabs>
           
           {/* Media selector modal */}
           {showMediaSelector && (
@@ -2069,7 +2159,7 @@ export default function HeaderSection({
               title="Select Logo"
             />
           )}
-        </Tabs>
+        </div>
       ) : (
         <nav
           className={`w-full z-1000 transition-all duration-300 py-4 ${

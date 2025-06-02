@@ -41,20 +41,21 @@ export function CmsTabs({
       className={cn("w-full", className)}
     >
       <TabsList className={cn(
-        "flex mb-4 bg-muted/60 p-1 rounded-lg",
-        fullWidth ? "w-full" : "inline-flex"
+        "grid w-full  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner",
+        fullWidth ? `grid-cols-${tabs.length}` : "inline-flex"
       )}>
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.id}
             value={tab.id}
             className={cn(
-              "flex items-center gap-1.5 rounded-md text-sm font-medium",
-              fullWidth ? "flex-1" : ""
+              "data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]",
+              "flex items-center gap-2",
+              fullWidth ? "flex-1 justify-center" : ""
             )}
           >
-            {tab.icon && <span className="text-muted-foreground">{tab.icon}</span>}
-            {tab.label}
+            {tab.icon && <span className="text-current opacity-80">{tab.icon}</span>}
+            <span>{tab.label}</span>
           </TabsTrigger>
         ))}
       </TabsList>

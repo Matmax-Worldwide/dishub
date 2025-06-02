@@ -792,103 +792,112 @@ const HeroSection = React.memo(function HeroSection({
 
         <div className="w-full h-full relative z-10 flex items-center justify-center">
           {isEditing ? (
-            <div className="w-full h-full p-6">
+            <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
               <CmsTabs
+                className="w-full"
+                contentClassName="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                 tabs={[
                   {
                     id: "content",
-                    label: "Content",
+                    label: "Details",
                     icon: <FileText className="w-4 h-4" />,
                     content: (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Text Content</h3>
-                            
-                            <StableInput
-                              value={localBadgeText}
-                              onChange={handleBadgeTextChange}
-                              placeholder="Badge text..."
-                              label="Badge Text"
-                              debounceTime={300}
-                              data-field-id="badgeText"
-                              data-component-type="Hero"
-                            />
-                            
-                            <StableInput
-                              value={localTitle}
-                              onChange={handleTitleChange}
-                              placeholder="Main title..."
-                              className="text-foreground font-bold text-xl"
-                              label="Title"
-                              debounceTime={300}
-                              data-field-id="title"
-                              data-component-type="Hero"
-                            />
-                            
-                            <StableInput
-                              value={localSubtitle}
-                              onChange={handleSubtitleChange}
-                              placeholder="Subtitle..."
-                              className="text-muted-foreground"
-                              multiline={true}
-                              label="Subtitle"
-                              debounceTime={300}
-                              data-field-id="subtitle"
-                              data-component-type="Hero"
-                            />
+                      <div className="space-y-8">
+                        {/* Enhanced section grouping */}
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-900">Content Configuration</h3>
                           </div>
-                          
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Call to Actions</h3>
-                            
-                            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                              <h4 className="text-sm font-medium text-gray-700">Primary CTA</h4>
-                              <div className="grid grid-cols-1 gap-3">
-                                <StableInput
-                                  value={localCta.text}
-                                  onChange={handleCtaTextChange}
-                                  placeholder="Button text..."
-                                  label="Text"
-                                  debounceTime={300}
-                                  data-field-id="cta.text"
-                                  data-component-type="Hero"
-                                />
-                                
-                                <StableInput
-                                  value={localCta.url}
-                                  onChange={handleCtaUrlChange}
-                                  placeholder="Button URL..."
-                                  label="URL"
-                                  debounceTime={300}
-                                  data-field-id="cta.url"
-                                  data-component-type="Hero"
-                                />
-                              </div>
+                          <div className="pl-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium text-gray-700 uppercase tracking-wide">Text Content</h4>
+                              
+                              <StableInput
+                                value={localBadgeText}
+                                onChange={handleBadgeTextChange}
+                                placeholder="Badge text..."
+                                label="Badge Text"
+                                debounceTime={300}
+                                data-field-id="badgeText"
+                                data-component-type="Hero"
+                              />
+                              
+                              <StableInput
+                                value={localTitle}
+                                onChange={handleTitleChange}
+                                placeholder="Main title..."
+                                className="text-foreground font-bold text-xl"
+                                label="Title"
+                                debounceTime={300}
+                                data-field-id="title"
+                                data-component-type="Hero"
+                              />
+                              
+                              <StableInput
+                                value={localSubtitle}
+                                onChange={handleSubtitleChange}
+                                placeholder="Subtitle..."
+                                className="text-muted-foreground"
+                                multiline={true}
+                                label="Subtitle"
+                                debounceTime={300}
+                                data-field-id="subtitle"
+                                data-component-type="Hero"
+                              />
                             </div>
                             
-                            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                              <h4 className="text-sm font-medium text-gray-700">Secondary CTA</h4>
-                              <div className="grid grid-cols-1 gap-3">
-                                <StableInput
-                                  value={localSecondaryCta.text}
-                                  onChange={handleSecondaryCtaTextChange}
-                                  placeholder="Button text..."
-                                  label="Text"
-                                  debounceTime={300}
-                                  data-field-id="secondaryCta.text"
-                                  data-component-type="Hero"
-                                />
-                                
-                                <StableInput
-                                  value={localSecondaryCta.url}
-                                  onChange={handleSecondaryCtaUrlChange}
-                                  placeholder="Button URL..."
-                                  label="URL"
-                                  debounceTime={300}
-                                  data-field-id="secondaryCta.url"
-                                  data-component-type="Hero"
-                                />
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium text-gray-700 uppercase tracking-wide">Call to Actions</h4>
+                              
+                              <div className="space-y-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50">
+                                <h5 className="text-sm font-semibold text-blue-900">Primary CTA</h5>
+                                <div className="grid grid-cols-1 gap-3">
+                                  <StableInput
+                                    value={localCta.text}
+                                    onChange={handleCtaTextChange}
+                                    placeholder="Button text..."
+                                    label="Text"
+                                    debounceTime={300}
+                                    data-field-id="cta.text"
+                                    data-component-type="Hero"
+                                  />
+                                  
+                                  <StableInput
+                                    value={localCta.url}
+                                    onChange={handleCtaUrlChange}
+                                    placeholder="Button URL..."
+                                    label="URL"
+                                    debounceTime={300}
+                                    data-field-id="cta.url"
+                                    data-component-type="Hero"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200/50">
+                                <h5 className="text-sm font-semibold text-purple-900">Secondary CTA</h5>
+                                <div className="grid grid-cols-1 gap-3">
+                                  <StableInput
+                                    value={localSecondaryCta.text}
+                                    onChange={handleSecondaryCtaTextChange}
+                                    placeholder="Button text..."
+                                    label="Text"
+                                    debounceTime={300}
+                                    data-field-id="secondaryCta.text"
+                                    data-component-type="Hero"
+                                  />
+                                  
+                                  <StableInput
+                                    value={localSecondaryCta.url}
+                                    onChange={handleSecondaryCtaUrlChange}
+                                    placeholder="Button URL..."
+                                    label="URL"
+                                    debounceTime={300}
+                                    data-field-id="secondaryCta.url"
+                                    data-component-type="Hero"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -898,18 +907,18 @@ const HeroSection = React.memo(function HeroSection({
                   },
                   {
                     id: "styling",
-                    label: "Styling",
+                    label: "Styles",
                     icon: <Palette className="w-4 h-4" />,
                     content: (
-                      <div className="space-y-6">
+                      <div className="space-y-8">
                         {/* Design Templates Section */}
-                        <div className="space-y-4">
-                          <h3 className="text-sm font-medium mb-2 flex items-center">
-                            <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
-                            Design Templates
-                          </h3>
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-900">Design Templates</h3>
+                          </div>
                           
-                          <div className="grid grid-cols-3 gap-3 mb-6">
+                          <div className="pl-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {[
                               { 
                                 value: 'modern', 
@@ -969,14 +978,14 @@ const HeroSection = React.memo(function HeroSection({
                               <button
                                 key={design.value}
                                 onClick={() => handleDesignTemplateChange(design.value)}
-                                className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                                className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                                   localDesignTemplate === design.value 
-                                    ? 'border-blue-500 shadow-lg' 
-                                    : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-blue-500 shadow-lg ring-2 ring-blue-500/20 bg-blue-50/50' 
+                                    : 'border-gray-200 hover:border-gray-300 bg-white/60'
                                 }`}
                               >
                                 <div 
-                                  className="w-full h-12 rounded-md mb-2"
+                                  className="w-full h-16 rounded-lg mb-3 border border-white/20"
                                   style={{ 
                                     background: design.preview,
                                     backdropFilter: design.value === 'glassmorphism' ? 'blur(10px)' : undefined,
@@ -985,7 +994,7 @@ const HeroSection = React.memo(function HeroSection({
                                 >
                                   {design.value === 'neon' && (
                                     <div className="w-full h-full flex items-center justify-center">
-                                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                                      <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse shadow-lg shadow-cyan-400/50"></div>
                                     </div>
                                   )}
                                 </div>

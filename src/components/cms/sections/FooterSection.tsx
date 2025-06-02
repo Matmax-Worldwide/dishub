@@ -1299,44 +1299,66 @@ export default function FooterSection({
       }}
     >
       {isEditing ? (
-        <Tabs defaultValue="details" className="space-y-4 w-full max-w-full overflow-x-hidden">
-          <TabsList className="flex flex-wrap space-x-2 w-full">
-            <TabsTrigger value="details" className="flex-1 min-w-[100px]">Details</TabsTrigger>
-            <TabsTrigger value="content" className="flex-1 min-w-[100px]">Content</TabsTrigger>
-            <TabsTrigger value="styles" className="flex-1 min-w-[100px]">Styles</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1 min-w-[100px]">Preview</TabsTrigger>
-          </TabsList>
+        <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-4  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+              <TabsTrigger 
+                value="details" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Details
+              </TabsTrigger>
+              <TabsTrigger 
+                value="content" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Content
+              </TabsTrigger>
+              <TabsTrigger 
+                value="styles" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Styles
+              </TabsTrigger>
+              <TabsTrigger 
+                value="preview" 
+                className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+              >
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-          {/* DETAILS TAB */}
-          <TabsContent value="details" className="space-y-4">
-            <DetailsTab />
-          </TabsContent>
+            {/* DETAILS TAB */}
+            <TabsContent value="details" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <DetailsTab />
+            </TabsContent>
 
-          {/* CONTENT TAB */}
-          <TabsContent value="content" className="space-y-4">
-            <ContentTab />
-          </TabsContent>
+            {/* CONTENT TAB */}
+            <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <ContentTab />
+            </TabsContent>
 
-          {/* STYLES TAB */}
-          <TabsContent value="styles" className="space-y-4">
-            <StylesTab />
-          </TabsContent>
+            {/* STYLES TAB */}
+            <TabsContent value="styles" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <StylesTab />
+            </TabsContent>
 
-          {/* PREVIEW TAB */}
-          <TabsContent value="preview" className="space-y-4">
-            <PreviewTab />
-          </TabsContent>
-          
-          {/* Media selector modal */}
-          {showMediaSelector && (
-            <MediaSelector
-              isOpen={showMediaSelector}
-              onClose={() => setShowMediaSelector(false)}
-              onSelect={handleMediaSelection}
-              title="Select Logo"
-            />
-          )}
-        </Tabs>
+            {/* PREVIEW TAB */}
+            <TabsContent value="preview" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <PreviewTab />
+            </TabsContent>
+            
+            {/* Media selector modal */}
+            {showMediaSelector && (
+              <MediaSelector
+                isOpen={showMediaSelector}
+                onClose={() => setShowMediaSelector(false)}
+                onSelect={handleMediaSelection}
+                title="Select Logo"
+              />
+            )}
+          </Tabs>
+        </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">

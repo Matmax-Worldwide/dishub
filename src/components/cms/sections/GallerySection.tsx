@@ -446,320 +446,385 @@ export default function GallerySection({
 
   if (isEditing) {
     return (
-      <div className="w-full">
-        <Tabs defaultValue="content" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="layout">Layout</TabsTrigger>
-            <TabsTrigger value="style">Style</TabsTrigger>
+      <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="grid w-full grid-cols-3  to-gray-100/80 p-2 rounded-xl border border-gray-200/50 shadow-inner">
+            <TabsTrigger 
+              value="content" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Content
+            </TabsTrigger>
+            <TabsTrigger 
+              value="layout" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Layout
+            </TabsTrigger>
+            <TabsTrigger 
+              value="style" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-gray-900/10 data-[state=active]:ring-1 data-[state=active]:ring-gray-900/5 rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 hover:bg-white/60 active:scale-[0.98]"
+            >
+              Style
+            </TabsTrigger>
           </TabsList>
 
           {/* Content Tab */}
-          <TabsContent value="content" className="space-y-4">
-            <StableInput
-              value={localTitle}
-              onChange={handleTitleChange}
-              placeholder="Gallery title..."
-              className="font-medium text-xl"
-              label="Title"
-              debounceTime={300}
-            />
-
-            <StableInput
-              value={localSubtitle}
-              onChange={handleSubtitleChange}
-              placeholder="Gallery subtitle..."
-              className="text-muted-foreground"
-              label="Subtitle"
-              debounceTime={300}
-            />
-
-            {/* Images Management */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-medium">Images ({localImages.length})</label>
-                <button
-                  onClick={() => setShowMediaSelector(true)}
-                  className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  <span>Add Images</span>
-                </button>
+          <TabsContent value="content" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {/* Content Settings Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Content Settings</h3>
               </div>
+              <div className="pl-6 space-y-4">
+                <StableInput
+                  value={localTitle}
+                  onChange={handleTitleChange}
+                  placeholder="Gallery title..."
+                  className="font-medium text-xl"
+                  label="Title"
+                  debounceTime={300}
+                />
 
-              {localImages.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
-                  {localImages.map((image) => (
-                    <div key={image.id} className="relative group">
-                      <S3FilePreview
-                        src={image.url}
-                        alt={image.alt}
-                        className="w-full aspect-square object-cover rounded-lg"
-                        width={150}
-                        height={150}
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(image.id)}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <XMarkIcon className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                <StableInput
+                  value={localSubtitle}
+                  onChange={handleSubtitleChange}
+                  placeholder="Gallery subtitle..."
+                  className="text-muted-foreground"
+                  label="Subtitle"
+                  debounceTime={300}
+                />
+              </div>
+            </div>
+
+            {/* Images Management Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Images Management</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium">Images ({localImages.length})</label>
+                  <button
+                    onClick={() => setShowMediaSelector(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    <span>Add Images</span>
+                  </button>
                 </div>
-              )}
+
+                {localImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
+                    {localImages.map((image) => (
+                      <div key={image.id} className="relative group">
+                        <S3FilePreview
+                          src={image.url}
+                          alt={image.alt}
+                          className="w-full aspect-square object-cover rounded-lg"
+                          width={150}
+                          height={150}
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(image.id)}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
           {/* Layout Tab */}
-          <TabsContent value="layout" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-2">Layout</label>
-                <select
-                  value={localLayout}
-                  onChange={(e) => {
-                    const newLayout = e.target.value as 'grid' | 'masonry' | 'carousel' | 'lightbox';
-                    setLocalLayout(newLayout);
-                    handleUpdateField('layout', newLayout);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="grid">Grid</option>
-                  <option value="masonry">Masonry</option>
-                  <option value="carousel">Carousel</option>
-                </select>
+          <TabsContent value="layout" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {/* Layout Configuration Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Layout Configuration</h3>
               </div>
-
-              {localLayout !== 'carousel' && (
-                <div>
-                  <label className="text-sm font-medium block mb-2">Columns</label>
-                  <select
-                    value={localColumns}
-                    onChange={(e) => {
-                      const newColumns = parseInt(e.target.value) as 2 | 3 | 4 | 5;
-                      setLocalColumns(newColumns);
-                      handleUpdateField('columns', newColumns);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={2}>2 Columns</option>
-                    <option value={3}>3 Columns</option>
-                    <option value={4}>4 Columns</option>
-                    <option value={5}>5 Columns</option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-2">Spacing</label>
-                <select
-                  value={localSpacing}
-                  onChange={(e) => {
-                    const newSpacing = e.target.value as 'none' | 'small' | 'medium' | 'large';
-                    setLocalSpacing(newSpacing);
-                    handleUpdateField('spacing', newSpacing);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="none">None</option>
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-2">Aspect Ratio</label>
-                <select
-                  value={localAspectRatio}
-                  onChange={(e) => {
-                    const newAspectRatio = e.target.value as 'square' | 'landscape' | 'portrait' | 'auto';
-                    setLocalAspectRatio(newAspectRatio);
-                    handleUpdateField('aspectRatio', newAspectRatio);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="square">Square</option>
-                  <option value="landscape">Landscape</option>
-                  <option value="portrait">Portrait</option>
-                  <option value="auto">Auto</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Display Options */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold">Display Options</h4>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="showTitles"
-                  checked={localShowTitles}
-                  onChange={(e) => {
-                    setLocalShowTitles(e.target.checked);
-                    handleUpdateField('showTitles', e.target.checked);
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="showTitles" className="text-sm">Show image titles</label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="showCaptions"
-                  checked={localShowCaptions}
-                  onChange={(e) => {
-                    setLocalShowCaptions(e.target.checked);
-                    handleUpdateField('showCaptions', e.target.checked);
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="showCaptions" className="text-sm">Show image captions</label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="enableLightbox"
-                  checked={localEnableLightbox}
-                  onChange={(e) => {
-                    setLocalEnableLightbox(e.target.checked);
-                    handleUpdateField('enableLightbox', e.target.checked);
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="enableLightbox" className="text-sm">Enable lightbox</label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="showImageCount"
-                  checked={localShowImageCount}
-                  onChange={(e) => {
-                    setLocalShowImageCount(e.target.checked);
-                    handleUpdateField('showImageCount', e.target.checked);
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="showImageCount" className="text-sm">Show image count</label>
-              </div>
-            </div>
-
-            {/* Carousel Options */}
-            {localLayout === 'carousel' && (
-              <div className="space-y-3 border-t pt-4">
-                <h4 className="text-sm font-semibold">Carousel Options</h4>
-                
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="autoplay"
-                    checked={localAutoplay}
-                    onChange={(e) => {
-                      setLocalAutoplay(e.target.checked);
-                      handleUpdateField('autoplay', e.target.checked);
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="autoplay" className="text-sm">Autoplay</label>
-                </div>
-
-                {localAutoplay && (
+              <div className="pl-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium block mb-2">Autoplay Speed (ms)</label>
-                    <input
-                      type="number"
-                      value={localAutoplaySpeed}
+                    <label className="text-sm font-medium block mb-2">Layout</label>
+                    <select
+                      value={localLayout}
                       onChange={(e) => {
-                        const speed = parseInt(e.target.value);
-                        setLocalAutoplaySpeed(speed);
-                        handleUpdateField('autoplaySpeed', speed);
+                        const newLayout = e.target.value as 'grid' | 'masonry' | 'carousel' | 'lightbox';
+                        setLocalLayout(newLayout);
+                        handleUpdateField('layout', newLayout);
                       }}
-                      min={1000}
-                      max={10000}
-                      step={500}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    >
+                      <option value="grid">Grid</option>
+                      <option value="masonry">Masonry</option>
+                      <option value="carousel">Carousel</option>
+                    </select>
                   </div>
-                )}
 
+                  {localLayout !== 'carousel' && (
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Columns</label>
+                      <select
+                        value={localColumns}
+                        onChange={(e) => {
+                          const newColumns = parseInt(e.target.value) as 2 | 3 | 4 | 5;
+                          setLocalColumns(newColumns);
+                          handleUpdateField('columns', newColumns);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value={2}>2 Columns</option>
+                        <option value={3}>3 Columns</option>
+                        <option value={4}>4 Columns</option>
+                        <option value={5}>5 Columns</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Spacing</label>
+                    <select
+                      value={localSpacing}
+                      onChange={(e) => {
+                        const newSpacing = e.target.value as 'none' | 'small' | 'medium' | 'large';
+                        setLocalSpacing(newSpacing);
+                        handleUpdateField('spacing', newSpacing);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="none">None</option>
+                      <option value="small">Small</option>
+                      <option value="medium">Medium</option>
+                      <option value="large">Large</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Aspect Ratio</label>
+                    <select
+                      value={localAspectRatio}
+                      onChange={(e) => {
+                        const newAspectRatio = e.target.value as 'square' | 'landscape' | 'portrait' | 'auto';
+                        setLocalAspectRatio(newAspectRatio);
+                        handleUpdateField('aspectRatio', newAspectRatio);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="square">Square</option>
+                      <option value="landscape">Landscape</option>
+                      <option value="portrait">Portrait</option>
+                      <option value="auto">Auto</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Display Options Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Display Options</h3>
+              </div>
+              <div className="pl-6 space-y-4">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    id="showNavigation"
-                    checked={localShowNavigation}
+                    id="showTitles"
+                    checked={localShowTitles}
                     onChange={(e) => {
-                      setLocalShowNavigation(e.target.checked);
-                      handleUpdateField('showNavigation', e.target.checked);
+                      setLocalShowTitles(e.target.checked);
+                      handleUpdateField('showTitles', e.target.checked);
                     }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="showNavigation" className="text-sm">Show navigation arrows</label>
+                  <label htmlFor="showTitles" className="text-sm">Show image titles</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    id="showDots"
-                    checked={localShowDots}
+                    id="showCaptions"
+                    checked={localShowCaptions}
                     onChange={(e) => {
-                      setLocalShowDots(e.target.checked);
-                      handleUpdateField('showDots', e.target.checked);
+                      setLocalShowCaptions(e.target.checked);
+                      handleUpdateField('showCaptions', e.target.checked);
                     }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="showDots" className="text-sm">Show dots indicator</label>
+                  <label htmlFor="showCaptions" className="text-sm">Show image captions</label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="enableLightbox"
+                    checked={localEnableLightbox}
+                    onChange={(e) => {
+                      setLocalEnableLightbox(e.target.checked);
+                      handleUpdateField('enableLightbox', e.target.checked);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="enableLightbox" className="text-sm">Enable lightbox</label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showImageCount"
+                    checked={localShowImageCount}
+                    onChange={(e) => {
+                      setLocalShowImageCount(e.target.checked);
+                      handleUpdateField('showImageCount', e.target.checked);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="showImageCount" className="text-sm">Show image count</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Carousel Options Section */}
+            {localLayout === 'carousel' && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">Carousel Options</h3>
+                </div>
+                <div className="pl-6 space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="autoplay"
+                      checked={localAutoplay}
+                      onChange={(e) => {
+                        setLocalAutoplay(e.target.checked);
+                        handleUpdateField('autoplay', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="autoplay" className="text-sm">Autoplay</label>
+                  </div>
+
+                  {localAutoplay && (
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Autoplay Speed (ms)</label>
+                      <input
+                        type="number"
+                        value={localAutoplaySpeed}
+                        onChange={(e) => {
+                          const speed = parseInt(e.target.value);
+                          setLocalAutoplaySpeed(speed);
+                          handleUpdateField('autoplaySpeed', speed);
+                        }}
+                        min={1000}
+                        max={10000}
+                        step={500}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="showNavigation"
+                      checked={localShowNavigation}
+                      onChange={(e) => {
+                        setLocalShowNavigation(e.target.checked);
+                        handleUpdateField('showNavigation', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="showNavigation" className="text-sm">Show navigation arrows</label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="showDots"
+                      checked={localShowDots}
+                      onChange={(e) => {
+                        setLocalShowDots(e.target.checked);
+                        handleUpdateField('showDots', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="showDots" className="text-sm">Show dots indicator</label>
+                  </div>
                 </div>
               </div>
             )}
           </TabsContent>
 
           {/* Style Tab */}
-          <TabsContent value="style" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <ColorSelector
-                label="Background Color"
-                value={localBackgroundColor}
-                onChange={(color) => {
-                  setLocalBackgroundColor(color);
-                  handleUpdateField('backgroundColor', color);
-                }}
-              />
+          <TabsContent value="style" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {/* Color Settings Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-pink-500 to-pink-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Color Settings</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <ColorSelector
+                    label="Background Color"
+                    value={localBackgroundColor}
+                    onChange={(color) => {
+                      setLocalBackgroundColor(color);
+                      handleUpdateField('backgroundColor', color);
+                    }}
+                  />
 
-              <ColorSelector
-                label="Text Color"
-                value={localTextColor}
-                onChange={(color) => {
-                  setLocalTextColor(color);
-                  handleUpdateField('textColor', color);
-                }}
-              />
+                  <ColorSelector
+                    label="Text Color"
+                    value={localTextColor}
+                    onChange={(color) => {
+                      setLocalTextColor(color);
+                      handleUpdateField('textColor', color);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium block mb-2">Border Radius</label>
-              <input
-                type="range"
-                min={0}
-                max={24}
-                value={localBorderRadius}
-                onChange={(e) => {
-                  const radius = parseInt(e.target.value);
-                  setLocalBorderRadius(radius);
-                  handleUpdateField('borderRadius', radius);
-                }}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0px</span>
-                <span>{localBorderRadius}px</span>
-                <span>24px</span>
+            {/* Border Settings Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-gradient-to-b from-teal-500 to-teal-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Border Settings</h3>
+              </div>
+              <div className="pl-6 space-y-4">
+                <div>
+                  <label className="text-sm font-medium block mb-2">Border Radius</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={24}
+                    value={localBorderRadius}
+                    onChange={(e) => {
+                      const radius = parseInt(e.target.value);
+                      setLocalBorderRadius(radius);
+                      handleUpdateField('borderRadius', radius);
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0px</span>
+                    <span>{localBorderRadius}px</span>
+                    <span>24px</span>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>

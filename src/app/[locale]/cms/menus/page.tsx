@@ -88,16 +88,34 @@ interface Menu {
   updatedAt: string;
   items: MenuItem[];
   headerStyle?: {
-    id: string;
-    transparency: number;
-    headerSize: string;
-    menuAlignment: string;
-    menuButtonStyle: string;
-    mobileMenuStyle: string;
-    mobileMenuPosition: string;
-    transparentHeader: boolean;
-    borderBottom: boolean;
-    fixedHeader: boolean;
+    id?: string;
+    transparency?: number;
+    headerSize?: string;
+    menuAlignment?: string;
+    menuButtonStyle?: string;
+    mobileMenuStyle?: string;
+    mobileMenuPosition?: string;
+    transparentHeader?: boolean;
+    borderBottom?: boolean;
+    fixedHeader?: boolean;
+    // Button configuration fields
+    showButton?: boolean;
+    buttonText?: string;
+    buttonAction?: string;
+    buttonColor?: string;
+    buttonTextColor?: string;
+    buttonSize?: string;
+    buttonBorderRadius?: number;
+    buttonShadow?: string;
+    buttonBorderColor?: string;
+    buttonBorderWidth?: number;
+    buttonWidth?: string;
+    buttonHeight?: string;
+    buttonPosition?: string;
+    buttonDropdown?: boolean;
+    buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+    buttonUrlType?: string;
+    selectedPageId?: string;
   } | null;
 }
 
@@ -313,29 +331,112 @@ export default function MenusManagerPage() {
   const updateMenu = async (menuId: string, updates: Partial<Menu>) => {
     setIsSaving(true);
     try {
-      const mutation = `
-        mutation UpdateMenu($id: ID!, $input: MenuInput!) {
-          updateMenu(id: $id, input: $input) {
-            id
-            name
-            location
-            updatedAt
+      // Handle header style updates separately
+      if (updates.headerStyle) {
+        const headerStyleMutation = `
+          mutation UpdateHeaderStyle($menuId: ID!, $input: HeaderStyleInput!) {
+            updateHeaderStyle(menuId: $menuId, input: $input) {
+              success
+              message
+              headerStyle {
+                id
+                menuId
+                transparency
+                headerSize
+                menuAlignment
+                menuButtonStyle
+                mobileMenuStyle
+                mobileMenuPosition
+                transparentHeader
+                borderBottom
+                fixedHeader
+                advancedOptions
+                showButton
+                buttonText
+                buttonAction
+                buttonColor
+                buttonTextColor
+                buttonSize
+                buttonBorderRadius
+                buttonShadow
+                buttonBorderColor
+                buttonBorderWidth
+                buttonWidth
+                buttonHeight
+                buttonPosition
+                buttonDropdown
+                buttonDropdownItems
+                buttonUrlType
+                selectedPageId
+              }
+            }
           }
+        `;
+
+        const headerStyleResponse = await gqlRequest<{
+          updateHeaderStyle: {
+            success: boolean;
+            message: string;
+            headerStyle: Menu['headerStyle'];
+          }
+        }>(headerStyleMutation, {
+          menuId,
+          input: updates.headerStyle
+        });
+
+        if (headerStyleResponse?.updateHeaderStyle?.success) {
+          // Update the menu with the new header style
+          const newMenus = menus.map(menu => 
+            menu.id === menuId ? { 
+              ...menu, 
+              headerStyle: headerStyleResponse.updateHeaderStyle.headerStyle 
+            } : menu
+          );
+          setMenus(newMenus);
+          saveToHistory(newMenus);
+          setSuccessMessage('Header button configuration updated successfully');
         }
-      `;
+        
+        // Remove headerStyle from updates to avoid sending it to the regular menu update
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { headerStyle, ...menuUpdates } = updates;
+        
+        // If there are no other updates, we're done
+        if (Object.keys(menuUpdates).length === 0) {
+          setIsSaving(false);
+          return;
+        }
+        
+        // Continue with regular menu updates if there are other fields
+        updates = menuUpdates;
+      }
 
-      const response = await gqlRequest<{ updateMenu: Menu }>(mutation, {
-        id: menuId,
-        input: updates
-      });
+      // Handle regular menu updates
+      if (Object.keys(updates).length > 0) {
+        const mutation = `
+          mutation UpdateMenu($id: ID!, $input: MenuInput!) {
+            updateMenu(id: $id, input: $input) {
+              id
+              name
+              location
+              updatedAt
+            }
+          }
+        `;
 
-      if (response && response.updateMenu) {
-        const newMenus = menus.map(menu => 
-          menu.id === menuId ? { ...menu, ...response.updateMenu } : menu
-        );
-        setMenus(newMenus);
-        saveToHistory(newMenus);
-        setSuccessMessage('Menu updated successfully');
+        const response = await gqlRequest<{ updateMenu: Menu }>(mutation, {
+          id: menuId,
+          input: updates
+        });
+
+        if (response && response.updateMenu) {
+          const newMenus = menus.map(menu => 
+            menu.id === menuId ? { ...menu, ...response.updateMenu } : menu
+          );
+          setMenus(newMenus);
+          saveToHistory(newMenus);
+          setSuccessMessage('Menu updated successfully');
+        }
       }
     } catch (err) {
       console.error('Error updating menu:', err);
@@ -1438,6 +1539,184 @@ function MenuEditor({
               </Droppable>
             </DragDropContext>
           )}
+        </div>
+
+        <Separator />
+
+        {/* Header Button Configuration */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Header Button Configuration</h3>
+            <Badge variant="outline">Optional</Badge>
+          </div>
+          
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <div className="space-y-4">
+              {/* Enable Button */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showButton"
+                  checked={menu.headerStyle?.showButton || false}
+                  onChange={(e) => {
+                    const newHeaderStyle = {
+                      ...menu.headerStyle,
+                      showButton: e.target.checked
+                    } as Partial<Menu['headerStyle']>;
+                    onUpdate({ headerStyle: newHeaderStyle });
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Label htmlFor="showButton" className="text-sm font-medium">
+                  Show Button in Header
+                </Label>
+              </div>
+              
+              {menu.headerStyle?.showButton && (
+                <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+                  {/* Button Text */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="buttonText">Button Text</Label>
+                      <Input
+                        id="buttonText"
+                        value={menu.headerStyle?.buttonText || ''}
+                        onChange={(e) => {
+                          const newHeaderStyle = {
+                            ...menu.headerStyle,
+                            buttonText: e.target.value
+                          };
+                          onUpdate({ headerStyle: newHeaderStyle });
+                        }}
+                        placeholder="Get Started"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="buttonAction">Button URL/Action</Label>
+                      <Input
+                        id="buttonAction"
+                        value={menu.headerStyle?.buttonAction || ''}
+                        onChange={(e) => {
+                          const newHeaderStyle = {
+                            ...menu.headerStyle,
+                            buttonAction: e.target.value
+                          };
+                          onUpdate({ headerStyle: newHeaderStyle });
+                        }}
+                        placeholder="/contact"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Button Styling */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="buttonColor">Button Color</Label>
+                      <Input
+                        id="buttonColor"
+                        type="color"
+                        value={menu.headerStyle?.buttonColor || '#3B82F6'}
+                        onChange={(e) => {
+                          const newHeaderStyle = {
+                            ...menu.headerStyle,
+                            buttonColor: e.target.value
+                          };
+                          onUpdate({ headerStyle: newHeaderStyle });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="buttonTextColor">Text Color</Label>
+                      <Input
+                        id="buttonTextColor"
+                        type="color"
+                        value={menu.headerStyle?.buttonTextColor || '#FFFFFF'}
+                        onChange={(e) => {
+                          const newHeaderStyle = {
+                            ...menu.headerStyle,
+                            buttonTextColor: e.target.value
+                          };
+                          onUpdate({ headerStyle: newHeaderStyle });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="buttonSize">Button Size</Label>
+                      <Select 
+                        value={menu.headerStyle?.buttonSize || 'md'} 
+                        onValueChange={(value) => {
+                          const newHeaderStyle = {
+                            ...menu.headerStyle,
+                            buttonSize: value
+                          };
+                          onUpdate({ headerStyle: newHeaderStyle });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sm">Small</SelectItem>
+                          <SelectItem value="md">Medium</SelectItem>
+                          <SelectItem value="lg">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Button Position */}
+                  <div className="space-y-2">
+                    <Label htmlFor="buttonPosition">Button Position</Label>
+                    <Select 
+                      value={menu.headerStyle?.buttonPosition || 'center'} 
+                      onValueChange={(value) => {
+                        const newHeaderStyle = {
+                          ...menu.headerStyle,
+                          buttonPosition: value
+                        };
+                        onUpdate({ headerStyle: newHeaderStyle });
+                      }}
+                    >
+                      <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Button Preview */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-sm font-medium mb-2 block">Button Preview</Label>
+                    <div className="p-4 bg-white rounded-md border flex justify-center">
+                      <button
+                        style={{
+                          backgroundColor: menu.headerStyle?.buttonColor || '#3B82F6',
+                          color: menu.headerStyle?.buttonTextColor || '#FFFFFF',
+                          padding: menu.headerStyle?.buttonSize === 'sm' ? '6px 12px' : 
+                                  menu.headerStyle?.buttonSize === 'lg' ? '12px 24px' : '8px 16px',
+                          fontSize: menu.headerStyle?.buttonSize === 'sm' ? '14px' : 
+                                   menu.headerStyle?.buttonSize === 'lg' ? '18px' : '16px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: '500'
+                        }}
+                      >
+                        {menu.headerStyle?.buttonText || 'Button Text'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

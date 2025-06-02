@@ -30,7 +30,6 @@ interface SectionsTabProps {
   onCreateSection: () => Promise<boolean>;
   onCancelCreate: () => void;
   onStartCreating: () => void;
-  onSectionNameChange: (name: string) => void;
   onBackClick: () => void;
   onSavePage: () => Promise<boolean>;
   sectionRef: React.RefObject<ManageableSectionHandle>;
@@ -141,7 +140,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
   onCreateSection,
   onCancelCreate,
   onStartCreating,
-  onSectionNameChange,
   onBackClick,
   onSavePage,
   sectionRef,
@@ -360,7 +358,6 @@ export const SectionsTab: React.FC<SectionsTabProps> = ({
               ref={sectionRef}
               sectionId={pageSections[0]?.sectionId || ''}
               sectionName={pageSections[0]?.name}
-              onSectionNameChange={onSectionNameChange}
               isEditing={true}
             />
           </div>
