@@ -1,6 +1,6 @@
 "use client";
 
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useFeatureAccess, FeatureType } from '@/hooks/useFeatureAccess';
 import { FeatureGuard, ShowIfFeature } from '@/components/FeatureGuard';
 import Link from 'next/link';
 import { 
@@ -283,7 +283,17 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
 ];
 
 export function FeatureAwareDashboard() {
-  const { getAvailableFeatures, calculateCost } = useFeatureAccess();
+  let getAvailableFeatures: () => FeatureType[] = () => ['CMS_ENGINE'];
+  let calculateCost: () => number = () => 0;
+  
+  try {
+    const featureAccess = useFeatureAccess();
+    getAvailableFeatures = featureAccess.getAvailableFeatures;
+    calculateCost = featureAccess.calculateCost;
+  } catch {
+    console.warn('FeatureAwareDashboard used outside FeatureProvider, using defaults');
+  }
+  
   const availableFeatures = getAvailableFeatures();
   const monthlyCost = calculateCost();
 

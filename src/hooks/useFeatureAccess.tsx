@@ -2,78 +2,108 @@
 
 // src/hooks/useFeatureAccess.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
-import { 
-  hasFeatureAccess, 
-  hasAllFeatures, 
-  hasAnyFeature, 
-  getAvailableFeatures,
-  isRouteAllowed,
-  getMissingFeatures,
-  calculateMonthlyCost
-} from '@/lib/feature-access';
 
+// Feature types
+export type FeatureType = 
+  | 'CMS_ENGINE'
+  | 'BLOG_MODULE' 
+  | 'FORMS_MODULE'
+  | 'BOOKING_ENGINE'
+  | 'ECOMMERCE_ENGINE';
+
+// Feature context type
 interface FeatureContextType {
-  tenantFeatures: string[];
-  tenantId: string | null;
-  hasFeature: (featureId: string) => boolean;
-  hasAllFeatures: (features: string[]) => boolean;
-  hasAnyFeature: (features: string[]) => boolean;
-  isRouteAllowed: (route: string) => boolean;
-  getAvailableFeatures: () => import('@/config/features').FeatureDefinition[];
-  getMissingFeatures: (required: string[]) => string[];
-  calculateCost: (features?: string[]) => number;
+  features: FeatureType[];
+  hasFeature: (feature: FeatureType) => boolean;
+  hasAllFeatures: (features: FeatureType[]) => boolean;
+  hasAnyFeature: (features: FeatureType[]) => boolean;
+  getAvailableFeatures: () => FeatureType[];
+  calculateCost: () => number;
+  isLoading: boolean;
 }
 
+// Create context
 const FeatureContext = createContext<FeatureContextType | null>(null);
 
+// Provider props
 interface FeatureProviderProps {
   children: ReactNode;
-  tenantFeatures: string[];
-  tenantId: string | null;
+  features: FeatureType[];
+  isLoading?: boolean;
 }
 
-export function FeatureProvider({ children, tenantFeatures, tenantId }: FeatureProviderProps) {
-  const contextValue: FeatureContextType = {
-    tenantFeatures,
-    tenantId,
-    hasFeature: (featureId: string) => hasFeatureAccess(tenantFeatures, featureId),
-    hasAllFeatures: (features: string[]) => hasAllFeatures(tenantFeatures, features),
-    hasAnyFeature: (features: string[]) => hasAnyFeature(tenantFeatures, features),
-    isRouteAllowed: (route: string) => isRouteAllowed(tenantFeatures, route),
-    getAvailableFeatures: () => getAvailableFeatures(tenantFeatures),
-    getMissingFeatures: (required: string[]) => getMissingFeatures(tenantFeatures, required),
-    calculateCost: (features?: string[]) => calculateMonthlyCost(features || tenantFeatures),
+// Feature Provider component
+export const FeatureProvider: React.FC<FeatureProviderProps> = ({ 
+  children, 
+  features = [], 
+  isLoading = false 
+}) => {
+  const hasFeature = (feature: FeatureType): boolean => {
+    return features.includes(feature);
+  };
+
+  const hasAllFeatures = (requiredFeatures: FeatureType[]): boolean => {
+    return requiredFeatures.every(feature => features.includes(feature));
+  };
+
+  const hasAnyFeature = (requiredFeatures: FeatureType[]): boolean => {
+    return requiredFeatures.some(feature => features.includes(feature));
+  };
+
+  const getAvailableFeatures = (): FeatureType[] => {
+    return features;
+  };
+
+  const calculateCost = (): number => {
+    const pricing: Record<FeatureType, number> = {
+      'CMS_ENGINE': 0,
+      'BLOG_MODULE': 10,
+      'FORMS_MODULE': 15,
+      'BOOKING_ENGINE': 25,
+      'ECOMMERCE_ENGINE': 35
+    };
+    
+    return features.reduce((total, feature) => total + (pricing[feature] || 0), 0);
+  };
+
+  const value: FeatureContextType = {
+    features,
+    hasFeature,
+    hasAllFeatures,
+    hasAnyFeature,
+    getAvailableFeatures,
+    calculateCost,
+    isLoading
   };
 
   return (
-    <FeatureContext.Provider value={contextValue}>
+    <FeatureContext.Provider value={value}>
       {children}
     </FeatureContext.Provider>
   );
-}
+};
 
-export function useFeatureAccess() {
+// Main hook
+export const useFeatureAccess = (): FeatureContextType => {
   const context = useContext(FeatureContext);
   if (!context) {
     throw new Error('useFeatureAccess must be used within a FeatureProvider');
   }
   return context;
-}
+};
 
-// Hook específico para verificar una feature
-export function useHasFeature(featureId: string): boolean {
+// Convenience hooks
+export const useHasFeature = (feature: FeatureType): boolean => {
   const { hasFeature } = useFeatureAccess();
-  return hasFeature(featureId);
-}
+  return hasFeature(feature);
+};
 
-// Hook para verificar múltiples features
-export function useHasAllFeatures(features: string[]): boolean {
+export const useHasAllFeatures = (features: FeatureType[]): boolean => {
   const { hasAllFeatures } = useFeatureAccess();
   return hasAllFeatures(features);
-}
+};
 
-// Hook para verificar si al menos una feature está disponible
-export function useHasAnyFeature(features: string[]): boolean {
+export const useHasAnyFeature = (features: FeatureType[]): boolean => {
   const { hasAnyFeature } = useFeatureAccess();
   return hasAnyFeature(features);
-} 
+}; 

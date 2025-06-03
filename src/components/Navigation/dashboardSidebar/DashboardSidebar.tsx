@@ -31,6 +31,7 @@ import {
   filterNavigationByFeatures,
   type NavItem 
 } from './sidebarConfig';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`
@@ -46,16 +47,6 @@ const GET_USER_PROFILE = gql`
         name
         description
       }
-    }
-  }
-`;
-
-const GET_TENANT_FEATURES = gql`
-  query GetTenantFeatures($tenantId: String!) {
-    tenant(id: $tenantId) {
-      id
-      name
-      features
     }
   }
 `;
@@ -113,6 +104,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const params = useParams();
   const { t } = useI18n();
+  const { features: tenantFeatures } = useFeatureAccess();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/logo.png");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -136,33 +128,6 @@ export function DashboardSidebar() {
       console.log('Profile data loaded:', data?.me);
     },
   });
-
-  // Get tenant features
-  const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
-    client,
-    variables: { tenantId: data?.me?.tenantId || '' },
-    skip: !data?.me?.tenantId,
-    errorPolicy: 'all',
-    fetchPolicy: 'cache-first',
-    onCompleted: (tenantData) => {
-      console.log('Tenant features loaded:', tenantData?.tenant?.features);
-    },
-    onError: (error) => {
-      console.error('Error loading tenant features:', error);
-    }
-  });
-
-  // Extract tenant features
-  const tenantFeatures = useMemo(() => {
-    console.log('Raw tenant data:', tenantData);
-    console.log('Tenant features from data:', tenantData?.tenant?.features);
-    console.log('Type of features:', typeof tenantData?.tenant?.features);
-    console.log('Is array:', Array.isArray(tenantData?.tenant?.features));
-    
-    const features = tenantData?.tenant?.features || ['CMS_ENGINE']; // Default to CMS_ENGINE
-    console.log('Final tenant features:', features);
-    return features;
-  }, [tenantData?.tenant?.features]);
 
   // Check if user is an admin (using both sources of data)
   const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';

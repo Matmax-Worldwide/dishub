@@ -11,8 +11,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { 
   LayoutDashboard,
   FileText,
-  Menu, 
-  FormInput, 
+  Menu,
   Image as ImageIcon, 
   Settings,
   PanelLeftClose,
@@ -21,7 +20,7 @@ import {
   BookOpen,
   ChevronDown
 } from 'lucide-react';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useFeatureAccess, FeatureType } from '@/hooks/useFeatureAccess';
 
 import {
   Sidebar, 
@@ -56,8 +55,17 @@ export default function CMSSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
-  const { hasFeature } = useFeatureAccess();
   
+  // Try to use FeatureProvider, fallback to defaults if not available
+  let hasFeature: (feature: FeatureType) => boolean = () => true; // Default: allow all features
+  
+  try {
+    const featureAccess = useFeatureAccess();
+    hasFeature = featureAccess.hasFeature;
+  } catch {
+    console.warn('CMSSidebar used outside FeatureProvider, using defaults');
+  }
+
   // Unsaved changes context
   const {
     hasUnsavedChanges,
@@ -70,47 +78,47 @@ export default function CMSSidebar() {
     setShowUnsavedAlert,
   } = useUnsavedChanges();
 
-  // Base navigation items - CMS Engine is always available
+  // Base navigation items (always available with CMS_ENGINE)
   const baseNavigationItems = [
     {
       name: t('cms.dashboard') || 'Dashboard',
       href: `/${locale}/cms/`,
       icon: <LayoutDashboard className="h-4 w-4" />,
-      feature: 'CMS_ENGINE'
+      feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.pages') || 'Pages',
       href: `/${locale}/cms/pages`,
       icon: <FileText className="h-4 w-4" />,
-      feature: 'CMS_ENGINE'
+      feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.menus') || 'Menus',
       href: `/${locale}/cms/menus`,
       icon: <Menu className="h-4 w-4" />,
-      feature: 'CMS_ENGINE'
+      feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.media') || 'Media',
       href: `/${locale}/cms/media`,
       icon: <ImageIcon className="h-4 w-4" />,
-      feature: 'CMS_ENGINE'
+      feature: 'CMS_ENGINE' as FeatureType
     },
   ];
 
   // Feature-based navigation items
   const featureNavigationItems = [
     {
-      name: t('cms.forms') || 'Forms',
+      name: t('forms.title') || 'Forms',
       href: `/${locale}/cms/forms`,
-      icon: <FormInput className="h-4 w-4" />,
-      feature: 'FORMS_MODULE'
+      icon: <FileText className="h-4 w-4" />,
+      feature: 'FORMS_MODULE' as FeatureType
     },
     {
-      name: t('cms.blog') || 'Blog',
+      name: t('blog.title') || 'Blog',
       href: `/${locale}/cms/blog`,
       icon: <BookOpen className="h-4 w-4" />,
-      feature: 'BLOG_MODULE'
+      feature: 'BLOG_MODULE' as FeatureType
     },
   ];
 
@@ -136,7 +144,7 @@ export default function CMSSidebar() {
     name: t('cms.settings') || 'Settings',
     href: `/${locale}/cms/settings`,
     icon: <Settings className="h-4 w-4" />,
-    feature: 'CMS_ENGINE'
+    feature: 'CMS_ENGINE' as FeatureType
   };
 
   const isActiveLink = (path: string): boolean => {
