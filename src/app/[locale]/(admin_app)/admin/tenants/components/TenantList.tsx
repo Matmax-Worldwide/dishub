@@ -1,12 +1,14 @@
 // src/app/[locale]/(admin_app)/admin/tenants/components/TenantList.tsx
 "use client";
-import { gql, useQuery } from '@apollo/client';
+// ... other imports (gql, useQuery, useMutation, Table components, Badge, Button, useState, TenantForm, AVAILABLE_FEATURES, useToast)
+import { gql, useQuery, useMutation } from '@apollo/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import TenantForm from './TenantForm';
-import { AVAILABLE_FEATURES, FeatureDefinition } from '@/config/features'; // Import feature definitions
+import TenantForm from './TenantForm'; // Assuming this exists and is correctly implemented
+import { AVAILABLE_FEATURES } from '@/config/features'; // Assuming this exists
+import { useToast } from "@/components/ui/use-toast"; // Assuming this exists
 
 const GET_ALL_TENANTS = gql`
   query GetAllTenants {
@@ -18,25 +20,26 @@ const GET_ALL_TENANTS = gql`
       status
       createdAt
       planId
-      features # Ensure this is fetched
+      features
+      vercelProjectId
+      defaultDeploymentUrl
+      customDomainStatus # Added
     }
   }
 `;
 
-// Define a more specific type for tenant data if needed
-interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  domain?: string | null;
-  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
-  createdAt: string;
-  planId?: string | null;
-  features?: string[] | null;
-}
+const PROVISION_TENANT_SITE = gql`
+  mutation ProvisionTenantSite($tenantId: ID!) {
+    provisionTenantSite(tenantId: $tenantId) {
+      id
+      vercelProjectId
+      defaultDeploymentUrl
+      # Include other fields if needed for UI update
+    }
+  }
+`;
 
-
-// Helper to get feature labels
+// Helper to get feature labels (assuming this exists from previous steps)
 const getFeatureLabels = (featureIds: string[] | null | undefined): string => {
   if (!featureIds || featureIds.length === 0) return '-';
   return featureIds.map(id => {
@@ -45,12 +48,45 @@ const getFeatureLabels = (featureIds: string[] | null | undefined): string => {
   }).join(', ');
 };
 
+interface Tenant { // Define a basic Tenant interface for type safety
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string | null;
+    status: string; // Keep as string to match GQL enum string values
+    createdAt: string;
+    planId?: string | null;
+    features?: string[] | null;
+    vercelProjectId?: string | null;
+    defaultDeploymentUrl?: string | null;
+}
+
+
 export default function TenantList() {
   const { data, loading, error, refetch } = useQuery<{ allTenants: Tenant[] }>(GET_ALL_TENANTS, {
     errorPolicy: 'all',
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const { toast } = useToast();
+  const [provisionInProgress, setProvisionInProgress] = useState<Record<string, boolean>>({});
+
+
+  const [provisionSiteMutation, { loading: provisionMutationLoadingGlobal }] = useMutation(PROVISION_TENANT_SITE, {
+    onCompleted: (mutationData) => {
+      toast({ title: "Site Provisioning Successful", description: `Site for tenant ${mutationData.provisionTenantSite.name || editingTenant?.name } (ID: ${mutationData.provisionTenantSite.id}) has been provisioned.` });
+      refetch();
+      setProvisionInProgress(prev => ({ ...prev, [mutationData.provisionTenantSite.id]: false }));
+    },
+    onError: (error) => {
+      // Find which tenant was being provisioned if possible, from state or inspect error if it gives clues
+      const failedTenantId = Object.keys(provisionInProgress).find(id => provisionInProgress[id]);
+      toast({ title: "Provisioning Error", description: error.message, variant: "destructive" });
+      if (failedTenantId) {
+        setProvisionInProgress(prev => ({ ...prev, [failedTenantId]: false }));
+      }
+    }
+  });
 
   const handleOpenForm = (tenant?: Tenant) => {
     setEditingTenant(tenant || null);
@@ -67,6 +103,20 @@ export default function TenantList() {
     handleCloseForm();
   };
 
+  const handleProvisionSite = async (tenantId: string) => {
+    if (confirm("Are you sure you want to provision a new Vercel site for this tenant? This may take a few moments.")) {
+      setProvisionInProgress(prev => ({ ...prev, [tenantId]: true }));
+      try {
+        await provisionSiteMutation({ variables: { tenantId } });
+        // onCompleted will handle success toast and refetch
+      } catch (e) {
+        // onError will handle error toast
+        // No need to setProvisionInProgress to false here, onError handles it
+        console.error("Provision site mutation call failed:", e);
+      }
+    }
+  };
+
   if (loading) return <p className="text-center py-10">Loading tenants...</p>;
   if (error) {
      return (
@@ -80,7 +130,9 @@ export default function TenantList() {
     );
   }
 
-  if (!data || !data.allTenants || data.allTenants.length === 0) {
+  const tenants: Tenant[] = data?.allTenants || [];
+
+  if (tenants.length === 0 && !isFormOpen && !loading) {
     return (
       <div className="container mx-auto py-10 text-center">
         <div className="flex justify-between items-center mb-6">
@@ -88,7 +140,7 @@ export default function TenantList() {
           <Button onClick={() => handleOpenForm()} size="lg">Create New Tenant</Button>
         </div>
         <p className="mb-4 text-gray-500">No tenants found. Get started by creating a new tenant.</p>
-        {isFormOpen && (
+        {isFormOpen && ( // Ensure form can still be opened
           <TenantForm
             isOpen={isFormOpen}
             onClose={handleCloseForm}
@@ -111,46 +163,60 @@ export default function TenantList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan ID</TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enabled Features</TableHead>
-              <TableHead className="w-[150px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</TableHead>
-              <TableHead className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-[120px]">Actions</TableHead>
+              <TableHead className="w-[180px]">Name</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Deployment URL</TableHead>
+              <TableHead>Features</TableHead>
+              <TableHead className="w-[180px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.allTenants.map((tenant: Tenant) => (
-              <TableRow key={tenant.id} className="hover:bg-gray-50">
-                <TableCell className="font-medium px-4 py-3 whitespace-nowrap">{tenant.name}</TableCell>
-                <TableCell className="px-4 py-3">{tenant.slug}</TableCell>
-                <TableCell className="px-4 py-3">{tenant.domain || 'N/A'}</TableCell>
-                <TableCell className="px-4 py-3">
-                  <Badge
-                    variant={tenant.status === 'ACTIVE' ? 'default' : (tenant.status === 'SUSPENDED' ? 'destructive' : 'secondary')}
-                     className={`capitalize ${tenant.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                             tenant.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
-                                             tenant.status === 'ARCHIVED' ? 'bg-yellow-100 text-yellow-800' :
-                                             'bg-gray-100 text-gray-800'}`}
-                  >
-                    {tenant.status.toLowerCase()}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-4 py-3">{tenant.planId || '-'}</TableCell>
-                <TableCell className="text-sm px-4 py-3 max-w-xs truncate" title={getFeatureLabels(tenant.features)}>{getFeatureLabels(tenant.features)}</TableCell>
-                <TableCell className="px-4 py-3">{new Date(tenant.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right px-4 py-3">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenForm(tenant)}>Edit</Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {tenants.map((tenant) => {
+              const isCurrentProvisioning = provisionInProgress[tenant.id] || provisionMutationLoadingGlobal && editingTenant?.id === tenant.id; // A bit of a guess for global loading
+              return (
+                <TableRow key={tenant.id} className="hover:bg-gray-50">
+                  <TableCell className="font-medium px-4 py-3 whitespace-nowrap">{tenant.name}</TableCell>
+                  <TableCell className="px-4 py-3">{tenant.slug}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge
+                      variant={tenant.status === 'ACTIVE' ? 'default' : (tenant.status === 'SUSPENDED' ? 'destructive' : 'secondary')}
+                      className={`capitalize ${tenant.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                              tenant.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
+                                              tenant.status === 'ARCHIVED' ? 'bg-yellow-100 text-yellow-800' :
+                                              'bg-gray-100 text-gray-800'}`}
+                    >
+                      {tenant.status.toLowerCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {tenant.defaultDeploymentUrl ?
+                      <a href={tenant.defaultDeploymentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{tenant.defaultDeploymentUrl.replace(/^https?:\/\//, '')}</a>
+                      :
+                      <span className="text-gray-500">Not Deployed</span>}
+                  </TableCell>
+                  <TableCell className="text-sm px-4 py-3 max-w-xs truncate" title={getFeatureLabels(tenant.features)}>{getFeatureLabels(tenant.features)}</TableCell>
+                  <TableCell className="text-right px-4 py-3 space-x-2 whitespace-nowrap">
+                    <Button variant="outline" size="sm" onClick={() => handleOpenForm(tenant)} disabled={isCurrentProvisioning}>Edit</Button>
+                    {!tenant.vercelProjectId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleProvisionSite(tenant.id)}
+                        disabled={isCurrentProvisioning}
+                      >
+                        {isCurrentProvisioning ? 'Provisioning...' : 'Provision Site'}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      {isFormOpen && (
+      {isFormOpen && ( // Render form outside the table but within the main div
         <TenantForm
           isOpen={isFormOpen}
           onClose={handleCloseForm}
