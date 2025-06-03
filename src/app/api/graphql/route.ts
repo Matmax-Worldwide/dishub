@@ -253,7 +253,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
   },
 });
 
-export { handler as GET, handler as POST };
+export { handler as GET };
 
 
 export async function POST(request: NextRequest) {

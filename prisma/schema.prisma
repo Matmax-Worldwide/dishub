@@ -674,7 +674,7 @@ model Benefit {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
-=======
+
   @@index([tenantId])
   @@unique([tenantId, name]) // Benefit names usually unique per tenant
 }
@@ -716,6 +716,7 @@ model PerformanceReview {
   updatedAt          DateTime     @updatedAt
   employee           Employee     @relation(fields: [employeeId], references: [id])
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String
   
   @@index([tenantId])
 }
@@ -888,9 +889,8 @@ model Media {
   cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
   posts           Post[]      @relation("PostMedia")
   featuredInPosts Post[]      @relation("PostFeaturedImage")
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  tenant          Tenant @relation(fields: [tenantId], references: [id])
+  tenantId        String
   @@index([tenantId])
 }
 
@@ -1755,9 +1755,6 @@ model BookingRule {
   bufferBetweenAppointmentsMinutes Int  @default(0)
   maxAppointmentsPerDayPerStaff    Int?
   bookingSlotIntervalMinutes       Int  @default(15)
-
-  locationId String?
-  location   Location? @relation(fields: [locationId], references: [id])
 
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
