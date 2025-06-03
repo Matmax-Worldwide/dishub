@@ -295,7 +295,7 @@
     "user": "User",
     "management": "Management",
     "administration": "Administration",
-    "createNotifications": "Create Notifications",
+    "createNotifications": "Send Notifications",
     "adminTools": "Admin Tools",
     "adminMessage": "You have full administrative access to manage the platform and its users.",
     "newUser": "New User",

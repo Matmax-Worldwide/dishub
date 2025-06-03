@@ -220,7 +220,7 @@
     "help": "Ayuda",
     "settings": "Configuración",
     "adminDashboard": "Panel de Administración",
-    "createNotifications": "Crear Notificaciones",
+    "createNotifications": "Enviar Notificaciones",
     "userManagement": "Usuarios",
     "roleManagement": "Roles y Permisos",
     "cms": "CMS",
