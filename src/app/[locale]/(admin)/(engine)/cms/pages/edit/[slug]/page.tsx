@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { PageEditor } from '@/components/engines/cms/page-editor';
+import { PageEditor } from '@/components/engines/cms/pages/page-editor';
 import { useTabContext } from '@/contexts/TabContext';
 import { ViewModeProvider } from '@/contexts/ViewModeContext';
 

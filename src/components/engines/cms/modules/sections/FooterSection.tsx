@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
 import {
   Tabs,
@@ -25,7 +25,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
 
 // Types from schema.prisma
 interface SocialLink {

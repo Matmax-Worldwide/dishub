@@ -16,9 +16,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import BackgroundSelector from '@/components/engines/cms/selectors/BackgroundSelector';
-import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import BackgroundSelector from '@/components/engines/cms/ui/selectors/BackgroundSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 
 interface BlogPost {
   id: string;

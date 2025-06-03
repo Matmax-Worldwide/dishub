@@ -1,4 +1,4 @@
-import PostCreateForm from '@/components/engines/cms/blog/post/PostCreateForm';
+import PostCreateForm from '@/components/engines/cms/modules/blog/post/PostCreateForm';
 import ClientProviders from '@/components/ClientProviders';
 
 // This is a server component

@@ -3,10 +3,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
-import ColorSelector from '@/components/engines/cms/selectors/ColorSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import ColorSelector from '@/components/engines/cms/ui/selectors/ColorSelector';
 import {
   Tabs,
   TabsContent,

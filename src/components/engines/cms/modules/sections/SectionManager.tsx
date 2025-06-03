@@ -12,13 +12,13 @@ import {
   ChevronsDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import ComponentTitleInput from './ComponentTitleInput';
 import { Button } from '@/components/ui/button';
-import { FormStyles } from './sections/FormStyleConfig';
-import { FormCustomConfig } from './sections/FormConfig';
-import { FormDesignType } from './forms/MultiStepFormRenderer';
+import { FormDesignType } from '@/components/engines/cms/modules/forms/MultiStepFormRenderer';
 import { ComponentType, HeaderAdvancedOptions } from '@/types/cms';
-import ComponentSelector from '@/components/engines/cms/selectors/ComponentSelector';
+import ComponentSelector from '@/components/engines/cms/ui/selectors/ComponentSelector';
+import ComponentTitleInput from '@/components/engines/cms/ComponentTitleInput';
+import { FormStyles } from './FormStyleConfig';
+import { FormCustomConfig } from './FormConfig';
 
 // Drag and Drop imports
 import {
@@ -68,7 +68,7 @@ export interface Component {
 // Dynamic imports for components - fallback to skeleton loading states
 const componentMap = {
   // Header
-  Header: dynamic(() => import('./sections/HeaderSection'), {
+  Header: dynamic(() => import('./HeaderSection'), {
     loading: () => (
       <div className="w-full bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -88,7 +88,7 @@ const componentMap = {
     )
   }),
   // Hero
-  Hero: dynamic(() => import('./sections/HeroSection'), {
+  Hero: dynamic(() => import('./HeroSection'), {
     loading: () => (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center">
         <div className="container mx-auto px-4">
@@ -111,7 +111,7 @@ const componentMap = {
     )
   }),
   // Text
-  Text: dynamic(() => import('./sections/TextSection'), {
+  Text: dynamic(() => import('./TextSection'), {
     loading: () => (
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -128,7 +128,7 @@ const componentMap = {
     )
   }),
   // Image
-  Image: dynamic(() => import('./sections/ImageSection'), {
+  Image: dynamic(() => import('./ImageSection'), {
     loading: () => (
       <div className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
@@ -140,7 +140,7 @@ const componentMap = {
     )
   }),
   // Feature
-  Feature: dynamic(() => import('./sections/FeatureSection'), {
+  Feature: dynamic(() => import('./FeatureSection'), {
     loading: () => (
       <div className="py-20 bg-white">
         <div className="container mx-auto px-4">
@@ -162,7 +162,7 @@ const componentMap = {
     )
   }),
   // Testimonial
-  Testimonial: dynamic(() => import('./sections/TestimonialSection'), {
+  Testimonial: dynamic(() => import('./TestimonialSection'), {
     loading: () => (
       <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
@@ -176,7 +176,7 @@ const componentMap = {
     )
   }),
   // Card
-  Card: dynamic(() => import('./sections/CardSection'), {
+  Card: dynamic(() => import('./CardSection'), {
     loading: () => (
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -194,7 +194,7 @@ const componentMap = {
     )
   }),
   // Benefit
-  Benefit: dynamic(() => import('./sections/BenefitSection'), {
+  Benefit: dynamic(() => import('./BenefitSection'), {
     loading: () => (
       <div className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="container mx-auto px-4">
@@ -216,7 +216,7 @@ const componentMap = {
     )
   }),
   // Form
-  Form: dynamic(() => import('./sections/FormSection'), {
+  Form: dynamic(() => import('./FormSection'), {
     loading: () => (
       <div className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
@@ -270,7 +270,7 @@ const componentMap = {
     )
   }),
   // Footer
-  Footer: dynamic(() => import('./sections/FooterSection'), {
+  Footer: dynamic(() => import('./FooterSection'), {
     loading: () => (
       <div className="bg-gray-900 text-white py-16">
         <div className="container mx-auto px-4">
@@ -304,7 +304,7 @@ const componentMap = {
     )
   }),
   // Article
-  Article: dynamic(() => import('./sections/ArticleSection'), {
+  Article: dynamic(() => import('./ArticleSection'), {
     loading: () => (
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -322,7 +322,7 @@ const componentMap = {
     )
   }),
   // Blog
-  Blog: dynamic(() => import('./sections/BlogSectionWrapper'), {
+  Blog: dynamic(() => import('./BlogSectionWrapper'), {
     loading: () => (
       <div className="w-full bg-white border rounded-lg shadow-sm">
         <div className="p-6">
@@ -344,7 +344,7 @@ const componentMap = {
     )
   }),
   // CtaButton
-  CtaButton: dynamic(() => import('./sections/CtaButtonSection'), {
+  CtaButton: dynamic(() => import('./CtaButtonSection'), {
     loading: () => (
       <div className="w-full bg-white border rounded-lg shadow-sm">
         <div className="p-6 flex items-center justify-center">
@@ -357,7 +357,7 @@ const componentMap = {
     )
   }),
   // Video
-  Video: dynamic(() => import('./sections/VideoSection'), {
+  Video: dynamic(() => import('./VideoSection'), {
     loading: () => (
       <div className="w-full h-screen bg-black flex items-center justify-center">
         <div className="text-center text-white">
@@ -372,7 +372,7 @@ const componentMap = {
     )
   }),
   // Gallery
-  Gallery: dynamic(() => import('./sections/GallerySection'), {
+  Gallery: dynamic(() => import('./GallerySection'), {
     loading: () => (
       <div className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
@@ -390,7 +390,7 @@ const componentMap = {
     )
   }),
   // Calendar
-  Calendar: dynamic(() => import('./sections/CalendarSection'), {
+  Calendar: dynamic(() => import('./CalendarSection'), {
     loading: () => (
       <div className="w-full max-w-3xl mx-auto bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-3xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500 text-white p-6">

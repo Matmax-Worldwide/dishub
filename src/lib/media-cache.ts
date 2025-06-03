@@ -3,7 +3,7 @@
  * Evita múltiples llamadas a la API de S3 almacenando los resultados en memoria
  */
 
-import { MediaItem, Folder } from '@/components/engines/cms/media/types';
+import { MediaItem, Folder } from '@/components/engines/cms/modules/media/types';
 
 interface CacheEntry {
   data: MediaItem[];

@@ -1,5 +1,5 @@
 
-import { BlogPageContent } from '@/components/engines/cms/blog/BlogPageContent';
+import { BlogPageContent } from '@/components/engines/cms/modules/blog/BlogPageContent';
 
 interface ServerPageProps {
   params: Promise<{ 

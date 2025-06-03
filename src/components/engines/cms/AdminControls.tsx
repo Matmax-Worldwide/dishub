@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, memo } from 'react';
-import { Component } from './SectionManager';
+import { Component } from './modules/sections/SectionManager';
 import { cmsOperations, CMSComponent } from '@/lib/graphql-client';
 
 interface AdminControlsProps {

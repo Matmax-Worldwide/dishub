@@ -8,18 +8,18 @@ import StableInput from './StableInput';
 import { cmsOperations } from '@/lib/graphql-client';
 import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, MobileMenuStyle, MobileMenuPosition } from '@/types/cms';
 import { Menu, MenuItem } from '@/app/api/graphql/types';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
-import ColorSelector from '@/components/engines/cms/selectors/ColorSelector';
-import TransparencySelector from '@/components/engines/cms/selectors/TransparencySelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import ColorSelector from '@/components/engines/cms/ui/selectors/ColorSelector';
+import TransparencySelector from '@/components/engines/cms/ui/selectors/TransparencySelector';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import IconSelector from '@/components/engines/cms/selectors/IconSelector';
+import IconSelector from '@/components/engines/cms/ui/selectors/IconSelector';
 import * as LucideIcons from 'lucide-react';
 
 interface HeaderSectionProps {

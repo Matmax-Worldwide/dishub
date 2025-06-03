@@ -10,8 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MediaLibrary } from '@/components/engines/cms/media/MediaLibrary';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import { MediaLibrary } from '@/components/engines/cms/modules/media/MediaLibrary';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import { 
   Save, 
   Eye, 

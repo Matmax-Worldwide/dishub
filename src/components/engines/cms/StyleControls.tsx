@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
-import ColorSelector from './selectors/ColorSelector';
-import TransparencySelector from './selectors/TransparencySelector';
+import ColorSelector from './ui/selectors/ColorSelector';
+import TransparencySelector from './ui/selectors/TransparencySelector';
 import { 
   ComponentStyling, 
   DEFAULT_STYLING,

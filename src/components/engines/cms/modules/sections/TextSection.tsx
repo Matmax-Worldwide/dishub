@@ -2,8 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import StableInput from './StableInput';
-import StyleControls from '../StyleControls';
+import StableInput from '@/components/engines/cms/modules/sections/StableInput';
 import {
   Tabs,
   TabsContent,
@@ -17,6 +16,7 @@ import {
   generateStylesFromStyling,
   generateClassesFromStyling
 } from '@/types/cms-styling';
+import StyleControls from '../../StyleControls';
 
 interface TextSectionProps extends ComponentStyleProps {
   title?: string;

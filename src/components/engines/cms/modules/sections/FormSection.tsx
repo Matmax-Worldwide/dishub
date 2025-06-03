@@ -1,21 +1,21 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { FormSelector } from '@/components/engines/cms/forms/FormSelector';
+import { FormSelector } from '@/components/engines/cms/modules/forms/FormSelector';
 import { FormBase } from '@/types/forms';
 import { FormPreview } from './FormPreview';
 import { FormStyleConfig, FormStyles } from './FormStyleConfig';
 import { FormConfig, FormCustomConfig } from './FormConfig';
 import { FileText, LayoutPanelTop, FormInput, Palette } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
-import FormRenderer from '@/components/engines/cms/forms/FormRenderer';
-import MultiStepFormRenderer, { FormDesignType } from '@/components/engines/cms/forms/MultiStepFormRenderer';
+import FormRenderer from '@/components/engines/cms/modules/forms/FormRenderer';
+import MultiStepFormRenderer, { FormDesignType } from '@/components/engines/cms/modules/forms/MultiStepFormRenderer';
 import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
-import IconSelector from '@/components/engines/cms/selectors/IconSelector';
-import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/engines/cms/selectors/BackgroundSelector';
-import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
-import { MediaItem } from '@/components/engines/cms/media/types';
+import IconSelector from '@/components/engines/cms/ui/selectors/IconSelector';
+import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/engines/cms/ui/selectors/BackgroundSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import * as LucideIcons from 'lucide-react';
 import {
   Tabs,

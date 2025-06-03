@@ -1,16 +1,15 @@
-'use client';
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
-import StyleControls from '../StyleControls';
-import {
+import IconSelector from '@/components/engines/cms/ui/selectors/IconSelector';
+import StyleControls from '@/components/engines/cms/StyleControls';
+import {  
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import * as LucideIcons from 'lucide-react';
 import { 
   ComponentStyling, 
   ComponentStyleProps, 
@@ -19,32 +18,32 @@ import {
   generateClassesFromStyling
 } from '@/types/cms-styling';
 
-interface ImageSectionProps extends ComponentStyleProps {
-  src: string;
-  alt: string;
-  caption?: string;
+interface FeatureSectionProps extends ComponentStyleProps {
+  title: string;
+  description: string;
+  icon: string;
   styling?: ComponentStyling;
   isEditing?: boolean;
   onUpdate?: (data: { 
-    src: string; 
-    alt: string; 
-    caption?: string;
+    title: string; 
+    description: string; 
+    icon: string;
     styling?: ComponentStyling;
   }) => void;
 }
 
-export default function ImageSection({ 
-  src, 
-  alt, 
-  caption,
+const FeatureSection = React.memo(function FeatureSection({ 
+  title, 
+  description, 
+  icon = 'Star',
   styling = DEFAULT_STYLING,
   isEditing = false,
   onUpdate
-}: ImageSectionProps) {
+}: FeatureSectionProps) {
   // Local state to maintain during typing
-  const [localSrc, setLocalSrc] = useState(src || '');
-  const [localAlt, setLocalAlt] = useState(alt || '');
-  const [localCaption, setLocalCaption] = useState(caption || '');
+  const [localTitle, setLocalTitle] = useState(title);
+  const [localDescription, setLocalDescription] = useState(description);
+  const [localIcon, setLocalIcon] = useState(icon);
   const [localStyling, setLocalStyling] = useState<ComponentStyling>(styling);
   
   // Track if we're actively editing to prevent props from overriding local state
@@ -52,20 +51,23 @@ export default function ImageSection({
   
   // Optimize debounce updates
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Update local state when props change but only if not currently editing
   useEffect(() => {
     if (!isEditingRef.current) {
-      if ((src || '') !== localSrc) setLocalSrc(src || '');
-      if ((alt || '') !== localAlt) setLocalAlt(alt || '');
-      if ((caption || '') !== localCaption) setLocalCaption(caption || '');
+      if (title !== localTitle) setLocalTitle(title);
+      if (description !== localDescription) setLocalDescription(description);
+      if (icon !== localIcon) setLocalIcon(icon);
       if (styling && JSON.stringify(styling) !== JSON.stringify(localStyling)) {
         setLocalStyling(styling);
       }
     }
-  }, [src, alt, caption, styling, localSrc, localAlt, localCaption, localStyling]);
+  }, [title, description, icon, styling, localTitle, localDescription, localIcon, localStyling]);
   
-  // Optimize update handler with debouncing
+  // Get the icon component from the icon name
+  const IconComponent = (LucideIcons[localIcon as keyof typeof LucideIcons] as React.ElementType) || LucideIcons.Star;
+  
+  // Optimize update handler with useCallback and debouncing
   const handleUpdateField = useCallback((field: string, value: string | ComponentStyling) => {
     if (onUpdate) {
       // Mark that we're in editing mode
@@ -78,9 +80,9 @@ export default function ImageSection({
       
       // Prepare data to update
       const updateData = {
-        src: localSrc,
-        alt: localAlt,
-        caption: localCaption,
+        title: localTitle,
+        description: localDescription,
+        icon: localIcon,
         styling: localStyling,
         [field]: value
       };
@@ -95,7 +97,7 @@ export default function ImageSection({
         }, 500);
       }, 200);
     }
-  }, [onUpdate, localSrc, localAlt, localCaption, localStyling]);
+  }, [onUpdate, localTitle, localDescription, localIcon, localStyling]);
   
   // Clean up on unmount
   useEffect(() => {
@@ -106,20 +108,20 @@ export default function ImageSection({
     };
   }, []);
   
-  // Individual change handlers
-  const handleSrcChange = useCallback((newValue: string) => {
-    setLocalSrc(newValue);
-    handleUpdateField('src', newValue);
+  // Individual change handlers to maintain state locally
+  const handleTitleChange = useCallback((newValue: string) => {
+    setLocalTitle(newValue);
+    handleUpdateField('title', newValue);
   }, [handleUpdateField]);
   
-  const handleAltChange = useCallback((newValue: string) => {
-    setLocalAlt(newValue);
-    handleUpdateField('alt', newValue);
+  const handleDescriptionChange = useCallback((newValue: string) => {
+    setLocalDescription(newValue);
+    handleUpdateField('description', newValue);
   }, [handleUpdateField]);
   
-  const handleCaptionChange = useCallback((newValue: string) => {
-    setLocalCaption(newValue);
-    handleUpdateField('caption', newValue);
+  const handleIconChange = useCallback((newValue: string) => {
+    setLocalIcon(newValue);
+    handleUpdateField('icon', newValue);
   }, [handleUpdateField]);
 
   const handleStylingChange = useCallback((newStyling: ComponentStyling) => {
@@ -130,7 +132,7 @@ export default function ImageSection({
   // Generate styles and classes from styling
   const inlineStyles = generateStylesFromStyling(localStyling);
   const cssClasses = generateClassesFromStyling(localStyling);
-
+  
   if (isEditing) {
     return (
       <div className="w-full bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-lg shadow-gray-900/5 ring-1 ring-gray-900/5">
@@ -161,65 +163,38 @@ export default function ImageSection({
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-gray-900">Image Content</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Feature Content</h3>
               </div>
               <div className="pl-6 space-y-4">
-                <StableInput
-                  value={localSrc}
-                  onChange={handleSrcChange}
-                  placeholder="Enter image URL..."
-                  className="text-base"
-                  label="Image URL"
-                  debounceTime={300}
-                  data-field-id="src"
-                  data-component-type="Image"
-                />
-                
-                <StableInput
-                  value={localAlt}
-                  onChange={handleAltChange}
-                  placeholder="Enter alt text..."
-                  className="text-base"
-                  label="Alt Text"
-                  debounceTime={300}
-                  data-field-id="alt"
-                  data-component-type="Image"
-                />
-                
-                <StableInput
-                  value={localCaption}
-                  onChange={handleCaptionChange}
-                  placeholder="Enter caption (optional)..."
-                  className="text-base"
-                  label="Caption (optional)"
-                  debounceTime={300}
-                  data-field-id="caption"
-                  data-component-type="Image"
-                />
-                
-                {/* Preview */}
-                <div className="mt-4 bg-background border border-input rounded-md p-3">
-                  <div className="text-sm font-medium text-muted-foreground mb-2">Preview</div>
-                  {localSrc ? (
-                    <div className="relative w-full h-[220px] rounded-md overflow-hidden">
-                      <Image 
-                        src={localSrc} 
-                        alt={localAlt || 'Image preview'} 
-                        fill 
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-[220px] bg-muted flex items-center justify-center rounded-md">
-                      <p className="text-muted-foreground">Image preview</p>
-                    </div>
-                  )}
-                  {localCaption && (
-                    <div className="text-center text-sm text-muted-foreground mt-2">
-                      {localCaption}
-                    </div>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground">
+                    Icon
+                  </label>
+                  <IconSelector 
+                    selectedIcon={localIcon}
+                    onSelectIcon={handleIconChange}
+                  />
                 </div>
+                
+                <StableInput
+                  value={localTitle}
+                  onChange={handleTitleChange}
+                  placeholder="Enter feature title..."
+                  className="font-medium text-foreground"
+                  label="Title"
+                  debounceTime={300}
+                />
+                
+                <StableInput
+                  value={localDescription}
+                  onChange={handleDescriptionChange}
+                  placeholder="Enter feature description..."
+                  isTextArea={true}
+                  rows={3}
+                  className="text-muted-foreground text-sm"
+                  label="Description"
+                  debounceTime={300}
+                />
               </div>
             </div>
           </TabsContent>
@@ -241,28 +216,14 @@ export default function ImageSection({
                 <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
               </div>
               <div className="pl-6 space-y-4">
-                <div className="w-full max-w-4xl mx-auto">
-                  <figure className="relative">
-                    {localSrc ? (
-                      <div className="relative w-full h-[400px] rounded-md overflow-hidden">
-                        <Image 
-                          src={localSrc} 
-                          alt={localAlt || 'Image'} 
-                          fill 
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full h-[400px] bg-muted flex items-center justify-center rounded-md">
-                        <p className="text-muted-foreground">Image placeholder</p>
-                      </div>
-                    )}
-                    {localCaption && (
-                      <figcaption className="text-center text-sm text-muted-foreground mt-2">
-                        {localCaption}
-                      </figcaption>
-                    )}
-                  </figure>
+                <div className="bg-card p-4 rounded-md">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="p-3 bg-muted rounded-full text-primary mb-4">
+                      <IconComponent className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground mb-2">{localTitle}</h3>
+                    <p className="text-muted-foreground max-w-md text-sm">{localDescription}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -275,32 +236,20 @@ export default function ImageSection({
   return (
     <div 
       className={cn(
-        "w-full max-w-4xl mx-auto",
+        "max-w-4xl mx-auto",
         cssClasses
       )}
       style={inlineStyles}
     >
-      <figure className="relative">
-        {localSrc ? (
-          <div className="relative w-full h-[400px] rounded-md overflow-hidden" data-field-type="src" data-component-type="Image">
-            <Image 
-              src={localSrc} 
-              alt={localAlt || 'Image'} 
-              fill 
-              className="object-cover"
-            />
-          </div>
-        ) : (
-          <div className="w-full h-[400px] bg-muted flex items-center justify-center rounded-md" data-field-type="src" data-component-type="Image">
-            <p className="text-muted-foreground">Image placeholder</p>
-          </div>
-        )}
-        {localCaption && (
-          <figcaption className="text-center text-sm text-muted-foreground mt-2" data-field-type="caption" data-component-type="Image">
-            {localCaption}
-          </figcaption>
-        )}
-      </figure>
+      <div className="flex flex-col items-center text-center">
+        <div className="p-3 bg-muted rounded-full text-primary mb-4">
+          <IconComponent className="h-10 w-10" />
+        </div>
+        <h3 className="text-xl font-medium text-foreground mb-2">{localTitle}</h3>
+        <p className="text-muted-foreground max-w-md">{localDescription}</p>
+      </div>
     </div>
   );
-} 
+});
+
+export default FeatureSection; 

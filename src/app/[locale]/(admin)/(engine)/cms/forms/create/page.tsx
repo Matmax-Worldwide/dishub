@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormComponent } from '@/components/engines/cms/forms/hooks/useFormComponent';
+import { useFormComponent } from '@/components/engines/cms/modules/forms/hooks/useFormComponent';
 import { FormInput } from '@/types/forms';
 import { ArrowLeft, Save, FileText, Settings, Eye, Sparkles } from 'lucide-react';
 import Link from 'next/link';
