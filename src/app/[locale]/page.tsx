@@ -1,6 +1,7 @@
 import { getDictionary, Locale, locales } from '../i18n';
 import { notFound } from 'next/navigation';
-import ClientPage from './client-page';
+import ClientPage from '@/components/client-page';
+
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
