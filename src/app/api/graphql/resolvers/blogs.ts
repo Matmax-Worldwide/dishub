@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 import { PostStatus, Blog as PrismaBlog } from '@prisma/client';
 // import { verifySession } from '@/app/api/utils/auth'; // Removed
-import { Context } from '@/app/api/graphql/types';
+import { GraphQLContext } from '../route';
 
 // Define interfaces for input types (preserved)
 interface BlogInput {
@@ -89,10 +89,15 @@ export const blogResolvers = {
         throw new GraphQLError('Failed to fetch blog');
       }
     },
-    blogBySlug: async (_: unknown, { slug }: { slug: string }) => {
+    blogBySlug: async (_: unknown, { slug }: { slug: string }, context: GraphQLContext) => {
       try {
         return await prisma.blog.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
         });
       } catch (error) {
         console.error('Error fetching blog by slug:', error);
@@ -145,10 +150,15 @@ export const blogResolvers = {
         throw new GraphQLError('Failed to fetch posts');
       }
     },
-    postBySlug: async (_: unknown, { slug }: { slug: string }) => {
+    postBySlug: async (_: unknown, { slug }: { slug: string }, context: GraphQLContext) => {
       try {
         return await prisma.post.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
           include: {
             author: { select: { id: true, firstName: true, lastName: true, email: true } },
             blog: { select: { id: true, title: true, slug: true } },
@@ -337,7 +347,7 @@ export const blogResolvers = {
   },
 
   Blog: {
-    posts: async (parentBlog: PrismaBlog, _args: unknown, context: Context) => {
+    posts: async (parentBlog: PrismaBlog, _args: unknown, context: GraphQLContext) => {
       if (!parentBlog.id) {
         return [];
       }
