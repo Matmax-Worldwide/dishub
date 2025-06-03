@@ -24,7 +24,7 @@ import StaffManager from '@/components/modules/calendar/StaffManager';
 import LocationManager from '@/components/modules/calendar/LocationManager';
 import CategoryManager from '@/components/modules/calendar/CategoryManager';
 import BookingsList from '@/components/modules/calendar/BookingsList';
-import CalendarSection from '@/components/engines/cms/sections/CalendarSection';
+import CalendarSection from '@/components/engines/cms/modules/sections/CalendarSection';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 

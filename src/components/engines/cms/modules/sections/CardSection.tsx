@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import StableInput from './StableInput';
-import StyleControls from '../StyleControls';
+import StableInput from './/StableInput';
+import StyleControls from '../../StyleControls';
 import {
   Tabs,
   TabsContent,

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { NotificationAlert } from '@/components/engines/cms/pages/page-creator/NotificationAlert';
-import { PageHeader } from '@/components/engines/cms/pages/page-creator/PageHeader';
-import { PageCreationCard } from '@/components/engines/cms/pages/page-creator/PageCreationCard';
-import { PageExitConfirmationDialog } from '@/components/engines/cms/pages/page-creator/PageExitConfirmationDialog';
+import { NotificationAlert } from '@/components/engines/cms/modules/pages/page-creator/NotificationAlert';
+import { PageCreationCard } from '@/components/engines/cms/modules/pages/page-creator/PageCreationCard';
+import { PageExitConfirmationDialog } from '@/components/engines/cms/modules/pages/page-creator/PageExitConfirmationDialog';
+import { PageHeader } from '@/components/engines/cms/modules/pages/page-creator/PageHeader';
 import { cmsOperations } from '@/lib/graphql-client';
 import { useI18n } from '@/hooks/useI18n';
 
