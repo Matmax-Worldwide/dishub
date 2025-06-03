@@ -1,41 +1,45 @@
-import { rule, shield, and, or, not, allow, deny } from 'graphql-shield';
-import { GraphQLError } from 'graphql';
+import { rule, shield, and, or, allow, deny } from 'graphql-shield';
 
-// --- Reusable Rule Fragments ---
-const isAuthenticated = rule({ cache: 'contextual' })(
-  async (parent: any, args: any, ctx: any, info: any) => {
-    if (!ctx.user || !ctx.user.id) {
-      return new Error('Not authenticated!');
-    }
-    return true;
+// Define authentication rules
+const isAuthenticated = rule()(async (parent, args, context) => {
+  if (!context.user) {
+    return new Error('You must be logged in to access this resource');
   }
-);
+  
+  return true;
+});
 
-const isAdmin = rule({ cache: 'contextual' })(
-  async (parent: any, args: any, ctx: any, info: any) => {
-    if (!ctx.user || ctx.user.role !== 'ADMIN') {
-      return new Error('User is not an Admin!');
-    }
-    return true;
+const isAdmin = rule()(async (parent, args, context) => {
+  if (!context.user || context.user.role !== 'ADMIN') {
+    return new Error('User is not an Admin!');
   }
-);
+  return true;
+});
 
 // isTenantMember might not be used in this specific set of rules, but good to keep if defined elsewhere
 // const isTenantMember = rule({ cache: 'contextual' })( ... );
 
-const isSelf = rule({ cache: 'contextual' })(
-  async (parent: any, args: any, ctx: any, info: any) => {
-    const targetUserId = args.id || parent?.userId || parent?.id;
-    if (!ctx.user || !targetUserId || ctx.user.id !== targetUserId) {
-        return new Error('Cannot access resource belonging to another user!');
-    }
+const isSelf = rule()(async (parent, args, context) => {
+  if (!context.user) {
+    return new Error('Not authenticated!');
+  }
+  
+  // Check if the user is accessing their own data
+  const targetUserId = args.id || args.userId || parent?.userId || parent?.id;
+  if (targetUserId && targetUserId === context.user.id) {
     return true;
   }
-);
+  
+  return new Error('You can only access your own data');
+});
 
 const hasPermission = (permission: string) => {
-  return rule({ cache: 'contextual' })(async (parent: any, args: any, ctx: any, info: any) => {
-    if (!ctx.user || !ctx.user.permissions || !ctx.user.permissions.includes(permission)) {
+  return rule()(async (parent, args, context) => {
+    if (!context.user) {
+      return new Error('Not authenticated!');
+    }
+    
+    if (!context.user.permissions || !context.user.permissions.includes(permission)) {
       return new Error(`Missing required permission: ${permission}`);
     }
     return true;
@@ -48,8 +52,82 @@ const hasPermission = (permission: string) => {
 export const permissionsShield = shield({
   Query: {
     // User related
+    me: isAuthenticated,
     viewerProfile: isAuthenticated,
     userById: and(isAuthenticated, or(isAdmin, isSelf)),
+    users: and(isAuthenticated, hasPermission('list:users')),
+    user: and(isAuthenticated, or(isAdmin, isSelf)),
+
+    // Dashboard queries
+    dashboardStats: isAuthenticated,
+    documentsByStatus: isAuthenticated,
+    timeEntriesByDay: isAuthenticated,
+    tasksByStatus: isAuthenticated,
+
+    // Document queries
+    documents: isAuthenticated,
+    document: isAuthenticated,
+    documentStatusCounts: isAuthenticated,
+
+    // Time entry queries
+    timeEntries: isAuthenticated,
+    timeEntry: isAuthenticated,
+
+    // Appointment queries
+    appointments: isAuthenticated,
+    appointment: isAuthenticated,
+    upcomingAppointments: isAuthenticated,
+
+    // Task queries
+    tasks: isAuthenticated,
+    task: isAuthenticated,
+
+    // Project queries
+    projects: isAuthenticated,
+    project: isAuthenticated,
+
+    // Client queries
+    clients: isAuthenticated,
+    client: isAuthenticated,
+
+    // Performance queries
+    performances: isAuthenticated,
+    performance: isAuthenticated,
+    currentPerformance: isAuthenticated,
+
+    // Notification queries
+    notifications: isAuthenticated,
+    notification: isAuthenticated,
+    unreadNotificationsCount: isAuthenticated,
+    allNotifications: isAuthenticated,
+
+    // Role and permission queries
+    roles: isAuthenticated,
+    role: isAuthenticated,
+    rolesWithCounts: and(isAuthenticated, hasPermission('list:roles')),
+    permissions: isAuthenticated,
+    rolePermissions: isAuthenticated,
+    allPermissions: isAuthenticated,
+    allUsersWithPermissions: and(isAuthenticated, hasPermission('list:users')),
+
+    // Contact form queries
+    contactFormSubmissions: and(isAuthenticated, hasPermission('view:contact_submissions')),
+
+    // Help queries
+    helpArticles: allow,
+    helpArticle: allow,
+    helpArticlesByCategory: allow,
+    searchHelpArticles: allow,
+
+    // External Link queries
+    externalLinks: isAuthenticated,
+    externalLink: isAuthenticated,
+    activeExternalLinks: isAuthenticated,
+    activeExternalLinksAs: isAuthenticated,
+    userLinkAccessStatus: isAuthenticated,
+
+    // User permissions
+    userSpecificPermissions: and(isAuthenticated, or(isAdmin, isSelf)),
 
     // CMS Query Rules
     getAllCMSSections: and(isAuthenticated, hasPermission('read:cms_section_definitions')),
@@ -63,6 +141,25 @@ export const permissionsShield = shield({
     getPagesUsingSectionId: and(isAuthenticated, hasPermission('find:pages_by_section')),
     getDefaultPage: allow,
 
+    // Menu queries
+    menus: allow,
+    menu: allow,
+    menuByName: allow,
+    menuByLocation: allow,
+    pages: allow,
+
+    // Form Builder queries
+    forms: allow,
+    form: allow,
+    formBySlug: allow,
+    formSteps: allow,
+    formStep: allow,
+    formFields: allow,
+    formField: allow,
+    formSubmissions: and(isAuthenticated, hasPermission('view:form_submissions')),
+    formSubmission: and(isAuthenticated, hasPermission('view:form_submissions')),
+    formSubmissionStats: and(isAuthenticated, hasPermission('view:form_submissions')),
+
     // Settings Query Rules
     userSettings: isAuthenticated,
     getSiteSettings: allow,
@@ -74,6 +171,12 @@ export const permissionsShield = shield({
     post: allow,
     posts: allow,
     postBySlug: allow,
+
+    // Media queries
+    media: isAuthenticated,
+    mediaItem: isAuthenticated,
+    mediaByType: isAuthenticated,
+    mediaInFolder: isAuthenticated,
 
     // E-commerce Query Rules
     shops: and(isAuthenticated, hasPermission('list:shops')),
@@ -210,13 +313,80 @@ export const permissionsShield = shield({
     '*': isAuthenticated,
   },
   User: {
+    id: isAuthenticated,
     email: or(isSelf, isAdmin),
+    firstName: isAuthenticated,
+    lastName: isAuthenticated,
+    phoneNumber: or(isSelf, isAdmin),
+    profileImageUrl: isAuthenticated,
+    role: isAuthenticated,
+    isActive: isAuthenticated,
+    createdAt: isAuthenticated,
+    updatedAt: isAuthenticated,
+    notifications: isSelf,
+    settings: isSelf,
+    staffProfile: isAuthenticated,
+    bookings: or(isSelf, isAdmin),
+  },
+  Role: {
+    '*': isAuthenticated,
+  },
+  Permission: {
+    '*': isAuthenticated,
+  },
+  DailyTimeEntry: {
+    '*': isAuthenticated,
+  },
+  DocumentStatusCount: {
+    '*': isAuthenticated,
+  },
+  TaskStatusCount: {
+    '*': isAuthenticated,
+  },
+  Document: {
+    '*': isAuthenticated,
+  },
+  TimeEntry: {
+    '*': isAuthenticated,
+  },
+  Appointment: {
+    '*': isAuthenticated,
+  },
+  Task: {
+    '*': isAuthenticated,
+  },
+  Project: {
+    '*': isAuthenticated,
+  },
+  Client: {
+    '*': isAuthenticated,
+  },
+  Performance: {
+    '*': isAuthenticated,
+  },
+  Notification: {
+    '*': isAuthenticated,
+  },
+  UserSettings: {
+    '*': isSelf,
+  },
+  SiteSettings: {
+    '*': allow,
   },
   CMSSection: {
     components: isAuthenticated,
   },
   Page: {
     sections: isAuthenticated,
+  },
+  Employee: {
+    '*': isAuthenticated,
+  },
+  Department: {
+    '*': isAuthenticated,
+  },
+  Position: {
+    '*': isAuthenticated,
   }
   // TODO: Add Type specific rules for Calendar/Appointment models if needed
   // TODO: Add Type specific rules for Employee/HR models if needed (e.g., Employee.salary: isAdmin)
@@ -224,14 +394,5 @@ export const permissionsShield = shield({
   allowExternalErrors: true,
   debug: process.env.NODE_ENV === 'development',
   fallbackRule: deny,
-  fallbackError: (error: any, parent: any, args: any, context: any, info: any) => {
-    const pathKey = info.path?.key || 'unknown path';
-    if (error && error.message && error.message !== 'Not Authorised!') {
-      console.error(`GraphQL Shield Triggered Error at path '${pathKey}':`, error.message);
-      return error;
-    }
-    return new GraphQLError(`Not authorized to access '${pathKey}'. Access denied.`, {
-      extensions: { code: 'FORBIDDEN' }
-    });
-  }
+  fallbackError: 'Access denied. You do not have permission to access this resource.',
 });
