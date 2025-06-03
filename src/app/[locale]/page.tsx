@@ -1,6 +1,6 @@
 import { getDictionary, Locale, locales } from '../i18n';
 import { notFound } from 'next/navigation';
-import ClientPage from '@/components/client-page';
+import ClientPage from '@/components/pages/client-page';
 
 
 export function generateStaticParams() {
