@@ -112,7 +112,7 @@ const categorizeFileType = (fileType: string): string => {
 };
 
 // Smart logging function that only logs in development
-const debugLog = (level: 'log' | 'warn' | 'error', message: string, ...args: any[]) => {
+const debugLog = (level: 'log' | 'warn' | 'error', message: string, ...args: unknown[]) => {
   if (process.env.NODE_ENV === 'development') {
     console[level](`[S3FilePreview] ${message}`, ...args);
   }
@@ -132,6 +132,8 @@ const S3FilePreview = ({
   fileName
 }: S3FilePreviewProps) => {
   const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadStartTime, setLoadStartTime] = useState<number>(0);
   
   // Use the S3 file cache hook with error handling
   const s3CacheResult = useS3FileCache(src || '');
@@ -212,10 +214,26 @@ const S3FilePreview = ({
     };
   }, [src, providedFileType, fileName]);
 
-  // Reset error state when src changes
+  // Reset error and loading state when src changes
   useEffect(() => {
     setImageError(false);
+    setIsLoading(true);
+    setLoadStartTime(Date.now());
   }, [src]);
+
+  // Preload image for faster loading
+  useEffect(() => {
+    if (safeFinalUrl && fileAnalysis?.isImage) {
+      const img = new window.Image();
+      img.onload = () => {
+        debugLog('log', 'Image preloaded successfully:', safeFinalUrl);
+      };
+      img.onerror = () => {
+        debugLog('warn', 'Image preload failed:', safeFinalUrl);
+      };
+      img.src = safeFinalUrl;
+    }
+  }, [safeFinalUrl, fileAnalysis?.isImage]);
 
   // Early return for invalid src - moved after all hooks
   if (!src || typeof src !== 'string' || src.trim() === '') {
@@ -226,15 +244,21 @@ const S3FilePreview = ({
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     try {
       const target = event.currentTarget as HTMLImageElement;
-      debugLog('log', "S3FilePreview: Image loaded successfully");
+      const loadTime = Date.now() - loadStartTime;
+      
+      setIsLoading(false);
+      
+      debugLog('log', "Image loaded successfully");
       debugLog('log', "- Source URL:", src || 'unknown');
       debugLog('log', "- Final URL:", safeFinalUrl || 'unknown');
       debugLog('log', "- Natural width:", target?.naturalWidth || 0);
       debugLog('log', "- Natural height:", target?.naturalHeight || 0);
       debugLog('log', "- Complete:", Boolean(target?.complete));
+      debugLog('log', "- Load time:", `${loadTime}ms`);
       debugLog('log', "- Timestamp:", new Date().toISOString());
     } catch (loggingError) {
-      debugLog('warn', "S3FilePreview: Image loaded but logging failed:", String(loggingError));
+      setIsLoading(false);
+      debugLog('warn', "Image loaded but logging failed:", String(loggingError));
     }
   };
 
@@ -246,8 +270,12 @@ const S3FilePreview = ({
       error.stopPropagation();
     }
 
+    setIsLoading(false);
+    setImageError(true);
+
     try {
       const target = error?.currentTarget as HTMLImageElement;
+      const loadTime = Date.now() - loadStartTime;
       
       // Only log in development mode to avoid console errors in production
       debugLog('warn', "Error loading image");
@@ -257,6 +285,7 @@ const S3FilePreview = ({
       debugLog('warn', "- S3 Key:", safeS3Key || 'unknown');
       debugLog('warn', "- Error Type:", error?.type || 'unknown');
       debugLog('warn', "- File Name:", fileName || 'unknown');
+      debugLog('warn', "- Failed after:", `${loadTime}ms`);
       debugLog('warn', "- Timestamp:", new Date().toISOString());
       
       // Log target information separately
@@ -289,9 +318,6 @@ const S3FilePreview = ({
         // Silently fail
       }
     }
-    
-    // Set error state to show fallback UI
-    setImageError(true);
   };
   
   // Mostrar nada si no hay URL o análisis
@@ -332,6 +358,17 @@ const S3FilePreview = ({
     }
   };
   
+  // Skeleton loader component
+  const SkeletonLoader = () => (
+    <div className={`flex items-center justify-center w-full h-full bg-gray-200 animate-shimmer ${className}`}>
+      <div className="flex flex-col items-center space-y-2">
+        <div className="w-8 h-8 bg-gray-300 rounded animate-pulse"></div>
+        <div className="w-16 h-2 bg-gray-300 rounded animate-pulse"></div>
+        <div className="w-12 h-1 bg-gray-300 rounded animate-pulse"></div>
+      </div>
+    </div>
+  );
+
   // Renderizar componente de imagen
   const renderImage = () => {
     if (imageError) {
@@ -347,53 +384,80 @@ const S3FilePreview = ({
         </div>
       );
     }
+
+    // Show skeleton loader while loading
+    if (isLoading) {
+      return <SkeletonLoader />;
+    }
     
     // For SVG files served through our API, use regular img tag
     // This avoids issues with Next.js Image optimization and SVG handling
     if (safeIsS3Url && safeS3Key && (safeFinalUrl.includes('.svg') || src.includes('.svg'))) {
       return (
-        <img
-          src={safeFinalUrl} 
-          alt={alt}
-          className={`object-contain ${className}`}
-          width={width} 
-          height={height}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          loading="lazy"
-          style={{ maxWidth: '100%', maxHeight: '100%' }}
-        />
+        <div className="relative">
+          <img
+            src={safeFinalUrl} 
+            alt={alt}
+            className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            width={width} 
+            height={height}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            loading="lazy"
+            style={{ maxWidth: '100%', maxHeight: '100%' }}
+          />
+          {isLoading && (
+            <div className="absolute inset-0">
+              <SkeletonLoader />
+            </div>
+          )}
+        </div>
       );
     }
     
     // For all other S3 files served through our API, use Next.js Image component
     if (safeIsS3Url && safeS3Key) {
       return (
-        <Image
-          src={safeFinalUrl} 
-          alt={alt}
-          className={`object-contain ${className}`}
-          width={width} 
-          height={height}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          loading="lazy"
-          style={{ maxWidth: '100%', maxHeight: '100%' }}
-        />
+        <div className="relative">
+          <Image
+            src={safeFinalUrl} 
+            alt={alt}
+            className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            width={width} 
+            height={height}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            loading="lazy"
+            style={{ maxWidth: '100%', maxHeight: '100%' }}
+          />
+          {isLoading && (
+            <div className="absolute inset-0">
+              <SkeletonLoader />
+            </div>
+          )}
+        </div>
       );
     }
     
     // For external images (non-S3), use Next.js Image component
     return (
-      <Image 
-        src={safeFinalUrl}
-        alt={alt}
-        width={width}
-        height={height}
-        className={`object-contain ${className}`}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-      />
+      <div className="relative">
+        <Image 
+          src={safeFinalUrl}
+          alt={alt}
+          width={width}
+          height={height}
+          className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          loading="lazy"
+        />
+        {isLoading && (
+          <div className="absolute inset-0">
+            <SkeletonLoader />
+          </div>
+        )}
+      </div>
     );
   };
   
