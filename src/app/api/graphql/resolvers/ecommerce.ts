@@ -33,6 +33,7 @@ type ProductCategoryWithCount = {
 
 interface Context {
   req: NextRequest;
+  tenantId: string;
 }
 
 interface ShopFilterInput {
@@ -323,7 +324,12 @@ export const ecommerceResolvers = {
         }
 
         const product = await prisma.product.findUnique({
-          where: { sku },
+          where: { 
+            tenantId_sku: {
+              tenantId: context.tenantId || '',
+              sku: sku
+            }
+          },
           include: {
             shop: true,
             prices: {
@@ -718,7 +724,12 @@ export const ecommerceResolvers = {
         }
 
         const category = await prisma.productCategory.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
           include: {
             shop: true,
             parent: true,
@@ -1427,7 +1438,12 @@ export const ecommerceResolvers = {
         }
 
         const discount = await prisma.discount.findUnique({
-          where: { code },
+          where: { 
+            tenantId_code: {
+              tenantId: context.tenantId || '',
+              code: code
+            }
+          },
           include: {
             applicableProducts: {
               include: {
@@ -1466,7 +1482,12 @@ export const ecommerceResolvers = {
         }
 
         const discount = await prisma.discount.findUnique({
-          where: { code },
+          where: { 
+            tenantId_code: {
+              tenantId: context.tenantId || '',
+              code: code
+            }
+          },
           include: {
             orders: customerId ? {
               where: {
