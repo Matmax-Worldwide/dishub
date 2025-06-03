@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -16,28 +17,32 @@ export async function comparePasswords(password: string, hashedPassword: string)
   return bcrypt.compare(password, hashedPassword);
 }
 
-export async function generateToken(userId: string, role?: string | object | null): Promise<string> {
+export async function generateToken(userId: string, roleInfo?: { id?: string, name?: string } | string | null): Promise<string> {
   // Handle different role types properly
-  let roleValue: string = 'USER'; // Default role
+  let roleId: string | undefined = undefined;
+  let roleName: string = 'USER'; // Default role
   
-  if (role != null) {
-    if (typeof role === 'string') {
-      // If it's already a string, use it directly (after validation)
-      if (VALID_ROLES.includes(role)) {
-        roleValue = role;
+  if (roleInfo != null) {
+    if (typeof roleInfo === 'string') {
+      // If it's already a string, use it as the role name
+      if (VALID_ROLES.includes(roleInfo)) {
+        roleName = roleInfo;
       }
-    } else if (typeof role === 'object') {
-      // Handle potential enum object
-      const roleStr = String(role);
-      if (VALID_ROLES.includes(roleStr)) {
-        roleValue = roleStr;
+    } else if (typeof roleInfo === 'object') {
+      // Handle role object with id and name
+      if (roleInfo.id) {
+        roleId = roleInfo.id;
+      }
+      
+      if (roleInfo.name && VALID_ROLES.includes(roleInfo.name)) {
+        roleName = roleInfo.name;
       }
     }
   }
   
-  console.log('Generating token with role:', roleValue);
+  console.log('Generating token with roleId:', roleId, 'roleName:', roleName);
   
-  const token = await new SignJWT({ userId, role: roleValue })
+  const token = await new SignJWT({ userId, roleId, role: roleName })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -48,12 +53,12 @@ export async function generateToken(userId: string, role?: string | object | nul
 
 export async function verifyToken(token: string) {
   try {
-    console.log('Verifying token...');
-    
+
     if (!token || typeof token !== 'string' || token.trim() === '') {
       console.error('Token validation error: Empty or invalid token');
       return null;
     }
+    
 
     const { payload } = await jwtVerify(token, secret);
 
@@ -70,14 +75,44 @@ export async function verifyToken(token: string) {
   }
 }
 
+export async function getSession() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('session-token')?.value
+
+  if (!token) {
+    return null
+  }
+
+  try {
+    const payload = await verifyToken(token)
+    return payload
+  } catch {
+    return null
+  }
+}
+
 export async function createSession(userId: string) {
-  // Get the user to access the correct role
+  // Get the user to access the role
   const user = await prisma.user.findUnique({ 
     where: { id: userId },
-    select: { role: true }
+    select: { 
+      roleId: true,
+      role: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    }
   });
   
-  const sessionToken = await generateToken(userId, user?.role?.name || 'USER');
+  // Create a role object with both id and name
+  const roleInfo = {
+    id: user?.roleId || undefined,
+    name: user?.role?.name || 'USER'
+  };
+  
+  const sessionToken = await generateToken(userId, roleInfo);
   const expires = new Date();
   expires.setDate(expires.getDate() + 7); // 7 days from now
 

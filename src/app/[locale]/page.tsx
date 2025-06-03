@@ -1,4 +1,4 @@
-import { getDictionary, Locale, locales } from '../i18n';
+import { getDictionary, Locale, locales } from '../(tools)/i18n';
 import { notFound } from 'next/navigation';
 import ClientPage from '@/components/client-page';
 

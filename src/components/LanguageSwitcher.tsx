@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { locales } from '../app/i18n';
+import { locales } from '../app/(tools)/i18n';
 import { useState } from 'react';
 import { GlobeAltIcon } from '@heroicons/react/24/outline';
 

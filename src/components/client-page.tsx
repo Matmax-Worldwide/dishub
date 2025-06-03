@@ -8,7 +8,7 @@ import SectionManager from '@/components/cms/SectionManager';
 import ModernLoader from '@/components/ui/ModernLoader';
 import Navbar from '@/components/Navigation/Navbar';
 import Benefits from '@/components/Benefits';
-import { Dictionary } from '@/app/i18n';
+import { Dictionary } from '@/app/(tools)/i18n';
 import { Menu } from '@/app/api/graphql/types';
 import { ComponentType } from '@/types/cms';
 
