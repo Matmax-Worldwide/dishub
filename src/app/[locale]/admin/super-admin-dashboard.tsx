@@ -38,7 +38,7 @@ const GET_PLATFORM_STATS = gql`
   }
 `;
 
-export default function SuperAdminDashboardPage() {
+export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   
   // Fetch platform-wide stats
@@ -245,121 +245,69 @@ export default function SuperAdminDashboardPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="tenants">
+        <TabsContent value="tenants" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Tenant Management</CardTitle>
               <CardDescription>
-                Manage all platform tenants from here.
+                Manage all tenants in the platform
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
                 <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Tenant Management</h3>
-                <p className="text-gray-500 mb-4">View, create, and manage all tenants on the platform.</p>
-                <button
-                  onClick={() => window.location.href = '/admin/tenants'}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                >
-                  Go to Tenant Management
-                </button>
+                <p className="text-gray-600">Tenant management features coming soon</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="users">
+        <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>User Management</CardTitle>
               <CardDescription>
-                Platform-wide user administration.
+                Manage all users across all tenants
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3 mb-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{platformStats.superAdmins}</div>
-                  <div className="text-sm text-blue-600">Super Admins</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{platformStats.admins}</div>
-                  <div className="text-sm text-purple-600">Tenant Admins</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{platformStats.regularUsers}</div>
-                  <div className="text-sm text-green-600">Regular Users</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <button
-                  onClick={() => window.location.href = '/admin/users'}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                >
-                  Go to User Management
-                </button>
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">User management features coming soon</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="analytics">
+        <TabsContent value="analytics" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Platform Analytics</CardTitle>
               <CardDescription>
-                Comprehensive platform metrics and insights.
+                Comprehensive analytics across all tenants
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
                 <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Analytics Dashboard</h3>
-                <p className="text-gray-500 mb-4">View detailed analytics and reports for the entire platform.</p>
-                <button
-                  onClick={() => window.location.href = '/admin/analytics'}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                >
-                  View Analytics
-                </button>
+                <p className="text-gray-600">Analytics dashboard coming soon</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="system">
+        <TabsContent value="system" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>System Management</CardTitle>
+              <CardTitle>System Status</CardTitle>
               <CardDescription>
-                Monitor and manage platform infrastructure.
+                Monitor platform health and performance
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 mb-6">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="font-medium">Database</span>
-                  </div>
-                  <p className="text-sm text-gray-500">All connections healthy</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="font-medium">API Services</span>
-                  </div>
-                  <p className="text-sm text-gray-500">All endpoints responding</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <button
-                  onClick={() => window.location.href = '/admin/system'}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                >
-                  Go to System Management
-                </button>
+              <div className="text-center py-8">
+                <Server className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">System monitoring dashboard coming soon</p>
               </div>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useEffect } from 'react';
-import { FeatureProvider } from '@/hooks/useFeatureAccess';
+import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { CustomSidebar } from './CustomSidebar';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface AdminLayoutProps {
   children: ReactNode;
-  tenantFeatures?: string[];
+  tenantFeatures?: FeatureType[];
   tenantId?: string | null;
   user?: {
     id: string;
@@ -31,7 +31,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ 
   children, 
-  tenantFeatures = ['CMS_ENGINE'], // Default features
+  tenantFeatures = ['CMS_ENGINE' as FeatureType], // Default features
   tenantId = null,
   user = null 
 }: AdminLayoutProps) {
@@ -62,7 +62,7 @@ export function AdminLayout({
   };
 
   return (
-    <FeatureProvider tenantFeatures={tenantFeatures} tenantId={tenantId}>
+    <FeatureProvider features={tenantFeatures} tenantId={tenantId}>
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
         <div className={`

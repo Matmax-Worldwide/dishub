@@ -3,20 +3,23 @@ import { isRouteAllowed } from '@/lib/feature-access';
 
 // Rutas que requieren features específicas
 const FEATURE_ROUTES: Record<string, string[]> = {
-  '/admin/cms/blog': ['BLOG_MODULE'],
-  '/admin/cms/forms': ['FORMS_MODULE'],
-  '/admin/bookings': ['BOOKING_ENGINE'],
-  '/admin/commerce': ['ECOMMERCE_ENGINE'],
+  '/admin/engines/cms/blog': ['BLOG_MODULE'],
+  '/admin/engines/cms/forms': ['FORMS_MODULE'],
+  '/admin/engines/commerce': ['E_COMMERCE_MODULE'],
+  '/admin/bookings': ['BOOKING_MODULE'],
+  '/admin/help': ['HELP_MODULE'],
+  '/admin/performance': ['PERFORMANCE_MODULE'],
+  '/admin/timeentries': ['TIME_MODULE'],
 };
 
 // Rutas que siempre están disponibles (no requieren features específicas)
 const ALWAYS_ALLOWED_ROUTES = [
   '/admin',
   '/admin/dashboard',
-  '/admin/cms',
-  '/admin/cms/pages',
-  '/admin/cms/sections',
-  '/admin/cms/media',
+  '/admin/engines/cms',
+  '/admin/engines/cms/pages',
+  '/admin/engines/cms/sections',
+  '/admin/engines/cms/media',
   '/admin/settings',
   '/admin/profile',
   '/admin/billing',
@@ -92,11 +95,11 @@ function getRequiredFeaturesForRoute(pathname: string): string[] {
   }
   
   if (pathname.includes('/booking')) {
-    return ['BOOKING_ENGINE'];
+    return ['BOOKING_MODULE'];
   }
   
   if (pathname.includes('/commerce') || pathname.includes('/ecommerce')) {
-    return ['ECOMMERCE_ENGINE'];
+    return ['E_COMMERCE_MODULE'];
   }
 
   return [];

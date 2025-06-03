@@ -31,7 +31,7 @@ describe('UserSettingsSection', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (graphqlClient.userSettings as jest.Mock).mockResolvedValue(mockSettings);
+    (graphqlClient.getUserSettings as jest.Mock).mockResolvedValue(mockSettings);
   });
 
   it('should render loading state initially', () => {
@@ -56,7 +56,7 @@ describe('UserSettingsSection', () => {
 
   it('should update state on input change (Switch)', async () => {
     render(<UserSettingsSection />);
-    await waitFor(() => expect(graphqlClient.userSettings).toHaveBeenCalled());
+    await waitFor(() => expect(graphqlClient.getUserSettings).toHaveBeenCalled());
 
     const switchControl = screen.getByLabelText(/Email Notifications/i);
     fireEvent.click(switchControl); // This will call onCheckedChange
@@ -69,7 +69,7 @@ describe('UserSettingsSection', () => {
   
   it('should update state on input change (Select)', async () => {
     render(<UserSettingsSection />);
-    await waitFor(() => expect(graphqlClient.userSettings).toHaveBeenCalled());
+    await waitFor(() => expect(graphqlClient.getUserSettings).toHaveBeenCalled());
 
     const themeSelectTrigger = screen.getByRole('combobox', { name: /Theme/i });
     fireEvent.mouseDown(themeSelectTrigger); // Open the select
@@ -84,7 +84,7 @@ describe('UserSettingsSection', () => {
   it('should call updateUserSettings on save with changed data', async () => {
     (graphqlClient.updateUserSettings as jest.Mock).mockResolvedValue({ ...mockSettings, theme: 'light' });
     render(<UserSettingsSection />);
-    await waitFor(() => expect(graphqlClient.userSettings).toHaveBeenCalled());
+    await waitFor(() => expect(graphqlClient.getUserSettings).toHaveBeenCalled());
 
     // Change the theme (example for one field)
     // This simulates the user interaction that would call handleSelectChange
@@ -120,7 +120,7 @@ describe('UserSettingsSection', () => {
   });
   
   it('should show error toast if fetching settings fails', async () => {
-    (graphqlClient.userSettings as jest.Mock).mockRejectedValue(new Error('Network Error'));
+    (graphqlClient.getUserSettings as jest.Mock).mockRejectedValue(new Error('Network Error'));
     render(<UserSettingsSection />);
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to load user settings: Network Error');
@@ -130,7 +130,7 @@ describe('UserSettingsSection', () => {
   it('should show error toast if saving settings fails', async () => {
     (graphqlClient.updateUserSettings as jest.Mock).mockRejectedValue(new Error('Save Failed'));
     render(<UserSettingsSection />);
-    await waitFor(() => expect(graphqlClient.userSettings).toHaveBeenCalled());
+    await waitFor(() => expect(graphqlClient.getUserSettings).toHaveBeenCalled());
 
     // Simulate a change to enable save
     const switchControl = screen.getByLabelText(/Email Notifications/i);
@@ -144,7 +144,7 @@ describe('UserSettingsSection', () => {
 
    it('should show info toast if no changes to save', async () => {
     render(<UserSettingsSection />);
-    await waitFor(() => expect(graphqlClient.userSettings).toHaveBeenCalled()); // Wait for initial load
+    await waitFor(() => expect(graphqlClient.getUserSettings).toHaveBeenCalled()); // Wait for initial load
 
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
     

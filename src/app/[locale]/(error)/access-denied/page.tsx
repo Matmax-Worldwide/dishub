@@ -83,7 +83,7 @@ export default function AccessDeniedPage() {
         // Para usuarios regulares, usar dashboard general por ahora
         // TODO: Implementar dashboard específico por tenant
         if (tenant?.slug) {
-          console.log(`Usuario pertenece a tenant ${tenant.slug}, pero usando dashboard evoque`);
+          console.log(`Usuario pertenece a tenant ${tenant.slug}, pero usando dashboard`);
         }
         setRedirectPath(`/${locale}/admin/dashboard`);
       }
