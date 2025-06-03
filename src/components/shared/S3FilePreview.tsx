@@ -126,8 +126,14 @@ const S3FilePreview = ({
 }: S3FilePreviewProps) => {
   const [imageError, setImageError] = useState(false);
   
-  // Use the S3 file cache hook
-  const { finalUrl, isS3Url, s3Key } = useS3FileCache(src);
+  // Use the S3 file cache hook with error handling
+  const s3CacheResult = useS3FileCache(src || '');
+  const { finalUrl, isS3Url, s3Key } = s3CacheResult || {};
+  
+  // Add safety checks for the hook results
+  const safeFinalUrl = finalUrl || src;
+  const safeIsS3Url = Boolean(isS3Url);
+  const safeS3Key = s3Key || null;
   
   // Memoize the file analysis to avoid recalculation on every render
   const fileAnalysis = useMemo(() => {
@@ -136,10 +142,33 @@ const S3FilePreview = ({
     // Determinar el tipo de archivo
     let detectedFileType = providedFileType || getFileTypeFromUrl(src);
     
+    // More robust file type detection based on URL patterns
+    const urlLower = src.toLowerCase();
+    
+    // Override detection for common image formats
+    if (urlLower.includes('.png') || urlLower.includes('png')) {
+      detectedFileType = 'image/png';
+    } else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('jpg') || urlLower.includes('jpeg')) {
+      detectedFileType = 'image/jpeg';
+    } else if (urlLower.includes('.gif') || urlLower.includes('gif')) {
+      detectedFileType = 'image/gif';
+    } else if (urlLower.includes('.webp') || urlLower.includes('webp')) {
+      detectedFileType = 'image/webp';
+    } else if (urlLower.includes('.svg') || urlLower.includes('svg')) {
+      detectedFileType = 'image/svg+xml';
+    } else if (urlLower.includes('.pdf') || urlLower.includes('pdf')) {
+      detectedFileType = 'application/pdf';
+    } else if (urlLower.includes('.mp4') || urlLower.includes('mp4')) {
+      detectedFileType = 'video/mp4';
+    } else if (urlLower.includes('.webm') || urlLower.includes('webm')) {
+      detectedFileType = 'video/webm';
+    } else if (urlLower.includes('.mov') || urlLower.includes('mov')) {
+      detectedFileType = 'video/quicktime';
+    }
+    
     // Special case: check filename for PDF if not already detected
     if (!detectedFileType.includes('pdf') && 
-        (src.toLowerCase().endsWith('.pdf') || 
-         (fileName && fileName.toLowerCase().endsWith('.pdf')))) {
+        (fileName && fileName.toLowerCase().endsWith('.pdf'))) {
       detectedFileType = 'application/pdf';
     }
     
@@ -148,11 +177,23 @@ const S3FilePreview = ({
     const isPdf = detectedFileType === 'application/pdf';
     const isVideo = detectedFileType.startsWith('video/');
     const isSvg = detectedFileType === 'image/svg+xml' || 
-                  (src && src.toLowerCase().endsWith('.svg')) ||
-                  getFileTypeFromUrl(src) === 'image/svg+xml';
+                  urlLower.includes('.svg') || urlLower.includes('svg');
     
     // Determinar la categoría del archivo
     const fileCategory = categorizeFileType(detectedFileType);
+    
+    // Debug logging
+    console.log('S3FilePreview Analysis:', {
+      src,
+      providedFileType,
+      detectedFileType,
+      isImage,
+      isPdf,
+      isVideo,
+      isSvg,
+      fileCategory,
+      urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
+    });
     
     return {
       detectedFileType,
@@ -169,15 +210,67 @@ const S3FilePreview = ({
     setImageError(false);
   }, [src]);
 
+  // Early return for invalid src - moved after all hooks
+  if (!src || typeof src !== 'string' || src.trim() === '') {
+    return null;
+  }
+  
+  // Handler for successful image load
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    try {
+      const target = event.currentTarget as HTMLImageElement;
+      console.log("S3FilePreview: Image loaded successfully");
+      console.log("- Source URL:", src || 'unknown');
+      console.log("- Final URL:", safeFinalUrl || 'unknown');
+      console.log("- Natural width:", target?.naturalWidth || 0);
+      console.log("- Natural height:", target?.naturalHeight || 0);
+      console.log("- Complete:", Boolean(target?.complete));
+      console.log("- Timestamp:", new Date().toISOString());
+    } catch (loggingError) {
+      console.warn("S3FilePreview: Image loaded but logging failed:", String(loggingError));
+    }
+  };
+
   // Handler for image error
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error("S3FilePreview: Error loading image:", {
-      src,
-      finalUrl,
-      isS3Url,
-      s3Key,
-      error: error?.type || 'unknown'
-    });
+    try {
+      const target = error?.currentTarget as HTMLImageElement;
+      
+      // Log each piece of information as separate strings to avoid serialization issues
+      console.error("S3FilePreview: Error loading image");
+      console.error("- Source URL:", src || 'unknown');
+      console.error("- Final URL:", safeFinalUrl || 'unknown');
+      console.error("- Is S3 URL:", safeIsS3Url);
+      console.error("- S3 Key:", safeS3Key || 'unknown');
+      console.error("- Error Type:", error?.type || 'unknown');
+      console.error("- File Name:", fileName || 'unknown');
+      console.error("- Timestamp:", new Date().toISOString());
+      
+      // Log target information separately
+      if (target) {
+        console.error("Image element details:");
+        console.error("- Target src:", target?.src || 'unknown');
+        console.error("- Target complete:", Boolean(target?.complete));
+        console.error("- Target natural width:", target?.naturalWidth || 0);
+        console.error("- Target natural height:", target?.naturalHeight || 0);
+        
+        // Try to provide more specific error information
+        if (target.naturalWidth === 0 && target.naturalHeight === 0) {
+          console.error("Image failed to load - likely a network or CORS issue");
+          
+          // Store cache issue indicator for the cache warning component
+          localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+        }
+      }
+      
+    } catch (loggingError) {
+      // Fallback logging if there's an error in the error handler
+      console.error("S3FilePreview: Error loading image (logging failed)");
+      console.error("Logging error:", String(loggingError));
+      console.error("Original error type:", error?.type || 'unknown');
+      console.error("Source URL:", src);
+    }
+    
     setImageError(true);
   };
   
@@ -186,7 +279,7 @@ const S3FilePreview = ({
     return null;
   }
   
-  const { isImage, isPdf, isVideo, isSvg, fileCategory } = fileAnalysis;
+  const { isImage, isPdf, isVideo, fileCategory } = fileAnalysis;
   
   // Determinar el nombre del archivo para descargas
   const displayFileName = fileName || src.split('/').pop() || 'download';
@@ -226,51 +319,59 @@ const S3FilePreview = ({
         <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-400 p-4 text-center">
           <div>
             <FileImageIcon className="h-8 w-8 mx-auto mb-2" />
-            <span className="text-xs">Error loading image</span>
+            <span className="text-xs block mb-1">Error loading image</span>
+            <span className="text-xs text-gray-500 block">
+              Try refreshing with Ctrl+Shift+R
+            </span>
           </div>
         </div>
       );
     }
     
-    // For SVGs, always use regular img tag to avoid issues
-    if (isSvg) {
+    // For SVG files served through our API, use regular img tag
+    // This avoids issues with Next.js Image optimization and SVG handling
+    if (safeIsS3Url && safeS3Key && (safeFinalUrl.includes('.svg') || src.includes('.svg'))) {
       return (
-        <img 
-          src={finalUrl} 
+        <img
+          src={safeFinalUrl} 
           alt={alt}
           className={`object-contain ${className}`}
           width={width} 
           height={height}
+          onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
+          style={{ maxWidth: '100%', maxHeight: '100%' }}
         />
       );
     }
     
-    // For S3 files served through our API, use regular img tag instead of Next.js Image
-    // This avoids issues with Next.js Image optimization and our custom API route
-    if (isS3Url && s3Key) {
+    // For all other S3 files served through our API, use Next.js Image component
+    if (safeIsS3Url && safeS3Key) {
       return (
-        <img 
-          src={finalUrl} 
+        <Image
+          src={safeFinalUrl} 
           alt={alt}
           className={`object-contain ${className}`}
           width={width} 
           height={height}
+          onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
+          style={{ maxWidth: '100%', maxHeight: '100%' }}
         />
       );
     }
     
-    // For non-S3 images, use Next.js Image component
+    // For external images (non-S3), use Next.js Image component
     return (
       <Image 
-        src={finalUrl}
+        src={safeFinalUrl}
         alt={alt}
         width={width}
         height={height}
         className={`object-contain ${className}`}
+        onLoad={handleImageLoad}
         onError={handleImageError}
       />
     );
@@ -279,7 +380,8 @@ const S3FilePreview = ({
   // Renderizar según el tipo de archivo
   return (
     <div className="relative group">
-      {(isImage || isSvg) && !imageError ? (
+      {isImage && !imageError ? (
+        // All images (including SVGs) - render as image
         renderImage()
       ) : isPdf ? (
         // Para PDFs, mostrar un icono de PDF con opción para ver
@@ -289,7 +391,7 @@ const S3FilePreview = ({
             {displayFileName}
           </span>
           <a 
-            href={finalUrl} 
+            href={safeFinalUrl} 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-xs text-blue-500 hover:underline mt-1"
@@ -301,7 +403,7 @@ const S3FilePreview = ({
       ) : isVideo ? (
         // Para videos, usar un tag de video
         <video 
-          src={finalUrl} 
+          src={safeFinalUrl} 
           controls 
           className={className || "max-h-full max-w-full"}
           onClick={(e) => e.stopPropagation()}

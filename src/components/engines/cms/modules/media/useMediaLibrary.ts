@@ -169,16 +169,18 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         // Set media items
         dispatch({ type: 'SET_MEDIA_ITEMS', payload: itemsData });
         
-        // Map folder data to our Folder interface with item counts
-        const foldersList: Folder[] = foldersData.map((folder) => ({
-          id: folder.id || `folder-${folder.path}`,
-          name: folder.name,
-          path: folder.path,
-          parentPath: folder.parentPath || currentFolder.path,
-          isRoot: folder.isRoot || false,
-          itemCount: folder.itemCount || 0,
-          subfolderCount: folder.subfolderCount || 0
-        }));
+        // foldersData from cache is already a Folder[] array, so we can use it directly
+        // but we need to ensure each folder has a valid ID
+        const foldersList: Folder[] = foldersData.map((folder, index) => {
+          // Ensure folder has a valid ID - only fallback if ID is truly missing
+          const validId = folder.id && folder.id.trim() ? folder.id : `folder-${folder.path || `unknown-${index}`}`;
+          
+          return {
+            ...folder,
+            id: validId
+            // Keep the original name from the cache - it should be the real folder name from S3
+          };
+        });
         
         dispatch({ type: 'SET_FOLDERS', payload: foldersList });
         
@@ -232,16 +234,19 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
         
         // Map folder data to our Folder interface with item counts
         const foldersList: Folder[] = foldersData.folders.map((folderName: string, index: number) => {
+          // Ensure folderName is valid and not empty
+          const validFolderName = folderName && folderName.trim() ? folderName.trim() : `folder-${index}`;
+          
           const folderPath = currentFolder.path 
-            ? `${currentFolder.path}/${folderName}` 
-            : folderName;
+            ? `${currentFolder.path}/${validFolderName}` 
+            : validFolderName;
             
           // Count items in this folder from the just-fetched data
           let itemsInFolder;
           
           // Special case for root folder
           if (folderPath === '' || folderPath === '/') {
-            itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
+            itemsInFolder = itemsData.filter((item: { s3Key?: string }) => {
               if (!item.s3Key) return false;
               
               // For root folder, count items that don't have a slash 
@@ -252,7 +257,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
           } else {
             // For other folders, count items directly in this folder (not in subfolders)
             const folderPathWithSlash = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
-            itemsInFolder = itemsData.items.filter((item: { s3Key?: string }) => {
+            itemsInFolder = itemsData.filter((item: { s3Key?: string }) => {
               if (!item.s3Key) return false;
               
               // The item must start with the folder path
@@ -275,7 +280,7 @@ export function useMediaLibrary({ initialItems = [] }: UseMediaLibraryProps = {}
             
           return {
             id: `folder-${folderPath}`,
-            name: folderName,
+            name: validFolderName,
             path: folderPath,
             parentPath: currentFolder.path,
             isRoot: false,

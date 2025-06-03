@@ -1,12 +1,17 @@
 'use client';
 
 import { MediaLibrary } from '@/components/engines/cms/modules/media/MediaLibrary';
+import { CacheWarning } from '@/components/shared/CacheWarning';
+import { CacheHelpButton } from '@/components/shared/CacheHelpButton';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MediaLibraryPage() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl min-h-screen flex flex-col">
+      <CacheWarning />
+      <CacheHelpButton />
+      
       <div className="mb-8">
         <nav className="flex mb-4" aria-label="Breadcrumb">
           <ol className="inline-flex items-center space-x-1 md:space-x-3">
