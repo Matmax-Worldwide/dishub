@@ -877,6 +877,29 @@ export const typeDefs = gql`
     user: User!
   }
 
+  # Enhanced auth payload that includes tenant information
+  type AuthPayloadWithTenant {
+    token: String!
+    user: User!
+    tenant: Tenant!
+  }
+
+  # Input for enhanced registration with tenant creation
+  input RegisterWithTenantInput {
+    # User information
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    
+    # Tenant information
+    tenantName: String!
+    tenantSlug: String!
+    tenantDomain: String
+    tenantFeatures: [String!]
+  }
+
   # Role and Permission input types
   input RoleCreateInput {
     name: String!
@@ -1671,6 +1694,9 @@ export const typeDefs = gql`
     # Auth mutations
     login(email: String!, password: String!): AuthPayload!
     register(email: String!, password: String!, firstName: String!, lastName: String!, phoneNumber: String): AuthPayload!
+    
+    # Enhanced registration that creates both user and tenant
+    registerWithTenant(input: RegisterWithTenantInput!): AuthPayloadWithTenant!
     
     # Contact form mutation
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
