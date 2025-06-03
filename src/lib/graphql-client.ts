@@ -1171,25 +1171,22 @@ export interface HeaderStyleInput {
   transparentHeader?: boolean;
   borderBottom?: boolean;
   fixedHeader?: boolean;
-  advancedOptions?: Record<string, unknown>;
-  // Button configuration fields
+  buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: 'left' | 'center' | 'right';
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
   showButton?: boolean;
   buttonText?: string;
   buttonAction?: string;
   buttonColor?: string;
   buttonTextColor?: string;
-  buttonSize?: string;
+  buttonSize?: 'sm' | 'md' | 'lg';
   buttonBorderRadius?: number;
-  buttonShadow?: string;
-  buttonBorderColor?: string;
-  buttonBorderWidth?: number;
-  buttonWidth?: string;
-  buttonHeight?: string;
-  buttonPosition?: string;
-  buttonDropdown?: boolean;
-  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
-  buttonUrlType?: string;
-  selectedPageId?: string;
+  advancedOptions?: Record<string, unknown>;
 }
 
 export interface FooterStyleInput {
@@ -1766,7 +1763,8 @@ export const cmsOperations = {
       const sectionResult = await cmsOperations.createCMSSection({
         sectionId: sectionIdentifier,
         name: defaultSectionName,
-        description: `Sección principal para la página "${createdPage.title}"`
+        description: `Sección principal para la página "${createdPage.title}"`,
+        pageId: createdPage.id // Pasar el pageId para asociar directamente
       });
       
       console.log(`🔧 [${requestId}] Section creation result:`, sectionResult);
@@ -2026,10 +2024,11 @@ export const cmsOperations = {
     sectionId: string; 
     name: string; 
     description?: string; 
+    pageId?: string; // Agregar pageId opcional
   }): Promise<{ 
     success: boolean; 
     message: string; 
-    section: { id: string; sectionId: string; name: string; order?: number } | null;
+    section: { id: string; sectionId: string; name: string; order?: number; pageId?: string } | null;
   }> => {
     try {
       if (!input.sectionId || !input.name) {
@@ -2053,6 +2052,7 @@ export const cmsOperations = {
               sectionId
               name
               order
+              pageId
             }
           }
         }
@@ -2063,7 +2063,7 @@ export const cmsOperations = {
         createCMSSection?: { 
           success: boolean; 
           message: string; 
-          section: { id: string; sectionId: string; name: string; order?: number } | null;
+          section: { id: string; sectionId: string; name: string; order?: number; pageId?: string } | null;
         }
       }>(mutation, { input }, 30000);
       
@@ -2177,6 +2177,20 @@ export const cmsOperations = {
         transparentHeader: boolean;
         borderBottom: boolean;
         fixedHeader?: boolean;
+        buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+        buttonBorderColor?: string;
+        buttonBorderWidth?: number;
+        buttonWidth?: string;
+        buttonHeight?: string;
+        buttonPosition?: 'left' | 'center' | 'right';
+        buttonDropdown?: boolean;
+        showButton?: boolean;
+        buttonText?: string;
+        buttonAction?: string;
+        buttonColor?: string;
+        buttonTextColor?: string;
+        buttonSize?: 'sm' | 'md' | 'lg';
+        buttonBorderRadius?: number;
         advancedOptions?: Record<string, unknown>;
       };
       footerStyle?: {
@@ -2237,6 +2251,20 @@ export const cmsOperations = {
               transparentHeader
               borderBottom
               fixedHeader
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
               advancedOptions
             }
             footerStyle {
@@ -2291,6 +2319,13 @@ export const cmsOperations = {
           mobileMenuPosition: string;
           transparentHeader: boolean;
           borderBottom: boolean;
+          showButton?: boolean;
+          buttonText?: string;
+          buttonAction?: string;
+          buttonColor?: string;
+          buttonTextColor?: string;
+          buttonSize?: 'sm' | 'md' | 'lg';
+          buttonBorderRadius?: number;
           advancedOptions?: Record<string, unknown>;
         };
         footerStyle?: {
@@ -2336,25 +2371,21 @@ export const cmsOperations = {
       transparentHeader: boolean;
       borderBottom: boolean;
       fixedHeader: boolean;
-      advancedOptions?: Record<string, unknown>;
-      // Button configuration fields
+      buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+      buttonBorderColor?: string;
+      buttonBorderWidth?: number;
+      buttonWidth?: string;
+      buttonHeight?: string;
+      buttonPosition?: 'left' | 'center' | 'right';
+      buttonDropdown?: boolean;
       showButton?: boolean;
       buttonText?: string;
       buttonAction?: string;
       buttonColor?: string;
       buttonTextColor?: string;
-      buttonSize?: string;
+      buttonSize?: 'sm' | 'md' | 'lg';
       buttonBorderRadius?: number;
-      buttonShadow?: string;
-      buttonBorderColor?: string;
-      buttonBorderWidth?: number;
-      buttonWidth?: string;
-      buttonHeight?: string;
-      buttonPosition?: string;
-      buttonDropdown?: boolean;
-      buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
-      buttonUrlType?: string;
-      selectedPageId?: string;
+      advancedOptions?: Record<string, unknown>;
     };
   }> => {
     try {
@@ -2375,14 +2406,6 @@ export const cmsOperations = {
               transparentHeader
               borderBottom
               fixedHeader
-              advancedOptions
-              showButton
-              buttonText
-              buttonAction
-              buttonColor
-              buttonTextColor
-              buttonSize
-              buttonBorderRadius
               buttonShadow
               buttonBorderColor
               buttonBorderWidth
@@ -2390,9 +2413,14 @@ export const cmsOperations = {
               buttonHeight
               buttonPosition
               buttonDropdown
-              buttonDropdownItems
-              buttonUrlType
-              selectedPageId
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
+              advancedOptions
               createdAt
               updatedAt
             }
@@ -2421,24 +2449,21 @@ export const cmsOperations = {
             transparentHeader: boolean;
             borderBottom: boolean;
             fixedHeader: boolean;
-            advancedOptions?: Record<string, unknown>;
+            buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: 'left' | 'center' | 'right';
+            buttonDropdown?: boolean;
             showButton?: boolean;
             buttonText?: string;
             buttonAction?: string;
             buttonColor?: string;
             buttonTextColor?: string;
-            buttonSize?: string;
+            buttonSize?: 'sm' | 'md' | 'lg';
             buttonBorderRadius?: number;
-            buttonShadow?: string;
-            buttonBorderColor?: string;
-            buttonBorderWidth?: number;
-            buttonWidth?: string;
-            buttonHeight?: string;
-            buttonPosition?: string;
-            buttonDropdown?: boolean;
-            buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
-            buttonUrlType?: string;
-            selectedPageId?: string;
+            advancedOptions?: Record<string, unknown>;
             createdAt: string;
             updatedAt: string;
           } | null;
@@ -2515,13 +2540,6 @@ export const cmsOperations = {
               borderBottom
               advancedOptions
               fixedHeader
-              showButton
-              buttonText
-              buttonAction
-              buttonColor
-              buttonTextColor
-              buttonSize
-              buttonBorderRadius
               buttonShadow
               buttonBorderColor
               buttonBorderWidth
@@ -2529,9 +2547,13 @@ export const cmsOperations = {
               buttonHeight
               buttonPosition
               buttonDropdown
-              buttonDropdownItems
-              buttonUrlType
-              selectedPageId
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
             }
           }
         }
@@ -2577,24 +2599,21 @@ export const cmsOperations = {
             transparentHeader: boolean;
             borderBottom: boolean;
             fixedHeader?: boolean;
-            advancedOptions?: Record<string, unknown>;
+            buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: 'left' | 'center' | 'right';
+            buttonDropdown?: boolean;
             showButton?: boolean;
             buttonText?: string;
             buttonAction?: string;
             buttonColor?: string;
             buttonTextColor?: string;
-            buttonSize?: string;
+            buttonSize?: 'sm' | 'md' | 'lg';
             buttonBorderRadius?: number;
-            buttonShadow?: string;
-            buttonBorderColor?: string;
-            buttonBorderWidth?: number;
-            buttonWidth?: string;
-            buttonHeight?: string;
-            buttonPosition?: string;
-            buttonDropdown?: boolean;
-            buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
-            buttonUrlType?: string;
-            selectedPageId?: string;
+            advancedOptions?: Record<string, unknown>;
           } | null;
         } | null;
       }>(query, variables);
@@ -3362,16 +3381,6 @@ export const cmsOperations = {
               name
               description
               durationMinutes
-              prices {
-                id
-                amount
-                currencyId
-                currency {
-                  id
-                  code
-                  symbol
-                }
-              }
               isActive
             }
             locationAssignments {
@@ -3940,11 +3949,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     bufferTimeBeforeMinutes: number;
     bufferTimeAfterMinutes: number;
     preparationTimeMinutes: number;
@@ -3964,11 +3968,6 @@ export const cmsOperations = {
           name
           description
           durationMinutes
-          prices {
-            id
-            amount
-            currencyId
-          }
           bufferTimeBeforeMinutes
           bufferTimeAfterMinutes
           preparationTimeMinutes
@@ -3996,11 +3995,6 @@ export const cmsOperations = {
         name: string;
         description?: string;
         durationMinutes: number;
-        prices: Array<{
-          id: string;
-          amount: number;
-          currencyId: string;
-        }>;
         bufferTimeBeforeMinutes: number;
         bufferTimeAfterMinutes: number;
         preparationTimeMinutes: number;
@@ -4056,11 +4050,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -4073,11 +4062,6 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            prices {
-              id
-              amount
-              currencyId
-            }
             isActive
           }
         }
@@ -4093,11 +4077,6 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          prices: Array<{
-            id: string;
-            amount: number;
-            currencyId: string;
-          }>;
           isActive: boolean;
         } | null;
       };
@@ -4116,6 +4095,11 @@ export const cmsOperations = {
       name?: string;
       description?: string | null;
       durationMinutes?: number;
+      prices?: Array<{
+        id: string;
+        amount: number;
+        currencyId: string;
+      }>;
       bufferTimeBeforeMinutes?: number;
       bufferTimeAfterMinutes?: number;
       preparationTimeMinutes?: number;
@@ -4130,11 +4114,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -4147,11 +4126,6 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            prices {
-              id
-              amount
-              currencyId
-            }
             isActive
           }
         }
@@ -4167,11 +4141,6 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          prices: Array<{
-            id: string;
-            amount: number;
-            currencyId: string;
-          }>;
           isActive: boolean;
         } | null;
       };
@@ -5930,7 +5899,43 @@ export const cmsOperations = {
     return result.shipments || [];
   },
 
-  // User Management Operations (Admin only)
+  // Función para obtener roles
+  async getRoles(): Promise<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    const query = `
+      query GetRoles {
+        roles {
+          id
+          name
+          description
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ roles: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        createdAt: string;
+        updatedAt: string;
+      }> }>(query);
+
+      return result.roles || [];
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      throw error;
+    }
+  },
+
+  // Función para crear usuario
   async createUser(input: {
     email: string;
     password: string;
@@ -5970,28 +5975,32 @@ export const cmsOperations = {
     `;
 
     try {
-      const response = await gqlRequest<{
-        createUser: {
+      const result = await gqlRequest<{ createUser: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        phoneNumber?: string;
+        role: {
           id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          phoneNumber?: string;
-          role: {
-            id: string;
-            name: string;
-            description?: string;
-          };
-          createdAt: string;
+          name: string;
+          description?: string;
         };
-      }>(mutation, { input });
-      return response.createUser;
+        createdAt: string;
+      } }>(mutation, { input });
+
+      if (!result.createUser) {
+        throw new Error('Failed to create user');
+      }
+
+      return result.createUser;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
     }
   },
 
+  // Función para actualizar usuario
   async updateUser(id: string, input: {
     firstName?: string;
     lastName?: string;
@@ -6030,28 +6039,32 @@ export const cmsOperations = {
     `;
 
     try {
-      const response = await gqlRequest<{
-        updateUser: {
+      const result = await gqlRequest<{ updateUser: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        phoneNumber?: string;
+        role: {
           id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          phoneNumber?: string;
-          role: {
-            id: string;
-            name: string;
-            description?: string;
-          };
-          createdAt: string;
+          name: string;
+          description?: string;
         };
-      }>(mutation, { id, input });
-      return response.updateUser;
+        createdAt: string;
+      } }>(mutation, { id, input });
+
+      if (!result.updateUser) {
+        throw new Error('Failed to update user');
+      }
+
+      return result.updateUser;
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
     }
   },
 
+  // Función para eliminar usuario
   async deleteUser(id: string): Promise<boolean> {
     const mutation = `
       mutation DeleteUser($id: ID!) {
@@ -6060,41 +6073,11 @@ export const cmsOperations = {
     `;
 
     try {
-      const response = await gqlRequest<{ deleteUser: boolean }>(mutation, { id });
-      return response.deleteUser;
+      const result = await gqlRequest<{ deleteUser: boolean }>(mutation, { id });
+      return result.deleteUser;
     } catch (error) {
       console.error('Error deleting user:', error);
       throw error;
-    }
-  },
-
-  async getRoles(): Promise<Array<{
-    id: string;
-    name: string;
-    description?: string;
-  }>> {
-    const query = `
-      query GetRoles {
-        roles {
-          id
-          name
-          description
-        }
-      }
-    `;
-
-    try {
-      const response = await gqlRequest<{
-        roles: Array<{
-          id: string;
-          name: string;
-          description?: string;
-        }>;
-      }>(query);
-      return response.roles || [];
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-      return [];
     }
   },
 
@@ -7738,16 +7721,6 @@ const graphqlClient = {
               name
               description
               durationMinutes
-              prices {
-                id
-                amount
-                currencyId
-                currency {
-                  id
-                  code
-                  symbol
-                }
-              }
               isActive
             }
             locationAssignments {
@@ -8811,15 +8784,6 @@ export const ecommerce = {
             name
             sku
             stockQuantity
-            prices {
-              id
-              amount
-              currency {
-                id
-                code
-                symbol
-              }
-            }
           }
           createdAt
           updatedAt
@@ -8916,15 +8880,6 @@ export const ecommerce = {
             id
             name
           }
-          prices {
-            id
-            amount
-            currency {
-              id
-              code
-              symbol
-            }
-          }
           createdAt
           updatedAt
         }
@@ -8990,15 +8945,6 @@ export const ecommerce = {
           shop {
             id
             name
-          }
-          prices {
-            id
-            amount
-            currency {
-              id
-              code
-              symbol
-            }
           }
           createdAt
           updatedAt

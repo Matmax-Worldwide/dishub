@@ -44,11 +44,6 @@ export interface Service {
   name: string;
   description?: string | null;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   serviceCategoryId?: string | null;
   serviceCategory?: ServiceCategory | null;
   bufferTimeBeforeMinutes?: number | null;
@@ -158,11 +153,6 @@ export interface CalendarService {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   bufferTimeBeforeMinutes: number;
   bufferTimeAfterMinutes: number;
   preparationTimeMinutes: number;
@@ -257,11 +247,6 @@ export interface ServiceInput {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;

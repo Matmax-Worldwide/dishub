@@ -40,3 +40,14 @@ export interface Post {
     slug: string;
   };
 } 
+
+export interface CommentFilter {
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM';
+  postId?: string;
+  blogId?: string;
+  authorId?: string;
+  createdAt?: {
+    gte?: string;
+    lte?: string;
+  };
+}

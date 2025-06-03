@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/hooks/useI18n';
 import { 
@@ -268,9 +268,9 @@ export default function CMSSidebar() {
         
         <SidebarFooter>
           <Link 
-            href={`/${locale}/dashboard`} 
+            href={`/${locale}/evoque/dashboard`} 
             className="block w-full"
-            onClick={(e) => handleNavigation(`/${locale}/dashboard`, e)}
+            onClick={(e) => handleNavigation(`/${locale}/evoque/dashboard`, e)}
           >
             <SidebarItem 
               icon={<LogOut className="h-4 w-4" />}

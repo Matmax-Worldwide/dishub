@@ -95,7 +95,6 @@ export const typeDefs = gql`
     name: String!
     description: String
     durationMinutes: Int!
-    prices: [Price!]!
     bufferTimeBeforeMinutes: Int!
     bufferTimeAfterMinutes: Int!
     preparationTimeMinutes: Int!
@@ -792,6 +791,7 @@ export const typeDefs = gql`
     createdBy: String
     components: [SectionComponent!]
     order: Int
+    pageId: String # Campo para asociar directamente con una página
   }
 
   # Definición del componente de sección
@@ -1010,6 +1010,7 @@ export const typeDefs = gql`
     backgroundImage: String
     backgroundType: String
     gridDesign: String
+    pageId: String # Agregar pageId opcional para asociar directamente a una página
   }
 
   # Result type for CMS section operations

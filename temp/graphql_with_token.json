@@ -1,1 +1,0 @@
-{"errors":[{"message":"Invalid token","locations":[{"line":1,"column":3}],"path":["me"],"extensions":{"code":"INTERNAL_SERVER_ERROR","stacktrace":["Error: Invalid token","    at Object.me (webpack-internal:///(rsc)/./src/app/api/graphql/resolvers.ts:290:23)"]}}],"data":{"me":null}}

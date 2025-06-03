@@ -359,7 +359,6 @@ export const calendarResolvers = {
         } else if (!customerId && !input.customerEmail) {
             throw new GraphQLError("Customer email is required for guest bookings if userId is not provided.");
         }
-
         const booking = await prisma.booking.create({
           data: { title: input.title, description: input.description || '', startTime, endTime, location: input.location || '', isVirtual: input.isVirtual || false, meetingUrl: input.meetingUrl || '', clientId: input.clientId || null, userId: customerId, serviceId: input.serviceId, staffProfileId: input.staffProfileId, bookingDate: new Date(input.bookingDate), status: PrismaBookingStatus.PENDING },
           include: { client: true, user: { select: { id: true, firstName: true, lastName: true, email: true } }, service: true, location: true, staffProfile: { include: { user: true } } }
@@ -440,6 +439,410 @@ export const calendarResolvers = {
         const updatedStaffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true, assignedServices: { include: { service: true } }, locationAssignments: { include: { location: true } }, schedules: { orderBy: { dayOfWeek: 'asc' } } } });
         return { success: true, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" removed from location "${location.name}" successfully`, staffProfile: updatedStaffProfile };
       } catch (error) { console.error('Error removing staff from location:', error); return { success: false, message: `Failed to remove staff from location: ${error instanceof Error ? error.message : 'Unknown error'}`, staffProfile: null }; }
+        // Validate that the service exists
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId }
+        });
+        if (!service) {
+          throw new Error(`Service with ID ${serviceId} not found`);
+        }
+
+        // Check if assignment already exists
+        const existingAssignment = await prisma.staffService.findUnique({
+          where: {
+            staffProfileId_serviceId: {
+              staffProfileId,
+              serviceId
+            }
+          }
+        });
+
+        if (existingAssignment) {
+          return {
+            success: false,
+            message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is already assigned to service "${service.name}"`,
+            staffProfile: null
+          };
+        }
+
+        // Create the assignment
+        await prisma.staffService.create({
+          data: {
+            staffProfileId,
+            serviceId
+          }
+        });
+
+        // Return updated staff profile
+        const updatedStaffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { 
+            user: true,
+            assignedServices: { include: { service: true } },
+            locationAssignments: { include: { location: true } },
+            schedules: { orderBy: { dayOfWeek: 'asc' } }
+          }
+        });
+
+        return {
+          success: true,
+          message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" assigned to service "${service.name}" successfully`,
+          staffProfile: updatedStaffProfile
+        };
+      } catch (error) {
+        console.error('Error assigning staff to service:', error);
+        return {
+          success: false,
+          message: `Failed to assign staff to service: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          staffProfile: null
+        };
+      }
+    },
+    removeStaffFromService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        // Validate that the staff profile exists
+        const staffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { user: true }
+        });
+        if (!staffProfile) {
+          throw new Error(`Staff profile with ID ${staffProfileId} not found`);
+        }
+
+        // Validate that the service exists
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId }
+        });
+        if (!service) {
+          throw new Error(`Service with ID ${serviceId} not found`);
+        }
+
+        // Check if assignment exists
+        const existingAssignment = await prisma.staffService.findUnique({
+          where: {
+            staffProfileId_serviceId: {
+              staffProfileId,
+              serviceId
+            }
+          }
+        });
+
+        if (!existingAssignment) {
+          return {
+            success: false,
+            message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is not assigned to service "${service.name}"`,
+            staffProfile: null
+          };
+        }
+
+        // Remove the assignment
+        await prisma.staffService.delete({
+          where: {
+            staffProfileId_serviceId: {
+              staffProfileId,
+              serviceId
+            }
+          }
+        });
+
+        // Return updated staff profile
+        const updatedStaffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { 
+            user: true,
+            assignedServices: { include: { service: true } },
+            locationAssignments: { include: { location: true } },
+            schedules: { orderBy: { dayOfWeek: 'asc' } }
+          }
+        });
+
+        return {
+          success: true,
+          message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" removed from service "${service.name}" successfully`,
+          staffProfile: updatedStaffProfile
+        };
+      } catch (error) {
+        console.error('Error removing staff from service:', error);
+        return {
+          success: false,
+          message: `Failed to remove staff from service: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          staffProfile: null
+        };
+      }
+    },
+    assignStaffToLocation: async (_parent: unknown, { staffProfileId, locationId }: { staffProfileId: string; locationId: string }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        // Validate that the staff profile exists
+        const staffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { user: true }
+        });
+        if (!staffProfile) {
+          throw new Error(`Staff profile with ID ${staffProfileId} not found`);
+        }
+
+        // Validate that the location exists
+        const location = await prisma.location.findUnique({
+          where: { id: locationId }
+        });
+        if (!location) {
+          throw new Error(`Location with ID ${locationId} not found`);
+        }
+
+        // Check if assignment already exists
+        const existingAssignment = await prisma.staffLocationAssignment.findUnique({
+          where: {
+            staffProfileId_locationId: {
+              staffProfileId,
+              locationId
+            }
+          }
+        });
+
+        if (existingAssignment) {
+          return {
+            success: false,
+            message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is already assigned to location "${location.name}"`,
+            staffProfile: null
+          };
+        }
+
+        // Create the assignment
+        await prisma.staffLocationAssignment.create({
+          data: {
+            staffProfileId,
+            locationId
+          }
+        });
+
+        // Return updated staff profile
+        const updatedStaffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { 
+            user: true,
+            assignedServices: { include: { service: true } },
+            locationAssignments: { include: { location: true } },
+            schedules: { orderBy: { dayOfWeek: 'asc' } }
+          }
+        });
+
+        return {
+          success: true,
+          message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" assigned to location "${location.name}" successfully`,
+          staffProfile: updatedStaffProfile
+        };
+      } catch (error) {
+        console.error('Error assigning staff to location:', error);
+        return {
+          success: false,
+          message: `Failed to assign staff to location: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          staffProfile: null
+        };
+      }
+    },
+    removeStaffFromLocation: async (_parent: unknown, { staffProfileId, locationId }: { staffProfileId: string; locationId: string }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        // Validate that the staff profile exists
+        const staffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { user: true }
+        });
+        if (!staffProfile) {
+          throw new Error(`Staff profile with ID ${staffProfileId} not found`);
+        }
+
+        // Validate that the location exists
+        const location = await prisma.location.findUnique({
+          where: { id: locationId }
+        });
+        if (!location) {
+          throw new Error(`Location with ID ${locationId} not found`);
+        }
+
+        // Check if assignment exists
+        const existingAssignment = await prisma.staffLocationAssignment.findUnique({
+          where: {
+            staffProfileId_locationId: {
+              staffProfileId,
+              locationId
+            }
+          }
+        });
+
+        if (!existingAssignment) {
+          return {
+            success: false,
+            message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is not assigned to location "${location.name}"`,
+            staffProfile: null
+          };
+        }
+
+        // Remove the assignment
+        await prisma.staffLocationAssignment.delete({
+          where: {
+            staffProfileId_locationId: {
+              staffProfileId,
+              locationId
+            }
+          }
+        });
+
+        // Return updated staff profile
+        const updatedStaffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { 
+            user: true,
+            assignedServices: { include: { service: true } },
+            locationAssignments: { include: { location: true } },
+            schedules: { orderBy: { dayOfWeek: 'asc' } }
+          }
+        });
+
+        return {
+          success: true,
+          message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" removed from location "${location.name}" successfully`,
+          staffProfile: updatedStaffProfile
+        };
+      } catch (error) {
+        console.error('Error removing staff from location:', error);
+        return {
+          success: false,
+          message: `Failed to remove staff from location: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          staffProfile: null
+        };
+      }
+    },
+  },
+  Location: {
+  },
+  Service: {
+    serviceCategory: async (parent: { serviceCategoryId: string }) => {
+        if (!parent.serviceCategoryId) return null; // Should always exist based on schema
+        try {
+          return await prisma.serviceCategory.findUnique({ where: { id: parent.serviceCategoryId } });
+        } catch (error) {
+          console.error('Error fetching service category:', error);
+          return null;
+        }
+    },
+    locations: async (parent: { id: string }) => {
+      try {
+        const locationServices = await prisma.locationService.findMany({
+          where: { serviceId: parent.id, isActive: true }, 
+          include: { location: true },
+        });
+        return locationServices.map((ls: LocationServiceWithLocation) => ls.location) || [];
+      } catch (error) {
+        console.error('Error fetching service locations:', error);
+        return [];
+      }
+    },
+  },
+  StaffProfile: {
+    user: async (parent: { userId: string }) => {
+      try {
+        return await prisma.user.findUnique({ where: { id: parent.userId } });
+      } catch (error) {
+        console.error('Error fetching staff user:', error);
+        return null;
+      }
+    },
+    schedules: async (parent: { id: string }, args?: { scheduleType?: ScheduleType }) => {
+      try {
+        const whereCondition: StaffScheduleWhereInput = { staffProfileId: parent.id };
+        if (args?.scheduleType) {
+          whereCondition.scheduleType = args.scheduleType;
+        }
+        // If no specific type requested, might fetch all or default to REGULAR_HOURS
+        // For StaffProfile.schedules in GQL, it's [StaffSchedule!], implying all types by default.
+        const schedules = await prisma.staffSchedule.findMany({ 
+          where: whereCondition,
+          orderBy: [{ dayOfWeek: 'asc' }, { date: 'asc' }, { startTime: 'asc' }] 
+        });
+        return schedules || [];
+      } catch (error) {
+        console.error('Error fetching staff schedules:', error);
+        return [];
+      }
+    },
+    assignedServices: async (parent: { id: string }) => {
+      try {
+        const staffServices = await prisma.staffService.findMany({
+          where: { staffProfileId: parent.id },
+          include: { service: true }, 
+        });
+        return staffServices.map((ss: StaffServiceWithService) => ss.service) || [];
+      } catch (error) {
+        console.error('Error fetching assigned services:', error);
+        return [];
+      }
+    },
+    locationAssignments: async (parent: { id: string }) => {
+      try {
+        const staffLocations = await prisma.staffLocationAssignment.findMany({
+          where: { staffProfileId: parent.id },
+          include: { location: true },
+        });
+        return staffLocations.map((sl: StaffLocationWithLocation) => sl.location) || [];
+      } catch (error) {
+        console.error('Error fetching location assignments:', error);
+        return [];
+      }
+    },
+  },
+  StaffSchedule: {
+    location: async (parent: { locationId?: string | null }) => {
+      if (!parent.locationId) return null;
+      return prisma.location.findUnique({ where: { id: parent.locationId } });
+    }
+  },
+  // Add Type resolver for Booking to ensure relations are handled if not covered by direct includes
+  // However, the 'include' in the main 'bookings' query resolver should handle these.
+  // Booking: {
+  //   user: async (parent: { userId?: string | null }) => {
+  //     if (!parent.userId) return null;
+  //     return prisma.user.findUnique({ where: { id: parent.userId } });
+  //   },
+  //   service: async (parent: { serviceId: string }) => {
+  //     return prisma.service.findUnique({ where: { id: parent.serviceId } });
+  //   },
+  //   location: async (parent: { locationId: string }) => {
+  //     return prisma.location.findUnique({ where: { id: parent.locationId } });
+  //   },
+  //   staffProfile: async (parent: { staffProfileId?: string | null }) => {
+  //     if (!parent.staffProfileId) return null;
+  //     return prisma.staffProfile.findUnique({ 
+  //       where: { id: parent.staffProfileId },
+  //       include: { user: true } 
+  //     });
+  //   },
+  // }
+  
+  // Field resolvers for Booking type
+  Booking: {
+    customerName: (parent: { customer?: { firstName?: string; lastName?: string } }) => {
+      if (!parent.customer) return null;
+      const { firstName, lastName } = parent.customer;
+      if (firstName && lastName) {
+        return `${firstName} ${lastName}`;
+      }
+      return firstName || lastName || null;
+    },
+    customerEmail: (parent: { customer?: { email?: string } }) => {
+      return parent.customer?.email || null;
+    },
+    customerPhone: (parent: { customer?: { phoneNumber?: string } }) => {
+      return parent.customer?.phoneNumber || null;
+    },
+    user: (parent: { customer?: unknown }) => {
+      return parent.customer || null;
+    },
+    userId: (parent: { customerId?: string }) => {
+      return parent.customerId || null;
+
     },
   },
   Location: { /* ... preserved ... */ },

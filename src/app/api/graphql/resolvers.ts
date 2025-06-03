@@ -685,7 +685,7 @@ const resolvers = {
     getDefaultPage: cmsResolvers.Query.getDefaultPage,
     getPagesUsingSectionId: cmsResolvers.Query.getPagesUsingSectionId,
 
-    // Add blog queries
+    // Add blog queries now that we have the blog resolver
     blogs: blogResolvers.Query.blogs,
     blog: blogResolvers.Query.blog,
     post: blogResolvers.Query.post,
