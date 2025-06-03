@@ -77,7 +77,7 @@ export function MediaCard({
   return (
     <div 
       ref={cardRef}
-      className={`border rounded-lg overflow-hidden group cursor-pointer ${
+      className={`border rounded-lg overflow-hidden group cursor-pointer relative ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
       onClick={handleSelect}
@@ -93,9 +93,6 @@ export function MediaCard({
           showMetadata={true}
           onDimensionsLoaded={handleDimensionsLoaded}
         />
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100 z-30">
-          <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={() => onDelete(id)} />
-        </div>
         <div className="absolute top-2 left-2 z-40">
           <input
             type="checkbox"
@@ -106,6 +103,12 @@ export function MediaCard({
           />
         </div>
       </div>
+      
+      {/* Hover controls covering the entire card */}
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100 z-30">
+        <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={() => onDelete(id)} />
+      </div>
+      
       <div className="p-3 relative">
         <h3 className="font-medium text-sm truncate pr-8" title={title}>
           {title}

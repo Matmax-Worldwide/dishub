@@ -145,7 +145,7 @@ const MetadataOverlay = ({
   if (!showMetadata) return null;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-20">
+    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[15]">
       {imageDimensions && (
         <div className="flex justify-between">
           <span>Dimensions:</span>
@@ -575,26 +575,26 @@ const S3FilePreview = ({
       console.log(`[S3FilePreview] ${imageType} detected, trying direct load:`, src);
       return (
         <div className="relative w-full h-full overflow-hidden">
-          {/* Transparency checker background for PNG files */}
+          {/* Transparency checker background for PNG files - z-index 1 */}
           {isPngFile && (
             <div 
-              className="absolute inset-0 opacity-50"
+              className="absolute inset-0 z-[1]"
               style={{
                 backgroundImage: `
-                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
-                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                  linear-gradient(45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #e5e5e5 75%), 
+                  linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)
                 `,
-                backgroundSize: '20px 20px',
-                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+                backgroundSize: '16px 16px',
+                backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
               }}
             />
           )}
           <img
             src={src} // Use original URL directly for common image formats
             alt={alt}
-            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={(e) => {
               console.log(`[S3FilePreview] ${imageType} direct load failed, trying API route`);
@@ -605,7 +605,7 @@ const S3FilePreview = ({
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0 z-20">
+            <div className="absolute inset-0 z-[25]">
               <SkeletonLoader />
             </div>
           )}
@@ -627,32 +627,32 @@ const S3FilePreview = ({
       
       return (
         <div className="relative w-full h-full overflow-hidden">
-          {/* Transparency checker background for SVG files too */}
+          {/* Transparency checker background for SVG files - z-index 1 */}
           {isSvgFile && (
             <div 
-              className="absolute inset-0 opacity-50"
+              className="absolute inset-0 z-[1]"
               style={{
                 backgroundImage: `
-                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
-                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                  linear-gradient(45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #e5e5e5 75%), 
+                  linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)
                 `,
-                backgroundSize: '20px 20px',
-                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+                backgroundSize: '16px 16px',
+                backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
               }}
             />
           )}
           <img
             src={safeFinalUrl} 
             alt={alt}
-            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0 z-20">
+            <div className="absolute inset-0 z-[25]">
               <SkeletonLoader />
             </div>
           )}
@@ -673,26 +673,26 @@ const S3FilePreview = ({
       
       return (
         <div className="relative w-full h-full overflow-hidden">
-          {/* Transparency checker background for PNG files from S3 */}
+          {/* Transparency checker background for PNG files from S3 - z-index 1 */}
           {isPngFromS3 && (
             <div 
-              className="absolute inset-0 opacity-50"
+              className="absolute inset-0 z-[1]"
               style={{
                 backgroundImage: `
-                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
-                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                  linear-gradient(45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #e5e5e5 75%), 
+                  linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)
                 `,
-                backgroundSize: '20px 20px',
-                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+                backgroundSize: '16px 16px',
+                backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
               }}
             />
           )}
           <Image
             src={safeFinalUrl} 
             alt={alt}
-            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             onLoad={handleImageLoad}
@@ -700,7 +700,7 @@ const S3FilePreview = ({
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0 z-20">
+            <div className="absolute inset-0 z-[25]">
               <SkeletonLoader />
             </div>
           )}
@@ -720,19 +720,19 @@ const S3FilePreview = ({
     
     return (
       <div className="relative w-full h-full overflow-hidden">
-        {/* Transparency checker background for external PNG files */}
+        {/* Transparency checker background for external PNG files - z-index 1 */}
         {isExternalPng && (
           <div 
-            className="absolute inset-0 opacity-50"
+            className="absolute inset-0 z-[1]"
             style={{
               backgroundImage: `
-                linear-gradient(45deg, #ccc 25%, transparent 25%), 
-                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #ccc 75%), 
-                linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                linear-gradient(45deg, #e5e5e5 25%, transparent 25%), 
+                linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #e5e5e5 75%), 
+                linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)
               `,
-              backgroundSize: '20px 20px',
-              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+              backgroundSize: '16px 16px',
+              backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
             }}
           />
         )}
@@ -741,13 +741,13 @@ const S3FilePreview = ({
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
         />
         {isLoading && (
-          <div className="absolute inset-0 z-20">
+          <div className="absolute inset-0 z-[25]">
             <SkeletonLoader />
           </div>
         )}

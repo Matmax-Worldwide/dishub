@@ -1102,8 +1102,7 @@ export default function HeaderSection({
                 src={logoUrl} 
                 alt="Logo"
                 className="max-h-full max-w-full object-contain" 
-                width={80}
-                height={80}
+                showMetadata={true}
               />
             </div>
             ) : logoUrl ? (
@@ -1704,8 +1703,7 @@ export default function HeaderSection({
                       src={logoUrl} 
                       alt="Logo"
                       className="max-h-full max-w-full object-contain"
-                      width={80}
-                      height={80}
+                      showMetadata={true}
                     />
                       ) : (
                         <button 
@@ -2210,8 +2208,7 @@ export default function HeaderSection({
                       src={logoUrl} 
                       alt={localTitle || "Logo"}
                       className="h-10 w-auto object-contain"
-                      width={100}
-                      height={100}
+                      showMetadata={true}
                     />
                   </div>
                 )}
@@ -2332,8 +2329,7 @@ export default function HeaderSection({
                           src={logoUrl}
                           alt={localTitle || "Logo"}
                           className="h-full w-auto object-contain"
-                          width={32}
-                          height={32}
+                          showMetadata={true}
                         />
                       </div>
                     )}
@@ -2356,8 +2352,7 @@ export default function HeaderSection({
                         src={logoUrl} 
                         alt={localTitle || "Logo"}
                         className="h-16 w-auto object-contain mx-auto"
-                        width={80}
-                        height={80}
+                        showMetadata={true}
                       />
                     </div>
                   )}
