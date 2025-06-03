@@ -1,5 +1,5 @@
 import { useParams } from 'next/navigation';
-import { getDictionary, Locale } from '@/app/(tools)/i18n';
+import { getDictionary, Locale } from '@/app/i18n';
 
 export function useI18n() {
   const params = useParams();
