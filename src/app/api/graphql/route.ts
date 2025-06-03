@@ -32,7 +32,7 @@ const baseSchema = makeExecutableSchema({
 const schemaWithPermissions = applyMiddleware(baseSchema, permissionsShield);
 
 // Initialize ApolloServer
-const server = new ApolloServer({
+const server = new ApolloServer<GraphQLContext>({
   schema: schemaWithPermissions,
 });
 
@@ -88,7 +88,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     
     if (token) {
       try {
-        const decoded = await verifyToken(token) as DecodedToken;
+        const decoded = await verifyToken(token) as unknown as DecodedToken;
         const userRoleName = decoded.role || 'USER';
         const resolvedPermissions = getPermissionsForRole(userRoleName);
 
@@ -99,7 +99,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
           tenants: decoded.tenants || [],
         };
       } catch (error) {
-        console.error('Error verifying token for GraphQL context:', error.message);
+        console.error('Error verifying token for GraphQL context:', error instanceof Error ? error.message : 'Unknown error');
       }
     }
 

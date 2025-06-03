@@ -2,11 +2,8 @@ import { NextRequest } from 'next/server';
 import DataLoader from 'dataloader';
 import {
   CMSSection as PrismaCMSSection, // Renaming to avoid conflict if a local GQL 'CMSSection' is different
-  User as PrismaUser,
   Page as PrismaPage,
   PageType as PrismaPageType,
-  Post as PrismaPost,
-  OrderItem as PrismaOrderItem // Added for orderItemsByOrderIdLoader
 } from '@prisma/client';
 import { RoleName } from '@/config/rolePermissions';
 
