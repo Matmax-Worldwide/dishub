@@ -218,7 +218,7 @@ export default function ServiceManager() {
                 </TableCell>
                 <TableCell className="text-center hidden md:table-cell text-sm text-muted-foreground">{service.durationMinutes}</TableCell>
                 <TableCell className="text-right hidden lg:table-cell text-sm text-muted-foreground">
-                  {service.prices && service.prices.length > 0 ? `$${Number(service.prices[0].amount).toFixed(2)}` : 'N/A'}
+                  N/A
                 </TableCell>
                 <TableCell className="hidden xl:table-cell text-sm text-muted-foreground truncate max-w-xs">
                   {service.locations && service.locations.length > 0 

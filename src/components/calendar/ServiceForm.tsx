@@ -163,10 +163,6 @@ export default function ServiceForm({
     // Ensure numeric fields are numbers or null
     dataToSave.durationMinutes = Number(dataToSave.durationMinutes) || 0;
     
-    // Remove prices field as it's not supported in UpdateServiceInput
-    // The prices field should be handled separately if needed
-    delete dataToSave.prices;
-    
     dataToSave.bufferTimeBeforeMinutes = Number(dataToSave.bufferTimeBeforeMinutes) || 0;
     dataToSave.bufferTimeAfterMinutes = Number(dataToSave.bufferTimeAfterMinutes) || 0;
     dataToSave.preparationTimeMinutes = Number(dataToSave.preparationTimeMinutes) || 0;

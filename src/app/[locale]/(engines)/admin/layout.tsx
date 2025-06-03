@@ -90,7 +90,7 @@ export default function AdminLayout({
         </p>
         <Button 
           className="w-full flex items-center justify-center gap-2"
-          onClick={() => router.push(`/${locale}/dashboard`)}
+          onClick={() => router.push(`/${locale}/evoque/dashboard`)}
         >
           <ArrowLeftIcon className="h-4 w-4" />
           Volver al dashboard
@@ -110,7 +110,7 @@ export default function AdminLayout({
             <p>Role: {userData.me.role?.name || 'No role'}</p>
             <p>Role ID: {userData.me.role?.id || 'No role ID'}</p>
             <button 
-              onClick={() => router.push(`/${locale}/dashboard`)}
+              onClick={() => router.push(`/${locale}/evoque/dashboard`)}
               className="mt-2 px-2 py-1 bg-blue-500 text-white rounded text-xs"
             >
               Back to Dashboard

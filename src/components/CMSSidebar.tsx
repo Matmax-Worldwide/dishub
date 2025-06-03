@@ -268,9 +268,9 @@ export default function CMSSidebar() {
         
         <SidebarFooter>
           <Link 
-            href={`/${locale}/dashboard`} 
+            href={`/${locale}/evoque/dashboard`} 
             className="block w-full"
-            onClick={(e) => handleNavigation(`/${locale}/dashboard`, e)}
+            onClick={(e) => handleNavigation(`/${locale}/evoque/dashboard`, e)}
           >
             <SidebarItem 
               icon={<LogOut className="h-4 w-4" />}

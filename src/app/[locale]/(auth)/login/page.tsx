@@ -74,7 +74,7 @@ export default function LoginPage() {
         
         // Use window.location for a full page refresh instead of Next.js router
         // This prevents React hydration issues when transitioning after login
-        window.location.href = `/${locale}/dashboard`;
+        window.location.href = `/${locale}/evoque/dashboard`;
       } else {
         throw new Error('Invalid response from server');
       }
@@ -204,7 +204,7 @@ export default function LoginPage() {
               whileTap={{ scale: 0.98 }}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </motion.button>
           </form>
         </motion.div>

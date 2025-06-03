@@ -72,7 +72,7 @@ export default function RegisterPage() {
         
         // Use window.location for a full page refresh instead of Next.js router
         // This prevents React hydration issues when transitioning after login
-        window.location.href = `/${locale}/dashboard`;
+        window.location.href = `/${locale}/evoque/dashboard`;
       } else {
         throw new Error('Invalid response from server');
       }

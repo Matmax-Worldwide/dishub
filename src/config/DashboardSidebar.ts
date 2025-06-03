@@ -46,12 +46,12 @@ export const sidebarConfig: SidebarConfig = {
   baseNavigationItems: (locale: string) => [
     { 
       name: 'sidebar.dashboard', 
-      href: `/${locale}/dashboard`, 
+      href: `/${locale}/evoque/dashboard`, 
       icon: HomeIcon 
     },
     { 
       name: 'sidebar.notifications', 
-      href: `/${locale}/dashboard/notifications`, 
+      href: `/${locale}/evoque/dashboard/notifications`, 
       icon: BellIcon,
       permissions: ['notifications:read'],
       badge: {
@@ -61,17 +61,17 @@ export const sidebarConfig: SidebarConfig = {
     },
     { 
       name: 'sidebar.benefits', 
-      href: `/${locale}/dashboard/benefits`, 
+      href: `/${locale}/evoque/dashboard/benefits`, 
       icon: UserIcon 
     },
     { 
       name: 'sidebar.help', 
-      href: `/${locale}/dashboard/help`, 
+      href: `/${locale}/evoque/dashboard/help`, 
       icon: HelpCircleIcon 
     },
     { 
       name: 'sidebar.settings', 
-      href: `/${locale}/dashboard/settings`, 
+      href: `/${locale}/evoque/dashboard/settings`, 
       icon: SettingsIcon 
     },
   ],

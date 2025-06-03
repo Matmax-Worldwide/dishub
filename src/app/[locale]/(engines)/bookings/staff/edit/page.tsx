@@ -417,11 +417,6 @@ export default function StaffEditPage() {
                               <Clock className="h-3 w-3" />
                               {service.durationMinutes} min
                             </span>
-                            {service.prices && service.prices.length > 0 && (
-                              <span className="font-medium text-green-600">
-                                ${service.prices[0].amount}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default function AccessDeniedPage() {
   const { locale } = useParams();
   const { user, isAuthenticated } = useAuth();
-  const [redirectPath, setRedirectPath] = useState('/dashboard');
+  const [redirectPath, setRedirectPath] = useState('/evoque/dashboard');
 
   useEffect(() => {
     // Establecer la página a donde redirigir según el rol del usuario
@@ -20,7 +20,7 @@ export default function AccessDeniedPage() {
       if (user.role.name === 'ADMIN') {
         setRedirectPath(`/${locale}/admin`);
       } else {
-        setRedirectPath(`/${locale}/dashboard`);
+        setRedirectPath(`/${locale}/evoque/dashboard`);
       }
     } else {
       setRedirectPath(`/${locale}/login`);

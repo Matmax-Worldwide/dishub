@@ -88,7 +88,7 @@ export default function ManagerLayout({
         </p>
         <Button 
           className="w-full flex items-center justify-center gap-2"
-          onClick={() => router.push(`/${locale}/dashboard`)}
+          onClick={() => router.push(`/${locale}/evoque/dashboard`)}
         >
           <ArrowLeftIcon className="h-4 w-4" />
           Volver al dashboard
