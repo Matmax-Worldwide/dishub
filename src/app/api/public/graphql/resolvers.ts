@@ -42,6 +42,27 @@ interface MenuItemWithChildrenAndPage extends Prisma.MenuItemGetPayload<{
 
 export const publicResolvers = {
   Query: {
+    allPublishedPageSlugs: async (_parent: any, _args: any, ctx: GraphQLContext) => {
+      if (!ctx.tenantId) {
+        console.warn('allPublishedPageSlugs: Tenant ID not found in context. Returning empty array.');
+        return [];
+      }
+      try {
+        const pages = await ctx.prisma.page.findMany({
+          where: {
+            // tenantId: ctx.tenantId, // Automatically applied by tenantScopeExtension
+            isPublished: true,
+          },
+          select: {
+            slug: true,
+          },
+        });
+        return pages.map(page => page.slug);
+      } catch (error) {
+        console.error(`Error fetching published page slugs for tenant ${ctx.tenantId}:`, error);
+        throw new GraphQLError('Failed to fetch page slugs.', { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
+      }
+    },
     page: async (_parent: any, { slug, preview = false }: { slug: string, preview?: boolean }, ctx: GraphQLContext) => {
       if (!ctx.tenantId) {
         throw new GraphQLError('Tenant could not be identified.', { extensions: { code: 'TENANT_IDENTIFICATION_FAILED' } });

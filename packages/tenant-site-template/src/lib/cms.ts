@@ -13,15 +13,13 @@ if (!TENANT_ID && process.env.NODE_ENV === 'production') {
   console.warn('TENANT_ID is not defined. This is required for production builds of tenant sites.');
 }
 
-const client = new GraphQLClient(CMS_GRAPHQL_URL, {
-  // Headers can be added here if needed, e.g., for preview tokens
-  // For public queries, X-Tenant-ID is usually resolved by the API via domain/subdomain.
-  // If running the template directly and need to specify tenant for API, this header might be needed.
-  // However, the public API should ideally resolve tenant from hostname.
-  // headers: {
-  //   ...(TENANT_ID ? { 'X-Tenant-ID': TENANT_ID } : {}),
-  // }
-});
+const headers: Record<string, string> = {};
+if (TENANT_ID) {
+  headers['X-Tenant-ID'] = TENANT_ID;
+}
+// Note: Preview token header logic will be handled per-request if needed, not globally here.
+
+const client = new GraphQLClient(CMS_GRAPHQL_URL, { headers });
 
 export async function getSiteConfig() {
   const query = gql`
@@ -87,26 +85,21 @@ export async function getPage(slug: string, preview: boolean = false) {
   return data.page;
 }
 
-export async function getAllPageSlugs() {
-  // This query needs to be implemented in the public GraphQL API
-  // For now, it's a placeholder.
-  // It should fetch all published page slugs for the current tenant.
-  // Example (conceptual, API needs to support this):
-
-  // const query = gql`
-  //   query GetAllPageSlugsForTenant { // Ensure this query is tenant-scoped by the API
-  //     allPublishedPages { # This query needs to exist on the public API
-  //       slug
-  //     }
-  //   }
-  // `;
-  // const data = await client.request<{ allPublishedPages: Array<{ slug: string }> }>(query);
-  // return data.allPublishedPages.map(page => ({ slug: page.slug }));
-
-  console.warn("getAllPageSlugs: Placeholder implementation. Public API needs a query to fetch all published page slugs for the current tenant. Returning dummy data.");
-  // Returning dummy data for now to allow build to pass.
-  // Replace with actual API call when the endpoint is ready.
-  return [{ slug: 'home' }, { slug: 'example-page' }];
+export async function getAllPageSlugs(): Promise<Array<{ slug: string }>> { // Ensure return type matches generateStaticParams
+  const query = gql`
+    query GetAllPublishedPageSlugs {
+      allPublishedPageSlugs
+    }
+  `;
+  try {
+    // No variables needed for this specific query if it's correctly tenant-scoped by header
+    const data = await client.request<{ allPublishedPageSlugs: string[] }>(query);
+    return data.allPublishedPageSlugs.map(slug => ({ slug })); // Match expected structure for generateStaticParams
+  } catch (error) {
+    console.error("Error fetching all page slugs:", error);
+    // Return empty array or re-throw, depending on how build failures should be handled
+    return [];
+  }
 }
 
 export async function getMenu(location: string) {

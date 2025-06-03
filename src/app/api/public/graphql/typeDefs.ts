@@ -86,6 +86,7 @@ export const publicTypeDefs = gql`
     page(slug: String!, preview: Boolean): PublicPage
     siteConfig: PublicSiteConfig
     menu(location: String!): PublicMenu
+    allPublishedPageSlugs: [String!] # Added new query
     # Future: posts(blogSlug: String!, limit: Int, cursor: String): PostConnection
     # Future: form(slug: String!): PublicForm
   }
