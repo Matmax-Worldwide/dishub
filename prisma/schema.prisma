@@ -7,6 +7,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique // e.g., "myhotel" for myhotel.dishub.com
+  domain    String?   @unique // Custom domain e.g., www.myhotel.com
+  status    TenantStatus @default(ACTIVE) // PENDING, ACTIVE, SUSPENDED
+  planId    String?   // Relates to a Plan model
+  // plan      Plan?     @relation(fields: [planId], references: [id])
+  settings  Json?     // Tenant-specific settings
+  features  String[]  // List of enabled feature keys/module keys
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations to tenant-specific data
+  users             User[]
+  pages             Page[]
+  posts             Post[]
+  bookings          Booking[]
+  media             Media[]
+  cmsSections       CMSSection[]
+  menus             Menu[]
+  forms             Form[]
+  shops             Shop[]
+  products          Product[]
+  productCategories ProductCategory[]
+  orders            Order[]
+  clients           Client[]
+  projects          Project[]
+  appointments      Appointment[]
+  tasks             Task[]
+  timeEntries       TimeEntry[]
+  notifications     Notification[]
+  performances      Performance[]
+  userSettings      UserSettings[]
+  employees         Employee[]
+  departments       Department[]
+  positions         Position[]
+  leaves            Leave[]
+  benefits          Benefit[]
+  performanceReviews PerformanceReview[]
+  employeeDocuments EmployeeDocument[]
+  trainings         Training[]
+  holidayCalendars  HolidayCalendar[]
+  payrolls          Payroll[]
+  collections       Collection[]
+  cmsDocuments      CMSDocument[]
+  cmsTemplates      CMSTemplate[]
+  cmsComponents     CMSComponent[]
+  navigationMenus   NavigationMenu[]
+  headerStyles      HeaderStyle[]
+  footerStyles      FooterStyle[]
+  blogs             Blog[]
+  locations         Location[]
+  serviceCategories ServiceCategory[]
+  services          Service[]
+  staffProfiles     StaffProfile[]
+  staffSchedules    StaffSchedule[]
+  bookingRules      BookingRule[]
+  reviews           Review[]
+  discounts         Discount[]
+  customerAddresses CustomerAddress[]
+  documentation     Documentation[]
+  documents         Document[]
+}
+
+enum TenantStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
 
 model User {
   id               String    @id @default(cuid())
@@ -49,8 +121,12 @@ model User {
   reviewResponses  ReviewResponse[]     // Admin responses to reviews
   addresses        CustomerAddress[]    // Customer addresses
 
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
   @@index([email])
   @@index([roleId])
+  @@index([tenantId])
 }
 
 model Account {
@@ -81,6 +157,10 @@ model Document {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Client {
@@ -89,12 +169,16 @@ model Client {
   email        String?
   phone        String?
   address      String?
-  userId       String
+  userId       String // Assuming this refers to the user who created/manages this client
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects     Project[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Project {
@@ -103,13 +187,17 @@ model Project {
   description String?
   status      ProjectStatus @default(ACTIVE)
   clientId    String?
-  userId      String
+  userId      String  // Assuming this refers to the user who created/manages this project
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   client      Client?       @relation(fields: [clientId], references: [id])
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks       Task[]
   timeEntries TimeEntry[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Appointment {
@@ -121,12 +209,16 @@ model Appointment {
   location    String?
   isVirtual   Boolean  @default(false)
   meetingUrl  String?
-  userId      String
+  userId      String // User who booked or is responsible
   clientId    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   client      Client?  @relation(fields: [clientId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 
@@ -141,6 +233,10 @@ model TimeEntry {
   updatedAt   DateTime @updatedAt
   project     Project? @relation(fields: [projectId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 
@@ -150,6 +246,8 @@ model ContactFormSubmission {
   lastName  String
   email     String
   createdAt DateTime @default(now())
+  // This model seems global (e.g. for platform contact) or needs tenantId if forms are tenant-specific
+  // Assuming global for now as it's not in the explicit list for tenantId
 }
 
 model Session {
@@ -160,10 +258,9 @@ model Session {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Sessions are user-specific, and users can be tenant-specific or platform admins.
+  // No direct tenantId here; derived through User if needed.
 }
-
-
-
 
 model Task {
   id          String     @id @default(cuid())
@@ -180,6 +277,10 @@ model Task {
   assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   project     Project?   @relation(fields: [projectId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 
@@ -189,12 +290,16 @@ model Notification {
   title           String
   message         String
   isRead          Boolean          @default(false)
-  userId          String
+  userId          String // The user receiving the notification
   relatedItemId   String?
   relatedItemType String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Performance {
@@ -208,6 +313,10 @@ model Performance {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model UserSettings {
@@ -221,6 +330,10 @@ model UserSettings {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model HelpArticle {
@@ -231,29 +344,33 @@ model HelpArticle {
   tags      String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Global
 }
 
 model Shop {
   id                String  @id @default(cuid())
   name              String
   defaultCurrencyId String
-  adminUserId       String?
+  adminUserId       String? // User who manages this shop
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   defaultCurrency    Currency                 @relation("ShopDefaultCurrency", fields: [defaultCurrencyId], references: [id])
-  acceptedCurrencies ShopAcceptedCurrencies[] // Relation to the explicit join table
-
+  acceptedCurrencies ShopAcceptedCurrencies[]
   adminUser         User?             @relation(fields: [adminUserId], references: [id])
   locations         Location[]
   products          Product[]
   productCategories ProductCategory[]
-  taxes             Tax[] // A shop can have specific taxes
+  taxes             Tax[]
   orders            Order[]
 
-  // @@index([adminUserId]) // Optional: if querying shops by admin user is frequent
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([defaultCurrencyId])
+  @@index([tenantId])
+  @@unique([tenantId, name])
 }
 
 model ShopAcceptedCurrencies {
@@ -263,28 +380,30 @@ model ShopAcceptedCurrencies {
   shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
   currency Currency @relation("ShopAcceptedCurrencies", fields: [currencyId], references: [id], onDelete: Cascade)
 
-  assignedAt DateTime @default(now()) // Optional: to track when a currency was added to a shop
+  assignedAt DateTime @default(now())
 
   @@id([shopId, currencyId])
-  @@index([currencyId]) // Index for querying shops by accepted currency
+  @@index([currencyId])
 }
 
 model Tax {
   id          String  @id @default(cuid())
-  name        String // e.g., "VAT", "Sales Tax"
-  rate        Float // e.g., 0.07 for 7%
-  isInclusive Boolean @default(false) // Tax is included in the price
-  country     String? // For regional taxes
-  region      String? // Optional, sub-division of country
-  isGlobal    Boolean @default(false) // Applies to all shops/products unless overridden
-  shopId      String? // Optional, if a tax is specific to a shop
+  name        String
+  rate        Float
+  isInclusive Boolean @default(false)
+  country     String?
+  region      String?
+  isGlobal    Boolean @default(false)
+  shopId      String? // Tax can be shop-specific or global
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  shop       Shop?      @relation(fields: [shopId], references: [id])
-  priceTaxes PriceTax[] // Relation to the explicit join table for prices
+  shop       Shop?      @relation(fields: [shopId], references: [id]) // If shopId is null, it's a global tax
+  priceTaxes PriceTax[]
 
+  // If shopId is present, it implies a tenant context via Shop.
+  // If shopId is null, it's global. No direct tenantId needed here.
   @@index([shopId])
   @@index([isGlobal])
   @@index([country])
@@ -294,9 +413,9 @@ model Product {
   id            String  @id @default(cuid())
   name          String
   description   String?
-  sku           String? @unique
+  sku           String? // SKU might need to be unique per tenant, or globally unique. Assuming per tenant for now.
   stockQuantity Int?
-  shopId        String
+  shopId        String // The shop this product belongs to
   categoryId    String?
 
   createdAt DateTime @default(now())
@@ -304,23 +423,28 @@ model Product {
 
   shop       Shop             @relation(fields: [shopId], references: [id])
   category   ProductCategory? @relation(fields: [categoryId], references: [id])
-  prices     Price[]          // Relation to its prices in different currencies
+  prices     Price[]
   orderItems OrderItem[]
-  reviews    Review[]         // Product reviews
-  discounts  DiscountProduct[] // Discount relations
+  reviews    Review[]
+  discounts  DiscountProduct[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([shopId])
   @@index([categoryId])
+  @@index([tenantId])
+  @@unique([tenantId, sku]) // Assuming SKU should be unique per tenant
 }
 
 model ProductCategory {
   id          String  @id @default(cuid())
   name        String
   description String?
-  slug        String  @unique
+  slug        String  // Slug for URL friendliness
   parentId    String?
   isActive    Boolean @default(true)
-  shopId      String?
+  shopId      String? // Category can be shop-specific
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -329,11 +453,15 @@ model ProductCategory {
   parent          ProductCategory?  @relation("CategoryToParent", fields: [parentId], references: [id])
   children        ProductCategory[] @relation("CategoryToParent")
   products        Product[]
-  discounts       DiscountCategory[] // Discount relations
+  discounts       DiscountCategory[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([shopId])
   @@index([parentId])
-  @@index([slug])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
 }
 
 model Price {
@@ -342,16 +470,17 @@ model Price {
   currencyId       String
   productId        String?
   serviceId        String?
-  priceIncludesTax Boolean @default(false) // Indicates if 'amount' already includes 'isInclusive' taxes
+  priceIncludesTax Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   currency   Currency   @relation(fields: [currencyId], references: [id])
-  product    Product?   @relation(fields: [productId], references: [id], onDelete: Cascade) // Cascade delete if product is removed
-  service    Service?   @relation(fields: [serviceId], references: [id], onDelete: Cascade) // Cascade delete if service is removed
-  priceTaxes PriceTax[] // Relation to the explicit join table for taxes
+  product    Product?   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  service    Service?   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  priceTaxes PriceTax[]
 
+  // Tenant context is derived from Product or Service. No direct tenantId.
   @@index([currencyId])
   @@index([productId])
   @@index([serviceId])
@@ -360,16 +489,16 @@ model Price {
 model PriceTax {
   priceId   String
   taxId     String
-  appliedAt DateTime @default(now()) // Optional: to track when a tax was associated with a price
+  appliedAt DateTime @default(now())
 
   price Price @relation(fields: [priceId], references: [id], onDelete: Cascade)
   tax   Tax   @relation(fields: [taxId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now()) // It's good practice for join tables too
-  updatedAt DateTime @updatedAt // Though less frequently updated
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@id([priceId, taxId])
-  @@index([taxId]) // Index on taxId can be useful for finding all prices with a specific tax
+  @@index([taxId])
 }
 
 model RoleModel {
@@ -382,6 +511,7 @@ model RoleModel {
   permissions Permission[] @relation("PermissionToRoleModel")
 
   @@map("RoleTable")
+  // Global
 }
 
 model Permission {
@@ -391,6 +521,7 @@ model Permission {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   roles       RoleModel[] @relation("PermissionToRoleModel")
+  // Global
 }
 
 model ExternalLink {
@@ -408,12 +539,13 @@ model ExternalLink {
   allowedRoles String[]          @default([])
   allowedUsers String[]          @default([])
   deniedUsers  String[]          @default([])
+  // Global or tenant-specific? Assuming global for now as per instructions.
 }
 
 model Employee {
   id               String              @id @default(cuid())
-  employeeId       String              @unique
-  userId           String              @unique
+  employeeId       String              // Employee ID might need to be unique per tenant
+  userId           String              @unique // Links to User model, must be unique
   dateOfBirth      DateTime?
   gender           String?
   maritalStatus    String?
@@ -443,16 +575,26 @@ model Employee {
   leaves           Leave[]
   payrolls         Payroll[]
   performances     PerformanceReview[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, employeeId])
 }
 
 model Department {
   id          String     @id @default(cuid())
   name        String
   description String?
-  managerId   String?
+  managerId   String? // Manager of the department (Employee ID)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   employees   Employee[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name]) // Department names usually unique per tenant
 }
 
 model Position {
@@ -465,6 +607,11 @@ model Position {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   employees        Employee[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, title]) // Position titles usually unique per tenant
 }
 
 model Attendance {
@@ -478,6 +625,7 @@ model Attendance {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   employee   Employee  @relation(fields: [employeeId], references: [id])
+  // Tenant context from Employee
 }
 
 model Leave {
@@ -490,11 +638,15 @@ model Leave {
   reason       String?
   status       RequestStatus @default(PENDING)
   attachments  String?
-  approvedById String?
+  approvedById String? // User ID of approver
   approvedAt   DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   employee     Employee      @relation(fields: [employeeId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Benefit {
@@ -507,6 +659,11 @@ model Benefit {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   employeeBenefits  EmployeeBenefit[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name]) // Benefit names usually unique per tenant
 }
 
 model EmployeeBenefit {
@@ -521,12 +678,13 @@ model EmployeeBenefit {
   updatedAt  DateTime      @updatedAt
   benefit    Benefit       @relation(fields: [benefitId], references: [id])
   employee   Employee      @relation(fields: [employeeId], references: [id])
+  // Tenant context from Employee and Benefit
 }
 
 model PerformanceReview {
   id                 String       @id @default(cuid())
   employeeId         String
-  reviewerId         String
+  reviewerId         String // User ID of reviewer
   reviewDate         DateTime
   reviewPeriodStart  DateTime
   reviewPeriodEnd    DateTime
@@ -544,6 +702,10 @@ model PerformanceReview {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   employee           Employee     @relation(fields: [employeeId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model EmployeeDocument {
@@ -558,6 +720,10 @@ model EmployeeDocument {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   employee     Employee     @relation(fields: [employeeId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Training {
@@ -573,6 +739,11 @@ model Training {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   employees    EmployeeTraining[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, title]) // Training titles usually unique per tenant
 }
 
 model EmployeeTraining {
@@ -589,6 +760,7 @@ model EmployeeTraining {
   updatedAt      DateTime       @updatedAt
   employee       Employee       @relation(fields: [employeeId], references: [id])
   training       Training       @relation(fields: [trainingId], references: [id])
+  // Tenant context from Employee and Training
 }
 
 model HolidayCalendar {
@@ -601,6 +773,11 @@ model HolidayCalendar {
   region      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name, date]) // Calendar event name + date unique per tenant
 }
 
 model Payroll {
@@ -622,20 +799,24 @@ model Payroll {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   employee      Employee      @relation(fields: [employeeId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Page {
   id              String       @id @default(cuid())
   title           String
-  slug            String       @unique
+  slug            String       // Slug per tenant
   description     String?
   isPublished     Boolean      @default(false)
   publishDate     DateTime?
   featuredImage   String?
   metaTitle       String?
   metaDescription String?
-  createdById     String
-  updatedById     String?
+  createdById     String // User ID
+  updatedById     String? // User ID
   parentId        String?
   order           Int          @default(0)
   pageType        PageType     @default(CONTENT)
@@ -651,16 +832,21 @@ model Page {
   seo             PageSEO?
   sections        CMSSection[] @relation("PageToSection")
   directSections  CMSSection[] @relation("SectionToPage")
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
 }
 
 model CMSSection {
   id              String             @id @default(cuid())
-  sectionId       String             @unique
-  pageId          String?            // Add direct page relationship
+  sectionId       String             // sectionId should be unique per tenant if used as an identifier
+  pageId          String?
   lastUpdated     DateTime           @default(now())
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
-  createdBy       String?
+  createdBy       String? // User ID
   description     String?
   name            String?
   backgroundImage String?
@@ -668,10 +854,15 @@ model CMSSection {
   gridDesign      String?            @default("basic")
   components      SectionComponent[]
   page            Page?              @relation("SectionToPage", fields: [pageId], references: [id])
-  pages           Page[]             @relation("PageToSection")
+  pages           Page[]             @relation("PageToSection") // This relation seems to imply a M2M via an implicit table.
+                                                              // If a section can belong to multiple pages directly.
   media           Media[]
   order           Int                @default(0)
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, sectionId])
   @@map("CMSSection")
 }
 
@@ -685,12 +876,16 @@ model Media {
   fileType        String?
   altText         String?
   cmsSectionId    String?
-  uploadedById    String
+  uploadedById    String // User ID
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
   posts           Post[]      @relation("PostMedia")
   featuredInPosts Post[]      @relation("PostFeaturedImage")
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model PageSEO {
@@ -710,17 +905,23 @@ model PageSEO {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   page               Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  // Tenant context from Page
 }
 
 model Menu {
   id          String       @id @default(cuid())
-  name        String       @unique
+  name        String       // Name per tenant
   location    String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   headerStyle HeaderStyle?
   footerStyle FooterStyle?
   items       MenuItem[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name])
 }
 
 model MenuItem {
@@ -729,7 +930,7 @@ model MenuItem {
   parentId  String?
   title     String
   url       String?
-  pageId    String?
+  pageId    String? // Refers to Page.id
   target    String?    @default("_self")
   icon      String?
   order     Int        @default(0)
@@ -739,6 +940,7 @@ model MenuItem {
   page      Page?      @relation(fields: [pageId], references: [id])
   parent    MenuItem?  @relation("MenuItemToMenuItem", fields: [parentId], references: [id])
   children  MenuItem[] @relation("MenuItemToMenuItem")
+  // Tenant context from Menu (and Page)
 }
 
 model SiteSettings {
@@ -769,6 +971,7 @@ model SiteSettings {
   supportedLocales  String[] @default(["en"])
   twitterCardType   String?  @default("summary_large_image")
   twitterHandle     String?
+  // Global
 }
 
 model UserPermission {
@@ -782,17 +985,25 @@ model UserPermission {
   @@unique([userId, permissionName])
   @@index([userId])
   @@index([permissionName])
+  // Relates to User, tenant context can be derived if needed.
 }
 
 model Collection {
   id          String            @id @default(cuid())
-  name        String            @unique
-  slug        String            @unique
+  name        String
+  slug        String
   description String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   documents   CMSDocument[]
   fields      CollectionField[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
+  // name also likely unique per tenant, but slug is primary for URLs
+  // @@unique([tenantId, name])
 }
 
 model CollectionField {
@@ -803,7 +1014,7 @@ model CollectionField {
   type         FieldType
   required     Boolean    @default(false)
   localized    Boolean    @default(false)
-  isUnique     Boolean    @default(false)
+  isUnique     Boolean    @default(false) // isUnique within the collection for this tenant
   defaultValue Json?
   options      Json?
   order        Int        @default(0)
@@ -811,7 +1022,8 @@ model CollectionField {
   updatedAt    DateTime   @updatedAt
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-  @@unique([collectionId, name])
+  @@unique([collectionId, name]) // Field name unique within a collection
+  // Tenant context from Collection
 }
 
 model CMSDocument {
@@ -821,30 +1033,40 @@ model CMSDocument {
   locale       String     @default("en")
   isPublished  Boolean    @default(false)
   publishedAt  DateTime?
-  createdById  String
-  updatedById  String?
+  createdById  String // User ID
+  updatedById  String? // User ID
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   collection   Collection @relation(fields: [collectionId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model CMSTemplate {
   id          String         @id @default(cuid())
-  name        String         @unique
-  slug        String         @unique
+  name        String
+  slug        String
   description String?
   structure   Json?
   thumbnail   String?
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
-  components  CMSComponent[]
+  components  CMSComponent[] // Components that can be part of this template
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
+  // @@unique([tenantId, name])
 }
 
 model CMSComponent {
   id               String             @id @default(cuid())
-  name             String             @unique
-  slug             String             @unique
+  name             String
+  slug             String
   description      String?
   icon             String?
   category         String?
@@ -853,15 +1075,21 @@ model CMSComponent {
   isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
-  templateId       String?
+  templateId       String?            // If component is specific to a template
   template         CMSTemplate?       @relation(fields: [templateId], references: [id])
   sectionInstances SectionComponent[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
+  // @@unique([tenantId, name])
 }
 
 model SectionComponent {
   id          String       @id @default(cuid())
-  sectionId   String
-  componentId String
+  sectionId   String // CMSSection.id
+  componentId String // CMSComponent.id
   order       Int          @default(0)
   data        Json?
   createdAt   DateTime     @default(now())
@@ -869,19 +1097,25 @@ model SectionComponent {
   component   CMSComponent @relation(fields: [componentId], references: [id])
   section     CMSSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  @@unique([sectionId, componentId, order])
+  @@unique([sectionId, componentId, order]) // Order of component within a section
   @@map("SectionComponent")
+  // Tenant context from CMSSection and CMSComponent
 }
 
 model NavigationMenu {
   id          String               @id @default(cuid())
-  name        String               @unique
+  name        String               // Name per tenant
   description String?
   location    String?
   isActive    Boolean              @default(true)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   items       NavigationMenuItem[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name])
 }
 
 model NavigationMenuItem {
@@ -890,9 +1124,9 @@ model NavigationMenuItem {
   parentId     String?
   label        String
   href         String?
-  pageId       String?
-  documentId   String?
-  collectionId String?
+  pageId       String? // Page.id
+  documentId   String? // CMSDocument.id
+  collectionId String? // Collection.id
   target       String?              @default("_self")
   icon         String?
   order        Int                  @default(0)
@@ -902,11 +1136,12 @@ model NavigationMenuItem {
   menu         NavigationMenu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
   parent       NavigationMenuItem?  @relation("NavigationMenuItemToItem", fields: [parentId], references: [id])
   children     NavigationMenuItem[] @relation("NavigationMenuItemToItem")
+  // Tenant context from NavigationMenu
 }
 
 model HeaderStyle {
   id                 String   @id @default(cuid())
-  menuId             String   @unique
+  menuId             String   @unique // Each menu has one header style
   transparency       Int      @default(0)
   headerSize         String   @default("md")
   menuAlignment      String   @default("right")
@@ -917,7 +1152,6 @@ model HeaderStyle {
   borderBottom       Boolean  @default(false)
   fixedHeader        Boolean  @default(false)
   advancedOptions    Json?
-  // Button configuration fields
   showButton         Boolean? @default(false)
   buttonText         String?
   buttonAction       String?
@@ -938,6 +1172,10 @@ model HeaderStyle {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   menu               Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model FooterStyle {
@@ -951,18 +1189,22 @@ model FooterStyle {
   width           String?  @default("container")
   advancedOptions Json?
 
-  menuId String @unique
+  menuId String @unique // Each menu has one footer style
   menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model Form {
   id                String           @id @default(cuid())
   title             String
   description       String?
-  slug              String           @unique
+  slug              String           // Slug per tenant
   isMultiStep       Boolean          @default(false)
   isActive          Boolean          @default(true)
   successMessage    String?
@@ -971,15 +1213,20 @@ model Form {
   submitButtonStyle String?
   layout            String?
   styling           Json?
-  pageId            String?
-  createdById       String
-  updatedById       String?
+  pageId            String? // Page.id
+  createdById       String // User ID
+  updatedById       String? // User ID
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   page              Page?            @relation(fields: [pageId], references: [id])
   fields            FormField[]
   steps             FormStep[]
   submissions       FormSubmission[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
 }
 
 model FormStep {
@@ -994,14 +1241,15 @@ model FormStep {
   updatedAt       DateTime    @updatedAt
   fields          FormField[]
   form            Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  // Tenant context from Form
 }
 
 model FormField {
   id              String        @id @default(cuid())
-  formId          String?
-  stepId          String?
+  formId          String? // Belongs to a Form directly
+  stepId          String? // Or belongs to a FormStep
   label           String
-  name            String
+  name            String // name should be unique within a form/step for data submission
   type            FormFieldType
   placeholder     String?
   defaultValue    String?
@@ -1016,6 +1264,7 @@ model FormField {
   updatedAt       DateTime      @updatedAt
   form            Form?         @relation(fields: [formId], references: [id], onDelete: Cascade)
   step            FormStep?     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  // Tenant context from Form
 }
 
 model FormSubmission {
@@ -1027,6 +1276,7 @@ model FormSubmission {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   form      Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  // Tenant context from Form
 }
 
 enum FieldType {
@@ -1238,17 +1488,22 @@ model Blog {
   id          String   @id @default(cuid())
   title       String
   description String?
-  slug        String   @unique
+  slug        String   // Slug per tenant
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   posts       Post[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
 }
 
 model Post {
   id            String  @id @default(cuid())
   title         String
-  slug          String  @unique
+  slug          String  // Slug per tenant
   content       String  @db.Text
   excerpt       String?
   featuredImage String?
@@ -1257,7 +1512,7 @@ model Post {
   status             PostStatus @default(DRAFT)
   publishedAt        DateTime?
   blogId             String
-  authorId           String
+  authorId           String // User ID
   metaTitle          String?
   metaDescription    String?
   tags               String[]
@@ -1269,6 +1524,11 @@ model Post {
   author             User       @relation(fields: [authorId], references: [id])
   featuredImageMedia Media?     @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
   media              Media[]    @relation("PostMedia")
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
 }
 
 enum PostStatus {
@@ -1321,25 +1581,29 @@ model Location {
   name           String
   address        String?
   phone          String?
-  operatingHours Json? // Example: { "MONDAY": { "open": "09:00", "close": "17:00", "isClosed": false }, ... }
+  operatingHours Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  shopId String?
+  shopId String? // A location might be part of a shop
   shop   Shop?   @relation(fields: [shopId], references: [id])
 
   services         LocationService[]
   staffAssignments StaffLocationAssignment[]
   bookings         Booking[]
-  schedules        StaffSchedule[] // Staff schedules specific to this location
-  bookingRules     BookingRule[] // Booking rules specific to this location
+  schedules        StaffSchedule[]
+  bookingRules     BookingRule[]
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
   @@index([shopId])
+  // @@unique([tenantId, name]) // Location name could be unique per tenant
 }
 
 model ServiceCategory {
   id           String   @id @default(cuid())
-  name         String   @unique // Added unique constraint based on common practice for category names
+  name         String   // Name per tenant
   description  String?
   displayOrder Int      @default(0)
   createdAt    DateTime @default(now())
@@ -1350,6 +1614,10 @@ model ServiceCategory {
   parentCategory  ServiceCategory?  @relation("ServiceCategoryToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, name])
   @@map("ServiceCategories")
 }
 
@@ -1358,7 +1626,6 @@ model Service {
   name                       String
   description                String?
   durationMinutes            Int
-  // price                      Float // This field is being removed
   bufferTimeBeforeMinutes    Int      @default(0)
   bufferTimeAfterMinutes     Int      @default(0)
   preparationTimeMinutes     Int      @default(0)
@@ -1374,12 +1641,17 @@ model Service {
   locations LocationService[]
   staff     StaffService[]
   bookings  Booking[]
-  prices    Price[] // This field is being added
+  prices    Price[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  // @@unique([tenantId, name]) // Service name could be unique per tenant
 }
 
 model StaffProfile {
   id              String   @id @default(cuid())
-  userId          String   @unique
+  userId          String   @unique // Links to User model
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio             String?
   specializations String[] @default([])
@@ -1390,6 +1662,10 @@ model StaffProfile {
   assignedServices    StaffService[]
   locationAssignments StaffLocationAssignment[]
   bookings            Booking[]                 @relation("StaffBookings")
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model StaffSchedule {
@@ -1397,14 +1673,14 @@ model StaffSchedule {
   staffProfileId String
   staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
 
-  locationId String?
+  locationId String? // Location for this specific schedule entry
   location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   date      DateTime?
   dayOfWeek DayOfWeek?
 
-  startTime String // Format "HH:MM"
-  endTime   String // Format "HH:MM"
+  startTime String
+  endTime   String
 
   scheduleType ScheduleType
   isAvailable  Boolean      @default(true)
@@ -1413,19 +1689,23 @@ model StaffSchedule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([staffProfileId, date])
   @@index([staffProfileId, dayOfWeek])
+  @@index([tenantId])
 }
 
 model Booking {
   id         String @id @default(cuid())
-  customerId String
+  customerId String // User ID of the customer
   customer   User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
 
-  staffProfileId String?
+  staffProfileId String? // Staff who will provide the service
   staffProfile   StaffProfile? @relation("StaffBookings", fields: [staffProfileId], references: [id], onDelete: SetNull)
 
   locationId String
@@ -1445,18 +1725,22 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([customerId])
   @@index([serviceId])
   @@index([staffProfileId])
   @@index([locationId])
   @@index([bookingDate])
   @@index([startTime])
+  @@index([tenantId])
 }
 
 model BookingRule {
   id         String  @id @default(cuid())
-  locationId String? @unique
-  // serviceId  String? // Potentially rules per service too
+  locationId String? @unique // Rule can be specific to a location
+  // serviceId  String?
 
   advanceBookingHoursMin Int
   advanceBookingDaysMax  Int
@@ -1470,6 +1754,10 @@ model BookingRule {
   updatedAt DateTime @updatedAt
 
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
 }
 
 model LocationService {
@@ -1485,6 +1773,7 @@ model LocationService {
 
   @@id([locationId, serviceId])
   @@map("LocationServices")
+  // Tenant context from Location and Service
 }
 
 model StaffService {
@@ -1498,6 +1787,7 @@ model StaffService {
 
   @@id([staffProfileId, serviceId])
   @@map("StaffServices")
+  // Tenant context from StaffProfile and Service
 }
 
 model StaffLocationAssignment {
@@ -1511,17 +1801,17 @@ model StaffLocationAssignment {
 
   @@id([staffProfileId, locationId])
   @@map("StaffLocationAssignments")
+  // Tenant context from StaffProfile and Location
 }
 
 // --------------- END BOOKING MODULE MODELS ---------------
 
 model Currency {
   id     String @id @default(cuid())
-  code   String @unique // e.g., "USD", "EUR", "PEN"
-  name   String // e.g., "United States Dollar", "Euro", "Peruvian Sol"
-  symbol String // e.g., "$", "€", "S/"
+  code   String @unique
+  name   String
+  symbol String
 
-  // Relations defined in plan - will be fully effective when Shop and Price models are added
   shopsAcceptedIn ShopAcceptedCurrencies[] @relation("ShopAcceptedCurrencies")
   shopsDefaultIn  Shop[]                   @relation("ShopDefaultCurrency")
   prices          Price[]
@@ -1530,6 +1820,7 @@ model Currency {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Global
 }
 
 enum OrderStatus {
@@ -1543,7 +1834,7 @@ enum OrderStatus {
 
 model Order {
   id            String      @id @default(cuid())
-  customerId    String?
+  customerId    String? // User ID
   customer      User?       @relation("CustomerOrders", fields: [customerId], references: [id])
   customerName  String
   customerEmail String
@@ -1551,7 +1842,7 @@ model Order {
   totalAmount   Float
   currencyId    String
   currency      Currency    @relation(fields: [currencyId], references: [id])
-  shopId        String
+  shopId        String // Shop this order belongs to
   shop          Shop        @relation(fields: [shopId], references: [id])
   discountId    String?
   discount      Discount?   @relation(fields: [discountId], references: [id])
@@ -1564,10 +1855,14 @@ model Order {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([customerId])
   @@index([shopId])
   @@index([status])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model OrderItem {
@@ -1575,20 +1870,21 @@ model OrderItem {
   orderId    String
   order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId  String
-  product    Product @relation(fields: [productId], references: [id])
+  product    Product @relation(fields: [productId], references: [id]) // Product might not exist if deleted, handle this
   quantity   Int
   unitPrice  Float
   totalPrice Float
-  reviews    Review[]  // Reviews for this order item
+  reviews    Review[]
 
+  // Tenant context from Order
   @@index([orderId])
   @@index([productId])
 }
 
 model PaymentProvider {
   id          String  @id @default(cuid())
-  name        String  // e.g., "Stripe", "PayPal", "Square"
-  type        String  // e.g., "CREDIT_CARD", "DIGITAL_WALLET", "BANK_TRANSFER"
+  name        String
+  type        String
   isActive    Boolean @default(true)
   apiKey      String?
   secretKey   String?
@@ -1601,16 +1897,17 @@ model PaymentProvider {
   payments       Payment[]
   
   @@unique([name])
+  // Global
 }
 
 model PaymentMethod {
   id                String  @id @default(cuid())
-  name              String  // e.g., "Visa", "MasterCard", "PayPal"
-  type              String  // e.g., "CREDIT_CARD", "DEBIT_CARD", "DIGITAL_WALLET"
+  name              String
+  type              String
   providerId        String
   isActive          Boolean @default(true)
-  processingFeeRate Float?  // Percentage fee
-  fixedFee          Float?  // Fixed fee amount
+  processingFeeRate Float?
+  fixedFee          Float?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1619,6 +1916,7 @@ model PaymentMethod {
   payments Payment[]
   
   @@index([providerId])
+  // Global
 }
 
 enum PaymentStatus {
@@ -1633,14 +1931,14 @@ enum PaymentStatus {
 
 model Payment {
   id              String        @id @default(cuid())
-  orderId         String?
+  orderId         String? // Order this payment is for
   amount          Float
   currencyId      String
   status          PaymentStatus @default(PENDING)
   paymentMethodId String
   providerId      String
-  transactionId   String?       // External transaction ID from payment provider
-  gatewayResponse String?       // JSON response from payment gateway
+  transactionId   String?
+  gatewayResponse String?
   failureReason   String?
   refundAmount    Float?
   
@@ -1652,6 +1950,7 @@ model Payment {
   paymentMethod PaymentMethod   @relation(fields: [paymentMethodId], references: [id])
   provider      PaymentProvider @relation(fields: [providerId], references: [id])
   
+  // Tenant context from Order
   @@index([orderId])
   @@index([currencyId])
   @@index([paymentMethodId])
@@ -1663,13 +1962,13 @@ model Payment {
 
 model ShippingProvider {
   id          String  @id @default(cuid())
-  name        String  // e.g., "FedEx", "UPS", "DHL", "USPS"
-  type        String  // e.g., "COURIER", "POSTAL", "FREIGHT"
+  name        String
+  type        String
   isActive    Boolean @default(true)
   apiKey      String?
   secretKey   String?
   webhookUrl  String?
-  trackingUrl String? // Base URL for tracking packages
+  trackingUrl String?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1677,16 +1976,17 @@ model ShippingProvider {
   shippingMethods ShippingMethod[]
   
   @@unique([name])
+  // Global
 }
 
 model ShippingMethod {
   id                String  @id @default(cuid())
-  name              String  // e.g., "Standard Shipping", "Express", "Overnight"
+  name              String
   description       String?
   providerId        String
   isActive          Boolean @default(true)
-  estimatedDaysMin  Int?    // Minimum delivery days
-  estimatedDaysMax  Int?    // Maximum delivery days
+  estimatedDaysMin  Int?
+  estimatedDaysMax  Int?
   trackingEnabled   Boolean @default(true)
   
   createdAt DateTime @default(now())
@@ -1697,34 +1997,36 @@ model ShippingMethod {
   shipments     Shipment[]
   
   @@index([providerId])
+  // Global
 }
 
 model ShippingZone {
   id          String  @id @default(cuid())
-  name        String  // e.g., "Domestic", "International", "Europe"
+  name        String
   description String?
-  countries   String[] // Array of country codes
-  states      String[] // Array of state/province codes
-  postalCodes String[] // Array of postal code patterns
+  countries   String[]
+  states      String[]
+  postalCodes String[]
   isActive    Boolean @default(true)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   shippingRates ShippingRate[]
+  // Global
 }
 
 model ShippingRate {
   id               String  @id @default(cuid())
   shippingMethodId String
   shippingZoneId   String
-  minWeight        Float?  // Minimum weight in kg
-  maxWeight        Float?  // Maximum weight in kg
-  minValue         Float?  // Minimum order value
-  maxValue         Float?  // Maximum order value
-  baseRate         Float   // Base shipping cost
-  perKgRate        Float?  // Additional cost per kg
-  freeShippingMin  Float?  // Minimum order value for free shipping
+  minWeight        Float?
+  maxWeight        Float?
+  minValue         Float?
+  maxValue         Float?
+  baseRate         Float
+  perKgRate        Float?
+  freeShippingMin  Float?
   isActive         Boolean @default(true)
   
   createdAt DateTime @default(now())
@@ -1735,6 +2037,7 @@ model ShippingRate {
   
   @@index([shippingMethodId])
   @@index([shippingZoneId])
+  // Global
 }
 
 enum ShipmentStatus {
@@ -1757,19 +2060,16 @@ model Shipment {
   status           ShipmentStatus @default(PENDING)
   shippingCost     Float
   weight           Float?
-  dimensions       String?        // JSON string with width, height, length
+  dimensions       String?
   
-  // Shipping addresses
-  fromAddress      String         // JSON string with sender address
-  toAddress        String         // JSON string with recipient address
+  fromAddress      String
+  toAddress        String
   
-  // Tracking information
   shippedAt        DateTime?
   estimatedDelivery DateTime?
   deliveredAt      DateTime?
   
-  // Provider response data
-  providerResponse String?        // JSON response from shipping provider
+  providerResponse String?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1777,6 +2077,7 @@ model Shipment {
   order          Order          @relation(fields: [orderId], references: [id])
   shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id])
   
+  // Tenant context from Order
   @@index([orderId])
   @@index([shippingMethodId])
   @@index([trackingNumber])
@@ -1791,37 +2092,38 @@ model Review {
   id          String   @id @default(cuid())
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  customerId  String?
+  customerId  String? // User ID
   customer    User?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerName String
   customerEmail String
-  rating      Int      // 1-5 stars
+  rating      Int
   title       String?
   comment     String?
-  isVerified  Boolean  @default(false) // Verified purchase
-  isApproved  Boolean  @default(false) // Admin approval
-  isHelpful   Int      @default(0) // Helpful votes count
+  isVerified  Boolean  @default(false)
+  isApproved  Boolean  @default(false)
+  isHelpful   Int      @default(0)
   isReported  Boolean  @default(false)
   reportReason String?
   
-  // Review metadata
-  orderItemId String? // Link to order item for verification
+  orderItemId String?
   orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
   
-  // Review images
   images      ReviewImage[]
   
-  // Admin response
   response    ReviewResponse?
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
   
   @@index([productId])
   @@index([customerId])
   @@index([rating])
   @@index([isApproved])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model ReviewImage {
@@ -1836,18 +2138,20 @@ model ReviewImage {
   updatedAt DateTime @updatedAt
   
   @@index([reviewId])
+  // Tenant context from Review
 }
 
 model ReviewResponse {
   id        String @id @default(cuid())
   reviewId  String @unique
   review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  responderId String
+  responderId String // User ID of responder
   responder User   @relation(fields: [responderId], references: [id], onDelete: Cascade)
   response  String
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Tenant context from Review
 }
 
 // --------------- END REVIEW MODULE MODELS ---------------
@@ -1863,39 +2167,42 @@ enum DiscountType {
 
 model Discount {
   id                    String       @id @default(cuid())
-  code                  String       @unique
+  code                  String       // Code per tenant
   name                  String
   description           String?
   type                  DiscountType
-  value                 Float        // Percentage (0-100) or fixed amount
-  minimumOrderAmount    Float?       // Minimum order value to apply discount
-  maximumDiscountAmount Float?       // Maximum discount amount (for percentage discounts)
-  usageLimit            Int?         // Total usage limit
-  usageCount            Int          @default(0) // Current usage count
-  customerUsageLimit    Int?         // Per-customer usage limit
+  value                 Float
+  minimumOrderAmount    Float?
+  maximumDiscountAmount Float?
+  usageLimit            Int?
+  usageCount            Int          @default(0)
+  customerUsageLimit    Int?
   isActive              Boolean      @default(true)
-  startsAt              DateTime?    // When discount becomes active
-  expiresAt             DateTime?    // When discount expires
+  startsAt              DateTime?
+  expiresAt             DateTime?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  // Relations
   applicableProducts   DiscountProduct[]   
   applicableCategories DiscountCategory[]  
   orders               Order[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
   
-  @@index([code])
   @@index([isActive])
   @@index([startsAt])
   @@index([expiresAt])
+  @@index([tenantId])
+  @@unique([tenantId, code])
 }
 
 model DiscountProduct {
   id         String  @id @default(cuid())
   discountId String
   productId  String
-  isExcluded Boolean @default(false) // true for excluded, false for applicable
+  isExcluded Boolean @default(false)
   
   discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
   product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -1903,13 +2210,14 @@ model DiscountProduct {
   @@unique([discountId, productId, isExcluded])
   @@index([discountId])
   @@index([productId])
+  // Tenant context from Discount and Product
 }
 
 model DiscountCategory {
   id         String  @id @default(cuid())
   discountId String
   categoryId String
-  isExcluded Boolean @default(false) // true for excluded, false for applicable
+  isExcluded Boolean @default(false)
   
   discount Discount        @relation(fields: [discountId], references: [id], onDelete: Cascade)
   category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -1917,6 +2225,7 @@ model DiscountCategory {
   @@unique([discountId, categoryId, isExcluded])
   @@index([discountId])
   @@index([categoryId])
+  // Tenant context from Discount and ProductCategory
 }
 
 // --------------- END DISCOUNT MODULE MODELS ---------------
@@ -1930,7 +2239,7 @@ enum AddressType {
 
 model CustomerAddress {
   id         String      @id @default(cuid())
-  customerId String
+  customerId String // User ID
   customer   User        @relation(fields: [customerId], references: [id], onDelete: Cascade)
   type       AddressType
   firstName  String
@@ -1947,23 +2256,31 @@ model CustomerAddress {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
   
   @@index([customerId])
   @@index([type])
+  @@index([tenantId])
 }
 
 model Documentation {
   id          String   @id @default(cuid())
   title       String
-  slug        String   @unique
+  slug        String   // Slug per tenant
   description String?
-  content     String   @db.Text // For large markdown content
+  content     String   @db.Text
   category    String
-  tags        String[] // Array of tags
+  tags        String[]
   isPublished Boolean  @default(true)
   order       Int?     @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  @@index([tenantId])
+  @@unique([tenantId, slug])
   @@map("documentation")
 }

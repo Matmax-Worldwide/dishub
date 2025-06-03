@@ -10,11 +10,11 @@ import { withPageAuth } from './pageAuth'; // New import
 // The order is important: metrics > tenant > i18n > auth > pageAuth.
 // Each function is a MiddlewareFunction.
 export const newMiddlewareStack: MiddlewareFunction = compose(
-  withMetrics,
-  withTenant,
-  withI18n,
-  withAuth,
-  withPageAuth // Added withPageAuth to the stack
+  withMetrics, // Example: withMetrics might add headers or log
+  withI18n,    // Example: withI18n might set locale cookie or redirect
+  withTenant,  // Resolves tenant and adds X-Tenant-ID header
+  withAuth,    // Example: withAuth might redirect if not authenticated, potentially using X-Tenant-ID
+  withPageAuth
   // No final coreMiddleware needed here if compose handles the chain
   // and the actual page/API handler is the end of the line.
 );
