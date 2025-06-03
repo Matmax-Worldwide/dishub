@@ -153,11 +153,6 @@ export interface CalendarService {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   bufferTimeBeforeMinutes: number;
   bufferTimeAfterMinutes: number;
   preparationTimeMinutes: number;
@@ -252,11 +247,6 @@ export interface ServiceInput {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   bufferTimeBeforeMinutes?: number;
   bufferTimeAfterMinutes?: number;
   preparationTimeMinutes?: number;

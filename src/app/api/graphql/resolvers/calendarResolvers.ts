@@ -1793,19 +1793,6 @@ export const calendarResolvers = {
         return [];
       }
     },
-    prices: async (parent: { id: string }) => {
-      try {
-        const prices = await prisma.price.findMany({
-          where: { serviceId: parent.id },
-          include: { currency: true },
-          orderBy: { createdAt: 'desc' }
-        });
-        return prices || [];
-      } catch (error) {
-        console.error('Error fetching service prices:', error);
-        return [];
-      }
-    }
   },
   StaffProfile: {
     user: async (parent: { userId: string }) => {

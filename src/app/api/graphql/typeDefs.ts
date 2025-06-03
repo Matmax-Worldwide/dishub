@@ -95,7 +95,6 @@ export const typeDefs = gql`
     name: String!
     description: String
     durationMinutes: Int!
-    prices: [Price!]!
     bufferTimeBeforeMinutes: Int!
     bufferTimeAfterMinutes: Int!
     preparationTimeMinutes: Int!

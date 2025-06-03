@@ -3261,16 +3261,6 @@ export const cmsOperations = {
               name
               description
               durationMinutes
-              prices {
-                id
-                amount
-                currencyId
-                currency {
-                  id
-                  code
-                  symbol
-                }
-              }
               isActive
             }
             locationAssignments {
@@ -3839,11 +3829,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     bufferTimeBeforeMinutes: number;
     bufferTimeAfterMinutes: number;
     preparationTimeMinutes: number;
@@ -3863,11 +3848,6 @@ export const cmsOperations = {
           name
           description
           durationMinutes
-          prices {
-            id
-            amount
-            currencyId
-          }
           bufferTimeBeforeMinutes
           bufferTimeAfterMinutes
           preparationTimeMinutes
@@ -3895,11 +3875,6 @@ export const cmsOperations = {
         name: string;
         description?: string;
         durationMinutes: number;
-        prices: Array<{
-          id: string;
-          amount: number;
-          currencyId: string;
-        }>;
         bufferTimeBeforeMinutes: number;
         bufferTimeAfterMinutes: number;
         preparationTimeMinutes: number;
@@ -3955,11 +3930,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -3972,11 +3942,6 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            prices {
-              id
-              amount
-              currencyId
-            }
             isActive
           }
         }
@@ -3992,11 +3957,6 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          prices: Array<{
-            id: string;
-            amount: number;
-            currencyId: string;
-          }>;
           isActive: boolean;
         } | null;
       };
@@ -4034,11 +3994,6 @@ export const cmsOperations = {
     name: string;
     description?: string;
     durationMinutes: number;
-    prices: Array<{
-      id: string;
-      amount: number;
-      currencyId: string;
-    }>;
     isActive: boolean;
   }> {
     const mutation = `
@@ -4051,11 +4006,6 @@ export const cmsOperations = {
             name
             description
             durationMinutes
-            prices {
-              id
-              amount
-              currencyId
-            }
             isActive
           }
         }
@@ -4071,11 +4021,6 @@ export const cmsOperations = {
           name: string;
           description?: string;
           durationMinutes: number;
-          prices: Array<{
-            id: string;
-            amount: number;
-            currencyId: string;
-          }>;
           isActive: boolean;
         } | null;
       };
@@ -7656,16 +7601,6 @@ const graphqlClient = {
               name
               description
               durationMinutes
-              prices {
-                id
-                amount
-                currencyId
-                currency {
-                  id
-                  code
-                  symbol
-                }
-              }
               isActive
             }
             locationAssignments {
@@ -8729,15 +8664,6 @@ export const ecommerce = {
             name
             sku
             stockQuantity
-            prices {
-              id
-              amount
-              currency {
-                id
-                code
-                symbol
-              }
-            }
           }
           createdAt
           updatedAt
@@ -8834,15 +8760,6 @@ export const ecommerce = {
             id
             name
           }
-          prices {
-            id
-            amount
-            currency {
-              id
-              code
-              symbol
-            }
-          }
           createdAt
           updatedAt
         }
@@ -8908,15 +8825,6 @@ export const ecommerce = {
           shop {
             id
             name
-          }
-          prices {
-            id
-            amount
-            currency {
-              id
-              code
-              symbol
-            }
           }
           createdAt
           updatedAt

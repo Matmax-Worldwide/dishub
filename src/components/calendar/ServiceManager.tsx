@@ -138,13 +138,6 @@ export default function ServiceManager() {
         // Para createService, necesitamos agregar el campo prices requerido
         const createInputData = {
           ...inputData,
-          prices: [
-            {
-              id: crypto.randomUUID(), // Generar un ID único para el precio
-              amount: 0, // Precio por defecto de 0
-              currencyId: 'default-currency-id' // Se puede cambiar por una moneda real
-            }
-          ]
         };
         result = await graphqlClient.createService({ input: createInputData });
         toast.success(`Service "${result.name}" created successfully.`);
