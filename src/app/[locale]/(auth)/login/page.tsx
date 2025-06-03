@@ -8,6 +8,30 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { client } from '@/lib/apollo-client';
 import { setGlobalAuthorizationHeader } from '@/lib/auth-header';
+import { gql } from '@apollo/client';
+
+// GraphQL mutation for login - Fixed to request Role subfields
+const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        id
+        email
+        firstName
+        lastName
+        phoneNumber
+        role {
+          id
+          name
+          description
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
 
 // Helper function to set a cookie with better security practices
 function setCookie(name: string, value: string, days: number) {
@@ -38,49 +62,71 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
-      console.log('Sending login request...');
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Important for cookies
-        body: JSON.stringify({ email, password }),
+      console.log('Sending GraphQL login mutation...');
+      
+      // Use Apollo Client to execute the login mutation
+      const { data } = await client.mutate({
+        mutation: LOGIN_MUTATION,
+        variables: { email, password },
+        errorPolicy: 'all'
       });
 
-      const data = await response.json();
-      console.log('Login response received');
+      console.log('Login response received:', data);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (!data?.login) {
+        throw new Error('Login failed - no data returned');
       }
 
-      // Store the user and token in the auth context
-      if (data.user && data.token) {
-        // First set the cookie
-        const cookieSet = setCookie('session-token', data.token, 7); // 7 days expiry
-        console.log('Set session-token cookie:', cookieSet ? 'Success' : 'Failed');
-        
-        // Set authorization header globally for immediate use
-        setGlobalAuthorizationHeader(data.token);
-        console.log('Set authorization header: Success');
-        
-        // Clear Apollo cache and refetch queries to use new token
-        client.clearStore();
-        
-        // Then update auth context
-        login(data.user, data.token);
-        
-        // Store login success in sessionStorage (this persists across a page refresh)
-        sessionStorage.setItem('justLoggedIn', 'true');
-        
-        // Use window.location for a full page refresh instead of Next.js router
-        // This prevents React hydration issues when transitioning after login
-        window.location.href = `/${locale}/evoque/dashboard`;
-      } else {
+      const { token, user } = data.login;
+
+      if (!token || !user) {
         throw new Error('Invalid response from server');
       }
+
+      // Transform user data to match expected format (role as string)
+      const transformedUser = {
+        ...user,
+        role: user.role?.name || 'USER' // Convert role object to string
+      };
+
+      // Store the user and token in the auth context
+      // First set the cookie
+      const cookieSet = setCookie('session-token', token, 7); // 7 days expiry
+      console.log('Set session-token cookie:', cookieSet ? 'Success' : 'Failed');
+      
+      // Set authorization header globally for immediate use
+      setGlobalAuthorizationHeader(token);
+      console.log('Set authorization header: Success');
+      
+      // Clear Apollo cache and refetch queries to use new token
+      await client.clearStore();
+      
+      // Then update auth context
+      login(transformedUser, token);
+      
+      // Store login success in sessionStorage (this persists across a page refresh)
+      sessionStorage.setItem('justLoggedIn', 'true');
+      
+      // Use window.location for a full page refresh instead of Next.js router
+      // This prevents React hydration issues when transitioning after login
+      window.location.href = `/${locale}/evoque/dashboard`;
+      
     } catch (err) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      
+      // Handle GraphQL errors
+      if (err && typeof err === 'object' && 'graphQLErrors' in err) {
+        const graphQLErrors = (err as { graphQLErrors: Array<{ message: string }> }).graphQLErrors;
+        if (graphQLErrors && graphQLErrors.length > 0) {
+          setError(graphQLErrors[0].message);
+        } else {
+          setError('Error de autenticación');
+        }
+      } else if (err && typeof err === 'object' && 'networkError' in err) {
+        setError('Error de conexión. Por favor, intenta de nuevo.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Ocurrió un error durante el inicio de sesión');
+      }
       setLoading(false);
     }
   }
