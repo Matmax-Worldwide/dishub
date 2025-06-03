@@ -84,6 +84,7 @@ export const permissions = shield({
     rolePermissions: or(isAdmin, and(isAuthenticated, hasPermission('read:role_permissions'))),
     allPermissions: or(isAdmin, and(isAuthenticated, hasPermission('list:all_permissions'))),
     allUsersWithPermissions: or(isAdmin, and(isAuthenticated, hasPermission('list:all_users'))),
+    userSpecificPermissions: allow,
     
     // Contact form queries - Admin bypass
     contactFormSubmissions: or(isAdmin, and(isAuthenticated, hasPermission('view:contact_submissions'))),

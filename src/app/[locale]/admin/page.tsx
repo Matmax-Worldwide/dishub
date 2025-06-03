@@ -146,7 +146,7 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
-export default function EvoqueDashboardPage() {
+export default function DashboardPage() {
   const router = useRouter();
   const { locale } = useParams();
   const [isLoggedOut, setIsLoggedOut] = useState(false);
@@ -300,7 +300,7 @@ export default function EvoqueDashboardPage() {
     if (data?.me && data.me.role?.name && data.me.tenantId) {
       const userRole = data.me.role?.name;
       
-      console.log('🔄 Evoque Dashboard: Checking if user should be redirected...');
+      console.log('🔄 Dashboard: Checking if user should be redirected...');
       console.log('User role:', userRole);
       console.log('User tenantId:', data.me.tenantId);
       
@@ -370,7 +370,7 @@ export default function EvoqueDashboardPage() {
           }
         });
       } else {
-        console.log('✅ User role is', userRole, '- should stay on evoque dashboard');
+        console.log('✅ User role is', userRole, '- should stay on dashboard');
       }
     } else {
       console.log('⏳ User data not ready for redirect check:', {
