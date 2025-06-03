@@ -659,7 +659,6 @@ export const cmsResolvers = {
         return { success: true, message: `Página "${existingPage.title}" eliminada correctamente` };
       } catch (error) {
         console.error('Error al eliminar página CMS:', error);
-        return { success: false, message: `Error al eliminar página: ${error instanceof Error ? error.message : 'Error desconocido'}` };
         return {
           success: false,
           message: `Error al eliminar página: ${error instanceof Error ? error.message : 'Error desconocido'}`,

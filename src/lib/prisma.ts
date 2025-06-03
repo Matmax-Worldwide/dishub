@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
-import { withRetry } from '@prisma/extension-retry'; // Assuming this is the correct package/path
 import { n1DetectorPlugin } from './prisma-plugins/n1-detector';
 
 // Define the PrismaManager class
@@ -52,11 +51,6 @@ class PrismaManager {
       } else {
         console.log(`PrismaManager: Skipping withAccelerate() for client key '${key}' (ACCELERATE_ENABLED not 'true' or PRISMA_ACCELERATE_URL not set).`);
       }
-
-      // Apply Retry
-      const retryOptions = { retries: 3, delay: 100, maxDelay: 500 };
-      console.log(`PrismaManager: Applying withRetry() for client key '${key}' with options:`, retryOptions);
-      extendedClient = extendedClient.$extends(withRetry(retryOptions));
 
       // Attach event listeners to the final extendedClient
       extendedClient.$on('query', (e: any) => { // Use 'any' for event type if extensions change it

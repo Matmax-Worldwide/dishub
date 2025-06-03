@@ -392,53 +392,18 @@ export const calendarResolvers = {
         return true;
       } catch (error) { console.error(error); throw new GraphQLError("Failed to delete appointment"); }
     },
-    assignStaffToService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: Context) => {
-      // Auth by shield
-      try { /* ... original logic ... */
-        const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
-        const service = await prisma.service.findUnique({ where: { id: serviceId } }); if (!service) throw new Error(`Service with ID ${serviceId} not found`);
-        const existingAssignment = await prisma.staffService.findUnique({ where: { staffProfileId_serviceId: { staffProfileId, serviceId } } });
-        if (existingAssignment) return { success: false, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is already assigned to service "${service.name}"`, staffProfile: null };
-        await prisma.staffService.create({ data: { staffProfileId, serviceId } });
-        const updatedStaffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true, assignedServices: { include: { service: true } }, locationAssignments: { include: { location: true } }, schedules: { orderBy: { dayOfWeek: 'asc' } } } });
-        return { success: true, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" assigned to service "${service.name}" successfully`, staffProfile: updatedStaffProfile };
-      } catch (error) { console.error('Error assigning staff to service:', error); return { success: false, message: `Failed to assign staff to service: ${error instanceof Error ? error.message : 'Unknown error'}`, staffProfile: null }; }
-    },
-    removeStaffFromService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: Context) => {
-      // Auth by shield
-      try { /* ... original logic ... */
-        const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
-        const service = await prisma.service.findUnique({ where: { id: serviceId } }); if (!service) throw new Error(`Service with ID ${serviceId} not found`);
-        const existingAssignment = await prisma.staffService.findUnique({ where: { staffProfileId_serviceId: { staffProfileId, serviceId } } });
-        if (!existingAssignment) return { success: false, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is not assigned to service "${service.name}"`, staffProfile: null };
-        await prisma.staffService.delete({ where: { staffProfileId_serviceId: { staffProfileId, serviceId } } });
-        const updatedStaffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true, assignedServices: { include: { service: true } }, locationAssignments: { include: { location: true } }, schedules: { orderBy: { dayOfWeek: 'asc' } } } });
-        return { success: true, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" removed from service "${service.name}" successfully`, staffProfile: updatedStaffProfile };
-      } catch (error) { console.error('Error removing staff from service:', error); return { success: false, message: `Failed to remove staff from service: ${error instanceof Error ? error.message : 'Unknown error'}`, staffProfile: null }; }
-    },
-    assignStaffToLocation: async (_parent: unknown, { staffProfileId, locationId }: { staffProfileId: string; locationId: string }, context: Context) => {
-      // Auth by shield
-      try { /* ... original logic ... */
-        const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
-        const location = await prisma.location.findUnique({ where: { id: locationId } }); if (!location) throw new Error(`Location with ID ${locationId} not found`);
-        const existingAssignment = await prisma.staffLocationAssignment.findUnique({ where: { staffProfileId_locationId: { staffProfileId, locationId } } });
-        if (existingAssignment) return { success: false, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is already assigned to location "${location.name}"`, staffProfile: null };
-        await prisma.staffLocationAssignment.create({ data: { staffProfileId, locationId } });
-        const updatedStaffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true, assignedServices: { include: { service: true } }, locationAssignments: { include: { location: true } }, schedules: { orderBy: { dayOfWeek: 'asc' } } } });
-        return { success: true, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" assigned to location "${location.name}" successfully`, staffProfile: updatedStaffProfile };
-      } catch (error) { console.error('Error assigning staff to location:', error); return { success: false, message: `Failed to assign staff to location: ${error instanceof Error ? error.message : 'Unknown error'}`, staffProfile: null }; }
-    },
-    removeStaffFromLocation: async (_parent: unknown, { staffProfileId, locationId }: { staffProfileId: string; locationId: string }, context: Context) => {
-      // Auth by shield
-      try { /* ... original logic ... */
-        const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
-        const location = await prisma.location.findUnique({ where: { id: locationId } }); if (!location) throw new Error(`Location with ID ${locationId} not found`);
-        const existingAssignment = await prisma.staffLocationAssignment.findUnique({ where: { staffProfileId_locationId: { staffProfileId, locationId } } });
-        if (!existingAssignment) return { success: false, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" is not assigned to location "${location.name}"`, staffProfile: null };
-        await prisma.staffLocationAssignment.delete({ where: { staffProfileId_locationId: { staffProfileId, locationId } } });
-        const updatedStaffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true, assignedServices: { include: { service: true } }, locationAssignments: { include: { location: true } }, schedules: { orderBy: { dayOfWeek: 'asc' } } } });
-        return { success: true, message: `Staff member "${staffProfile.user?.firstName} ${staffProfile.user?.lastName}" removed from location "${location.name}" successfully`, staffProfile: updatedStaffProfile };
-      } catch (error) { console.error('Error removing staff from location:', error); return { success: false, message: `Failed to remove staff from location: ${error instanceof Error ? error.message : 'Unknown error'}`, staffProfile: null }; }
+    assignStaffToService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: GraphQLContext) => {
+      if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
+      try {
+        // Validate that the staff profile exists
+        const staffProfile = await prisma.staffProfile.findUnique({
+          where: { id: staffProfileId },
+          include: { user: true }
+        });
+        if (!staffProfile) {
+          throw new Error(`Staff profile with ID ${staffProfileId} not found`);
+        }
+
         // Validate that the service exists
         const service = await prisma.service.findUnique({
           where: { id: serviceId }
