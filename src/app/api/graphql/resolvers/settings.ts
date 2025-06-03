@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 // Keep AuthenticationError if it's used by refactored resolvers for non-shield auth issues
 import { AuthenticationError } from 'apollo-server-errors';
+import { Prisma } from '@prisma/client';
 
 
 // Define input types to avoid 'any'
@@ -100,7 +101,7 @@ export const settingsResolvers = {
         }
         return settings;
       } catch (error) {
-        console.error('Get user settings error:', error.message);
+        console.error('Get user settings error:', error instanceof Error ? error.message : 'Unknown error');
         if (error instanceof AuthenticationError) throw error;
         throw new GraphQLError('Could not fetch user settings.');
       }
@@ -151,7 +152,7 @@ export const settingsResolvers = {
         
         return updatedSettings;
       } catch (error) {
-        console.error('Update user settings error:', error.message);
+        console.error('Update user settings error:', error instanceof Error ? error.message : 'Unknown error');
         if (error instanceof AuthenticationError) throw error;
         throw new GraphQLError('Could not update user settings.');
       }
@@ -160,8 +161,7 @@ export const settingsResolvers = {
     // updateSiteSettings (Already Refactored)
     updateSiteSettings: async (
       _parent: unknown,
-      { input }: { input: UpdateSiteSettingsInput },
-      context: ResolverContext
+      { input }: { input: UpdateSiteSettingsInput }
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -213,7 +213,7 @@ export const settingsResolvers = {
         }
         return updatedSiteSettings;
       } catch (error) {
-        console.error('Update site settings error:', error.message);
+        console.error('Update site settings error:', error instanceof Error ? error.message : 'Unknown error');
         throw new GraphQLError('Could not update site settings.');
       }
     }
