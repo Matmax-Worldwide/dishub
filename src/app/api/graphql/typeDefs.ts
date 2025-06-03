@@ -42,6 +42,7 @@ export const typeDefs = gql`
     profileImageUrl: String
     role: Role
     isActive: Boolean
+    tenantId: String
     createdAt: String
     updatedAt: String
     notifications: [Notification!]

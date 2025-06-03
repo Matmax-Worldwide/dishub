@@ -28,6 +28,7 @@ import {
   sidebarConfig, 
   getIconComponent, 
   sortRoles,
+  filterNavigationByFeatures,
   type NavItem 
 } from './sidebarConfig';
 
@@ -39,11 +40,22 @@ const GET_USER_PROFILE = gql`
       email
       firstName
       lastName
+      tenantId
       role {
         id
         name
         description
       }
+    }
+  }
+`;
+
+const GET_TENANT_FEATURES = gql`
+  query GetTenantFeatures($tenantId: String!) {
+    tenant(id: $tenantId) {
+      id
+      name
+      features
     }
   }
 `;
@@ -108,6 +120,7 @@ export function DashboardSidebar() {
   const { user: authUser } = useAuth();
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  
   // Cargar datos del perfil
   const { data } = useQuery(GET_USER_PROFILE, {
     client,
@@ -123,6 +136,33 @@ export function DashboardSidebar() {
       console.log('Profile data loaded:', data?.me);
     },
   });
+
+  // Get tenant features
+  const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
+    client,
+    variables: { tenantId: data?.me?.tenantId || '' },
+    skip: !data?.me?.tenantId,
+    errorPolicy: 'all',
+    fetchPolicy: 'cache-first',
+    onCompleted: (tenantData) => {
+      console.log('Tenant features loaded:', tenantData?.tenant?.features);
+    },
+    onError: (error) => {
+      console.error('Error loading tenant features:', error);
+    }
+  });
+
+  // Extract tenant features
+  const tenantFeatures = useMemo(() => {
+    console.log('Raw tenant data:', tenantData);
+    console.log('Tenant features from data:', tenantData?.tenant?.features);
+    console.log('Type of features:', typeof tenantData?.tenant?.features);
+    console.log('Is array:', Array.isArray(tenantData?.tenant?.features));
+    
+    const features = tenantData?.tenant?.features || ['CMS_ENGINE']; // Default to CMS_ENGINE
+    console.log('Final tenant features:', features);
+    return features;
+  }, [tenantData?.tenant?.features]);
 
   // Check if user is an admin (using both sources of data)
   const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';
@@ -267,14 +307,27 @@ export function DashboardSidebar() {
     name: t(item.name)
   }));
 
-  const toolsNavigationItems: NavItem[] = sidebarConfig.toolsNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name),
-    children: item.children?.map(child => ({
-      ...child,
-      name: t(child.name)
-    }))
-  }));
+
+  // Get feature-based navigation items and filter by tenant features
+  const featureBasedNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.featureBasedNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    console.log('Original feature-based items:', items);
+    console.log('Filtering with tenant features:', tenantFeatures);
+    
+    // Filter items based on tenant features
+    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
+    console.log('Filtered feature-based items:', filteredItems);
+    
+    return filteredItems;
+  }, [params.locale, tenantFeatures, t]);
 
   // Filtrar enlaces externos basados en el rol efectivo
   const getFilteredExternalLinks = (): NavItem[] => {
@@ -523,6 +576,59 @@ export function DashboardSidebar() {
     return baseText.replace('{role}', translateRole(role));
   };
 
+  // Component to render navigation items with children support
+  const NavigationItem = ({ item, level = 0 }: { item: NavItem; level?: number }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const hasChildren = item.children && item.children.length > 0;
+    const paddingLeft = level === 0 ? 'px-3' : 'px-6';
+    
+    return (
+      <div key={item.href}>
+        {hasChildren ? (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`flex items-center justify-between w-full rounded-md ${paddingLeft} py-2 text-sm transition-colors ${
+              pathname.startsWith(item.href) 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className="flex items-center gap-3">
+              {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+              <span>{item.name}</span>
+              {renderBadge(item)}
+            </div>
+            {isExpanded ? (
+              <ChevronUpIcon className="h-4 w-4" />
+            ) : (
+              <ChevronDownIcon className="h-4 w-4" />
+            )}
+          </button>
+        ) : (
+          <Link 
+            href={item.disabled ? "#" : item.href}
+            className={`flex items-center gap-3 rounded-md ${paddingLeft} py-2 text-sm transition-colors ${
+              pathname === item.href 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+          >
+            {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
+            <span>{item.name}</span>
+            {renderBadge(item)}
+          </Link>
+        )}
+        
+        {hasChildren && isExpanded && (
+          <div className="mt-1 space-y-1">
+            {item.children!.map(child => <NavigationItem key={child.href} item={child} level={level + 1} />)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render navigation items
   const renderNavigationItems = () => {
     // If it's a regular USER, only show external links
@@ -583,21 +689,8 @@ export function DashboardSidebar() {
                 {t('sidebar.tools')}
               </h3>
             </div>
-            {toolsNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
+            {featureBasedNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
             ))}
 
             {/* Manager items for admins too */}
@@ -683,21 +776,8 @@ export function DashboardSidebar() {
                 {t('sidebar.tools')}
               </h3>
             </div>
-            {toolsNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
+            {featureBasedNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
             ))}
             
             {/* Base items for managers */}

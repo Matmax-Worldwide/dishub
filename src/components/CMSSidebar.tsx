@@ -21,6 +21,7 @@ import {
   BookOpen,
   ChevronDown
 } from 'lucide-react';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 import {
   Sidebar, 
@@ -55,6 +56,7 @@ export default function CMSSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
+  const { hasFeature } = useFeatureAccess();
   
   // Unsaved changes context
   const {
@@ -68,43 +70,73 @@ export default function CMSSidebar() {
     setShowUnsavedAlert,
   } = useUnsavedChanges();
 
-  const navigationItems = [
+  // Base navigation items - CMS Engine is always available
+  const baseNavigationItems = [
     {
       name: t('cms.dashboard') || 'Dashboard',
       href: `/${locale}/cms/`,
-      icon: <LayoutDashboard className="h-4 w-4" />
+      icon: <LayoutDashboard className="h-4 w-4" />,
+      feature: 'CMS_ENGINE'
     },
     {
       name: t('cms.pages') || 'Pages',
       href: `/${locale}/cms/pages`,
-      icon: <FileText className="h-4 w-4" />
+      icon: <FileText className="h-4 w-4" />,
+      feature: 'CMS_ENGINE'
     },
     {
       name: t('cms.menus') || 'Menus',
       href: `/${locale}/cms/menus`,
-      icon: <Menu className="h-4 w-4" />
-    },
-    {
-      name: t('cms.forms') || 'Forms',
-      href: `/${locale}/cms/forms`,
-      icon: <FormInput className="h-4 w-4" />
-    },
-    {
-      name: t('cms.blog') || 'Blog',
-      href: `/${locale}/cms/blog`,
-      icon: <BookOpen className="h-4 w-4" />
+      icon: <Menu className="h-4 w-4" />,
+      feature: 'CMS_ENGINE'
     },
     {
       name: t('cms.media') || 'Media',
       href: `/${locale}/cms/media`,
-      icon: <ImageIcon className="h-4 w-4" />
+      icon: <ImageIcon className="h-4 w-4" />,
+      feature: 'CMS_ENGINE'
     },
+  ];
+
+  // Feature-based navigation items
+  const featureNavigationItems = [
+    {
+      name: t('cms.forms') || 'Forms',
+      href: `/${locale}/cms/forms`,
+      icon: <FormInput className="h-4 w-4" />,
+      feature: 'FORMS_MODULE'
+    },
+    {
+      name: t('cms.blog') || 'Blog',
+      href: `/${locale}/cms/blog`,
+      icon: <BookOpen className="h-4 w-4" />,
+      feature: 'BLOG_MODULE'
+    },
+  ];
+
+  // Filter navigation items based on tenant features
+  const navigationItems = [
+    ...baseNavigationItems.filter(item => hasFeature(item.feature)),
+    ...featureNavigationItems.filter(item => hasFeature(item.feature))
+  ];
+
+  // Dropdown items based on features
+  const dropdownItems = [
+    ...(hasFeature('BOOKING_ENGINE') ? [{
+      name: t('bookings.title') || 'Bookings',
+      href: `/${locale}/bookings`,
+    }] : []),
+    ...(hasFeature('ECOMMERCE_ENGINE') ? [{
+      name: t('commerce.title') || 'E-COMMERCE',
+      href: `/${locale}/ecommerce`,
+    }] : []),
   ];
 
   const settingsNavItem = {
     name: t('cms.settings') || 'Settings',
     href: `/${locale}/cms/settings`,
-    icon: <Settings className="h-4 w-4" />
+    icon: <Settings className="h-4 w-4" />,
+    feature: 'CMS_ENGINE'
   };
 
   const isActiveLink = (path: string): boolean => {
@@ -201,20 +233,16 @@ export default function CMSSidebar() {
               {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                  <Link
-                    href={`/${locale}/bookings`}
-                    className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
-                    <span>{t('bookings.title') || 'Bookings'}</span>
-                  </Link>
-                  <Link
-                    href={`/${locale}/commerce`}
-                    className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
-                    <span>{t('commerce.title') || 'E-COMMERCE'}</span>
-                  </Link>
+                  {dropdownItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <span>{item.name}</span>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>

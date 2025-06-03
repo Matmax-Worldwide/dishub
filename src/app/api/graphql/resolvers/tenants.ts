@@ -214,7 +214,7 @@ export const tenantResolvers = {
           firstName: result.user.firstName,
           lastName: result.user.lastName,
           phoneNumber: result.user.phoneNumber,
-          role: result.user.role?.name || 'ADMIN',
+          role: result.user.role || { id: adminRole!.id, name: 'ADMIN', description: 'Administrator with full system access' },
           tenantId: result.user.tenantId,
           createdAt: result.user.createdAt,
           updatedAt: result.user.updatedAt

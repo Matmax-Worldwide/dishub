@@ -6,6 +6,7 @@ import { gql, useQuery } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
 import { DashboardSidebar } from '@/components/Navigation/dashboardSidebar/DashboardSidebar';
 import PermissionGuard from '@/components/PermissionGuard';
+import { FeatureProvider } from '@/hooks/useFeatureAccess';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ShieldIcon, ArrowLeftIcon } from 'lucide-react';
@@ -17,11 +18,22 @@ const GET_USER = gql`
       email
       firstName
       lastName
+      tenantId
       role {
         id
         name
         description
       }
+    }
+  }
+`;
+
+const GET_TENANT_FEATURES = gql`
+  query GetTenantFeatures($tenantId: String!) {
+    tenant(id: $tenantId) {
+      id
+      name
+      features
     }
   }
 `;
@@ -55,6 +67,25 @@ export default function AdminLayout({
       router.push(`/${locale}/login`);
     }
   });
+
+  // Get tenant features
+  const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
+    client,
+    variables: { tenantId: userData?.me?.tenantId || '' },
+    skip: !userData?.me?.tenantId,
+    errorPolicy: 'all',
+    fetchPolicy: 'cache-first',
+    onCompleted: (tenantData) => {
+      console.log('Tenant features loaded:', tenantData?.tenant?.features);
+    },
+    onError: (error) => {
+      console.error('Error loading tenant features:', error);
+    }
+  });
+
+  // Extract tenant features with default fallback
+  const tenantFeatures = tenantData?.tenant?.features || ['CMS_ENGINE'];
+  const tenantId = userData?.me?.tenantId || null;
 
   useEffect(() => {
     // Check for session token
@@ -120,33 +151,21 @@ export default function AdminLayout({
 
       {/* Solución temporal: Optar por no usar PermissionGuard para administradores */}
       {userData?.me?.role?.name === 'ADMIN' ? (
-        <div className="flex min-h-screen bg-gray-50">
-          <DashboardSidebar />
-          <div className="lg:pl-64 flex flex-col flex-1">
-            {process.env.NODE_ENV !== 'production' && (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-                <p className="font-bold">Administrador verificado directamente</p>
-                <p className="text-sm">
-                  Estás accediendo con rol de administrador. Verificación de permisos omitida temporalmente.
-                </p>
-              </div>
-            )}
-            <main className="flex-1">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                {children}
-              </div>
-            </main>
-          </div>
-        </div>
-      ) : (
-        <PermissionGuard
-          permissions={['admin:view']}
-          role="ADMIN"
-          fallback={<AccessDenied />}
-        >
+        <FeatureProvider tenantFeatures={tenantFeatures} tenantId={tenantId}>
           <div className="flex min-h-screen bg-gray-50">
             <DashboardSidebar />
             <div className="lg:pl-64 flex flex-col flex-1">
+              {process.env.NODE_ENV !== 'production' && (
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+                  <p className="font-bold">Administrador verificado directamente</p>
+                  <p className="text-sm">
+                    Estás accediendo con rol de administrador. Verificación de permisos omitida temporalmente.
+                  </p>
+                  <p className="text-xs mt-2">
+                    Tenant Features: {tenantFeatures.join(', ')}
+                  </p>
+                </div>
+              )}
               <main className="flex-1">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   {children}
@@ -154,6 +173,25 @@ export default function AdminLayout({
               </main>
             </div>
           </div>
+        </FeatureProvider>
+      ) : (
+        <PermissionGuard
+          permissions={['admin:view']}
+          role="ADMIN"
+          fallback={<AccessDenied />}
+        >
+          <FeatureProvider tenantFeatures={tenantFeatures} tenantId={tenantId}>
+            <div className="flex min-h-screen bg-gray-50">
+              <DashboardSidebar />
+              <div className="lg:pl-64 flex flex-col flex-1">
+                <main className="flex-1">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    {children}
+                  </div>
+                </main>
+              </div>
+            </div>
+          </FeatureProvider>
         </PermissionGuard>
       )}
     </>

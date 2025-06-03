@@ -238,7 +238,7 @@ const resolvers = {
           throw new Error('User not found');
         }
         
-        // Then get the user with role relationship
+        // Then get the user with role relationship and tenantId
         console.log('Fetching user with ID:', decoded.userId);
         try {
           const user = await prisma.user.findUnique({
@@ -250,6 +250,7 @@ const resolvers = {
               lastName: true,
               phoneNumber: true,
               roleId: true,
+              tenantId: true, // Add tenantId to the selection
               role: {
                 select: {
                   id: true,
@@ -266,7 +267,7 @@ const resolvers = {
             throw new Error('User not found');
           }
           
-          console.log('User found:', user?.email, 'with role:', user?.role);
+          console.log('User found:', user?.email, 'with role:', user?.role, 'tenantId:', user?.tenantId);
           
           // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
           return {

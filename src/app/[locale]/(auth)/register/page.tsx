@@ -86,7 +86,7 @@ export default function RegisterPage() {
     tenantName: '',
     tenantSlug: '',
     tenantDomain: '',
-    tenantFeatures: [],
+    tenantFeatures: ['CMS_ENGINE'],
   });
 
   const [registerUserWithTenant, { loading }] = useMutation(REGISTER_USER_WITH_TENANT, {
@@ -116,7 +116,14 @@ export default function RegisterPage() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        setFormData(parsed.formData || formData);
+        const savedFormData = parsed.formData || formData;
+        
+        // Asegurar que CMS_ENGINE siempre esté incluido
+        if (!savedFormData.tenantFeatures.includes('CMS_ENGINE')) {
+          savedFormData.tenantFeatures = ['CMS_ENGINE', ...savedFormData.tenantFeatures];
+        }
+        
+        setFormData(savedFormData);
         setCurrentStep(parsed.currentStep || 1);
       } catch (error) {
         console.error('Error loading saved form data:', error);
@@ -193,8 +200,10 @@ export default function RegisterPage() {
   };
 
   const validateStep3 = () => {
+    // CMS_ENGINE siempre está seleccionado, así que siempre es válido
+    // Pero podemos agregar validaciones adicionales si es necesario
     if (formData.tenantFeatures.length === 0) {
-      toast.error('Por favor selecciona al menos una funcionalidad para tu plataforma');
+      toast.error('Error interno: No hay funcionalidades seleccionadas');
       return false;
     }
     return true;
@@ -241,6 +250,12 @@ export default function RegisterPage() {
   };
 
   const toggleFeature = (featureId: string) => {
+    // CMS_ENGINE es requerido y no se puede deseleccionar
+    if (featureId === 'CMS_ENGINE') {
+      toast.info('CMS Engine es una funcionalidad base requerida y no se puede deseleccionar');
+      return;
+    }
+
     const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
     const currentFeatures = formData.tenantFeatures;
     
@@ -283,6 +298,11 @@ export default function RegisterPage() {
   };
 
   const isFeatureDisabled = (featureId: string) => {
+    // CMS_ENGINE siempre está requerido
+    if (featureId === 'CMS_ENGINE') {
+      return true;
+    }
+    
     // A feature is disabled if it's a dependency of a selected feature
     const dependentFeatures = AVAILABLE_FEATURES.filter(f => 
       f.dependencies?.includes(featureId) && formData.tenantFeatures.includes(f.id)
@@ -418,7 +438,7 @@ export default function RegisterPage() {
           required
         />
         <p className="text-sm text-gray-300 mt-1">
-          Este será tu identificador único: {formData.tenantSlug}.tudominio.com
+          Este será tu identificador único: {formData.tenantSlug}.dishub.city
         </p>
       </div>
 
@@ -444,7 +464,7 @@ export default function RegisterPage() {
       <div className="text-center mb-6">
         <Check className="mx-auto h-12 w-12 text-green-300 mb-4" />
         <h2 className="text-2xl font-bold text-white">Selecciona tus Funcionalidades</h2>
-        <p className="text-gray-200">Elige las herramientas que necesitas (puedes cambiar esto después)</p>
+        <p className="text-gray-200">CMS Engine está incluido por defecto. Elige funcionalidades adicionales (puedes cambiar esto después)</p>
       </div>
 
       {/* Group features by category */}
@@ -488,7 +508,11 @@ export default function RegisterPage() {
                       <div className="flex-1">
                         <h4 className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-white'}`}>
                           {feature.label}
-                          {isDisabled && <span className="text-xs ml-2 text-blue-300">(Requerido)</span>}
+                          {isDisabled && (
+                            <span className="text-xs ml-2 text-blue-300">
+                              {feature.id === 'CMS_ENGINE' ? '(Incluido)' : '(Requerido)'}
+                            </span>
+                          )}
                         </h4>
                         {feature.description && (
                           <p className={`text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
@@ -526,7 +550,12 @@ export default function RegisterPage() {
               <ul className="list-disc list-inside text-xs text-gray-300 mt-1">
                 {formData.tenantFeatures.map(featureId => {
                   const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
-                  return feature ? <li key={featureId}>{feature.label}</li> : null;
+                  return feature ? (
+                    <li key={featureId}>
+                      {feature.label}
+                      {featureId === 'CMS_ENGINE' && <span className="text-blue-300 ml-1">(Incluido por defecto)</span>}
+                    </li>
+                  ) : null;
                 })}
               </ul>
             </div>

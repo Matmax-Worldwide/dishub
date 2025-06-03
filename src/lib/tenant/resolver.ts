@@ -18,8 +18,19 @@ export class TenantResolver {
 
   public async resolveTenantId(): Promise<string | null> {
     let tenantId: string | null = null;
+    
+    console.log('TenantResolver: Starting tenant resolution...');
+    console.log('TenantResolver: Request hostname:', this.getHostname());
+    console.log('TenantResolver: APP_DOMAIN:', process.env.APP_DOMAIN);
 
-    // 1. Resolve from subdomain (e.g., myhotel.dishub.com)
+    // 1. First try to resolve from user association (most reliable for authenticated users)
+    tenantId = await this.resolveFromUserAssociation();
+    if (tenantId) {
+      console.log(`Tenant resolved from user association: ${tenantId}`);
+      return tenantId;
+    }
+
+    // 2. Resolve from subdomain (e.g., myhotel.dishub.com)
     tenantId = this.resolveFromSubdomain();
     if (tenantId) {
       console.log(`Tenant resolved from subdomain (slug): ${tenantId}`);
@@ -34,7 +45,7 @@ export class TenantResolver {
       }
     }
 
-    // 2. Resolve from custom domain (e.g., www.myhotel.com)
+    // 3. Resolve from custom domain (e.g., www.myhotel.com)
     // This requires querying the Tenant table by the domain.
     tenantId = await this.resolveFromCustomDomain();
     if (tenantId) {
@@ -42,7 +53,7 @@ export class TenantResolver {
       return tenantId; // This already returns the tenant.id
     }
 
-    // 3. Resolve from JWT (if user is logged in and token contains tenantId)
+    // 4. Resolve from JWT (if user is logged in and token contains tenantId)
     // This is more relevant for authenticated user sessions.
     tenantId = await this.resolveFromJwt();
     if (tenantId) {
@@ -52,7 +63,7 @@ export class TenantResolver {
       return tenant ? tenant.id : null;
     }
 
-    // 4. Resolve from specific HTTP header (e.g., X-Tenant-ID)
+    // 5. Resolve from specific HTTP header (e.g., X-Tenant-ID)
     // Useful for internal services or testing.
     tenantId = this.resolveFromHeader();
     if (tenantId) {
@@ -62,7 +73,7 @@ export class TenantResolver {
       return tenant ? tenant.id : null;
     }
 
-    console.log('Tenant ID could not be resolved.');
+    console.log('TenantResolver: Tenant ID could not be resolved from any source.');
     return null;
   }
 
@@ -74,14 +85,22 @@ export class TenantResolver {
   }
 
   private resolveFromSubdomain(): string | null {
+    console.log('TenantResolver: Attempting to resolve from subdomain...');
     const hostname = this.getHostname();
-    if (!hostname) return null;
+    if (!hostname) {
+      console.log('TenantResolver: No hostname available');
+      return null;
+    }
 
     // You'll need to configure this APP_DOMAIN environment variable.
     const appDomain = process.env.APP_DOMAIN || 'localhost'; // Fallback to 'localhost' for dev
 
     // Handle localhost differently: tenant.localhost:3000 -> tenant.localhost
     const effectiveHostname = hostname.startsWith('localhost:') ? 'localhost' : hostname;
+    
+    console.log('TenantResolver: Hostname:', hostname);
+    console.log('TenantResolver: Effective hostname:', effectiveHostname);
+    console.log('TenantResolver: App domain:', appDomain);
 
     // Example: myhotel.dishub.com -> parts = ['myhotel', 'dishub', 'com']
     // Example: myhotel.localhost -> parts = ['myhotel', 'localhost'] (if port is handled separately)
@@ -89,16 +108,22 @@ export class TenantResolver {
 
     if (effectiveHostname.endsWith(`.${appDomain}`) && effectiveHostname.length > appDomain.length) {
         const potentialSubdomain = effectiveHostname.substring(0, effectiveHostname.indexOf('.'));
+        console.log('TenantResolver: Potential subdomain from app domain:', potentialSubdomain);
         if (potentialSubdomain && !['www', 'app', 'admin', 'api', '_next', 'static'].includes(potentialSubdomain)) {
+            console.log('TenantResolver: Valid subdomain found:', potentialSubdomain);
             return potentialSubdomain; // This is the tenant slug
         }
     } else if (appDomain === 'localhost' && effectiveHostname.length > 1 && effectiveHostname.endsWith('localhost')) {
         // Specific handling for tenant.localhost structure
         const potentialSubdomain = effectiveHostname.substring(0, effectiveHostname.indexOf('.'));
+        console.log('TenantResolver: Potential subdomain from localhost:', potentialSubdomain);
          if (potentialSubdomain && !['www', 'app', 'admin', 'api', '_next', 'static'].includes(potentialSubdomain)) {
+            console.log('TenantResolver: Valid localhost subdomain found:', potentialSubdomain);
             return potentialSubdomain; // This is the tenant slug
         }
     }
+    
+    console.log('TenantResolver: No valid subdomain found');
     return null;
   }
 
@@ -125,25 +150,60 @@ export class TenantResolver {
   }
 
   private async resolveFromJwt(): Promise<string | null> {
+    console.log('TenantResolver: Attempting to resolve from JWT...');
+    
+    // Try to get token from Authorization header first
     const authHeader = this.req.headers && typeof this.req.headers.get === 'function' ? this.req.headers.get('authorization') : null;
+    let token: string | null = null;
+    
     if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      try {
-        // verifyToken should return a well-typed payload or throw an error
-        const decodedPayload = await verifyToken(token) as DecodedJwtPayload | null;
-
-        if (decodedPayload?.tenantId) {
-          return decodedPayload.tenantId; // This should be the tenant's actual ID
+      token = authHeader.substring(7);
+      console.log('TenantResolver: Found token in Authorization header');
+    } else {
+      // Try to get token from cookies
+      const cookieHeader = this.req.headers && typeof this.req.headers.get === 'function' ? this.req.headers.get('cookie') : null;
+      if (cookieHeader) {
+        console.log('TenantResolver: Checking cookies for token...');
+        // Look for auth-token or session-token in cookies
+        const authTokenMatch = cookieHeader.match(/(?:^|;\s*)auth-token=([^;]+)/);
+        const sessionTokenMatch = cookieHeader.match(/(?:^|;\s*)session-token=([^;]+)/);
+        
+        if (authTokenMatch) {
+          token = authTokenMatch[1];
+          console.log('TenantResolver: Found token in auth-token cookie');
+        } else if (sessionTokenMatch) {
+          token = sessionTokenMatch[1];
+          console.log('TenantResolver: Found token in session-token cookie');
         }
-      } catch (error) {
-        // Log specific verifyToken errors if needed, but avoid verbose logging for common invalid token errors
-        if ((error as Error).name !== 'JsonWebTokenError' && (error as Error).name !== 'TokenExpiredError') {
-          console.error('Error verifying token for tenant resolution:', error);
-        }
-        return null;
       }
     }
-    return null;
+    
+    if (!token) {
+      console.log('TenantResolver: No token found in headers or cookies');
+      return null;
+    }
+    
+    try {
+      // verifyToken should return a well-typed payload or throw an error
+      const decodedPayload = await verifyToken(token) as DecodedJwtPayload | null;
+      console.log('TenantResolver: Decoded JWT payload:', decodedPayload);
+
+      if (decodedPayload?.tenantId) {
+        console.log('TenantResolver: Found tenantId in JWT:', decodedPayload.tenantId);
+        return decodedPayload.tenantId; // This should be the tenant's actual ID
+      } else {
+        console.log('TenantResolver: No tenantId found in JWT payload');
+        return null;
+      }
+    } catch (error) {
+      // Log specific verifyToken errors if needed, but avoid verbose logging for common invalid token errors
+      if ((error as Error).name !== 'JsonWebTokenError' && (error as Error).name !== 'TokenExpiredError') {
+        console.error('TenantResolver: Error verifying token for tenant resolution:', error);
+      } else {
+        console.log('TenantResolver: Invalid or expired token');
+      }
+      return null;
+    }
   }
 
   private resolveFromHeader(): string | null {
@@ -152,5 +212,91 @@ export class TenantResolver {
       return this.req.headers.get('X-Tenant-ID'); // This should be the tenant's actual ID
     }
     return null;
+  }
+
+  private async resolveFromUserAssociation(): Promise<string | null> {
+    console.log('TenantResolver: Attempting to resolve from user association...');
+    
+    // Try to get token from Authorization header first
+    const authHeader = this.req.headers && typeof this.req.headers.get === 'function' ? this.req.headers.get('authorization') : null;
+    let token: string | null = null;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+      console.log('TenantResolver: Found token in Authorization header');
+    } else {
+      // Try to get token from cookies
+      const cookieHeader = this.req.headers && typeof this.req.headers.get === 'function' ? this.req.headers.get('cookie') : null;
+      if (cookieHeader) {
+        console.log('TenantResolver: Checking cookies for token...');
+        // Look for auth-token or session-token in cookies
+        const authTokenMatch = cookieHeader.match(/(?:^|;\s*)auth-token=([^;]+)/);
+        const sessionTokenMatch = cookieHeader.match(/(?:^|;\s*)session-token=([^;]+)/);
+        
+        if (authTokenMatch) {
+          token = authTokenMatch[1];
+          console.log('TenantResolver: Found token in auth-token cookie');
+        } else if (sessionTokenMatch) {
+          token = sessionTokenMatch[1];
+          console.log('TenantResolver: Found token in session-token cookie');
+        }
+      }
+    }
+    
+    if (!token) {
+      console.log('TenantResolver: No token found, cannot resolve user association');
+      return null;
+    }
+    
+    try {
+      // Verify token and get user ID
+      const decodedPayload = await verifyToken(token) as DecodedJwtPayload | null;
+      
+      if (!decodedPayload?.userId) {
+        console.log('TenantResolver: No userId found in token');
+        return null;
+      }
+      
+      console.log('TenantResolver: Found userId in token:', decodedPayload.userId);
+      
+      // Query user from database to get their tenantId
+      const user = await prisma.user.findUnique({
+        where: { id: decodedPayload.userId },
+        select: { 
+          id: true, 
+          tenantId: true,
+          email: true 
+        }
+      });
+      
+      if (!user) {
+        console.log('TenantResolver: User not found in database');
+        return null;
+      }
+      
+      if (!user.tenantId) {
+        console.log('TenantResolver: User has no tenantId association');
+        return null;
+      }
+      
+      console.log(`TenantResolver: Found tenantId from user association: ${user.tenantId} for user: ${user.email}`);
+      
+      // Validate that the tenant exists
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: user.tenantId }
+      });
+      
+      if (!tenant) {
+        console.log(`TenantResolver: Tenant ${user.tenantId} not found in database`);
+        return null;
+      }
+      
+      console.log(`TenantResolver: Validated tenant: ${tenant.name} (${tenant.id})`);
+      return tenant.id;
+      
+    } catch (error) {
+      console.error('TenantResolver: Error resolving tenant from user association:', error);
+      return null;
+    }
   }
 }
