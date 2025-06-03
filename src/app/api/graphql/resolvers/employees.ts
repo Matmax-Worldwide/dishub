@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { EmployeeStatus} from '@prisma/client';
+import { GraphQLContext } from '../route';
 
 // TypeScript interfaces for employee mutations
 interface CreateEmployeeInput {
@@ -228,7 +229,7 @@ export const employeeResolvers = {
   
   Mutation: {
     // Crear un nuevo empleado - auth handled by shield
-    createEmployee: async (_parent: unknown, args: { input: CreateEmployeeInput }) => {
+    createEmployee: async (_parent: unknown, args: { input: CreateEmployeeInput }, context: GraphQLContext) => {
       try {
         // Manual auth & role checks removed
         
@@ -254,6 +255,7 @@ export const employeeResolvers = {
             employeeId, // This is the custom employee ID string
             departmentId,
             positionId,
+            tenantId: context.tenantId || '',
             hireDate: new Date(hireDate),
             managerId,
             salary: salary ? parseFloat(salary.toString()) : 0,

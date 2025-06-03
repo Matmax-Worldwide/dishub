@@ -63,7 +63,7 @@ export interface Context {
   req?: NextRequest;
   user: AuthenticatedUser | null;
   loaders: MyLoaders;
-  // tenantId?: string | null;
+  tenantId?: string | null;
 }
 
 // Tipo para roles (GraphQL type)

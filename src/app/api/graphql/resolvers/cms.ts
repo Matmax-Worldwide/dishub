@@ -310,7 +310,9 @@ export const cmsResolvers = {
                   description: `Sección creada automáticamente`,
                   lastUpdated: timestamp,
                   createdAt: timestamp,
-                  updatedAt: timestamp
+                  updatedAt: timestamp,
+                  tenantId: context.tenantId || '',
+                  createdBy: context?.user?.id || 'system'
                 }
               });
               
@@ -663,7 +665,9 @@ export const cmsResolvers = {
                   description: `Sección "${sectionId}"`,
                   lastUpdated: timestamp,
                   createdAt: timestamp,
-                  updatedAt: timestamp
+                  updatedAt: timestamp,
+                  tenantId: context.tenantId || '',
+                  createdBy: context?.user?.id || 'system'
                 }
               });
             } else {
@@ -704,7 +708,9 @@ export const cmsResolvers = {
                   schema: {},
                   isActive: true,
                   createdAt: timestamp,
-                  updatedAt: timestamp
+                  updatedAt: timestamp,
+                  tenantId: context.tenantId || '',
+                  createdBy: context?.user?.id || 'system'
                 }))
               });
               
@@ -838,7 +844,7 @@ export const cmsResolvers = {
         schema?: Record<string, unknown>;
         icon?: string;
       } 
-    }) => {
+    }, context: GraphQLContext) => {
       console.log('======== START createCMSComponent resolver ========');
       try {
         const { input } = args;
@@ -871,11 +877,12 @@ export const cmsResolvers = {
             slug: input.slug,
             description: input.description || `Componente ${input.name}`,
             category: input.category || null,
-            schema: input.schema as Prisma.InputJsonValue || Prisma.JsonNull,
+            schema: (input.schema as Prisma.InputJsonValue) || {},
             icon: input.icon || null,
             isActive: true,
             createdAt: timestamp,
-            updatedAt: timestamp
+            updatedAt: timestamp,
+            tenantId: context.tenantId || '',
           }
         });
         
@@ -1070,11 +1077,11 @@ export const cmsResolvers = {
     },
 
     // Crear página CMS
-    createPage: async (_parent: unknown, args: { 
-      input: { 
+    createPage: async (_parent: unknown, args: {
+      input: {
         title: string;
         slug: string;
-        description?: string;
+        description?: string | null;
         template?: string;
         isPublished?: boolean;
         publishDate?: string | null;
@@ -1087,8 +1094,8 @@ export const cmsResolvers = {
         locale?: string;
         isDefault?: boolean;
         sections?: string[];
-      } 
-    }) => {
+      }
+    }, context: GraphQLContext) => {
       console.log('======== START createPage resolver ========');
       try {
         const { input } = args;
@@ -1162,20 +1169,16 @@ export const cmsResolvers = {
             title: input.title,
             slug: input.slug,
             description: input.description || null,
-            template: input.template || "default",
+            template: input.template || 'default',
             isPublished: input.isPublished || false,
             publishDate: input.publishDate ? new Date(input.publishDate) : null,
             featuredImage: input.featuredImage || null,
             metaTitle: input.metaTitle || null,
             metaDescription: input.metaDescription || null,
-            parentId: input.parentId || null,
-            order: input.order !== undefined ? input.order : 0,
-            pageType: (input.pageType as PageType) || PageType.CONTENT,
-            locale: localeToUse,
-            isDefault: shouldSetAsDefault,
-            createdById: "system",
             createdAt: timestamp,
-            updatedAt: timestamp
+            updatedAt: timestamp,
+            tenantId: context.tenantId || '',
+            createdById: context?.user?.id || 'system'
           }
         });
 
@@ -1258,6 +1261,9 @@ export const cmsResolvers = {
         featuredImage?: string | null;
         metaTitle?: string | null;
         metaDescription?: string | null;
+        ogTitle?: string | null;
+        ogDescription?: string | null;
+        ogImage?: string | null;
         parentId?: string | null;
         order?: number;
         pageType?: string;
@@ -1382,6 +1388,9 @@ export const cmsResolvers = {
             ...(input.featuredImage !== undefined && { featuredImage: input.featuredImage }),
             ...(input.metaTitle !== undefined && { metaTitle: input.metaTitle }),
             ...(input.metaDescription !== undefined && { metaDescription: input.metaDescription }),
+            ...(input.ogTitle !== undefined && { ogTitle: input.ogTitle }),
+            ...(input.ogDescription !== undefined && { ogDescription: input.ogDescription }),
+            ...(input.ogImage !== undefined && { ogImage: input.ogImage }),
             ...(input.parentId !== undefined && { parentId: input.parentId }),
             ...(input.order !== undefined && { order: input.order }),
             ...(input.pageType !== undefined && { pageType: input.pageType as PageType }),
@@ -1611,7 +1620,7 @@ export const cmsResolvers = {
         backgroundType?: string;
         pageId?: string; // Agregar pageId opcional
       } 
-    }, context: { user?: { id: string } }) => {
+    }, context: GraphQLContext) => {
       // Registrar la operación
       console.log('📝 Starting createCMSSection resolver');
       console.log('Input data:', JSON.stringify(args.input, null, 2));
@@ -1663,6 +1672,7 @@ export const cmsResolvers = {
               lastUpdated: timestamp.toISOString(),
               createdAt: timestamp,
               updatedAt: timestamp,
+              tenantId: context.tenantId || '',
               createdBy: context?.user?.id || 'system',
               order: 0, // Establecer orden predeterminado
               pageId: input.pageId || null // Asignar pageId si se proporciona

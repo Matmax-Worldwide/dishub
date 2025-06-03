@@ -173,7 +173,7 @@ export const blogResolvers = {
   },
 
   Mutation: {
-    createBlog: async (_: unknown, { input }: { input: BlogInput }) => {
+    createBlog: async (_: unknown, { input }: { input: BlogInput }, context: GraphQLContext) => {
       // Auth handled by graphql-shield. context.user is available if needed.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -182,7 +182,10 @@ export const blogResolvers = {
             title: input.title,
             description: input.description,
             slug: input.slug,
-            isActive: input.isActive ?? true
+            isActive: input.isActive ?? true,
+            tenant: {
+              connect: { id: context.tenantId || '' }
+            }
           }
         });
         return { success: true, message: 'Blog created successfully', blog };
@@ -243,7 +246,7 @@ export const blogResolvers = {
       }
     },
 
-    createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
+    createPost: async (_: unknown, { input }: { input: CreatePostInput }, context: GraphQLContext) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       // Note: input.authorId is used. If this should be context.user.id, logic would change here.
@@ -257,17 +260,20 @@ export const blogResolvers = {
             excerpt: input.excerpt,
             featuredImage: input.featuredImage,
             featuredImageId: input.featuredImageId,
-            status: input.status || 'DRAFT',
+            status: input.status || PostStatus.DRAFT,
             publishedAt: input.publishedAt ? new Date(input.publishedAt) : null,
-            blogId: input.blogId,
-            authorId: input.authorId, // Explicitly from input
             metaTitle: input.metaTitle,
             metaDescription: input.metaDescription,
             tags: input.tags || [],
             categories: input.categories || [],
             readTime: input.readTime,
+            tenantId: context.tenantId || '',
+            blogId: input.blogId,
+            authorId: input.authorId,
             ...(input.mediaIds && input.mediaIds.length > 0 && {
-              media: { connect: input.mediaIds.map(id => ({ id })) }
+              media: {
+                connect: input.mediaIds.map(id => ({ id }))
+              }
             })
           },
           include: { author: true, blog: true, media: true, featuredImageMedia: true }

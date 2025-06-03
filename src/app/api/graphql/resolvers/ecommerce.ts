@@ -1721,6 +1721,7 @@ export const ecommerceResolvers = {
             name: input.name as string,
             defaultCurrencyId: input.defaultCurrencyId as string,
             adminUserId: input.adminUserId as string,
+            tenantId: context.tenantId || '',
             acceptedCurrencies: input.acceptedCurrencyIds ? {
               create: (input.acceptedCurrencyIds as string[]).map((currencyId: string) => ({
                 currencyId
@@ -1815,7 +1816,8 @@ export const ecommerceResolvers = {
             slug: input.slug as string,
             parentId: input.parentId as string || null,
             isActive: input.isActive as boolean ?? true,
-            shopId: input.shopId as string || null
+            shopId: input.shopId as string || null,
+            tenantId: context.tenantId || ''
           },
           include: {
             shop: true,
@@ -2433,7 +2435,8 @@ export const ecommerceResolvers = {
                 unitPrice: item.unitPrice,
                 totalPrice: item.quantity * item.unitPrice
               }))
-            }
+            },
+            tenantId: context.tenantId || ''
           },
           include: {
             customer: true,
