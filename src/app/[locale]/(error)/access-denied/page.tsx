@@ -42,7 +42,7 @@ export const dynamic = 'force-dynamic';
 export default function AccessDeniedPage() {
   const { locale } = useParams();
   const { isAuthenticated, token } = useAuth();
-  const [redirectPath, setRedirectPath] = useState('/evoque/dashboard');
+  const [redirectPath, setRedirectPath] = useState('/dashboard');
 
   // Obtener datos reales del usuario desde GraphQL
   const { data: userData, loading: userLoading, error } = useQuery(GET_ME, {
@@ -80,6 +80,11 @@ export default function AccessDeniedPage() {
           setRedirectPath(`/${locale}/evoque/dashboard`);
         }
       } else {
+        // Para usuarios regulares, usar dashboard general por ahora
+        // TODO: Implementar dashboard específico por tenant
+        if (tenant?.slug) {
+          console.log(`Usuario pertenece a tenant ${tenant.slug}, pero usando dashboard evoque`);
+        }
         setRedirectPath(`/${locale}/evoque/dashboard`);
       }
     } else if (!isAuthenticated) {

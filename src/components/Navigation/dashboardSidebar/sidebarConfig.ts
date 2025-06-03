@@ -72,17 +72,17 @@ export const sidebarConfig: SidebarConfig = {
     },
     { 
       name: 'sidebar.benefits', 
-      href: `/${locale}/evoque/evoque/dashboard/benefits`, 
+      href: `/${locale}/evoque/dashboard/benefits`, 
       icon: UserIcon 
     },
     { 
       name: 'sidebar.help', 
-      href: `/${locale}/evoque/evoque/dashboard/help`, 
+      href: `/${locale}/evoque/dashboard/help`, 
       icon: HelpCircleIcon 
     },
     { 
       name: 'sidebar.settings', 
-      href: `/${locale}/evoque/evoque/dashboard/settings`, 
+      href: `/${locale}/evoque/dashboard/settings`, 
       icon: SettingsIcon 
     },
   ],

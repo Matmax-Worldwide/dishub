@@ -464,7 +464,7 @@ interface DashboardSectionProps {
 
 function DashboardSection({ section }: DashboardSectionProps) {
   return (
-    <FeatureGuard feature={section.feature} showUpgrade={false}>
+    <FeatureGuard feature={section.feature as FeatureType} showUpgrade={false}>
       <div className="space-y-4">
         <h2 className="text-xl font-semibold text-gray-900">{section.title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

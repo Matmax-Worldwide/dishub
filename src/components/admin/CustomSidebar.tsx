@@ -541,7 +541,7 @@ interface SidebarItemProps {
 function SidebarItem({ item, isActive }: SidebarItemProps) {
   return (
     <FeatureGuard 
-      feature={item.feature} 
+      feature={item.feature as FeatureType} 
       showUpgrade={false}
       fallback={
         <Link href="/admin/billing/upgrade">

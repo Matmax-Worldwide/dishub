@@ -58,6 +58,13 @@ const hasPermission = (permission: string) => {
 
 export const permissions = shield({
   Query: {
+    // Authentication queries - PUBLIC ACCESS
+    me: allow,
+    
+    // Tenant queries - PUBLIC ACCESS (needed for login redirection)
+    tenant: allow,
+    allTenants: allow,
+    
     // User Query Rules - Admin bypass
     users: or(isAdmin, and(isAuthenticated, hasPermission('list:all_users'))),
     user: or(isAdmin, and(isAuthenticated, or(hasPermission('read:user'), isSelf))),
@@ -166,6 +173,20 @@ export const permissions = shield({
     '*': or(isAdmin, and(isAuthenticated, or(isAdmin, hasPermission('list:all_resources')))),
   },
   Mutation: {
+    // Authentication mutations - PUBLIC ACCESS
+    login: allow,
+    register: allow,
+    
+    // Tenant mutations - PUBLIC ACCESS (needed for registration)
+    createTenant: allow,
+    registerUserWithTenant: allow,
+    
+    // Role and permission mutations - Admin bypass
+    createRole: or(isAdmin, and(isAuthenticated, hasPermission('create:role'))),
+    createPermission: or(isAdmin, and(isAuthenticated, hasPermission('create:permission'))),
+    assignPermissionToRole: or(isAdmin, and(isAuthenticated, hasPermission('assign:permission_to_role'))),
+    removePermissionFromRole: or(isAdmin, and(isAuthenticated, hasPermission('remove:permission_from_role'))),
+    
     // User Mutation Rules - Admin bypass
     createUser: or(isAdmin, and(isAuthenticated, hasPermission('create:user'))),
     updateUser: or(isAdmin, and(isAuthenticated, hasPermission('update:user'))),
@@ -280,23 +301,24 @@ export const permissions = shield({
   
   // Type-level permissions - Admin bypass for all types
   User: {
-    id: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
-    email: or(isAdmin, or(isSelf, isAdmin)),
-    firstName: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
-    lastName: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
+    id: allow,
+    email: allow, 
+    firstName: allow,
+    lastName: allow,
     phoneNumber: or(isAdmin, or(isSelf, isAdmin)),
-    profileImageUrl: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
-    role: or(isAdmin, and(isAuthenticated, hasPermission('read:role'))),
+    profileImageUrl: allow,
+    role: allow, 
+    tenantId: allow,
     isActive: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
-    createdAt: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
-    updatedAt: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
+    createdAt: allow,
+    updatedAt: allow,
     notifications: or(isAdmin, and(isAuthenticated, hasPermission('read:notifications'))),
     settings: or(isAdmin, and(isAuthenticated, hasPermission('read:user_settings'))),
     staffProfile: or(isAdmin, and(isAuthenticated, hasPermission('read:staff_profile'))),
     bookings: or(isAdmin, and(isAuthenticated, hasPermission('list:all_bookings'))),
   },
   Role: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('list:all_roles'))),
+    '*': allow,
   },
   Permission: {
     '*': or(isAdmin, and(isAuthenticated, hasPermission('list:all_permissions'))),
@@ -341,19 +363,19 @@ export const permissions = shield({
     '*': or(isAdmin, and(isAuthenticated, hasPermission('read:site_settings'))),
   },
   CMSSection: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:cms_section'))),
+    '*': allow,
   },
   SectionComponent: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:section_component'))),
+    '*': allow,
   },
   CMSComponent: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:cms_component'))),
+    '*': allow,
   },
   Page: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:page'))),
+    '*': allow,
   },
   PageSEO: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:page_seo'))),
+    '*': allow,
   },
   Employee: {
     '*': or(isAdmin, and(isAuthenticated, hasPermission('read:employee'))),
@@ -368,7 +390,7 @@ export const permissions = shield({
     '*': or(isAdmin, and(isAuthenticated, hasPermission('read:dashboard_stats'))),
   },
   AuthPayload: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:auth_payload'))),
+    '*': allow,
   },
   UserPermission: {
     '*': or(isAdmin, and(isAuthenticated, hasPermission('read:user_permission'))),
@@ -395,35 +417,74 @@ export const permissions = shield({
     '*': or(isAdmin, and(isAuthenticated, hasPermission('read:booking_result'))),
   },
   Service: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:service'))),
+    '*': allow,
   },
   Location: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:location'))),
+    '*': allow,
   },
   ServiceCategory: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:service_category'))),
+    '*': allow,
   },
   StaffProfile: {
-    '*': or(isAdmin, and(isAuthenticated, hasPermission('read:staff_profile'))),
+    '*': allow,
   },
-  FormBase: or(isAdmin, and(isAuthenticated, hasPermission('read:form_base'))),
-  FormStepBase: or(isAdmin, and(isAuthenticated, hasPermission('read:form_step_base'))),
-  FormFieldBase: or(isAdmin, and(isAuthenticated, hasPermission('read:form_field_base'))),
-  FormSubmissionBase: or(isAdmin, and(isAuthenticated, hasPermission('read:form_submission_base'))),
-  Blog: or(isAdmin, and(isAuthenticated, hasPermission('read:blog'))),
-  Post: or(isAdmin, and(isAuthenticated, hasPermission('read:post'))),
-  Shop: or(isAdmin, and(isAuthenticated, hasPermission('read:shop'))),
-  Order: or(isAdmin, and(isAuthenticated, hasPermission('read:order'))),
-  Currency: or(isAdmin, and(isAuthenticated, hasPermission('read:currency'))),
-  Tax: or(isAdmin, and(isAuthenticated, hasPermission('read:tax'))),
-  PaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('read:payment_provider'))),
-  PaymentMethod: or(isAdmin, and(isAuthenticated, hasPermission('read:payment_method'))),
-  Payment: or(isAdmin, and(isAuthenticated, hasPermission('read:payment'))),
-  ShippingProvider: or(isAdmin, and(isAuthenticated, hasPermission('read:shipping_provider'))),
-  ShippingMethod: or(isAdmin, and(isAuthenticated, hasPermission('read:shipping_method'))),
-  ShippingZone: or(isAdmin, and(isAuthenticated, hasPermission('read:shipping_zone'))),
-  Shipment: or(isAdmin, and(isAuthenticated, hasPermission('read:shipment'))),
-  RoleModel: or(isAdmin, and(isAuthenticated, hasPermission('read:role_model'))),
+  Tenant: {
+    '*': allow,
+  },
+  FormBase: {
+    '*': allow,
+  },
+  FormStepBase: {
+    '*': allow,
+  },
+  FormFieldBase: {
+    '*': allow,
+  },
+  FormSubmissionBase: {
+    '*': allow,
+  },
+  Blog: {
+    '*': allow,
+  },
+  Post: {
+    '*': allow,
+  },
+  Shop: {
+    '*': allow,
+  },
+  Order: {
+    '*': allow,
+  },
+  Currency: {
+    '*': allow,
+  },
+  Tax: {
+    '*': allow,
+  },
+  PaymentProvider: {
+    '*': allow,
+  },
+  PaymentMethod: {
+    '*': allow,
+  },
+  Payment: {
+    '*': allow,
+  },
+  ShippingProvider: {
+    '*': allow,
+  },
+  ShippingMethod: {
+    '*': allow,
+  },
+  ShippingZone: {
+    '*': allow,
+  },
+  Shipment: {
+    '*': allow,
+  },
+  RoleModel: {
+    '*': allow,
+  },
 }, {
   allowExternalErrors: true,
 });

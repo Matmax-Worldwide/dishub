@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from 'react';
-import { useHasFeature, useHasAllFeatures, useHasAnyFeature } from '@/hooks/useFeatureAccess';
+import { useHasFeature, useHasAllFeatures, useHasAnyFeature, FeatureType } from '@/hooks/useFeatureAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, Zap, ArrowRight } from 'lucide-react';
@@ -9,8 +9,8 @@ import Link from 'next/link';
 
 interface FeatureGuardProps {
   children: ReactNode;
-  feature?: string;
-  features?: string[];
+  feature?: FeatureType;
+  features?: FeatureType[];
   requireAll?: boolean; // Si true, requiere todas las features. Si false, requiere al menos una
   fallback?: ReactNode;
   showUpgrade?: boolean;
@@ -25,7 +25,7 @@ export function FeatureGuard({
   showUpgrade = true 
 }: FeatureGuardProps) {
   // Llamar todos los hooks al inicio para evitar hooks condicionales
-  const hasSingleFeature = useHasFeature(feature || '');
+  const hasSingleFeature = useHasFeature(feature || 'CMS_ENGINE');
   const hasAllRequiredFeatures = useHasAllFeatures(features || []);
   const hasAnyRequiredFeature = useHasAnyFeature(features || []);
 
@@ -138,7 +138,7 @@ export function ShowIfFeature({
   feature, 
   children 
 }: { 
-  feature: string; 
+  feature: FeatureType; 
   children: ReactNode; 
 }) {
   const hasAccess = useHasFeature(feature);
@@ -150,7 +150,7 @@ export function HideIfFeature({
   feature, 
   children 
 }: { 
-  feature: string; 
+  feature: FeatureType; 
   children: ReactNode; 
 }) {
   const hasAccess = useHasFeature(feature);

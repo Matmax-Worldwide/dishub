@@ -1,78 +1,54 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { gql, useQuery } from '@apollo/client';
-import { client } from '@/lib/apollo-client';
-import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { DashboardSidebar } from '@/components/Navigation/dashboardSidebar/DashboardSidebar';
+import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
+import { useQuery, gql } from '@apollo/client';
+import { useState } from 'react';
 
-const GET_USER = gql`
-  query GetUser {
+// GraphQL query to get current user
+const GET_USER_DATA = gql`
+  query GetUserData {
     me {
       id
-      email
-      firstName
-      lastName
       tenantId
-      role {
-        id
-        name
-        description
-      }
     }
   }
 `;
 
+// GraphQL query to get tenant features  
 const GET_TENANT_FEATURES = gql`
   query GetTenantFeatures($tenantId: ID!) {
     tenant(id: $tenantId) {
       id
-      name
       features
     }
   }
 `;
 
-export default function TenantAdminLayoutWrapper({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { locale } = useParams();
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
-  const { loading, data: userData } = useQuery(GET_USER, {
-    client,
-    fetchPolicy: 'network-only',
-    errorPolicy: 'all',
-    notifyOnNetworkStatusChange: true,
-    context: {
-      headers: {
-        credentials: 'include'
-      }
-    },
-    onCompleted: (data) => {
-      console.log('User data loaded:', data);
+  // Get user data first
+  const { data: userData, loading: userLoading, error: userError } = useQuery(GET_USER_DATA, {
+    onCompleted: () => {
       setIsLoading(false);
     },
     onError: (error) => {
-      // Redirect to login on error
-      console.error('Authentication error:', error);
-      router.push(`/${locale}/login`);
+      console.error('Error loading user data:', error);
+      setIsLoading(false);
     }
   });
 
-  // Get tenant features
+  // Get tenant features based on user's tenantId
   const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
-    client,
     variables: { tenantId: userData?.me?.tenantId || '' },
     skip: !userData?.me?.tenantId,
-    errorPolicy: 'all',
-    fetchPolicy: 'cache-first',
-    onCompleted: (tenantData) => {
-      console.log('Tenant features loaded:', tenantData?.tenant?.features);
+    onCompleted: (data) => {
+      console.log('Tenant features loaded:', data?.tenant?.features);
     },
     onError: (error) => {
       console.error('Error loading tenant features:', error);
@@ -86,28 +62,23 @@ export default function TenantAdminLayoutWrapper({
         : [tenantData.tenant.features as FeatureType])
     : ['CMS_ENGINE']; // Default fallback
 
-  if (loading || isLoading) {
+  if (userLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading tenant admin...</p>
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!userData?.me) {
+  if (userError || !userData?.me) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Access denied</p>
-          <button 
-            onClick={() => router.push(`/${locale}/login`)}
-            className="px-4 py-2 bg-blue-500 text-white rounded"
-          >
-            Go to Login
-          </button>
+          <p className="text-red-600 mb-4">Error loading user data</p>
+          <p className="text-sm text-gray-600">Please try refreshing the page</p>
         </div>
       </div>
     );
@@ -125,4 +96,4 @@ export default function TenantAdminLayoutWrapper({
       </div>
     </FeatureProvider>
   );
-} 
+}

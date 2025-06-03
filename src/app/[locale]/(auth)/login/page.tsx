@@ -90,6 +90,14 @@ export default function LoginPage() {
         role: user.role?.name || 'USER' // Convert role object to string
       };
 
+      console.log('=== USER ROLE DEBUG ===');
+      console.log('Raw user from GraphQL:', user);
+      console.log('User role object:', user.role);
+      console.log('User role name:', user.role?.name);
+      console.log('Transformed user role:', transformedUser.role);
+      console.log('User tenantId:', transformedUser.tenantId);
+      console.log('======================');
+
       // Store the user and token in the auth context
       // First set the cookie
       const cookieSet = setCookie('session-token', token, 7); // 7 days expiry
@@ -109,40 +117,70 @@ export default function LoginPage() {
       sessionStorage.setItem('justLoggedIn', 'true');
       
       // Determine redirect path based on user role
-      let redirectPath = `/${locale}/evoque/dashboard`; // Default path
+      let redirectPath = `/${locale}/evoque/dashboard`; // Fallback path if tenant not found
       
       if (transformedUser.role === 'SUPER_ADMIN') {
         redirectPath = `/${locale}/admin`;
-      } else if (transformedUser.role === 'ADMIN') {
-        // For regular admins, redirect to their tenant admin page
+      } else {
+        // For all other roles (ADMIN, MANAGER, EMPLOYEE, USER), get tenant info
         if (transformedUser.tenantId) {
-          // We need to get the tenant slug - for now we'll use a query to get it
-          // TODO: Ideally we should include tenant info in login response
           try {
+            console.log(`Fetching tenant data for tenantId: ${transformedUser.tenantId}`);
             const { data: tenantData } = await client.query({
               query: gql`
                 query GetTenant($id: ID!) {
                   tenant(id: $id) {
                     id
                     slug
+                    name
                   }
                 }
               `,
               variables: { id: transformedUser.tenantId }
             });
             
+            console.log('GraphQL Tenant Query Response:', tenantData);
+            
             if (tenantData?.tenant?.slug) {
-              redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+              console.log(`Tenant found: ${tenantData.tenant.name} with slug: ${tenantData.tenant.slug}`);
+              
+              // Store tenant information in sessionStorage for fallback usage
+              sessionStorage.setItem('currentTenant', JSON.stringify({
+                id: tenantData.tenant.id,
+                slug: tenantData.tenant.slug,
+                name: tenantData.tenant.name
+              }));
+              
+              // Redirect based on role using actual tenant slug
+              if (transformedUser.role === 'ADMIN' || transformedUser.role === 'MANAGER') {
+                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+                console.log(`ADMIN/MANAGER redirect path: ${redirectPath}`);
+              } else if (transformedUser.role === 'EMPLOYEE') {
+                // EMPLOYEE ahora va a la misma ruta admin que ADMIN/MANAGER
+                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+                console.log(`EMPLOYEE redirect path: ${redirectPath}`);
+              } else {
+                // For USER and other roles, redirect to general dashboard
+                // Log the actual tenant but use evoque dashboard for now
+                console.log(`User belongs to tenant: ${tenantData.tenant.slug}, but redirecting to evoque dashboard`);
+                sessionStorage.setItem('userTenantSlug', tenantData.tenant.slug);
+                sessionStorage.setItem('userTenantName', tenantData.tenant.name);
+                redirectPath = `/${locale}/evoque/dashboard`;
+                console.log(`USER redirect path: ${redirectPath}`);
+              }
+              console.log(`User with role ${transformedUser.role} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
             } else {
-              console.warn('Admin user has tenantId but tenant not found, redirecting to default');
+              console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
+              console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to default`);
               redirectPath = `/${locale}/evoque/dashboard`;
             }
           } catch (tenantError) { 
-            console.error('Error fetching tenant for admin redirect:', tenantError);
+            console.error('GraphQL Tenant Query Error:', tenantError);
+            console.error('Error details:', JSON.stringify(tenantError, null, 2));
             redirectPath = `/${locale}/evoque/dashboard`;
           }
         } else {
-          console.warn('Admin user without tenantId, redirecting to default dashboard');
+          console.warn(`User ${transformedUser.email} without tenantId, redirecting to default dashboard`);
           redirectPath = `/${locale}/evoque/dashboard`;
         }
       }

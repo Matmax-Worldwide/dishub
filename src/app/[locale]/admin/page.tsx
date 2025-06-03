@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
 import { useEffect, useState } from 'react';
@@ -146,9 +146,11 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
-export default function DashboardPage() {
+export default function EvoqueDashboardPage() {
+  const router = useRouter();
   const { locale } = useParams();
   const [isLoggedOut, setIsLoggedOut] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [debugInfo, setDebugInfo] = useState<{
     error?: string;
     graphQLErrors?: string[];
@@ -293,6 +295,94 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // Redirect logic for users who should be on tenant-specific dashboards
+  useEffect(() => {
+    if (data?.me && data.me.role?.name && data.me.tenantId) {
+      const userRole = data.me.role?.name;
+      
+      console.log('🔄 Evoque Dashboard: Checking if user should be redirected...');
+      console.log('User role:', userRole);
+      console.log('User tenantId:', data.me.tenantId);
+      
+      // For ADMIN, MANAGER, and EMPLOYEE users, redirect them to their tenant dashboard
+      if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'EMPLOYEE') {
+        console.log(`🚀 ${userRole} user detected, fetching tenant slug for redirection...`);
+        setIsRedirecting(true);
+        
+        // Query for tenant slug
+        client.query({
+          query: gql`
+            query GetTenant($id: ID!) {
+              tenant(id: $id) {
+                id
+                slug
+                name
+              }
+            }
+          `,
+          variables: { id: data.me.tenantId },
+          fetchPolicy: 'network-only'
+        }).then(({ data: tenantData }) => {
+          console.log('Tenant query result:', tenantData);
+          
+          if (tenantData?.tenant?.slug) {
+            let redirectPath;
+            // Todos los roles (ADMIN, MANAGER, EMPLOYEE) van a la misma ruta admin
+            if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'EMPLOYEE') {
+              redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+            }
+            
+            if (redirectPath) {
+              console.log(`🚀 Redirecting ${userRole} to: ${redirectPath}`);
+              console.log('Current location:', window.location.pathname);
+              
+              // Use window.location.href for a hard redirect to ensure it works
+              window.location.href = redirectPath;
+            }
+          } else {
+            console.error('❌ No tenant slug found in response:', tenantData);
+          }
+        }).catch((error) => {
+          console.error('❌ Error fetching tenant for redirect:', error);
+          console.error('GraphQL errors:', error.graphQLErrors);
+          console.error('Network error:', error.networkError);
+          
+          // Fallback: try to get slug from sessionStorage if available
+          const storedTenant = sessionStorage.getItem('currentTenant');
+          if (storedTenant) {
+            try {
+              const tenantData = JSON.parse(storedTenant);
+              if (tenantData.slug) {
+                let redirectPath;
+                // Todos los roles van a la misma ruta admin
+                if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'EMPLOYEE') {
+                  redirectPath = `/${locale}/tenants/${tenantData.slug}/admin`;
+                }
+                
+                if (redirectPath) {
+                  console.log(`🔄 Using fallback redirect to: ${redirectPath}`);
+                  window.location.href = redirectPath;
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing stored tenant data:', e);
+            }
+          }
+        });
+      } else {
+        console.log('✅ User role is', userRole, '- should stay on evoque dashboard');
+      }
+    } else {
+      console.log('⏳ User data not ready for redirect check:', {
+        hasUser: !!data?.me,
+        hasRole: !!data?.me?.role?.name,
+        hasTenantId: !!data?.me?.tenantId,
+        role: data?.me?.role?.name,
+        tenantId: data?.me?.tenantId
+      });
+    }
+  }, [data, router, locale, client]);
+
   const handleMarkAsRead = (id: string) => {
     markAsRead({
       variables: {
@@ -310,6 +400,17 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl mb-4">Redirecting to your dashboard...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
       </div>
     );
   }
