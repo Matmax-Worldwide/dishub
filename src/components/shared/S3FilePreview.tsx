@@ -21,7 +21,6 @@ interface S3FilePreviewProps {
   fileType?: string;
   showDownload?: boolean;
   fileName?: string;
-  showMetadata?: boolean;
   onDimensionsLoaded?: (dimensions: {width: number; height: number}) => void;
 }
 
@@ -126,54 +125,6 @@ const formatDuration = (seconds: number): string => {
   }
 };
 
-
-
-// Metadata display component
-const MetadataOverlay = ({ 
-  imageDimensions, 
-  videoDuration, 
-  videoDimensions,
-  fileSize, 
-  showMetadata 
-}: {
-  imageDimensions: { width: number; height: number } | null;
-  videoDuration: number | null;
-  videoDimensions: { width: number; height: number } | null;
-  fileSize: string | null;
-  showMetadata: boolean;
-}) => {
-  if (!showMetadata) return null;
-
-  return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[300]">
-      {imageDimensions && (
-        <div className="flex justify-between">
-          <span>Dimensions:</span>
-          <span>{imageDimensions.width} × {imageDimensions.height}px</span>
-        </div>
-      )}
-      {videoDimensions && (
-        <div className="flex justify-between">
-          <span>Resolution:</span>
-          <span>{videoDimensions.width} × {videoDimensions.height}px</span>
-        </div>
-      )}
-      {videoDuration && (
-        <div className="flex justify-between">
-          <span>Duration:</span>
-          <span>{formatDuration(videoDuration)}</span>
-        </div>
-      )}
-      {fileSize && (
-        <div className="flex justify-between">
-          <span>Size:</span>
-          <span>{fileSize}</span>
-        </div>
-      )}
-    </div>
-  );
-};
-
 /**
  * Componente optimizado para mostrar previsualizaciones de archivos de S3
  * Usa caché global para evitar múltiples llamadas a la API
@@ -184,7 +135,6 @@ const S3FilePreview = ({
   className = '', 
   fileType: providedFileType,
   fileName,
-  showMetadata = false,
   onDimensionsLoaded
 }: S3FilePreviewProps) => {
   const [imageError, setImageError] = useState(false);
@@ -624,13 +574,6 @@ const S3FilePreview = ({
               <SkeletonLoader />
             </div>
           )}
-          <MetadataOverlay 
-            imageDimensions={imageDimensions} 
-            videoDuration={videoDuration} 
-            videoDimensions={videoDimensions}
-            fileSize={fileSize} 
-            showMetadata={showMetadata} 
-          />
         </div>
       );
     }
@@ -671,13 +614,6 @@ const S3FilePreview = ({
               <SkeletonLoader />
             </div>
           )}
-          <MetadataOverlay 
-            imageDimensions={imageDimensions} 
-            videoDuration={videoDuration} 
-            videoDimensions={videoDimensions}
-            fileSize={fileSize} 
-            showMetadata={showMetadata} 
-          />
         </div>
       );
     }
@@ -719,13 +655,6 @@ const S3FilePreview = ({
               <SkeletonLoader />
             </div>
           )}
-          <MetadataOverlay 
-            imageDimensions={imageDimensions} 
-            videoDuration={videoDuration} 
-            videoDimensions={videoDimensions}
-            fileSize={fileSize} 
-            showMetadata={showMetadata} 
-          />
         </div>
       );
     }
@@ -766,13 +695,6 @@ const S3FilePreview = ({
             <SkeletonLoader />
           </div>
         )}
-        <MetadataOverlay 
-          imageDimensions={imageDimensions} 
-          videoDuration={videoDuration} 
-          videoDimensions={videoDimensions}
-          fileSize={fileSize} 
-          showMetadata={showMetadata} 
-        />
       </div>
     );
   };
@@ -849,13 +771,6 @@ const S3FilePreview = ({
           >
             Tu navegador no soporta el tag de video.
           </video>
-          <MetadataOverlay 
-            imageDimensions={imageDimensions} 
-            videoDuration={videoDuration} 
-            videoDimensions={videoDimensions}
-            fileSize={fileSize} 
-            showMetadata={showMetadata} 
-          />
         </div>
       ) : (
         // Para otros archivos, mostrar un icono basado en el tipo
@@ -870,4 +785,4 @@ const S3FilePreview = ({
   );
 };
 
-export default S3FilePreview; 
+export default S3FilePreview;
