@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features'; // Import from config
 
 // Zod schema for validation
@@ -54,7 +54,6 @@ interface TenantFormProps {
 }
 
 export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSaved }: TenantFormProps) {
-  const { toast } = useToast();
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<TenantFormData>({
     resolver: zodResolver(tenantFormSchema),
     defaultValues: {
@@ -105,16 +104,17 @@ export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSave
     try {
       if (tenantToEdit && tenantToEdit.id) {
         await updateTenantMutation({ variables: { input: { id: tenantToEdit.id, ...payload } } });
-        toast({ title: "Tenant Updated", description: `Tenant "${payload.name}" has been updated successfully.` });
+        toast.success(`Tenant "${payload.name}" has been updated successfully.`);
       } else {
         await createTenantMutation({ variables: { input: payload } });
-        toast({ title: "Tenant Created", description: `Tenant "${payload.name}" has been created successfully.` });
+        toast.success(`Tenant "${payload.name}" has been created successfully.`);
       }
       onTenantSaved();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save tenant:", error);
-      toast({ title: "Error saving tenant", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+      toast.error("Error saving tenant", { description: errorMessage });
     }
   };
 
