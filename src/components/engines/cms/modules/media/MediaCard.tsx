@@ -93,7 +93,7 @@ export function MediaCard({
           showMetadata={true}
           onDimensionsLoaded={handleDimensionsLoaded}
         />
-        <div className="absolute top-2 left-2 z-40">
+        <div className="absolute top-2 left-2 z-[9998]">
           <input
             type="checkbox"
             checked={isSelected}
@@ -105,7 +105,7 @@ export function MediaCard({
       </div>
       
       {/* Hover controls covering the entire card */}
-      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100 z-30">
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100 z-[9999]">
         <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={() => onDelete(id)} />
       </div>
       

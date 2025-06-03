@@ -145,7 +145,7 @@ const MetadataOverlay = ({
   if (!showMetadata) return null;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[15]">
+    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[100]">
       {imageDimensions && (
         <div className="flex justify-between">
           <span>Dimensions:</span>
@@ -254,16 +254,16 @@ const S3FilePreview = ({
     // Debug logging
     if (process.env.NODE_ENV === 'development') {
       console.log('[S3FilePreview] Analysis:', {
-        src,
-        providedFileType,
-        detectedFileType,
-        isImage,
-        isPdf,
-        isVideo,
-        isSvg,
-        fileCategory,
-        urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
-      });
+      src,
+      providedFileType,
+      detectedFileType,
+      isImage,
+      isPdf,
+      isVideo,
+      isSvg,
+      fileCategory,
+      urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
+    });
       
       // Special logging for common image formats
       if (urlLower.includes('png') || detectedFileType.includes('png') ||
@@ -328,11 +328,11 @@ const S3FilePreview = ({
   if (!src || typeof src !== 'string' || src.trim() === '') {
     return null;
   }
-  
+
   // Handler for successful image load
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     try {
-      const target = event.currentTarget as HTMLImageElement;
+    const target = event.currentTarget as HTMLImageElement;
       const loadTime = Date.now() - loadStartTime;
       
       setIsLoading(false);
@@ -538,7 +538,7 @@ const S3FilePreview = ({
       </div>
     </div>
   );
-
+  
   // Renderizar componente de imagen
   const renderImage = () => {
     if (imageError) {
@@ -594,7 +594,7 @@ const S3FilePreview = ({
           <img
             src={src} // Use original URL directly for common image formats
             alt={alt}
-            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={(e) => {
               console.log(`[S3FilePreview] ${imageType} direct load failed, trying API route`);
@@ -646,7 +646,7 @@ const S3FilePreview = ({
           <img
             src={safeFinalUrl} 
             alt={alt}
-            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
@@ -689,15 +689,15 @@ const S3FilePreview = ({
               }}
             />
           )}
-          <Image
+        <Image
             src={safeFinalUrl} 
-            alt={alt}
-            className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          alt={alt}
+            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            loading="lazy"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          loading="lazy"
           />
           {isLoading && (
             <div className="absolute inset-0 z-[25]">
@@ -736,14 +736,14 @@ const S3FilePreview = ({
             }}
           />
         )}
-        <Image 
+      <Image 
           src={safeFinalUrl}
-          alt={alt}
+        alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`relative z-[2] w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
+          className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
           loading="lazy"
         />
         {isLoading && (
@@ -813,15 +813,15 @@ const S3FilePreview = ({
       ) : isVideo ? (
         // Para videos, usar un tag de video
         <div className="relative w-full h-full overflow-hidden">
-          <video 
+        <video 
             src={safeFinalUrl} 
-            controls 
+          controls 
             className={className || "w-full h-full object-cover"}
-            onClick={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
             onLoadedMetadata={handleVideoLoadedMetadata}
-          >
-            Tu navegador no soporta el tag de video.
-          </video>
+        >
+          Tu navegador no soporta el tag de video.
+        </video>
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 
