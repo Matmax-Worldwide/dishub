@@ -1171,6 +1171,21 @@ export interface HeaderStyleInput {
   transparentHeader?: boolean;
   borderBottom?: boolean;
   fixedHeader?: boolean;
+  buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  buttonBorderColor?: string;
+  buttonBorderWidth?: number;
+  buttonWidth?: string;
+  buttonHeight?: string;
+  buttonPosition?: 'left' | 'center' | 'right';
+  buttonDropdown?: boolean;
+  buttonDropdownItems?: Array<{id: string; label: string; url: string}>;
+  showButton?: boolean;
+  buttonText?: string;
+  buttonAction?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  buttonSize?: 'sm' | 'md' | 'lg';
+  buttonBorderRadius?: number;
   advancedOptions?: Record<string, unknown>;
 }
 
@@ -2162,6 +2177,20 @@ export const cmsOperations = {
         transparentHeader: boolean;
         borderBottom: boolean;
         fixedHeader?: boolean;
+        buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+        buttonBorderColor?: string;
+        buttonBorderWidth?: number;
+        buttonWidth?: string;
+        buttonHeight?: string;
+        buttonPosition?: 'left' | 'center' | 'right';
+        buttonDropdown?: boolean;
+        showButton?: boolean;
+        buttonText?: string;
+        buttonAction?: string;
+        buttonColor?: string;
+        buttonTextColor?: string;
+        buttonSize?: 'sm' | 'md' | 'lg';
+        buttonBorderRadius?: number;
         advancedOptions?: Record<string, unknown>;
       };
       footerStyle?: {
@@ -2222,6 +2251,20 @@ export const cmsOperations = {
               transparentHeader
               borderBottom
               fixedHeader
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
               advancedOptions
             }
             footerStyle {
@@ -2276,6 +2319,13 @@ export const cmsOperations = {
           mobileMenuPosition: string;
           transparentHeader: boolean;
           borderBottom: boolean;
+          showButton?: boolean;
+          buttonText?: string;
+          buttonAction?: string;
+          buttonColor?: string;
+          buttonTextColor?: string;
+          buttonSize?: 'sm' | 'md' | 'lg';
+          buttonBorderRadius?: number;
           advancedOptions?: Record<string, unknown>;
         };
         footerStyle?: {
@@ -2321,6 +2371,20 @@ export const cmsOperations = {
       transparentHeader: boolean;
       borderBottom: boolean;
       fixedHeader: boolean;
+      buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+      buttonBorderColor?: string;
+      buttonBorderWidth?: number;
+      buttonWidth?: string;
+      buttonHeight?: string;
+      buttonPosition?: 'left' | 'center' | 'right';
+      buttonDropdown?: boolean;
+      showButton?: boolean;
+      buttonText?: string;
+      buttonAction?: string;
+      buttonColor?: string;
+      buttonTextColor?: string;
+      buttonSize?: 'sm' | 'md' | 'lg';
+      buttonBorderRadius?: number;
       advancedOptions?: Record<string, unknown>;
     };
   }> => {
@@ -2342,6 +2406,20 @@ export const cmsOperations = {
               transparentHeader
               borderBottom
               fixedHeader
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
               advancedOptions
               createdAt
               updatedAt
@@ -2371,6 +2449,20 @@ export const cmsOperations = {
             transparentHeader: boolean;
             borderBottom: boolean;
             fixedHeader: boolean;
+            buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: 'left' | 'center' | 'right';
+            buttonDropdown?: boolean;
+            showButton?: boolean;
+            buttonText?: string;
+            buttonAction?: string;
+            buttonColor?: string;
+            buttonTextColor?: string;
+            buttonSize?: 'sm' | 'md' | 'lg';
+            buttonBorderRadius?: number;
             advancedOptions?: Record<string, unknown>;
             createdAt: string;
             updatedAt: string;
@@ -2448,6 +2540,20 @@ export const cmsOperations = {
               borderBottom
               advancedOptions
               fixedHeader
+              buttonShadow
+              buttonBorderColor
+              buttonBorderWidth
+              buttonWidth
+              buttonHeight
+              buttonPosition
+              buttonDropdown
+              showButton
+              buttonText
+              buttonAction
+              buttonColor
+              buttonTextColor
+              buttonSize
+              buttonBorderRadius
             }
           }
         }
@@ -2493,6 +2599,20 @@ export const cmsOperations = {
             transparentHeader: boolean;
             borderBottom: boolean;
             fixedHeader?: boolean;
+            buttonShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+            buttonBorderColor?: string;
+            buttonBorderWidth?: number;
+            buttonWidth?: string;
+            buttonHeight?: string;
+            buttonPosition?: 'left' | 'center' | 'right';
+            buttonDropdown?: boolean;
+            showButton?: boolean;
+            buttonText?: string;
+            buttonAction?: string;
+            buttonColor?: string;
+            buttonTextColor?: string;
+            buttonSize?: 'sm' | 'md' | 'lg';
+            buttonBorderRadius?: number;
             advancedOptions?: Record<string, unknown>;
           } | null;
         } | null;
