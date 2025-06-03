@@ -5,20 +5,21 @@ export type RoleName = 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'USER' | 'SUPER_ADMIN'
 // Base User/Post Permissions
 const ADMIN_BASE_PERMISSIONS = [
   'read:user', 'create:user', 'update:user', 'delete:user',
-  'read:post', 
-  'manage:settings', 
+  'read:post',
+  'manage:settings',
   'access:adminDashboard',
-  'update:site_settings', 
+  'update:site_settings',
 ];
 const MANAGER_BASE_PERMISSIONS = [
-  'read:user', 
-  'read:post', 
+  'read:user',
+  'read:post',
   'access:managerDashboard',
 ];
 const EMPLOYEE_BASE_PERMISSIONS = [
-  'read:post', 
-  'update:ownPost', 
+  'read:post',
+  'update:ownPost',
   'access:employeeDashboard',
+  'update:ownProfile', // General self-profile update
 ];
 
 // CMS Permissions
@@ -32,7 +33,7 @@ const MANAGER_CMS_PERMISSIONS = [
   'read:cms_section_definitions', 'read:any_page', 'browse:cms_components', 'read:cms_component_definition',
   'list:all_pages', 'find:pages_by_section', 'delete:cms_section', 'update:cms_section_metadata',
   'edit:cms_content', 'create:page', 'edit:page', 'edit:page_structure',
-  'manage:cms_components', 
+  'manage:cms_components',
 ];
 const EMPLOYEE_CMS_PERMISSIONS = [
   'read:cms_section_definitions', 'browse:cms_components', 'read:cms_component_definition',
@@ -41,15 +42,15 @@ const EMPLOYEE_CMS_PERMISSIONS = [
 
 // Blog and Post Management Permissions
 const ADMIN_BLOG_POST_PERMISSIONS = [
-  'create:blog', 'update:blog', 'delete:blog', 
+  'create:blog', 'update:blog', 'delete:blog',
   'create:post', 'update:any_post', 'delete:post'
 ];
 const MANAGER_BLOG_POST_PERMISSIONS = [
-  'create:blog', 'update:blog', 
+  'create:blog', 'update:blog',
   'create:post', 'update:any_post', 'delete:post'
 ];
 const EMPLOYEE_BLOG_POST_PERMISSIONS = [
-  'create:post', 'update:any_post'
+  'create:post', 'update:any_post' // Assuming update:any_post means they can update posts they are assigned or have rights to, not literally any post.
 ];
 
 // E-commerce Permissions
@@ -66,20 +67,20 @@ const ADMIN_ECOMMERCE_PERMISSIONS = [
   'view:shipping_zones', 'manage:shipping_zones',
 ];
 const MANAGER_ECOMMERCE_PERMISSIONS = [
-  'list:shops', 'view:shop_details', 
-  'list:products', 'view:any_product', 'create:product', 'update:any_product', 'delete:any_product', 
-  'manage:product_categories', 
-  'list:orders', 'view:any_order', 'update:any_order', 
-  'view:payments', 
-  'manage:customers', 
-  'manage:discounts', 
+  'list:shops', 'view:shop_details',
+  'list:products', 'view:any_product', 'create:product', 'update:any_product', 'delete:any_product',
+  'manage:product_categories',
+  'list:orders', 'view:any_order', 'update:any_order',
+  'view:payments',
+  'manage:customers',
+  'manage:discounts',
 ];
-const USER_ECOMMERCE_PERMISSIONS = [ 
+const USER_ECOMMERCE_PERMISSIONS = [
   'view:own_orders', 'create:order', 'view:cart', 'update:cart',
   'view:public_products', 'view:product_details',
 ];
 
-// Calendar / Appointment Permissions (New)
+// Calendar / Appointment Permissions
 const ADMIN_CALENDAR_PERMISSIONS = [
   'view:staff_profile',         // View any staff member's profile/schedule
   'list:staff_profiles',        // List all staff
@@ -95,11 +96,24 @@ const ADMIN_CALENDAR_PERMISSIONS = [
   'assign:staff_to_service',    // Link staff to services they provide
   'assign:staff_to_location',   // Link staff to locations they operate from
 ];
-const STAFF_CALENDAR_PERMISSIONS = [ // Permissions for a 'STAFF' role or an 'EMPLOYEE' who is also staff
-  'view:staff_profile',         // Typically own or team's profiles
-  'list:all_bookings',          // View bookings, perhaps filtered to own or team
-  'update:own_staff_schedule',  // Staff can manage their own availability/schedule
-  'create:booking_for_others',  // Staff can create bookings for clients (e.g., walk-ins)
+const STAFF_CALENDAR_PERMISSIONS = [
+  'view:staff_profile',
+  'list:all_bookings',
+  'update:own_staff_schedule',
+  'create:booking_for_others',
+];
+
+// Employee Management Permissions (New)
+const ADMIN_MANAGER_EMPLOYEE_MGMT_PERMISSIONS = [
+  'list:employees',
+  'view:any_employee_profile',
+  'list:employees_by_department',
+  'create:employee',
+  'update:employee',
+  'assign:employee_to_department',
+];
+const EMPLOYEE_SELF_VIEW_PERMISSIONS = [
+  'view:own_employee_profile',
 ];
 
 export const rolePermissions: Record<RoleName, string[]> = {
@@ -109,16 +123,18 @@ export const rolePermissions: Record<RoleName, string[]> = {
       ...ADMIN_CMS_PERMISSIONS,
       ...ADMIN_BLOG_POST_PERMISSIONS,
       ...ADMIN_ECOMMERCE_PERMISSIONS,
-      ...ADMIN_CALENDAR_PERMISSIONS // Added
+      ...ADMIN_CALENDAR_PERMISSIONS,
+      ...ADMIN_MANAGER_EMPLOYEE_MGMT_PERMISSIONS, // Added
     ])
   ],
-  'SUPER_ADMIN': [ 
+  'SUPER_ADMIN': [
     ...new Set([
       ...ADMIN_BASE_PERMISSIONS,
       ...ADMIN_CMS_PERMISSIONS,
       ...ADMIN_BLOG_POST_PERMISSIONS,
       ...ADMIN_ECOMMERCE_PERMISSIONS,
-      ...ADMIN_CALENDAR_PERMISSIONS, // Added
+      ...ADMIN_CALENDAR_PERMISSIONS,
+      ...ADMIN_MANAGER_EMPLOYEE_MGMT_PERMISSIONS, // Added also to SUPER_ADMIN assuming they get all ADMIN rights
       // Add any SUPER_ADMIN specific permissions here
     ])
   ],
@@ -128,35 +144,36 @@ export const rolePermissions: Record<RoleName, string[]> = {
       ...MANAGER_CMS_PERMISSIONS,
       ...MANAGER_BLOG_POST_PERMISSIONS,
       ...MANAGER_ECOMMERCE_PERMISSIONS,
+      ...ADMIN_MANAGER_EMPLOYEE_MGMT_PERMISSIONS, // Added
       // Managers might get some calendar admin rights, e.g., for their team
-      'view:staff_profile', 'list:staff_profiles', 'list:all_bookings', 
-      'create:booking_for_others', 
+      'view:staff_profile', 'list:staff_profiles', 'list:all_bookings',
+      'create:booking_for_others',
     ])
   ],
-  'EMPLOYEE': [ // General employee, might not have specific staff calendar functions unless also 'STAFF'
+  'EMPLOYEE': [
     ...new Set([
       ...EMPLOYEE_BASE_PERMISSIONS,
       ...EMPLOYEE_CMS_PERMISSIONS,
       ...EMPLOYEE_BLOG_POST_PERMISSIONS,
+      ...EMPLOYEE_SELF_VIEW_PERMISSIONS, // Added
       // If an Employee can also be bookable staff, they might get STAFF_CALENDAR_PERMISSIONS too.
-      // Or, create a distinct 'STAFF' role. For now, adding to EMPLOYEE if they are staff.
       // This depends on how you map users to roles.
     ])
   ],
-  'STAFF': [ // Specific role for bookable staff members
+  'STAFF': [
     ...new Set([
-      ...EMPLOYEE_BASE_PERMISSIONS, // Staff are often employees
-      // ... potentially some EMPLOYEE_CMS_PERMISSIONS if they write content
+      ...EMPLOYEE_BASE_PERMISSIONS,
       ...STAFF_CALENDAR_PERMISSIONS,
+      ...EMPLOYEE_SELF_VIEW_PERMISSIONS, // Staff should also view their own profile
     ])
   ],
-  'USER': [ 
-    'read:post', 
-    'update:ownProfile',
+  'USER': [
+    'read:post',
+    'update:ownProfile', // General profile update for a non-employee user
     'create:comment',
     ...USER_ECOMMERCE_PERMISSIONS,
     // Customers might get some calendar permissions like:
-    'create:own_booking', 
+    'create:own_booking',
     'view:own_bookings',
     'cancel:own_booking',
   ],

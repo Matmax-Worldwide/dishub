@@ -73,7 +73,7 @@ export const calendarResolvers = {
       try {
         const locations = await prisma.location.findMany({ 
           orderBy: { name: 'asc' },
-          include: { services: { take: 5, include: { service: {select : {name: true, id: true}} } }, bookingRules: { take: 1} } 
+          include: { services: { take: 5, include: { service: {select : {name: true, id: true}} } }, bookingRules: { take: 1} }
         });
         return locations || [];
       } catch (error) { console.error('Error fetching locations:', error); return []; }
@@ -88,7 +88,7 @@ export const calendarResolvers = {
     serviceCategories: async (_parent: unknown, _args: unknown, context: Context) => {
       // Auth handled by shield
       try {
-        return await prisma.serviceCategory.findMany({ 
+        return await prisma.serviceCategory.findMany({
           orderBy: { displayOrder: 'asc' },
           include: { services: { take: 3, select: {name: true, id: true} } } 
         }) || [];
@@ -166,7 +166,7 @@ export const calendarResolvers = {
       // Auth handled by shield
       try {
         const rule = await prisma.bookingRule.findFirst({ where: { locationId: null } });
-        if (!rule) { /* ... original default rule creation ... */ 
+        if (!rule) { /* ... original default rule creation ... */
             return await prisma.bookingRule.create({ data: { advanceBookingHoursMin: 24, advanceBookingDaysMax: 90, sameDayCutoffTime: "12:00", bufferBetweenAppointmentsMinutes: 15, maxAppointmentsPerDayPerStaff: 8, bookingSlotIntervalMinutes: 30, locationId: null } });
         }
         return rule;
@@ -174,7 +174,7 @@ export const calendarResolvers = {
     },
     availableSlots: async (_parent: unknown, { serviceId, locationId, staffProfileId, date }: { serviceId: string; locationId: string; staffProfileId?: string; date: string; }, context: Context) => {
       // Auth handled by shield (likely 'allow' or basic isAuthenticated)
-      try { /* ... original complex logic preserved ... */ 
+      try { /* ... original complex logic preserved ... */
         const service = await prisma.service.findUnique({ where: { id: serviceId }, include: { serviceCategory: true } });
         if (!service) throw new Error(`Service with ID ${serviceId} not found`);
         const location = await prisma.location.findUnique({ where: { id: locationId } });
@@ -395,7 +395,7 @@ export const calendarResolvers = {
     },
     assignStaffToService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: Context) => {
       // Auth by shield
-      try { /* ... original logic ... */ 
+      try { /* ... original logic ... */
         const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
         const service = await prisma.service.findUnique({ where: { id: serviceId } }); if (!service) throw new Error(`Service with ID ${serviceId} not found`);
         const existingAssignment = await prisma.staffService.findUnique({ where: { staffProfileId_serviceId: { staffProfileId, serviceId } } });
@@ -407,7 +407,7 @@ export const calendarResolvers = {
     },
     removeStaffFromService: async (_parent: unknown, { staffProfileId, serviceId }: { staffProfileId: string; serviceId: string }, context: Context) => {
       // Auth by shield
-      try { /* ... original logic ... */ 
+      try { /* ... original logic ... */
         const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
         const service = await prisma.service.findUnique({ where: { id: serviceId } }); if (!service) throw new Error(`Service with ID ${serviceId} not found`);
         const existingAssignment = await prisma.staffService.findUnique({ where: { staffProfileId_serviceId: { staffProfileId, serviceId } } });
@@ -419,7 +419,7 @@ export const calendarResolvers = {
     },
     assignStaffToLocation: async (_parent: unknown, { staffProfileId, locationId }: { staffProfileId: string; locationId: string }, context: Context) => {
       // Auth by shield
-      try { /* ... original logic ... */ 
+      try { /* ... original logic ... */
         const staffProfile = await prisma.staffProfile.findUnique({ where: { id: staffProfileId }, include: { user: true } }); if (!staffProfile) throw new Error(`Staff profile with ID ${staffProfileId} not found`);
         const location = await prisma.location.findUnique({ where: { id: locationId } }); if (!location) throw new Error(`Location with ID ${locationId} not found`);
         const existingAssignment = await prisma.staffLocationAssignment.findUnique({ where: { staffProfileId_locationId: { staffProfileId, locationId } } });

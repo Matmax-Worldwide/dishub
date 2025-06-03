@@ -164,7 +164,7 @@ export const appointmentResolvers = {
         if (input.meetingUrl !== undefined) updateData.meetingUrl = input.meetingUrl;
         if (input.startTime !== undefined) updateData.startTime = new Date(input.startTime);
         if (input.endTime !== undefined) updateData.endTime = new Date(input.endTime);
-        
+
         if (updateData.startTime && updateData.endTime && updateData.startTime >= updateData.endTime) {
           throw new GraphQLError('Start time must be before end time');
         } else if (updateData.startTime && !updateData.endTime && updateData.startTime >= existingAppointment.endTime) {

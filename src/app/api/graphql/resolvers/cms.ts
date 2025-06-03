@@ -57,13 +57,13 @@ export const cmsResolvers = {
         const { slug } = args;
         const page = await prisma.page.findUnique({
           where: { slug },
-          include: { 
-            seo: true 
+          include: {
+            seo: true
             // Removed: sections: true (will be handled by Page.sections field resolver)
           }
         });
         // The 'sections' field will be resolved by the Page.sections resolver using DataLoader
-        return page; 
+        return page;
       } catch (error) {
         console.error('Error in getPageBySlug:', error);
         return null;
@@ -77,8 +77,8 @@ export const cmsResolvers = {
         console.log(`Looking for page with ID: ${id}`);
         const page = await prisma.page.findUnique({
           where: { id },
-          include: { 
-            seo: true 
+          include: {
+            seo: true
             // Removed: sections: true
           }
         });
@@ -117,7 +117,7 @@ export const cmsResolvers = {
             }
           }
         });
-        
+
         if (sectionFromDB) {
           const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
             id: sc.id,
@@ -131,7 +131,7 @@ export const cmsResolvers = {
         } else {
           console.log('Section not found or creating new for ID:', sectionId);
           const timestamp = new Date();
-          const newSection = await prisma.cMSSection.upsert({ 
+          const newSection = await prisma.cMSSection.upsert({
             where: { sectionId: sectionId },
             update: { lastUpdated: timestamp },
             create: {
@@ -143,9 +143,9 @@ export const cmsResolvers = {
               updatedAt: timestamp
             }
           });
-          return { 
-            components: [], 
-            lastUpdated: newSection.lastUpdated.toISOString() 
+          return {
+            components: [],
+            lastUpdated: newSection.lastUpdated.toISOString()
           };
         }
       } catch (error) {
@@ -203,8 +203,8 @@ export const cmsResolvers = {
       console.log('======== START getAllCMSPages resolver (Dataloader for sections) ========');
       try {
         const pages = await prisma.page.findMany({
-          include: { 
-            seo: true 
+          include: {
+            seo: true
             // Removed: sections: true
           },
           orderBy: { createdAt: 'desc' }
@@ -228,7 +228,7 @@ export const cmsResolvers = {
         if (!section) return [];
         console.log(`Sección encontrada: ${section.id} (${section.name})`);
         const pages = await prisma.$queryRaw<PrismaPage[]>`
-          SELECT p.* FROM "Page" p 
+          SELECT p.* FROM "Page" p
           JOIN "_PageToSection" pts ON p."id" = pts."B" 
           JOIN "CMSSection" s ON s."id" = pts."A"
           WHERE s."id" = ${section.id} OR s."sectionId" = ${sectionId}
@@ -249,9 +249,9 @@ export const cmsResolvers = {
         const { locale } = args;
         const page = await prisma.page.findFirst({
           where: { isDefault: true, locale, isPublished: true },
-          include: { 
+          include: {
             seo: true
-            // Removed: sections: true 
+            // Removed: sections: true
           }
         });
         // Sections will be resolved by Page.sections field resolver
@@ -322,10 +322,10 @@ export const cmsResolvers = {
         return { success: false, message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, lastUpdated: null, };
       }
     },
-    
+
     // createCMSSection (Already refactored to use Context for createdBy)
-    createCMSSection: async (_parent: unknown, args: { 
-      input: { sectionId: string; name: string; description?: string; backgroundImage?: string; backgroundType?: string; } 
+    createCMSSection: async (_parent: unknown, args: {
+      input: { sectionId: string; name: string; description?: string; backgroundImage?: string; backgroundType?: string; }
     }, context: Context) => { // Changed ResolverContext to Context
       console.log('📝 Starting createCMSSection resolver');
       try {
@@ -350,8 +350,8 @@ export const cmsResolvers = {
     },
 
     // createPage (Already refactored to use Context for createdById)
-    createPage: async (_parent: unknown, args: { 
-      input: { title: string; slug: string; description?: string; template?: string; isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[]; } 
+    createPage: async (_parent: unknown, args: {
+      input: { title: string; slug: string; description?: string; template?: string; isPublished?: boolean; publishDate?: string | null; featuredImage?: string | null; metaTitle?: string | null; metaDescription?: string | null; parentId?: string | null; order?: number; pageType?: string; locale?: string; isDefault?: boolean; sections?: string[]; }
     }, context: Context) => { // Changed ResolverContext to Context
       console.log('======== START createPage resolver ========');
       try {
@@ -380,7 +380,7 @@ export const cmsResolvers = {
             order: input.order !== undefined ? input.order : 0,
             pageType: (input.pageType as PrismaPageType) || PrismaPageType.CONTENT,
             locale: localeToUse, isDefault: shouldSetAsDefault,
-            createdById: context.user?.id || "system", 
+            createdById: context.user?.id || "system",
             createdAt: timestamp, updatedAt: timestamp
         };
         const newPage = await prisma.page.create({ data: newPageData });
@@ -655,19 +655,19 @@ export const cmsResolvers = {
     sections: async (parentPage: PrismaPage, _args: any, context: Context, _info: any) => {
       if (!parentPage.id) {
         console.log(`Page.sections resolver: parentPage.id is missing for page titled "${parentPage.title}"`);
-        return []; 
+        return [];
       }
       try {
         console.log(`Page.sections resolver: Loading sections for page ID: ${parentPage.id}`);
         return await context.loaders.sectionLoader.load(parentPage.id);
       } catch (error) {
         console.error(`Error loading sections for page ${parentPage.id} via DataLoader:`, error);
-        return []; 
+        return [];
       }
     }
   },
 
-  JSON: { 
+  JSON: {
     __serialize(value: unknown) {
       return value;
     },

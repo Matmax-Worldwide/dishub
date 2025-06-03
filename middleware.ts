@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMiddleware } from '@/lib/middleware/factory';
 import { newMiddlewareStack } from '@/middleware/enhanced';
-import { isSimpleFeatureEnabled } from '@/lib/feature-flags'; 
+import { isSimpleFeatureEnabled } from '@/lib/feature-flags';
 // RoleName import removed as legacyRoutePermissions is removed
-// import { RoleName } from './hooks/usePermission'; 
+// import { RoleName } from './hooks/usePermission';
 
 // --- START OF LEGACY MIDDLEWARE LOGIC ---
 // Removed: legacyLocales, legacyDefaultLocale, and legacyRoutePermissions constants
@@ -30,17 +30,17 @@ async function legacyMiddleware(request: NextRequest, response: NextResponse): P
   console.log('Legacy middleware (all core logic removed) completed. Passing to next.');
   // The legacy middleware, when active (flag OFF), now does nothing but log and pass through.
   // All responsibilities are on the new middleware stack or will be progressively added there.
-  return NextResponse.next(); 
+  return NextResponse.next();
 }
 // --- END OF LEGACY MIDDLEWARE LOGIC ---
 
 export default createMiddleware(async (request: NextRequest) => {
-  const baseResponse = NextResponse.next(); 
+  const baseResponse = NextResponse.next();
 
   if (isSimpleFeatureEnabled(request, 'use-new-middleware')) {
     console.log('Using new middleware stack.');
     const result = await newMiddlewareStack(request, baseResponse);
-    return result || baseResponse; 
+    return result || baseResponse;
   } else {
     console.log('Using legacy middleware stack (all core logic removed).');
     return legacyMiddleware(request, baseResponse);

@@ -21,11 +21,11 @@ export const batchSectionsByPageIds = async (pageIds: readonly string[]): Promis
       id: { in: pageIds as string[] },
     },
     include: {
-      sections: { 
+      sections: {
         include: {
-          components: { 
-            include: { 
-              component: true 
+          components: {
+            include: {
+              component: true
             },
             orderBy: {
               order: 'asc' // Order for components within a section
@@ -82,6 +82,6 @@ export const batchSectionsByPageIds = async (pageIds: readonly string[]): Promis
 // Page: {
 //   sections: async (parentPage: Page, _args: any, context: MyContext, _info: any) => {
 //     if (!parentPage.id) return [];
-//     return context.loaders.sectionLoader.load(parentPage.id); 
+//     return context.loaders.sectionLoader.load(parentPage.id);
 //   }
 // }

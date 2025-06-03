@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust if path is different
 import { verifyToken } from '@/lib/auth'; // Assuming this path is correct from src/
-import { cookies } from 'next/headers'; 
+import { cookies } from 'next/headers';
 
 // Fallback helper if x-active-locale header is not present
 const getLocaleFromPath = (pathname: string): string => {
-  const defaultLocaleForAuth = 'es'; 
-  const supportedLocales = ['en', 'es', 'de']; 
-  
+  const defaultLocaleForAuth = 'es';
+  const supportedLocales = ['en', 'es', 'de'];
+
   if (!pathname) return defaultLocaleForAuth;
   const segments = pathname.split('/');
   if (segments.length > 1 && supportedLocales.includes(segments[1])) {
@@ -18,14 +18,14 @@ const getLocaleFromPath = (pathname: string): string => {
 
 export const withAuth: MiddlewareFunction = async (req, res) => {
   const { pathname, searchParams, origin } = req.nextUrl;
-  
+
   // Attempt to read locale and path information from headers set by withI18n
   const activeLocaleFromHeader = req.headers.get('x-active-locale');
   const pathWithoutLocaleFromHeader = req.headers.get('x-path-without-locale');
 
   // Determine currentLocale: prioritize header, fallback to path parsing
   const currentLocale = activeLocaleFromHeader || getLocaleFromPath(pathname);
-  
+
   // Determine pathWithoutLocale for public route checks: prioritize header, fallback to calculation
   let pathToUseForPublicCheck: string;
   if (pathWithoutLocaleFromHeader) {
@@ -59,8 +59,8 @@ export const withAuth: MiddlewareFunction = async (req, res) => {
   if (!token) {
     console.log(`withAuth: No token for path '${pathname}'. Redirecting to login using locale '${currentLocale}'.`);
     const callbackUrl = pathname + searchParams.toString();
-    const loginUrl = new URL(`/${currentLocale}/login`, origin); 
-    loginUrl.searchParams.set('callbackUrl', callbackUrl); 
+    const loginUrl = new URL(`/${currentLocale}/login`, origin);
+    loginUrl.searchParams.set('callbackUrl', callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -73,7 +73,7 @@ export const withAuth: MiddlewareFunction = async (req, res) => {
       return NextResponse.redirect(loginUrl);
     }
 
-    let userRole = 'USER'; 
+    let userRole = 'USER';
     if (decodedResult.role) {
       if (typeof decodedResult.role === 'string') {
         userRole = decodedResult.role;

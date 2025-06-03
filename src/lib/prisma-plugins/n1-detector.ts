@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
-// Assuming 'next-axiom' or a similar logger is set up. 
+// Assuming 'next-axiom' or a similar logger is set up.
 // If not, replace log.warn with console.warn or appropriate logger.
-// import { log } from 'next-axiom'; 
+// import { log } from 'next-axiom';
 
 // Define a type for the call site, if possible and useful
 interface CallSite {
@@ -14,9 +14,9 @@ interface CallSite {
 function getCallSite(errorStack: string): CallSite | undefined {
   const lines = errorStack.split('\n');
   // More robust parsing logic might be needed depending on stack trace format
-  const relevantLine = lines.find(line => 
+  const relevantLine = lines.find(line =>
     line.includes('/app/') && // Adjust if your relevant app code isn't under /app/
-    !line.includes('node_modules') && 
+    !line.includes('node_modules') &&
     !line.includes('n1-detector.ts') &&
     !line.includes('PrismaClientFetcher') &&
     !line.includes('PrismaManager') // Exclude PrismaManager itself
@@ -41,7 +41,7 @@ function getCallSite(errorStack: string): CallSite | undefined {
       functionName: functionName?.trim() || undefined,
     };
   }
-  
+
   // Fallback for simpler stack trace lines if the regex fails
   const simpleMatch = relevantLine.match(/\(([^)]+)\)|([^\s]+)$/);
   if (simpleMatch) {
@@ -75,7 +75,7 @@ export function n1DetectorPlugin(): Prisma.Middleware {
     if (!isRelevantOperation || !model) {
       return next(params);
     }
-    
+
     // Consider query arguments for a more precise signature, if needed.
     // Be cautious with large argument objects in the key.
     const operationSignature = `${model}.${action}-${JSON.stringify(params.args?.where || {})}`;
@@ -114,7 +114,7 @@ export function n1DetectorPlugin(): Prisma.Middleware {
             callSitesSummary: siteSummary || "Could not determine call sites.",
         });
         // log.warn(warningMessage, { /* structured log */ });
-        
+
         // Reset after warning to avoid spamming for the same batch
         operationCounts.delete(operationSignature);
         operationCallSites.delete(operationSignature);

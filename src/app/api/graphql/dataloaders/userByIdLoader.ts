@@ -4,7 +4,7 @@ import { User } from '@prisma/client';
 
 export type PublicUser = Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'profileImageUrl'> & {
   // Example of adding a related field if needed, e.g., role name
-  // roleName?: string | null; 
+  // roleName?: string | null;
 };
 
 export const batchUsersByIds = async (userIds: readonly string[]): Promise<(PublicUser | null)[]> => {
@@ -14,14 +14,14 @@ export const batchUsersByIds = async (userIds: readonly string[]): Promise<(Publ
     where: {
       id: { in: userIds as string[] },
     },
-    select: { 
+    select: {
       id: true,
       firstName: true,
       lastName: true,
-      email: true, 
+      email: true,
       profileImageUrl: true,
       // Example: include role name if your User model has a role relation
-      // role: { select: { name: true } } 
+      // role: { select: { name: true } }
     }
   });
 

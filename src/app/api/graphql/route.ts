@@ -1,21 +1,21 @@
 import { ApolloServer } from '@apollo/server';
 import { startServerAndCreateNextHandler } from '@as-integrations/next';
 import { NextRequest } from 'next/server';
-import { typeDefs } from './typeDefs'; 
-import resolvers from './resolvers'; 
-import { verifyToken } from '@/lib/auth'; 
+import { typeDefs } from './typeDefs';
+import resolvers from './resolvers';
+import { verifyToken } from '@/lib/auth';
 
 // Imports for graphql-shield
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { applyMiddleware } from 'graphql-middleware';
-import { permissionsShield } from './authorization'; 
+import { permissionsShield } from './authorization';
 
 // Import for role-based permissions
-import { getPermissionsForRole, RoleName } from '@/config/rolePermissions'; 
+import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
 
 // Imports for DataLoader
 import DataLoader from 'dataloader';
-import { batchSectionsByPageIds } from './dataloaders/sectionLoader'; 
+import { batchSectionsByPageIds } from './dataloaders/sectionLoader';
 import { CMSSection } from '@prisma/client'; // Prisma type for sectionLoader
 import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader'; // Aliased EnrichedPost
 import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader'; // New
@@ -39,8 +39,8 @@ const server = new ApolloServer({
 // Define DecodedToken interface
 interface DecodedToken {
   userId: string;
-  role?: RoleName; 
-  tenants?: Array<{ id: string; role: string; status: string }>; 
+  role?: RoleName;
+  tenants?: Array<{ id: string; role: string; status: string }>;
 }
 
 // Define the structure of your context, including loaders
@@ -54,22 +54,22 @@ export interface GraphQLContext {
   } | null;
   loaders: {
     sectionLoader: DataLoader<string, CMSSection[], string>;
-    postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>; 
+    postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>;
     orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>; // Added
     userByIdLoader: DataLoader<string, PublicUser | null, string>; // Added
   };
-  // tenantId?: string | null; 
+  // tenantId?: string | null;
 }
 
 
-const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, { 
+const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, {
   context: async (req) => {
     const loaders = {
       sectionLoader: new DataLoader<string, CMSSection[], string>(
-        (keys) => batchSectionsByPageIds(keys), 
+        (keys) => batchSectionsByPageIds(keys),
         { cacheKeyFn: (key: string) => key }
       ),
-      postsByBlogIdLoader: new DataLoader<string, EnrichedBlogPost[], string>( 
+      postsByBlogIdLoader: new DataLoader<string, EnrichedBlogPost[], string>(
         (keys) => batchPostsByBlogIds(keys),
         { cacheKeyFn: (key: string) => key }
       ),
@@ -89,24 +89,24 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     if (token) {
       try {
         const decoded = await verifyToken(token) as DecodedToken;
-        const userRoleName = decoded.role || 'USER'; 
+        const userRoleName = decoded.role || 'USER';
         const resolvedPermissions = getPermissionsForRole(userRoleName);
 
         userContext = {
           id: decoded.userId,
           role: userRoleName,
-          permissions: resolvedPermissions, 
-          tenants: decoded.tenants || [], 
+          permissions: resolvedPermissions,
+          tenants: decoded.tenants || [],
         };
       } catch (error) {
         console.error('Error verifying token for GraphQL context:', error.message);
       }
     }
-    
-    return { 
+
+    return {
       req,
       user: userContext,
-      loaders, 
+      loaders,
     };
   },
 });

@@ -9,8 +9,8 @@ interface FeatureFlagOptions {
 
 // A more fleshed-out example based on the guide for getFeatureFlag
 export async function getFeatureFlag(
-  request: NextRequest, 
-  flagName: string, 
+  request: NextRequest,
+  flagName: string,
   options?: FeatureFlagOptions
 ): Promise<boolean> {
   // 1. Check for direct query parameter override (for testing)
@@ -27,7 +27,7 @@ export async function getFeatureFlag(
       }
     }
   }
-  
+
   // 3. Vercel Edge Config or similar (conceptual - requires actual SDK/API calls)
   // This is a placeholder for actual Edge Config integration
   // For example, using @vercel/edge-config:
@@ -57,18 +57,18 @@ export async function getFeatureFlag(
   //     return true;
   //   }
   // }
-  
+
   // Default to false if no other condition met
-  return false; 
+  return false;
 }
 
 // Simpler isFeatureEnabled for basic cookie/query param checks if not using complex getFeatureFlag
 export function isSimpleFeatureEnabled(req: NextRequest, flagName: string): boolean {
   const queryParam = req.nextUrl.searchParams.get(flagName);
   if (queryParam) return queryParam === 'true';
-  
+
   const cookie = req.cookies.get(flagName);
   if (cookie) return (typeof cookie === 'string' ? cookie : cookie.value) === 'true';
-  
+
   return false; // Default to false
 }

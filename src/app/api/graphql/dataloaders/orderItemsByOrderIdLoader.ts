@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { OrderItem, Product } from '@prisma/client';
 
 export type EnrichedOrderItem = OrderItem & {
-  product?: Partial<Product> | null; 
+  product?: Partial<Product> | null;
 };
 
 export const batchOrderItemsByOrderIds = async (orderIds: readonly string[]): Promise<EnrichedOrderItem[][]> => {
@@ -14,7 +14,7 @@ export const batchOrderItemsByOrderIds = async (orderIds: readonly string[]): Pr
       orderId: { in: orderIds as string[] },
     },
     include: {
-      product: { 
+      product: {
         select: {
           id: true,
           name: true,
@@ -30,7 +30,7 @@ export const batchOrderItemsByOrderIds = async (orderIds: readonly string[]): Pr
   });
 
   items.forEach(item => {
-    if (item.orderId) { 
+    if (item.orderId) {
       itemsByOrderId[item.orderId].push(item as EnrichedOrderItem);
     }
   });

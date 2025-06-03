@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 import { withRetry } from '@prisma/extension-retry'; // Assuming this is the correct package/path
-import { n1DetectorPlugin } from './prisma-plugins/n1-detector'; 
+import { n1DetectorPlugin } from './prisma-plugins/n1-detector';
 
 // Define the PrismaManager class
 class PrismaManager {
@@ -60,7 +60,7 @@ class PrismaManager {
 
       // Attach event listeners to the final extendedClient
       extendedClient.$on('query', (e: any) => { // Use 'any' for event type if extensions change it
-        if (e.duration > 100) { 
+        if (e.duration > 100) {
           console.warn(`Slow query (client: ${key}, duration: ${e.duration}ms): ${e.query.substring(0,200)}...`, { params: e.params });
         }
       });
@@ -70,7 +70,7 @@ class PrismaManager {
       extendedClient.$on('warn', (e: any) => {
         console.warn(`Prisma warning (client: ${key})`, { target: e.target, message: e.message, timestamp: e.timestamp });
       });
-      
+
       // Apply N+1 Detector to the final extendedClient
       if (process.env.NODE_ENV === 'development') {
         console.log(`Applying N+1 detector plugin for Prisma client: ${key}`);
@@ -78,7 +78,7 @@ class PrismaManager {
       }
 
       this.clients.set(key, extendedClient as PrismaClient); // Cast back to PrismaClient for storage
-      
+
       console.log(`Prisma client for key '${key}' configured. Attempting connection...`);
       (extendedClient as PrismaClient).$connect()
         .then(() => {

@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
-import { PostStatus, Blog as PrismaBlog } from '@prisma/client'; 
+import { PostStatus, Blog as PrismaBlog } from '@prisma/client';
 // import { verifySession } from '@/app/api/utils/auth'; // Removed
-import { Context } from '../../types'; 
+import { Context } from '../../types';
 
 // Define interfaces for input types (preserved)
 interface BlogInput {
@@ -294,7 +294,7 @@ export const blogResolvers = {
         if (input.tags) updateData.tags = input.tags;
         if (input.categories) updateData.categories = input.categories;
         if (input.readTime !== undefined) updateData.readTime = input.readTime;
-        
+
         // For mediaIds, Prisma requires specific connect/disconnect/set operations for relations.
         // This simplified update won't handle relational changes for mediaIds directly.
         // If input.mediaIds is present, it needs to be handled via connect/set/disconnect.
@@ -336,16 +336,16 @@ export const blogResolvers = {
     }
   },
 
-  Blog: { 
+  Blog: {
     posts: async (parentBlog: PrismaBlog, _args: any, context: Context, _info: any) => {
       if (!parentBlog.id) {
-        return []; 
+        return [];
       }
       try {
         return await context.loaders.postsByBlogIdLoader.load(parentBlog.id);
       } catch (error) {
         console.error(`Error loading posts for blog ${parentBlog.id} via DataLoader:`, error);
-        return []; 
+        return [];
       }
     }
   },

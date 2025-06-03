@@ -8,12 +8,12 @@ export const withI18n: MiddlewareFunction = async (req, res) => {
   const { pathname, origin, search } = req.nextUrl;
 
   // Skip i18n logic for API routes, Next.js specific paths, and public assets.
-  if (pathname.startsWith('/api/') || 
-      pathname.startsWith('/_next/') || 
+  if (pathname.startsWith('/api/') ||
+      pathname.startsWith('/_next/') ||
       pathname.match(/\.(ico|png|jpg|jpeg|svg|txt|xml|webmanifest|json|map)$/i)) {
     // If this middleware is part of a chain (via compose), returning nothing (void)
     // allows the next middleware in the chain to process the request.
-    return; 
+    return;
   }
 
   // Handle root path redirect
@@ -41,7 +41,7 @@ export const withI18n: MiddlewareFunction = async (req, res) => {
       break;
     }
   }
-  
+
   // If no valid locale prefix, redirect to default locale
   if (!currentLocale) {
     console.log(`withI18n: No valid locale in path '${pathname}', redirecting with default locale '${DEFAULT_LOCALE}'.`);
@@ -56,7 +56,7 @@ export const withI18n: MiddlewareFunction = async (req, res) => {
   requestHeaders.set('x-path-without-locale', pathWithoutLocale);
 
   // console.log(`withI18n: Active locale: ${currentLocale}, Path without locale: ${pathWithoutLocale}`);
-  
+
   // Pass the request with new headers to the next middleware or handler in the chain.
   // The compose function in factory.ts will handle this.
   // If this middleware modifies 'res' (the NextResponse passed in), it should return 'res'.

@@ -6,7 +6,7 @@ import { Post, User, Blog as PrismaBlog, Media } from '@prisma/client'; // Prism
 // including selected fields of related entities.
 export type EnrichedPost = Post & {
   author?: Partial<User> | null;
-  blog?: Partial<PrismaBlog> | null; 
+  blog?: Partial<PrismaBlog> | null;
   // media?: Media[] | null; // Example: Decided to keep media fetching separate or via Post field resolver for now
   // featuredImageMedia?: Media | null;
 };
@@ -19,7 +19,7 @@ export const batchPostsByBlogIds = async (blogIds: readonly string[]): Promise<E
       blogId: { in: blogIds as string[] },
       // status: 'PUBLISHED', // Optional: Uncomment if this loader is only for published posts
     },
-    include: { 
+    include: {
       author: {
         select: {
           id: true,
@@ -39,7 +39,7 @@ export const batchPostsByBlogIds = async (blogIds: readonly string[]): Promise<E
       // media: true, // Decided against including all media by default in this loader
       // featuredImageMedia: true,
     },
-    orderBy: { 
+    orderBy: {
       publishedAt: 'desc', // Default order for posts
     },
   });
@@ -53,7 +53,7 @@ export const batchPostsByBlogIds = async (blogIds: readonly string[]): Promise<E
   posts.forEach(post => {
     // Ensure post.blogId is not null before trying to push.
     // The query `where: { blogId: { in: blogIds as string[] } }` should ensure blogId is present.
-    if (post.blogId) { 
+    if (post.blogId) {
       postsByBlogId[post.blogId].push(post as EnrichedPost);
     }
   });

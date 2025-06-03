@@ -1,14 +1,14 @@
 // import { NextRequest } from 'next/server'; // Potentially remove if context.req is not used directly
 // import { verifyToken } from '@/lib/auth'; // Remove as auth is handled by shield
 import { prisma } from '@/lib/prisma';
-import { 
-    PaymentStatus, 
-    Prisma, 
+import {
+    PaymentStatus,
+    Prisma,
     Order as PrismaOrder, // Added for Order type resolver parent
     Review as PrismaReview, // Added for Review type resolver parent
     User as PrismaUser, // Added for User type resolver parent (if needed, though PublicUser is from loader)
     Product as PrismaProduct // Added for Product type resolver parent
-} from '@prisma/client'; 
+} from '@prisma/client';
 import { Context } from '../../types'; // Import main Context
 import { GraphQLError } from 'graphql';
 
@@ -268,7 +268,7 @@ export const ecommerceResolvers = {
         const where: Record<string, unknown> = {};
         if (filter?.search) where.OR = [ { customerName: { contains: filter.search, mode: 'insensitive' } }, { customerEmail: { contains: filter.search, mode: 'insensitive' } }, { id: { contains: filter.search, mode: 'insensitive' } } ];
         if (filter?.shopId) where.shopId = filter.shopId;
-        if (filter?.customerId) where.customerId = filter.customerId; 
+        if (filter?.customerId) where.customerId = filter.customerId;
         if (filter?.status) where.status = filter.status;
         if (filter?.dateFrom || filter?.dateTo) {
           where.createdAt = {};
@@ -279,7 +279,7 @@ export const ecommerceResolvers = {
           where,
           // REMOVED: customer: true, items: { include: { product: true } }
           // KEPT: shop: true, currency: true
-          include: { shop: true, currency: true }, 
+          include: { shop: true, currency: true },
           take: pagination?.limit || pagination?.pageSize || 50,
           skip: pagination?.offset || ((pagination?.page || 1) - 1) * (pagination?.pageSize || 50),
           orderBy: { createdAt: 'desc' }
@@ -450,7 +450,7 @@ export const ecommerceResolvers = {
       context: Context
     ) => {
       try {
-        const where: Record<string, unknown> = { role: { name: 'CUSTOMER' } }; 
+        const where: Record<string, unknown> = { role: { name: 'CUSTOMER' } };
         if (filter?.search) where.OR = [ { firstName: { contains: filter.search as string, mode: 'insensitive' } }, { lastName: { contains: filter.search as string, mode: 'insensitive' } }, { email: { contains: filter.search as string, mode: 'insensitive' } } ];
         if (filter?.isActive !== undefined) where.isActive = filter.isActive;
         if (filter?.registeredFrom || filter?.registeredTo) {
@@ -477,7 +477,7 @@ export const ecommerceResolvers = {
         // orders and reviews removed from include, handled by Type resolver or DataLoaders
         const customer = await prisma.user.findUnique({
           where: { id },
-          include: { _count: { select: { orders: true, reviews: true } } } 
+          include: { _count: { select: { orders: true, reviews: true } } }
         });
         if (!customer) throw new GraphQLError('Customer not found');
         // Complex calculations like totalSpent would be in 'Customer' type resolver
@@ -552,7 +552,7 @@ export const ecommerceResolvers = {
     validateDiscount: async (
       _parent: unknown,
       { code, orderTotal, customerId }: { code: string; orderTotal: number; customerId?: string },
-      context: Context 
+      context: Context
     ) => {
       try {
         const discount = await prisma.discount.findUnique({ where: { code }, include: { orders: customerId ? { where: { customerId: customerId } } : true } });
@@ -571,7 +571,7 @@ export const ecommerceResolvers = {
           switch (discount.type) {
             case 'PERCENTAGE': discountAmount = (orderTotal * discount.value) / 100; if (discount.maximumDiscountAmount && discountAmount > discount.maximumDiscountAmount) discountAmount = discount.maximumDiscountAmount; break;
             case 'FIXED_AMOUNT': discountAmount = Math.min(discount.value, orderTotal); break;
-            case 'FREE_SHIPPING': discountAmount = 0; break; 
+            case 'FREE_SHIPPING': discountAmount = 0; break;
             default: discountAmount = 0;
           }
         }
@@ -582,7 +582,7 @@ export const ecommerceResolvers = {
     reviews: async (
       _parent: unknown,
       { filter, pagination }: { filter?: Record<string, unknown>; pagination?: PaginationInput },
-      context: Context 
+      context: Context
     ) => {
       try {
         const where: Record<string, unknown> = {};
@@ -595,8 +595,8 @@ export const ecommerceResolvers = {
         if (filter?.isReported !== undefined) where.isReported = filter.isReported;
         if (filter?.dateFrom || filter?.dateTo) { where.createdAt = {}; if (filter.dateFrom) (where.createdAt as Record<string, unknown>).gte = new Date(filter.dateFrom as string); if (filter.dateTo) (where.createdAt as Record<string, unknown>).lte = new Date(filter.dateTo as string); }
         const reviews = await prisma.review.findMany({
-          where, 
-          // REMOVED: customer: true 
+          where,
+          // REMOVED: customer: true
           // KEPT: product: true, orderItem: true, images: true, response...
           include: { product: true, orderItem: true, images: true, response: { include: { responder: true } } },
           take: pagination?.limit || pagination?.pageSize || 50,
@@ -610,7 +610,7 @@ export const ecommerceResolvers = {
     review: async (_parent: unknown, { id }: { id: string }, context: Context) => {
       try {
         const review = await prisma.review.findUnique({
-          where: { id }, 
+          where: { id },
           // REMOVED: customer: true
           // KEPT: product: true, orderItem: true, images: true, response...
           include: { product: true, orderItem: true, images: true, response: { include: { responder: true } } }
@@ -636,7 +636,7 @@ export const ecommerceResolvers = {
         try {
             const shop = await prisma.shop.update({
                 where: {id},
-                data: input, 
+                data: input,
                 include: { defaultCurrency: true, acceptedCurrencies: { include: { currency: true } }, adminUser: true }
             });
             return { success: true, message: "Shop updated", shop: { ...shop, acceptedCurrencies: shop.acceptedCurrencies.map((ac: { currency: unknown }) => ac.currency) }};
@@ -910,7 +910,7 @@ export const ecommerceResolvers = {
           where: { productId: parent.id },
           // REMOVED: include: { customer: true }
           // KEPT: (other includes if any, e.g. images, response)
-          include: { orderItem: true, images: true, response: { include: { responder: true } } } 
+          include: { orderItem: true, images: true, response: { include: { responder: true } } }
         });
       } catch (error) {
         console.error(`Error fetching reviews for product ${parent.id}:`, error);
@@ -924,7 +924,7 @@ export const ecommerceResolvers = {
   PaymentProvider: { /* Preserved */ },
   PaymentMethod: { /* Preserved */ },
   Payment: { /* Preserved */ },
-  
+
   Order: {
     // ... any existing Order field resolvers ...
     items: async (parentOrder: PrismaOrder, _args: any, context: Context) => {
@@ -956,7 +956,7 @@ export const ecommerceResolvers = {
     // },
   },
   OrderItem: { /* Preserved */ },
-  Customer: { 
+  Customer: {
     // This is where fields like 'orders', 'reviews', 'totalSpent' for a Customer GQL type would be resolved.
     // Example for orders (if not already handled by direct Prisma include in Customer query and if loader is preferred):
     // orders: async (parentCustomer: PrismaUser, _args: any, context: Context) => {

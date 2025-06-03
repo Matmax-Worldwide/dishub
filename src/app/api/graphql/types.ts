@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
 import DataLoader from 'dataloader';
-import { 
+import {
   CMSSection as PrismaCMSSection, // Renaming to avoid conflict if a local GQL 'CMSSection' is different
-  User as PrismaUser, 
-  Page as PrismaPage, 
-  PageType as PrismaPageType, 
+  User as PrismaUser,
+  Page as PrismaPage,
+  PageType as PrismaPageType,
   Post as PrismaPost,
   OrderItem as PrismaOrderItem // Added for orderItemsByOrderIdLoader
 } from '@prisma/client';
-import { RoleName } from '@/config/rolePermissions'; 
+import { RoleName } from '@/config/rolePermissions';
 
 // Imports for specific types returned by DataLoaders
 import { EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader'; // Path relative to types.ts
@@ -18,7 +18,7 @@ import { PublicUser } from './dataloaders/userByIdLoader'; // Path relative to t
 // Defines the user object structure available in the GraphQL context after authentication
 export interface AuthenticatedUser {
   id: string;
-  role: RoleName; 
+  role: RoleName;
   permissions: string[];
   tenants?: Array<{ id: string; role: string; status: string }>;
 }
@@ -26,9 +26,9 @@ export interface AuthenticatedUser {
 // Defines the structure of DataLoaders available in the context
 export interface MyLoaders {
   sectionLoader: DataLoader<string, PrismaCMSSection[], string>; // Using PrismaCMSSection as per original task spec for loaders
-  postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>; 
-  orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>; 
-  userByIdLoader: DataLoader<string, PublicUser | null, string>; 
+  postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>;
+  orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>;
+  userByIdLoader: DataLoader<string, PublicUser | null, string>;
 }
 
 // Definición de los tipos de usuario y sesión
@@ -38,24 +38,24 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: RoleGQL; 
-  permissions?: string[]; 
-  createdAt: Date; 
-  updatedAt: Date; 
+  role: RoleGQL;
+  permissions?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Contexto para los resolvers de GraphQL
 export interface Context {
-  req?: NextRequest; 
-  user: AuthenticatedUser | null; 
-  loaders: MyLoaders; 
-  // tenantId?: string | null; 
+  req?: NextRequest;
+  user: AuthenticatedUser | null;
+  loaders: MyLoaders;
+  // tenantId?: string | null;
 }
 
 // Tipo para roles (GraphQL type)
-export interface RoleGQL { 
+export interface RoleGQL {
   id: string;
-  name: string; 
+  name: string;
   description?: string;
 }
 
@@ -231,10 +231,10 @@ export interface PageSEO {
   updatedAt: string | Date;
 }
 
-export interface Page extends Omit<PrismaPage, 'pageType' | 'sections' | 'seo' | 'createdAt' | 'updatedAt'> { 
-  pageType: PrismaPageType | string; 
+export interface Page extends Omit<PrismaPage, 'pageType' | 'sections' | 'seo' | 'createdAt' | 'updatedAt'> {
+  pageType: PrismaPageType | string;
   sections?: CMSSection[]; // Uses local GraphQL CMSSection type
-  seo?: PageSEO | null; 
-  createdAt: string | Date; 
+  seo?: PageSEO | null;
+  createdAt: string | Date;
   updatedAt: string | Date;
 }
