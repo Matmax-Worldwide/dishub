@@ -88,8 +88,6 @@ import S3FilePreview from '@/components/shared/S3FilePreview';
 <S3FilePreview
   src="https://s3.amazonaws.com/bucket/image.jpg"
   alt="My image"
-  width={200}
-  height={150}
   className="rounded-lg"
 />
 \`\`\`

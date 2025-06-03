@@ -37,7 +37,6 @@ export interface NavItem {
 export interface SidebarConfig {
   baseNavigationItems: (locale: string) => NavItem[];
   adminNavigationItems: (locale: string) => NavItem[];
-  managerNavigationItems: (locale: string) => NavItem[];
   toolsNavigationItems: (locale: string) => NavItem[];
 }
 
@@ -85,6 +84,12 @@ export const sidebarConfig: SidebarConfig = {
       permissions: ['admin:view']
     },
     { 
+      name: 'sidebar.createNotifications', 
+      href: `/${locale}/admin/notifications`, 
+      icon: MessageSquareIcon,
+      permissions: ['notifications:create']
+    },
+    { 
       name: 'sidebar.userManagement', 
       href: `/${locale}/admin/users`, 
       icon: UsersIcon, 
@@ -102,22 +107,6 @@ export const sidebarConfig: SidebarConfig = {
       icon: CalendarIcon,
       disabled: true,
       locked: true
-    },
-  ],
-
-  // Manager-specific navigation items
-  managerNavigationItems: (locale: string) => [
-    { 
-      name: 'sidebar.createNotifications', 
-      href: `/${locale}/admin/notifications`, 
-      icon: MessageSquareIcon,
-      permissions: ['notifications:create']
-    },
-    {
-      name: 'sidebar.staffManagement',
-      href: `/${locale}/manager/staff`,
-      icon: UsersIcon,
-      permissions: ['staff:view', 'staff:manage']
     },
   ],
 

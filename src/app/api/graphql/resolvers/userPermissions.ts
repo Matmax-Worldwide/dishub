@@ -67,6 +67,9 @@ export const userPermissionResolvers = {
     // Establecer o actualizar un permiso específico para un usuario - REQUIERE AUTENTICACIÓN
     setUserPermission: async (_: Parent, { input }: { input: { userId: string; permissionName: string; granted: boolean | null } }, context: Context) => {
       // Verificar si el usuario está autenticado y tiene permisos
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const currentUser = session?.user;
       

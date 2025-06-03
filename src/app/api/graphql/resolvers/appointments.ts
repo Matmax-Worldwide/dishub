@@ -1,8 +1,10 @@
-import { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+// import { NextRequest } from 'next/server'; // No longer needed
+// import { verifyToken } from '@/lib/auth'; // No longer needed
 import { prisma } from '@/lib/prisma';
+import { Context } from '@/app/api/graphql/types'; // Import main Context
+import { GraphQLError } from 'graphql'; // For throwing resolver errors
 
-// Define input types
+// Define input types (preserved)
 interface CreateAppointmentInput {
   title: string;
   description?: string;
@@ -17,8 +19,8 @@ interface CreateAppointmentInput {
 interface UpdateAppointmentInput {
   title?: string;
   description?: string;
-  startTime?: string;
-  endTime?: string;
+  startTime?: Date;
+  endTime?: Date;
   location?: string;
   isVirtual?: boolean;
   meetingUrl?: string;
@@ -27,246 +29,148 @@ interface UpdateAppointmentInput {
 
 export const appointmentResolvers = {
   Query: {
-    appointments: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    appointments: async (_parent: unknown, _args: unknown, context: Context) => {
+      // Auth handled by shield. context.user is expected if rule passes.
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        try {
-          if (!prisma || !prisma.appointment) {
-            console.error('Prisma client or appointment model is not available');
-            return []; // Return empty array instead of throwing an error
+        const appointments = await prisma.appointment.findMany({
+          where: { userId: context.user.id }, // Use context.user.id
+          orderBy: { startTime: 'asc' },
+          include: {
+            client: true,
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
           }
-          
-          const appointments = await prisma.appointment.findMany({
-            where: { userId: decoded.userId },
-            orderBy: { startTime: 'asc' },
-            include: {
-              client: true,
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  email: true
-                }
-              }
-            }
-          });
-          
-          return appointments;
-        } catch (dbError) {
-          console.error('Database error in appointments query:', dbError);
-          return []; // Return empty array on database error
-        }
-      } catch (error) {
-        console.error('Get appointments error:', error);
-        // Return empty array instead of throwing error
-        return [];
+        });
+        return appointments;
+      } catch (dbError) {
+        console.error('Database error in appointments query:', dbError);
+        throw new GraphQLError('Failed to fetch appointments');
       }
     },
     
-    appointment: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    appointment: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
         const appointment = await prisma.appointment.findUnique({
           where: { 
             id,
-            userId: decoded.userId
+            userId: context.user.id // Ensure user owns the appointment
           },
           include: {
             client: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
           }
         });
-        
         if (!appointment) {
-          throw new Error('Appointment not found');
+          throw new GraphQLError('Appointment not found or access denied');
         }
-        
         return appointment;
       } catch (error) {
         console.error('Get appointment error:', error);
-        throw error;
+        throw new GraphQLError('Failed to fetch appointment');
       }
     },
     
-    upcomingAppointments: async (_parent: unknown, { count = 5 }: { count?: number }, context: { req: NextRequest }) => {
+    upcomingAppointments: async (_parent: unknown, { count = 5 }: { count?: number }, context: Context) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
         const now = new Date();
-        
         const appointments = await prisma.appointment.findMany({
           where: { 
-            userId: decoded.userId,
+            userId: context.user.id, // Use context.user.id
             startTime: { gte: now }
           },
           orderBy: { startTime: 'asc' },
           take: count,
           include: {
             client: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
           }
         });
-        
         return appointments;
       } catch (error) {
         console.error('Get upcoming appointments error:', error);
-        return []; // Return empty array instead of throwing
+        throw new GraphQLError('Failed to fetch upcoming appointments');
       }
     }
   },
   
   Mutation: {
-    createAppointment: async (_parent: unknown, { input }: { input: CreateAppointmentInput }, context: { req: NextRequest }) => {
+    createAppointment: async (_parent: unknown, { input }: { input: CreateAppointmentInput }, context: Context) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        // If a client is specified, ensure it exists
         if (input.clientId) {
-          const client = await prisma.client.findUnique({
-            where: { id: input.clientId }
-          });
-          
-          if (!client) {
-            throw new Error('The specified client does not exist');
-          }
+          const client = await prisma.client.findUnique({ where: { id: input.clientId } });
+          if (!client) throw new GraphQLError('The specified client does not exist');
         }
-        
-        // Validate that start time is before end time
         const startTime = new Date(input.startTime);
         const endTime = new Date(input.endTime);
-        
-        if (startTime >= endTime) {
-          throw new Error('Start time must be before end time');
-        }
+        if (startTime >= endTime) throw new GraphQLError('Start time must be before end time');
         
         const appointment = await prisma.appointment.create({
           data: {
             title: input.title,
             description: input.description || '',
-            startTime: input.startTime,
-            endTime: input.endTime,
+            startTime: startTime,
+            endTime: endTime,
             location: input.location || '',
             isVirtual: input.isVirtual || false,
             meetingUrl: input.meetingUrl || '',
             clientId: input.clientId || null,
-            userId: decoded.userId
+            userId: context.user.id // Use context.user.id
           },
           include: {
             client: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
           }
         });
-        
         return appointment;
       } catch (error) {
         console.error('Create appointment error:', error);
-        throw error;
+        throw new GraphQLError(error instanceof Error ? error.message : 'Failed to create appointment');
       }
     },
     
-    updateAppointment: async (_parent: unknown, { id, input }: { id: string, input: UpdateAppointmentInput }, context: { req: NextRequest }) => {
+    updateAppointment: async (_parent: unknown, { id, input }: { id: string, input: UpdateAppointmentInput }, context: Context) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        // Make sure the appointment exists and belongs to the user
         const existingAppointment = await prisma.appointment.findUnique({
-          where: { 
-            id,
-            userId: decoded.userId
-          }
+          where: { id, userId: context.user.id } // Ensure user owns the appointment
         });
-        
         if (!existingAppointment) {
-          throw new Error('Appointment not found or you do not have permission to update it');
+          throw new GraphQLError('Appointment not found or you do not have permission to update it');
         }
-        
-        // If a client is specified, ensure it exists
         if (input.clientId) {
-          const client = await prisma.client.findUnique({
-            where: { id: input.clientId }
-          });
-          
-          if (!client) {
-            throw new Error('The specified client does not exist');
-          }
+          const client = await prisma.client.findUnique({ where: { id: input.clientId } });
+          if (!client) throw new GraphQLError('The specified client does not exist');
         }
         
-        const updateData: Record<string, unknown> = {};
-        
-        // Only update fields that are provided
+        const updateData: Partial<UpdateAppointmentInput> & { startTime?: Date, endTime?: Date } = {};
         if (input.title !== undefined) updateData.title = input.title;
         if (input.description !== undefined) updateData.description = input.description;
         if (input.location !== undefined) updateData.location = input.location;
         if (input.clientId !== undefined) updateData.clientId = input.clientId;
         if (input.isVirtual !== undefined) updateData.isVirtual = input.isVirtual;
         if (input.meetingUrl !== undefined) updateData.meetingUrl = input.meetingUrl;
-        
-        // Validate and update time if provided
-        if (input.startTime !== undefined) updateData.startTime = input.startTime;
-        if (input.endTime !== undefined) updateData.endTime = input.endTime;
-        
-        // If both times are provided, ensure start is before end
-        if (input.startTime && input.endTime) {
-          const startTime = new Date(input.startTime);
-          const endTime = new Date(input.endTime);
-          
-          if (startTime >= endTime) {
-            throw new Error('Start time must be before end time');
-          }
+        if (input.startTime !== undefined) updateData.startTime = new Date(input.startTime);
+        if (input.endTime !== undefined) updateData.endTime = new Date(input.endTime);
+
+        if (updateData.startTime && updateData.endTime && updateData.startTime >= updateData.endTime) {
+          throw new GraphQLError('Start time must be before end time');
+        } else if (updateData.startTime && !updateData.endTime && updateData.startTime >= existingAppointment.endTime) {
+          throw new GraphQLError('Start time must be before existing end time');
+        } else if (!updateData.startTime && updateData.endTime && existingAppointment.startTime >= updateData.endTime) {
+          throw new GraphQLError('Existing start time must be before new end time');
         }
         
         const updatedAppointment = await prisma.appointment.update({
@@ -274,55 +178,33 @@ export const appointmentResolvers = {
           data: updateData,
           include: {
             client: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
           }
         });
-        
         return updatedAppointment;
       } catch (error) {
         console.error('Update appointment error:', error);
-        throw error;
+        throw new GraphQLError(error instanceof Error ? error.message : 'Failed to update appointment');
       }
     },
     
-    deleteAppointment: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteAppointment: async (_parent: unknown, { id }: { id: string }, context: Context) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
+      }
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string };
-        
-        // Ensure the appointment exists and belongs to the user
         const appointment = await prisma.appointment.findUnique({
-          where: {
-            id,
-            userId: decoded.userId
-          }
+          where: { id, userId: context.user.id } // Ensure user owns the appointment
         });
-        
         if (!appointment) {
-          throw new Error('Appointment not found or you do not have permission to delete it');
+          throw new GraphQLError('Appointment not found or you do not have permission to delete it');
         }
-        
-        await prisma.appointment.delete({
-          where: { id }
-        });
-        
+        await prisma.appointment.delete({ where: { id } });
         return true;
       } catch (error) {
         console.error('Delete appointment error:', error);
-        throw error;
+        throw new GraphQLError(error instanceof Error ? error.message : 'Failed to delete appointment');
       }
     }
   }
-}; 
+};

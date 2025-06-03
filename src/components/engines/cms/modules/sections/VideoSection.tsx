@@ -1431,8 +1431,6 @@ const VideoSection = React.memo(function VideoSection({
                     src={localPosterUrl}
                     alt="Video poster"
                     className="max-h-full max-w-full object-contain"
-                    width={200}
-                    height={100}
                   />
                 ) : (
                   <div className="text-gray-400 text-sm text-center">

@@ -306,7 +306,34 @@ export async function getCachedFolders(prefix: string = ''): Promise<Folder[]> {
       throw new Error(data.error);
     }
 
-    const folders = data.folders || [];
+    const folderNames = data.folders || [];
+    const folderDetails = data.folderDetails || [];
+    
+    // Process the API response into proper Folder objects
+    const folders: Folder[] = folderNames.map((folderName: string, index: number) => {
+      // Use the actual folder name from the API, not a fallback
+      const actualFolderName = folderName && folderName.trim() ? folderName.trim() : `unnamed-folder-${index}`;
+      
+      const folderPath = prefix 
+        ? `${prefix}/${actualFolderName}` 
+        : actualFolderName;
+      
+      // Get subfolder count from folderDetails if available
+      let subfolderCount = 0;
+      if (folderDetails[index] && folderDetails[index].subfolderCount) {
+        subfolderCount = folderDetails[index].subfolderCount;
+      }
+      
+      return {
+        id: `folder-${folderPath}`,
+        name: actualFolderName, // Use the real folder name from S3
+        path: folderPath,
+        parentPath: prefix,
+        isRoot: false,
+        itemCount: 0, // Will be calculated later when media items are loaded
+        subfolderCount
+      };
+    });
     
     // Almacenar en caché
     mediaCache.setFolders(prefix, folders);

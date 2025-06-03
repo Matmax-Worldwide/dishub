@@ -11,6 +11,9 @@ export const permissionResolvers = {
     // Obtener todos los permisos
     permissions: async (_parent: Parent, _args: Record<string, never>, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -46,6 +49,9 @@ export const permissionResolvers = {
     // Obtener permisos de un rol específico
     rolePermissions: async (_parent: Parent, { roleId }: { roleId: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -100,6 +106,9 @@ export const permissionResolvers = {
     // Crear un nuevo permiso
     createPermission: async (_parent: Parent, { input }: { input: { name: string; description?: string; roleId?: string } }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -176,6 +185,9 @@ export const permissionResolvers = {
     // Asignar un permiso a un rol
     assignPermissionToRole: async (_parent: Parent, { roleId, permissionId }: { roleId: string; permissionId: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -245,6 +257,9 @@ export const permissionResolvers = {
     // Remover un permiso de un rol
     removePermissionFromRole: async (_parent: Parent, { roleId, permissionId }: { roleId: string; permissionId: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       

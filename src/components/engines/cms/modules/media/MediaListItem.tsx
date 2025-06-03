@@ -56,8 +56,6 @@ export function MediaListItem({
             <S3FilePreview
               src={fileUrl}
               alt={altText || title}
-              width={40}
-              height={40}
               className="object-contain rounded w-full h-full flex items-center justify-center"
               fileType={fileType}
               fileName={fileName}

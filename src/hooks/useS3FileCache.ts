@@ -115,27 +115,37 @@ export function useS3FileCache(src: string, options: UseS3FileCacheOptions = {})
     
     let s3Key: string | null = null;
     
+    console.log(`🔍 Analyzing URL: ${src}`);
+    console.log(`🔍 Is S3 URL: ${isS3Url}`);
+    
     if (isS3Url) {
       try {
         // Intentar extraer la clave de S3 de la URL
         const url = new URL(src);
         const pathParts = url.pathname.split('/');
+        console.log(`🔍 URL pathname: ${url.pathname}`);
+        console.log(`🔍 Path parts:`, pathParts);
+        
         // Eliminar la primera parte vacía del pathname que comienza con /
         pathParts.shift();
         
         // La clave es el resto del path
         s3Key = pathParts.join('/');
+        console.log(`🔍 Extracted S3 key: ${s3Key}`);
       } catch (error) {
         console.error('Error parsing S3 URL:', error);
         s3Key = null;
       }
     }
 
-    return {
+    const result = {
       isS3Url,
       s3Key,
       originalSrc: src
     };
+    
+    console.log(`🔍 File analysis result:`, result);
+    return result;
   }, [src]);
 
   // Get the optimized URL
@@ -144,7 +154,8 @@ export function useS3FileCache(src: string, options: UseS3FileCacheOptions = {})
 
     const { isS3Url, s3Key } = fileAnalysis;
 
-    if (isS3Url && s3Key && enableCache) {
+    // ALWAYS redirect S3 URLs through our API
+    if (isS3Url && s3Key) {
       // Use cache key if provided, otherwise use s3Key
       const key = cacheKey || s3Key;
       return await s3FileCache.getOrFetch(key);
@@ -152,7 +163,7 @@ export function useS3FileCache(src: string, options: UseS3FileCacheOptions = {})
 
     // For non-S3 URLs, return as-is
     return src;
-  }, [fileAnalysis, src, enableCache, cacheKey]);
+  }, [fileAnalysis, src, cacheKey]);
 
   // Get cached URL synchronously (for immediate use)
   const getCachedUrl = useCallback((): string | null => {
@@ -174,22 +185,27 @@ export function useS3FileCache(src: string, options: UseS3FileCacheOptions = {})
 
     const { isS3Url, s3Key } = fileAnalysis;
 
-    if (isS3Url && s3Key && enableCache) {
+    // ALWAYS redirect S3 URLs through our API, never load directly from S3
+    if (isS3Url && s3Key) {
       const key = cacheKey || s3Key;
       const cached = s3FileCache.get(key);
       
       if (cached) {
+        console.log(`✅ Using cached API URL for ${s3Key}: ${cached}`);
         return cached;
       }
       
-      // Generate API URL and cache it
+      // ALWAYS generate API URL for S3 files, never use direct S3 URLs
       const apiUrl = `/api/media/download?key=${encodeURIComponent(s3Key)}&view=true`;
+      console.log(`🔧 Generated API URL for S3 file ${s3Key}: ${apiUrl}`);
       s3FileCache.set(key, apiUrl);
       return apiUrl;
     }
 
+    // For non-S3 URLs, use as-is
+    console.log(`➡️ Using original URL (not S3): ${src}`);
     return src;
-  }, [fileAnalysis, src, enableCache, cacheKey]);
+  }, [fileAnalysis, src, cacheKey]);
 
   // Clear cache function
   const clearCache = useCallback(() => {

@@ -117,10 +117,6 @@ const nextConfig = {
             value: 'Content-Range, Content-Length, Accept-Ranges',
           },
           {
-            key: 'Content-Type',
-            value: 'video/mp4', // Default content type for videos
-          },
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
