@@ -45,11 +45,6 @@ interface Service {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   isActive: boolean;
   serviceCategory: ServiceCategory;
   locations: Array<{ id: string; name: string }>;
@@ -791,10 +786,7 @@ export default function CalendarPage() {
                 <div key={service.id} className="flex justify-between items-center">
                   <span className="text-sm">{service.name}</span>
                   <Badge variant="outline">
-                    {service.prices && service.prices.length > 0 
-                      ? `$${service.prices[0].amount}` 
-                      : 'No price'
-                    }
+                    {service.durationMinutes}min
                   </Badge>
                 </div>
               ))}

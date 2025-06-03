@@ -41,7 +41,7 @@ interface Service {
   name: string;
   description?: string;
   durationMinutes: number;
-  prices: Array<{
+  prices?: Array<{
     id: string;
     amount: number;
     currencyId: string;
@@ -456,9 +456,9 @@ export default function MultiStepBookingForm({
                               <Clock className="w-4 h-4" />
                               {(item as Service).durationMinutes} min
                             </span>
-                            {(item as Service).prices.length > 0 && (
+                            {(item as Service).prices && (item as Service).prices!.length > 0 && (
                               <span className="font-medium text-primary">
-                                ${(item as Service).prices[0].amount}
+                                ${(item as Service).prices![0].amount}
                               </span>
                             )}
                           </div>
@@ -595,7 +595,7 @@ export default function MultiStepBookingForm({
                           <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                             <Clock className="w-3 h-3" />
                             <span>{service.durationMinutes} min</span>
-                            {service.prices.length > 0 && (
+                            {service.prices && service.prices.length > 0 && (
                               <span className="font-medium text-primary ml-2">
                                 ${service.prices[0].amount}
                               </span>
