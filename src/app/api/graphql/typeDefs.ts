@@ -215,6 +215,16 @@ export const typeDefs = gql`
     updatedAt: String
   }
 
+  # Add RoleModel type (alias for Role to match Prisma model name)
+  type RoleModel {
+    id: ID!
+    name: String!
+    description: String
+    permissions: [Permission!]
+    createdAt: String
+    updatedAt: String
+  }
+
   # Employee/HR related types
   enum EmployeeStatus {
     ACTIVE
@@ -1425,7 +1435,17 @@ export const typeDefs = gql`
     message: String
   }
 
+  type FormStepOrderResult {
+    success: Boolean!
+    message: String
+  }
+
   input FieldOrderUpdate {
+    id: ID!
+    order: Int!
+  }
+
+  input StepOrderUpdate {
     id: ID!
     order: Int!
   }
@@ -1779,7 +1799,9 @@ export const typeDefs = gql`
     createFormField(input: FormFieldInput!): FormFieldResult!
     updateFormField(id: ID!, input: UpdateFormFieldInput!): FormFieldResult!
     deleteFormField(id: ID!): FormFieldResult!
+    updateFieldOrder(id: ID!, order: Int!): FormFieldResult!
     updateFieldOrders(updates: [FieldOrderUpdate!]!): FormFieldOrderResult!
+    updateStepOrders(updates: [StepOrderUpdate!]!): FormStepOrderResult!
     
     submitForm(input: FormSubmissionInput!): FormSubmissionResult!
     updateFormSubmissionStatus(id: ID!, status: SubmissionStatus!): FormSubmissionResult!
@@ -3527,6 +3549,68 @@ export const typeDefs = gql`
   }
 
   # --------------- END DISCOUNT MODULE TYPES --- V1 ---
+
+  # --------------- FORM MODULE TYPES --- V1 ---
+
+  # Form-related types
+  type FormBase {
+    id: ID!
+    title: String!
+    description: String
+    slug: String!
+    isActive: Boolean!
+    settings: JSON
+    fields: [FormFieldBase!]
+    steps: [FormStepBase!]
+    submissions: [FormSubmissionBase!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type FormStepBase {
+    id: ID!
+    formId: ID!
+    form: FormBase
+    title: String!
+    description: String
+    stepOrder: Int!
+    isRequired: Boolean!
+    fields: [FormFieldBase!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type FormFieldBase {
+    id: ID!
+    formId: ID!
+    form: FormBase
+    stepId: ID
+    step: FormStepBase
+    fieldType: String!
+    label: String!
+    placeholder: String
+    isRequired: Boolean!
+    fieldOrder: Int!
+    validationRules: JSON
+    options: JSON
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type FormSubmissionBase {
+    id: ID!
+    formId: ID!
+    form: FormBase
+    submitterEmail: String
+    submitterName: String
+    submissionData: JSON!
+    ipAddress: String
+    userAgent: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # --------------- END FORM MODULE TYPES --- V1 ---
 
   # Shipping result types
 `; 
