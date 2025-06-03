@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path if necessary
 import { RoleName } from '@/hooks/usePermission'; // Assuming RoleName is defined here and accessible. Adjust path if needed.
 
@@ -15,7 +15,7 @@ const ROUTE_PERMISSIONS: Record<string, { roles: RoleName[] }> = {
   // Ensure this list is comprehensive for all role-protected page routes.
 };
 
-export const withPageAuth: MiddlewareFunction = async (req, res) => {
+export const withPageAuth: MiddlewareFunction = async (req) => {
   const userRole = req.headers.get('x-user-role') as RoleName | null;
   const activeLocale = req.headers.get('x-active-locale');
   const pathWithoutLocale = req.headers.get('x-path-without-locale');

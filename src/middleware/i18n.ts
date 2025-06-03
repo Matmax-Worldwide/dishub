@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path if necessary
 
 const SUPPORTED_LOCALES = ['en', 'es', 'de']; // From legacyLocales
 const DEFAULT_LOCALE = 'es'; // From legacyDefaultLocale
 
-export const withI18n: MiddlewareFunction = async (req, res) => {
+export const withI18n: MiddlewareFunction = async (req) => {
   const { pathname, origin, search } = req.nextUrl;
 
   // Skip i18n logic for API routes, Next.js specific paths, and public assets.

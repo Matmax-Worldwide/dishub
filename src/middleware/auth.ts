@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust if path is different
 import { verifyToken } from '@/lib/auth'; // Assuming this path is correct from src/
 import { cookies } from 'next/headers';
@@ -16,7 +16,7 @@ const getLocaleFromPath = (pathname: string): string => {
   return defaultLocaleForAuth;
 };
 
-export const withAuth: MiddlewareFunction = async (req, res) => {
+export const withAuth: MiddlewareFunction = async (req) => {
   const { pathname, searchParams, origin } = req.nextUrl;
 
   // Attempt to read locale and path information from headers set by withI18n
@@ -53,7 +53,7 @@ export const withAuth: MiddlewareFunction = async (req, res) => {
     return; // Allow public routes to pass through
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get('session-token')?.value;
 
   if (!token) {
@@ -100,7 +100,7 @@ export const withAuth: MiddlewareFunction = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`withAuth: Error during token verification for path '${pathname}':`, error.message);
+    console.error(`withAuth: Error during token verification for path '${pathname}':`, error instanceof Error ? error.message : 'Unknown error');
     const loginUrl = new URL(`/${currentLocale}/login`, origin);
     return NextResponse.redirect(loginUrl);
   }
