@@ -253,8 +253,9 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
   },
 });
 
-export { handler as GET };
-
+export async function GET(request: NextRequest) {
+  return handler(request);
+}
 
 export async function POST(request: NextRequest) {
   const requestClone = request.clone();
