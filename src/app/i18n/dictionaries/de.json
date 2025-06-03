@@ -240,6 +240,10 @@
     "userManagement": "Benutzer",
     "roleManagement": "Rollen und Berechtigungen",
     "cms": "CMS",
+    "tenants": "Mandanten",
+    "blog": "Blog",
+    "forms": "Formulare",
+    "ecommerce": "E-Commerce",
     "cmsPages": "Seiten",
     "cmsMedia": "Medienbibliothek",
     "cmsMenus": "Menüs",
@@ -276,7 +280,8 @@
     "ADMIN": "Admin",
     "MANAGER": "Manager",
     "EMPLOYEE": "Mitarbeiter",
-    "USER": "Benutzer"
+    "USER": "Benutzer",
+    "SUPER_ADMIN": "Super Admin"
   },
   "staffCreator": {
     "selectUser": "Benutzer für Personal auswählen",
@@ -305,5 +310,13 @@
     "createNewLocation": "Neuen Standort erstellen",
     "createLocationDescription": "Erstellen Sie einen Standort, der dem Personal zugewiesen werden kann",
     "createLocationAndContinue": "Standort erstellen und fortfahren"
+  },
+  "language": {
+    "selector": "Sprache",
+    "current": "Aktuelle Sprache",
+    "switch": "Sprache wechseln",
+    "english": "Englisch",
+    "spanish": "Spanisch", 
+    "german": "Deutsch"
   }
 } 

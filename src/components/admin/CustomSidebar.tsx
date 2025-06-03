@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { FeatureType, useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { FeatureGuard } from '@/components/FeatureGuard';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -388,7 +388,7 @@ export function CustomSidebar({ className }: CustomSidebarProps) {
             </Badge>
           </div>
           <div className="text-xs text-blue-600 mb-3">
-            {availableFeatures.map(f => f.label).join(', ')}
+            {availableFeatures.map(f => f).join(', ')}
           </div>
           <Link href="/admin/billing/upgrade">
             <Button size="sm" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
@@ -454,9 +454,9 @@ function SidebarSection({
   isItemActive 
 }: SidebarSectionProps) {
   const { hasFeature } = useFeatureAccess();
-
+  const feature = section.feature as FeatureType;
   // Si la sección requiere una feature específica, verificar acceso
-  if (section.feature && !hasFeature(section.feature)) {
+  if (section.feature && !hasFeature(feature)) {
     if (isCollapsed) return null;
     
     return (

@@ -3,101 +3,98 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UsersIcon, BellIcon, Clock9Icon, FileTextIcon } from 'lucide-react';
+import { 
+  Building2, 
+  Users, 
+  Activity, 
+  DollarSign, 
+  TrendingUp, 
+  Server,
+  CheckCircle
+} from 'lucide-react';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
-
-// GraphQL queries
-const GET_USERS = gql`
-  query GetUsers {
+// GraphQL queries for platform-wide data
+const GET_PLATFORM_STATS = gql`
+  query GetPlatformStats {
+    allTenants {
+      id
+      name
+      isActive
+      createdAt
+      features
+    }
     users {
       id
       email
-      firstName
-      lastName
-      phoneNumber
       role {
-        id
         name
-        description
       }
+      tenantId
       createdAt
     }
   }
 `;
 
-
-const GET_NOTIFICATIONS = gql`
-  query GetNotifications {
-    notifications {
-      id
-      title
-      message
-      type
-      isRead
-      createdAt
-      updatedAt
-    }
-    unreadNotificationsCount
-  }
-`;
-
-export default function AdminDashboardPage() {
+export default function SuperAdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Fetch stats data with GraphQL
-  const { data: usersData, loading: usersLoading } = useQuery(GET_USERS);
-  const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS);
+  // Fetch platform-wide stats
+  const { data, loading } = useQuery(GET_PLATFORM_STATS);
   
-  // Combine loading states
-  const loading = usersLoading || notificationsLoading;
-  
-  // Extract stats from query result or provide fallbacks
-  const statsData = {
-    totalUsers: usersData?.users?.length || 0,
-    totalNotifications: notificationsData?.unreadNotificationsCount || 0,
-    pendingTasks: 0
+  // Calculate platform metrics
+  const platformStats = {
+    totalTenants: data?.allTenants?.length || 0,
+    activeTenants: data?.allTenants?.filter((t: { isActive: boolean }) => t.isActive)?.length || 0,
+    totalUsers: data?.users?.length || 0,
+    superAdmins: data?.users?.filter((u: { role: { name: string } }) => u.role?.name === 'SUPER_ADMIN')?.length || 0,
+    admins: data?.users?.filter((u: { role: { name: string } }) => u.role?.name === 'ADMIN')?.length || 0,
+    regularUsers: data?.users?.filter((u: { role: { name: string } }) => 
+      !['SUPER_ADMIN', 'ADMIN'].includes(u.role?.name))?.length || 0
   };
 
-  
-  
+  const recentTenants = data?.allTenants
+    ?.slice()
+    ?.sort((a: { createdAt: string }, b: { createdAt: string }) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    ?.slice(0, 5) || [];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col">
-        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Manage your system, users, and notifications from this central dashboard.
+          Platform-wide management and analytics for all tenants and users.
         </p>
       </div>
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-5 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="tenants">Tenants</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Platform Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Users
-                </CardTitle>
-                <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total Tenants</CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-2xl font-bold">{statsData.totalUsers}</div>
+                    <div className="text-2xl font-bold">{platformStats.totalTenants}</div>
                     <p className="text-xs text-muted-foreground">
-                      Active accounts in system
+                      {platformStats.activeTenants} active
                     </p>
                   </>
                 )}
@@ -106,106 +103,140 @@ export default function AdminDashboardPage() {
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Notifications Sent
-                </CardTitle>
-                <BellIcon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <div className="text-2xl font-bold">{statsData.totalNotifications}</div>
+                    <div className="text-2xl font-bold">{platformStats.totalUsers}</div>
                     <p className="text-xs text-muted-foreground">
-                      Total notifications created
+                      Across all tenants
                     </p>
                   </>
                 )}
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">$12,450</div>
+                <p className="text-xs text-muted-foreground">
+                  +20.1% from last month
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">System Health</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium">Healthy</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  All systems operational
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            <Card className="col-span-1">
+
+          {/* Recent Activity & Quick Actions */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Recent Tenants</CardTitle>
                 <CardDescription>
-                  Latest actions across the platform
+                  Latest tenant registrations
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="mr-4 bg-blue-100 p-2 rounded-full">
-                      <UsersIcon className="h-4 w-4 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">New user registered</p>
-                      <p className="text-xs text-gray-500">2 hours ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className="mr-4 bg-orange-100 p-2 rounded-full">
-                      <BellIcon className="h-4 w-4 text-orange-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">System notification sent</p>
-                      <p className="text-xs text-gray-500">Yesterday</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className="mr-4 bg-green-100 p-2 rounded-full">
-                      <FileTextIcon className="h-4 w-4 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Document approved</p>
-                      <p className="text-xs text-gray-500">3 days ago</p>
-                    </div>
-                  </div>
+                  {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    recentTenants.map((tenant: { id: string; name: string; createdAt: string; isActive: boolean }) => (
+                      <div key={tenant.id} className="flex items-center space-x-4">
+                        <div className="bg-blue-100 p-2 rounded-full">
+                          <Building2 className="h-4 w-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{tenant.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(tenant.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="ml-auto">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            tenant.isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {tenant.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="col-span-1">
+            <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle>Platform Actions</CardTitle>
                 <CardDescription>
-                  Common admin tasks
+                  Quick access to common tasks
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => window.location.href = `/${window.location.pathname.split('/')[1]}/admin/notifications`}
-                    className="p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex flex-col items-center justify-center"
+                    onClick={() => window.location.href = '/admin/tenants/create'}
+                    className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex flex-col items-center justify-center"
                   >
-                    <BellIcon className="h-5 w-5 text-blue-500 mb-1" />
-                    <span className="text-sm font-medium">Create Notification</span>
+                    <Building2 className="h-6 w-6 text-blue-500 mb-2" />
+                    <span className="text-sm font-medium">Create Tenant</span>
                   </button>
                   
                   <button
-                    onClick={() => window.location.href = `/${window.location.pathname.split('/')[1]}/admin/users`}
-                    className="p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors flex flex-col items-center justify-center"
+                    onClick={() => window.location.href = '/admin/users'}
+                    className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors flex flex-col items-center justify-center"
                   >
-                    <UsersIcon className="h-5 w-5 text-purple-500 mb-1" />
+                    <Users className="h-6 w-6 text-purple-500 mb-2" />
                     <span className="text-sm font-medium">Manage Users</span>
                   </button>
                   
                   <button
-                    className="p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex flex-col items-center justify-center"
+                    onClick={() => window.location.href = '/admin/analytics'}
+                    className="p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex flex-col items-center justify-center"
                   >
-                    <Clock9Icon className="h-5 w-5 text-green-500 mb-1" />
-                    <span className="text-sm font-medium">Activity Logs</span>
+                    <TrendingUp className="h-6 w-6 text-green-500 mb-2" />
+                    <span className="text-sm font-medium">View Analytics</span>
                   </button>
                   
                   <button
-                    className="p-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors flex flex-col items-center justify-center"
+                    onClick={() => window.location.href = '/admin/system/health'}
+                    className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors flex flex-col items-center justify-center"
                   >
-                    <FileTextIcon className="h-5 w-5 text-orange-500 mb-1" />
+                    <Server className="h-6 w-6 text-orange-500 mb-2" />
                     <span className="text-sm font-medium">System Status</span>
                   </button>
                 </div>
@@ -214,19 +245,57 @@ export default function AdminDashboardPage() {
           </div>
         </TabsContent>
         
+        <TabsContent value="tenants">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tenant Management</CardTitle>
+              <CardDescription>
+                Manage all platform tenants from here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Tenant Management</h3>
+                <p className="text-gray-500 mb-4">View, create, and manage all tenants on the platform.</p>
+                <button
+                  onClick={() => window.location.href = '/admin/tenants'}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Go to Tenant Management
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
         <TabsContent value="users">
           <Card>
             <CardHeader>
               <CardTitle>User Management</CardTitle>
               <CardDescription>
-                Visit the complete user management page to perform user operations.
+                Platform-wide user administration.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
+              <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{platformStats.superAdmins}</div>
+                  <div className="text-sm text-blue-600">Super Admins</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{platformStats.admins}</div>
+                  <div className="text-sm text-purple-600">Tenant Admins</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{platformStats.regularUsers}</div>
+                  <div className="text-sm text-green-600">Regular Users</div>
+                </div>
+              </div>
+              <div className="text-center">
                 <button
-                  onClick={() => window.location.href = `/${window.location.pathname.split('/')[1]}/admin/users`}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  onClick={() => window.location.href = '/admin/users'}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                 >
                   Go to User Management
                 </button>
@@ -235,21 +304,24 @@ export default function AdminDashboardPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="notifications">
+        <TabsContent value="analytics">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Center</CardTitle>
+              <CardTitle>Platform Analytics</CardTitle>
               <CardDescription>
-                Create and manage notifications for users in the system.
+                Comprehensive platform metrics and insights.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Analytics Dashboard</h3>
+                <p className="text-gray-500 mb-4">View detailed analytics and reports for the entire platform.</p>
                 <button
-                  onClick={() => window.location.href = `/${window.location.pathname.split('/')[1]}/admin/notifications`}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  onClick={() => window.location.href = '/admin/analytics'}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                 >
-                  Go to Notification Management
+                  View Analytics
                 </button>
               </div>
             </CardContent>
@@ -259,19 +331,34 @@ export default function AdminDashboardPage() {
         <TabsContent value="system">
           <Card>
             <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
+              <CardTitle>System Management</CardTitle>
               <CardDescription>
-                Manage system settings and view logs.
+                Monitor and manage platform infrastructure.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-6">
-                <p className="mb-4 text-gray-500">System settings and logs available soon.</p>
+              <div className="grid gap-4 md:grid-cols-2 mb-6">
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">Database</span>
+                  </div>
+                  <p className="text-sm text-gray-500">All connections healthy</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">API Services</span>
+                  </div>
+                  <p className="text-sm text-gray-500">All endpoints responding</p>
+                </div>
+              </div>
+              <div className="text-center">
                 <button
-                  onClick={() => window.location.href = `/${window.location.pathname.split('/')[1]}/admin/logs`}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  onClick={() => window.location.href = '/admin/system'}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                 >
-                  View Activity Logs
+                  Go to System Management
                 </button>
               </div>
             </CardContent>

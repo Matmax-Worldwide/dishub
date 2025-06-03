@@ -216,15 +216,15 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "calendar": "Calendar",
-    "bookings": "Bookings & Schedule",
-    "commerce": "E-Commerce",
-    "cmsSettings": "Settings",
     "cms": "CMS",
     "cmsPages": "Pages",
     "cmsMedia": "Media",
     "cmsMenus": "Menus",
     "cmsComponents": "Components",
-    "cmsSettings": "Settings",
+    "tenants": "Tenants",
+    "blog": "Blog",
+    "forms": "Forms",
+    "ecommerce": "E-Commerce",
     "admin": "Administration",
     "users": "Users",
     "roles": "Roles & Permissions",
@@ -291,7 +291,25 @@
     "xss": "XSS Protection",
     "csrf": "CSRF Protection",
     "clickjacking": "Clickjacking Protection",
-    "staff": "Staff"
+    "staff": "Staff",
+    "user": "User",
+    "management": "Management",
+    "administration": "Administration",
+    "createNotifications": "Create Notifications",
+    "adminTools": "Admin Tools",
+    "adminMessage": "You have full administrative access to manage the platform and its users.",
+    "newUser": "New User",
+    "message": "Message",
+    "defaultRole": "Admin (Default)",
+    "welcome": "Welcome",
+    "welcomeMessage": "Access your external benefits and resources below.",
+    "externalLinksTitle": "External Links",
+    "viewingAsRole": "Viewing as {role}",
+    "noExternalLinksForRole": "No external links available for role: {role}",
+    "noExternalLinks": "No external links available for your role",
+    "adminViewingAllLinks": "As Admin, you are viewing all available links",
+    "adminRoleSwitchInfo": "You are viewing links as another role, access may be restricted",
+    "roleSwitcher": "View as: {role}"
   },
   "staffCreator": {
     "selectUser": "Select User to Make Staff",
@@ -325,7 +343,8 @@
     "ADMIN": "Admin",
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
-    "USER": "User"
+    "USER": "User",
+    "SUPER_ADMIN": "Super Admin"
   },
   "commerce": {
     "title": "E-COMMERCE"
@@ -342,5 +361,13 @@
     "rules": "Rules",
     "main": "Main",
     "management": "Management"
+  },
+  "language": {
+    "selector": "Language",
+    "current": "Current Language",
+    "switch": "Switch Language",
+    "english": "English",
+    "spanish": "Spanish", 
+    "german": "German"
   }
 } 

@@ -231,6 +231,10 @@
     "externalLinks": "Gestionar Enlaces",
     "bookNow": "Reservar espacios",
     "design": "Diseño",
+    "tenants": "Mandanten",
+    "blog": "Blog",
+    "forms": "Formulare",
+    "ecommerce": "E-Commerce",
     "tools": "Herramientas",
     "bookings": "Reservas y Calendario",
     "commerce": "E-Commerce",
@@ -260,7 +264,8 @@
     "ADMIN": "Administrador",
     "MANAGER": "Gerente",
     "EMPLOYEE": "Empleado",
-    "USER": "Usuario"
+    "USER": "Usuario",
+    "SUPER_ADMIN": "Super Administrador"
   },
   "commerce": {
     "title": "E-COMMERCE"
@@ -305,5 +310,13 @@
     "createNewLocation": "Crear Nueva Ubicación",
     "createLocationDescription": "Crear una ubicación que puede ser asignada al personal",
     "createLocationAndContinue": "Crear Ubicación y Continuar"
+  },
+  "language": {
+    "selector": "Idioma",
+    "current": "Idioma Actual",
+    "switch": "Cambiar Idioma",
+    "english": "Inglés",
+    "spanish": "Español", 
+    "german": "Alemán"
   }
 } 

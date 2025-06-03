@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
-import SuperAdminSidebar from '@/components/admin/SuperAdminSidebar';
+import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
+import { DashboardSidebar } from '@/components/Navigation/dashboardSidebar/DashboardSidebar';
 
 const GET_USER = gql`
   query GetUser {
@@ -13,6 +14,7 @@ const GET_USER = gql`
       email
       firstName
       lastName
+      tenantId
       role {
         id
         name
@@ -22,7 +24,17 @@ const GET_USER = gql`
   }
 `;
 
-export default function AdminLayoutWrapper({
+const GET_TENANT_FEATURES = gql`
+  query GetTenantFeatures($tenantId: ID!) {
+    tenant(id: $tenantId) {
+      id
+      name
+      features
+    }
+  }
+`;
+
+export default function TenantAdminLayoutWrapper({
   children,
 }: {
   children: React.ReactNode;
@@ -44,12 +56,6 @@ export default function AdminLayoutWrapper({
     onCompleted: (data) => {
       console.log('User data loaded:', data);
       setIsLoading(false);
-      
-      // Check if user is SUPER_ADMIN
-      if (data?.me?.role?.name !== 'SUPER_ADMIN') {
-        console.log('User is not SUPER_ADMIN, redirecting...');
-        router.push(`/${locale}/access-denied`);
-      }
     },
     onError: (error) => {
       // Redirect to login on error
@@ -58,22 +64,44 @@ export default function AdminLayoutWrapper({
     }
   });
 
+  // Get tenant features
+  const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
+    client,
+    variables: { tenantId: userData?.me?.tenantId || '' },
+    skip: !userData?.me?.tenantId,
+    errorPolicy: 'all',
+    fetchPolicy: 'cache-first',
+    onCompleted: (tenantData) => {
+      console.log('Tenant features loaded:', tenantData?.tenant?.features);
+    },
+    onError: (error) => {
+      console.error('Error loading tenant features:', error);
+    }
+  });
+
+  // Parse tenant features
+  const tenantFeatures: FeatureType[] = tenantData?.tenant?.features 
+    ? (Array.isArray(tenantData.tenant.features) 
+        ? tenantData.tenant.features as FeatureType[]
+        : [tenantData.tenant.features as FeatureType])
+    : ['CMS_ENGINE']; // Default fallback
+
   if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading super admin...</p>
+          <p className="text-gray-600">Loading tenant admin...</p>
         </div>
       </div>
     );
   }
 
-  if (!userData?.me || userData.me.role?.name !== 'SUPER_ADMIN') {
+  if (!userData?.me) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Access denied - Super Admin required</p>
+          <p className="text-red-600 mb-4">Access denied</p>
           <button 
             onClick={() => router.push(`/${locale}/login`)}
             className="px-4 py-2 bg-blue-500 text-white rounded"
@@ -86,13 +114,15 @@ export default function AdminLayoutWrapper({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <SuperAdminSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+    <FeatureProvider features={tenantFeatures}>
+      <div className="flex h-screen bg-gray-50">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 overflow-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </FeatureProvider>
   );
 } 

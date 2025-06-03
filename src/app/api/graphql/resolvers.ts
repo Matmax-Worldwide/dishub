@@ -64,6 +64,7 @@ async function ensureSystemRoles() {
     { name: 'ADMIN', description: 'Administrator with full system access' },
     { name: 'MANAGER', description: 'Manager with access to team resources' },
     { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
+    { name: 'SUPER_ADMIN', description: 'Super Administrator with platform-wide access across all tenants' },
   ];
   
   // Check if roles exist, if not create them
@@ -379,6 +380,7 @@ const resolvers = {
         const currentUser = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: {
+            tenantId: true,
             role: {
               select: {
                 name: true
@@ -389,13 +391,30 @@ const resolvers = {
         
         const userRole = currentUser?.role?.name || 'USER';
         
-        // Allow both admins and managers to access this endpoint
-        if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
-          throw new Error('Unauthorized: Admin or Manager access required');
+        // Allow admins, managers, and super admins to access this endpoint
+        if (!['ADMIN', 'MANAGER', 'SUPER_ADMIN'].includes(userRole)) {
+          throw new Error('Unauthorized: Admin, Manager, or Super Admin access required');
         }
         
-        // Get all users with their roles
+        // Build the where clause based on user role
+        let whereClause = {};
+        
+        if (userRole === 'SUPER_ADMIN') {
+          // Super admins can see all users across all tenants
+          whereClause = {};
+        } else if (userRole === 'ADMIN' || userRole === 'MANAGER') {
+          // Regular admins and managers can only see users from their tenant
+          if (!currentUser?.tenantId) {
+            throw new Error('Admin/Manager user must be associated with a tenant');
+          }
+          whereClause = {
+            tenantId: currentUser.tenantId
+          };
+        }
+        
+        // Get users with the appropriate scope
         const users = await prisma.user.findMany({
+          where: whereClause,
           select: {
             id: true,
             email: true,
@@ -404,6 +423,7 @@ const resolvers = {
             phoneNumber: true,
             roleId: true,
             isActive: true,
+            tenantId: true,
             role: {
               select: {
                 id: true,
@@ -428,6 +448,7 @@ const resolvers = {
           phoneNumber?: string | null;
           roleId?: string | null;
           isActive?: boolean;
+          tenantId?: string | null;
           role?: {
             id: string;
             name: string;

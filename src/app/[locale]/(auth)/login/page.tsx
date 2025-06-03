@@ -21,6 +21,7 @@ const LOGIN_MUTATION = gql`
         firstName
         lastName
         phoneNumber
+        tenantId
         role {
           id
           name
@@ -107,9 +108,48 @@ export default function LoginPage() {
       // Store login success in sessionStorage (this persists across a page refresh)
       sessionStorage.setItem('justLoggedIn', 'true');
       
+      // Determine redirect path based on user role
+      let redirectPath = `/${locale}/evoque/dashboard`; // Default path
+      
+      if (transformedUser.role === 'SUPER_ADMIN') {
+        redirectPath = `/${locale}/admin`;
+      } else if (transformedUser.role === 'ADMIN') {
+        // For regular admins, redirect to their tenant admin page
+        if (transformedUser.tenantId) {
+          // We need to get the tenant slug - for now we'll use a query to get it
+          // TODO: Ideally we should include tenant info in login response
+          try {
+            const { data: tenantData } = await client.query({
+              query: gql`
+                query GetTenant($id: ID!) {
+                  tenant(id: $id) {
+                    id
+                    slug
+                  }
+                }
+              `,
+              variables: { id: transformedUser.tenantId }
+            });
+            
+            if (tenantData?.tenant?.slug) {
+              redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+            } else {
+              console.warn('Admin user has tenantId but tenant not found, redirecting to default');
+              redirectPath = `/${locale}/evoque/dashboard`;
+            }
+          } catch (tenantError) { 
+            console.error('Error fetching tenant for admin redirect:', tenantError);
+            redirectPath = `/${locale}/evoque/dashboard`;
+          }
+        } else {
+          console.warn('Admin user without tenantId, redirecting to default dashboard');
+          redirectPath = `/${locale}/evoque/dashboard`;
+        }
+      }
+      
       // Use window.location for a full page refresh instead of Next.js router
       // This prevents React hydration issues when transitioning after login
-      window.location.href = `/${locale}/evoque/dashboard`;
+      window.location.href = redirectPath;
       
     } catch (err) {
       console.error('Login error:', err);

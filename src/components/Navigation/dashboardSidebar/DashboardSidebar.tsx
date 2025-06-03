@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   LogOutIcon,
   MenuIcon,
@@ -106,7 +105,6 @@ export function DashboardSidebar() {
   const { t } = useI18n();
   const { features: tenantFeatures } = useFeatureAccess();
   const [isOpen, setIsOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/logo.png");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user: authUser } = useAuth();
@@ -243,8 +241,6 @@ export function DashboardSidebar() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setLogoUrl(`${window.location.origin}/logo.png`);
-      
       // Close sidebar on mobile when route changes
       setIsOpen(false);
       
@@ -832,34 +828,37 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 h-screen">
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:inset-y-0 h-screen">
         <div className="flex flex-col bg-white border-r h-screen">
           {/* Sidebar header */}
-          <div className="flex items-center border-b px-4">
+          <div className="flex items-center justify-between border-b px-4 py-3">
             <Link href={`/${params.locale}`} className="flex items-center">
-              <Image 
-                src={logoUrl} 
-                alt="E-voque Logo" 
-                width={12} 
-                height={12} 
-                className="h-14 w-16" 
-              />
+              {/* Logo placeholder - future implementation */}
+              <div className="h-14 w-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">E</span>
+              </div>
             </Link>
-            {isAdmin && (
-              <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
-                Admin
-              </span>
-            )}
-            {isManager && !isAdmin && (
-              <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
-                Manager
-              </span>
-            )}
-            {showAsUser && (
-              <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
-                Usuario
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Language Switcher */}
+              <LanguageSwitcher variant="sidebar" />
+              
+              {/* Role badges */}
+              {isAdmin && (
+                <span className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
+                  Admin
+                </span>
+              )}
+              {isManager && !isAdmin && (
+                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
+                  Manager
+                </span>
+              )}
+              {showAsUser && (
+                <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
+                  Usuario
+                </span>
+              )}
+            </div>
           </div>
 
           {isAdmin && (
@@ -1050,32 +1049,37 @@ export function DashboardSidebar() {
             {/* Mobile sidebar header with close button */}
             <div className="flex items-center justify-between h-16 px-4 border-b shrink-0">
               <Link href={`/${params.locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
-                <Image 
-                  src={logoUrl} 
-                  alt="E-voque Logo" 
-                  width={24} 
-                  height={24} 
-                  className="h-12 w-12" 
-                />
+                {/* Logo placeholder - future implementation */}
+                <div className="h-12 w-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xl">E</span>
+                </div>
               </Link>
-              {isAdmin && (
-                <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
-                  Admin
-                </span>
-              )}
-              {isManager && !isAdmin && (
-                <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
-                  Manager
-                </span>
-              )}
-              {showAsUser && (
-                <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
-                  Usuario
-                </span>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <XIcon className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Language Switcher */}
+                <LanguageSwitcher variant="sidebar" />
+                
+                {/* Role badges */}
+                {isAdmin && (
+                  <span className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
+                    Admin
+                  </span>
+                )}
+                {isManager && !isAdmin && (
+                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
+                    Manager
+                  </span>
+                )}
+                {showAsUser && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
+                    Usuario
+                  </span>
+                )}
+                
+                {/* Close button */}
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                  <XIcon className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
             
             {/* Mobile nav items */}

@@ -305,7 +305,7 @@ export const sidebarConfig: SidebarConfig = {
           icon: SettingsIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['ecommerce:manage'],
-          roles: ['ADMIN', 'MANAGER']
+      roles: ['ADMIN', 'MANAGER']
         }
       ]
     },
@@ -357,7 +357,7 @@ export const sidebarConfig: SidebarConfig = {
           icon: SettingsIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['bookings:manage'],
-          roles: ['ADMIN', 'MANAGER']
+      roles: ['ADMIN', 'MANAGER']
         }
       ]
     }

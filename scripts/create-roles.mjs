@@ -23,6 +23,10 @@ async function createRoles() {
       {
         name: 'EMPLOYEE',
         description: 'Employee with limited access'
+      },
+      {
+        name: 'SUPER_ADMIN',
+        description: 'Super Administrator with platform-wide access across all tenants'
       }
     ];
 

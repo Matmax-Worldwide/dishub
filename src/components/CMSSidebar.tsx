@@ -20,7 +20,8 @@ import {
   BookOpen,
   ChevronDown
 } from 'lucide-react';
-import { useFeatureAccess, FeatureType } from '@/hooks/useFeatureAccess';
+import { FeatureType } from '@/hooks/useFeatureAccess';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 import {
   Sidebar, 
@@ -56,15 +57,8 @@ export default function CMSSidebar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
   
-  // Try to use FeatureProvider, fallback to defaults if not available
-  let hasFeature: (feature: FeatureType) => boolean = () => true; // Default: allow all features
-  
-  try {
-    const featureAccess = useFeatureAccess();
-    hasFeature = featureAccess.hasFeature;
-  } catch {
-    console.warn('CMSSidebar used outside FeatureProvider, using defaults');
-  }
+  // Use the actual FeatureProvider context instead of hardcoded function
+  const { hasFeature } = useFeatureAccess();
 
   // Unsaved changes context
   const {
