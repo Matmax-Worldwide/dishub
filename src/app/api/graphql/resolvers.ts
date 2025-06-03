@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { GraphQLError } from 'graphql'; // Added GraphQLError
 import jwt from 'jsonwebtoken';
 import { GraphQLScalarType, Kind } from 'graphql';
+import { TenantStatus } from '@prisma/client';
 
 // Import individual resolver modules
 import {
@@ -68,6 +69,26 @@ const dateTimeScalar = new GraphQLScalarType({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Input type interfaces for tenant operations
+interface CreateTenantInput {
+  name: string;
+  slug: string;
+  domain?: string;
+  status?: TenantStatus;
+  planId?: string;
+  features?: string[];
+}
+
+interface UpdateTenantInput {
+  id: string;
+  name?: string;
+  slug?: string;
+  domain?: string;
+  status?: TenantStatus;
+  planId?: string;
+  features?: string[];
+}
 
 // Helper function to ensure system roles exist
 async function ensureSystemRoles() {
@@ -997,6 +1018,89 @@ const resolvers = {
         return [];
       }
     },
+
+    // Tenant queries
+    allTenants: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can view all tenants
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can view all tenants');
+        }
+
+        const tenants = await prisma.tenant.findMany({
+          orderBy: { createdAt: 'desc' }
+        });
+
+        return tenants;
+      } catch (error) {
+        console.error('Get all tenants error:', error);
+        throw error;
+      }
+    },
+
+    tenant: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can view tenant details
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can view tenant details');
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+          where: { id }
+        });
+
+        return tenant;
+      } catch (error) {
+        console.error('Get tenant error:', error);
+        throw error;
+      }
+    },
   },
   
   Mutation: {
@@ -1874,6 +1978,362 @@ const resolvers = {
     createReviewResponse: reviewResolvers.Mutation.createReviewResponse,
     updateReviewResponse: reviewResolvers.Mutation.updateReviewResponse,
     deleteReviewResponse: reviewResolvers.Mutation.deleteReviewResponse,
+
+    // Tenant mutations
+    createTenant: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can create tenants
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can create tenants');
+        }
+
+        const tenant = await prisma.tenant.create({
+          data: {
+            name: input.name,
+            slug: input.slug,
+            domain: input.domain,
+            status: input.status as TenantStatus || 'ACTIVE',
+            planId: input.planId,
+            features: input.features || [],
+          }
+        });
+
+        return tenant;
+      } catch (error) {
+        console.error('Create tenant error:', error);
+        throw error;
+      }
+    },
+
+    updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can update tenants
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can update tenants');
+        }
+
+        const { id, ...updateData } = input;
+        
+        const tenant = await prisma.tenant.update({
+          where: { id },
+          data: updateData
+        });
+
+        return tenant;
+      } catch (error) {
+        console.error('Update tenant error:', error);
+        throw error;
+      }
+    },
+
+    provisionTenantSite: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can provision tenant sites
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can provision tenant sites');
+        }
+
+        // Get the tenant
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!tenant) {
+          throw new Error('Tenant not found');
+        }
+
+        // TODO: Implement actual Vercel provisioning logic here
+        // For now, we'll just update the tenant with mock data
+        const updatedTenant = await prisma.tenant.update({
+          where: { id: tenantId },
+          data: {
+            status: 'ACTIVE' as TenantStatus,
+          }
+        });
+
+        return updatedTenant;
+      } catch (error) {
+        console.error('Provision tenant site error:', error);
+        throw error;
+      }
+    },
+
+    addOrUpdateTenantCustomDomain: async (_parent: unknown, { tenantId, domain }: { tenantId: string; domain: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can manage custom domains
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can manage custom domains');
+        }
+
+        // Get the tenant
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!tenant) {
+          throw new Error('Tenant not found');
+        }
+
+        // TODO: Add vercelProjectId field to Prisma schema
+        // For now, we'll proceed without this check
+        // if (!tenant.vercelProjectId) {
+        //   throw new Error('Tenant must have a Vercel project before adding custom domain');
+        // }
+
+        // TODO: Implement actual Vercel domain configuration logic here
+        // For now, return mock data
+        const mockDomainConfig = {
+          name: domain,
+          apexName: domain.replace(/^www\./, ''),
+          projectId: 'mock-project-id', // tenant.vercelProjectId when field exists
+          redirect: null,
+          redirectStatusCode: null,
+          gitBranch: null,
+          verified: false,
+          verification: [
+            {
+              type: 'TXT',
+              name: '_vercel',
+              value: `vc-domain-verify=${domain}-${Date.now()}`
+            }
+          ]
+        };
+
+        // Update tenant with the new domain
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: {
+            domain: domain,
+            // TODO: Add customDomainStatus field to Prisma schema
+            // customDomainStatus: 'PENDING'
+          }
+        });
+
+        return mockDomainConfig;
+      } catch (error) {
+        console.error('Add/update custom domain error:', error);
+        throw error;
+      }
+    },
+
+    checkTenantCustomDomainStatus: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can check domain status
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can check domain status');
+        }
+
+        // Get the tenant
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!tenant) {
+          throw new Error('Tenant not found');
+        }
+
+        if (!tenant.domain) {
+          throw new Error('Tenant does not have a custom domain configured');
+        }
+
+        // TODO: Implement actual Vercel domain status check here
+        // For now, return mock data
+        const mockDomainConfig = {
+          name: tenant.domain,
+          apexName: tenant.domain.replace(/^www\./, ''),
+          projectId: 'mock-project-id', // tenant.vercelProjectId when field exists
+          redirect: null,
+          redirectStatusCode: null,
+          gitBranch: null,
+          verified: false, // tenant.customDomainStatus === 'VERIFIED' when field exists
+          verification: [
+            {
+              type: 'TXT',
+              name: '_vercel',
+              value: `vc-domain-verify=${tenant.domain}-${Date.now()}`
+            }
+          ]
+        };
+
+        return mockDomainConfig;
+      } catch (error) {
+        console.error('Check domain status error:', error);
+        throw error;
+      }
+    },
+
+    removeTenantCustomDomain: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        
+        if (!decoded || !decoded.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Only SUPER_ADMIN can remove custom domains
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+
+        if (user?.role?.name !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Only super admins can remove custom domains');
+        }
+
+        // Get the tenant
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!tenant) {
+          throw new Error('Tenant not found');
+        }
+
+        // TODO: Implement actual Vercel domain removal logic here
+
+        // Update tenant to remove the domain
+        const updatedTenant = await prisma.tenant.update({
+          where: { id: tenantId },
+          data: {
+            domain: null,
+            // TODO: Add customDomainStatus field to Prisma schema
+            // customDomainStatus: null
+          }
+        });
+
+        return updatedTenant;
+      } catch (error) {
+        console.error('Remove custom domain error:', error);
+        throw error;
+      }
+    },
   },
 
   // Include form type resolvers
@@ -1905,4 +2365,4 @@ const resolvers = {
   Payment: ecommerceResolvers.Payment,
 };
 
-export default resolvers; 
+export default resolvers;

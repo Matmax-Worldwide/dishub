@@ -541,12 +541,11 @@ export const calendarResolvers = {
         if (!rule) {
           const defaultRule = await prisma.bookingRule.create({
             data: {
-              advanceBookingHoursMin: 24, // 24 hours minimum advance booking
-              advanceBookingDaysMax: 90, // 90 days maximum advance booking
-              sameDayCutoffTime: "12:00", // Same day cutoff at noon
-              bufferBetweenAppointmentsMinutes: 15, // 15 minutes buffer
-              maxAppointmentsPerDayPerStaff: 8, // 8 appointments per day per staff
-              bookingSlotIntervalMinutes: 30, // 30 minute slots
+              name: "Global Booking Rule",
+              description: "Default global booking rules",
+              advanceBookingDays: 90, // 90 days maximum advance booking
+              maxBookingsPerDay: 8, // 8 appointments per day per staff
+              minTimeBetweenBookings: 15, // 15 minutes buffer
               locationId: null // Global rule
             }
           });
@@ -592,12 +591,7 @@ export const calendarResolvers = {
           throw new Error(`Location with ID ${locationId} not found`);
         }
         
-        // Get global booking rules
-        const bookingRule = await prisma.bookingRule.findFirst({
-          where: { locationId: null }
-        });
-        
-        const slotInterval = bookingRule?.bookingSlotIntervalMinutes || 30;
+        const slotInterval = 30; // Default slot interval since bookingSlotIntervalMinutes doesn't exist in schema
         
         // Parse operating hours for the given date
         const targetDate = new Date(date);
@@ -1287,24 +1281,22 @@ export const calendarResolvers = {
           return await prisma.bookingRule.update({
             where: { id: existingRule.id },
             data: {
-              advanceBookingHoursMin: input.advanceBookingHoursMin,
-              advanceBookingDaysMax: input.advanceBookingDaysMax,
-              sameDayCutoffTime: input.sameDayCutoffTime,
-              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
-              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              name: "Global Booking Rule",
+              description: "Global booking rules",
+              advanceBookingDays: input.advanceBookingDaysMax,
+              maxBookingsPerDay: input.maxAppointmentsPerDayPerStaff,
+              minTimeBetweenBookings: input.bufferBetweenAppointmentsMinutes,
             }
           });
         } else {
           // Create new rule
           return await prisma.bookingRule.create({
             data: {
-              advanceBookingHoursMin: input.advanceBookingHoursMin,
-              advanceBookingDaysMax: input.advanceBookingDaysMax,
-              sameDayCutoffTime: input.sameDayCutoffTime,
-              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
-              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              name: "Global Booking Rule",
+              description: "Global booking rules",
+              advanceBookingDays: input.advanceBookingDaysMax,
+              maxBookingsPerDay: input.maxAppointmentsPerDayPerStaff,
+              minTimeBetweenBookings: input.bufferBetweenAppointmentsMinutes,
               locationId: null // Global rule
             }
           });
@@ -1453,24 +1445,22 @@ export const calendarResolvers = {
           return await prisma.bookingRule.update({
             where: { id: existingRule.id },
             data: {
-              advanceBookingHoursMin: input.advanceBookingHoursMin,
-              advanceBookingDaysMax: input.advanceBookingDaysMax,
-              sameDayCutoffTime: input.sameDayCutoffTime,
-              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
-              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              name: "Global Booking Rule",
+              description: "Global booking rules",
+              advanceBookingDays: input.advanceBookingDaysMax,
+              maxBookingsPerDay: input.maxAppointmentsPerDayPerStaff,
+              minTimeBetweenBookings: input.bufferBetweenAppointmentsMinutes,
             }
           });
         } else {
           // Create new rule
           return await prisma.bookingRule.create({
             data: {
-              advanceBookingHoursMin: input.advanceBookingHoursMin,
-              advanceBookingDaysMax: input.advanceBookingDaysMax,
-              sameDayCutoffTime: input.sameDayCutoffTime,
-              bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
-              maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              name: "Global Booking Rule",
+              description: "Global booking rules",
+              advanceBookingDays: input.advanceBookingDaysMax,
+              maxBookingsPerDay: input.maxAppointmentsPerDayPerStaff,
+              minTimeBetweenBookings: input.bufferBetweenAppointmentsMinutes,
               locationId: null // Global rule
             }
           });

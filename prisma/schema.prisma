@@ -89,10 +89,13 @@ enum TenantStatus {
 model User {
   id               String    @id @default(cuid())
   email            String    @unique
-  password         String?
-  firstName        String?
-  lastName         String?
+  password         String
+  firstName        String
+  lastName         String
+  bio              String?
+  department       String?
   phoneNumber      String?
+  position         String?
   profileImageUrl  String?
   isActive         Boolean   @default(true)
   emailVerified    DateTime?
@@ -164,8 +167,10 @@ model Document {
   updatedAt   DateTime       @updatedAt
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -184,6 +189,7 @@ model Client {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -200,9 +206,9 @@ model Project {
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks       Task[]
   timeEntries TimeEntry[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -224,6 +230,7 @@ model Appointment {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -242,6 +249,7 @@ model TimeEntry {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -286,6 +294,7 @@ model Task {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -305,6 +314,7 @@ model Notification {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
 }
 
@@ -322,6 +332,8 @@ model Performance {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+
   @@index([tenantId])
 }
 
@@ -370,7 +382,6 @@ model Shop {
   productCategories ProductCategory[]
   taxes             Tax[]
   orders            Order[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 
@@ -433,7 +444,6 @@ model Product {
   orderItems OrderItem[]
   reviews    Review[]
   discounts  DiscountProduct[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 
@@ -460,7 +470,6 @@ model ProductCategory {
   children        ProductCategory[] @relation("CategoryToParent")
   products        Product[]
   discounts       DiscountCategory[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 
@@ -581,7 +590,6 @@ model Employee {
   leaves           Leave[]
   payrolls         Payroll[]
   performances     PerformanceReview[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -596,7 +604,6 @@ model Department {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   employees   Employee[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -614,8 +621,8 @@ model Position {
   updatedAt        DateTime   @updatedAt
   employees        Employee[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, title]) // Position titles usually unique per tenant
 }
@@ -649,7 +656,6 @@ model Leave {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   employee     Employee      @relation(fields: [employeeId], references: [id])
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -668,6 +674,7 @@ model Benefit {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+=======
   @@index([tenantId])
   @@unique([tenantId, name]) // Benefit names usually unique per tenant
 }
@@ -708,9 +715,8 @@ model PerformanceReview {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   employee           Employee     @relation(fields: [employeeId], references: [id])
-
-  tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+  
   @@index([tenantId])
 }
 
@@ -726,7 +732,6 @@ model EmployeeDocument {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   employee     Employee     @relation(fields: [employeeId], references: [id])
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -745,7 +750,6 @@ model Training {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   employees    EmployeeTraining[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -779,7 +783,6 @@ model HolidayCalendar {
   region      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -805,7 +808,6 @@ model Payroll {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   employee      Employee      @relation(fields: [employeeId], references: [id])
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -838,7 +840,6 @@ model Page {
   seo             PageSEO?
   sections        CMSSection[] @relation("PageToSection")
   directSections  CMSSection[] @relation("SectionToPage")
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -864,7 +865,6 @@ model CMSSection {
                                                               // If a section can belong to multiple pages directly.
   media           Media[]
   order           Int                @default(0)
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
@@ -888,9 +888,9 @@ model Media {
   cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
   posts           Post[]      @relation("PostMedia")
   featuredInPosts Post[]      @relation("PostFeaturedImage")
-
-  tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -923,9 +923,9 @@ model Menu {
   headerStyle HeaderStyle?
   footerStyle FooterStyle?
   items       MenuItem[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
   @@unique([tenantId, name])
 }
@@ -1003,9 +1003,9 @@ model Collection {
   updatedAt   DateTime          @updatedAt
   documents   CMSDocument[]
   fields      CollectionField[]
-
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId])
   @@unique([tenantId, slug])
   // name also likely unique per tenant, but slug is primary for URLs
@@ -1756,8 +1756,8 @@ model BookingRule {
   maxAppointmentsPerDayPerStaff    Int?
   bookingSlotIntervalMinutes       Int  @default(15)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
 
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
@@ -2265,7 +2265,6 @@ model CustomerAddress {
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
-  
   @@index([customerId])
   @@index([type])
   @@index([tenantId])

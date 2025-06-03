@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useEffect, useState } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+
+import { toast } from 'sonner';
+
 import { AVAILABLE_FEATURES } from '@/config/features';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -25,6 +27,14 @@ const tenantFormSchema = z.object({
 });
 
 type TenantFormData = z.infer<typeof tenantFormSchema>;
+
+
+// DNS Record type for Vercel domain verification
+interface DNSRecord {
+  type: string;
+  name: string;
+  value: string;
+}
 
 // Extended Tenant type for the form, including fields not in Zod schema for tenant details
 interface TenantForForm extends TenantFormData {
@@ -82,15 +92,18 @@ const REMOVE_DOMAIN = gql`
   }
 `;
 
-export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSaved }: TenantFormProps) {
-  const { toast } = useToast();
+
+export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSaved }: TenantFormProps) { 
+
   const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<TenantFormData>({
     resolver: zodResolver(tenantFormSchema),
     defaultValues: { name: '', slug: '', status: 'ACTIVE', planId: '', features: [] }
   });
 
   const [currentDomainInput, setCurrentDomainInput] = useState('');
-  const [dnsRecords, setDnsRecords] = useState<any[] | null>(null); // Type for VercelDNSRecord if defined
+
+  const [dnsRecords, setDnsRecords] = useState<DNSRecord[] | null>(null); // Type for VercelDNSRecord if defined
+
 
   useEffect(() => {
     if (isOpen) {
@@ -118,35 +131,47 @@ export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSave
   const [addOrUpdateDomainMutation, { loading: domainOpLoading }] = useMutation(ADD_OR_UPDATE_DOMAIN, {
     onCompleted: (data) => {
       const domainConfig = data.addOrUpdateTenantCustomDomain;
-      toast({ title: "Domain Update Initiated", description: `Vercel is processing the domain ${domainConfig.name}. Refresh status shortly.` });
+
+      toast.success(`Domain Update Initiated: Vercel is processing the domain ${domainConfig.name}. Refresh status shortly.`);
+
       if (domainConfig.verification && domainConfig.verification.length > 0 && !domainConfig.verified) {
         setDnsRecords(domainConfig.verification);
       } else { setDnsRecords(null); }
       onTenantSaved(); // Refetch tenant list to show updated domain/status
     },
-    onError: (error) => { toast({ title: "Domain Error", description: error.message, variant: "destructive" }); setDnsRecords(null); }
+
+    onError: (error) => { toast.error(`Domain Error: ${error.message}`); setDnsRecords(null); }
+
   });
 
   const [checkDomainStatusMutation, { loading: statusCheckLoading }] = useMutation(CHECK_DOMAIN_STATUS, {
     onCompleted: (data) => {
       const config = data.checkTenantCustomDomainStatus;
-      toast({ title: "Domain Status Refreshed", description: `Domain ${config.name} is ${config.verified ? 'VERIFIED' : 'PENDING or ERROR'}. DNS records updated if verification is pending.` });
+
+      toast.success(`Domain Status Refreshed: Domain ${config.name} is ${config.verified ? 'VERIFIED' : 'PENDING or ERROR'}. DNS records updated if verification is pending.`);
+
        if (config.verification && config.verification.length > 0 && !config.verified) {
         setDnsRecords(config.verification);
       } else { setDnsRecords(null); }
       onTenantSaved(); // Refetch tenant list
     },
-    onError: (error) => toast({ title: "Status Check Error", description: error.message, variant: "destructive" })
+
+    onError: (error) => toast.error(`Status Check Error: ${error.message}`)
+
   });
 
   const [removeDomainMutation, { loading: removeDomainLoading }] = useMutation(REMOVE_DOMAIN, {
     onCompleted: () => {
-      toast({ title: "Domain Removed", description: "Custom domain has been successfully removed." });
+
+      toast.success("Domain Removed: Custom domain has been successfully removed.");
+
       setCurrentDomainInput('');
       setDnsRecords(null);
       onTenantSaved(); // Refetch tenant list
     },
-    onError: (error) => toast({ title: "Remove Domain Error", description: error.message, variant: "destructive" })
+
+    onError: (error) => toast.error(`Remove Domain Error: ${error.message}`)
+
   });
 
   const onSubmitTenantDetails = async (data: TenantFormData) => {
@@ -158,27 +183,34 @@ export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSave
     try {
       if (tenantToEdit && tenantToEdit.id) {
         await updateTenantMutation({ variables: { input: { id: tenantToEdit.id, ...payload } } });
-        toast({ title: "Tenant Details Updated", description: `Tenant "${payload.name}" details have been saved.` });
+
+        toast.success(`Tenant Details Updated: Tenant "${payload.name}" details have been saved.`);
       } else {
         // This part is for creating a new tenant. Domain is not set here.
         await createTenantMutation({ variables: { input: payload } });
-        toast({ title: "Tenant Created", description: `Tenant "${payload.name}" has been created.` });
+        toast.success(`Tenant Created: Tenant "${payload.name}" has been created.`);
+
       }
       onTenantSaved();
       if (!tenantToEdit) { // If it was a new tenant creation, close the form.
         onClose();
       }
-    } catch (error: any) {
-      toast({ title: "Error Saving Tenant", description: error.message || "Failed to save tenant details.", variant: "destructive" });
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save tenant details.";
+      toast.error(`Error Saving Tenant: ${errorMessage}`);
+
     }
   };
 
   const handleSaveDomain = () => {
     if (!tenantToEdit?.id || !currentDomainInput.trim()) {
-        toast({ title: "Input Error", description: "Tenant ID is missing or domain field is empty.", variant: "destructive" }); return;
+
+        toast.error("Input Error: Tenant ID is missing or domain field is empty."); return;
     }
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(currentDomainInput.trim())) {
-        toast({ title: "Invalid Domain", description: "Please enter a valid domain format (e.g., example.com).", variant: "destructive" }); return;
+        toast.error("Invalid Domain: Please enter a valid domain format (e.g., example.com)."); return;
+
     }
     setDnsRecords(null); // Clear previous DNS records
     addOrUpdateDomainMutation({ variables: { tenantId: tenantToEdit.id, domain: currentDomainInput.trim() } });
@@ -186,7 +218,9 @@ export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSave
 
   const handleCheckStatus = () => {
     if (!tenantToEdit?.id || !tenantToEdit.domain) {
-        toast({ title: "Info", description: "No domain is currently configured for this tenant to check its status.", variant: "default" }); return;
+
+        toast.info("No domain is currently configured for this tenant to check its status."); return;
+
     }
     setDnsRecords(null); // Clear previous DNS records
     checkDomainStatusMutation({ variables: { tenantId: tenantToEdit.id } });
@@ -194,7 +228,9 @@ export default function TenantForm({ isOpen, onClose, tenantToEdit, onTenantSave
 
   const handleRemoveDomain = () => {
     if (!tenantToEdit?.id || !tenantToEdit.domain) {
-        toast({ title: "Info", description: "No domain is currently configured for this tenant to remove.", variant: "default" }); return;
+
+        toast.info("No domain is currently configured for this tenant to remove."); return;
+
     }
     if (confirm(`Are you sure you want to remove the domain "${tenantToEdit.domain}" for this tenant? This action will attempt to remove it from Vercel and clear it from the tenant record.`)) {
       removeDomainMutation({ variables: { tenantId: tenantToEdit.id } });

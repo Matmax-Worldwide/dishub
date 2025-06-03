@@ -1,21 +1,33 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma, PageType } from '@prisma/client';
 import { verifySession } from '@/app/api/utils/auth';
-import { Context } from '@/app/api/graphql/types';
+import { GraphQLContext } from '../route';
 import { GraphQLError } from 'graphql';
 
-// Tipo para los componentes de una sección
-type SectionComponentWithRelation = {
-  id: string;
-  componentId: string;
-  order: number;
-  data: Record<string, unknown> | null;
-  component: {
-    id: string;
-    slug: string;
-    name: string;
+// Type definitions for Prisma includes
+type PageWithSections = Prisma.PageGetPayload<{
+  include: {
+    sections: true;
+    seo: true;
   };
-};
+}>;
+
+type CMSSectionWithComponents = Prisma.CMSSectionGetPayload<{
+  include: {
+    components: {
+      include: {
+        component: true;
+      };
+    };
+  };
+}>;
+
+// Tipo para los componentes de una sección
+type SectionComponentWithRelation = Prisma.SectionComponentGetPayload<{
+  include: {
+    component: true;
+  };
+}>;
 
 // Type for SEO input data - add this to fix linter errors
 type PageSEOInput = {
@@ -61,13 +73,18 @@ export const cmsResolvers = {
       }
     },
     
-    getPageBySlug: async (_parent: unknown, args: { slug: string }) => {
+    getPageBySlug: async (_parent: unknown, args: { slug: string }, context: GraphQLContext) => {
       console.log('======== START getPageBySlug resolver ========');
       try {
         const { slug } = args;
         
         const page = await prisma.page.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
           include: {
             sections: true,
             seo: true
@@ -81,9 +98,9 @@ export const cmsResolvers = {
         // Filter out sections with null sectionId to prevent GraphQL errors
         const filteredPage = {
           ...page,
-          sections: page.sections.filter(section => 
+          sections: page.sections?.filter((section: PageWithSections['sections'][0]) => 
             section && typeof section === 'object' && 'sectionId' in section && section.sectionId !== null
-          )
+          ) || []
         };
         
         return filteredPage;
@@ -129,7 +146,7 @@ export const cmsResolvers = {
       }
     },
     
-    getSectionComponents: async (_parent: unknown, args: { sectionId: string }) => {
+    getSectionComponents: async (_parent: unknown, args: { sectionId: string }, context: GraphQLContext) => {
       console.log('======== START getSectionComponents resolver ========');
       try {
         console.log('========================================');
@@ -159,7 +176,12 @@ export const cmsResolvers = {
           
           // Buscar la sección con sus componentes
           const sectionFromDB = await prisma.cMSSection.findUnique({
-            where: { sectionId },
+            where: { 
+              tenantId_sectionId: {
+                tenantId: context.tenantId || '',
+                sectionId: sectionId
+              }
+            },
             include: {
               components: {
                 include: {
@@ -177,12 +199,12 @@ export const cmsResolvers = {
           if (sectionFromDB) {
             console.log('Section found in database:', sectionId);
             console.log('Raw section data from DB:', JSON.stringify(sectionFromDB, null, 2));
-            console.log('Components count:', sectionFromDB.components.length);
+            console.log('Components count:', (sectionFromDB as CMSSectionWithComponents).components?.length || 0);
             
             // Log each component for debugging
-            if (sectionFromDB.components.length > 0) {
+            if ((sectionFromDB as CMSSectionWithComponents).components?.length > 0) {
               console.log('Components in database:');
-              sectionFromDB.components.forEach((sc, index) => {
+              (sectionFromDB as CMSSectionWithComponents).components.forEach((sc: SectionComponentWithRelation, index: number) => {
                 console.log(`Component ${index + 1}:`, {
                   id: sc.id,
                   sectionId: sc.sectionId,
@@ -195,7 +217,7 @@ export const cmsResolvers = {
               });
               
               // Transformar los componentes al formato esperado por el cliente
-              const components = (sectionFromDB.components as SectionComponentWithRelation[]).map((sc) => ({
+              const components = ((sectionFromDB as CMSSectionWithComponents).components as SectionComponentWithRelation[]).map((sc) => ({
                 id: sc.id,
                 type: sc.component.slug,
                 data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
@@ -241,7 +263,12 @@ export const cmsResolvers = {
               
               // Retry with the matched ID
               const matchedSectionData = await prisma.cMSSection.findUnique({
-                where: { sectionId: matchingSection.sectionId },
+                where: { 
+                  tenantId_sectionId: {
+                    tenantId: context.tenantId || '',
+                    sectionId: matchingSection.sectionId
+                  }
+                },
                 include: {
                   components: {
                     include: {
@@ -254,8 +281,8 @@ export const cmsResolvers = {
                 }
               });
               
-              if (matchedSectionData && matchedSectionData.components.length > 0) {
-                const components = (matchedSectionData.components as SectionComponentWithRelation[]).map((sc) => ({
+              if (matchedSectionData && (matchedSectionData as CMSSectionWithComponents).components?.length > 0) {
+                const components = ((matchedSectionData as CMSSectionWithComponents).components as SectionComponentWithRelation[]).map((sc) => ({
                   id: sc.id,
                   type: sc.component.slug,
                   data: sc.data ? sc.data as Prisma.InputJsonValue : Prisma.JsonNull
@@ -540,7 +567,7 @@ export const cmsResolvers = {
         sectionId: string; 
         components: Array<{ id: string; type: string; data: Record<string, unknown> }> 
       } 
-    }, context: Context) => {
+    }, context: GraphQLContext) => {
       // Require authentication for editing CMS content
       if (!context.req) {
         throw new GraphQLError('Request context is required for authentication', {
@@ -619,7 +646,12 @@ export const cmsResolvers = {
           const result = await prisma.$transaction(async (tx) => {
             // 1. Find or create the section
             let section = await tx.cMSSection.findUnique({
-              where: { sectionId }
+              where: { 
+                tenantId_sectionId: {
+                  tenantId: context.tenantId || '',
+                  sectionId: sectionId
+                }
+              }
             });
             
             if (!section) {
