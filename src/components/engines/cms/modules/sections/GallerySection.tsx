@@ -520,7 +520,6 @@ export default function GallerySection({
                           src={image.url}
                           alt={image.alt}
                           className="w-full aspect-square object-cover rounded-lg"
-                          showMetadata={true}
                         />
                         <button
                           onClick={() => handleRemoveImage(image.id)}
@@ -945,7 +944,6 @@ export default function GallerySection({
                 src={localImages[lightboxIndex].url}
                 alt={localImages[lightboxIndex].alt}
                 className="max-w-full max-h-full object-contain"
-                showMetadata={true}
               />
               
               {localImages.length > 1 && (
