@@ -1,4 +1,4 @@
-import { PostEditForm } from '@/components/cms/blog/post/PostEditForm';
+import { PostEditForm } from '@/components/engines/cms/blog/post/PostEditForm';
 
 interface ServerPageProps {
   params: Promise<{ 

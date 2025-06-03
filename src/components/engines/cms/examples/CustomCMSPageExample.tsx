@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import CMSPageRenderer from '@/components/cms/CMSPageRenderer';
+import CMSPageRenderer from '@/components/engines/cms/CMSPageRenderer';
 import { PageData } from '@/hooks/useCMSPage';
 import { Loader2, AlertCircle } from 'lucide-react';
 

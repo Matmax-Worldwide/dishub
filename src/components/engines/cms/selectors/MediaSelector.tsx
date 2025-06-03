@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
-import { MediaItem } from '@/components/cms/media/types';
+import { MediaLibrary } from '@/components/engines/cms/media/MediaLibrary';
+import { MediaItem } from '@/components/engines/cms/media/types';
 import { Search, FolderOpen, Upload, X } from 'lucide-react';
 
 interface MediaSelectorProps {

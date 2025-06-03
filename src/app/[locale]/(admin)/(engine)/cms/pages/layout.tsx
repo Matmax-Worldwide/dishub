@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PagesEditor } from '@/components/cms/page-editor';
+import { PagesEditor } from '@/components/engines/cms/page-editor';
 import { TabProvider } from '@/contexts/TabContext';
 
 export default function PagesLayout({ children }: { children: React.ReactNode }) {

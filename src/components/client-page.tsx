@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
 import { optimizedQueries, graphqlOptimizer } from '@/lib/graphql-optimizations';
-import SectionManager from '@/components/cms/SectionManager';
+import SectionManager from '@/components/engines/cms/SectionManager';
 import ModernLoader from '@/components/ui/ModernLoader';
 import Navbar from '@/components/Navigation/Navbar';
 import Benefits from '@/components/Benefits';

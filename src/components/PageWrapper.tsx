@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import ManageableSection from '@/components/cms/ManageableSection';
+import ManageableSection from '@/components/engines/cms/ManageableSection';
 import { cmsOperations } from '@/lib/graphql-client';
 import {
   SaveIcon,

@@ -1,6 +1,6 @@
 'use client';
 
-import { MediaLibrary } from '@/components/cms/media/MediaLibrary';
+import { MediaLibrary } from '@/components/engines/cms/media/MediaLibrary';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
 

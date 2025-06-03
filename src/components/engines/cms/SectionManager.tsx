@@ -18,7 +18,7 @@ import { FormStyles } from './sections/FormStyleConfig';
 import { FormCustomConfig } from './sections/FormConfig';
 import { FormDesignType } from './forms/MultiStepFormRenderer';
 import { ComponentType, HeaderAdvancedOptions } from '@/types/cms';
-import ComponentSelector from '@/components/cms/selectors/ComponentSelector';
+import ComponentSelector from '@/components/engines/cms/selectors/ComponentSelector';
 
 // Drag and Drop imports
 import {

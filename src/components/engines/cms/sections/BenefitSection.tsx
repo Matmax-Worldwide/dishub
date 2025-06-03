@@ -4,10 +4,10 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
-import IconSelector from '@/components/cms/selectors/IconSelector';
-import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/selectors/BackgroundSelector';
-import MediaSelector from '@/components/cms/selectors/MediaSelector';
-import { MediaItem } from '@/components/cms/media/types';
+import IconSelector from '@/components/engines/cms/selectors/IconSelector';
+import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/engines/cms/selectors/BackgroundSelector';
+import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
+import { MediaItem } from '@/components/engines/cms/media/types';
 import * as LucideIcons from 'lucide-react';
 
 interface BenefitSectionProps {

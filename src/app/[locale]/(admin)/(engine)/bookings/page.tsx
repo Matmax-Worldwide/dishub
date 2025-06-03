@@ -19,12 +19,12 @@ import {
 } from 'lucide-react';
 
 // Import calendar management components
-import ServiceManager from '@/components/calendar/ServiceManager';
-import StaffManager from '@/components/calendar/StaffManager';
-import LocationManager from '@/components/calendar/LocationManager';
-import CategoryManager from '@/components/calendar/CategoryManager';
-import BookingsList from '@/components/calendar/BookingsList';
-import CalendarSection from '@/components/cms/sections/CalendarSection';
+import ServiceManager from '@/components/modules/calendar/ServiceManager';
+import StaffManager from '@/components/modules/calendar/StaffManager';
+import LocationManager from '@/components/modules/calendar/LocationManager';
+import CategoryManager from '@/components/modules/calendar/CategoryManager';
+import BookingsList from '@/components/modules/calendar/BookingsList';
+import CalendarSection from '@/components/engines/cms/sections/CalendarSection';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 

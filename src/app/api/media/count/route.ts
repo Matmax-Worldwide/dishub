@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMediaItemsCount } from '@/components/cms/media/aws-utils';
+import { getMediaItemsCount } from '@/components/engines/cms/media/aws-utils';
 
 export async function GET() {
   try {

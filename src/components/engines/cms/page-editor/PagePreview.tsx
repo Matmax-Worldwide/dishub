@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { cmsOperations } from '@/lib/graphql-client';
-import SectionManager from '@/components/cms/SectionManager';
+import SectionManager from '@/components/engines/cms/SectionManager';
 import { useParams } from 'next/navigation';
 import NavigationHeader from '@/components/Navigation/NavigationHeader';
 import Sidebar from '@/components/Navigation/Sidebar';

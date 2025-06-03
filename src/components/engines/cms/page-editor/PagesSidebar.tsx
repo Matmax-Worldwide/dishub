@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import dynamic from 'next/dynamic';
 import { 
   PlusIcon, 

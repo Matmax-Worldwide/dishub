@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/components/cms/UnsavedChangesAlert';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/hooks/useI18n';
 import { 

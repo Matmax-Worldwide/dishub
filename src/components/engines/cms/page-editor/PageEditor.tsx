@@ -23,7 +23,7 @@ import {
   AddSectionDialog,
   ExitConfirmationDialog,
   CSSInjector,
-} from '@/components/cms/page-editor';
+} from '@/components/engines/cms/page-editor';
 import { Button } from '@/components/ui/button';
 import { PageEvents } from './PagesSidebar';
 import { ComponentType } from '@/types/cms';

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import ManageableSection from '@/components/cms/ManageableSection';
+import ManageableSection from '@/components/engines/cms/ManageableSection';
 import { Section, ManageableSectionHandle } from '@/types/cms';
 import EmptySectionPlaceholder from './EmptySectionPlaceholder';
 import { DEFAULT_STYLING } from '@/types/cms-styling';

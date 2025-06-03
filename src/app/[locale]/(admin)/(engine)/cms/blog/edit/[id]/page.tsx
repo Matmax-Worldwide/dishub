@@ -1,4 +1,4 @@
-import { BlogEditPageContent } from '@/components/cms/blog/BlogEditPageContent';
+import { BlogEditPageContent } from '@/components/engines/cms/blog/BlogEditPageContent';
 
 interface ServerPageProps {
   params: Promise<{ 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, MoreHorizontal, Tags, Package, TrendingUp, Folder } from 'lucide-react';
-import StatCard from '@/components/commerce/StatCard';
+import StatCard from '@/components/engines/commerce/StatCard';
 
 interface Category {
   id: string;

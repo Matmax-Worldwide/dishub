@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import StaffManager from '@/components/calendar/StaffManager'; // Adjust path as necessary
+import StaffManager from '@/components/modules/calendar/StaffManager'; // Adjust path as necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function StaffPage() {

@@ -4,11 +4,11 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
-import { MediaItem } from '@/components/cms/media/types';
+import { MediaItem } from '@/components/engines/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/cms/selectors/MediaSelector';
-import ColorSelector from '@/components/cms/selectors/ColorSelector';
-import TransparencySelector from '@/components/cms/selectors/TransparencySelector';
+import MediaSelector from '@/components/engines/cms/selectors/MediaSelector';
+import ColorSelector from '@/components/engines/cms/selectors/ColorSelector';
+import TransparencySelector from '@/components/engines/cms/selectors/TransparencySelector';
 import {
   Tabs,
   TabsContent,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tabs";
 import { useOptimizedVideo, useOptimizedImage } from '@/hooks/useOptimizedMedia';
 import { videoPreloader } from '@/lib/video-preloader';
-import { RichStableInput } from '@/components/cms/sections/RichStableInput';
+import { RichStableInput } from '@/components/engines/cms/sections/RichStableInput';
 
 interface VideoSectionProps {
   videoUrl?: string;
