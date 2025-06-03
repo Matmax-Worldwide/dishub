@@ -41,6 +41,23 @@ export interface User {
   updatedAt: Date;
 }
 
+// Session interface for auth utils
+export interface Session {
+  user: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role: {
+      id: string;
+      name: string;
+    };
+    permissions?: string[];
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}
+
 // Contexto para los resolvers de GraphQL
 export interface Context {
   req?: NextRequest;
