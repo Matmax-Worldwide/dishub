@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types for TypeScript
 interface CreateTimeEntryInput {
@@ -40,7 +41,7 @@ const getPrismaClient = () => {
 
 export const timeEntryResolvers = {
   Query: {
-    timeEntries: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    timeEntries: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -90,7 +91,7 @@ export const timeEntryResolvers = {
       }
     },
     
-    timeEntry: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    timeEntry: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -149,7 +150,7 @@ export const timeEntryResolvers = {
   },
   
   Mutation: {
-    createTimeEntry: async (_parent: unknown, { input }: { input: CreateTimeEntryInput }, context: { req: NextRequest }) => {
+    createTimeEntry: async (_parent: unknown, { input }: { input: CreateTimeEntryInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -214,7 +215,8 @@ export const timeEntryResolvers = {
                 hours: input.hours,
                 description: input.description,
                 projectId: input.projectId || null,
-                userId: decoded.userId
+                userId: decoded.userId,
+                tenantId: context.tenantId || ''
               },
               include: {
                 project: true,
@@ -246,7 +248,7 @@ export const timeEntryResolvers = {
       }
     },
     
-    updateTimeEntry: async (_parent: unknown, { id, input }: { id: string, input: UpdateTimeEntryInput }, context: { req: NextRequest }) => {
+    updateTimeEntry: async (_parent: unknown, { id, input }: { id: string, input: UpdateTimeEntryInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -326,7 +328,7 @@ export const timeEntryResolvers = {
       }
     },
     
-    deleteTimeEntry: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteTimeEntry: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

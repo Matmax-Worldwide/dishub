@@ -8,6 +8,7 @@ import { GraphQLError } from 'graphql';
 // Keep AuthenticationError if it's used by refactored resolvers for non-shield auth issues
 import { AuthenticationError } from 'apollo-server-errors';
 import { Prisma } from '@prisma/client';
+import { GraphQLContext } from '../route';
 
 
 // Define input types to avoid 'any'
@@ -46,26 +47,11 @@ interface UpdateSiteSettingsInput {
   twitterHandle?: string;
 }
 
-// DecodedToken is no longer needed if all resolvers use ResolverContext
-// interface DecodedToken extends JWTPayload {
-//   userId: string;
-//   role?: string;
-// }
-
-// ResolverContext for refactored resolvers
-interface ResolverContext {
-  user?: {
-    id: string;
-    role: string;
-    permissions: string[];
-  };
-  // req?: NextRequest;
-}
 
 export const settingsResolvers = {
   Query: {
     // userSettings (Already Refactored)
-    userSettings: async (_parent: unknown, _args: unknown, context: ResolverContext) => {
+    userSettings: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         if (!context.user || !context.user.id) {
           console.error('UserSettings: User context not available.');
@@ -90,7 +76,8 @@ export const settingsResolvers = {
               theme: 'light',
               language: 'en',
               timeFormat: '12h',
-              dateFormat: 'MM/DD/YYYY'
+              dateFormat: 'MM/DD/YYYY',
+              tenantId: context.tenantId || ''
             },
             include: {
               user: {
@@ -123,7 +110,7 @@ export const settingsResolvers = {
     updateUserSettings: async (
       _parent: unknown, 
       { input }: { input: UpdateUserSettingsInput }, 
-      context: ResolverContext
+      context: GraphQLContext
     ) => {
       try {
         if (!context.user || !context.user.id) {
@@ -142,6 +129,7 @@ export const settingsResolvers = {
             language: input.language || 'en',
             timeFormat: input.timeFormat || '12h',
             dateFormat: input.dateFormat || 'MM/DD/YYYY',
+            tenantId: context.tenantId || ''
           },
           include: {
             user: {

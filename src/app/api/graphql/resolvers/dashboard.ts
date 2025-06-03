@@ -1,10 +1,11 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 export const dashboardResolvers = {
   Query: {
-    dashboardStats: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    dashboardStats: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -133,7 +134,7 @@ export const dashboardResolvers = {
       }
     },
     
-    documentsByStatus: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    documentsByStatus: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -183,9 +184,9 @@ export const dashboardResolvers = {
           { status: 'REJECTED', count: 0 }
         ];
       }
-    },
+    },  
     
-    timeEntriesByDay: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    timeEntriesByDay: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -248,7 +249,7 @@ export const dashboardResolvers = {
       }
     },
     
-    tasksByStatus: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    tasksByStatus: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

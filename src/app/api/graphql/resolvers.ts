@@ -1,26 +1,12 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
-// import { prisma } from '@/lib/prisma'; // Old prisma client
-import { prismaManager } from '@/lib/prisma'; // New prismaManager
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { GraphQLError } from 'graphql'; // Added GraphQLError
 import jwt from 'jsonwebtoken';
 import { GraphQLScalarType, Kind } from 'graphql';
-import { TenantStatus } from '@prisma/client';
 
 // Import individual resolver modules
-import {
-  createVercelProjectForTenant, VercelProjectCreationResult,
-  addCustomDomainToVercelProject,
-  checkCustomDomainStatus as checkVercelDomain,
-  removeCustomDomainFromVercelProject,
-  VercelDomainConfig as VercelDomainConfigType
-} from '@/lib/services/vercelService'; // Updated
-import { triggerTenantSiteRevalidation } from '@/lib/services/revalidationService'; // Added
 import { appointmentResolvers } from './resolvers/appointments';
-// Note: The context (ctx) in all these resolvers will need to be updated to use ctx.prisma (scoped client)
-// and ctx.tenantId where appropriate if they operate on tenant-specific data.
-// For this subtask, we are only adding new tenant resolvers. Existing resolvers are not modified.
 import { dashboardResolvers } from './resolvers/dashboard';
 import { documentResolvers } from './resolvers/documents';
 import { helpResolvers } from './resolvers/help';
@@ -43,6 +29,7 @@ import { blogResolvers } from './resolvers/blogs';
 import { calendarResolvers } from './resolvers/calendarResolvers';
 import { ecommerceResolvers } from './resolvers/ecommerce';
 import { reviewResolvers } from './resolvers/reviews';
+import { GraphQLContext } from './route';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -69,26 +56,6 @@ const dateTimeScalar = new GraphQLScalarType({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Input type interfaces for tenant operations
-interface CreateTenantInput {
-  name: string;
-  slug: string;
-  domain?: string;
-  status?: TenantStatus;
-  planId?: string;
-  features?: string[];
-}
-
-interface UpdateTenantInput {
-  id: string;
-  name?: string;
-  slug?: string;
-  domain?: string;
-  status?: TenantStatus;
-  planId?: string;
-  features?: string[];
-}
 
 // Helper function to ensure system roles exist
 async function ensureSystemRoles() {
@@ -242,22 +209,8 @@ const resolvers = {
   },
   
   Query: {
-    // Tenant Query Resolvers
-    allTenants: async (_parent: any, _args: any, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
-      }
-      return prismaManager.getClient().tenant.findMany({ orderBy: { createdAt: 'desc' } });
-    },
-    tenant: async (_parent: any, { id }: { id: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
-      }
-      return prismaManager.getClient().tenant.findUnique({ where: { id } });
-    },
-
     // User queries
-    me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    me: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -332,7 +285,7 @@ const resolvers = {
     },
 
     // Get a single user by ID
-    user: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    user: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -407,7 +360,7 @@ const resolvers = {
     },
     
     // Get all users - admin and manager access
-    users: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    users: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -495,7 +448,7 @@ const resolvers = {
     },
     
     // Role and permission queries
-    role: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    role: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -518,7 +471,7 @@ const resolvers = {
       }
     },
     
-    roles: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    roles: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -563,7 +516,7 @@ const resolvers = {
       }
     },
     
-    rolesWithCounts: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    rolesWithCounts: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -625,7 +578,7 @@ const resolvers = {
       }
     },
     
-    permissions: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    permissions: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -649,7 +602,7 @@ const resolvers = {
       }
     },
     
-    rolePermissions: async (_parent: unknown, args: { roleId: string }, context: { req: NextRequest }) => {
+    rolePermissions: async (_parent: unknown, args: { roleId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -707,7 +660,7 @@ const resolvers = {
     pages: menuResolvers.Query.pages,
     
     // Add explicit fallback for projects query to ensure it exists
-    projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    projects: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         if (projectResolvers.Query.projects) {
           return await projectResolvers.Query.projects(_parent, _args, context);
@@ -1018,487 +971,9 @@ const resolvers = {
         return [];
       }
     },
-
-    // Tenant queries
-    allTenants: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can view all tenants
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can view all tenants');
-        }
-
-        const tenants = await prisma.tenant.findMany({
-          orderBy: { createdAt: 'desc' }
-        });
-
-        return tenants;
-      } catch (error) {
-        console.error('Get all tenants error:', error);
-        throw error;
-      }
-    },
-
-    tenant: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can view tenant details
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can view tenant details');
-        }
-
-        const tenant = await prisma.tenant.findUnique({
-          where: { id }
-        });
-
-        return tenant;
-      } catch (error) {
-        console.error('Get tenant error:', error);
-        throw error;
-      }
-    },
   },
   
   Mutation: {
-    provisionTenantSite: async (_parent: any, { tenantId }: { tenantId: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized to provision tenant sites.', { extensions: { code: 'FORBIDDEN' } });
-      }
-
-      const platformPrisma = prismaManager.getClient(); // Use non-scoped client for Tenant model
-
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant) {
-        throw new GraphQLError('Tenant not found.', { extensions: { code: 'NOT_FOUND' } });
-      }
-
-      if (tenant.vercelProjectId) {
-        throw new GraphQLError('Site already provisioned for this tenant.', { extensions: { code: 'BAD_REQUEST', vercelProjectId: tenant.vercelProjectId } });
-      }
-
-      const gitRepoConfig = {
-        owner: process.env.GIT_REPO_OWNER!,
-        repo: process.env.GIT_REPO_NAME!,
-        type: process.env.GIT_PROVIDER_TYPE || 'github',
-        productionBranch: process.env.GIT_PRODUCTION_BRANCH || 'main',
-      };
-
-      if (!gitRepoConfig.owner || !gitRepoConfig.repo) {
-        console.error("Missing GIT_REPO_OWNER or GIT_REPO_NAME environment variables for Vercel project creation.");
-        throw new GraphQLError('Server configuration error: Git repository details not set.', { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
-      }
-
-      try {
-        const vercelProjectDetails: VercelProjectCreationResult = await createVercelProjectForTenant(tenant, gitRepoConfig);
-
-        const updatedTenant = await platformPrisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            vercelProjectId: vercelProjectDetails.vercelProjectId,
-            defaultDeploymentUrl: vercelProjectDetails.defaultDeploymentUrl,
-            revalidationSecretToken: vercelProjectDetails.generatedRevalToken,
-          },
-        });
-
-        console.log(`Tenant site provisioned: ${updatedTenant.name}, Vercel Project ID: ${updatedTenant.vercelProjectId}`);
-        return updatedTenant;
-
-      } catch (error: any) {
-        console.error(`Failed to provision site for tenant ${tenantId}:`, error);
-        if (error.message.startsWith('Vercel API request failed:')) {
-            throw new GraphQLError(`Vercel API error: ${error.message}`, { extensions: { code: 'VERCEL_API_ERROR' } });
-        }
-        throw new GraphQLError(`Failed to provision site: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
-      }
-    },
-
-    // Tenant Mutation Resolvers
-    createTenant: async (_parent: any, { input }: { input: any /* CreateTenantInput */ }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const { name, slug, domain, status, planId, features } = input;
-      try {
-        return prismaManager.getClient().tenant.create({
-          data: {
-            name,
-            slug,
-            domain,
-            status: status || 'ACTIVE',
-            planId,
-            features,
-          },
-        });
-      } catch (error: any) {
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
-          throw new GraphQLError('A tenant with this slug already exists.', { extensions: { code: 'BAD_USER_INPUT' } });
-        }
-        console.error("Error creating tenant:", error);
-        throw new GraphQLError('Failed to create tenant.', { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
-      }
-    },
-    updateTenant: async (_parent: any, { input }: { input: any /* UpdateTenantInput */ }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const { id, ...dataToUpdate } = input;
-      return prismaManager.getClient().tenant.update({
-        where: { id },
-        data: dataToUpdate,
-      });
-    },
-
-    addOrUpdateTenantCustomDomain: async (_parent: any, { tenantId, domain }: { tenantId: string, domain: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId) {
-        throw new GraphQLError('Tenant not found or site not provisioned on Vercel.', { extensions: { code: 'NOT_FOUND' } });
-      }
-
-      if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)) {
-          throw new GraphQLError('Invalid domain format.', { extensions: { code: 'BAD_USER_INPUT' } });
-      }
-
-      try {
-        const vercelDomainConfig = await addCustomDomainToVercelProject(tenant.vercelProjectId, domain) as VercelDomainConfigType;
-
-        await platformPrisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: vercelDomainConfig.name,
-            customDomainStatus: vercelDomainConfig.verified ? 'VERIFIED' : 'PENDING_VERIFICATION'
-          },
-        });
-        return vercelDomainConfig;
-      } catch (error: any) {
-        console.error(`Failed to add/update domain for tenant ${tenantId}:`, error);
-        throw new GraphQLError(`Failed to add/update domain: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    checkTenantCustomDomainStatus: async (_parent: any, { tenantId }: { tenantId: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId || !tenant.domain) {
-        throw new GraphQLError('Tenant not found, site not provisioned, or no domain configured.', { extensions: { code: 'NOT_FOUND' } });
-      }
-      try {
-        const vercelDomainConfig = await checkVercelDomain(tenant.vercelProjectId, tenant.domain) as VercelDomainConfigType;
-        const newStatus = vercelDomainConfig.verified ? 'VERIFIED'
-                        : (vercelDomainConfig.verification && vercelDomainConfig.verification.length > 0 ? 'PENDING_VERIFICATION' : 'ERROR_NEEDS_CONFIG');
-
-        if (tenant.customDomainStatus !== newStatus || tenant.domain !== vercelDomainConfig.name) {
-            await platformPrisma.tenant.update({
-                where: { id: tenantId },
-                data: {
-                    customDomainStatus: newStatus,
-                    domain: vercelDomainConfig.name
-                },
-            });
-        }
-        return vercelDomainConfig;
-      } catch (error: any) {
-        console.error(`Failed to check domain status for tenant ${tenantId}:`, error);
-        let newStatus = 'ERROR_CHECKING_STATUS';
-        if (error.message.includes('404')) newStatus = 'ERROR_NOT_FOUND_ON_VERCEL';
-
-        await platformPrisma.tenant.update({
-            where: { id: tenantId },
-            data: { customDomainStatus: newStatus }
-        });
-        throw new GraphQLError(`Failed to check domain status: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    removeTenantCustomDomain: async (_parent: any, { tenantId }: { tenantId: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId || !tenant.domain) {
-        throw new GraphQLError('Tenant not found, site not provisioned, or no domain to remove.', { extensions: { code: 'NOT_FOUND' } });
-      }
-      try {
-        await removeCustomDomainFromVercelProject(tenant.vercelProjectId, tenant.domain);
-        return platformPrisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: null,
-            customDomainStatus: 'NOT_CONFIGURED',
-          },
-        });
-      } catch (error: any) {
-        console.error(`Failed to remove domain for tenant ${tenantId}:`, error);
-        if (error.message.includes('404')) {
-            // If Vercel says not found, it might have been removed manually. Sync our DB.
-            return platformPrisma.tenant.update({
-                where: { id: tenantId },
-                data: { domain: null, customDomainStatus: 'NOT_CONFIGURED' },
-            });
-        }
-        throw new GraphQLError(`Failed to remove domain: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    addOrUpdateTenantCustomDomain: async (_parent: any, { tenantId, domain }: { tenantId: string, domain: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId) {
-        throw new GraphQLError('Tenant not found or site not provisioned on Vercel.', { extensions: { code: 'NOT_FOUND' } });
-      }
-
-      if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)) {
-          throw new GraphQLError('Invalid domain format.', { extensions: { code: 'BAD_USER_INPUT' } });
-      }
-
-      try {
-        const vercelDomainConfig = await addCustomDomainToVercelProject(tenant.vercelProjectId, domain) as VercelDomainConfigType;
-
-        await platformPrisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: vercelDomainConfig.name,
-            customDomainStatus: vercelDomainConfig.verified ? 'VERIFIED' : 'PENDING_VERIFICATION'
-          },
-        });
-        return vercelDomainConfig;
-      } catch (error: any) {
-        console.error(`Failed to add/update domain for tenant ${tenantId}:`, error);
-        throw new GraphQLError(`Failed to add/update domain: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    checkTenantCustomDomainStatus: async (_parent: any, { tenantId }: { tenantId: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId || !tenant.domain) {
-        throw new GraphQLError('Tenant not found, site not provisioned, or no domain configured.', { extensions: { code: 'NOT_FOUND' } });
-      }
-      try {
-        const vercelDomainConfig = await checkVercelDomain(tenant.vercelProjectId, tenant.domain) as VercelDomainConfigType;
-        const newStatus = vercelDomainConfig.verified ? 'VERIFIED'
-                        : (vercelDomainConfig.verification && vercelDomainConfig.verification.length > 0 ? 'PENDING_VERIFICATION' : 'ERROR_NEEDS_CONFIG');
-
-        if (tenant.customDomainStatus !== newStatus || tenant.domain !== vercelDomainConfig.name) {
-            await platformPrisma.tenant.update({
-                where: { id: tenantId },
-                data: {
-                    customDomainStatus: newStatus,
-                    domain: vercelDomainConfig.name
-                },
-            });
-        }
-        return vercelDomainConfig;
-      } catch (error: any) {
-        console.error(`Failed to check domain status for tenant ${tenantId}:`, error);
-        let newStatus = 'ERROR_CHECKING_STATUS';
-        // It's possible the error from Vercel indicates the domain was removed from their end
-        if (error.message.includes('404') || error.message.toLowerCase().includes('not found')) {
-            newStatus = 'ERROR_NOT_FOUND_ON_VERCEL';
-        }
-
-        await platformPrisma.tenant.update({
-            where: { id: tenantId },
-            data: { customDomainStatus: newStatus }
-        });
-        throw new GraphQLError(`Failed to check domain status: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    removeTenantCustomDomain: async (_parent: any, { tenantId }: { tenantId: string }, ctx: GraphQLContext) => {
-      if (ctx.user?.role !== 'SUPER_ADMIN') {
-        throw new GraphQLError('Not authorized.', { extensions: { code: 'FORBIDDEN' } });
-      }
-      const platformPrisma = prismaManager.getClient();
-      const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant || !tenant.vercelProjectId || !tenant.domain) {
-        // If there's no domain, but we want to ensure it's cleared in our DB (e.g. if Vercel project was deleted)
-        // we could still proceed to update our DB record if vercelProjectId exists.
-        // For now, strict check: must have a domain configured to remove.
-        throw new GraphQLError('Tenant not found, site not provisioned, or no domain configured to remove.', { extensions: { code: 'NOT_FOUND' } });
-      }
-      try {
-        await removeCustomDomainFromVercelProject(tenant.vercelProjectId, tenant.domain);
-        // If successful, update our DB
-        return platformPrisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: null,
-            customDomainStatus: 'NOT_CONFIGURED', // Or a specific status like 'REMOVED'
-          },
-        });
-      } catch (error: any) {
-        console.error(`Failed to remove domain for tenant ${tenantId} from Vercel:`, error);
-        // If Vercel returns 404 (domain not found on their end), it's safe to update our DB as if removed
-        if (error.message.includes('404') || error.message.toLowerCase().includes('not found')) {
-            console.log(`Domain ${tenant.domain} not found on Vercel for project ${tenant.vercelProjectId}. Updating local DB record.`);
-            return platformPrisma.tenant.update({
-                where: { id: tenantId },
-                data: { domain: null, customDomainStatus: 'REMOVED_EXTERNALLY' }, // A specific status
-            });
-        }
-        throw new GraphQLError(`Failed to remove domain: ${error.message}`, { extensions: { code: 'INTERNAL_SERVER_ERROR', serviceError: error.message } });
-      }
-    },
-
-    updatePageContentAndRevalidate: async (_parent: any, { input }: { input: { id: string, title?: string, slug?: string, content?: string, isPublished?: boolean } }, ctx: GraphQLContext) => {
-      // Step 0: Authorization and Context Validation
-      if (!ctx.tenantId) {
-        // This resolver operates within a tenant's context for its data operations
-        throw new GraphQLError("Tenant context is required to update a page.", { extensions: { code: 'BAD_REQUEST' } });
-      }
-      // Example permission check - adjust to your actual permission system
-      if (!ctx.user || !ctx.user.permissions?.includes('update:page_content')) {
-        throw new GraphQLError("Not authorized to update page content.", { extensions: { code: 'FORBIDDEN' } });
-      }
-
-      const pageId = input.id;
-      const currentTenantId: string = ctx.tenantId; // The tenant whose data we are modifying
-
-      // Step 1: Fetch current page state (especially old slug and published status)
-      // ctx.prisma is the tenant-scoped Prisma client from the GraphQL context
-      const existingPage = await ctx.prisma.page.findUnique({
-        where: { id: pageId }, // tenantId is automatically applied by scoped client
-        select: { slug: true, isPublished: true, tenantId: true } // tenantId on page for confirmation
-      });
-
-      if (!existingPage) {
-        throw new GraphQLError("Page not found.", { extensions: { code: 'NOT_FOUND' } });
-      }
-      // Ensure the page belongs to the current tenant context (extra check, though scoped client should handle)
-      if (existingPage.tenantId !== currentTenantId) {
-          throw new GraphQLError("Page does not belong to the current tenant context.", { extensions: { code: 'FORBIDDEN' }});
-      }
-
-      const oldSlug = existingPage.slug;
-      const wasPublished = existingPage.isPublished;
-
-      // Step 2: Perform the database update
-      const dataToUpdate: { title?: string, slug?: string, content?: string, isPublished?: boolean } = {};
-      if (input.title !== undefined) dataToUpdate.title = input.title;
-      if (input.slug !== undefined) dataToUpdate.slug = input.slug;
-      if (input.content !== undefined) dataToUpdate.content = input.content; // Example field
-      if (input.isPublished !== undefined) dataToUpdate.isPublished = input.isPublished;
-
-      if (Object.keys(dataToUpdate).length === 0) {
-        // No actual changes provided, return existing page data (or the fetched partial data)
-        // For a full Page return type, you might need to refetch or ensure all fields are present
-        const fullPage = await ctx.prisma.page.findUnique({ where: {id: pageId }});
-        return fullPage;
-      }
-
-      const updatedPage = await ctx.prisma.page.update({
-        where: { id: pageId }, // tenantId automatically applied
-        data: dataToUpdate,
-      });
-
-      // Step 3: Determine items to revalidate and trigger revalidation
-      const itemsToRevalidate: { paths?: string[], tags?: string[] } = { paths: [], tags: [] };
-      const newSlug = updatedPage.slug;
-      const isNowPublished = updatedPage.isPublished;
-
-      // Logic to decide what to revalidate:
-      if (isNowPublished) {
-        if (newSlug) {
-            itemsToRevalidate.paths?.push(`/page/${newSlug}`); // Path for the current/new slug
-            itemsToRevalidate.tags?.push(`page:${pageId}`, `page-slug:${newSlug}`);
-        }
-        if (oldSlug && oldSlug !== newSlug && wasPublished) { // If it was published under an old slug that changed
-            itemsToRevalidate.paths?.push(`/page/${oldSlug}`);
-            itemsToRevalidate.tags?.push(`page-slug:${oldSlug}`);
-        }
-      } else if (wasPublished && !isNowPublished) { // Page unpublished
-        if (oldSlug) {
-            itemsToRevalidate.paths?.push(`/page/${oldSlug}`);
-            itemsToRevalidate.tags?.push(`page:${pageId}`, `page-slug:${oldSlug}`);
-        }
-      }
-      // Always add a general tag for the tenant's pages if any path/tag was affected
-      if (itemsToRevalidate.paths?.length || itemsToRevalidate.tags?.length) {
-        itemsToRevalidate.tags?.push(`tenant:${currentTenantId}:pages-collection`); // Example collection tag
-      }
-
-
-      if ((itemsToRevalidate.paths && itemsToRevalidate.paths.length > 0) || (itemsToRevalidate.tags && itemsToRevalidate.tags.length > 0)) {
-        console.log(`CMS (updatePageContentAndRevalidate): Triggering revalidation for tenant ${currentTenantId}:`, itemsToRevalidate);
-
-        // IMPORTANT: In a production system, enqueue this to a background job.
-        // Example: await backgroundJobQueue.add('revalidateTenantContent', { tenantId: currentTenantId, itemsToRevalidate });
-
-        // Direct call (can add latency to the mutation response):
-        triggerTenantSiteRevalidation(currentTenantId, itemsToRevalidate)
-          .then(result => {
-            if (result.success) {
-              console.log(`Revalidation successfully triggered for page ${pageId} (tenant ${currentTenantId}). Details:`, result.details);
-            } else {
-              console.error(`Revalidation trigger partially or fully failed for page ${pageId} (tenant ${currentTenantId}): ${result.message}. Details:`, result.details);
-            }
-          })
-          .catch(err => {
-            console.error(`Critical error calling triggerTenantSiteRevalidation for page ${pageId} (tenant ${currentTenantId}):`, err);
-          });
-      }
-
-      return updatedPage; // Return the updated page from the database
-    },
-
     // Auth mutations
     login: async (_parent: unknown, args: { email: string, password: string }) => {
       const { email, password: inputPassword } = args;
@@ -1678,7 +1153,7 @@ const resolvers = {
     ...('Mutation' in calendarResolvers ? (calendarResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
-    createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
+    createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1724,7 +1199,7 @@ const resolvers = {
       }
     },
 
-    createPermission: async (_parent: unknown, { input }: { input: { name: string; description?: string; roleId?: string } }, context: { req: NextRequest }) => {
+    createPermission: async (_parent: unknown, { input }: { input: { name: string; description?: string; roleId?: string } }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1785,7 +1260,7 @@ const resolvers = {
       }
     },
 
-    assignPermissionToRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+    assignPermissionToRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1849,7 +1324,7 @@ const resolvers = {
       }
     },
 
-    removePermissionFromRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+    removePermissionFromRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1978,362 +1453,6 @@ const resolvers = {
     createReviewResponse: reviewResolvers.Mutation.createReviewResponse,
     updateReviewResponse: reviewResolvers.Mutation.updateReviewResponse,
     deleteReviewResponse: reviewResolvers.Mutation.deleteReviewResponse,
-
-    // Tenant mutations
-    createTenant: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can create tenants
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can create tenants');
-        }
-
-        const tenant = await prisma.tenant.create({
-          data: {
-            name: input.name,
-            slug: input.slug,
-            domain: input.domain,
-            status: input.status as TenantStatus || 'ACTIVE',
-            planId: input.planId,
-            features: input.features || [],
-          }
-        });
-
-        return tenant;
-      } catch (error) {
-        console.error('Create tenant error:', error);
-        throw error;
-      }
-    },
-
-    updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can update tenants
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can update tenants');
-        }
-
-        const { id, ...updateData } = input;
-        
-        const tenant = await prisma.tenant.update({
-          where: { id },
-          data: updateData
-        });
-
-        return tenant;
-      } catch (error) {
-        console.error('Update tenant error:', error);
-        throw error;
-      }
-    },
-
-    provisionTenantSite: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can provision tenant sites
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can provision tenant sites');
-        }
-
-        // Get the tenant
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!tenant) {
-          throw new Error('Tenant not found');
-        }
-
-        // TODO: Implement actual Vercel provisioning logic here
-        // For now, we'll just update the tenant with mock data
-        const updatedTenant = await prisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            status: 'ACTIVE' as TenantStatus,
-          }
-        });
-
-        return updatedTenant;
-      } catch (error) {
-        console.error('Provision tenant site error:', error);
-        throw error;
-      }
-    },
-
-    addOrUpdateTenantCustomDomain: async (_parent: unknown, { tenantId, domain }: { tenantId: string; domain: string }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can manage custom domains
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can manage custom domains');
-        }
-
-        // Get the tenant
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!tenant) {
-          throw new Error('Tenant not found');
-        }
-
-        // TODO: Add vercelProjectId field to Prisma schema
-        // For now, we'll proceed without this check
-        // if (!tenant.vercelProjectId) {
-        //   throw new Error('Tenant must have a Vercel project before adding custom domain');
-        // }
-
-        // TODO: Implement actual Vercel domain configuration logic here
-        // For now, return mock data
-        const mockDomainConfig = {
-          name: domain,
-          apexName: domain.replace(/^www\./, ''),
-          projectId: 'mock-project-id', // tenant.vercelProjectId when field exists
-          redirect: null,
-          redirectStatusCode: null,
-          gitBranch: null,
-          verified: false,
-          verification: [
-            {
-              type: 'TXT',
-              name: '_vercel',
-              value: `vc-domain-verify=${domain}-${Date.now()}`
-            }
-          ]
-        };
-
-        // Update tenant with the new domain
-        await prisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: domain,
-            // TODO: Add customDomainStatus field to Prisma schema
-            // customDomainStatus: 'PENDING'
-          }
-        });
-
-        return mockDomainConfig;
-      } catch (error) {
-        console.error('Add/update custom domain error:', error);
-        throw error;
-      }
-    },
-
-    checkTenantCustomDomainStatus: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can check domain status
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can check domain status');
-        }
-
-        // Get the tenant
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!tenant) {
-          throw new Error('Tenant not found');
-        }
-
-        if (!tenant.domain) {
-          throw new Error('Tenant does not have a custom domain configured');
-        }
-
-        // TODO: Implement actual Vercel domain status check here
-        // For now, return mock data
-        const mockDomainConfig = {
-          name: tenant.domain,
-          apexName: tenant.domain.replace(/^www\./, ''),
-          projectId: 'mock-project-id', // tenant.vercelProjectId when field exists
-          redirect: null,
-          redirectStatusCode: null,
-          gitBranch: null,
-          verified: false, // tenant.customDomainStatus === 'VERIFIED' when field exists
-          verification: [
-            {
-              type: 'TXT',
-              name: '_vercel',
-              value: `vc-domain-verify=${tenant.domain}-${Date.now()}`
-            }
-          ]
-        };
-
-        return mockDomainConfig;
-      } catch (error) {
-        console.error('Check domain status error:', error);
-        throw error;
-      }
-    },
-
-    removeTenantCustomDomain: async (_parent: unknown, { tenantId }: { tenantId: string }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-
-        // Only SUPER_ADMIN can remove custom domains
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-
-        if (user?.role?.name !== 'SUPER_ADMIN') {
-          throw new Error('Unauthorized: Only super admins can remove custom domains');
-        }
-
-        // Get the tenant
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!tenant) {
-          throw new Error('Tenant not found');
-        }
-
-        // TODO: Implement actual Vercel domain removal logic here
-
-        // Update tenant to remove the domain
-        const updatedTenant = await prisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            domain: null,
-            // TODO: Add customDomainStatus field to Prisma schema
-            // customDomainStatus: null
-          }
-        });
-
-        return updatedTenant;
-      } catch (error) {
-        console.error('Remove custom domain error:', error);
-        throw error;
-      }
-    },
   },
 
   // Include form type resolvers
@@ -2365,4 +1484,4 @@ const resolvers = {
   Payment: ecommerceResolvers.Payment,
 };
 
-export default resolvers;
+export default resolvers; 

@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types to avoid 'any'
 interface CreatePerformanceInput {
@@ -21,7 +22,7 @@ interface UpdatePerformanceInput {
 
 export const performanceResolvers = {
   Query: {
-    performances: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    performances: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -53,7 +54,7 @@ export const performanceResolvers = {
       }
     },
     
-    performance: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    performance: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -91,7 +92,7 @@ export const performanceResolvers = {
       }
     },
     
-    currentPerformance: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    currentPerformance: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -161,7 +162,8 @@ export const performanceResolvers = {
               completedTasks,
               totalHours,
               efficiency: completedTasks > 0 ? totalHours / completedTasks : 0,
-              notes: ''
+              notes: '',
+              tenantId: context.tenantId || ''
             },
             include: {
               user: {
@@ -188,7 +190,7 @@ export const performanceResolvers = {
     createPerformance: async (
       _parent: unknown, 
       { input }: { input: CreatePerformanceInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -218,7 +220,8 @@ export const performanceResolvers = {
             completedTasks: input.completedTasks,
             totalHours: input.totalHours,
             efficiency: input.efficiency || 0,
-            notes: input.notes || ''
+            notes: input.notes || '',
+            tenantId: context.tenantId || ''
           },
           include: {
             user: {
@@ -242,7 +245,7 @@ export const performanceResolvers = {
     updatePerformance: async (
       _parent: unknown, 
       { id, input }: { id: string, input: UpdatePerformanceInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -302,7 +305,7 @@ export const performanceResolvers = {
       }
     },
     
-    deletePerformance: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deletePerformance: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

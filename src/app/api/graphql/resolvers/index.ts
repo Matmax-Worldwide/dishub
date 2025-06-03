@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { GraphQLContext } from '../route';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -100,7 +100,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Basic auth resolvers
 const authResolvers = {
   Query: {
-    me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    me: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -259,7 +259,7 @@ const authResolvers = {
       };
     },
     
-    updateUser: async (_parent: unknown, { input }: { input: UpdateUserInput }, context: { req: NextRequest }) => {
+    updateUser: async (_parent: unknown, { input }: { input: UpdateUserInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -355,7 +355,7 @@ const authResolvers = {
       }
     },
     
-    updateUserProfile: async (_parent: unknown, { input }: { input: UpdateUserProfileInput }, context: { req: NextRequest }) => {
+    updateUserProfile: async (_parent: unknown, { input }: { input: UpdateUserProfileInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
