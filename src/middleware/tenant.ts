@@ -1,5 +1,5 @@
 // src/middleware/tenant.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { TenantResolver } from '@/lib/tenant/resolver'; // Adjust path if necessary
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path if necessary
 

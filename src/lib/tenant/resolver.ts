@@ -77,29 +77,24 @@ export class TenantResolver {
     const hostname = this.getHostname();
     if (!hostname) return null;
 
-    // Assuming your main platform domain is something like 'dishub.com' or 'localhost' for dev
     // You'll need to configure this APP_DOMAIN environment variable.
     const appDomain = process.env.APP_DOMAIN || 'localhost'; // Fallback to 'localhost' for dev
-    const parts = hostname.split('.');
 
     // Handle localhost differently: tenant.localhost:3000 -> tenant.localhost
     const effectiveHostname = hostname.startsWith('localhost:') ? 'localhost' : hostname;
-    const effectiveAppDomainParts = appDomain.split('.');
-    const effectiveHostnameParts = effectiveHostname.split('.');
-
 
     // Example: myhotel.dishub.com -> parts = ['myhotel', 'dishub', 'com']
     // Example: myhotel.localhost -> parts = ['myhotel', 'localhost'] (if port is handled separately)
     // Example: localhost -> parts = ['localhost']
 
-    if (effectiveHostname.endsWith(`.${appDomain}`) && effectiveHostnameParts.length > effectiveAppDomainParts.length) {
-        const potentialSubdomain = effectiveHostnameParts[0];
+    if (effectiveHostname.endsWith(`.${appDomain}`) && effectiveHostname.length > appDomain.length) {
+        const potentialSubdomain = effectiveHostname.substring(0, effectiveHostname.indexOf('.'));
         if (potentialSubdomain && !['www', 'app', 'admin', 'api', '_next', 'static'].includes(potentialSubdomain)) {
             return potentialSubdomain; // This is the tenant slug
         }
-    } else if (appDomain === 'localhost' && effectiveHostnameParts.length > 1 && effectiveHostnameParts[effectiveHostnameParts.length -1] === 'localhost') {
+    } else if (appDomain === 'localhost' && effectiveHostname.length > 1 && effectiveHostname.endsWith('localhost')) {
         // Specific handling for tenant.localhost structure
-        const potentialSubdomain = effectiveHostnameParts[0];
+        const potentialSubdomain = effectiveHostname.substring(0, effectiveHostname.indexOf('.'));
          if (potentialSubdomain && !['www', 'app', 'admin', 'api', '_next', 'static'].includes(potentialSubdomain)) {
             return potentialSubdomain; // This is the tenant slug
         }

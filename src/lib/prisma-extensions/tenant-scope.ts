@@ -47,36 +47,47 @@ export function tenantScopeExtension(tenantId: string | undefined | null) {
               'findUniqueOrThrow', 'findFirstOrThrow',
             ];
 
-            // Operations that use 'create' or 'data' for creation
-            const opsWithCreateData = ['create', 'createMany', 'upsert'];
-
             if (opsWithWhere.includes(operation)) {
-              newArgs.where = { ...(newArgs.where || {}), tenantId };
+              // Type guard to ensure args has a where property
+              if ('where' in newArgs) {
+                newArgs.where = { ...(newArgs.where || {}), tenantId };
+              }
             }
 
             if (operation === 'create') {
-              newArgs.data = { ...(newArgs.data || {}), tenantId };
+              // Type guard to ensure args has a data property
+              if ('data' in newArgs) {
+                newArgs.data = { ...(newArgs.data || {}), tenantId };
+              }
             } else if (operation === 'createMany') {
-              if (Array.isArray(newArgs.data)) {
-                newArgs.data = newArgs.data.map((item: any) => ({ ...item, tenantId }));
-              } else if (newArgs.data) { // Handle single object createMany if Prisma version supports it
-                newArgs.data = { ...newArgs.data, tenantId };
-              } else {
-                // If newArgs.data is undefined or not an array, Prisma itself would likely throw an error.
-                // However, if Prisma allows createMany with skipDuplicates and no data for some reason,
-                // this log might be relevant.
-                console.warn('createMany with undefined or non-array data and tenantScopeExtension might need specific handling.');
+              if ('data' in newArgs) {
+                if (Array.isArray(newArgs.data)) {
+                  newArgs.data = newArgs.data.map((item: Record<string, unknown>) => ({ ...item, tenantId }));
+                } else if (newArgs.data) { // Handle single object createMany if Prisma version supports it
+                  newArgs.data = { ...newArgs.data, tenantId };
+                } else {
+                  // If newArgs.data is undefined or not an array, Prisma itself would likely throw an error.
+                  // However, if Prisma allows createMany with skipDuplicates and no data for some reason,
+                  // this log might be relevant.
+                  console.warn('createMany with undefined or non-array data and tenantScopeExtension might need specific handling.');
+                }
               }
             } else if (operation === 'upsert') {
               // Scope the 'where' for the find part of upsert
-              newArgs.where = { ...(newArgs.where || {}), tenantId };
+              if ('where' in newArgs) {
+                newArgs.where = { ...(newArgs.where || {}), tenantId };
+              }
               // Inject tenantId into the 'create' part
-              newArgs.create = { ...(newArgs.create || {}), tenantId };
+              if ('create' in newArgs) {
+                newArgs.create = { ...(newArgs.create || {}), tenantId };
+              }
               // Ensure tenantId is also part of the 'update' data,
-              // Prisma's $ μόλιςupsert operation implicitly uses the 'where' condition for the update.
+              // Prisma's upsert operation implicitly uses the 'where' condition for the update.
               // So explicitly adding tenantId to 'update.where' is redundant and could be problematic.
               // We only need to ensure tenantId is part of the update payload.
-              newArgs.update = { ...(newArgs.update || {}), tenantId: tenantId };
+              if ('update' in newArgs) {
+                newArgs.update = { ...(newArgs.update || {}), tenantId: tenantId };
+              }
             }
             return query(newArgs);
           }

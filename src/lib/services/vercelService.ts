@@ -7,25 +7,15 @@ import crypto from 'crypto';
 async function vercelApiRequest(
   endpoint: string,
   method: 'GET' | 'POST' | 'DELETE' | 'PATCH', // Added PATCH
-  body?: any,
+  body?: Record<string, unknown>,
   teamId?: string
 ) {
   const VERCEL_API_TOKEN = process.env.VERCEL_API_TOKEN;
   if (!VERCEL_API_TOKEN) {
-    console.error('VERCEL_API_TOKEN environment variable is not set.'); // Log error before throwing
-    throw new Error('VERCEL_API_TOKEN environment variable is not set.');
+    throw new Error('VERCEL_API_TOKEN environment variable is required');
   }
 
-  const VERCEL_API_BASE_URL = 'https://api.vercel.com';
-  let url = `${VERCEL_API_BASE_URL}${endpoint}`;
-
-  // Add teamId as query param for GET, or in body for POST if Vercel API expects it there for some endpoints.
-  // For project creation (POST /v10/projects), teamId is a query param.
-  // For domain operations, teamId is usually a query param.
-  if (teamId && (method === 'POST' || method === 'GET' || method === 'DELETE' || method === 'PATCH')) {
-      url += endpoint.includes('?') ? `&teamId=${teamId}` : `?teamId=${teamId}`;
-  }
-
+  const url = `https://api.vercel.com${endpoint}${teamId ? `?teamId=${teamId}` : ''}`;
   const options: RequestInit = {
     method,
     headers: {
@@ -34,53 +24,54 @@ async function vercelApiRequest(
     },
   };
 
-  if (body && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) { // DELETE can also have a body
+  if (body) {
     options.body = JSON.stringify(body);
   }
 
-  let loggableBody = body;
-  if (body && Array.isArray(body.environmentVariables)) { // Check if environmentVariables is an array
+  // Log the request for debugging (but be careful with sensitive data)
+  console.log(`Vercel API ${method} ${url}`);
+  
+  // For debugging, log a sanitized version of the body (remove sensitive env vars)
+  if (body) {
+    let loggableBody = body;
+    if (body.environmentVariables && Array.isArray(body.environmentVariables)) {
     loggableBody = {
         ...body,
-        environmentVariables: body.environmentVariables.map((env: any) => ({
+        environmentVariables: body.environmentVariables.map((env: { key: string; type: string; target: string }) => ({
             key: env.key, // Only log key, type, target for env vars
             type: env.type,
             target: env.target,
-            value: env.key?.toUpperCase().includes('TOKEN') || env.key?.toUpperCase().includes('SECRET') ? '[REDACTED]' : env.value // Redact if key name suggests sensitivity
+            value: '[REDACTED]' // Don't log the actual value
         }))
     };
-  } else if (body && body.environmentVariables) { // Handle if it's an object but not array (should not happen for Vercel projects)
-    loggableBody = { ...body, environmentVariables: '[REDACTED_OBJECT]' };
+    }
+    console.log('Request body (sanitized):', JSON.stringify(loggableBody, null, 2));
   }
 
-  console.log(`Vercel API Request: ${method} ${url} Body:`, loggableBody ? JSON.stringify(loggableBody, null, 2) : 'No Body');
 
-
-  // @ts-ignore globalThis.fetch is available in Node.js 18+ and modern environments
   const response = await globalThis.fetch(url, options);
-
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`Vercel API Error (${response.status}) for ${method} ${url}: ${errorText}`);
-    // Try to parse errorText as JSON for more structured error from Vercel
+    console.error(`Vercel API Error: ${response.status} - ${errorText}`);
     try {
         const errorJson = JSON.parse(errorText);
         throw new Error(`Vercel API request failed: ${response.status} - ${errorJson.error?.message || errorText}`);
-    } catch (e) {
+    } catch {
         throw new Error(`Vercel API request failed: ${response.status} - ${errorText}`);
     }
   }
 
-  if (response.status === 204) { // No Content
+  // Handle 204 No Content responses
+  if (response.status === 204) {
     return null;
   }
 
   try {
     return await response.json();
-  } catch (e: any) { // Added type for 'e'
-    console.error(`Error parsing JSON response from Vercel for ${method} ${url}. Status: ${response.status}`, e);
-    throw new Error(`Failed to parse JSON response from Vercel: ${e.message || String(e)}`);
+  } catch (error: Error | unknown) { // Added type for 'e'
+    console.error(`Error parsing JSON response from Vercel for ${method} ${url}. Status: ${response.status}`, error);
+    throw new Error(`Failed to parse JSON response from Vercel: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -95,7 +86,7 @@ export interface VercelProjectCreationResult {
 
 export async function createVercelProjectForTenant(
   tenant: Pick<Tenant, 'id' | 'slug' | 'name'>,
-  gitRepoConfig: { owner: string; repo: string; type?: string; productionBranch?: string; deployHooks?: any[] }
+  gitRepoConfig: { owner: string; repo: string; type?: string; productionBranch?: string; deployHooks?: unknown[] }
 ): Promise<VercelProjectCreationResult> {
   const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
 
@@ -146,7 +137,7 @@ export async function createVercelProjectForTenant(
     let defaultUrl = '';
     // Vercel API v10 for project creation often returns alias array with objects like { domain: 'project-name-git-branch-org.vercel.app', ... }
     if (createdProject.alias && Array.isArray(createdProject.alias) && createdProject.alias.length > 0) {
-        const productionAlias = createdProject.alias.find((a: any) => a.domain.endsWith('.vercel.app') && !a.domain.includes('-git-')); // Try to find a clean .vercel.app URL
+        const productionAlias = createdProject.alias.find((a: { domain: string }) => a.domain.endsWith('.vercel.app') && !a.domain.includes('-git-')); // Try to find a clean .vercel.app URL
         if (productionAlias && productionAlias.domain) {
             defaultUrl = `https://${productionAlias.domain}`;
         } else if (createdProject.alias[0].domain) { // Fallback to the first alias domain
@@ -243,7 +234,7 @@ export async function checkCustomDomainStatus(
 export async function removeCustomDomainFromVercelProject(
   vercelProjectId: string,
   domain: string
-): Promise<null | any> { // Vercel API for domain deletion usually returns 204 No Content
+): Promise<null | unknown> { // Vercel API for domain deletion usually returns 204 No Content
   const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
   console.log(`Removing domain ${domain} from Vercel project ${vercelProjectId}`);
   // Vercel API v9/projects/{idOrName}/domains/{domain}

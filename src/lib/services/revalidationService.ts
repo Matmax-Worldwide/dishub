@@ -10,7 +10,7 @@ interface RevalidationPayload { // Renamed from RevalidationItem for clarity as 
 export interface RevalidationTriggerResponse { // Renamed for clarity as this is the response of this service function
   success: boolean;
   message: string;
-  details?: any;
+  details?: TenantApiRevalidateResponse;
 }
 
 // Define a more specific type for the expected response from the tenant's /api/revalidate endpoint
@@ -79,7 +79,6 @@ export async function triggerTenantSiteRevalidation(
   console.log(`Revalidation Trigger: Sending revalidation request to ${revalidationApiUrl} for tenant ${tenantId}`, itemsToRevalidate);
 
   try {
-    // @ts-ignore
     const response = await globalThis.fetch(revalidationApiUrl, {
       method: 'POST',
       headers: {
@@ -87,63 +86,57 @@ export async function triggerTenantSiteRevalidation(
         'X-Revalidation-Secret': tenant.revalidationSecretToken,
       },
       body: JSON.stringify(itemsToRevalidate),
-      // Consider adding a timeout for this request
-      // signal: AbortSignal.timeout(15000) // 15 seconds timeout example
     });
 
     const responseBodyText = await response.text();
-    let responseData: TenantApiRevalidateResponse | { message?: string, error?: string };
+    let responseData: TenantApiRevalidateResponse;
 
     try {
         responseData = JSON.parse(responseBodyText);
-    } catch (e) {
+    } catch {
         console.error(`Revalidation Trigger: Failed to parse JSON response from ${revalidationApiUrl}. Status: ${response.status}, Body: ${responseBodyText}`);
         return {
             success: false,
-            message: `Failed to parse response from revalidation API. Status: ${response.status}.`,
-            details: { responseBody: responseBodyText }
+            message: `Failed to parse JSON response from tenant revalidation API. Status: ${response.status}`,
         };
     }
 
     if (!response.ok) {
-      console.error(`Revalidation Trigger: Failed to revalidate site for tenant ${tenantId}. Status: ${response.status}`, responseData);
-      const apiMessage = (responseData as {message?: string}).message || (responseData as {error?: string}).error || 'Unknown error from revalidation API.';
+      console.error(`Revalidation Trigger: HTTP error from ${revalidationApiUrl}. Status: ${response.status}, Response:`, responseData);
       return {
         success: false,
-        message: `Revalidation request failed with status ${response.status}. ${apiMessage}`,
+        message: `HTTP error from tenant revalidation API: ${response.status}. ${responseData.message || ''}`,
         details: responseData
       };
     }
 
     const typedResponseData = responseData as TenantApiRevalidateResponse;
-    console.log(`Revalidation Trigger: Response from ${revalidationApiUrl}:`, typedResponseData);
 
     if (typedResponseData.allRevalidationsSucceeded) {
       return {
         success: true,
         message: `Successfully triggered revalidation for tenant ${tenantId}. All ${typedResponseData.revalidatedItemsProcessed} items processed successfully.`,
-        details: typedResponseData.details
+        details: typedResponseData
       };
     } else if (typedResponseData.anySuccessfulRevalidation) {
          return {
             success: true,
             message: `Triggered revalidation for tenant ${tenantId}. Some items may have failed. Processed: ${typedResponseData.revalidatedItemsProcessed}. Check details.`,
-            details: typedResponseData.details
+            details: typedResponseData
          };
     } else {
         return {
             success: false,
             message: `Revalidation attempted for tenant ${tenantId}, but no items were successfully revalidated or an issue occurred. ${typedResponseData.message || ''}`,
-            details: typedResponseData.details
+            details: typedResponseData
         };
     }
 
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error(`Revalidation Trigger: Network or unexpected error calling revalidation API for tenant ${tenantId} at ${revalidationApiUrl}:`, error);
     return {
       success: false,
-      message: `Error triggering revalidation: ${error.message}`,
-      details: { errorName: error.name, errorMessage: error.message, errorStack: error.stack }
+      message: `Network or unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
