@@ -3613,4 +3613,95 @@ export const typeDefs = gql`
   # --------------- END FORM MODULE TYPES --- V1 ---
 
   # Shipping result types
+
+  # Add or ensure TenantStatus enum exists
+  enum TenantStatus {
+    PENDING
+    ACTIVE
+    SUSPENDED
+    ARCHIVED
+  }
+
+  type Tenant {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus!
+    planId: String
+    # settings: Json # Might be too complex for initial list/form
+    features: [String!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # Extend Query type
+  extend type Query {
+    allTenants: [Tenant!]
+    tenant(id: ID!): Tenant
+  }
+
+  input CreateTenantInput {
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus # Defaults to ACTIVE in Prisma schema
+    planId: String
+    features: [String!]
+  }
+
+  input UpdateTenantInput {
+    id: ID!
+    name: String
+    slug: String
+    domain: String
+    status: TenantStatus
+    planId: String
+    features: [String!]
+  }
+
+  # Extend Mutation type
+  extend type Mutation {
+    createTenant(input: CreateTenantInput!): Tenant
+    updateTenant(input: UpdateTenantInput!): Tenant
+    provisionTenantSite(tenantId: ID!): Tenant
+    # deleteTenant(id: ID!): Tenant # Add later if needed
+
+    "Adds or updates the custom domain for a tenant and initiates verification with Vercel."
+    addOrUpdateTenantCustomDomain(tenantId: ID!, domain: String!): VercelDomainConfig
+
+    "Checks the current status of a tenant's custom domain with Vercel."
+    checkTenantCustomDomainStatus(tenantId: ID!): VercelDomainConfig
+
+    "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
+    removeTenantCustomDomain(tenantId: ID!): Tenant
+
+    "Illustrative: Updates page content and triggers revalidation for its tenant site."
+    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+  }
+
+  input UpdatePageDetailsInput {
+    id: ID!       # ID of the page to update
+    title: String
+    slug: String    # Assuming slug can be changed
+    content: String # Example field
+    isPublished: Boolean
+  }
+
+  type VercelDNSRecord {
+    type: String!
+    name: String!
+    value: String!
+  }
+
+  type VercelDomainConfig {
+    name: String!
+    apexName: String!
+    projectId: String!
+    redirect: String
+    redirectStatusCode: Int
+    gitBranch: String
+    verified: Boolean!
+    verification: [VercelDNSRecord!]
+  }
 `; 
