@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 interface AdminLayoutProps {
   children: ReactNode;
   tenantFeatures?: FeatureType[];
-  tenantId?: string | null;
   user?: {
     id: string;
     name?: string;
@@ -32,7 +31,6 @@ interface AdminLayoutProps {
 export function AdminLayout({ 
   children, 
   tenantFeatures = ['CMS_ENGINE' as FeatureType], // Default features
-  tenantId = null,
   user = null 
 }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -62,7 +60,7 @@ export function AdminLayout({
   };
 
   return (
-    <FeatureProvider features={tenantFeatures} tenantId={tenantId}>
+    <FeatureProvider features={tenantFeatures}>
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
         <div className={`
