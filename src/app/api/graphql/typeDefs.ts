@@ -1963,6 +1963,33 @@ export const typeDefs = gql`
     deleteDiscount(id: ID!): DiscountResult!
     activateDiscount(id: ID!): DiscountResult!
     deactivateDiscount(id: ID!): DiscountResult!
+
+    "Registers a new user and creates their tenant in a single transaction"
+    registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
+
+    "Illustrative: Updates page content and triggers revalidation for its tenant site."
+    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+  }
+
+  input RegisterUserWithTenantInput {
+    # User data
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    
+    # Tenant data
+    tenantName: String!
+    tenantSlug: String!
+    tenantDomain: String
+    tenantFeatures: [String!]
+  }
+
+  type RegisterUserWithTenantResponse {
+    token: String!
+    user: User!
+    tenant: Tenant!
   }
 
   # HeaderStyle type for storing header configuration
@@ -3702,6 +3729,8 @@ export const typeDefs = gql`
     "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
     removeTenantCustomDomain(tenantId: ID!): Tenant
 
+    "Registers a new user and creates their tenant in a single transaction"
+    registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
 
     "Illustrative: Updates page content and triggers revalidation for its tenant site."
     updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page

@@ -1,4 +1,3 @@
-
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -30,6 +29,7 @@ import { calendarResolvers } from './resolvers/calendarResolvers';
 import { ecommerceResolvers } from './resolvers/ecommerce';
 import { reviewResolvers } from './resolvers/reviews';
 import { GraphQLContext } from './route';
+import { tenantResolvers } from './resolvers/tenants';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -631,6 +631,10 @@ const resolvers = {
       }
     },
     
+    // Include tenant queries
+    allTenants: tenantResolvers.Query.allTenants,
+    tenant: tenantResolvers.Query.tenant,
+    
     // Include other Query resolvers from imported modules - using type assertion
     ...((appointmentResolvers.Query as object) || {}),
     ...((dashboardResolvers.Query as object) || {}),
@@ -1130,7 +1134,10 @@ const resolvers = {
       };
     },
 
-  
+    // Include tenant mutations
+    createTenant: tenantResolvers.Mutation.createTenant,
+    registerUserWithTenant: tenantResolvers.Mutation.registerUserWithTenant,
+
     // Include other Mutation resolvers - using type assertion for safety
     ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),
     ...('Mutation' in dashboardResolvers ? (dashboardResolvers.Mutation as object) : {}),
