@@ -110,21 +110,6 @@ const categorizeFileType = (fileType: string): string => {
   return 'other';
 };
 
-// Utility functions for formatting metadata
-const formatDuration = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${Math.round(seconds)}s`;
-  } else if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.round(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  } else {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}:${minutes.toString().padStart(2, '0')}:00`;
-  }
-};
-
 /**
  * Componente optimizado para mostrar previsualizaciones de archivos de S3
  * Usa caché global para evitar múltiples llamadas a la API
@@ -140,10 +125,6 @@ const S3FilePreview = ({
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
-  const [imageDimensions, setImageDimensions] = useState<{width: number; height: number} | null>(null);
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-  const [videoDimensions, setVideoDimensions] = useState<{width: number; height: number} | null>(null);
-  const [fileSize, setFileSize] = useState<string | null>(null);
   
   // Use the S3 file cache hook with error handling
   const s3CacheResult = useS3FileCache(src || '');
@@ -250,10 +231,6 @@ const S3FilePreview = ({
     setImageError(false);
     setIsLoading(true);
     setLoadStartTime(Date.now());
-    setImageDimensions(null);
-    setVideoDuration(null);
-    setVideoDimensions(null);
-    setFileSize(null);
     
     // Debug log for state reset
     if (process.env.NODE_ENV === 'development') {
@@ -298,7 +275,6 @@ const S3FilePreview = ({
           width: target.naturalWidth,
           height: target.naturalHeight
         };
-        setImageDimensions(dimensions);
         
         // Call the callback if provided
         if (onDimensionsLoaded) {
@@ -320,52 +296,6 @@ const S3FilePreview = ({
       setIsLoading(false);
       if (process.env.NODE_ENV === 'development') {
         console.warn("[S3FilePreview] Image loaded but logging failed");
-      }
-    }
-  };
-
-  // Handler for video metadata load
-  const handleVideoLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    try {
-      const target = event.currentTarget as HTMLVideoElement;
-      
-      setIsLoading(false); // Set loading to false when video metadata loads
-      
-      if (target.duration && !isNaN(target.duration) && target.duration !== Infinity) {
-        setVideoDuration(target.duration);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log("[S3FilePreview] Video duration captured:", target.duration);
-        }
-      }
-      
-      // Capture video dimensions
-      if (target.videoWidth && target.videoHeight) {
-        const dimensions = {
-          width: target.videoWidth,
-          height: target.videoHeight
-        };
-        setVideoDimensions(dimensions);
-        
-        // Call the callback if provided for videos too
-        if (onDimensionsLoaded) {
-          onDimensionsLoaded(dimensions);
-        }
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log("[S3FilePreview] Video dimensions captured:", dimensions);
-        }
-      }
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[S3FilePreview] Video metadata loaded for:", src);
-        console.log("- Duration:", target.duration);
-        console.log("- Video width:", target.videoWidth);
-        console.log("- Video height:", target.videoHeight);
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("[S3FilePreview] Video metadata load failed:", error);
       }
     }
   };
@@ -756,13 +686,13 @@ const S3FilePreview = ({
             preload="metadata"
             className={className || "w-full h-full object-contain"}
             onClick={(e) => e.stopPropagation()}
-            onLoadedMetadata={handleVideoLoadedMetadata}
-            onLoadStart={() => {
+            onLoadedMetadata={() => {
+              setIsLoading(false);
               if (process.env.NODE_ENV === 'development') {
-                console.log('[S3FilePreview] Video load started for:', src);
+                console.log('[S3FilePreview] Video metadata loaded for:', src);
               }
             }}
-            onError={(e) => {
+            onError={() => {
               setIsLoading(false);
               if (process.env.NODE_ENV === 'development') {
                 console.warn('[S3FilePreview] Video load error for:', src);

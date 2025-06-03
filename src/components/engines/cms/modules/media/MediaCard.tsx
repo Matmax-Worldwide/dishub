@@ -90,7 +90,6 @@ export function MediaCard({
           fileType={fileType}
           fileName={fileName}
           showDownload={true}
-          showMetadata={true}
           onDimensionsLoaded={handleDimensionsLoaded}
         />
         <div className="absolute top-2 left-2 z-[9998]">
