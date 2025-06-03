@@ -1,5 +1,5 @@
 // src/app/api/graphql/dataloaders/sectionLoader.ts
-import DataLoader from 'dataloader'; // Retained for potential type references if needed, though batch function signature is key
+// import DataLoader from 'dataloader'; // Retained for potential type references if needed, though batch function signature is key
 import { prisma } from '@/lib/prisma';
 import { CMSSection, Page, SectionComponent, CMSComponent } from '@prisma/client';
 

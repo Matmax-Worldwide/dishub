@@ -63,7 +63,7 @@ class PrismaManager {
       //   }
       // });
 
-      this.clients.set(key, extendedClient as PrismaClient); // Cast if necessary
+      this.clients.set(key, extendedClient as unknown as PrismaClient); // Cast if necessary
     }
     return this.clients.get(key)!;
   }

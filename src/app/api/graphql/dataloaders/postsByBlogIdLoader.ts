@@ -1,6 +1,6 @@
 // src/app/api/graphql/dataloaders/postsByBlogIdLoader.ts
 import { prisma } from '@/lib/prisma';
-import { Post, User, Blog as PrismaBlog, Media } from '@prisma/client'; // Prisma types
+import { Post, User, Blog as PrismaBlog } from '@prisma/client'; // Prisma types
 
 // Define a more specific type for the Post object we intend to return by the loader,
 // including selected fields of related entities.

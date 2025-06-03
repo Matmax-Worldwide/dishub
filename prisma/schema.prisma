@@ -83,10 +83,13 @@ enum TenantStatus {
 model User {
   id               String    @id @default(cuid())
   email            String    @unique
-  password         String?
-  firstName        String?
-  lastName         String?
+  password         String
+  firstName        String
+  lastName         String
+  bio              String?
+  department       String?
   phoneNumber      String?
+  position         String?
   profileImageUrl  String?
   isActive         Boolean   @default(true)
   emailVerified    DateTime?
@@ -158,8 +161,8 @@ model Document {
   updatedAt   DateTime       @updatedAt
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -176,8 +179,8 @@ model Client {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects     Project[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -195,8 +198,8 @@ model Project {
   tasks       Task[]
   timeEntries TimeEntry[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -216,8 +219,8 @@ model Appointment {
   client      Client?  @relation(fields: [clientId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -234,8 +237,8 @@ model TimeEntry {
   project     Project? @relation(fields: [projectId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -278,8 +281,8 @@ model Task {
   creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   project     Project?   @relation(fields: [projectId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -297,8 +300,8 @@ model Notification {
   updatedAt       DateTime         @updatedAt
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -314,8 +317,8 @@ model Performance {
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -331,8 +334,8 @@ model UserSettings {
   updatedAt          DateTime @updatedAt
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -365,8 +368,8 @@ model Shop {
   taxes             Tax[]
   orders            Order[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([defaultCurrencyId])
   @@index([tenantId])
@@ -428,8 +431,8 @@ model Product {
   reviews    Review[]
   discounts  DiscountProduct[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([shopId])
   @@index([categoryId])
@@ -455,8 +458,8 @@ model ProductCategory {
   products        Product[]
   discounts       DiscountCategory[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([shopId])
   @@index([parentId])
@@ -576,8 +579,8 @@ model Employee {
   payrolls         Payroll[]
   performances     PerformanceReview[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, employeeId])
 }
@@ -591,8 +594,8 @@ model Department {
   updatedAt   DateTime   @updatedAt
   employees   Employee[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name]) // Department names usually unique per tenant
 }
@@ -608,8 +611,8 @@ model Position {
   updatedAt        DateTime   @updatedAt
   employees        Employee[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, title]) // Position titles usually unique per tenant
 }
@@ -644,8 +647,8 @@ model Leave {
   updatedAt    DateTime      @updatedAt
   employee     Employee      @relation(fields: [employeeId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -660,8 +663,8 @@ model Benefit {
   updatedAt         DateTime          @updatedAt
   employeeBenefits  EmployeeBenefit[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name]) // Benefit names usually unique per tenant
 }
@@ -703,8 +706,8 @@ model PerformanceReview {
   updatedAt          DateTime     @updatedAt
   employee           Employee     @relation(fields: [employeeId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -721,8 +724,8 @@ model EmployeeDocument {
   updatedAt    DateTime     @updatedAt
   employee     Employee     @relation(fields: [employeeId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -740,8 +743,8 @@ model Training {
   updatedAt    DateTime           @updatedAt
   employees    EmployeeTraining[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, title]) // Training titles usually unique per tenant
 }
@@ -774,8 +777,8 @@ model HolidayCalendar {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name, date]) // Calendar event name + date unique per tenant
 }
@@ -800,8 +803,8 @@ model Payroll {
   updatedAt     DateTime      @updatedAt
   employee      Employee      @relation(fields: [employeeId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -833,8 +836,8 @@ model Page {
   sections        CMSSection[] @relation("PageToSection")
   directSections  CMSSection[] @relation("SectionToPage")
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -859,8 +862,8 @@ model CMSSection {
   media           Media[]
   order           Int                @default(0)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, sectionId])
   @@map("CMSSection")
@@ -883,8 +886,8 @@ model Media {
   posts           Post[]      @relation("PostMedia")
   featuredInPosts Post[]      @relation("PostFeaturedImage")
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -918,8 +921,8 @@ model Menu {
   footerStyle FooterStyle?
   items       MenuItem[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name])
 }
@@ -998,8 +1001,8 @@ model Collection {
   documents   CMSDocument[]
   fields      CollectionField[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
   // name also likely unique per tenant, but slug is primary for URLs
@@ -1039,8 +1042,8 @@ model CMSDocument {
   updatedAt    DateTime   @updatedAt
   collection   Collection @relation(fields: [collectionId], references: [id])
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1056,8 +1059,8 @@ model CMSTemplate {
   updatedAt   DateTime       @updatedAt
   components  CMSComponent[] // Components that can be part of this template
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
   // @@unique([tenantId, name])
@@ -1079,8 +1082,8 @@ model CMSComponent {
   template         CMSTemplate?       @relation(fields: [templateId], references: [id])
   sectionInstances SectionComponent[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
   // @@unique([tenantId, name])
@@ -1112,8 +1115,8 @@ model NavigationMenu {
   updatedAt   DateTime             @updatedAt
   items       NavigationMenuItem[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name])
 }
@@ -1173,8 +1176,8 @@ model HeaderStyle {
   updatedAt          DateTime @updatedAt
   menu               Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1195,8 +1198,8 @@ model FooterStyle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1223,8 +1226,8 @@ model Form {
   steps             FormStep[]
   submissions       FormSubmission[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1494,8 +1497,8 @@ model Blog {
   updatedAt   DateTime @updatedAt
   posts       Post[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1525,8 +1528,8 @@ model Post {
   featuredImageMedia Media?     @relation("PostFeaturedImage", fields: [featuredImageId], references: [id])
   media              Media[]    @relation("PostMedia")
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1594,8 +1597,8 @@ model Location {
   schedules        StaffSchedule[]
   bookingRules     BookingRule[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@index([shopId])
   // @@unique([tenantId, name]) // Location name could be unique per tenant
@@ -1614,8 +1617,8 @@ model ServiceCategory {
   parentCategory  ServiceCategory?  @relation("ServiceCategoryToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, name])
   @@map("ServiceCategories")
@@ -1643,8 +1646,8 @@ model Service {
   bookings  Booking[]
   prices    Price[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   // @@unique([tenantId, name]) // Service name could be unique per tenant
 }
@@ -1663,8 +1666,8 @@ model StaffProfile {
   locationAssignments StaffLocationAssignment[]
   bookings            Booking[]                 @relation("StaffBookings")
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1689,11 +1692,8 @@ model StaffSchedule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([staffProfileId, date])
-  @@index([staffProfileId, dayOfWeek])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1725,8 +1725,8 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([customerId])
   @@index([serviceId])
@@ -1738,25 +1738,26 @@ model Booking {
 }
 
 model BookingRule {
-  id         String  @id @default(cuid())
-  locationId String? @unique // Rule can be specific to a location
-  // serviceId  String?
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  isActive              Boolean  @default(true)
+  advanceBookingDays    Int      @default(30)
+  maxBookingsPerDay     Int?
+  maxBookingsPerWeek    Int?
+  maxBookingsPerMonth   Int?
+  minTimeBetweenBookings Int?    @default(0)
+  blackoutDates         Json?
+  allowedDaysOfWeek     Json?
+  allowedTimeSlots      Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  advanceBookingHoursMin Int
-  advanceBookingDaysMax  Int
-  sameDayCutoffTime      String?
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
 
-  bufferBetweenAppointmentsMinutes Int  @default(0)
-  maxAppointmentsPerDayPerStaff    Int?
-  bookingSlotIntervalMinutes       Int  @default(15)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
 }
 
@@ -1855,8 +1856,8 @@ model Order {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([customerId])
   @@index([shopId])
@@ -2115,8 +2116,8 @@ model Review {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   
   @@index([productId])
   @@index([customerId])
@@ -2188,8 +2189,8 @@ model Discount {
   applicableCategories DiscountCategory[]  
   orders               Order[]
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   
   @@index([isActive])
   @@index([startsAt])
@@ -2257,8 +2258,8 @@ model CustomerAddress {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   
   @@index([customerId])
   @@index([type])
@@ -2278,8 +2279,8 @@ model Documentation {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
   @@index([tenantId])
   @@unique([tenantId, slug])
   @@map("documentation")
