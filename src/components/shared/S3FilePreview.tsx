@@ -22,6 +22,7 @@ interface S3FilePreviewProps {
   showDownload?: boolean;
   fileName?: string;
   showMetadata?: boolean;
+  onDimensionsLoaded?: (dimensions: {width: number; height: number}) => void;
 }
 
 // Función para determinar el tipo de archivo a partir de la URL
@@ -131,22 +132,30 @@ const formatDuration = (seconds: number): string => {
 const MetadataOverlay = ({ 
   imageDimensions, 
   videoDuration, 
+  videoDimensions,
   fileSize, 
   showMetadata 
 }: {
   imageDimensions: { width: number; height: number } | null;
   videoDuration: number | null;
+  videoDimensions: { width: number; height: number } | null;
   fileSize: string | null;
   showMetadata: boolean;
 }) => {
   if (!showMetadata) return null;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1">
+    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-20">
       {imageDimensions && (
         <div className="flex justify-between">
           <span>Dimensions:</span>
           <span>{imageDimensions.width} × {imageDimensions.height}px</span>
+        </div>
+      )}
+      {videoDimensions && (
+        <div className="flex justify-between">
+          <span>Resolution:</span>
+          <span>{videoDimensions.width} × {videoDimensions.height}px</span>
         </div>
       )}
       {videoDuration && (
@@ -175,13 +184,15 @@ const S3FilePreview = ({
   className = '', 
   fileType: providedFileType,
   fileName,
-  showMetadata = false
+  showMetadata = false,
+  onDimensionsLoaded
 }: S3FilePreviewProps) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const [imageDimensions, setImageDimensions] = useState<{width: number; height: number} | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [videoDimensions, setVideoDimensions] = useState<{width: number; height: number} | null>(null);
   const [fileSize, setFileSize] = useState<string | null>(null);
   
   // Use the S3 file cache hook with error handling
@@ -291,6 +302,7 @@ const S3FilePreview = ({
     setLoadStartTime(Date.now());
     setImageDimensions(null);
     setVideoDuration(null);
+    setVideoDimensions(null);
     setFileSize(null);
   }, [src]);
 
@@ -327,10 +339,16 @@ const S3FilePreview = ({
       
       // Capture image dimensions
       if (target.naturalWidth && target.naturalHeight) {
-        setImageDimensions({
+        const dimensions = {
           width: target.naturalWidth,
           height: target.naturalHeight
-        });
+        };
+        setImageDimensions(dimensions);
+        
+        // Call the callback if provided
+        if (onDimensionsLoaded) {
+          onDimensionsLoaded(dimensions);
+        }
       }
       
       if (process.env.NODE_ENV === 'development') {
@@ -358,6 +376,20 @@ const S3FilePreview = ({
       
       if (target.duration && !isNaN(target.duration) && target.duration !== Infinity) {
         setVideoDuration(target.duration);
+      }
+      
+      // Capture video dimensions
+      if (target.videoWidth && target.videoHeight) {
+        const dimensions = {
+          width: target.videoWidth,
+          height: target.videoHeight
+        };
+        setVideoDimensions(dimensions);
+        
+        // Call the callback if provided for videos too
+        if (onDimensionsLoaded) {
+          onDimensionsLoaded(dimensions);
+        }
       }
       
       if (process.env.NODE_ENV === 'development') {
@@ -528,20 +560,41 @@ const S3FilePreview = ({
     const isCommonImageFormat = srcLower.includes('.png') || 
                                srcLower.includes('.jpg') || 
                                srcLower.includes('.jpeg') || 
-                               srcLower.includes('.webp');
+                               srcLower.includes('.webp') ||
+                               srcLower.includes('.svg');
+    
+    // Check if it's a PNG file for transparency background
+    const isPngFile = srcLower.includes('.png');
     
     if (isCommonImageFormat) {
       const imageType = srcLower.includes('.png') ? 'PNG' : 
                        srcLower.includes('.webp') ? 'WebP' : 
+                       srcLower.includes('.svg') ? 'SVG' :
                        (srcLower.includes('.jpg') || srcLower.includes('.jpeg')) ? 'JPEG' : 'Image';
       
       console.log(`[S3FilePreview] ${imageType} detected, trying direct load:`, src);
       return (
         <div className="relative w-full h-full overflow-hidden">
+          {/* Transparency checker background for PNG files */}
+          {isPngFile && (
+            <div 
+              className="absolute inset-0 opacity-50"
+              style={{
+                backgroundImage: `
+                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                `,
+                backgroundSize: '20px 20px',
+                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+              }}
+            />
+          )}
           <img
             src={src} // Use original URL directly for common image formats
             alt={alt}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={(e) => {
               console.log(`[S3FilePreview] ${imageType} direct load failed, trying API route`);
@@ -552,13 +605,14 @@ const S3FilePreview = ({
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 z-20">
               <SkeletonLoader />
             </div>
           )}
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 
+            videoDimensions={videoDimensions}
             fileSize={fileSize} 
             showMetadata={showMetadata} 
           />
@@ -569,24 +623,43 @@ const S3FilePreview = ({
     // For SVG files served through our API, use regular img tag
     // This avoids issues with Next.js Image optimization and SVG handling
     if (safeIsS3Url && safeS3Key && (safeFinalUrl.includes('.svg') || src.includes('.svg'))) {
+      const isSvgFile = safeFinalUrl.includes('.svg') || src.includes('.svg');
+      
       return (
         <div className="relative w-full h-full overflow-hidden">
+          {/* Transparency checker background for SVG files too */}
+          {isSvgFile && (
+            <div 
+              className="absolute inset-0 opacity-50"
+              style={{
+                backgroundImage: `
+                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                `,
+                backgroundSize: '20px 20px',
+                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+              }}
+            />
+          )}
           <img
             src={safeFinalUrl} 
             alt={alt}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 z-20">
               <SkeletonLoader />
             </div>
           )}
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 
+            videoDimensions={videoDimensions}
             fileSize={fileSize} 
             showMetadata={showMetadata} 
           />
@@ -596,12 +669,30 @@ const S3FilePreview = ({
     
     // For all other S3 files served through our API, use Next.js Image component
     if (safeIsS3Url && safeS3Key) {
+      const isPngFromS3 = safeFinalUrl.includes('.png') || src.includes('.png');
+      
       return (
         <div className="relative w-full h-full overflow-hidden">
+          {/* Transparency checker background for PNG files from S3 */}
+          {isPngFromS3 && (
+            <div 
+              className="absolute inset-0 opacity-50"
+              style={{
+                backgroundImage: `
+                  linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                  linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                  linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                `,
+                backgroundSize: '20px 20px',
+                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+              }}
+            />
+          )}
           <Image
             src={safeFinalUrl} 
             alt={alt}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             onLoad={handleImageLoad}
@@ -609,13 +700,14 @@ const S3FilePreview = ({
             loading="lazy"
           />
           {isLoading && (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 z-20">
               <SkeletonLoader />
             </div>
           )}
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 
+            videoDimensions={videoDimensions}
             fileSize={fileSize} 
             showMetadata={showMetadata} 
           />
@@ -624,26 +716,45 @@ const S3FilePreview = ({
     }
     
     // For external images (non-S3), use Next.js Image component
+    const isExternalPng = src.toLowerCase().includes('.png');
+    
     return (
       <div className="relative w-full h-full overflow-hidden">
+        {/* Transparency checker background for external PNG files */}
+        {isExternalPng && (
+          <div 
+            className="absolute inset-0 opacity-50"
+            style={{
+              backgroundImage: `
+                linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                linear-gradient(-45deg, transparent 75%, #ccc 75%)
+              `,
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+            }}
+          />
+        )}
         <Image 
           src={safeFinalUrl}
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
         />
         {isLoading && (
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 z-20">
             <SkeletonLoader />
           </div>
         )}
         <MetadataOverlay 
           imageDimensions={imageDimensions} 
           videoDuration={videoDuration} 
+          videoDimensions={videoDimensions}
           fileSize={fileSize} 
           showMetadata={showMetadata} 
         />
@@ -714,6 +825,7 @@ const S3FilePreview = ({
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 
+            videoDimensions={videoDimensions}
             fileSize={fileSize} 
             showMetadata={showMetadata} 
           />
