@@ -1,5 +1,5 @@
 // src/app/api/graphql/dataloaders/postsByBlogIdLoader.ts
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client'; // Import PrismaClient type
 import { Post, User, Blog as PrismaBlog } from '@prisma/client'; // Prisma types
 
 // Define a more specific type for the Post object we intend to return by the loader,
@@ -11,10 +11,10 @@ export type EnrichedPost = Post & {
   // featuredImageMedia?: Media | null;
 };
 
-export const batchPostsByBlogIds = async (blogIds: readonly string[]): Promise<EnrichedPost[][]> => {
+export const batchPostsByBlogIds = async (blogIds: readonly string[], prismaClient: PrismaClient): Promise<EnrichedPost[][]> => {
   console.log(`postsByBlogIdLoader: Batch loading posts for blog IDs: [${blogIds.join(', ')}]`);
 
-  const posts = await prisma.post.findMany({
+  const posts = await prismaClient.post.findMany({
     where: {
       blogId: { in: blogIds as string[] },
       // status: 'PUBLISHED', // Optional: Uncomment if this loader is only for published posts

@@ -7,7 +7,7 @@ import resolvers from './resolvers';
 import { prismaManager } from '@/lib/prisma'; // Changed to prismaManager
 import { tenantScopeExtension } from '@/lib/prisma-extensions/tenant-scope'; // Added
 import { TenantResolver } from '@/lib/tenant/resolver'; // Added
-import { verifyToken, UserJwtPayload } from '@/lib/auth'; // UserJwtPayload for better typing
+import { verifyToken } from '@/lib/auth'; // UserJwtPayload for better typing
 
 // Imports for graphql-shield
 import { makeExecutableSchema } from '@graphql-tools/schema';
@@ -131,19 +131,19 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     // 3. Initialize DataLoaders with the determined Prisma client
     const loaders = {
       sectionLoader: new DataLoader<string, CMSSection[], string>(
-        (keys) => batchSectionsByPageIds(keys, currentPrismaClient), // Pass prisma client to batch function
+        (keys) => batchSectionsByPageIds(keys, currentPrismaClient),
         { cacheKeyFn: (key: string) => key }
       ),
       postsByBlogIdLoader: new DataLoader<string, EnrichedBlogPost[], string>(
-        (keys) => batchPostsByBlogIds(keys, currentPrismaClient), // Pass prisma client
+        (keys) => batchPostsByBlogIds(keys, currentPrismaClient),
         { cacheKeyFn: (key: string) => key }
       ),
       orderItemsByOrderIdLoader: new DataLoader<string, EnrichedOrderItem[], string>(
-        (keys) => batchOrderItemsByOrderIds(keys, currentPrismaClient), // Pass prisma client
+        (keys) => batchOrderItemsByOrderIds(keys, currentPrismaClient),
         { cacheKeyFn: (key: string) => key }
       ),
       userByIdLoader: new DataLoader<string, PublicUser | null, string>(
-        (keys) => batchUsersByIds(keys, currentPrismaClient), // Pass prisma client
+        (keys) => batchUsersByIds(keys),
         { cacheKeyFn: (key: string) => key }
       ),
     };
