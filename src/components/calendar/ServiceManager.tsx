@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
 import { Service, ServiceCategory, Location } from '@/types/calendar';
 import ServiceForm from './ServiceForm';
+import DeleteServiceDialog from './DeleteServiceDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -22,16 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, PlusCircle, Edit, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function ServiceManager() {
   const [services, setServices] = useState<Service[]>([]);
@@ -48,6 +39,7 @@ export default function ServiceManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoadingServices(true);
@@ -98,20 +90,24 @@ export default function ServiceManager() {
     setShowDeleteConfirm(true);
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClose = () => {
+    setShowDeleteConfirm(false);
+    setServiceToDelete(null);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!serviceToDelete) return;
-    setIsSaving(true);
+    setIsDeleting(true);
     try {
       await graphqlClient.deleteService({ id: serviceToDelete.id });
       toast.success(`Service "${serviceToDelete.name}" deleted successfully.`);
       fetchData(); // Refresh all data as services might affect other things indirectly
+      handleDeleteClose();
     } catch (err: unknown) {
       console.error('Failed to delete service:', err);
       toast.error(`Failed to delete service: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setIsSaving(false);
-      setShowDeleteConfirm(false);
-      setServiceToDelete(null);
+      setIsDeleting(false);
     }
   };
 
@@ -269,24 +265,13 @@ export default function ServiceManager() {
       />
 
       {serviceToDelete && (
-        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the service
-                &quot;{serviceToDelete.name}&quot;.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setServiceToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} disabled={isSaving} className="bg-destructive hover:bg-destructive/90">
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteServiceDialog
+          service={serviceToDelete}
+          isOpen={showDeleteConfirm}
+          onClose={handleDeleteClose}
+          onConfirm={handleDeleteConfirm}
+          isDeleting={isDeleting}
+        />
       )}
     </div>
   );
