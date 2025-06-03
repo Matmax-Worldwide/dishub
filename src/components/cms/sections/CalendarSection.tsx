@@ -16,7 +16,7 @@ import {
   Settings,
   Clock,
   Briefcase,
-  Search
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-day-picker/dist/style.css'; 
@@ -820,7 +820,6 @@ export default function CalendarSection({
             name: service.name,
             description: service.description || null,
             durationMinutes: service.durationMinutes,
-            prices: service.prices || [],
             serviceCategoryId: service.serviceCategoryId,
             serviceCategory: service.serviceCategory || null,
             bufferTimeBeforeMinutes: service.bufferTimeBeforeMinutes || null,
@@ -1798,9 +1797,9 @@ export default function CalendarSection({
                       <Clock className="w-4 h-4" />
                             {item.durationMinutes} min
                     </span>
-                          {item.prices?.length > 0 && (
+                          {(item as Service & { prices?: Array<{ id: string; amount: number; currencyId: string }> }).prices?.length && (item as Service & { prices?: Array<{ id: string; amount: number; currencyId: string }> }).prices!.length > 0 && (
                             <span className="font-medium text-blue-600">
-                              ${item.prices[0].amount}
+                              ${(item as Service & { prices?: Array<{ id: string; amount: number; currencyId: string }> }).prices![0].amount}
                             </span>
                     )}
                             </div>
