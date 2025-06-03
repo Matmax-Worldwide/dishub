@@ -1,6 +1,6 @@
 "use client";
 
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useFeatureAccess, FeatureType } from '@/hooks/useFeatureAccess';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -16,7 +16,7 @@ interface NavigationItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  feature?: string;
+  feature?: FeatureType;
   badge?: string;
 }
 
@@ -68,7 +68,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
 ];
 
 export function FeatureAwareNavigation() {
-  const { tenantFeatures, calculateCost } = useFeatureAccess();
+  const { features, calculateCost } = useFeatureAccess();
   const monthlyCost = calculateCost();
 
   return (
@@ -79,7 +79,7 @@ export function FeatureAwareNavigation() {
           <div>
             <p className="text-sm font-medium text-blue-900">Plan Actual</p>
             <p className="text-xs text-blue-600">
-              ${monthlyCost}/mes • {tenantFeatures.length} features
+              ${monthlyCost}/mes • {features.length} features
             </p>
           </div>
           <Zap className="w-5 h-5 text-blue-600" />
@@ -161,6 +161,15 @@ export function FeatureStatusCard() {
   const availableFeatures = getAvailableFeatures();
   const monthlyCost = calculateCost();
 
+  // Map feature types to display info
+  const featureDisplayInfo = {
+    'CMS_ENGINE': { label: 'CMS Engine', description: 'Content management system', category: 'Engine' },
+    'BLOG_MODULE': { label: 'Blog Module', description: 'Blog functionality', category: 'Module' },
+    'FORMS_MODULE': { label: 'Forms Module', description: 'Form builder', category: 'Module' },
+    'BOOKING_ENGINE': { label: 'Booking Engine', description: 'Reservation system', category: 'Engine' },
+    'ECOMMERCE_ENGINE': { label: 'E-commerce Engine', description: 'Online store', category: 'Engine' }
+  } as const;
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
@@ -169,27 +178,30 @@ export function FeatureStatusCard() {
       </div>
       
       <div className="space-y-3">
-        {availableFeatures.map((feature) => (
-          <div key={feature.id} className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">{feature.label}</p>
-              <p className="text-sm text-gray-500">{feature.description}</p>
+        {availableFeatures.map((feature) => {
+          const info = featureDisplayInfo[feature];
+          return (
+            <div key={feature} className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{info.label}</p>
+                <p className="text-sm text-gray-500">{info.description}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                {info.category === 'Engine' && (
+                  <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full">
+                    Motor
+                  </span>
+                )}
+                {info.category === 'Module' && (
+                  <span className="px-2 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-full">
+                    Módulo
+                  </span>
+                )}
+                <span className="text-green-600">✓</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {feature.category === 'Engine' && (
-                <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full">
-                  Motor
-                </span>
-              )}
-              {feature.category === 'Module' && (
-                <span className="px-2 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-full">
-                  Módulo
-                </span>
-              )}
-              <span className="text-green-600">✓</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 pt-4 border-t">
