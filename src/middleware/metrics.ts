@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path if necessary
 
-export const withMetrics: MiddlewareFunction = async (req, res) => {
+export const withMetrics: MiddlewareFunction = async () => {
   // Placeholder for metrics collection logic (Phase 4).
-  const start = Date.now();
+  // const start = Date.now();
   console.log('withMetrics middleware called (placeholder for Phase 4)');
 
   // Let the actual request processing happen by not returning a response here,

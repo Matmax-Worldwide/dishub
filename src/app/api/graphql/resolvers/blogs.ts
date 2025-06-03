@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 import { PostStatus, Blog as PrismaBlog } from '@prisma/client';
 // import { verifySession } from '@/app/api/utils/auth'; // Removed
-import { Context } from '../../types';
+import { Context } from '@/app/api/graphql/types';
 
 // Define interfaces for input types (preserved)
 interface BlogInput {
@@ -163,7 +163,7 @@ export const blogResolvers = {
   },
 
   Mutation: {
-    createBlog: async (_: unknown, { input }: { input: BlogInput }, context: Context) => {
+    createBlog: async (_: unknown, { input }: { input: BlogInput }) => {
       // Auth handled by graphql-shield. context.user is available if needed.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -186,7 +186,7 @@ export const blogResolvers = {
       }
     },
 
-    updateBlog: async (_: unknown, { id, input }: { id: string; input: BlogInput }, context: Context) => {
+    updateBlog: async (_: unknown, { id, input }: { id: string; input: BlogInput }) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -213,7 +213,7 @@ export const blogResolvers = {
       }
     },
 
-    deleteBlog: async (_: unknown, { id }: { id: string }, context: Context) => {
+    deleteBlog: async (_: unknown, { id }: { id: string }) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -233,7 +233,7 @@ export const blogResolvers = {
       }
     },
 
-    createPost: async (_: unknown, { input }: { input: CreatePostInput }, context: Context) => {
+    createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       // Note: input.authorId is used. If this should be context.user.id, logic would change here.
@@ -276,7 +276,7 @@ export const blogResolvers = {
       }
     },
 
-    updatePost: async (_: unknown, { id, input }: { id: string; input: UpdatePostInput }, context: Context) => {
+    updatePost: async (_: unknown, { id, input }: { id: string; input: UpdatePostInput }) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -319,7 +319,7 @@ export const blogResolvers = {
       }
     },
 
-    deletePost: async (_: unknown, { id }: { id: string }, context: Context) => {
+    deletePost: async (_: unknown, { id }: { id: string }) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -337,7 +337,7 @@ export const blogResolvers = {
   },
 
   Blog: {
-    posts: async (parentBlog: PrismaBlog, _args: any, context: Context, _info: any) => {
+    posts: async (parentBlog: PrismaBlog, _args: unknown, context: Context) => {
       if (!parentBlog.id) {
         return [];
       }

@@ -1,11 +1,33 @@
 import { prisma } from '@/lib/prisma';
-import { Context } from '../../types'; // Added shared Context
-// Removed NextRequest and verifyToken imports
+import { EmployeeStatus} from '@prisma/client';
+
+// TypeScript interfaces for employee mutations
+interface CreateEmployeeInput {
+  userId: string;
+  departmentId: string;
+  positionId: string;
+  employeeId: string;
+  hireDate: string;
+  managerId?: string;
+  salary?: string | number;
+  status?: EmployeeStatus;
+}
+
+interface UpdateEmployeeInput {
+  userId?: string;
+  departmentId?: string;
+  positionId?: string;
+  employeeId?: string;
+  hireDate?: string;
+  managerId?: string;
+  salary?: string | number;
+  status?: EmployeeStatus;
+}
 
 export const employeeResolvers = {
   Query: {
     // Obtener todos los empleados - auth handled by shield
-    employees: async (_parent: unknown, _args: unknown, context: Context) => {
+    employees: async () => {
       try {
         // Manual auth & role checks removed
         
@@ -46,7 +68,7 @@ export const employeeResolvers = {
     },
     
     // Obtener un empleado específico por ID - auth handled by shield
-    employee: async (_parent: unknown, args: { id: string }, context: Context) => {
+    employee: async (_parent: unknown, args: { id: string }) => {
       try {
         // Manual auth & role/ownership checks removed
         
@@ -125,7 +147,7 @@ export const employeeResolvers = {
     },
     
     // Obtener empleados por departamento - auth handled by shield
-    employeesByDepartment: async (_parent: unknown, args: { departmentId: string }, context: Context) => {
+    employeesByDepartment: async (_parent: unknown, args: { departmentId: string }, ) => {
       try {
         // Manual auth & role checks removed
         
@@ -168,7 +190,7 @@ export const employeeResolvers = {
     },
     
     // Obtener todos los departamentos - auth handled by shield
-    departments: async (_parent: unknown, _args: unknown, context: Context) => {
+    departments: async () => {
       try {
         // Manual auth checks removed
         
@@ -186,7 +208,7 @@ export const employeeResolvers = {
     },
     
     // Obtener todas las posiciones/cargos - auth handled by shield
-    positions: async (_parent: unknown, _args: unknown, context: Context) => {
+    positions: async () => {
       try {
         // Manual auth checks removed
         
@@ -206,7 +228,7 @@ export const employeeResolvers = {
   
   Mutation: {
     // Crear un nuevo empleado - auth handled by shield
-    createEmployee: async (_parent: unknown, args: { input: any }, context: Context) => {
+    createEmployee: async (_parent: unknown, args: { input: CreateEmployeeInput }) => {
       try {
         // Manual auth & role checks removed
         
@@ -234,8 +256,8 @@ export const employeeResolvers = {
             positionId,
             hireDate: new Date(hireDate),
             managerId,
-            salary,
-            status: 'ACTIVE', // Default status
+            salary: salary ? parseFloat(salary.toString()) : 0,
+            status: 'ACTIVE' as EmployeeStatus, // Default status
             ...otherData // Any other fields passed in input
           },
           include: {
@@ -260,22 +282,28 @@ export const employeeResolvers = {
     },
     
     // Actualizar datos de un empleado - auth handled by shield
-    updateEmployee: async (_parent: unknown, args: { id: string, input: any }, context: Context) => {
-      try {
+      updateEmployee: async (_parent: unknown, args: { id: string, input: UpdateEmployeeInput }) => {
+        try {
         // Manual auth & role checks removed
         
         const employeeExists = await prisma.employee.findUnique({ where: { id: args.id } });
         if (!employeeExists) throw new Error('Employee not found for update.');
         
         // Ensure userId is not part of the update input if it's not allowed to change
-        const { userId, ...updateData } = args.input;
+        const { userId, salary, hireDate, ...updateData } = args.input;
         if (userId && userId !== employeeExists.userId) {
             throw new Error("Cannot change the associated user (userId) of an employee.");
         }
 
+        const processedUpdateData = {
+          ...updateData,
+          ...(salary !== undefined && { salary: parseFloat(salary.toString()) }),
+          ...(hireDate && { hireDate: new Date(hireDate) })
+        };
+
         const employee = await prisma.employee.update({
           where: { id: args.id },
-          data: updateData,
+          data: processedUpdateData,
           include: {
             user: {
               select: {
@@ -297,7 +325,7 @@ export const employeeResolvers = {
     },
     
     // Asignar un empleado a un departamento - auth handled by shield
-    assignEmployeeToDepartment: async (_parent: unknown, args: { employeeId: string, departmentId: string }, context: Context) => {
+      assignEmployeeToDepartment: async (_parent: unknown, args: { employeeId: string, departmentId: string }) => {
       try {
         // Manual auth & role checks removed
         
@@ -335,3 +363,4 @@ export const employeeResolvers = {
 };
 
 export default employeeResolvers;
+

@@ -12,6 +12,9 @@ export const roleResolvers = {
     // Obtener todos los roles
     roles: async (_parent: Parent, _args: EmptyArgs, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -47,6 +50,9 @@ export const roleResolvers = {
     // Obtener un rol específico por ID
     role: async (_parent: Parent, { id }: { id: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -88,6 +94,9 @@ export const roleResolvers = {
     // Obtener roles con conteo de usuarios y permisos
     rolesWithCounts: async (_parent: Parent, _args: EmptyArgs, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -153,6 +162,9 @@ export const roleResolvers = {
     // Crear un nuevo rol
     createRole: async (_parent: Parent, { input }: { input: { name: string; description?: string } }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -201,6 +213,9 @@ export const roleResolvers = {
     // Actualizar un rol existente
     updateRole: async (_parent: Parent, { id, input }: { id: string; input: { name: string; description?: string } }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -264,6 +279,9 @@ export const roleResolvers = {
     // Eliminar un rol
     deleteRole: async (_parent: Parent, { id }: { id: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -312,6 +330,9 @@ export const roleResolvers = {
     // Asignar un permiso a un rol
     assignPermissionToRole: async (_parent: Parent, { roleId, permissionId }: { roleId: string; permissionId: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       
@@ -365,6 +386,9 @@ export const roleResolvers = {
     // Remover un permiso de un rol
     removePermissionFromRole: async (_parent: Parent, { roleId, permissionId }: { roleId: string; permissionId: string }, context: Context) => {
       // Verificar si el usuario está autenticado
+      if (!context.req) {
+        throw new Error('Request context is required');
+      }
       const session = await verifySession(context.req);
       const user = session?.user;
       

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+// import { NextRequest, NextResponse } from 'next/server';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path if necessary
 
-export const withTenant: MiddlewareFunction = async (req, res) => {
+export const withTenant: MiddlewareFunction = async () => {
   // Placeholder for tenant identification logic (Phase 1).
   // This would:
   // 1. Resolve tenantId from subdomain, custom domain, JWT, or headers.

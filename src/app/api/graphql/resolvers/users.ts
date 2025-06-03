@@ -21,6 +21,18 @@ interface UpdateUserInput {
   role?: string;
 }
 
+interface UserUpdateData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  role?: {
+    connect: {
+      id: string;
+    };
+  };
+}
+
 // Context type for refactored mutations, assuming enhanced context from route.ts
 interface ResolverContext {
   user?: { // User will be present if resolver is reached past isAuthenticated shield rule
@@ -40,7 +52,6 @@ export const userResolvers = {
     // createUser (Already Refactored)
     createUser: async (_parent: unknown, 
       { input }: { input: CreateUserInput }, 
-      context: ResolverContext
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -90,7 +101,7 @@ export const userResolvers = {
           updatedAt: user.updatedAt.toISOString()
         };
       } catch (error) {
-        console.error('Create user error:', error.message);
+        console.error('Create user error:', error instanceof Error ? error.message : 'Unknown error');
         throw error;
       }
     },
@@ -98,7 +109,6 @@ export const userResolvers = {
     // updateUser (Already Refactored)
     updateUser: async (_parent: unknown, 
       { id, input }: { id: string; input: UpdateUserInput }, 
-      context: ResolverContext
     ) => {
       try {
         // Auth handled by graphql-shield
@@ -119,7 +129,7 @@ export const userResolvers = {
           }
         }
         
-        const updateData: any = {
+        const updateData: UserUpdateData = {
           ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
           ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
           ...(input.email !== undefined ? { email: input.email } : {}),
@@ -150,7 +160,7 @@ export const userResolvers = {
           updatedAt: updatedUser.updatedAt.toISOString()
         };
       } catch (error) {
-        console.error('Update user error:', error.message);
+        console.error('Update user error:', error instanceof Error ? error.message : 'Unknown error');
         throw error;
       }
     },
@@ -190,7 +200,7 @@ export const userResolvers = {
         
         return true; // Successfully deleted
       } catch (error) {
-        console.error('Delete user error:', error.message);
+        console.error('Delete user error:', error instanceof Error ? error.message : 'Unknown error');
         // Consider specific error types for client if needed
         // e.g., throw new GraphQLError(error.message, { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
         throw error;

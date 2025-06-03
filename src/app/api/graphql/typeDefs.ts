@@ -215,6 +215,120 @@ export const typeDefs = gql`
     updatedAt: String
   }
 
+  # Employee/HR related types
+  enum EmployeeStatus {
+    ACTIVE
+    INACTIVE
+    TERMINATED
+    ON_LEAVE
+  }
+
+  type Employee {
+    id: ID!
+    userId: ID!
+    user: User
+    employeeId: String!
+    departmentId: ID!
+    department: Department
+    positionId: ID!
+    position: Position
+    managerId: ID
+    manager: Employee
+    subordinates: [Employee!]
+    hireDate: DateTime!
+    salary: Float
+    status: EmployeeStatus!
+    attendances: [Attendance!]
+    leaves: [Leave!]
+    benefits: [EmployeeBenefit!]
+    documents: [Document!]
+    trainings: [EmployeeTraining!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Department {
+    id: ID!
+    name: String!
+    description: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Position {
+    id: ID!
+    title: String!
+    description: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Attendance {
+    id: ID!
+    employeeId: ID!
+    employee: Employee
+    date: DateTime!
+    checkIn: DateTime
+    checkOut: DateTime
+    hoursWorked: Float
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Leave {
+    id: ID!
+    employeeId: ID!
+    employee: Employee
+    type: String!
+    startDate: DateTime!
+    endDate: DateTime!
+    reason: String
+    status: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type EmployeeBenefit {
+    id: ID!
+    employeeId: ID!
+    employee: Employee
+    benefitId: ID!
+    benefit: Benefit
+    enrolledAt: DateTime!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Benefit {
+    id: ID!
+    name: String!
+    description: String
+    type: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type EmployeeTraining {
+    id: ID!
+    employeeId: ID!
+    employee: Employee
+    trainingId: ID!
+    training: Training
+    completedAt: DateTime
+    score: Float
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type Training {
+    id: ID!
+    title: String!
+    description: String
+    duration: Int
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
   # ContactFormSubmission type
   type ContactFormSubmission {
     id: ID!
@@ -267,6 +381,28 @@ export const typeDefs = gql`
     bio: String
     position: String
     department: String
+  }
+
+  # Employee input types
+  input CreateEmployeeInput {
+    userId: ID!
+    employeeId: String!
+    departmentId: ID!
+    positionId: ID!
+    managerId: ID
+    hireDate: DateTime!
+    salary: Float
+    status: EmployeeStatus
+  }
+
+  input UpdateEmployeeInput {
+    employeeId: String
+    departmentId: ID
+    positionId: ID
+    managerId: ID
+    hireDate: DateTime
+    salary: Float
+    status: EmployeeStatus
   }
 
   # Document related types
@@ -1497,6 +1633,17 @@ export const typeDefs = gql`
     discount(id: ID!): Discount
     discountByCode(code: String!): Discount
     validateDiscount(code: String!, orderTotal: Float!, customerId: ID): DiscountValidation!
+    
+    # Employee/HR queries
+    employees: [Employee!]!
+    employee(id: ID!): Employee
+    employeesByDepartment(departmentId: ID!): [Employee!]!
+    departments: [Department!]!
+    positions: [Position!]!
+    
+    # User profile queries
+    viewerProfile: User
+    userById(id: ID!): User
   }
 
   # Root Mutation
@@ -1576,6 +1723,11 @@ export const typeDefs = gql`
 
     # Gestionar permisos específicos de usuario
     setUserPermission(input: UserPermissionInput!): UserPermission!
+
+    # Employee/HR mutations
+    createEmployee(input: CreateEmployeeInput!): Employee!
+    updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+    assignEmployeeToDepartment(employeeId: ID!, departmentId: ID!): Employee!
 
     # CMS Mutations
     saveSectionComponents(input: SaveSectionInput!): SaveSectionResult

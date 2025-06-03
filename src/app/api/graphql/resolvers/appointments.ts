@@ -1,7 +1,7 @@
 // import { NextRequest } from 'next/server'; // No longer needed
 // import { verifyToken } from '@/lib/auth'; // No longer needed
 import { prisma } from '@/lib/prisma';
-import { Context } from '../../types'; // Import main Context
+import { Context } from '@/app/api/graphql/types'; // Import main Context
 import { GraphQLError } from 'graphql'; // For throwing resolver errors
 
 // Define input types (preserved)
@@ -19,8 +19,8 @@ interface CreateAppointmentInput {
 interface UpdateAppointmentInput {
   title?: string;
   description?: string;
-  startTime?: string;
-  endTime?: string;
+  startTime?: Date;
+  endTime?: Date;
   location?: string;
   isVirtual?: boolean;
   meetingUrl?: string;

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+// import { NextRequest, NextResponse } from 'next/server';
 import { compose, MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust path
 import { withAuth } from './auth'; // Adjust path
 import { withI18n } from './i18n'; // Adjust path
