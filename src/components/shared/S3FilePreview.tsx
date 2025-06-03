@@ -111,6 +111,13 @@ const categorizeFileType = (fileType: string): string => {
   return 'other';
 };
 
+// Smart logging function that only logs in development
+const debugLog = (level: 'log' | 'warn' | 'error', message: string, ...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    console[level](`[S3FilePreview] ${message}`, ...args);
+  }
+};
+
 /**
  * Componente optimizado para mostrar previsualizaciones de archivos de S3
  * Usa caché global para evitar múltiples llamadas a la API
@@ -183,7 +190,7 @@ const S3FilePreview = ({
     const fileCategory = categorizeFileType(detectedFileType);
     
     // Debug logging
-    console.log('S3FilePreview Analysis:', {
+    debugLog('log', 'S3FilePreview Analysis:', {
       src,
       providedFileType,
       detectedFileType,
@@ -219,58 +226,71 @@ const S3FilePreview = ({
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     try {
       const target = event.currentTarget as HTMLImageElement;
-      console.log("S3FilePreview: Image loaded successfully");
-      console.log("- Source URL:", src || 'unknown');
-      console.log("- Final URL:", safeFinalUrl || 'unknown');
-      console.log("- Natural width:", target?.naturalWidth || 0);
-      console.log("- Natural height:", target?.naturalHeight || 0);
-      console.log("- Complete:", Boolean(target?.complete));
-      console.log("- Timestamp:", new Date().toISOString());
+      debugLog('log', "S3FilePreview: Image loaded successfully");
+      debugLog('log', "- Source URL:", src || 'unknown');
+      debugLog('log', "- Final URL:", safeFinalUrl || 'unknown');
+      debugLog('log', "- Natural width:", target?.naturalWidth || 0);
+      debugLog('log', "- Natural height:", target?.naturalHeight || 0);
+      debugLog('log', "- Complete:", Boolean(target?.complete));
+      debugLog('log', "- Timestamp:", new Date().toISOString());
     } catch (loggingError) {
-      console.warn("S3FilePreview: Image loaded but logging failed:", String(loggingError));
+      debugLog('warn', "S3FilePreview: Image loaded but logging failed:", String(loggingError));
     }
   };
 
-  // Handler for image error
+  // Handler for image error - completely silent to prevent Next.js unhandled errors
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // Prevent the error from bubbling up and being treated as unhandled
+    if (error) {
+      error.preventDefault();
+      error.stopPropagation();
+    }
+
     try {
       const target = error?.currentTarget as HTMLImageElement;
       
-      // Log each piece of information as separate strings to avoid serialization issues
-      console.error("S3FilePreview: Error loading image");
-      console.error("- Source URL:", src || 'unknown');
-      console.error("- Final URL:", safeFinalUrl || 'unknown');
-      console.error("- Is S3 URL:", safeIsS3Url);
-      console.error("- S3 Key:", safeS3Key || 'unknown');
-      console.error("- Error Type:", error?.type || 'unknown');
-      console.error("- File Name:", fileName || 'unknown');
-      console.error("- Timestamp:", new Date().toISOString());
+      // Only log in development mode to avoid console errors in production
+      debugLog('warn', "Error loading image");
+      debugLog('warn', "- Source URL:", src || 'unknown');
+      debugLog('warn', "- Final URL:", safeFinalUrl || 'unknown');
+      debugLog('warn', "- Is S3 URL:", safeIsS3Url);
+      debugLog('warn', "- S3 Key:", safeS3Key || 'unknown');
+      debugLog('warn', "- Error Type:", error?.type || 'unknown');
+      debugLog('warn', "- File Name:", fileName || 'unknown');
+      debugLog('warn', "- Timestamp:", new Date().toISOString());
       
       // Log target information separately
       if (target) {
-        console.error("Image element details:");
-        console.error("- Target src:", target?.src || 'unknown');
-        console.error("- Target complete:", Boolean(target?.complete));
-        console.error("- Target natural width:", target?.naturalWidth || 0);
-        console.error("- Target natural height:", target?.naturalHeight || 0);
+        debugLog('warn', "Image element details:");
+        debugLog('warn', "- Target src:", target?.src || 'unknown');
+        debugLog('warn', "- Target complete:", Boolean(target?.complete));
+        debugLog('warn', "- Target natural width:", target?.naturalWidth || 0);
+        debugLog('warn', "- Target natural height:", target?.naturalHeight || 0);
         
         // Try to provide more specific error information
         if (target.naturalWidth === 0 && target.naturalHeight === 0) {
-          console.error("Image failed to load - likely a network or CORS issue");
+          debugLog('warn', "Image failed to load - likely a network or CORS issue");
           
           // Store cache issue indicator for the cache warning component
-          localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+          try {
+            localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+          } catch (storageError) {
+            // Silently fail if localStorage is not available
+            debugLog('warn', "Could not store cache issue indicator:", storageError);
+          }
         }
       }
       
     } catch (loggingError) {
-      // Fallback logging if there's an error in the error handler
-      console.error("S3FilePreview: Error loading image (logging failed)");
-      console.error("Logging error:", String(loggingError));
-      console.error("Original error type:", error?.type || 'unknown');
-      console.error("Source URL:", src);
+      // Completely silent fallback - no logging to avoid any console errors
+      try {
+        localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+      } catch (storageError) {
+        // Silently fail
+      }
     }
     
+    // Set error state to show fallback UI
     setImageError(true);
   };
   
