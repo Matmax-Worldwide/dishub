@@ -5,46 +5,109 @@ import { typeDefs } from './typeDefs';
 import resolvers from './resolvers';
 import { verifyToken } from '@/lib/auth';
 
-const server = new ApolloServer({
+// Imports for graphql-shield
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { applyMiddleware } from 'graphql-middleware';
+import { permissionsShield } from './authorization';
+
+// Import for role-based permissions
+import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
+
+// Imports for DataLoader
+import DataLoader from 'dataloader';
+import { batchSectionsByPageIds } from './dataloaders/sectionLoader';
+import { CMSSection } from '@prisma/client'; // Prisma type for sectionLoader
+import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader'; // Aliased EnrichedPost
+import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader'; // New
+import { batchUsersByIds, PublicUser } from './dataloaders/userByIdLoader'; // New
+
+
+// Create the base schema
+const baseSchema = makeExecutableSchema({
   typeDefs,
   resolvers,
 });
 
-const handler = startServerAndCreateNextHandler(server, {
-  context: async (req: NextRequest) => {
-    // Extract the token from the Authorization header
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    
-    // Always create a minimal context with the request
-    const context = { 
-      req,
-      // Add a default user for emergency fixes
-      _emergency_bypass: true
-    };
-    
-    // If there's no token, we'll still have a basic context
-    if (!token) {
-      console.log('No auth token found in request');
-      return context;
-    }
-    
-    try {
-      // Verify the token and extract user data
-      const decoded = await verifyToken(token) as { userId: string; role?: string };
+// Apply the shield middleware
+const schemaWithPermissions = applyMiddleware(baseSchema, permissionsShield);
 
-      // Return both the request and the user information
-      return { 
-        ...context,
-        user: {
+// Initialize ApolloServer
+const server = new ApolloServer({
+  schema: schemaWithPermissions,
+});
+
+// Define DecodedToken interface
+interface DecodedToken {
+  userId: string;
+  role?: RoleName;
+  tenants?: Array<{ id: string; role: string; status: string }>;
+}
+
+// Define the structure of your context, including loaders
+export interface GraphQLContext {
+  req: NextRequest;
+  user: {
+    id: string;
+    role: RoleName;
+    permissions: string[];
+    tenants: Array<{ id: string; role: string; status: string }>;
+  } | null;
+  loaders: {
+    sectionLoader: DataLoader<string, CMSSection[], string>;
+    postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>;
+    orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>; // Added
+    userByIdLoader: DataLoader<string, PublicUser | null, string>; // Added
+  };
+  // tenantId?: string | null;
+}
+
+
+const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, {
+  context: async (req) => {
+    const loaders = {
+      sectionLoader: new DataLoader<string, CMSSection[], string>(
+        (keys) => batchSectionsByPageIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+      postsByBlogIdLoader: new DataLoader<string, EnrichedBlogPost[], string>(
+        (keys) => batchPostsByBlogIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+      orderItemsByOrderIdLoader: new DataLoader<string, EnrichedOrderItem[], string>( // New
+        (keys) => batchOrderItemsByOrderIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+      userByIdLoader: new DataLoader<string, PublicUser | null, string>( // New
+        (keys) => batchUsersByIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+    };
+
+    const token = req.headers.get('authorization')?.split(' ')[1];
+    let userContext = null;
+    
+    if (token) {
+      try {
+        const decoded = await verifyToken(token) as DecodedToken;
+        const userRoleName = decoded.role || 'USER';
+        const resolvedPermissions = getPermissionsForRole(userRoleName);
+
+        userContext = {
           id: decoded.userId,
-          role: decoded.role || 'USER'
-        }
-      };
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      // Return the basic context even if token verification fails
-      return context;
+          role: userRoleName,
+          permissions: resolvedPermissions,
+          tenants: decoded.tenants || [],
+        };
+      } catch (error) {
+        console.error('Error verifying token for GraphQL context:', error.message);
+      }
     }
+
+    return {
+      req,
+      user: userContext,
+      loaders,
+    };
   },
 });
 
@@ -53,35 +116,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // Log the request body for debugging
-    const requestClone = request.clone();
-    
-    // Check if the request has a body before parsing
-    const text = await requestClone.text();
-    if (!text || text.trim() === '') {
-      return new Response(JSON.stringify({
-        errors: [{ message: 'Empty request body' }]
-      }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    
-
-
-    return handler(request);
-  } catch (error) {
-    console.error('Error processing GraphQL request:', error);
+  const requestClone = request.clone();
+  const text = await requestClone.text();
+  if (!text || text.trim() === '') {
     return new Response(JSON.stringify({
-      errors: [{ message: 'Error processing request' }]
+      errors: [{ message: 'Empty request body' }]
     }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
     });
   }
-} 
+  return handler(request);
+}
