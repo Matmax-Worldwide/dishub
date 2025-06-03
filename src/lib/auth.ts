@@ -116,17 +116,17 @@ export async function verifyToken(token: string): Promise<UserJwtPayload | null>
 
 // Updated getSession to use UserJwtPayload
 export async function getSession(): Promise<UserJwtPayload | null> {
-  const cookieStore = cookies(); // Correctly call cookies()
-  const token = cookieStore.get('session-token')?.value;
-
-  if (!token) {
-    return null;
-  }
-
   try {
+    const cookieStore = await cookies(); // Await the cookies() call
+    const token = cookieStore.get('session-token')?.value;
+
+    if (!token) {
+      return null;
+    }
+
     const payload = await verifyToken(token);
     return payload;
-  } catch (error) { // Catching potential errors from verifyToken if it throws
+  } catch (error) {
     console.error('Error getting session:', error);
     return null;
   }
