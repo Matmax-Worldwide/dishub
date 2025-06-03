@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
               revalidationDetails.push({ type: 'tag', item: tag.trim(), success: true, message: 'Revalidated' });
               console.log(`Revalidated tag: ${tag.trim()}`);
               revalidatedItemsOverall = true;
-            } catch (e: any) {
+            } catch (e: unknown) {
               console.error(`Failed to revalidate tag ${tag.trim()}:`, e);
-              revalidationDetails.push({ type: 'tag', item: tag.trim(), success: false, error: e.message });
+              revalidationDetails.push({ type: 'tag', item: tag.trim(), success: false, error: e instanceof Error ? e.message : 'Unknown error' });
             }
           } else {
             console.warn(`Invalid tag format for revalidation: ${tag}`);
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
               revalidationDetails.push({ type: 'path', item: path.trim(), success: true, message: 'Revalidated' });
               console.log(`Revalidated path: ${path.trim()}`);
               revalidatedItemsOverall = true;
-            } catch (e: any) {
+            } catch (e: unknown) {
               console.error(`Failed to revalidate path ${path.trim()}:`, e);
-              revalidationDetails.push({ type: 'path', item: path.trim(), success: false, error: e.message });
+              revalidationDetails.push({ type: 'path', item: path.trim(), success: false, error: e instanceof Error ? e.message : 'Unknown error' });
             }
           } else {
               console.warn(`Invalid path format for revalidation: ${path}`);
@@ -86,16 +86,16 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }, { status: allSucceeded ? 200 : (revalidatedItemsOverall ? 207 : 500) }); // 207 if some succeeded, 500 if all attempted failed
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error processing revalidation request:", error);
     if (error instanceof SyntaxError && error.message.includes("JSON")) { // More specific check for JSON parsing error
         return NextResponse.json({ message: 'Invalid JSON payload. Please ensure the request body is valid JSON.' }, { status: 400 });
     }
-    return NextResponse.json({ message: 'Error processing revalidation request.', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error processing revalidation request.', error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Simple check to see if the revalidation token is configured on the server
   // This does NOT validate any incoming token for GET requests.
   const expectedSecret = process.env.REVALIDATION_SECRET_TOKEN;

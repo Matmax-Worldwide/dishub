@@ -1,5 +1,57 @@
-// packages/tenant-site-template/src/lib/cms.ts
 import { GraphQLClient, gql } from 'graphql-request';
+
+// Type definitions
+interface SiteConfig {
+  siteName: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  defaultLocale: string;
+  supportedLocales: string[];
+}
+
+interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  locale: string;
+  featuredImage?: {
+    url: string;
+    altText?: string;
+  };
+  sections: Array<{
+    id: string;
+    sectionId: string;
+    backgroundImage?: string;
+    backgroundType?: string;
+    gridDesign?: string;
+    order: number;
+    components: Array<{
+      id: string;
+      type: string;
+      data: unknown;
+      order: number;
+    }>;
+  }>;
+}
+
+interface Menu {
+  name: string;
+  items: Array<{
+    id: string;
+    title: string;
+    url: string;
+    target?: string;
+    children?: Array<{
+      id: string;
+      title: string;
+      url: string;
+      target?: string;
+    }>;
+  }>;
+}
 
 const CMS_GRAPHQL_URL = process.env.NEXT_PUBLIC_CMS_GRAPHQL_URL || '/api/public/graphql'; // Fallback for local dev if main app serves it
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID; // This will be set at build time per tenant
@@ -38,7 +90,7 @@ export async function getSiteConfig() {
   // For siteConfig, the tenant is resolved by the API from the hostname
   // or X-Tenant-ID if the API is called directly with it.
   // If CMS_GRAPHQL_URL is a full URL to a specific tenant's endpoint, that's another way.
-  const data = await client.request<{ siteConfig: any }>(query);
+  const data = await client.request<{ siteConfig: SiteConfig }>(query);
   return data.siteConfig;
 }
 
@@ -77,11 +129,12 @@ export async function getPage(slug: string, preview: boolean = false) {
   // This preview secret mechanism is basic. A more robust solution (e.g. signed JWTs) is recommended for production.
   // The preview token might need to be specific per tenant or globally verifiable by the public API.
   const previewSecret = process.env.PREVIEW_SECRET_TOKEN; // A generic preview secret
-  const headers = preview && previewSecret
-    ? { 'X-Preview-Token': previewSecret }
-    : {};
+  const requestHeaders: Record<string, string> = {};
+  if (preview && previewSecret) {
+    requestHeaders['X-Preview-Token'] = previewSecret;
+  }
 
-  const data = await client.request<{ page: any }>(query, variables, headers);
+  const data = await client.request<{ page: Page }>(query, variables, requestHeaders);
   return data.page;
 }
 
@@ -130,7 +183,7 @@ export async function getMenu(location: string) {
         }
     `;
     const variables = { location };
-    const data = await client.request<{ menu: any }>(query, variables);
+    const data = await client.request<{ menu: Menu }>(query, variables);
     return data.menu;
 }
 
