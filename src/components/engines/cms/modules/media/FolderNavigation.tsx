@@ -157,8 +157,8 @@ export function FolderNavigation({
                   folderObj = existingFolder;
                 } else {
                   // Fallback to creating a new folder object with proper validation
-                  const validPath = path && path.trim() ? path.trim() : `segment-${index}`;
-                  const validSegment = segment && segment.trim() ? segment.trim() : `segment-${index}`;
+                  const validPath = path?.trim() || `segment-${index}`;
+                  const validSegment = segment?.trim() || `segment-${index}`;
                   folderObj = {
                     id: `folder-${validPath}`,
                     name: validSegment,

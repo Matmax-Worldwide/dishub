@@ -55,7 +55,7 @@ export const appointmentResolvers = {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
       try {
-        const appointment = await prisma.appointment.findUnique({
+        const appointment = await prisma.appointment.findFirst({
           where: { 
             id,
             userId: context.user.id // Ensure user owns the appointment
@@ -155,22 +155,18 @@ export const appointmentResolvers = {
           if (!client) throw new GraphQLError('The specified client does not exist');
         }
         
-        const updateData: Partial<UpdateAppointmentInput> & { startTime?: Date, endTime?: Date } = {};
+        const updateData: Partial<UpdateAppointmentInput> = {};
         if (input.title !== undefined) updateData.title = input.title;
         if (input.description !== undefined) updateData.description = input.description;
         if (input.location !== undefined) updateData.location = input.location;
         if (input.clientId !== undefined) updateData.clientId = input.clientId;
         if (input.isVirtual !== undefined) updateData.isVirtual = input.isVirtual;
         if (input.meetingUrl !== undefined) updateData.meetingUrl = input.meetingUrl;
-        if (input.startTime !== undefined) updateData.startTime = new Date(input.startTime);
-        if (input.endTime !== undefined) updateData.endTime = new Date(input.endTime);
+        if (input.startTime !== undefined) updateData.startTime = input.startTime;
+        if (input.endTime !== undefined) updateData.endTime = input.endTime;
 
-        if (updateData.startTime && updateData.endTime && updateData.startTime >= updateData.endTime) {
+        if (updateData.startTime && updateData.endTime && new Date(updateData.startTime) >= new Date(updateData.endTime)) {
           throw new GraphQLError('Start time must be before end time');
-        } else if (updateData.startTime && !updateData.endTime && updateData.startTime >= existingAppointment.endTime) {
-          throw new GraphQLError('Start time must be before existing end time');
-        } else if (!updateData.startTime && updateData.endTime && existingAppointment.startTime >= updateData.endTime) {
-          throw new GraphQLError('Existing start time must be before new end time');
         }
         
         const updatedAppointment = await prisma.appointment.update({
@@ -193,7 +189,7 @@ export const appointmentResolvers = {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
       try {
-        const appointment = await prisma.appointment.findUnique({
+        const appointment = await prisma.appointment.findFirst({
           where: { id, userId: context.user.id } // Ensure user owns the appointment
         });
         if (!appointment) {

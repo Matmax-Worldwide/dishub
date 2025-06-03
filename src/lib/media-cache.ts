@@ -312,17 +312,14 @@ export async function getCachedFolders(prefix: string = ''): Promise<Folder[]> {
     // Process the API response into proper Folder objects
     const folders: Folder[] = folderNames.map((folderName: string, index: number) => {
       // Use the actual folder name from the API, not a fallback
-      const actualFolderName = folderName && folderName.trim() ? folderName.trim() : `unnamed-folder-${index}`;
-      
+      const actualFolderName = folderName?.trim() || `unnamed-folder-${index}`;
+
       const folderPath = prefix 
         ? `${prefix}/${actualFolderName}` 
         : actualFolderName;
       
       // Get subfolder count from folderDetails if available
-      let subfolderCount = 0;
-      if (folderDetails[index] && folderDetails[index].subfolderCount) {
-        subfolderCount = folderDetails[index].subfolderCount;
-      }
+      const subfolderCount = folderDetails[index]?.subfolderCount || 0;
       
       return {
         id: `folder-${folderPath}`,
