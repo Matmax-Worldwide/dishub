@@ -1,10 +1,19 @@
 import { NextRequest } from 'next/server';
 import DataLoader from 'dataloader';
-import { CMSSection, User as PrismaUser, Page as PrismaPage, PageType as PrismaPageType, Post as PrismaPost } from '@prisma/client'; // Added PrismaPost for EnrichedPost typing
+import { 
+  CMSSection as PrismaCMSSection, // Renaming to avoid conflict if a local GQL 'CMSSection' is different
+  User as PrismaUser, 
+  Page as PrismaPage, 
+  PageType as PrismaPageType, 
+  Post as PrismaPost,
+  OrderItem as PrismaOrderItem // Added for orderItemsByOrderIdLoader
+} from '@prisma/client';
 import { RoleName } from '@/config/rolePermissions'; 
-// Import EnrichedPost if it's defined in its own file, or define it here.
-// Assuming EnrichedPost is defined in postsByBlogIdLoader.ts and exported.
-import { EnrichedPost } from './dataloaders/postsByBlogIdLoader'; // Path relative to types.ts
+
+// Imports for specific types returned by DataLoaders
+import { EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader'; // Path relative to types.ts
+import { EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader'; // Path relative to types.ts
+import { PublicUser } from './dataloaders/userByIdLoader'; // Path relative to types.ts
 
 // Defines the user object structure available in the GraphQL context after authentication
 export interface AuthenticatedUser {
@@ -16,9 +25,10 @@ export interface AuthenticatedUser {
 
 // Defines the structure of DataLoaders available in the context
 export interface MyLoaders {
-  sectionLoader: DataLoader<string, CMSSection[], string>;
-  postsByBlogIdLoader: DataLoader<string, EnrichedPost[], string>; // Added postsByBlogIdLoader
-  // Example: userLoader?: DataLoader<string, PrismaUser, string>; 
+  sectionLoader: DataLoader<string, PrismaCMSSection[], string>; // Using PrismaCMSSection as per original task spec for loaders
+  postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>; 
+  orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>; 
+  userByIdLoader: DataLoader<string, PublicUser | null, string>; 
 }
 
 // Definición de los tipos de usuario y sesión
@@ -158,9 +168,9 @@ export interface CMSComponent { // Local definition if different from Prisma's o
 // This is a local definition for the GraphQL type CMSSection.
 // It references the local SectionComponent type.
 // The DataLoader uses Prisma.CMSSection.
-export interface CMSSection { // Local GraphQL Type
+export interface CMSSection { // Local GraphQL Type. Note: MyLoaders.sectionLoader uses PrismaCMSSection
   id: string;
-  sectionId: string;
+  sectionId: string; // This might be the Prisma CMSSection.id
   name?: string;
   description?: string;
   order?: number;

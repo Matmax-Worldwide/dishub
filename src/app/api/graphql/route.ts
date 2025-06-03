@@ -16,8 +16,11 @@ import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
 // Imports for DataLoader
 import DataLoader from 'dataloader';
 import { batchSectionsByPageIds } from './dataloaders/sectionLoader'; 
-import { CMSSection } from '@prisma/client'; 
-import { batchPostsByBlogIds, EnrichedPost } from './dataloaders/postsByBlogIdLoader'; // New DataLoader import
+import { CMSSection } from '@prisma/client'; // Prisma type for sectionLoader
+import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader'; // Aliased EnrichedPost
+import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader'; // New
+import { batchUsersByIds, PublicUser } from './dataloaders/userByIdLoader'; // New
+
 
 // Create the base schema
 const baseSchema = makeExecutableSchema({
@@ -51,8 +54,9 @@ export interface GraphQLContext {
   } | null;
   loaders: {
     sectionLoader: DataLoader<string, CMSSection[], string>;
-    postsByBlogIdLoader: DataLoader<string, EnrichedPost[], string>; // Added postsByBlogIdLoader
-    // userLoader?: DataLoader<string, User, string>; 
+    postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>; 
+    orderItemsByOrderIdLoader: DataLoader<string, EnrichedOrderItem[], string>; // Added
+    userByIdLoader: DataLoader<string, PublicUser | null, string>; // Added
   };
   // tenantId?: string | null; 
 }
@@ -65,8 +69,16 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
         (keys) => batchSectionsByPageIds(keys), 
         { cacheKeyFn: (key: string) => key }
       ),
-      postsByBlogIdLoader: new DataLoader<string, EnrichedPost[], string>( // Instantiate new loader
+      postsByBlogIdLoader: new DataLoader<string, EnrichedBlogPost[], string>( 
         (keys) => batchPostsByBlogIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+      orderItemsByOrderIdLoader: new DataLoader<string, EnrichedOrderItem[], string>( // New
+        (keys) => batchOrderItemsByOrderIds(keys),
+        { cacheKeyFn: (key: string) => key }
+      ),
+      userByIdLoader: new DataLoader<string, PublicUser | null, string>( // New
+        (keys) => batchUsersByIds(keys),
         { cacheKeyFn: (key: string) => key }
       ),
     };
