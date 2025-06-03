@@ -2,6 +2,13 @@ import { rule, shield, and, or, allow, deny } from 'graphql-shield';
 
 // Define authentication rules
 const isAuthenticated = rule()(async (parent, args, context) => {
+  // Debug logging
+  console.log('isAuthenticated check:', {
+    hasUser: !!context.user,
+    userRole: context.user?.role,
+    userPermissions: context.user?.permissions?.length || 0
+  });
+  
   if (!context.user) {
     return new Error('You must be logged in to access this resource');
   }
@@ -10,9 +17,16 @@ const isAuthenticated = rule()(async (parent, args, context) => {
 });
 
 const isAdmin = rule()(async (parent, args, context) => {
-  if (!context.user || context.user.role !== 'ADMIN') {
-    return new Error('User is not an Admin!');
+  if (!context.user) {
+    return new Error('Not authenticated!');
   }
+  
+  // Check if user has admin-level role
+  const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'];
+  if (!adminRoles.includes(context.user.role)) {
+    return new Error(`Access denied. Admin role required. Current role: ${context.user.role}`);
+  }
+  
   return true;
 });
 
