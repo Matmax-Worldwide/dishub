@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
-import IconSelector from '../IconSelector';
+import IconSelector from '../selectors/IconSelector';
 import StyleControls from '../StyleControls';
 import {
   Tabs,

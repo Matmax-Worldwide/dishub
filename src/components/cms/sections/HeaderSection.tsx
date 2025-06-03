@@ -10,16 +10,16 @@ import { HeaderAdvancedOptions, HeaderSize, MenuAlignment, MenuButtonStyle, Mobi
 import { Menu, MenuItem } from '@/app/api/graphql/types';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/cms/MediaSelector';
-import ColorSelector from '@/components/cms/ColorSelector';
-import TransparencySelector from '@/components/cms/TransparencySelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
+import ColorSelector from '@/components/cms/selectors/ColorSelector';
+import TransparencySelector from '@/components/cms/selectors/TransparencySelector';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import IconSelector from '@/components/cms/IconSelector';
+import IconSelector from '@/components/cms/selectors/IconSelector';
 import * as LucideIcons from 'lucide-react';
 
 interface HeaderSectionProps {

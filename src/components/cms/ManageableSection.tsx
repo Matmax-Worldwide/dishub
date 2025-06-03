@@ -4,8 +4,8 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallbac
 import { cmsOperations } from '@/lib/graphql-client';
 import SectionManager, { Component } from './SectionManager';  
 import { cn } from '@/lib/utils';
-import BackgroundSelector from './BackgroundSelector';
-import MediaSelector from './MediaSelector';
+import BackgroundSelector from './selectors/BackgroundSelector';
+import MediaSelector from './selectors/MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
 import { Edit, Eye } from 'lucide-react';
 import { useViewMode } from '@/contexts/ViewModeContext';

@@ -29,7 +29,7 @@ import {
   getIconComponent, 
   sortRoles,
   type NavItem 
-} from '@/config/DashboardSidebar';
+} from './DashboardSidebar';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`

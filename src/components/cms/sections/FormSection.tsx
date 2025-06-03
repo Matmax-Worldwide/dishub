@@ -12,9 +12,9 @@ import FormRenderer from '@/components/cms/forms/FormRenderer';
 import MultiStepFormRenderer, { FormDesignType } from '@/components/cms/forms/MultiStepFormRenderer';
 import { motion } from 'framer-motion';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
-import IconSelector from '@/components/cms/IconSelector';
-import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/BackgroundSelector';
-import MediaSelector from '@/components/cms/MediaSelector';
+import IconSelector from '@/components/cms/selectors/IconSelector';
+import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/cms/selectors/BackgroundSelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
 import * as LucideIcons from 'lucide-react';
 import {

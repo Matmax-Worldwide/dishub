@@ -5,8 +5,8 @@ import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon, PlusIcon, TrashIcon } fro
 import StableInput from './StableInput';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/cms/MediaSelector';
-import ColorSelector from '@/components/cms/ColorSelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
+import ColorSelector from '@/components/cms/selectors/ColorSelector';
 import {
   Tabs,
   TabsContent,

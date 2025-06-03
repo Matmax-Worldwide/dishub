@@ -16,8 +16,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import BackgroundSelector from '@/components/cms/BackgroundSelector';
-import MediaSelector from '@/components/cms/MediaSelector';
+import BackgroundSelector from '@/components/cms/selectors/BackgroundSelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
 import { MediaItem } from '@/components/cms/media/types';
 
 interface BlogPost {

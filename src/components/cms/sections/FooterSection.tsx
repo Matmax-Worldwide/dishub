@@ -25,7 +25,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import MediaSelector from '@/components/cms/MediaSelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
 
 // Types from schema.prisma
 interface SocialLink {

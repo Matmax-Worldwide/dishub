@@ -6,9 +6,9 @@ import { PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { MediaItem } from '@/components/cms/media/types';
 import S3FilePreview from '@/components/shared/S3FilePreview';
-import MediaSelector from '@/components/cms/MediaSelector';
-import ColorSelector from '@/components/cms/ColorSelector';
-import TransparencySelector from '@/components/cms/TransparencySelector';
+import MediaSelector from '@/components/cms/selectors/MediaSelector';
+import ColorSelector from '@/components/cms/selectors/ColorSelector';
+import TransparencySelector from '@/components/cms/selectors/TransparencySelector';
 import {
   Tabs,
   TabsContent,
