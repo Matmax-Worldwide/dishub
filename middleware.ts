@@ -13,7 +13,7 @@ const routePermissions: Record<string, { roles: RoleName[] }> = {
   'admin/users': { roles: ['ADMIN'] },
   'admin/roles': { roles: ['ADMIN'] },
   'dashboard/reports': { roles: ['ADMIN', 'MANAGER'] },
-  'dashboard/tasks': { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+  'evoque/evoque/dashboard/tasks': { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
   'dashboard/staff': { roles: ['ADMIN', 'MANAGER'] },
   'dashboard/cms': { roles: ['ADMIN'] },
 }
