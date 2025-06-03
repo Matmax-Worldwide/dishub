@@ -3664,6 +3664,33 @@ export const typeDefs = gql`
   extend type Mutation {
     createTenant(input: CreateTenantInput!): Tenant
     updateTenant(input: UpdateTenantInput!): Tenant
+    provisionTenantSite(tenantId: ID!): Tenant
     # deleteTenant(id: ID!): Tenant # Add later if needed
+
+    "Adds or updates the custom domain for a tenant and initiates verification with Vercel."
+    addOrUpdateTenantCustomDomain(tenantId: ID!, domain: String!): VercelDomainConfig
+
+    "Checks the current status of a tenant's custom domain with Vercel."
+    checkTenantCustomDomainStatus(tenantId: ID!): VercelDomainConfig
+
+    "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
+    removeTenantCustomDomain(tenantId: ID!): Tenant
+  }
+
+  type VercelDNSRecord {
+    type: String!
+    name: String!
+    value: String!
+  }
+
+  type VercelDomainConfig {
+    name: String!
+    apexName: String!
+    projectId: String!
+    redirect: String
+    redirectStatusCode: Int
+    gitBranch: String
+    verified: Boolean!
+    verification: [VercelDNSRecord!]
   }
 `; 

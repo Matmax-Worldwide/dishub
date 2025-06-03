@@ -143,6 +143,10 @@ export const permissions = shield({
     // Platform Super Admin Mutations
     createTenant: isPlatformSuperAdmin,
     updateTenant: isPlatformSuperAdmin,
+    provisionTenantSite: isPlatformSuperAdmin,
+    addOrUpdateTenantCustomDomain: isPlatformSuperAdmin,
+    checkTenantCustomDomainStatus: isPlatformSuperAdmin,
+    removeTenantCustomDomain: isPlatformSuperAdmin,
 
     // All mutations should require authentication and tenant membership at a minimum.
     // Platform Super Admin might bypass tenant membership for certain platform-wide mutations.

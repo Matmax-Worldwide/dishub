@@ -18,6 +18,12 @@ model Tenant {
   settings  Json?     // Tenant-specific settings
   features  String[]  // List of enabled feature keys/module keys
 
+  // Deployment Information
+  vercelProjectId         String? // Vercel Project ID for this tenant's site
+  defaultDeploymentUrl    String? // Default Vercel deployment URL (e.g., mytenant.vercel.app)
+  customDomainStatus      String? // Status of custom domain configuration on Vercel (e.g., Valid, Pending, Error)
+  revalidationSecretToken String? // Secret token for on-demand ISR revalidation
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
