@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import TenantForm from './TenantForm'; // Assuming this exists and is correctly implemented
 import { AVAILABLE_FEATURES } from '@/config/features'; // Assuming this exists
+
 import { toast } from 'sonner'; // Assuming this exists
+
 
 const GET_ALL_TENANTS = gql`
   query GetAllTenants {
@@ -53,10 +55,12 @@ interface Tenant { // Define a basic Tenant interface for type safety
     name: string;
     slug: string;
     domain?: string | null;
+
     status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'; // Changed from string to specific union type
     createdAt: string;
     planId?: string | null;
     features?: string[]; // Removed null option to match TenantForForm
+
     vercelProjectId?: string | null;
     defaultDeploymentUrl?: string | null;
 }
@@ -68,19 +72,24 @@ export default function TenantList() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+
   const [provisionInProgress, setProvisionInProgress] = useState<Record<string, boolean>>({});
 
 
   const [provisionSiteMutation, { loading: provisionMutationLoadingGlobal }] = useMutation(PROVISION_TENANT_SITE, {
     onCompleted: (mutationData) => {
+
       toast.success(`Site Provisioning Successful: Site for tenant ${mutationData.provisionTenantSite.name || editingTenant?.name } (ID: ${mutationData.provisionTenantSite.id}) has been provisioned.`);
+
       refetch();
       setProvisionInProgress(prev => ({ ...prev, [mutationData.provisionTenantSite.id]: false }));
     },
     onError: (error) => {
       // Find which tenant was being provisioned if possible, from state or inspect error if it gives clues
       const failedTenantId = Object.keys(provisionInProgress).find(id => provisionInProgress[id]);
+
       toast.error(`Provisioning Error: ${error.message}`);
+
       if (failedTenantId) {
         setProvisionInProgress(prev => ({ ...prev, [failedTenantId]: false }));
       }

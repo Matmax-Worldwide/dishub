@@ -3675,6 +3675,19 @@ export const typeDefs = gql`
 
     "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
     removeTenantCustomDomain(tenantId: ID!): Tenant
+
+
+    "Illustrative: Updates page content and triggers revalidation for its tenant site."
+    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+  }
+
+  input UpdatePageDetailsInput {
+    id: ID!       # ID of the page to update
+    title: String
+    slug: String    # Assuming slug can be changed
+    content: String # Example field
+    isPublished: Boolean
+
   }
 
   type VercelDNSRecord {

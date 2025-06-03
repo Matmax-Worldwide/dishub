@@ -7,7 +7,9 @@ import resolvers from './resolvers';
 import { prismaManager } from '@/lib/prisma'; // Changed to prismaManager
 import { tenantScopeExtension } from '@/lib/prisma-extensions/tenant-scope'; // Added
 import { TenantResolver } from '@/lib/tenant/resolver'; // Added
+
 import { verifyToken } from '@/lib/auth'; // UserJwtPayload for better typing
+
 
 // Imports for graphql-shield
 import { makeExecutableSchema } from '@graphql-tools/schema';
@@ -24,7 +26,9 @@ import { CMSSection } from '@prisma/client';
 import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader';
 import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader';
 import { batchUsersByIds, PublicUser } from './dataloaders/userByIdLoader';
+
 import { PrismaClient, Tenant } from '@prisma/client'; // Import Tenant (not PrismaTenant)
+
 
 // Create the base schema
 const baseSchema = makeExecutableSchema({
@@ -40,7 +44,9 @@ const server = new ApolloServer<GraphQLContext>({
   schema: schemaWithPermissions,
 });
 
+
 // Updated GraphQLContext interface combining both versions
+
 export interface GraphQLContext {
   req: NextRequest;
   prisma: PrismaClient; // Type for the Prisma client instance
@@ -49,10 +55,12 @@ export interface GraphQLContext {
     id: string;
     role: RoleName; // Assuming RoleName is an enum or string literal type
     permissions: string[];
+
     tenants?: Array<{ id: string; role: string; status: string }>; // From original, might be needed if user has multiple tenants in JWT
     currentTenantIdFromJwt?: string | null; // If tenantId is part of user's JWT claims
   } | null;
   currentTenant: Tenant | null; // Full Tenant object for the resolved context
+
   loaders: {
     sectionLoader: DataLoader<string, CMSSection[], string>;
     postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>;
@@ -105,10 +113,12 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
 
     // 2. Initialize Prisma Client (scoped or default) and fetch full Tenant object
     let currentPrismaClient: PrismaClient;
+
     let currentTenantFull: Tenant | null = null;
 
     if (resolvedTenantId) {
       currentPrismaClient = prismaManager.getClient(resolvedTenantId).$extends(tenantScopeExtension(resolvedTenantId)) as PrismaClient;
+
       console.log(`GraphQL Context: Using tenant-scoped Prisma client for tenant: ${resolvedTenantId}`);
       try {
         // Fetch the full tenant object using the non-scoped client for platform data
@@ -131,6 +141,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     // 3. Initialize DataLoaders with the determined Prisma client
     const loaders = {
       sectionLoader: new DataLoader<string, CMSSection[], string>(
+
         (keys) => batchSectionsByPageIds(keys, currentPrismaClient),
         { cacheKeyFn: (key: string) => key }
       ),
@@ -144,11 +155,14 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
       ),
       userByIdLoader: new DataLoader<string, PublicUser | null, string>(
         (keys) => batchUsersByIds(keys),
+
         { cacheKeyFn: (key: string) => key }
       ),
     };
 
+
     // 4. Resolve User from JWT (combining both approaches)
+
     let userContext = null;
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
@@ -191,6 +205,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
 
           console.log('Using actual user role:', userRoleName);
 
+
           const resolvedPermissions = getPermissionsForRole(userRoleName);
 
           userContext = {
@@ -198,7 +213,9 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
             role: userRoleName,
             permissions: resolvedPermissions,
             currentTenantIdFromJwt: decodedJwt.tenantId || null, // TenantId from JWT
+
             tenants: [], // Initialize as empty array, could be populated from JWT if needed
+
           };
 
           // Security Check: If a tenant was resolved from the request (e.g. subdomain)
@@ -211,6 +228,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
               userRoleName !== 'ADMIN' // Assuming ADMIN can be a platform admin
           ) {
             console.warn(`Tenant ID mismatch! Request-resolved: ${resolvedTenantId}, JWT-derived: ${decodedJwt.tenantId}. User: ${decodedJwt.userId}, Role: ${userRoleName}. Invalidating user for this context.`);
+
             // For now, we will prioritize the request-resolved tenantId for data scoping,
             // but the authorization layer should use this info.
           }
@@ -223,6 +241,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     console.log('GraphQL Context: User:', userContext ? userContext.id : 'null', 'Role:', userContext?.role || 'null');
     console.log('GraphQL Context: Final Tenant ID for context:', resolvedTenantId);
 
+
     return {
       req,
       prisma: currentPrismaClient,
@@ -234,9 +253,8 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
   },
 });
 
-export async function GET(request: NextRequest) {
-  return handler(request);
-}
+export { handler as GET, handler as POST };
+
 
 export async function POST(request: NextRequest) {
   const requestClone = request.clone();
