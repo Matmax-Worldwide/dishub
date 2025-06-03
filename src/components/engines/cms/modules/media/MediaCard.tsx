@@ -56,17 +56,18 @@ export function MediaCard({
         <S3FilePreview
           src={fileUrl}
           alt={altText || title}
-          className="w-full h-full object-contain flex items-center justify-center"
+          className="w-full h-full"
           width={300}
           height={300}
           fileType={fileType}
           fileName={fileName}
           showDownload={true}
+          showMetadata={true}
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
           <MediaActions fileUrl={fileUrl} s3Key={item.s3Key} onDelete={() => onDelete(id)} />
         </div>
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2 z-10">
           <input
             type="checkbox"
             checked={isSelected}

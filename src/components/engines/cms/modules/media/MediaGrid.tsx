@@ -32,8 +32,6 @@ export function MediaGrid({
 }: MediaGridProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [visibleItems, setVisibleItems] = useState<string[]>([]);
-  const [loadingQueue, setLoadingQueue] = useState<string[]>([]);
-  const [currentlyLoading, setCurrentlyLoading] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Progressive loading configuration
@@ -57,14 +55,11 @@ export function MediaGrid({
   useEffect(() => {
     if (items.length === 0) {
       setVisibleItems([]);
-      setLoadingQueue([]);
-      setCurrentlyLoading(null);
       return;
     }
 
     // Reset state
     setVisibleItems([]);
-    setCurrentlyLoading(null);
     
     // Create loading queue with image items first, then other files
     const imageItems = items.filter(item => 
@@ -81,7 +76,7 @@ export function MediaGrid({
     
     // Prioritize images, then add other files
     const queue = [...imageItems.map(item => item.id), ...nonImageItems.map(item => item.id)];
-    setLoadingQueue(queue);
+  
     
     // Start loading the first batch
     startProgressiveLoading(queue);
@@ -114,15 +109,6 @@ export function MediaGrid({
     }
   }, []);
 
-  // Handle individual item load completion
-  const handleItemLoaded = useCallback((itemId: string) => {
-    setCurrentlyLoading(prev => prev === itemId ? null : prev);
-  }, []);
-
-  // Handle individual item load start
-  const handleItemLoadStart = useCallback((itemId: string) => {
-    setCurrentlyLoading(itemId);
-  }, []);
   
   const sortOptions: {label: string; field: keyof MediaItem}[] = [
     { label: 'Name', field: 'fileName' },

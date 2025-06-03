@@ -23,6 +23,7 @@ interface S3FilePreviewProps {
   fileType?: string;
   showDownload?: boolean;
   fileName?: string;
+  showMetadata?: boolean;
 }
 
 // Función para determinar el tipo de archivo a partir de la URL
@@ -111,11 +112,65 @@ const categorizeFileType = (fileType: string): string => {
   return 'other';
 };
 
-// Smart logging function that only logs in development
-const debugLog = (level: 'log' | 'warn' | 'error', message: string, ...args: unknown[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console[level](`[S3FilePreview] ${message}`, ...args);
+// Utility functions for formatting metadata
+const formatDuration = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${Math.round(seconds)}s`;
+  } else if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  } else {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}:${minutes.toString().padStart(2, '0')}:00`;
   }
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+// Metadata display component
+const MetadataOverlay = ({ 
+  imageDimensions, 
+  videoDuration, 
+  fileSize, 
+  showMetadata 
+}: {
+  imageDimensions: { width: number; height: number } | null;
+  videoDuration: number | null;
+  fileSize: string | null;
+  showMetadata: boolean;
+}) => {
+  if (!showMetadata) return null;
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1">
+      {imageDimensions && (
+        <div className="flex justify-between">
+          <span>Dimensions:</span>
+          <span>{imageDimensions.width} × {imageDimensions.height}px</span>
+        </div>
+      )}
+      {videoDuration && (
+        <div className="flex justify-between">
+          <span>Duration:</span>
+          <span>{formatDuration(videoDuration)}</span>
+        </div>
+      )}
+      {fileSize && (
+        <div className="flex justify-between">
+          <span>Size:</span>
+          <span>{fileSize}</span>
+        </div>
+      )}
+    </div>
+  );
 };
 
 /**
@@ -129,11 +184,15 @@ const S3FilePreview = ({
   width = 100, 
   height = 100,
   fileType: providedFileType,
-  fileName
+  fileName,
+  showMetadata = false
 }: S3FilePreviewProps) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadStartTime, setLoadStartTime] = useState<number>(0);
+  const [imageDimensions, setImageDimensions] = useState<{width: number; height: number} | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [fileSize, setFileSize] = useState<string | null>(null);
   
   // Use the S3 file cache hook with error handling
   const s3CacheResult = useS3FileCache(src || '');
@@ -192,17 +251,19 @@ const S3FilePreview = ({
     const fileCategory = categorizeFileType(detectedFileType);
     
     // Debug logging
-    debugLog('log', 'S3FilePreview Analysis:', {
-      src,
-      providedFileType,
-      detectedFileType,
-      isImage,
-      isPdf,
-      isVideo,
-      isSvg,
-      fileCategory,
-      urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[S3FilePreview] Analysis:', {
+        src,
+        providedFileType,
+        detectedFileType,
+        isImage,
+        isPdf,
+        isVideo,
+        isSvg,
+        fileCategory,
+        urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
+      });
+    }
     
     return {
       detectedFileType,
@@ -219,6 +280,9 @@ const S3FilePreview = ({
     setImageError(false);
     setIsLoading(true);
     setLoadStartTime(Date.now());
+    setImageDimensions(null);
+    setVideoDuration(null);
+    setFileSize(null);
   }, [src]);
 
   // Preload image for faster loading
@@ -226,10 +290,14 @@ const S3FilePreview = ({
     if (safeFinalUrl && fileAnalysis?.isImage) {
       const img = new window.Image();
       img.onload = () => {
-        debugLog('log', 'Image preloaded successfully:', safeFinalUrl);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[S3FilePreview] Image preloaded successfully:', safeFinalUrl);
+        }
       };
       img.onerror = () => {
-        debugLog('warn', 'Image preload failed:', safeFinalUrl);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[S3FilePreview] Image preload failed:', safeFinalUrl);
+        }
       };
       img.src = safeFinalUrl;
     }
@@ -248,17 +316,51 @@ const S3FilePreview = ({
       
       setIsLoading(false);
       
-      debugLog('log', "Image loaded successfully");
-      debugLog('log', "- Source URL:", src || 'unknown');
-      debugLog('log', "- Final URL:", safeFinalUrl || 'unknown');
-      debugLog('log', "- Natural width:", target?.naturalWidth || 0);
-      debugLog('log', "- Natural height:", target?.naturalHeight || 0);
-      debugLog('log', "- Complete:", Boolean(target?.complete));
-      debugLog('log', "- Load time:", `${loadTime}ms`);
-      debugLog('log', "- Timestamp:", new Date().toISOString());
-    } catch (loggingError) {
+      // Capture image dimensions
+      if (target.naturalWidth && target.naturalHeight) {
+        setImageDimensions({
+          width: target.naturalWidth,
+          height: target.naturalHeight
+        });
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[S3FilePreview] Image loaded successfully");
+        console.log("- Source URL:", src || 'unknown');
+        console.log("- Final URL:", safeFinalUrl || 'unknown');
+        console.log("- Natural width:", target?.naturalWidth || 0);
+        console.log("- Natural height:", target?.naturalHeight || 0);
+        console.log("- Complete:", Boolean(target?.complete));
+        console.log("- Load time:", `${loadTime}ms`);
+        console.log("- Timestamp:", new Date().toISOString());
+      }
+    } catch {
       setIsLoading(false);
-      debugLog('warn', "Image loaded but logging failed:", String(loggingError));
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("[S3FilePreview] Image loaded but logging failed");
+      }
+    }
+  };
+
+  // Handler for video metadata load
+  const handleVideoLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    try {
+      const target = event.currentTarget as HTMLVideoElement;
+      
+      if (target.duration && !isNaN(target.duration) && target.duration !== Infinity) {
+        setVideoDuration(target.duration);
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[S3FilePreview] Video metadata loaded");
+        console.log("- Duration:", target.duration);
+        console.log("- Video width:", target.videoWidth);
+        console.log("- Video height:", target.videoHeight);
+      }
+    } catch {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("[S3FilePreview] Video metadata load failed");
+      }
     }
   };
 
@@ -266,8 +368,12 @@ const S3FilePreview = ({
   const handleImageError = (error?: React.SyntheticEvent<HTMLImageElement, Event>) => {
     // Prevent the error from bubbling up and being treated as unhandled
     if (error) {
-      error.preventDefault();
-      error.stopPropagation();
+      try {
+        error.preventDefault();
+        error.stopPropagation();
+      } catch {
+        // Silently handle any preventDefault/stopPropagation errors
+      }
     }
 
     setIsLoading(false);
@@ -278,43 +384,51 @@ const S3FilePreview = ({
       const loadTime = Date.now() - loadStartTime;
       
       // Only log in development mode to avoid console errors in production
-      debugLog('warn', "Error loading image");
-      debugLog('warn', "- Source URL:", src || 'unknown');
-      debugLog('warn', "- Final URL:", safeFinalUrl || 'unknown');
-      debugLog('warn', "- Is S3 URL:", safeIsS3Url);
-      debugLog('warn', "- S3 Key:", safeS3Key || 'unknown');
-      debugLog('warn', "- Error Type:", error?.type || 'unknown');
-      debugLog('warn', "- File Name:", fileName || 'unknown');
-      debugLog('warn', "- Failed after:", `${loadTime}ms`);
-      debugLog('warn', "- Timestamp:", new Date().toISOString());
-      
-      // Log target information separately
-      if (target) {
-        debugLog('warn', "Image element details:");
-        debugLog('warn', "- Target src:", target?.src || 'unknown');
-        debugLog('warn', "- Target complete:", Boolean(target?.complete));
-        debugLog('warn', "- Target natural width:", target?.naturalWidth || 0);
-        debugLog('warn', "- Target natural height:", target?.naturalHeight || 0);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("[S3FilePreview] Error loading image");
+        console.warn("- Source URL:", src || 'unknown');
+        console.warn("- Final URL:", safeFinalUrl || 'unknown');
+        console.warn("- Is S3 URL:", safeIsS3Url);
+        console.warn("- S3 Key:", safeS3Key || 'unknown');
+        console.warn("- Error Type:", error?.type || 'unknown');
+        console.warn("- File Name:", fileName || 'unknown');
+        console.warn("- Failed after:", `${loadTime}ms`);
+        console.warn("- Timestamp:", new Date().toISOString());
         
-        // Try to provide more specific error information
-        if (target.naturalWidth === 0 && target.naturalHeight === 0) {
-          debugLog('warn', "Image failed to load - likely a network or CORS issue");
+        // Log target information separately
+        if (target) {
+          console.warn("Image element details:");
+          console.warn("- Target src:", target?.src || 'unknown');
+          console.warn("- Target complete:", Boolean(target?.complete));
+          console.warn("- Target natural width:", target?.naturalWidth || 0);
+          console.warn("- Target natural height:", target?.naturalHeight || 0);
           
-          // Store cache issue indicator for the cache warning component
-          try {
-            localStorage.setItem('media-cache-issue-detected', Date.now().toString());
-          } catch (storageError) {
-            // Silently fail if localStorage is not available
-            debugLog('warn', "Could not store cache issue indicator:", storageError);
+          // Try to provide more specific error information
+          if (target.naturalWidth === 0 && target.naturalHeight === 0) {
+            console.warn("Image failed to load - likely a network or CORS issue");
           }
         }
       }
       
-    } catch (loggingError) {
+      // Store cache issue indicator for the cache warning component
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+        }
+      } catch (storageError) {
+        // Silently fail if localStorage is not available
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Could not store cache issue indicator:", storageError);
+        }
+      }
+      
+    } catch {
       // Completely silent fallback - no logging to avoid any console errors
       try {
-        localStorage.setItem('media-cache-issue-detected', Date.now().toString());
-      } catch (storageError) {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem('media-cache-issue-detected', Date.now().toString());
+        }
+      } catch {
         // Silently fail
       }
     }
@@ -384,33 +498,31 @@ const S3FilePreview = ({
         </div>
       );
     }
-
-    // Show skeleton loader while loading
-    if (isLoading) {
-      return <SkeletonLoader />;
-    }
     
     // For SVG files served through our API, use regular img tag
     // This avoids issues with Next.js Image optimization and SVG handling
     if (safeIsS3Url && safeS3Key && (safeFinalUrl.includes('.svg') || src.includes('.svg'))) {
       return (
-        <div className="relative">
+        <div className="relative w-full h-full overflow-hidden">
           <img
             src={safeFinalUrl} 
             alt={alt}
-            className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
-            width={width} 
-            height={height}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
-            style={{ maxWidth: '100%', maxHeight: '100%' }}
           />
           {isLoading && (
             <div className="absolute inset-0">
               <SkeletonLoader />
             </div>
           )}
+          <MetadataOverlay 
+            imageDimensions={imageDimensions} 
+            videoDuration={videoDuration} 
+            fileSize={fileSize} 
+            showMetadata={showMetadata} 
+          />
         </div>
       );
     }
@@ -418,36 +530,41 @@ const S3FilePreview = ({
     // For all other S3 files served through our API, use Next.js Image component
     if (safeIsS3Url && safeS3Key) {
       return (
-        <div className="relative">
+        <div className="relative w-full h-full overflow-hidden">
           <Image
             src={safeFinalUrl} 
             alt={alt}
-            className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
-            width={width} 
-            height={height}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
-            style={{ maxWidth: '100%', maxHeight: '100%' }}
           />
           {isLoading && (
             <div className="absolute inset-0">
               <SkeletonLoader />
             </div>
           )}
+          <MetadataOverlay 
+            imageDimensions={imageDimensions} 
+            videoDuration={videoDuration} 
+            fileSize={fileSize} 
+            showMetadata={showMetadata} 
+          />
         </div>
       );
     }
     
     // For external images (non-S3), use Next.js Image component
     return (
-      <div className="relative">
+      <div className="relative w-full h-full overflow-hidden">
         <Image 
           src={safeFinalUrl}
           alt={alt}
-          width={width}
-          height={height}
-          className={`object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
@@ -457,11 +574,31 @@ const S3FilePreview = ({
             <SkeletonLoader />
           </div>
         )}
+        <MetadataOverlay 
+          imageDimensions={imageDimensions} 
+          videoDuration={videoDuration} 
+          fileSize={fileSize} 
+          showMetadata={showMetadata} 
+        />
       </div>
     );
   };
   
   // Renderizar según el tipo de archivo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[S3FilePreview] Render decision:', {
+      src,
+      isImage,
+      isPdf,
+      isVideo,
+      imageError,
+      fileCategory,
+      safeFinalUrl,
+      safeIsS3Url,
+      safeS3Key
+    });
+  }
+  
   return (
     <div className="relative group">
       {isImage && !imageError ? (
@@ -486,14 +623,23 @@ const S3FilePreview = ({
         </div>
       ) : isVideo ? (
         // Para videos, usar un tag de video
-        <video 
-          src={safeFinalUrl} 
-          controls 
-          className={className || "max-h-full max-w-full"}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Tu navegador no soporta el tag de video.
-        </video>
+        <div className="relative w-full h-full overflow-hidden">
+          <video 
+            src={safeFinalUrl} 
+            controls 
+            className={className || "w-full h-full object-cover"}
+            onClick={(e) => e.stopPropagation()}
+            onLoadedMetadata={handleVideoLoadedMetadata}
+          >
+            Tu navegador no soporta el tag de video.
+          </video>
+          <MetadataOverlay 
+            imageDimensions={imageDimensions} 
+            videoDuration={videoDuration} 
+            fileSize={fileSize} 
+            showMetadata={showMetadata} 
+          />
+        </div>
       ) : (
         // Para otros archivos, mostrar un icono basado en el tipo
         <div className={`flex flex-col items-center justify-center ${className}`}>
