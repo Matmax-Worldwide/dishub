@@ -95,6 +95,7 @@ const ADMIN_CALENDAR_PERMISSIONS = [
   'create:booking_for_others',  // Admin can book for any client with any staff
   'assign:staff_to_service',    // Link staff to services they provide
   'assign:staff_to_location',   // Link staff to locations they operate from
+  'view:own_bookings',          // View own bookings
 ];
 const STAFF_CALENDAR_PERMISSIONS = [
   'view:staff_profile',
@@ -156,6 +157,7 @@ export const rolePermissions: Record<RoleName, string[]> = {
       ...EMPLOYEE_CMS_PERMISSIONS,
       ...EMPLOYEE_BLOG_POST_PERMISSIONS,
       ...EMPLOYEE_SELF_VIEW_PERMISSIONS, // Added
+      'view:own_bookings', // Employees should be able to view their own bookings
       // If an Employee can also be bookable staff, they might get STAFF_CALENDAR_PERMISSIONS too.
       // This depends on how you map users to roles.
     ])
@@ -165,6 +167,7 @@ export const rolePermissions: Record<RoleName, string[]> = {
       ...EMPLOYEE_BASE_PERMISSIONS,
       ...STAFF_CALENDAR_PERMISSIONS,
       ...EMPLOYEE_SELF_VIEW_PERMISSIONS, // Staff should also view their own profile
+      'view:own_bookings', // Staff should be able to view their own bookings
     ])
   ],
   'USER': [

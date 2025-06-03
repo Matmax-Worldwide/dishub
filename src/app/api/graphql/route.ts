@@ -4,11 +4,12 @@ import { NextRequest } from 'next/server';
 import { typeDefs } from './typeDefs';
 import resolvers from './resolvers';
 import { verifyToken } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 // Imports for graphql-shield
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { applyMiddleware } from 'graphql-middleware';
-import { permissionsShield } from './authorization';
+import { permissions } from './authorization';
 
 // Import for role-based permissions
 import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
@@ -29,7 +30,7 @@ const baseSchema = makeExecutableSchema({
 });
 
 // Apply the shield middleware
-const schemaWithPermissions = applyMiddleware(baseSchema, permissionsShield);
+const schemaWithPermissions = applyMiddleware(baseSchema, permissions);
 
 // Initialize ApolloServer
 const server = new ApolloServer<GraphQLContext>({
@@ -39,6 +40,7 @@ const server = new ApolloServer<GraphQLContext>({
 // Define DecodedToken interface
 interface DecodedToken {
   userId: string;
+  roleId?: string;
   role?: RoleName;
   tenants?: Array<{ id: string; role: string; status: string }>;
 }
@@ -61,6 +63,38 @@ export interface GraphQLContext {
   // tenantId?: string | null;
 }
 
+// Helper function to get role by ID from database
+async function getRoleById(roleId: string): Promise<string | null> {
+  try {
+    const role = await prisma.roleModel.findUnique({
+      where: { id: roleId },
+      select: { name: true }
+    });
+    return role?.name || null;
+  } catch (error) {
+    console.error('Error fetching role by ID:', error);
+    return null;
+  }
+}
+
+// Helper function to get user's current role from database
+async function getUserRole(userId: string): Promise<string | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { 
+        roleId: true,
+        role: {
+          select: { name: true }
+        }
+      }
+    });
+    return user?.role?.name || null;
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    return null;
+  }
+}
 
 const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, {
   context: async (req) => {
@@ -89,7 +123,41 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     if (token) {
       try {
         const decoded = await verifyToken(token) as unknown as DecodedToken;
-        const userRoleName = decoded.role || 'USER';
+        
+        // Try to get role from token first
+        let userRoleName = decoded.role;
+        
+        console.log('Token decoded role:', userRoleName);
+        console.log('Token decoded roleId:', decoded.roleId);
+        console.log('Actual role:', userRoleName);
+        
+        // If role is undefined or invalid, try to get it from database
+        if (!userRoleName || !['USER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SUPER_ADMIN', 'STAFF'].includes(userRoleName)) {
+          console.log('Role undefined or invalid, fetching from database...');
+          
+          // First try to get role by roleId if available
+          if (decoded.roleId) {
+            console.log('Trying to get role by roleId:', decoded.roleId);
+            userRoleName = await getRoleById(decoded.roleId) as RoleName;
+            console.log('Role from roleId:', userRoleName);
+          }
+          
+          // If still no role, get user's current role from database
+          if (!userRoleName) {
+            console.log('Getting user role from database for userId:', decoded.userId);
+            userRoleName = await getUserRole(decoded.userId) as RoleName;
+            console.log('Role from user query:', userRoleName);
+          }
+          
+          // Fallback to USER if still no role found
+          if (!userRoleName) {
+            console.log('No role found, defaulting to USER');
+            userRoleName = 'USER';
+          }
+        }
+        
+        console.log('Using actual user role:', userRoleName);
+        
         const resolvedPermissions = getPermissionsForRole(userRoleName);
 
         userContext = {
