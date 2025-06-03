@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { useEffect, useState } from 'react';
 import { Lock, CheckCircle, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';

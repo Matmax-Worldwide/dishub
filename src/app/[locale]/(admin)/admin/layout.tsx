@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { DashboardSidebar } from '@/components/Navigation/dashboardSidebar/DashboardSidebar';
 import PermissionGuard from '@/components/PermissionGuard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

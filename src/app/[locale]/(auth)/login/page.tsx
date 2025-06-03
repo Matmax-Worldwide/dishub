@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { setGlobalAuthorizationHeader } from '@/lib/auth-header';
 
 // Helper function to set a cookie with better security practices

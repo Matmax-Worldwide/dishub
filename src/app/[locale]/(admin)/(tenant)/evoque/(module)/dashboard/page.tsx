@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 // Consultas GraphQL

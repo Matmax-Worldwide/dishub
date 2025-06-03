@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import React from 'react';

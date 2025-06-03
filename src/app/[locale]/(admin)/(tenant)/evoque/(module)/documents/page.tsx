@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { format, parseISO } from 'date-fns';
 
 // Consultas GraphQL

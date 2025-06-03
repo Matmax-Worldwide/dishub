@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { client } from "@/app/lib/apollo-client";
+import { client } from "@/lib/apollo-client";
 import {
   Card,
   CardContent,

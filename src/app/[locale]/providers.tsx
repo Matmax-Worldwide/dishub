@@ -5,7 +5,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { PermissionProvider } from '@/hooks/usePermission';
 import { NextIntlClientProvider } from 'next-intl';
 import { ApolloProvider } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 import { AuthInitializer } from '@/components/AuthInitializer';
 
 type ProvidersProps = {

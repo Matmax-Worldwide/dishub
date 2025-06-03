@@ -3,7 +3,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { gql } from '@apollo/client';
-import { client } from '@/app/lib/apollo-client';
+import { client } from '@/lib/apollo-client';
 
 // Definición de roles disponibles en la aplicación
 export type RoleName = 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'USER';
