@@ -3613,4 +3613,57 @@ export const typeDefs = gql`
   # --------------- END FORM MODULE TYPES --- V1 ---
 
   # Shipping result types
+
+  # Add or ensure TenantStatus enum exists
+  enum TenantStatus {
+    PENDING
+    ACTIVE
+    SUSPENDED
+    ARCHIVED
+  }
+
+  type Tenant {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus!
+    planId: String
+    # settings: Json # Might be too complex for initial list/form
+    features: [String!]
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # Extend Query type
+  extend type Query {
+    allTenants: [Tenant!]
+    tenant(id: ID!): Tenant
+  }
+
+  input CreateTenantInput {
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus # Defaults to ACTIVE in Prisma schema
+    planId: String
+    features: [String!]
+  }
+
+  input UpdateTenantInput {
+    id: ID!
+    name: String
+    slug: String
+    domain: String
+    status: TenantStatus
+    planId: String
+    features: [String!]
+  }
+
+  # Extend Mutation type
+  extend type Mutation {
+    createTenant(input: CreateTenantInput!): Tenant
+    updateTenant(input: UpdateTenantInput!): Tenant
+    # deleteTenant(id: ID!): Tenant # Add later if needed
+  }
 `; 

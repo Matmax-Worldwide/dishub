@@ -83,8 +83,9 @@ const defaultFallbackRule = deny;
 // Permissions Shield Definition
 export const permissions = shield({
   Query: {
-    // Platform Super Admin Queries (example, if any)
-    // allTenants: isPlatformSuperAdmin, // Example: only super admin can see all tenants
+    // Platform Super Admin Queries
+    allTenants: isPlatformSuperAdmin,
+    tenant: isPlatformSuperAdmin,
 
     // Tenant-aware queries:
     // Most queries will now need to ensure they are accessed within a tenant context
@@ -133,12 +134,16 @@ export const permissions = shield({
     // combined with "isTenantMember".
 
     // Example for a query that should only be available to platform super admins
-    // listAllTenants: isPlatformSuperAdmin, // Assuming a query like this exists
+    // listAllTenants: isPlatformSuperAdmin, // Assuming a query like this exists for other platform data
 
     // Fallback for any query not explicitly defined or allowed above.
     '*': defaultFallbackRule, // Deny all other queries by default
   },
   Mutation: {
+    // Platform Super Admin Mutations
+    createTenant: isPlatformSuperAdmin,
+    updateTenant: isPlatformSuperAdmin,
+
     // All mutations should require authentication and tenant membership at a minimum.
     // Platform Super Admin might bypass tenant membership for certain platform-wide mutations.
 
@@ -168,7 +173,7 @@ export const permissions = shield({
     // ... (other mutations from existing shield, wrapped with isTenantMember and appropriate permissions)
 
     // Example for a mutation that should only be available to platform super admins
-    // createTenant: isPlatformSuperAdmin, // Assuming a mutation like this exists
+    // createTenant: isPlatformSuperAdmin, // This is now active above
 
     // Fallback for any mutation not explicitly defined or allowed above.
     '*': defaultFallbackRule, // Deny all other mutations by default

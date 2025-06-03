@@ -24,7 +24,7 @@ import { CMSSection } from '@prisma/client';
 import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloaders/postsByBlogIdLoader';
 import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader';
 import { batchUsersByIds, PublicUser } from './dataloaders/userByIdLoader';
-import { PrismaClient } from '@prisma/client'; // Import PrismaClient for context type
+import { PrismaClient, Tenant as PrismaTenant } from '@prisma/client'; // Import PrismaTenant
 
 
 // Create the base schema
@@ -54,6 +54,7 @@ export interface GraphQLContext {
     // tenants: Array<{ id: string; role: string; status: string }>; // From original, might be needed if user has multiple tenants in JWT
     currentTenantIdFromJwt?: string | null; // If tenantId is part of user's JWT claims
   } | null;
+  currentTenant: PrismaTenant | null; // Full Tenant object for the resolved context
   loaders: {
     sectionLoader: DataLoader<string, CMSSection[], string>;
     postsByBlogIdLoader: DataLoader<string, EnrichedBlogPost[], string>;
@@ -102,16 +103,31 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     // 1. Resolve Tenant ID
     const tenantResolver = new TenantResolver(req);
     const resolvedTenantId = await tenantResolver.resolveTenantId();
-    console.log(`GraphQL Context: Resolved Tenant ID from resolver: ${resolvedTenantId}`);
+    console.log(`GraphQL Context: Tenant ID from TenantResolver: ${resolvedTenantId}`);
 
-    // 2. Initialize Prisma Client (scoped or default)
+    // 2. Initialize Prisma Client (scoped or default) and fetch full Tenant object
     let currentPrismaClient: PrismaClient;
+    let currentTenantFull: PrismaTenant | null = null;
+
     if (resolvedTenantId) {
       currentPrismaClient = prismaManager.getClient(resolvedTenantId).$extends(tenantScopeExtension(resolvedTenantId));
       console.log(`GraphQL Context: Using tenant-scoped Prisma client for tenant: ${resolvedTenantId}`);
+      try {
+        // Fetch the full tenant object using the non-scoped client for platform data
+        currentTenantFull = await prismaManager.getClient().tenant.findUnique({
+          where: { id: resolvedTenantId }
+        });
+        if (!currentTenantFull) {
+          console.warn(`GraphQL Context: No tenant record found for resolvedTenantId: ${resolvedTenantId}. This might be an issue.`);
+        } else {
+          console.log(`GraphQL Context: Fetched full tenant details for tenant: ${currentTenantFull.name}`);
+        }
+      } catch (e) {
+        console.error("GraphQL Context: Error fetching full tenant details:", e);
+      }
     } else {
-      currentPrismaClient = prismaManager.getClient(); // Default, non-scoped client
-      console.log('GraphQL Context: Using default Prisma client (no tenant resolved).');
+      currentPrismaClient = prismaManager.getClient();
+      console.log('GraphQL Context: No tenant resolved, using default Prisma client.');
     }
 
     // 3. Initialize DataLoaders with the determined Prisma client
@@ -189,30 +205,15 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     return {
       req,
       prisma: currentPrismaClient,
-      tenantId: resolvedTenantId,
-      user: userContext,
+      tenantId: resolvedTenantId, // The ID of the tenant data context
+      user: userContext,          // The authenticated user
+      currentTenant: currentTenantFull, // Full Tenant object for the data context
       loaders,
     };
   },
 });
 
-export async function GET(request: NextRequest) {
-  return handler(request);
-}
-
-export async function POST(request: NextRequest) {
-  const requestClone = request.clone();
-  const text = await requestClone.text();
-  if (!text || text.trim() === '') {
-    return new Response(JSON.stringify({
-      errors: [{ message: 'Empty request body' }]
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-  return handler(request);
-}
+export { handler as GET, handler as POST };
 
 // Ensure batch functions in DataLoaders are updated to accept and use the PrismaClient instance
 // Example for sectionLoader (similar changes for others):

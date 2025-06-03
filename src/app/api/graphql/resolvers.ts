@@ -1,12 +1,17 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+// import { prisma } from '@/lib/prisma'; // Old prisma client
+import { prismaManager } from '@/lib/prisma'; // New prismaManager
 import bcrypt from 'bcryptjs';
+import { GraphQLError } from 'graphql'; // Added GraphQLError
 import jwt from 'jsonwebtoken';
 import { GraphQLScalarType, Kind } from 'graphql';
 
 // Import individual resolver modules
 import { appointmentResolvers } from './resolvers/appointments';
+// Note: The context (ctx) in all these resolvers will need to be updated to use ctx.prisma (scoped client)
+// and ctx.tenantId where appropriate if they operate on tenant-specific data.
+// For this subtask, we are only adding new tenant resolvers. Existing resolvers are not modified.
 import { dashboardResolvers } from './resolvers/dashboard';
 import { documentResolvers } from './resolvers/documents';
 import { helpResolvers } from './resolvers/help';
@@ -208,6 +213,20 @@ const resolvers = {
   },
   
   Query: {
+    // Tenant Query Resolvers
+    allTenants: async (_parent: any, _args: any, ctx: GraphQLContext) => {
+      if (ctx.user?.role !== 'SUPER_ADMIN') {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
+      }
+      return prismaManager.getClient().tenant.findMany({ orderBy: { createdAt: 'desc' } });
+    },
+    tenant: async (_parent: any, { id }: { id: string }, ctx: GraphQLContext) => {
+      if (ctx.user?.role !== 'SUPER_ADMIN') {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
+      }
+      return prismaManager.getClient().tenant.findUnique({ where: { id } });
+    },
+
     // User queries
     me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
       try {
@@ -973,6 +992,42 @@ const resolvers = {
   },
   
   Mutation: {
+    // Tenant Mutation Resolvers
+    createTenant: async (_parent: any, { input }: { input: any /* CreateTenantInput */ }, ctx: GraphQLContext) => {
+      if (ctx.user?.role !== 'SUPER_ADMIN') {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
+      }
+      const { name, slug, domain, status, planId, features } = input;
+      try {
+        return prismaManager.getClient().tenant.create({
+          data: {
+            name,
+            slug,
+            domain,
+            status: status || 'ACTIVE',
+            planId,
+            features,
+          },
+        });
+      } catch (error: any) {
+        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+          throw new GraphQLError('A tenant with this slug already exists.', { extensions: { code: 'BAD_USER_INPUT' } });
+        }
+        console.error("Error creating tenant:", error);
+        throw new GraphQLError('Failed to create tenant.', { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
+      }
+    },
+    updateTenant: async (_parent: any, { input }: { input: any /* UpdateTenantInput */ }, ctx: GraphQLContext) => {
+      if (ctx.user?.role !== 'SUPER_ADMIN') {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'FORBIDDEN' } });
+      }
+      const { id, ...dataToUpdate } = input;
+      return prismaManager.getClient().tenant.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+    },
+
     // Auth mutations
     login: async (_parent: unknown, args: { email: string, password: string }) => {
       const { email, password: inputPassword } = args;
