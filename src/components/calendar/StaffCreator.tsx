@@ -554,7 +554,6 @@ export default function StaffCreator({
         name: newService.name,
         description: newService.description,
         durationMinutes: newService.durationMinutes,
-        prices: newService.prices || [],
         isActive: newService.isActive,
         serviceCategoryId: serviceFormData.serviceCategoryId,
         bufferTimeBeforeMinutes: serviceFormData.bufferTimeBeforeMinutes,

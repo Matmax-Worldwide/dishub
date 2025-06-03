@@ -44,11 +44,6 @@ export interface Service {
   name: string;
   description?: string | null;
   durationMinutes: number;
-  prices: Array<{
-    id: string;
-    amount: number;
-    currencyId: string;
-  }>;
   serviceCategoryId?: string | null;
   serviceCategory?: ServiceCategory | null;
   bufferTimeBeforeMinutes?: number | null;
