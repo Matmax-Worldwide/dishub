@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check, User, Building } from 'lucide-react';
 import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features';
+import { motion } from 'framer-motion';
 
 const REGISTER_USER_WITH_TENANT = gql`
   mutation RegisterUserWithTenant($input: RegisterUserWithTenantInput!) {
@@ -292,79 +293,85 @@ export default function RegisterPage() {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <User className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-        <h2 className="text-2xl font-bold">Información Personal</h2>
-        <p className="text-gray-600">Crea tu cuenta de usuario</p>
+        <User className="mx-auto h-12 w-12 text-blue-300 mb-4" />
+        <h2 className="text-2xl font-bold text-white">Información Personal</h2>
+        <p className="text-gray-200">Crea tu cuenta de usuario</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">Nombre *</Label>
+          <Label htmlFor="firstName" className="text-white">Nombre *</Label>
           <Input
             id="firstName"
             type="text"
             value={formData.firstName}
             onChange={(e) => updateFormData('firstName', e.target.value)}
             placeholder="Tu nombre"
+            className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             required
           />
         </div>
         <div>
-          <Label htmlFor="lastName">Apellido *</Label>
+          <Label htmlFor="lastName" className="text-white">Apellido *</Label>
           <Input
             id="lastName"
             type="text"
             value={formData.lastName}
             onChange={(e) => updateFormData('lastName', e.target.value)}
             placeholder="Tu apellido"
+            className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             required
           />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email" className="text-white">Email *</Label>
         <Input
           id="email"
           type="email"
           value={formData.email}
           onChange={(e) => updateFormData('email', e.target.value)}
           placeholder="tu@email.com"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
         />
       </div>
 
       <div>
-        <Label htmlFor="phoneNumber">Teléfono</Label>
+        <Label htmlFor="phoneNumber" className="text-white">Teléfono</Label>
         <Input
           id="phoneNumber"
           type="tel"
           value={formData.phoneNumber}
           onChange={(e) => updateFormData('phoneNumber', e.target.value)}
           placeholder="+1234567890"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
         />
       </div>
 
       <div>
-        <Label htmlFor="password">Contraseña *</Label>
+        <Label htmlFor="password" className="text-white">Contraseña *</Label>
         <Input
           id="password"
           type="password"
           value={formData.password}
           onChange={(e) => updateFormData('password', e.target.value)}
           placeholder="Mínimo 8 caracteres"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
         />
       </div>
 
       <div>
-        <Label htmlFor="confirmPassword">Confirmar Contraseña *</Label>
+        <Label htmlFor="confirmPassword" className="text-white">Confirmar Contraseña *</Label>
         <Input
           id="confirmPassword"
           type="password"
           value={formData.confirmPassword}
           onChange={(e) => updateFormData('confirmPassword', e.target.value)}
           placeholder="Repite tu contraseña"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
         />
       </div>
@@ -374,13 +381,13 @@ export default function RegisterPage() {
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Building className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-        <h2 className="text-2xl font-bold">Información de tu Organización</h2>
-        <p className="text-gray-600">Configura tu espacio de trabajo</p>
+        <Building className="mx-auto h-12 w-12 text-blue-300 mb-4" />
+        <h2 className="text-2xl font-bold text-white">Información de tu Organización</h2>
+        <p className="text-gray-200">Configura tu espacio de trabajo</p>
       </div>
 
       <div>
-        <Label htmlFor="tenantName">Nombre de la Organización *</Label>
+        <Label htmlFor="tenantName" className="text-white">Nombre de la Organización *</Label>
         <Input
           id="tenantName"
           type="text"
@@ -394,35 +401,38 @@ export default function RegisterPage() {
             }
           }}
           placeholder="Mi Empresa S.A."
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
         />
       </div>
 
       <div>
-        <Label htmlFor="tenantSlug">Slug de la Organización *</Label>
+        <Label htmlFor="tenantSlug" className="text-white">Slug de la Organización *</Label>
         <Input
           id="tenantSlug"
           type="text"
           value={formData.tenantSlug}
           onChange={(e) => updateFormData('tenantSlug', e.target.value)}
           placeholder="mi-empresa"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
         />
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-300 mt-1">
           Este será tu identificador único: {formData.tenantSlug}.tudominio.com
         </p>
       </div>
 
       <div>
-        <Label htmlFor="tenantDomain">Dominio Personalizado (Opcional)</Label>
+        <Label htmlFor="tenantDomain" className="text-white">Dominio Personalizado (Opcional)</Label>
         <Input
           id="tenantDomain"
           type="text"
           value={formData.tenantDomain}
           onChange={(e) => updateFormData('tenantDomain', e.target.value)}
           placeholder="www.miempresa.com"
+          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
         />
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-300 mt-1">
           Puedes configurar tu dominio personalizado más tarde
         </p>
       </div>
@@ -432,9 +442,9 @@ export default function RegisterPage() {
   const renderStep3 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Check className="mx-auto h-12 w-12 text-green-600 mb-4" />
-        <h2 className="text-2xl font-bold">Selecciona tus Funcionalidades</h2>
-        <p className="text-gray-600">Elige las herramientas que necesitas (puedes cambiar esto después)</p>
+        <Check className="mx-auto h-12 w-12 text-green-300 mb-4" />
+        <h2 className="text-2xl font-bold text-white">Selecciona tus Funcionalidades</h2>
+        <p className="text-gray-200">Elige las herramientas que necesitas (puedes cambiar esto después)</p>
       </div>
 
       {/* Group features by category */}
@@ -444,7 +454,7 @@ export default function RegisterPage() {
 
         return (
           <div key={category} className="space-y-3">
-            <h3 className="font-semibold text-lg text-gray-800 border-b pb-2">
+            <h3 className="font-semibold text-lg text-white border-b border-white/20 pb-2">
               {category === 'Engine' ? 'Motores Principales' : 
                category === 'Module' ? 'Módulos Adicionales' : 'Integraciones'}
             </h3>
@@ -458,35 +468,35 @@ export default function RegisterPage() {
                     key={feature.id}
                     className={`p-4 border rounded-lg transition-colors ${
                       isDisabled 
-                        ? 'border-gray-300 bg-gray-100 cursor-not-allowed opacity-75'
+                        ? 'border-white/20 bg-white/5 cursor-not-allowed opacity-75'
                         : isSelected
-                          ? 'border-blue-500 bg-blue-50 cursor-pointer'
-                          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                          ? 'border-blue-400 bg-blue-500/20 cursor-pointer'
+                          : 'border-white/20 bg-white/5 hover:border-white/30 cursor-pointer'
                     }`}
                     onClick={() => !isDisabled && toggleFeature(feature.id)}
                   >
                     <div className="flex items-start space-x-3">
                       <div className={`mt-1 w-4 h-4 rounded border-2 flex items-center justify-center ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
+                          ? 'border-blue-400 bg-blue-400'
+                          : 'border-white/30'
                       }`}>
                         {isSelected && (
                           <Check className="w-3 h-3 text-white" />
                         )}
                       </div>
                       <div className="flex-1">
-                        <h4 className={`font-medium ${isDisabled ? 'text-gray-500' : ''}`}>
+                        <h4 className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-white'}`}>
                           {feature.label}
-                          {isDisabled && <span className="text-xs ml-2 text-blue-600">(Requerido)</span>}
+                          {isDisabled && <span className="text-xs ml-2 text-blue-300">(Requerido)</span>}
                         </h4>
                         {feature.description && (
-                          <p className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <p className={`text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
                             {feature.description}
                           </p>
                         )}
                         {feature.dependencies && feature.dependencies.length > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-400 mt-1">
                             Requiere: {feature.dependencies.map(dep => 
                               AVAILABLE_FEATURES.find(f => f.id === dep)?.label || dep
                             ).join(', ')}
@@ -502,9 +512,9 @@ export default function RegisterPage() {
         );
       })}
 
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-medium mb-2">Resumen de tu configuración:</h3>
-        <div className="text-sm space-y-1">
+      <div className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+        <h3 className="font-medium mb-2 text-white">Resumen de tu configuración:</h3>
+        <div className="text-sm space-y-1 text-gray-200">
           <p><strong>Usuario:</strong> {formData.firstName} {formData.lastName}</p>
           <p><strong>Email:</strong> {formData.email}</p>
           <p><strong>Organización:</strong> {formData.tenantName}</p>
@@ -512,8 +522,8 @@ export default function RegisterPage() {
           <p><strong>Funcionalidades:</strong> {formData.tenantFeatures.length} seleccionadas</p>
           {formData.tenantFeatures.length > 0 && (
             <div className="mt-2">
-              <p className="font-medium">Funcionalidades seleccionadas:</p>
-              <ul className="list-disc list-inside text-xs text-gray-600 mt-1">
+              <p className="font-medium text-white">Funcionalidades seleccionadas:</p>
+              <ul className="list-disc list-inside text-xs text-gray-300 mt-1">
                 {formData.tenantFeatures.map(featureId => {
                   const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
                   return feature ? <li key={featureId}>{feature.label}</li> : null;
@@ -538,11 +548,40 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
+      <div
+        className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
+        style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0" />
+      
+      {/* Stars animation effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: `${Math.random() * 3 + 1}px`,
+              height: `${Math.random() * 3 + 1}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
+            transition={{
+              duration: Math.random() * 3 + 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      <Card className="w-full max-w-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl shadow-blue-500/10 relative z-10">
         <CardHeader>
-          <CardTitle className="text-center">Crear Nueva Cuenta</CardTitle>
-          <CardDescription className="text-center">
+          <CardTitle className="text-center text-white">Crear Nueva Cuenta</CardTitle>
+          <CardDescription className="text-center text-gray-200">
             Paso {currentStep} de 3: {getStepTitle(currentStep)}
           </CardDescription>
           <Progress value={progress} className="w-full" />
@@ -553,14 +592,14 @@ export default function RegisterPage() {
               <div
                 key={step}
                 className={`flex items-center space-x-2 ${
-                  step === currentStep ? 'text-blue-600' : 
-                  step < currentStep ? 'text-green-600' : 'text-gray-400'
+                  step === currentStep ? 'text-blue-300' : 
+                  step < currentStep ? 'text-green-300' : 'text-gray-400'
                 }`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step === currentStep ? 'bg-blue-100 border-2 border-blue-600' :
-                  step < currentStep ? 'bg-green-100 border-2 border-green-600' :
-                  'bg-gray-100 border-2 border-gray-300'
+                  step === currentStep ? 'bg-blue-100/20 border-2 border-blue-300' :
+                  step < currentStep ? 'bg-green-100/20 border-2 border-green-300' :
+                  'bg-gray-100/20 border-2 border-gray-400'
                 }`}>
                   {step < currentStep ? <Check className="w-4 h-4" /> : step}
                 </div>
@@ -582,27 +621,35 @@ export default function RegisterPage() {
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Anterior
             </Button>
 
             {currentStep < 3 ? (
-              <Button onClick={handleNext}>
+              <Button 
+                onClick={handleNext}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30"
+              >
                 Siguiente
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={loading}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={loading}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 disabled:opacity-50"
+              >
                 {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
               </Button>
             )}
           </div>
 
           <div className="text-center mt-6">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-200">
               ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-blue-600 hover:underline">
+              <Link href="/login" className="text-blue-300 hover:text-blue-200 hover:underline">
                 Inicia sesión aquí
               </Link>
             </p>
