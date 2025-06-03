@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CheckboxField, CheckboxFieldPreview } from './CheckboxField';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
@@ -25,7 +25,7 @@ const initialField: FormFieldBase = {
   label: 'Select Your Interests',
   order: 0,
   options: { items: initialOptions },
-  defaultValue: ['option_one', 'option_three'], // Array for default
+  defaultValue: JSON.stringify(['option_one', 'option_three']), // Array for default
   width: 100,
   isRequired: false,
 };
@@ -113,7 +113,7 @@ describe('CheckboxField (Group)', () => {
       fireEvent.click(removeButtons[0]); // Remove "Option One"
 
       const expectedOptions = initialOptions.slice(1); // Option One removed
-      const expectedDefaultValue = ['option_three']; // 'option_one' removed from default
+      const expectedDefaultValue = JSON.stringify(['option_three']); // 'option_one' removed from default
 
       expect(mockOnChange).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -130,11 +130,11 @@ describe('CheckboxField (Group)', () => {
       
       fireEvent.click(optionTwoEditorCheckbox); // Check it
 
-      const expectedDefaultValue = ['option_one', 'option_three', 'option_two'].sort();
+      const expectedDefaultValue = JSON.stringify(['option_one', 'option_three', 'option_two'].sort());
       
       // The last call to onChange should have the updated defaultValue
       const lastOnChangeCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-      const parsedLastDefaultValue = JSON.parse(lastOnChangeCall.defaultValue).sort();
+      const parsedLastDefaultValue = JSON.parse(lastOnChangeCall.defaultValue);
 
       expect(parsedLastDefaultValue).toEqual(expectedDefaultValue);
       expect(lastOnChangeCall.options.items).toEqual(initialOptions); // Options themselves shouldn't change here
@@ -145,15 +145,14 @@ describe('CheckboxField (Group)', () => {
         render(<CheckboxField field={initialField} onChange={mockOnChange} showPreview={false} />);
         
         const optionOneEditorCheckbox = screen.getByRole('checkbox', { name: /Option One/i });
-        const optionThreeEditorCheckbox = screen.getByRole('checkbox', { name: /Option Three/i });
-
+       
         fireEvent.click(optionOneEditorCheckbox); // Uncheck option_one
         // defaultValue is now ['option_three'] internally, stringified for onChange
 
         // Simulate prop update for next action
         const intermediateFieldState = {
             ...initialField,
-            defaultValue: ['option_three'] // internal state
+            defaultValue: JSON.stringify(['option_three'])     // internal state
         };
         render(<CheckboxField field={intermediateFieldState} onChange={mockOnChange} showPreview={false} />);
         // Re-query the checkbox as the component re-rendered

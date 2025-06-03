@@ -13,7 +13,6 @@ import {
   Trash2,
   Check,
   X,
-  User,
   Calendar,
   Filter,
   Search,
@@ -54,6 +53,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { CommentFilter } from '@/types/blog';
 
 interface Comment {
   id: string;
@@ -93,12 +93,12 @@ interface BlogCommentsProps {
   moderationMode?: boolean;
 }
 
-export function BlogComments({ postId, blogId, locale = 'en', moderationMode = false }: BlogCommentsProps) {
+export function BlogComments({ postId, blogId, moderationMode = false }: BlogCommentsProps) {
   // State management
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<CommentFilter['status']>('PENDING');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'likes' | 'reports'>('newest');
   
   // Dialog states
@@ -124,7 +124,7 @@ export function BlogComments({ postId, blogId, locale = 'en', moderationMode = f
   async function loadComments() {
     setLoading(true);
     try {
-      const filter: any = {};
+      const filter: CommentFilter = {};
       
       if (postId) {
         filter.postId = postId;
@@ -132,8 +132,8 @@ export function BlogComments({ postId, blogId, locale = 'en', moderationMode = f
         filter.blogId = blogId;
       }
       
-      if (statusFilter !== 'all') {
-        filter.status = statusFilter;
+      if (statusFilter !== 'PENDING') {
+        filter.status = statusFilter as CommentFilter['status'];
       }
 
       const query = `
@@ -491,7 +491,7 @@ export function BlogComments({ postId, blogId, locale = 'en', moderationMode = f
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CommentFilter['status'])}>
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -505,7 +505,7 @@ export function BlogComments({ postId, blogId, locale = 'en', moderationMode = f
             </Select>
 
             {/* Sort */}
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'newest' | 'oldest' | 'likes' | 'reports')}>
               <SelectTrigger>
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>

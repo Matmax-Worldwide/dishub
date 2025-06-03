@@ -15,6 +15,7 @@ const initialField: FormFieldBase = {
   order: 0,
   options: { level: 'h1' },
   width: 100,
+  isRequired: false,
 };
 
 describe('HeadingField', () => {

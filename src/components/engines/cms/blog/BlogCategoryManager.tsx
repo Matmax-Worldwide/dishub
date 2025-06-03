@@ -11,14 +11,13 @@ import {
   Search,
   MoreHorizontal,
   Save,
-  X,
   Hash
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -73,7 +72,7 @@ interface BlogCategoryManagerProps {
   locale?: string;
 }
 
-export function BlogCategoryManager({ blogId, locale = 'en' }: BlogCategoryManagerProps) {
+export function BlogCategoryManager({ blogId }: BlogCategoryManagerProps) {
   // State management
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<BlogTag[]>([]);

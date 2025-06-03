@@ -16,10 +16,9 @@ import { toast } from 'sonner';
 
 interface BlogEditPageContentProps {
   blogId: string;
-  locale?: string;
 }
 
-export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageContentProps) {
+export function BlogEditPageContent({ blogId }: BlogEditPageContentProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,7 +109,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
       if (result.success) {
         toast.success('Blog updated successfully!');
         // Navigate back, considering locale path
-        router.push(`/${locale}/cms/blog`);
+        router.push(`/cms/blog`);
       } else {
         toast.error(result.message || 'Failed to update blog');
       }
@@ -168,7 +167,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Blog Not Found</h2>
             <p className="text-muted-foreground mb-4">The blog you&apos;re looking for could not be found.</p>
-            <Button onClick={() => router.push(`/${locale}/cms/blog`)}>
+            <Button onClick={() => router.push(`/cms/blog`)}>
               Return to Blogs
             </Button>
           </CardContent>
@@ -185,7 +184,7 @@ export function BlogEditPageContent({ blogId, locale = 'en' }: BlogEditPageConte
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => router.push(`/${locale}/cms/blog`)}
+            onClick={() => router.push(`/cms/blog`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ToggleField, ToggleFieldPreview } from './ToggleField';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
@@ -15,7 +15,7 @@ const initialField: FormFieldBase = {
   order: 1,
   helpText: 'Toggle to receive updates.',
   isRequired: false,
-  defaultValue: true, // Store as boolean in mock for testing initial state
+  defaultValue: JSON.stringify(true), // Store as boolean in mock for testing initial state
   width: 100,
 };
 
@@ -42,7 +42,7 @@ describe('ToggleField', () => {
     });
 
     it('renders a disabled switch reflecting defaultValue (false)', () => {
-      render(<ToggleFieldPreview field={{ ...initialField, defaultValue: false }} />);
+      render(<ToggleFieldPreview field={{ ...initialField, defaultValue: JSON.stringify(false) }} />);
       const switchElement = screen.getByRole('switch');
       expect(switchElement).not.toBeChecked();
     });
@@ -84,11 +84,11 @@ describe('ToggleField', () => {
       
       fireEvent.click(defaultValueCheckbox); // Toggle to false
       expect(mockOnChange).toHaveBeenCalledWith(
-        expect.objectContaining({ defaultValue: false })
+        expect.objectContaining({ defaultValue: JSON.stringify(false) })
       );
       
       // Simulate prop update before next toggle for consistent state
-      render(<ToggleField field={{...initialField, defaultValue: false }} onChange={mockOnChange} showPreview={false} />);
+      render(<ToggleField field={{...initialField, defaultValue: JSON.stringify(false) }} onChange={mockOnChange} showPreview={false} />);
       const updatedDefaultValueCheckbox = screen.getByLabelText(/Default Value \(Checked = On\)/i);
       fireEvent.click(updatedDefaultValueCheckbox); // Toggle back to true
       expect(mockOnChange).toHaveBeenCalledWith(

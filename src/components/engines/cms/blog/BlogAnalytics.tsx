@@ -10,8 +10,6 @@ import {
   MessageCircle,
   ThumbsUp,
   Users,
-  Calendar,
-  Filter,
   Download,
   RefreshCw,
   Globe,
@@ -23,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 
 interface AnalyticsData {
   overview: {
@@ -84,7 +81,7 @@ interface BlogAnalyticsProps {
   locale?: string;
 }
 
-export function BlogAnalytics({ blogId, locale = 'en' }: BlogAnalyticsProps) {
+export function BlogAnalytics({ blogId }: BlogAnalyticsProps) {
   // State management
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -338,7 +335,7 @@ export function BlogAnalytics({ blogId, locale = 'en' }: BlogAnalyticsProps) {
         
         <div className="flex items-center gap-4">
           {/* Date Range Filter */}
-          <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
+          <Select value={dateRange} onValueChange={(value) => setDateRange(value as '7d' | '30d' | '90d' | '1y')}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
