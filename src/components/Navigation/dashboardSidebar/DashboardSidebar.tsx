@@ -267,11 +267,6 @@ export function DashboardSidebar() {
     name: t(item.name)
   }));
 
-  const managerNavigationItems: NavItem[] = sidebarConfig.managerNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name)
-  }));
-
   const toolsNavigationItems: NavItem[] = sidebarConfig.toolsNavigationItems(params.locale as string).map(item => ({
     ...item,
     name: t(item.name),
@@ -611,23 +606,6 @@ export function DashboardSidebar() {
                 {t('sidebar.management')}
               </h3>
             </div>
-            {managerNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
-
 
 <div className="mb-2 mt-4">
               <h3 className="text-xs font-medium uppercase text-gray-500">
@@ -698,24 +676,6 @@ export function DashboardSidebar() {
                 {t('sidebar.management')}
               </h3>
             </div>
-            {managerNavigationItems.filter(item => 
-              !item.href.includes('/admin/notifications')
-            ).map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
-            ))}
             
             {/* Tools section for managers */}
             <div className="mt-4 border-t pt-4 mb-2">
@@ -1237,31 +1197,7 @@ export function DashboardSidebar() {
                   </div>
                 )}
                    
-                {showAsManager && !showAsUser && (
-                  <div className="mb-4">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                      {t('sidebar.management')}
-                    </h3>
-                    {managerNavigationItems.filter(item => 
-                      !item.href.includes('/admin/notifications')
-                    ).map((item) => (
-                      <Link 
-                        key={item.href}
-                        href={item.disabled ? "#" : item.href}
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                          pathname === item.href 
-                            ? 'bg-indigo-100 text-indigo-700' 
-                            : 'text-gray-700 hover:bg-gray-100'
-                        } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-                      >
-                        {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                        <span>{item.name}</span>
-                        {renderBadge(item)}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+              
                 
                 {!showAsUser && (
                   <div className="mb-4">

@@ -42,48 +42,50 @@ export function MediaActions({ fileUrl, s3Key, onDelete, horizontal = false }: M
   };
 
   return horizontal ? (
-    <div className="flex justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
-      <button
+    <div className="flex justify-end space-x-2 relative z-[9999]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Enter' && e.stopPropagation()}>
+       <button
+        type="button"
         onClick={downloadFile}
-        className="text-blue-600 hover:text-blue-900"
+        className="text-blue-600 hover:text-blue-900 relative z-[9999]"
         title="Download file"
       >
         <DownloadIcon className="h-5 w-5" />
       </button>
       <button
         onClick={openInNewTab}
-        className="text-indigo-600 hover:text-indigo-900"
+        className="text-indigo-600 hover:text-indigo-900 relative z-[9999]"
         title="View file"
       >
         <ExternalLinkIcon className="h-5 w-5" />
       </button>
       <button
         onClick={handleDelete}
-        className="text-red-600 hover:text-red-900"
+        className="text-red-600 hover:text-red-900 relative z-[9999]"
         title="Delete file"
       >
         <TrashIcon className="h-5 w-5" />
       </button>
     </div>
   ) : (
-    <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-      <button
+    <div className="flex justify-end space-x-2 relative z-[9999]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Enter' && e.stopPropagation()}>
+       <button
+        type="button"
         onClick={downloadFile}
-        className="p-2 bg-white rounded-full hover:bg-gray-100"
+        className="p-2 bg-white rounded-full hover:bg-gray-100 relative z-[9999]"
         title="Download file"
       >
         <DownloadIcon className="h-4 w-4 text-blue-500" />
       </button>
       <button
         onClick={openInNewTab}
-        className="p-2 bg-white rounded-full hover:bg-gray-100"
+        className="p-2 bg-white rounded-full hover:bg-gray-100 relative z-[9999]"
         title="Open in new tab"
       >
         <ExternalLinkIcon className="h-4 w-4" />
       </button>
       <button
         onClick={handleDelete}
-        className="p-2 bg-white rounded-full hover:bg-gray-100"
+        className="p-2 bg-white rounded-full hover:bg-gray-100 relative z-[9999]"
         title="Delete file"
       >
         <TrashIcon className="h-4 w-4 text-red-500" />

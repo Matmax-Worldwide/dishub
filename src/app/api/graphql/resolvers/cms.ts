@@ -542,6 +542,12 @@ export const cmsResolvers = {
       } 
     }, context: Context) => {
       // Require authentication for editing CMS content
+      if (!context.req) {
+        throw new GraphQLError('Request context is required for authentication', {
+          extensions: { code: 'UNAUTHENTICATED' }
+        });
+      }
+      
       const session = await verifySession(context.req);
       if (!session?.user) {
         throw new GraphQLError('Authentication required to edit CMS content', {

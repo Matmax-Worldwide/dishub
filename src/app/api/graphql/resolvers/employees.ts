@@ -1,42 +1,36 @@
-import { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { EmployeeStatus} from '@prisma/client';
+
+// TypeScript interfaces for employee mutations
+interface CreateEmployeeInput {
+  userId: string;
+  departmentId: string;
+  positionId: string;
+  employeeId: string;
+  hireDate: string;
+  managerId?: string;
+  salary?: string | number;
+  status?: EmployeeStatus;
+}
+
+interface UpdateEmployeeInput {
+  userId?: string;
+  departmentId?: string;
+  positionId?: string;
+  employeeId?: string;
+  hireDate?: string;
+  managerId?: string;
+  salary?: string | number;
+  status?: EmployeeStatus;
+}
 
 export const employeeResolvers = {
   Query: {
-    // Obtener todos los empleados - solo para admin y managers
-    employees: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    // Obtener todos los empleados - auth handled by shield
+    employees: async () => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth & role checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin o manager
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-        
-        // Solo permitir a admin y manager acceder a la lista de empleados
-        if (user?.role?.name !== 'ADMIN' && user?.role?.name !== 'MANAGER') {
-          throw new Error('Unauthorized: Only admin and managers can view all employees');
-        }
-        
-        // Obtener empleados con sus relaciones
         const employees = await prisma.employee.findMany({
           include: {
             user: {
@@ -68,52 +62,16 @@ export const employeeResolvers = {
         return employees;
       } catch (error) {
         console.error('Get employees error:', error);
-        throw error;
+        // Consider re-throwing a generic error or a GraphQLError
+        throw new Error('Failed to fetch employees.');
       }
     },
     
-    // Obtener un empleado específico por ID
-    employee: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    // Obtener un empleado específico por ID - auth handled by shield
+    employee: async (_parent: unknown, args: { id: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth & role/ownership checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin, manager o el propio empleado
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            id: true,
-            role: {
-              select: {
-                name: true
-              }
-            },
-            employee: {
-              select: {
-                id: true
-              }
-            }
-          }
-        });
-        
-        const isAdmin = user?.role?.name === 'ADMIN';
-        const isManager = user?.role?.name === 'MANAGER';
-        const isOwnProfile = user?.employee?.id === args.id;
-        
-        if (!isAdmin && !isManager && !isOwnProfile) {
-          throw new Error('Unauthorized: You can only view your own profile or you need manager/admin permissions');
-        }
-        
-        // Obtener el empleado con toda la información relacionada
         const employee = await prisma.employee.findUnique({
           where: { id: args.id },
           include: {
@@ -178,48 +136,21 @@ export const employeeResolvers = {
         });
         
         if (!employee) {
-          throw new Error('Employee not found');
+          throw new Error('Employee not found'); // Or GraphQLError
         }
         
         return employee;
       } catch (error) {
         console.error('Get employee error:', error);
-        throw error;
+        throw new Error('Failed to fetch employee details.');
       }
     },
     
-    // Obtener empleados por departamento
-    employeesByDepartment: async (_parent: unknown, args: { departmentId: string }, context: { req: NextRequest }) => {
+    // Obtener empleados por departamento - auth handled by shield
+    employeesByDepartment: async (_parent: unknown, args: { departmentId: string }, ) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth & role checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin o manager
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-        
-        if (user?.role?.name !== 'ADMIN' && user?.role?.name !== 'MANAGER') {
-          throw new Error('Unauthorized: Only admin and managers can view department employees');
-        }
-        
-        // Buscar empleados por departamento
         const employees = await prisma.employee.findMany({
           where: {
             departmentId: args.departmentId
@@ -254,26 +185,15 @@ export const employeeResolvers = {
         return employees;
       } catch (error) {
         console.error('Get employees by department error:', error);
-        throw error;
+        throw new Error('Failed to fetch employees by department.');
       }
     },
     
-    // Obtener todos los departamentos
-    departments: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    // Obtener todos los departamentos - auth handled by shield
+    departments: async () => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Obtener todos los departamentos
         const departments = await prisma.department.findMany({
           orderBy: {
             name: 'asc'
@@ -283,26 +203,15 @@ export const employeeResolvers = {
         return departments;
       } catch (error) {
         console.error('Get departments error:', error);
-        throw error;
+        throw new Error('Failed to fetch departments.');
       }
     },
     
-    // Obtener todas las posiciones/cargos
-    positions: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    // Obtener todas las posiciones/cargos - auth handled by shield
+    positions: async () => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Obtener todas las posiciones
         const positions = await prisma.position.findMany({
           orderBy: {
             title: 'asc'
@@ -312,95 +221,44 @@ export const employeeResolvers = {
         return positions;
       } catch (error) {
         console.error('Get positions error:', error);
-        throw error;
+        throw new Error('Failed to fetch positions.');
       }
     }
   },
   
   Mutation: {
-    // Crear un nuevo empleado
-    createEmployee: async (_parent: unknown, args: { input: any }, context: { req: NextRequest }) => {
+    // Crear un nuevo empleado - auth handled by shield
+    createEmployee: async (_parent: unknown, args: { input: CreateEmployeeInput }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-        
-        if (user?.role?.name !== 'ADMIN' && user?.role?.name !== 'MANAGER') {
-          throw new Error('Unauthorized: Only admin and managers can create employees');
-        }
+        // Manual auth & role checks removed
         
         const { userId, departmentId, positionId, employeeId, hireDate, managerId, salary, ...otherData } = args.input;
         
-        // Verificar que el usuario exista
-        const userExists = await prisma.user.findUnique({
-          where: { id: userId }
-        });
+        const userExists = await prisma.user.findUnique({ where: { id: userId } });
+        if (!userExists) throw new Error('User not found for employee creation.');
         
-        if (!userExists) {
-          throw new Error('User not found');
-        }
+        const departmentExists = await prisma.department.findUnique({ where: { id: departmentId } });
+        if (!departmentExists) throw new Error('Department not found for employee creation.');
         
-        // Verificar que el departamento exista
-        const departmentExists = await prisma.department.findUnique({
-          where: { id: departmentId }
-        });
+        const positionExists = await prisma.position.findUnique({ where: { id: positionId } });
+        if (!positionExists) throw new Error('Position not found for employee creation.');
         
-        if (!departmentExists) {
-          throw new Error('Department not found');
-        }
-        
-        // Verificar que la posición exista
-        const positionExists = await prisma.position.findUnique({
-          where: { id: positionId }
-        });
-        
-        if (!positionExists) {
-          throw new Error('Position not found');
-        }
-        
-        // Verificar que el manager exista si se proporciona
         if (managerId) {
-          const managerExists = await prisma.employee.findUnique({
-            where: { id: managerId }
-          });
-          
-          if (!managerExists) {
-            throw new Error('Manager not found');
-          }
+          const managerExists = await prisma.employee.findUnique({ where: { id: managerId } });
+          if (!managerExists) throw new Error('Manager not found for employee creation.');
         }
         
-        // Crear el nuevo empleado
         const employee = await prisma.employee.create({
           data: {
             userId,
-            employeeId,
+            employeeId, // This is the custom employee ID string
             departmentId,
             positionId,
             hireDate: new Date(hireDate),
             managerId,
-            salary,
-            status: 'ACTIVE',
-            ...otherData
+            salary: salary ? parseFloat(salary.toString()) : 0,
+            status: 'ACTIVE' as EmployeeStatus, // Default status
+            ...otherData // Any other fields passed in input
           },
           include: {
             user: {
@@ -418,54 +276,34 @@ export const employeeResolvers = {
         return employee;
       } catch (error) {
         console.error('Create employee error:', error);
-        throw error;
+        // Consider specific error messages for known issues, or a generic one
+        throw new Error(`Failed to create employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
     
-    // Actualizar datos de un empleado
-    updateEmployee: async (_parent: unknown, args: { id: string, input: any }, context: { req: NextRequest }) => {
-      try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+    // Actualizar datos de un empleado - auth handled by shield
+      updateEmployee: async (_parent: unknown, args: { id: string, input: UpdateEmployeeInput }) => {
+        try {
+        // Manual auth & role checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
+        const employeeExists = await prisma.employee.findUnique({ where: { id: args.id } });
+        if (!employeeExists) throw new Error('Employee not found for update.');
+        
+        // Ensure userId is not part of the update input if it's not allowed to change
+        const { userId, salary, hireDate, ...updateData } = args.input;
+        if (userId && userId !== employeeExists.userId) {
+            throw new Error("Cannot change the associated user (userId) of an employee.");
         }
-        
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
-        
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin o manager
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-        
-        if (user?.role?.name !== 'ADMIN' && user?.role?.name !== 'MANAGER') {
-          throw new Error('Unauthorized: Only admin and managers can update employees');
-        }
-        
-        // Verificar que el empleado exista
-        const employeeExists = await prisma.employee.findUnique({
-          where: { id: args.id }
-        });
-        
-        if (!employeeExists) {
-          throw new Error('Employee not found');
-        }
-        
-        // Actualizar el empleado
+
+        const processedUpdateData = {
+          ...updateData,
+          ...(salary !== undefined && { salary: parseFloat(salary.toString()) }),
+          ...(hireDate && { hireDate: new Date(hireDate) })
+        };
+
         const employee = await prisma.employee.update({
           where: { id: args.id },
-          data: args.input,
+          data: processedUpdateData,
           include: {
             user: {
               select: {
@@ -482,60 +320,21 @@ export const employeeResolvers = {
         return employee;
       } catch (error) {
         console.error('Update employee error:', error);
-        throw error;
+        throw new Error(`Failed to update employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
     
-    // Asignar un empleado a un departamento
-    assignEmployeeToDepartment: async (_parent: unknown, args: { employeeId: string, departmentId: string }, context: { req: NextRequest }) => {
+    // Asignar un empleado a un departamento - auth handled by shield
+      assignEmployeeToDepartment: async (_parent: unknown, args: { employeeId: string, departmentId: string }) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Manual auth & role checks removed
         
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
+        const employeeExists = await prisma.employee.findUnique({ where: { id: args.employeeId } });
+        if (!employeeExists) throw new Error('Employee not found for department assignment.');
         
-        const decoded = await verifyToken(token) as { userId: string; role?: string };
+        const departmentExists = await prisma.department.findUnique({ where: { id: args.departmentId } });
+        if (!departmentExists) throw new Error('Department not found for assignment.');
         
-        if (!decoded || !decoded.userId) {
-          throw new Error('Invalid token');
-        }
-        
-        // Verificar si es admin o manager
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: {
-            role: {
-              select: {
-                name: true
-              }
-            }
-          }
-        });
-        
-        if (user?.role?.name !== 'ADMIN' && user?.role?.name !== 'MANAGER') {
-          throw new Error('Unauthorized: Only admin and managers can assign departments');
-        }
-        
-        // Verificar que el empleado exista
-        const employeeExists = await prisma.employee.findUnique({
-          where: { id: args.employeeId }
-        });
-        
-        if (!employeeExists) {
-          throw new Error('Employee not found');
-        }
-        
-        // Verificar que el departamento exista
-        const departmentExists = await prisma.department.findUnique({
-          where: { id: args.departmentId }
-        });
-        
-        if (!departmentExists) {
-          throw new Error('Department not found');
-        }
-        
-        // Actualizar el departamento del empleado
         const employee = await prisma.employee.update({
           where: { id: args.employeeId },
           data: {
@@ -557,10 +356,11 @@ export const employeeResolvers = {
         return employee;
       } catch (error) {
         console.error('Assign employee to department error:', error);
-        throw error;
+        throw new Error(`Failed to assign employee to department: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   }
 };
 
-export default employeeResolvers; 
+export default employeeResolvers;
+

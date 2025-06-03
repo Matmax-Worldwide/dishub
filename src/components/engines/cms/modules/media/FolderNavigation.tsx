@@ -156,11 +156,13 @@ export function FolderNavigation({
                 if (existingFolder) {
                   folderObj = existingFolder;
                 } else {
-                  // Fallback to creating a new folder object
+                  // Fallback to creating a new folder object with proper validation
+                  const validPath = path?.trim() || `segment-${index}`;
+                  const validSegment = segment?.trim() || `segment-${index}`;
                   folderObj = {
-                    id: `folder-${path}`,
-                    name: segment,
-                    path: path,
+                    id: `folder-${validPath}`,
+                    name: validSegment,
+                    path: validPath,
                     parentPath: array.slice(0, index).join('/') || '',
                     isRoot: false
                   };

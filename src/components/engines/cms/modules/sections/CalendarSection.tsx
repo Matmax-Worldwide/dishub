@@ -397,17 +397,9 @@ export default function CalendarSection({
   // Enhanced step configuration
   stepOrder: initialStepOrder = ['selectionMethod', 'dynamicSelection', 'completeSelection', 'dateTimeSelection', 'detailsForm', 'confirmation'],
   requiredSteps: initialRequiredSteps = ['dateTimeSelection', 'detailsForm', 'confirmation'],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  optionalSteps: initialOptionalSteps = ['selectionMethod', 'completeSelection'],
   skipLocationSelection: initialSkipLocationSelection = false,
   skipStaffSelection: initialSkipStaffSelection = false,
   skipServiceSelection: initialSkipServiceSelection = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  autoSelectSingleOption: initialAutoSelectSingleOption = true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  allowStepSkipping: initialAllowStepSkipping = true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  showProgressIndicator: initialShowProgressIndicator = true,
   // Configurable text content with defaults
   title: initialTitle = 'Book Your Appointment',
   subtitle: initialSubtitle = 'Choose your preferred service and time',
@@ -464,29 +456,20 @@ export default function CalendarSection({
   const [showServiceCategories, setShowServiceCategories] = useState(initialShowServiceCategories);
   const [defaultLocation, setDefaultLocation] = useState(initialDefaultLocation);
   const [showStaffSelector, setShowStaffSelector] = useState(initialShowStaffSelector);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [designTemplate, setDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [enableMultiStepBooking, setEnableMultiStepBooking] = useState(initialEnableMultiStepBooking);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [enabledSelectionMethods, setEnabledSelectionMethods] = useState<SelectionMethod[]>(initialEnabledSelectionMethods);
-  const [stepOrder, setStepOrder] = useState<BookingStep[]>(initialStepOrder);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [requiredSteps, setRequiredSteps] = useState<BookingStep[]>(initialRequiredSteps);
+  const [enableMultiStepBooking] = useState(initialEnableMultiStepBooking);
+  const [stepOrder] = useState<BookingStep[]>(initialStepOrder);
+  const [requiredSteps] = useState<BookingStep[]>(initialRequiredSteps);
+  const [enabledSelectionMethods] = useState<SelectionMethod[]>(initialEnabledSelectionMethods);
   const [title, setTitle] = useState(initialTitle);
   const [subtitle, setSubtitle] = useState(initialSubtitle);
   const [description, setDescription] = useState(initialDescription);
   const [stepTitles, setStepTitles] = useState(initialStepTitles);
   const [buttonTexts, setButtonTexts] = useState(initialButtonTexts);
   const [placeholderTexts, setPlaceholderTexts] = useState(initialPlaceholderTexts);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectionMethodTexts, setSelectionMethodTexts] = useState(initialSelectionMethodTexts);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [skipLocationSelection, setSkipLocationSelection] = useState(initialSkipLocationSelection);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [skipStaffSelection, setSkipStaffSelection] = useState(initialSkipStaffSelection);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [skipServiceSelection, setSkipServiceSelection] = useState(initialSkipServiceSelection);
+  const [selectionMethodTexts] = useState(initialSelectionMethodTexts);
+  const [skipLocationSelection] = useState(initialSkipLocationSelection);
+  const [skipStaffSelection] = useState(initialSkipStaffSelection);
+  const [skipServiceSelection] = useState(initialSkipServiceSelection);
 
   // Multi-step booking state
   const [selectedBookingMethod, setSelectedBookingMethod] = useState<SelectionMethod | null>(null);
@@ -521,9 +504,8 @@ export default function CalendarSection({
       if (JSON.stringify(initialStepTitles) !== JSON.stringify(stepTitles)) setStepTitles(initialStepTitles);
       if (JSON.stringify(initialButtonTexts) !== JSON.stringify(buttonTexts)) setButtonTexts(initialButtonTexts);
       if (JSON.stringify(initialPlaceholderTexts) !== JSON.stringify(placeholderTexts)) setPlaceholderTexts(initialPlaceholderTexts);
-      if (JSON.stringify(initialStepOrder) !== JSON.stringify(stepOrder)) setStepOrder(initialStepOrder);
     }
-  }, [initialTitle, initialSubtitle, initialDescription, initialShowLocationSelector, initialShowServiceCategories, initialDefaultLocation, initialShowStaffSelector, initialStepTitles, initialButtonTexts, initialPlaceholderTexts, initialStepOrder]);
+  }, [initialTitle, initialSubtitle, initialDescription, initialShowLocationSelector, initialShowServiceCategories, initialDefaultLocation, initialShowStaffSelector, initialStepTitles, initialButtonTexts, initialPlaceholderTexts]);
   
   // Design template state
   const [localDesignTemplate, setLocalDesignTemplate] = useState<DesignTemplate>(initialDesignTemplate);
