@@ -32,13 +32,17 @@ export function tenantScopeExtension(tenantId: string | undefined | null) {
     });
   }
 
+  // At this point, tenantId is guaranteed to be a non-empty string
+  const validTenantId: string = tenantId;
+
   return Prisma.defineExtension({
     name: 'tenant-scope',
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           if (isTenantScopedModel(model)) {
-            const newArgs = { ...args }; // Clone args to avoid modifying the original
+            // Use unknown type and cast as needed to work with Prisma's complex types
+            const newArgs = { ...args } as unknown as Record<string, unknown>;
 
             // Operations that use 'where'
             const opsWithWhere = [
@@ -49,22 +53,22 @@ export function tenantScopeExtension(tenantId: string | undefined | null) {
 
             if (opsWithWhere.includes(operation)) {
               // Type guard to ensure args has a where property
-              if ('where' in newArgs) {
-                newArgs.where = { ...(newArgs.where || {}), tenantId };
+              if ('where' in newArgs && typeof newArgs.where === 'object') {
+                newArgs.where = { ...(newArgs.where as Record<string, unknown> || {}), tenantId: validTenantId };
               }
             }
 
             if (operation === 'create') {
               // Type guard to ensure args has a data property
-              if ('data' in newArgs) {
-                newArgs.data = { ...(newArgs.data || {}), tenantId };
+              if ('data' in newArgs && typeof newArgs.data === 'object') {
+                newArgs.data = { ...(newArgs.data as Record<string, unknown> || {}), tenantId: validTenantId };
               }
             } else if (operation === 'createMany') {
               if ('data' in newArgs) {
                 if (Array.isArray(newArgs.data)) {
-                  newArgs.data = newArgs.data.map((item: Record<string, unknown>) => ({ ...item, tenantId }));
-                } else if (newArgs.data) { // Handle single object createMany if Prisma version supports it
-                  newArgs.data = { ...newArgs.data, tenantId };
+                  newArgs.data = newArgs.data.map((item: Record<string, unknown>) => ({ ...item, tenantId: validTenantId }));
+                } else if (newArgs.data && typeof newArgs.data === 'object') { // Handle single object createMany if Prisma version supports it
+                  newArgs.data = { ...(newArgs.data as Record<string, unknown>), tenantId: validTenantId };
                 } else {
                   // If newArgs.data is undefined or not an array, Prisma itself would likely throw an error.
                   // However, if Prisma allows createMany with skipDuplicates and no data for some reason,
@@ -74,22 +78,22 @@ export function tenantScopeExtension(tenantId: string | undefined | null) {
               }
             } else if (operation === 'upsert') {
               // Scope the 'where' for the find part of upsert
-              if ('where' in newArgs) {
-                newArgs.where = { ...(newArgs.where || {}), tenantId };
+              if ('where' in newArgs && typeof newArgs.where === 'object') {
+                newArgs.where = { ...(newArgs.where as Record<string, unknown> || {}), tenantId: validTenantId };
               }
               // Inject tenantId into the 'create' part
-              if ('create' in newArgs) {
-                newArgs.create = { ...(newArgs.create || {}), tenantId };
+              if ('create' in newArgs && typeof newArgs.create === 'object') {
+                newArgs.create = { ...(newArgs.create as Record<string, unknown> || {}), tenantId: validTenantId };
               }
               // Ensure tenantId is also part of the 'update' data,
               // Prisma's upsert operation implicitly uses the 'where' condition for the update.
               // So explicitly adding tenantId to 'update.where' is redundant and could be problematic.
               // We only need to ensure tenantId is part of the update payload.
-              if ('update' in newArgs) {
-                newArgs.update = { ...(newArgs.update || {}), tenantId: tenantId };
+              if ('update' in newArgs && typeof newArgs.update === 'object') {
+                newArgs.update = { ...(newArgs.update as Record<string, unknown> || {}), tenantId: validTenantId };
               }
             }
-            return query(newArgs);
+            return query(newArgs as typeof args);
           }
           return query(args);
         },
