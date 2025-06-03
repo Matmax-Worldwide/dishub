@@ -10,7 +10,7 @@ import {
   CheckBadgeIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import ContactForm from './ContactForm';
 
 interface BenefitsProps {

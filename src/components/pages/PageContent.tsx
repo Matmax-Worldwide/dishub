@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Navbar from './Navigation/Navbar';
+import Navbar from '@/components/Navigation/Navbar';
 import Hero from './Hero';
 import Benefits from './Benefits';
 import Contact from './Contact';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dictionary } from '../app/i18n';
+import { Dictionary } from '@/app/i18n';
 
 interface PageContentProps {
   locale: string;

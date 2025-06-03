@@ -7,7 +7,7 @@ import { optimizedQueries, graphqlOptimizer } from '@/lib/graphql-optimizations'
 import SectionManager from '@/components/engines/cms/modules/sections/SectionManager';
 import ModernLoader from '@/components/ui/ModernLoader';
 import Navbar from '@/components/Navigation/Navbar';
-import Benefits from '@/components/Benefits';
+import Benefits from './Benefits';
 import { Dictionary } from '@/app/i18n';
 import { Menu } from '@/app/api/graphql/types';
 import { ComponentType } from '@/types/cms';
