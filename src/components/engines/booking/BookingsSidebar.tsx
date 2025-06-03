@@ -278,9 +278,9 @@ export default function BookingsSidebar() {
           
           <SidebarFooter>
             <Link 
-              href={`/${locale}/evoque/dashboard`} 
+              href={`/${locale}/admin/dashboard`} 
               className="block w-full"
-              onClick={(e) => handleNavigation(`/${locale}/evoque/dashboard`, e)}
+              onClick={(e) => handleNavigation(`/${locale}/admin/dashboard`, e)}
             >
               <SidebarItem 
                 icon={<LogOut className="h-4 w-4" />}

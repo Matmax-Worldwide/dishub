@@ -117,7 +117,7 @@ export default function LoginPage() {
       sessionStorage.setItem('justLoggedIn', 'true');
       
       // Determine redirect path based on user role
-      let redirectPath = `/${locale}/evoque/dashboard`; // Fallback path if tenant not found
+      let redirectPath = `/${locale}/admin/dashboard`; // Fallback path if tenant not found
       
       if (transformedUser.role === 'SUPER_ADMIN') {
         redirectPath = `/${locale}/admin`;
@@ -165,23 +165,23 @@ export default function LoginPage() {
                 console.log(`User belongs to tenant: ${tenantData.tenant.slug}, but redirecting to evoque dashboard`);
                 sessionStorage.setItem('userTenantSlug', tenantData.tenant.slug);
                 sessionStorage.setItem('userTenantName', tenantData.tenant.name);
-                redirectPath = `/${locale}/evoque/dashboard`;
+                redirectPath = `/${locale}/admin/dashboard`;
                 console.log(`USER redirect path: ${redirectPath}`);
               }
               console.log(`User with role ${transformedUser.role} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
             } else {
               console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
               console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to default`);
-              redirectPath = `/${locale}/evoque/dashboard`;
+              redirectPath = `/${locale}/admin/dashboard`;
             }
           } catch (tenantError) { 
             console.error('GraphQL Tenant Query Error:', tenantError);
             console.error('Error details:', JSON.stringify(tenantError, null, 2));
-            redirectPath = `/${locale}/evoque/dashboard`;
+            redirectPath = `/${locale}/admin/dashboard`;
           }
         } else {
           console.warn(`User ${transformedUser.email} without tenantId, redirecting to default dashboard`);
-          redirectPath = `/${locale}/evoque/dashboard`;
+          redirectPath = `/${locale}/admin/dashboard`;
         }
       }
       

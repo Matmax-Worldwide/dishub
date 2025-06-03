@@ -75,9 +75,9 @@ export default function AccessDeniedPage() {
           setRedirectPath(`/${locale}/tenants/${tenant.slug}/admin`);
         } else if (user.tenantId) {
           // Si tenemos tenantId pero no el slug aún, usar dashboard general
-          setRedirectPath(`/${locale}/evoque/dashboard`);
+          setRedirectPath(`/${locale}/admin/dashboard`);
         } else {
-          setRedirectPath(`/${locale}/evoque/dashboard`);
+          setRedirectPath(`/${locale}/admin/dashboard`);
         }
       } else {
         // Para usuarios regulares, usar dashboard general por ahora
@@ -85,7 +85,7 @@ export default function AccessDeniedPage() {
         if (tenant?.slug) {
           console.log(`Usuario pertenece a tenant ${tenant.slug}, pero usando dashboard evoque`);
         }
-        setRedirectPath(`/${locale}/evoque/dashboard`);
+        setRedirectPath(`/${locale}/admin/dashboard`);
       }
     } else if (!isAuthenticated) {
       setRedirectPath(`/${locale}/login`);

@@ -473,7 +473,7 @@ export function DashboardSidebar() {
   // Redirigir a usuarios con rol USER si intentan acceder a rutas internas del dashboard
   useEffect(() => {
     if (showAsUser && pathname && 
-        (pathname.includes('/evoque/dashboard') || 
+        (pathname.includes('/admin/dashboard') || 
          pathname.includes('/admin') || 
          pathname.includes('/manager'))) {
       // Obtener el primer enlace externo disponible para redirigir al usuario
@@ -695,9 +695,9 @@ export function DashboardSidebar() {
                 {t('sidebar.notifications')}
               </h3>
               <Link 
-                href={`/${params.locale}/evoque/dashboard/notifications`}
+                href={`/${params.locale}/admin/dashboard/notifications`}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === `/${params.locale}/evoque/dashboard/notifications`
+                  pathname === `/${params.locale}/admin/dashboard/notifications`
                     ? 'bg-indigo-100 text-indigo-700' 
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -748,7 +748,7 @@ export function DashboardSidebar() {
               </h3>
             </div>
             {baseNavigationItems.filter(item => 
-              !item.href.includes('/evoque/dashboard/notifications')
+              !item.href.includes('/admin/dashboard/notifications')
             ).map(item => (
               <Link 
                 key={item.href}
@@ -1215,9 +1215,9 @@ export function DashboardSidebar() {
                       {t('sidebar.notifications')}
                     </h3>
                     <Link 
-                      href={`/${params.locale}/evoque/dashboard/notifications`}
+                      href={`/${params.locale}/admin/dashboard/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/evoque/dashboard/notifications`
+                        pathname === `/${params.locale}/admin/dashboard/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -1254,7 +1254,7 @@ export function DashboardSidebar() {
                       {t('sidebar.dashboard')}
                     </h3>
                     {baseNavigationItems.filter(item => 
-                      !((showAsManager || showAsAdmin) && item.href.includes('/evoque/dashboard/notifications'))
+                      !((showAsManager || showAsAdmin) && item.href.includes('/admin/dashboard/notifications'))
                     ).map((item) => (
                       <Link 
                         key={item.href}
