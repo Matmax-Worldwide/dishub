@@ -835,8 +835,6 @@ export default function FooterSection({
                     src={logoUrl} 
                     alt="Logo"
                     className="max-h-full max-w-full object-contain" 
-                    width={80}
-                    height={80}
                   />
                 </div>
               ) : (
@@ -1198,8 +1196,6 @@ export default function FooterSection({
                       <S3FilePreview 
                           src={logoUrl}
                           alt={companyName}
-                          width={32}
-                          height={32}
                           className="h-full w-auto"
                         />
                       </div>
@@ -1371,8 +1367,6 @@ export default function FooterSection({
                       <S3FilePreview 
                         src={logoUrl}
                         alt={companyName}
-                        width={32}
-                        height={32}
                         className="h-full w-auto"
                       />
                     </div>
