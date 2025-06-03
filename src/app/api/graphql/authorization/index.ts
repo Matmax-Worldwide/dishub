@@ -388,10 +388,19 @@ export const permissionsShield = shield({
     '*': allow,
   },
   CMSSection: {
-    components: isAuthenticated,
+    '*': isAuthenticated,
+  },
+  SectionComponent: {
+    '*': isAuthenticated,
+  },
+  CMSComponent: {
+    '*': isAuthenticated,
   },
   Page: {
-    sections: isAuthenticated,
+    '*': isAuthenticated,
+  },
+  PageSEO: {
+    '*': isAuthenticated,
   },
   Employee: {
     '*': isAuthenticated,
@@ -401,6 +410,21 @@ export const permissionsShield = shield({
   },
   Position: {
     '*': isAuthenticated,
+  },
+  DashboardStats: {
+    '*': isAuthenticated,
+  },
+  AuthPayload: {
+    '*': isAuthenticated,
+  },
+  UserPermission: {
+    '*': isAuthenticated,
+  },
+  Menu: {
+    '*': allow,
+  },
+  MenuItem: {
+    '*': allow,
   }
   // TODO: Add Type specific rules for Calendar/Appointment models if needed
   // TODO: Add Type specific rules for Employee/HR models if needed (e.g., Employee.salary: isAdmin)
