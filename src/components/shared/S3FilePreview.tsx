@@ -145,7 +145,7 @@ const MetadataOverlay = ({
   if (!showMetadata) return null;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[100]">
+    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 space-y-1 z-[300]">
       {imageDimensions && (
         <div className="flex justify-between">
           <span>Dimensions:</span>
@@ -304,7 +304,12 @@ const S3FilePreview = ({
     setVideoDuration(null);
     setVideoDimensions(null);
     setFileSize(null);
-  }, [src]);
+    
+    // Debug log for state reset
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[S3FilePreview] State reset for new src:', src);
+    }
+  }, [src, safeFinalUrl]); // Add safeFinalUrl to dependencies
 
   // Preload image for faster loading
   useEffect(() => {
@@ -374,8 +379,14 @@ const S3FilePreview = ({
     try {
       const target = event.currentTarget as HTMLVideoElement;
       
+      setIsLoading(false); // Set loading to false when video metadata loads
+      
       if (target.duration && !isNaN(target.duration) && target.duration !== Infinity) {
         setVideoDuration(target.duration);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[S3FilePreview] Video duration captured:", target.duration);
+        }
       }
       
       // Capture video dimensions
@@ -390,17 +401,21 @@ const S3FilePreview = ({
         if (onDimensionsLoaded) {
           onDimensionsLoaded(dimensions);
         }
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[S3FilePreview] Video dimensions captured:", dimensions);
+        }
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log("[S3FilePreview] Video metadata loaded");
+        console.log("[S3FilePreview] Video metadata loaded for:", src);
         console.log("- Duration:", target.duration);
         console.log("- Video width:", target.videoWidth);
         console.log("- Video height:", target.videoHeight);
       }
-    } catch {
+    } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn("[S3FilePreview] Video metadata load failed");
+        console.warn("[S3FilePreview] Video metadata load failed:", error);
       }
     }
   };
@@ -594,7 +609,7 @@ const S3FilePreview = ({
           <img
             src={src} // Use original URL directly for common image formats
             alt={alt}
-            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[200] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={(e) => {
               console.log(`[S3FilePreview] ${imageType} direct load failed, trying API route`);
@@ -646,7 +661,7 @@ const S3FilePreview = ({
           <img
             src={safeFinalUrl} 
             alt={alt}
-            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            className={`relative z-[200] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
@@ -689,15 +704,15 @@ const S3FilePreview = ({
               }}
             />
           )}
-        <Image
+          <Image
             src={safeFinalUrl} 
-          alt={alt}
-            className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            alt={alt}
+            className={`relative z-[200] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          loading="lazy"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            loading="lazy"
           />
           {isLoading && (
             <div className="absolute inset-0 z-[25]">
@@ -736,14 +751,14 @@ const S3FilePreview = ({
             }}
           />
         )}
-      <Image 
+        <Image 
           src={safeFinalUrl}
-        alt={alt}
+          alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`relative z-[2] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
+          className={`relative z-[200] w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
           loading="lazy"
         />
         {isLoading && (
@@ -813,15 +828,27 @@ const S3FilePreview = ({
       ) : isVideo ? (
         // Para videos, usar un tag de video
         <div className="relative w-full h-full overflow-hidden">
-        <video 
+          <video 
             src={safeFinalUrl} 
-          controls 
-            className={className || "w-full h-full object-cover"}
-          onClick={(e) => e.stopPropagation()}
+            controls 
+            preload="metadata"
+            className={className || "w-full h-full object-contain"}
+            onClick={(e) => e.stopPropagation()}
             onLoadedMetadata={handleVideoLoadedMetadata}
-        >
-          Tu navegador no soporta el tag de video.
-        </video>
+            onLoadStart={() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[S3FilePreview] Video load started for:', src);
+              }
+            }}
+            onError={(e) => {
+              setIsLoading(false);
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('[S3FilePreview] Video load error for:', src);
+              }
+            }}
+          >
+            Tu navegador no soporta el tag de video.
+          </video>
           <MetadataOverlay 
             imageDimensions={imageDimensions} 
             videoDuration={videoDuration} 

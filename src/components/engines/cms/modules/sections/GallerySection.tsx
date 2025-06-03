@@ -281,8 +281,6 @@ export default function GallerySection({
         src={image.url}
         alt={image.alt}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        width={400}
-        height={400}
       />
       
       {/* Overlay */}
@@ -385,8 +383,6 @@ export default function GallerySection({
                         src={image.url}
                         alt={image.alt}
                         className="w-full h-full object-cover"
-                        width={800}
-                        height={450}
                       />
                       {(localShowCaptions || localShowTitles) && (image.caption || image.title) && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
@@ -524,8 +520,7 @@ export default function GallerySection({
                           src={image.url}
                           alt={image.alt}
                           className="w-full aspect-square object-cover rounded-lg"
-                          width={150}
-                          height={150}
+                          showMetadata={true}
                         />
                         <button
                           onClick={() => handleRemoveImage(image.id)}
@@ -950,8 +945,7 @@ export default function GallerySection({
                 src={localImages[lightboxIndex].url}
                 alt={localImages[lightboxIndex].alt}
                 className="max-w-full max-h-full object-contain"
-                width={1200}
-                height={800}
+                showMetadata={true}
               />
               
               {localImages.length > 1 && (
