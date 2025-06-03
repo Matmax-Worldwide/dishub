@@ -18,8 +18,6 @@ interface S3FilePreviewProps {
   src: string;
   alt?: string;
   className?: string;
-  width?: number;
-  height?: number;
   fileType?: string;
   showDownload?: boolean;
   fileName?: string;
@@ -127,13 +125,7 @@ const formatDuration = (seconds: number): string => {
   }
 };
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-};
+
 
 // Metadata display component
 const MetadataOverlay = ({ 
@@ -181,8 +173,6 @@ const S3FilePreview = ({
   src, 
   alt = 'File preview', 
   className = '', 
-  width = 100, 
-  height = 100,
   fileType: providedFileType,
   fileName,
   showMetadata = false
@@ -263,6 +253,25 @@ const S3FilePreview = ({
         fileCategory,
         urlLower: urlLower.substring(0, 100) + '...' // Truncate for readability
       });
+      
+      // Special logging for common image formats
+      if (urlLower.includes('png') || detectedFileType.includes('png') ||
+          urlLower.includes('webp') || detectedFileType.includes('webp') ||
+          urlLower.includes('jpg') || urlLower.includes('jpeg') || 
+          detectedFileType.includes('jpeg')) {
+        
+        const formatType = urlLower.includes('png') ? 'PNG' :
+                          urlLower.includes('webp') ? 'WebP' :
+                          (urlLower.includes('jpg') || urlLower.includes('jpeg')) ? 'JPEG' : 'Image';
+        
+        console.log(`[S3FilePreview] ${formatType} Detection:`, {
+          urlIncludesFormat: urlLower.includes(formatType.toLowerCase()),
+          detectedTypeIncludesFormat: detectedFileType.includes(formatType.toLowerCase()),
+          finalDetectedType: detectedFileType,
+          isImageFlag: isImage,
+          formatType
+        });
+      }
     }
     
     return {
@@ -395,6 +404,21 @@ const S3FilePreview = ({
         console.warn("- Failed after:", `${loadTime}ms`);
         console.warn("- Timestamp:", new Date().toISOString());
         
+        // Special debugging for common image formats
+        const srcLower = src.toLowerCase();
+        if (srcLower.includes('png') || srcLower.includes('webp') || 
+            srcLower.includes('jpg') || srcLower.includes('jpeg')) {
+          
+          const formatType = srcLower.includes('png') ? 'PNG' :
+                            srcLower.includes('webp') ? 'WebP' :
+                            (srcLower.includes('jpg') || srcLower.includes('jpeg')) ? 'JPEG' : 'Image';
+          
+          console.warn(`🔴 ${formatType} FILE ERROR DETECTED:`);
+          console.warn(`- Original ${formatType} URL:`, src);
+          console.warn(`- Final ${formatType} URL:`, safeFinalUrl);
+          console.warn("- Is being served through API:", safeIsS3Url);
+        }
+        
         // Log target information separately
         if (target) {
           console.warn("Image element details:");
@@ -499,6 +523,49 @@ const S3FilePreview = ({
       );
     }
     
+    // Special handling for common image formats - try direct loading first
+    const srcLower = src.toLowerCase();
+    const isCommonImageFormat = srcLower.includes('.png') || 
+                               srcLower.includes('.jpg') || 
+                               srcLower.includes('.jpeg') || 
+                               srcLower.includes('.webp');
+    
+    if (isCommonImageFormat) {
+      const imageType = srcLower.includes('.png') ? 'PNG' : 
+                       srcLower.includes('.webp') ? 'WebP' : 
+                       (srcLower.includes('.jpg') || srcLower.includes('.jpeg')) ? 'JPEG' : 'Image';
+      
+      console.log(`[S3FilePreview] ${imageType} detected, trying direct load:`, src);
+      return (
+        <div className="relative w-full h-full overflow-hidden">
+          <img
+            src={src} // Use original URL directly for common image formats
+            alt={alt}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${className}`}
+            onLoad={handleImageLoad}
+            onError={(e) => {
+              console.log(`[S3FilePreview] ${imageType} direct load failed, trying API route`);
+              // If direct load fails, try the API route
+              const target = e.currentTarget as HTMLImageElement;
+              target.src = safeFinalUrl;
+            }}
+            loading="lazy"
+          />
+          {isLoading && (
+            <div className="absolute inset-0">
+              <SkeletonLoader />
+            </div>
+          )}
+          <MetadataOverlay 
+            imageDimensions={imageDimensions} 
+            videoDuration={videoDuration} 
+            fileSize={fileSize} 
+            showMetadata={showMetadata} 
+          />
+        </div>
+      );
+    }
+    
     // For SVG files served through our API, use regular img tag
     // This avoids issues with Next.js Image optimization and SVG handling
     if (safeIsS3Url && safeS3Key && (safeFinalUrl.includes('.svg') || src.includes('.svg'))) {
@@ -586,6 +653,15 @@ const S3FilePreview = ({
   
   // Renderizar según el tipo de archivo
   if (process.env.NODE_ENV === 'development') {
+    const srcLower = src.toLowerCase();
+    const formatInfo = {
+      isPNG: srcLower.includes('png'),
+      isWebP: srcLower.includes('webp'),
+      isJPEG: srcLower.includes('jpg') || srcLower.includes('jpeg'),
+      isCommonFormat: srcLower.includes('png') || srcLower.includes('webp') || 
+                     srcLower.includes('jpg') || srcLower.includes('jpeg')
+    };
+    
     console.log('[S3FilePreview] Render decision:', {
       src,
       isImage,
@@ -595,7 +671,9 @@ const S3FilePreview = ({
       fileCategory,
       safeFinalUrl,
       safeIsS3Url,
-      safeS3Key
+      safeS3Key,
+      formatInfo,
+      fileAnalysisResult: fileAnalysis
     });
   }
   
