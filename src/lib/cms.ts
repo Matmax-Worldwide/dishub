@@ -53,7 +53,7 @@ interface Menu {
   }>;
 }
 
-const CMS_GRAPHQL_URL = process.env.NEXT_PUBLIC_CMS_GRAPHQL_URL || '/api/public/graphql'; // Fallback for local dev if main app serves it
+const CMS_GRAPHQL_URL = process.env.NEXT_PUBLIC_CMS_GRAPHQL_URL || '/api/graphql'; // Fallback for local dev if main app serves it
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID; // This will be set at build time per tenant
 
 if (!CMS_GRAPHQL_URL) {
