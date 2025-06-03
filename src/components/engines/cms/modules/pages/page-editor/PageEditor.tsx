@@ -22,8 +22,8 @@ import {
   SectionsTab,
   AddSectionDialog,
   ExitConfirmationDialog,
-  CSSInjector,
-} from '@/components/engines/cms/pages/page-editor';
+  CSSInjector,  
+} from '@/components/engines/cms/modules/pages/page-editor';
 import { Button } from '@/components/ui/button';
 import { PageEvents } from './PagesSidebar';
 import { ComponentType } from '@/types/cms';
