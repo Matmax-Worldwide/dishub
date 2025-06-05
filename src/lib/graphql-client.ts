@@ -72,6 +72,7 @@ export async function gqlRequest<T>(
       query.includes('FormField') ||
       query.includes('menus') ||
       query.includes('getAllCMSPages') ||
+      query.includes('getDefaultPage') ||
       query.includes('GetBlogs') ||
       query.includes('GetBlog') ||
       query.includes('GetPosts') ||

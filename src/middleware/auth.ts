@@ -73,7 +73,7 @@ export const withAuth: MiddlewareFunction = async (req) => {
       return NextResponse.redirect(loginUrl);
     }
 
-    let userRole = 'USER';
+    let userRole = 'TenantUser';
     if (decodedResult.role) {
       if (typeof decodedResult.role === 'string') {
         userRole = decodedResult.role;

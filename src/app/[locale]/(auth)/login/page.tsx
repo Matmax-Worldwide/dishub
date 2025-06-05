@@ -87,10 +87,10 @@ export default function LoginPage() {
       // Transform user data to match expected format (role as string)
       const transformedUser = {
         ...user,
-        role: user.role?.name || 'USER' // Convert role object to string
+        role: user.role?.name || 'User' // Convert role object to string
       };
 
-      console.log('=== USER ROLE DEBUG ===');
+      console.log('=== User Role Debug ===');
       console.log('Raw user from GraphQL:', user);
       console.log('User role object:', user.role);
       console.log('User role name:', user.role?.name);
@@ -119,10 +119,10 @@ export default function LoginPage() {
       // Determine redirect path based on user role
       let redirectPath = `/${locale}/admin/dashboard`; // Fallback path if tenant not found
       
-      if (transformedUser.role === 'SUPER_ADMIN') {
+      if (transformedUser.role === 'SuperAdmin') {
         redirectPath = `/${locale}/admin`;
       } else {
-        // For all other roles (ADMIN, MANAGER, EMPLOYEE, USER), get tenant info
+        // For all other roles (TenantAdmin, TenantManager, TenantUser, TenantEmployee, TenantUser), get tenant info
         if (transformedUser.tenantId) {
           try {
             console.log(`Fetching tenant data for tenantId: ${transformedUser.tenantId}`);
@@ -152,21 +152,21 @@ export default function LoginPage() {
               }));
               
               // Redirect based on role using actual tenant slug
-              if (transformedUser.role === 'ADMIN' || transformedUser.role === 'MANAGER') {
+              if (transformedUser.role === 'TenantAdmin' || transformedUser.role === 'TenantManager') {
                 redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
-                console.log(`ADMIN/MANAGER redirect path: ${redirectPath}`);
-              } else if (transformedUser.role === 'EMPLOYEE') {
-                // EMPLOYEE ahora va a la misma ruta admin que ADMIN/MANAGER
+                console.log(`TenantAdmin/TenantManager redirect path: ${redirectPath}`);
+              } else if (transformedUser.role === 'TenantEmployee') {
+                // TenantEmployee ahora va a la misma ruta admin que TenantAdmin/TenantManager
                 redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
-                console.log(`EMPLOYEE redirect path: ${redirectPath}`);
+                console.log(`TenantEmployee redirect path: ${redirectPath}`);
               } else {
                 // For USER and other roles, redirect to general dashboard
-                // Log the actual tenant but use evoque dashboard for now
-                console.log(`User belongs to tenant: ${tenantData.tenant.slug}, but redirecting to evoque dashboard`);
+                // Log the actual tenant but use dashboard for now
+                console.log(`User belongs to tenant: ${tenantData.tenant.slug}, but redirecting to dashboard`);
                 sessionStorage.setItem('userTenantSlug', tenantData.tenant.slug);
                 sessionStorage.setItem('userTenantName', tenantData.tenant.name);
                 redirectPath = `/${locale}/admin/dashboard`;
-                console.log(`USER redirect path: ${redirectPath}`);
+                console.log(`User redirect path: ${redirectPath}`);
               }
               console.log(`User with role ${transformedUser.role} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
             } else {

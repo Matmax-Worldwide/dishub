@@ -65,6 +65,9 @@ export const permissions = shield({
     tenant: allow,
     allTenants: allow,
     
+    // Menu queries - PUBLIC ACCESS (needed for navigation)
+    menus: allow,
+    
     // User Query Rules - Admin bypass
     users: or(isAdmin, and(isAuthenticated, hasPermission('list:all_users'))),
     user: or(isAdmin, and(isAuthenticated, or(hasPermission('read:user'), isSelf))),
@@ -94,11 +97,11 @@ export const permissions = shield({
     getPageBySlug: allow,
     page: allow,
     getSectionComponents: allow,
-    getAllCMSComponents: or(isAdmin, and(isAuthenticated, hasPermission('browse:cms_components'))),
-    getCMSComponent: or(isAdmin, and(isAuthenticated, hasPermission('read:cms_component_definition'))),
-    getCMSComponentsByType: or(isAdmin, and(isAuthenticated, hasPermission('browse:cms_components'))),
-    getAllCMSPages: or(isAdmin, and(isAuthenticated, hasPermission('list:all_pages'))),
-    getPagesUsingSectionId: or(isAdmin, and(isAuthenticated, hasPermission('find:pages_by_section'))),
+    getAllCMSComponents: allow,
+    getCMSComponent: allow,
+    getCMSComponentsByType: allow,
+    getAllCMSPages: allow,
+    getPagesUsingSectionId: allow,
     getDefaultPage: allow,
     
     // Form Builder queries - Admin bypass
