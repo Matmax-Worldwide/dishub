@@ -77,6 +77,14 @@ model Tenant {
   customerAddresses CustomerAddress[]
   documentation     Documentation[]
   documents         Document[]
+
+  consentRecords        ConsentRecord[]
+  auditLogs             AuditLog[]
+  dataRequests          DataSubjectRequest[]
+  retentionPolicies     DataRetentionPolicy[]
+  processingActivities  DataProcessingActivity[]
+  privacyPolicies       PrivacyPolicy[]
+  dataBreaches          DataBreach[]
 }
 
 enum TenantStatus {
@@ -132,6 +140,10 @@ model User {
 
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  consentRecords    ConsentRecord[]
+  auditLogs         AuditLog[]
+  dataRequests      DataSubjectRequest[]
 
   @@index([email])
   @@index([roleId])
@@ -2285,4 +2297,295 @@ model Documentation {
   @@index([tenantId])
   @@unique([tenantId, slug])
   @@map("documentation")
+}
+
+// --------------- GDPR/RGPD COMPLIANCE MODELS ---------------
+
+model ConsentRecord {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose     ConsentPurpose
+  granted     Boolean
+  grantedAt   DateTime?
+  revokedAt   DateTime?
+  version     String      // Version of privacy policy
+  ipAddress   String?
+  userAgent   String?
+  source      String?     // "registration", "cookie_banner", "settings"
+  metadata    Json?       // Additional context
+  expiresAt   DateTime?   // For time-limited consents
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  
+  @@index([userId])
+  @@index([tenantId])
+  @@index([purpose])
+  @@index([granted])
+  @@unique([userId, purpose, version, tenantId])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?     // Null for system actions
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      AuditAction
+  resource    String      // "User", "FormSubmission", "ConsentRecord", etc.
+  resourceId  String?     // ID of the affected resource
+  oldValues   Json?       // Previous state (for updates)
+  newValues   Json?       // New state (for creates/updates)
+  details     String?     // Human-readable description
+  ipAddress   String?
+  userAgent   String?
+  sessionId   String?
+  timestamp   DateTime    @default(now())
+  severity    AuditSeverity @default(INFO)
+  category    AuditCategory @default(DATA_ACCESS)
+  
+  tenantId    String?     // Null for platform-level actions
+  tenant      Tenant?     @relation(fields: [tenantId], references: [id])
+  
+  @@index([userId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([resource])
+  @@index([timestamp])
+  @@index([category])
+  @@index([severity])
+}
+
+model DataSubjectRequest {
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            DataSubjectRequestType
+  status          RequestStatus       @default(PENDING)
+  description     String?             // User's description of the request
+  requestedAt     DateTime            @default(now())
+  acknowledgedAt  DateTime?           // When admin acknowledged the request
+  completedAt     DateTime?           // When request was fulfilled
+  rejectedAt      DateTime?           // When request was rejected
+  rejectionReason String?             // Reason for rejection
+  
+  // For data export requests
+  exportUrl       String?             // URL to download exported data
+  exportExpiresAt DateTime?           // When export link expires
+  
+  // Processing details
+  processedBy     String?             // User ID of admin who processed
+  processingNotes String?             // Internal notes
+  
+  // Verification
+  verificationToken String?           // Token for email verification
+  verifiedAt      DateTime?           // When user verified their identity
+  
+  tenantId        String
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  
+  @@index([userId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([status])
+  @@index([requestedAt])
+}
+
+model DataRetentionPolicy {
+  id              String      @id @default(cuid())
+  name            String      // "User Data", "Form Submissions", etc.
+  description     String?
+  dataType        String      // "User", "FormSubmission", "AuditLog", etc.
+  retentionDays   Int         // Days to retain data
+  autoDelete      Boolean     @default(true)
+  isActive        Boolean     @default(true)
+  
+  // Conditions for applying the policy
+  conditions      Json?       // Additional conditions (e.g., user inactive for X days)
+  
+  // Execution tracking
+  lastExecuted    DateTime?
+  nextExecution   DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  tenantId        String?     // Null for global policies
+  tenant          Tenant?     @relation(fields: [tenantId], references: [id])
+  
+  @@index([tenantId])
+  @@index([dataType])
+  @@index([isActive])
+  @@index([nextExecution])
+  @@unique([tenantId, name])
+}
+
+model DataProcessingActivity {
+  id                  String      @id @default(cuid())
+  name                String      // "User Registration", "Newsletter", etc.
+  description         String
+  purpose             String      // Purpose of processing
+  legalBasis          LegalBasis  // RGPD legal basis
+  dataCategories      String[]    // Types of personal data processed
+  dataSubjects        String[]    // Categories of data subjects
+  recipients          String[]    // Who receives the data
+  thirdCountries      String[]    // Countries where data is transferred
+  retentionPeriod     String      // How long data is kept
+  securityMeasures    String[]    // Technical and organizational measures
+  
+  isActive            Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  
+  tenantId            String
+  tenant              Tenant      @relation(fields: [tenantId], references: [id])
+  
+  @@index([tenantId])
+  @@index([isActive])
+  @@unique([tenantId, name])
+}
+
+model PrivacyPolicy {
+  id          String      @id @default(cuid())
+  version     String      // "1.0", "2.1", etc.
+  title       String
+  content     String      @db.Text
+  summary     String?     // Brief summary of changes
+  isActive    Boolean     @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  tenantId    String?     // Null for global policy
+  tenant      Tenant?     @relation(fields: [tenantId], references: [id])
+  
+  @@index([tenantId])
+  @@index([isActive])
+  @@index([version])
+  @@unique([tenantId, version])
+}
+
+model DataBreach {
+  id                  String          @id @default(cuid())
+  title               String
+  description         String          @db.Text
+  severity            BreachSeverity
+  status              BreachStatus    @default(DETECTED)
+  
+  // Breach details
+  detectedAt          DateTime        @default(now())
+  occurredAt          DateTime?       // When the breach actually happened
+  containedAt         DateTime?       // When breach was contained
+  resolvedAt          DateTime?       // When breach was fully resolved
+  
+  // Affected data
+  affectedRecords     Int?            // Number of records affected
+  dataTypes           String[]        // Types of data involved
+  affectedUsers       String[]        // User IDs affected (if known)
+  
+  // Response actions
+  notificationSent    Boolean         @default(false)
+  authoritiesNotified Boolean         @default(false)
+  usersNotified       Boolean         @default(false)
+  
+  // Investigation
+  rootCause           String?
+  mitigationSteps     String[]        @default([])
+  preventionMeasures  String[]        @default([])
+  
+  // Reporting
+  reportedBy          String?         // User ID who reported
+  assignedTo          String?         // User ID assigned to handle
+  
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  tenantId            String
+  tenant              Tenant          @relation(fields: [tenantId], references: [id])
+  
+  @@index([tenantId])
+  @@index([severity])
+  @@index([status])
+  @@index([detectedAt])
+}
+
+// --------------- GDPR/RGPD ENUMS ---------------
+
+enum ConsentPurpose {
+  ESSENTIAL       // Essential for service operation
+  ANALYTICS       // Website analytics
+  MARKETING       // Marketing communications
+  PERSONALIZATION // Personalized content
+  THIRD_PARTY     // Third-party integrations
+  COOKIES         // Non-essential cookies
+  PROFILING       // Automated decision making
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  ANONYMIZE
+  CONSENT_GRANTED
+  CONSENT_REVOKED
+  DATA_REQUEST
+  POLICY_ACCEPTED
+}
+
+enum AuditSeverity {
+  LOW
+  INFO
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AuditCategory {
+  DATA_ACCESS
+  DATA_MODIFICATION
+  AUTHENTICATION
+  AUTHORIZATION
+  CONSENT_MANAGEMENT
+  DATA_EXPORT
+  SYSTEM_ADMIN
+  PRIVACY_RIGHTS
+}
+
+enum DataSubjectRequestType {
+  ACCESS          // Right to access (Art. 15)
+  RECTIFICATION   // Right to rectification (Art. 16)
+  ERASURE         // Right to erasure/be forgotten (Art. 17)
+  RESTRICTION     // Right to restriction (Art. 18)
+  PORTABILITY     // Right to data portability (Art. 20)
+  OBJECTION       // Right to object (Art. 21)
+  WITHDRAW_CONSENT // Withdraw consent (Art. 7)
+}
+
+enum LegalBasis {
+  CONSENT         // Art. 6(1)(a) - Consent
+  CONTRACT        // Art. 6(1)(b) - Contract performance
+  LEGAL_OBLIGATION // Art. 6(1)(c) - Legal obligation
+  VITAL_INTERESTS // Art. 6(1)(d) - Vital interests
+  PUBLIC_TASK     // Art. 6(1)(e) - Public task
+  LEGITIMATE_INTERESTS // Art. 6(1)(f) - Legitimate interests
+}
+
+enum BreachSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BreachStatus {
+  DETECTED
+  INVESTIGATING
+  CONTAINED
+  RESOLVED
+  REPORTED
 }
