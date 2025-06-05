@@ -3762,4 +3762,179 @@ export const typeDefs = gql`
     verified: Boolean!
     verification: [VercelDNSRecord!]
   }
+
+  # --------------- GDPR COMPLIANCE TYPES --- V1 ---
+
+  # GDPR Compliance Score Types
+  type ComplianceScore {
+    overall: Float!
+    breakdown: ComplianceBreakdown!
+    riskLevel: RiskLevel!
+    recommendations: [String!]!
+    criticalIssues: [String!]!
+  }
+
+  type ComplianceBreakdown {
+    dataProtection: Float!
+    consentManagement: Float!
+    retentionPolicies: Float!
+    subjectRights: Float!
+    riskAssessment: Float!
+    auditTrail: Float!
+  }
+
+  enum RiskLevel {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+  }
+
+  enum AlertLevel {
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+  }
+
+  enum TaskPriority {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+  }
+
+  # GDPR Alert Types
+  type ComplianceAlert {
+    level: AlertLevel!
+    message: String!
+    timestamp: DateTime!
+    action: String
+    category: String!
+  }
+
+  # GDPR Task Types
+  type ComplianceTask {
+    task: String!
+    dueDate: DateTime!
+    priority: TaskPriority!
+    category: String!
+    assignedTo: String
+    estimatedHours: Float
+  }
+
+  # GDPR Dashboard Data
+  type GDPRDashboard {
+    score: ComplianceScore!
+    alerts: [ComplianceAlert!]!
+    upcomingTasks: [ComplianceTask!]!
+    recentActivity: [ActivityRecord!]!
+    tenantStats: TenantStats!
+    lastUpdated: DateTime!
+  }
+
+  # Tenant Statistics
+  type TenantStats {
+    totalUsers: Int!
+    activeUsers: Int!
+    newUsersThisMonth: Int!
+    totalDataRequests: Int!
+    pendingDataRequests: Int!
+    totalConsentRecords: Int!
+    activeConsents: Int!
+    expiredConsents: Int!
+    totalAuditLogs: Int!
+    criticalAlerts: Int!
+    complianceScore: Float!
+  }
+
+  # Activity Record
+  type ActivityRecord {
+    id: ID!
+    action: String!
+    category: String!
+    userId: String
+    userName: String
+    description: String!
+    timestamp: DateTime!
+    metadata: JSON
+  }
+
+  # User Activity Data
+  type UserActivity {
+    date: String!
+    activeUsers: Int!
+    newRegistrations: Int!
+    dataRequests: Int!
+  }
+
+  # GDPR Metrics
+  type ConsentMetrics {
+    purpose: String!
+    granted: Int!
+    revoked: Int!
+    pending: Int!
+  }
+
+  type DataRequestMetrics {
+    type: String!
+    count: Int!
+    avgResponseTime: Float!
+    pendingCount: Int!
+  }
+
+  type RetentionMetrics {
+    dataType: String!
+    recordsManaged: Int!
+    recordsDue: Int!
+    nextReview: DateTime
+  }
+
+  type GDPRMetrics {
+    consentsByPurpose: [ConsentMetrics!]!
+    dataRequestsByType: [DataRequestMetrics!]!
+    retentionMetrics: [RetentionMetrics!]!
+    complianceOverTime: [ComplianceHistoryPoint!]!
+  }
+
+  type ComplianceHistoryPoint {
+    date: String!
+    score: Float!
+    riskLevel: RiskLevel!
+  }
+
+  # GDPR Inputs
+  input GDPRDashboardInput {
+    tenantId: String
+    dateRange: DateRangeInput
+  }
+
+  input DateRangeInput {
+    startDate: DateTime
+    endDate: DateTime
+  }
+
+  input ComplianceActionInput {
+    tenantId: String!
+    action: String!
+    parameters: JSON
+  }
+
+  # Extend Query type for GDPR
+  extend type Query {
+    gdprDashboard(input: GDPRDashboardInput): GDPRDashboard!
+    tenantStats(tenantId: String): TenantStats!
+    userActivity(tenantId: String, days: Int): [UserActivity!]!
+    gdprMetrics(tenantId: String): GDPRMetrics!
+    complianceHistory(tenantId: String, months: Int): [ComplianceHistoryPoint!]!
+  }
+
+  # Extend Mutation type for GDPR
+  extend type Mutation {
+    refreshCompliance(tenantId: String!): GDPRDashboard!
+    executeComplianceAction(input: ComplianceActionInput!): JSON!
+    generateComplianceReport(tenantId: String!, format: String): JSON!
+  }
+
+  # --------------- END GDPR COMPLIANCE TYPES --- V1 ---
 `; 
