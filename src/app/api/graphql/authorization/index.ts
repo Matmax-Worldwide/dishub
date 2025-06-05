@@ -14,8 +14,19 @@ const isAdmin = rule()(async (parent, args, context) => {
     return new Error('Not authenticated!');
   }
   
-  // Check if user has admin-level role
-  const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'];
+  // Check if user has admin-level role using new role names
+  const adminRoles = [
+    'SuperAdmin',           // Global platform admin
+    'PlatformAdmin',        // Platform management
+    'TenantAdmin',          // Tenant administrator
+    'TenantManager',        // Tenant manager
+    'ContentManager',       // CMS admin
+    'HRAdmin',             // HR administrator
+    'BookingAdmin',        // Booking system admin
+    'StoreAdmin',          // E-commerce admin
+    'FinanceManager'       // Finance admin
+  ];
+  
   if (!adminRoles.includes(context.user.role)) {
     return new Error(`Access denied. Admin role required. Current role: ${context.user.role}`);
   }
@@ -78,6 +89,9 @@ export const permissions = shield({
     dashboardStats: or(isAdmin, and(isAuthenticated, hasPermission('view:dashboard_stats'))),
     documentsByStatus: or(isAdmin, isAuthenticated),
     timeEntriesByDay: or(isAdmin, isAuthenticated),
+    
+    // Notification queries
+    unreadNotificationsCount: or(isAdmin, isAuthenticated),
     
     // Role and permission queries - Admin bypass
     roles: or(isAdmin, and(isAuthenticated, hasPermission('list:all_roles'))),
@@ -173,6 +187,9 @@ export const permissions = shield({
     employeesByDepartment: or(isAdmin, and(isAuthenticated, hasPermission('list:employees_by_department'))),
     departments: or(isAdmin, and(isAuthenticated, hasPermission('list:all_departments'))),
     positions: or(isAdmin, and(isAuthenticated, hasPermission('list:all_positions'))),
+    
+    // External links
+    activeExternalLinks: or(isAdmin, isAuthenticated),
     
     '*': or(isAdmin, and(isAuthenticated, or(isAdmin, hasPermission('list:all_resources')))),
   },

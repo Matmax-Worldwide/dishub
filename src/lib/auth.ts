@@ -1,14 +1,29 @@
 // src/lib/auth.ts
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify, JWTPayload } from 'jose'; // Import JWTPayload
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const secret = new TextEncoder().encode(JWT_SECRET);
 
-// Valid role values based on the Prisma schema
-const VALID_ROLES = ['USER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SUPER_ADMIN', 'STAFF']; // Added SUPER_ADMIN, STAFF
+// Updated role names to match the new role system
+const VALID_ROLES = [
+  // Global Platform Roles
+  'SuperAdmin', 'PlatformAdmin', 'SupportAgent',
+  // Tenant Level Roles
+  'TenantAdmin', 'TenantManager', 'TenantUser',
+  // CMS Module Roles
+  'ContentManager', 'ContentEditor',
+  // HRMS Module Roles
+  'HRAdmin', 'HRManager', 'Employee',
+  // Booking Module Roles
+  'BookingAdmin', 'Agent', 'Customer',
+  // E-Commerce Module Roles
+  'StoreAdmin', 'StoreManager',
+  // Future/Complementary Roles
+  'FinanceManager', 'SalesRep', 'Instructor', 'ProjectLead'
+];
 
 // Define a more specific type for our JWT payload
 export interface UserJwtPayload extends JWTPayload {

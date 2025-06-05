@@ -5,80 +5,313 @@ import { useAuth } from '@/hooks/useAuth';
 import { gql } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
 
-// Definición de roles disponibles en la aplicación
-export type RoleName = 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'USER';
+// Updated role names to match the new role system
+export type RoleName = 
+  | 'SuperAdmin' | 'PlatformAdmin' | 'SupportAgent'
+  | 'TenantAdmin' | 'TenantManager' | 'TenantUser'
+  | 'ContentManager' | 'ContentEditor'
+  | 'HRAdmin' | 'HRManager' | 'Employee'
+  | 'BookingAdmin' | 'Agent' | 'Customer'
+  | 'StoreAdmin' | 'StoreManager'
+  | 'FinanceManager' | 'SalesRep' | 'Instructor' | 'ProjectLead';
 
-// Mapeo de roles a permisos
+// Updated permissions mapping for new roles
 const rolePermissions: Record<RoleName, string[]> = {
-  ADMIN: [
-    'dashboard:view',
+  SuperAdmin: [
+    'all:permissions', // SuperAdmin has all permissions
     'admin:view',
-    'users:create',
-    'users:read',
-    'users:update',
-    'users:delete',
-    'roles:create',
-    'roles:read',
-    'roles:update',
-    'roles:delete',
-    'permissions:create',
-    'permissions:read',
-    'permissions:update',
-    'permissions:delete',
-    'notifications:create',
-    'notifications:read',
-    'notifications:update',
-    'notifications:delete',
-    'cms:access',
-    'cms:pages',
-    'cms:media',
-    'cms:menus',
-    'cms:settings',
-    'external-links:manage',
-    'benefits:view',
-    'benefits:manage',
-    'help:view',
-    'settings:view',
-    'settings:manage',
+    'admin:create',
+    'admin:update',
+    'admin:delete',
+    'manage:all_tenants',
+    'access:all_databases',
+    'manage:platform_configuration',
   ],
-  MANAGER: [
-    'dashboard:view',
-    'staff:view',
-    'staff:manage',
-    'reports:view',
-    'approvals:manage',
-    'notifications:read',
-    'notifications:create',
-    'cms:access',
-    'cms:pages',
-    'cms:media',
-    'cms:menus',
-    'cms:settings',
-    'benefits:view',
-    'help:view',
-    'settings:view',
+  
+  PlatformAdmin: [
+    'manage:tenants',
+    'view:tenant_analytics',
+    'manage:modules',
+    'activate:modules',
+    'deactivate:modules',
+    'manage:plans',
+    'view:platform_analytics',
   ],
-  EMPLOYEE: [
-    'dashboard:view',
-    'notifications:read',
-    'benefits:view',
-    'help:view',
-    'settings:view',
+  
+  SupportAgent: [
+    'view:support_dashboard',
+    'view:tickets',
+    'update:ticket',
+    'view:user_issues',
+    'assist:users',
+    'view:system_status',
   ],
-  USER: [
-    'dashboard:view',
-    'profile:view',
-    'profile:edit',
-    'notifications:read',
-    'benefits:view',
-    'help:view',
-    'settings:view',
+  
+  TenantAdmin: [
+    'admin:view',
+    'admin:create',
+    'admin:update',
+    'admin:delete',
+    'manage:tenant_settings',
+    'manage:tenant_users',
+    'activate:tenant_modules',
+    'read:user',
+    'create:user',
+    'update:user',
+    'delete:user',
+    'manage:settings',
+    'access:adminDashboard',
+  ],
+  
+  TenantManager: [
+    'manager:view',
+    'manager:create',
+    'manager:update',
+    'view:reports',
+    'approve:actions',
+    'read:user',
+    'access:managerDashboard',
+  ],
+  
+  TenantUser: [
+    'user:view',
+    'read:post',
+    'update:ownProfile',
+    'access:tenant_dashboard',
+  ],
+  
+  ContentManager: [
+    'admin:view',
+    'create:blog',
+    'update:blog',
+    'delete:blog',
+    'create:post',
+    'update:any_post',
+    'delete:post',
+    'publish:post',
+    'manage:media',
+    'edit:cms_content',
+    'create:page',
+    'edit:page',
+    'delete:page',
+  ],
+  
+  ContentEditor: [
+    'editor:view',
+    'create:post',
+    'update:own_post',
+    'read:any_post',
+    'edit:cms_content',
+    'read:any_page',
+  ],
+  
+  HRAdmin: [
+    'admin:view',
+    'list:employees',
+    'view:any_employee_profile',
+    'create:employee',
+    'update:employee',
+    'delete:employee',
+    'manage:departments',
+    'manage:positions',
+    'view:all_attendance',
+    'manage:attendance',
+    'generate:hr_reports',
+    'manage:leaves',
+    'approve:leave',
+    'reject:leave',
+    'manage:benefits',
+    'manage:payroll',
+    'process:payroll',
+    'manage:performance_reviews',
+    'manage:trainings',
+  ],
+  
+  HRManager: [
+    'manager:view',
+    'list:employees',
+    'view:any_employee_profile',
+    'update:employee',
+    'view:departments',
+    'view:positions',
+    'view:all_attendance',
+    'manage:attendance',
+    'approve:leave',
+    'reject:leave',
+    'view:leaves',
+    'view:benefits',
+    'view:payroll',
+    'create:performance_review',
+    'view:performance_reviews',
+    'assign:training',
+    'view:trainings',
+  ],
+  
+  Employee: [
+    'employee:view',
+    'view:own_employee_profile',
+    'update:own_profile',
+    'view:own_attendance',
+    'clock:in_out',
+    'request:leave',
+    'view:own_leaves',
+    'view:own_benefits',
+    'view:own_payroll',
+    'view:own_performance_reviews',
+    'view:assigned_trainings',
+  ],
+  
+  BookingAdmin: [
+    'admin:view',
+    'manage:locations',
+    'manage:service_categories',
+    'manage:services',
+    'manage:staff_profiles',
+    'manage:booking_rules',
+    'view:all_bookings',
+    'create:booking_for_others',
+    'update:any_booking',
+    'cancel:any_booking',
+    'assign:staff_to_service',
+    'assign:staff_to_location',
+    'update:any_staff_schedule',
+  ],
+  
+  Agent: [
+    'agent:view',
+    'view:own_staff_profile',
+    'update:own_staff_schedule',
+    'view:assigned_bookings',
+    'update:assigned_bookings',
+    'create:booking_for_others',
+  ],
+  
+  Customer: [
+    'customer:view',
+    'create:own_booking',
+    'view:own_bookings',
+    'update:own_booking',
+    'cancel:own_booking',
+    'view:available_services',
+    'view:available_slots',
+    'view:own_orders',
+    'create:order',
+    'view:cart',
+    'update:cart',
+    'view:public_products',
+    'view:product_details',
+  ],
+  
+  StoreAdmin: [
+    'admin:view',
+    'list:shops',
+    'view:shop_details',
+    'create:shop',
+    'update:shop',
+    'delete:shop',
+    'list:products',
+    'view:any_product',
+    'create:product',
+    'update:any_product',
+    'delete:any_product',
+    'manage:product_categories',
+    'view:taxes',
+    'manage:taxes',
+    'list:orders',
+    'view:any_order',
+    'update:any_order',
+    'delete:order',
+    'manage:payment_settings',
+    'view:payments',
+    'manage:payments',
+    'manage:customers',
+    'view:customer_details',
+    'manage:discounts',
+    'manage:currencies',
+    'view:shipping_zones',
+    'manage:shipping_zones',
+  ],
+  
+  StoreManager: [
+    'manager:view',
+    'list:shops',
+    'view:shop_details',
+    'list:products',
+    'view:any_product',
+    'create:product',
+    'update:any_product',
+    'manage:product_categories',
+    'list:orders',
+    'view:any_order',
+    'update:any_order',
+    'view:payments',
+    'manage:customers',
+    'manage:discounts',
+  ],
+  
+  FinanceManager: [
+    'manager:view',
+    'view:financial_reports',
+    'generate:financial_reports',
+    'manage:billing',
+    'create:invoice',
+    'update:invoice',
+    'view:payments',
+    'manage:payments',
+    'manage:taxes',
+    'view:tax_reports',
+    'manage:currencies',
+    'view:revenue_analytics',
+  ],
+  
+  SalesRep: [
+    'sales:view',
+    'view:customers',
+    'create:customer',
+    'update:customer',
+    'view:leads',
+    'create:lead',
+    'update:lead',
+    'view:opportunities',
+    'create:opportunity',
+    'update:opportunity',
+    'view:sales_reports',
+    'track:sales_performance',
+  ],
+  
+  Instructor: [
+    'instructor:view',
+    'view:courses',
+    'create:course',
+    'update:own_course',
+    'view:students',
+    'manage:course_enrollment',
+    'create:lesson',
+    'update:lesson',
+    'delete:own_lesson',
+    'grade:assignments',
+    'view:student_progress',
+  ],
+  
+  ProjectLead: [
+    'project:view',
+    'view:projects',
+    'create:project',
+    'update:project',
+    'view:tasks',
+    'create:task',
+    'update:task',
+    'assign:task',
+    'view:team_members',
+    'assign:team_members',
+    'view:project_reports',
+    'track:project_progress',
   ],
 };
 
-// Consulta GraphQL para obtener los permisos específicos del usuario
+// GraphQL query para obtener permisos específicos del usuario
 const GET_USER_SPECIFIC_PERMISSIONS = gql`
-  query GetUserPermissions($userId: ID!) {
+  query GetUserSpecificPermissions($userId: String!) {
     userSpecificPermissions(userId: $userId) {
       id
       permissionName
@@ -112,25 +345,20 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [roleBasedPermissions, setRoleBasedPermissions] = useState<string[]>([]);
   const [userSpecificPermissions, setUserSpecificPermissions] = useState<UserPermission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Función para cargar permisos específicos del usuario desde la API
-  const loadUserSpecificPermissions = async () => {
-    if (!isAuthenticated || !user?.id) {
-      return [];
-    }
+  // Función para cargar permisos específicos del usuario desde GraphQL
+  const loadUserSpecificPermissions = async (): Promise<UserPermission[]> => {
+    if (!user?.id) return [];
     
     try {
       const { data } = await client.query({
         query: GET_USER_SPECIFIC_PERMISSIONS,
         variables: { userId: user.id },
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'network-only',
       });
       
-      if (data?.userSpecificPermissions) {
-        return data.userSpecificPermissions;
-      }
-      return [];
+      return data.userSpecificPermissions || [];
     } catch (error) {
       console.error('Error loading user specific permissions:', error);
       return [];
@@ -155,7 +383,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       
       const permissionsFromRole = roleName in rolePermissions 
         ? rolePermissions[roleName] 
-        : rolePermissions.USER;
+        : rolePermissions.Employee;
       
       console.log('Permissions for role:', permissionsFromRole);
       setRoleBasedPermissions(permissionsFromRole);
@@ -237,9 +465,9 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       return false;
     }
     
-    // Obtener el nombre del rol del usuario y el rol a verificar (ambos en mayúsculas para comparación insensible a mayúsculas)
-    const userRoleName = user.role.name.toUpperCase();
-    const roleName = role.toUpperCase();
+    // Obtener el nombre del rol del usuario y el rol a verificar
+    const userRoleName = user.role.name;
+    const roleName = role;
     
     console.log('hasRole check:', {
       userRole: user.role,
@@ -248,9 +476,9 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       isMatch: userRoleName === roleName
     });
     
-    // Verificación especial para ADMIN
-    if (roleName === 'ADMIN') {
-      return userRoleName === 'ADMIN';
+    // Verificación especial para SuperAdmin
+    if (roleName === 'SuperAdmin') {
+      return userRoleName === 'SuperAdmin';
     }
     
     return userRoleName === roleName;
