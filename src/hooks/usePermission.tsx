@@ -311,7 +311,7 @@ const rolePermissions: Record<RoleName, string[]> = {
 
 // GraphQL query para obtener permisos específicos del usuario
 const GET_USER_SPECIFIC_PERMISSIONS = gql`
-  query GetUserSpecificPermissions($userId: String!) {
+  query GetUserSpecificPermissions($userId: ID!) {
     userSpecificPermissions(userId: $userId) {
       id
       permissionName
