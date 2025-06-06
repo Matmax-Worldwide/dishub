@@ -1166,7 +1166,7 @@ const resolvers = {
 
     // Include tenant mutations
     createTenant: tenantResolvers.Mutation.createTenant,
-    registerUserWithTenant: tenantResolvers.Mutation.registerUserWithTenant,
+    registerUserWithTenant: tenantResolvers.Mutation.registerWithTenant,
 
     // Include other Mutation resolvers - using type assertion for safety
     ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),

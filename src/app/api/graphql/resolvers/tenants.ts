@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { GraphQLContext } from '../route';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Prisma } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -12,6 +13,7 @@ interface CreateTenantInput {
   status?: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
   planId?: string;
   features?: string[];
+  settings?: Record<string, unknown>;
 }
 
 interface RegisterUserWithTenantInput {
@@ -40,6 +42,25 @@ interface UpdateTenantInput {
   settings?: Record<string, unknown>;
 }
 
+// Helper function to get tenant statistics
+async function getTenantStats(tenantId: string) {
+  try {
+    const [userCount, pageCount, postCount] = await Promise.all([
+      prisma.user.count({ where: { tenantId } }),
+      prisma.page.count({ where: { tenantId } }),
+      prisma.post.count({ where: { blog: { tenantId } } })
+    ]);
+
+    return { userCount, pageCount, postCount };
+  } catch (error) {
+    console.error('Error getting tenant stats:', error);
+    // Return default values if there's an error
+    return { userCount: 0, pageCount: 0, postCount: 0 };
+  }
+}
+
+
+
 export const tenantResolvers = {
   Query: {
     tenants: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
@@ -67,7 +88,7 @@ export const tenantResolvers = {
           throw new Error('Unauthorized: Authentication required');
         }
 
-        if (context.user.role !== 'SUPER_ADMIN' && context.user.tenantId !== id) {
+        if (context.user.role !== 'SUPER_ADMIN' && !context.user.tenants?.some(tenant => tenant.id === id)) {
           throw new Error('Unauthorized: Access denied');
         }
 
@@ -81,6 +102,38 @@ export const tenantResolvers = {
         throw error;
       }
     },
+  },
+
+  // Add resolvers for computed fields on Tenant type
+  Tenant: {
+    userCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.userCount;
+    },
+    pageCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.pageCount;
+    },
+    postCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.postCount;
+    }
+  },
+
+  // Add resolvers for TenantDetails type
+  TenantDetails: {
+    userCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.userCount;
+    },
+    pageCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.pageCount;
+    },
+    postCount: async (parent: { id: string }) => {
+      const stats = await getTenantStats(parent.id);
+      return stats.postCount;
+    }
   },
 
   Mutation: {
@@ -108,6 +161,7 @@ export const tenantResolvers = {
             status: input.status || 'ACTIVE',
             planId: input.planId,
             features: input.features || [],
+            settings: input.settings as Prisma.InputJsonValue
           }
         });
 
@@ -118,7 +172,244 @@ export const tenantResolvers = {
       }
     },
 
-    registerUserWithTenant: async (_parent: unknown, { input }: { input: RegisterUserWithTenantInput }) => {
+    createTenantSuperAdmin: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: GraphQLContext) => {
+      try {
+        // Only super admins can create tenants directly
+        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Super admin access required');
+        }
+
+        // Check if slug is already taken
+        const existingTenant = await prisma.tenant.findUnique({
+          where: { slug: input.slug }
+        });
+
+        if (existingTenant) {
+          return {
+            success: false,
+            message: `Tenant with slug "${input.slug}" already exists`,
+            tenant: null
+          };
+        }
+
+        const tenant = await prisma.tenant.create({
+          data: {
+            name: input.name,
+            slug: input.slug,
+            domain: input.domain,
+            status: input.status || 'ACTIVE',
+            planId: input.planId,
+            features: input.features || [],
+            settings: input.settings as Prisma.InputJsonValue
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Tenant created successfully',
+          tenant
+        };
+      } catch (error) {
+        console.error('Create tenant error:', error);
+        return {
+          success: false,
+          message: `Failed to create tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          tenant: null
+        };
+      }
+    },
+
+    updateTenant: async (_parent: unknown, { id, input }: { id: string; input: UpdateTenantInput }, context: GraphQLContext) => {
+      try {
+        // Check authentication
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // For non-super admins, they can only update their own tenant
+        if (context.user.role !== 'SUPER_ADMIN' && !context.user.tenants?.some(tenant => tenant.id === id)) {
+          throw new Error('Unauthorized: You can only update your own tenant');
+        }
+
+        // Check if the tenant exists
+        const existingTenant = await prisma.tenant.findUnique({
+          where: { id }
+        });
+
+        if (!existingTenant) {
+          throw new Error('Tenant not found');
+        }
+
+        // If slug is being changed, check if the new slug is available
+        if (input.slug && input.slug !== existingTenant.slug) {
+          const slugTaken = await prisma.tenant.findUnique({
+            where: { slug: input.slug }
+          });
+
+          if (slugTaken) {
+            throw new Error(`Tenant with slug "${input.slug}" already exists`);
+          }
+        }
+
+        const updatedTenant = await prisma.tenant.update({
+          where: { id },
+          data: {
+            ...(input.name && { name: input.name }),
+            ...(input.slug && { slug: input.slug }),
+            ...(input.domain !== undefined && { domain: input.domain }),
+            ...(input.status && { status: input.status }),
+            ...(input.planId !== undefined && { planId: input.planId }),
+            ...(input.features && { features: input.features }),
+            ...(input.settings && { settings: input.settings as Prisma.InputJsonValue })
+          }
+        });
+
+        return updatedTenant;
+      } catch (error) {
+        console.error('Update tenant error:', error);
+        throw error;
+      }
+    },
+
+    updateTenantSuperAdmin: async (_parent: unknown, { id, input }: { id: string; input: UpdateTenantInput }, context: GraphQLContext) => {
+      try {
+        // Only super admins can use this mutation
+        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Super admin access required');
+        }
+
+        // Check if the tenant exists
+        const existingTenant = await prisma.tenant.findUnique({
+          where: { id }
+        });
+
+        if (!existingTenant) {
+          return {
+            success: false,
+            message: 'Tenant not found',
+            tenant: null
+          };
+        }
+
+        // If slug is being changed, check if the new slug is available
+        if (input.slug && input.slug !== existingTenant.slug) {
+          const slugTaken = await prisma.tenant.findUnique({
+            where: { slug: input.slug }
+          });
+
+          if (slugTaken) {
+            return {
+              success: false,
+              message: `Tenant with slug "${input.slug}" already exists`,
+              tenant: null
+            };
+          }
+        }
+
+        const updatedTenant = await prisma.tenant.update({
+          where: { id },
+          data: {
+            ...(input.name && { name: input.name }),
+            ...(input.slug && { slug: input.slug }),
+            ...(input.domain !== undefined && { domain: input.domain }),
+            ...(input.status && { status: input.status }),
+            ...(input.planId !== undefined && { planId: input.planId }),
+            ...(input.features && { features: input.features }),
+            ...(input.settings && { settings: input.settings as Prisma.InputJsonValue })
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Tenant updated successfully',
+          tenant: updatedTenant
+        };
+      } catch (error) {
+        console.error('Update tenant error:', error);
+        return {
+          success: false,
+          message: `Failed to update tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          tenant: null
+        };
+      }
+    },
+
+    assignTenantAdmin: async (_parent: unknown, { tenantId, userId }: { tenantId: string; userId: string }, context: GraphQLContext) => {
+      try {
+        // Only super admins can assign tenant admins
+        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+          throw new Error('Unauthorized: Super admin access required');
+        }
+
+        // Check if tenant exists
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!tenant) {
+          return {
+            success: false,
+            message: 'Tenant not found',
+            user: null
+          };
+        }
+
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { role: true }
+        });
+
+        if (!user) {
+          return {
+            success: false,
+            message: 'User not found',
+            user: null
+          };
+        }
+
+        // Find the TenantAdmin role
+        const tenantAdminRole = await prisma.roleModel.findUnique({
+          where: { name: 'TenantAdmin' }
+        });
+
+        if (!tenantAdminRole) {
+          return {
+            success: false,
+            message: 'TenantAdmin role not found in the system',
+            user: null
+          };
+        }
+
+        // Update user to assign them to the tenant and make them a TenantAdmin
+        const updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: {
+            tenantId: tenantId,
+            roleId: tenantAdminRole.id
+          },
+          include: {
+            role: true,
+            tenant: true
+          }
+        });
+
+        return {
+          success: true,
+          message: `User ${user.firstName} ${user.lastName} has been assigned as admin for tenant ${tenant.name}`,
+          user: updatedUser
+        };
+      } catch (error) {
+        console.error('Assign tenant admin error:', error);
+        return {
+          success: false,
+          message: `Failed to assign tenant admin: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          user: null
+        };
+      }
+    },
+
+    registerWithTenant: async (_parent: unknown, { input }: { input: RegisterUserWithTenantInput }) => {
       try {
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -129,7 +420,7 @@ export const tenantResolvers = {
           throw new Error('User with this email already exists');
         }
 
-        // Check if tenant slug is already taken
+        // Check if tenant slug is available
         const existingTenant = await prisma.tenant.findUnique({
           where: { slug: input.tenantSlug }
         });
@@ -138,43 +429,37 @@ export const tenantResolvers = {
           throw new Error(`Tenant with slug "${input.tenantSlug}" already exists`);
         }
 
-        // Validate slug format
-        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.tenantSlug)) {
-          throw new Error('Tenant slug must be lowercase alphanumeric with hyphens only');
-        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(input.password, 12);
 
-        // Find the ADMIN role for the tenant owner
-        let adminRole = await prisma.roleModel.findFirst({
-          where: { name: 'ADMIN' }
-        });
-
-        if (!adminRole) {
-          // Create ADMIN role if it doesn't exist
-          adminRole = await prisma.roleModel.create({
-            data: {
-              name: 'ADMIN',
-              description: 'Administrator with full system access'
-            }
-          });
-        }
-
-        // Use transaction to ensure both user and tenant are created together
+        // Create tenant and user in a transaction
         const result = await prisma.$transaction(async (tx) => {
-          // Create the tenant first
+          // Create tenant
           const tenant = await tx.tenant.create({
             data: {
               name: input.tenantName,
               slug: input.tenantSlug,
               domain: input.tenantDomain,
               status: 'ACTIVE',
-              features: input.tenantFeatures || [],
+              features: input.tenantFeatures || ['CMS_ENGINE']
             }
           });
 
-          // Hash the password
-          const hashedPassword = await bcrypt.hash(input.password, 10);
+          // Find or create TenantAdmin role
+          let tenantAdminRole = await tx.roleModel.findUnique({
+            where: { name: 'TenantAdmin' }
+          });
 
-          // Create the user as admin of the tenant
+          if (!tenantAdminRole) {
+            tenantAdminRole = await tx.roleModel.create({
+              data: {
+                name: 'TenantAdmin',
+                description: 'Administrator of a tenant'
+              }
+            });
+          }
+
+          // Create user
           const user = await tx.user.create({
             data: {
               email: input.email,
@@ -182,123 +467,40 @@ export const tenantResolvers = {
               firstName: input.firstName,
               lastName: input.lastName,
               phoneNumber: input.phoneNumber,
-              roleId: adminRole!.id,
-              tenantId: tenant.id, // Associate user with the tenant
+              tenantId: tenant.id,
+              roleId: tenantAdminRole.id,
+              emailVerified: new Date() // Auto-verify for tenant admin
             },
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              phoneNumber: true,
-              roleId: true,
-              tenantId: true,
-              role: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              },
-              createdAt: true,
-              updatedAt: true,
+            include: {
+              role: true,
+              tenant: true
             }
           });
 
-          return { user, tenant };
+          return { tenant, user };
         });
 
-        // Generate JWT token with tenant information
-        const token = jwt.sign({
-          userId: result.user.id,
-          roleId: result.user.roleId,
-          role: result.user.role?.name || 'ADMIN',
-          tenantId: result.tenant.id
-        }, JWT_SECRET, { expiresIn: '7d' });
-
-        const userWithoutPassword = {
-          id: result.user.id,
-          email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          phoneNumber: result.user.phoneNumber,
-          role: result.user.role || { id: adminRole!.id, name: 'ADMIN', description: 'Administrator with full system access' },
-          tenantId: result.user.tenantId,
-          createdAt: result.user.createdAt,
-          updatedAt: result.user.updatedAt
-        };
+        // Generate JWT token
+        const token = jwt.sign(
+          { 
+            userId: result.user.id, 
+            email: result.user.email,
+            tenantId: result.tenant.id,
+            role: result.user.role?.name 
+          },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
 
         return {
           token,
-          user: userWithoutPassword,
+          user: result.user,
           tenant: result.tenant
         };
       } catch (error) {
-        console.error('Register user with tenant error:', error);
+        console.error('Register with tenant error:', error);
         throw error;
       }
-    },
-
-    updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: GraphQLContext) => {
-      try {
-        // Check authentication
-        if (!context.user) {
-          throw new Error('Not authenticated');
-        }
-
-        // Only super admins or tenant admins can update tenants
-        if (context.user.role !== 'SUPER_ADMIN' && context.user.role !== 'ADMIN') {
-          throw new Error('Unauthorized: Admin access required');
-        }
-
-        const tenantId = input.id;
-
-        // For non-super admins, they can only update their own tenant
-        if (context.user.role !== 'SUPER_ADMIN' && context.tenantId !== tenantId) {
-          throw new Error('Unauthorized: You can only update your own tenant');
-        }
-
-        // Check if tenant exists
-        const existingTenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!existingTenant) {
-          throw new Error(`Tenant with ID ${tenantId} not found`);
-        }
-
-        // If slug is being updated, check if it's already taken by another tenant
-        if (input.slug && input.slug !== existingTenant.slug) {
-          const slugTaken = await prisma.tenant.findFirst({
-            where: { 
-              slug: input.slug,
-              id: { not: tenantId }
-            }
-          });
-
-          if (slugTaken) {
-            throw new Error(`Tenant with slug "${input.slug}" already exists`);
-          }
-        }
-
-        // Update the tenant
-        const updatedTenant = await prisma.tenant.update({
-          where: { id: tenantId },
-          data: {
-            ...(input.name && { name: input.name }),
-            ...(input.slug && { slug: input.slug }),
-            ...(input.domain !== undefined && { domain: input.domain }),
-            ...(input.status && { status: input.status }),
-            ...(input.planId !== undefined && { planId: input.planId }),
-            ...(input.features && { features: input.features }),
-            ...(input.settings !== undefined && { settings: input.settings }),
-          }
-        });
-
-        return updatedTenant;
-      } catch (error) {
-        console.error('Update tenant error:', error);
-        throw error;
-      }
-    },
-  },
+    }
+  }
 }; 

@@ -956,6 +956,85 @@ export const superAdminResolvers = {
           timestamp: new Date().toISOString()
         };
       }
+    },
+
+    // Assign Tenant Admin
+    assignTenantAdmin: async (_parent: Parent, { tenantId, userId }: { tenantId: string; userId: string }, context: Context) => {
+      await requireSuperAdmin(context);
+      
+      try {
+        // Check if tenant exists
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+        
+        if (!tenant) {
+          throw new Error(`Tenant with ID "${tenantId}" not found`);
+        }
+
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { role: true }
+        });
+        
+        if (!user) {
+          throw new Error(`User with ID "${userId}" not found`);
+        }
+
+        // Find or create TenantAdmin role
+        let tenantAdminRole = await prisma.roleModel.findFirst({
+          where: { name: 'TenantAdmin' }
+        });
+
+        if (!tenantAdminRole) {
+          tenantAdminRole = await prisma.roleModel.create({
+            data: {
+              name: 'TenantAdmin',
+              description: 'Tenant administrator with full access to tenant resources'
+            }
+          });
+        }
+
+        // Update user to be admin of this tenant
+        const updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: {
+            tenantId: tenantId,
+            roleId: tenantAdminRole.id
+          },
+          include: {
+            role: true
+          }
+        });
+
+        return {
+          success: true,
+          message: `User "${user.firstName} ${user.lastName}" has been assigned as admin for tenant "${tenant.name}"`,
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            phoneNumber: updatedUser.phoneNumber,
+            role: {
+              id: updatedUser.role!.id,
+              name: updatedUser.role!.name,
+              description: updatedUser.role!.description
+            },
+            tenantId: updatedUser.tenantId!,
+            createdAt: updatedUser.createdAt.toISOString(),
+            updatedAt: updatedUser.updatedAt.toISOString()
+          }
+        };
+      } catch (error) {
+        console.error('Error assigning tenant admin:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to assign tenant admin',
+          user: null
+        };
+      }
     }
   }
 }; 

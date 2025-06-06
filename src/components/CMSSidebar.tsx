@@ -237,14 +237,14 @@ export default function CMSSidebar() {
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
                   {dropdownItems.length > 0 ? (
                     dropdownItems.map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
+                    <Link
+                      key={item.name}
+                      href={item.href}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 first:rounded-t-lg last:rounded-b-lg"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
                         <span className="font-medium">{item.name}</span>
-                      </Link>
+                    </Link>
                     ))
                   ) : (
                     <div className="px-4 py-3 text-sm text-gray-500 italic">
@@ -270,18 +270,18 @@ export default function CMSSidebar() {
         <SidebarContent className="bg-white">
           <SidebarGroup title={t('cms.mainNavigation') || 'Main Navigation'} className="px-3 py-4">
             <div className="space-y-1">
-              {navigationItems.map((item) => (
-                <Link 
-                  key={item.name} 
-                  href={item.href} 
-                  className="block"
-                  onClick={(e) => handleNavigation(item.href, e)}
-                >
-                  <SidebarItem 
+            {navigationItems.map((item) => (
+              <Link 
+                key={item.name} 
+                href={item.href} 
+                className="block"
+                onClick={(e) => handleNavigation(item.href, e)}
+              >
+                <SidebarItem 
                     icon={React.cloneElement(item.icon, { 
                       className: `h-4 w-4 ${isActiveLink(item.href) ? 'text-blue-600' : 'text-gray-500'}`
                     })}
-                    active={isActiveLink(item.href)}
+                  active={isActiveLink(item.href)}
                     className={`
                       flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                       ${isActiveLink(item.href) 
@@ -289,27 +289,27 @@ export default function CMSSidebar() {
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }
                     `}
-                  >
-                    {item.name}
-                  </SidebarItem>
-                </Link>
-              ))}
+                >
+                  {item.name}
+                </SidebarItem>
+              </Link>
+            ))}
             </div>
           </SidebarGroup>
           
           <SidebarGroup title={t('cms.configuration') || 'Configuration'} className="px-3 py-4 border-t border-gray-100">
             <div className="space-y-1">
-              <Link
-                key={settingsNavItem.name}
-                href={settingsNavItem.href}
-                className="block"
-                onClick={(e) => handleNavigation(settingsNavItem.href, e)}
-              >
-                <SidebarItem
+            <Link
+              key={settingsNavItem.name}
+              href={settingsNavItem.href}
+              className="block"
+              onClick={(e) => handleNavigation(settingsNavItem.href, e)}
+            >
+              <SidebarItem
                   icon={React.cloneElement(settingsNavItem.icon, { 
                     className: `h-4 w-4 ${isActiveLink(settingsNavItem.href) ? 'text-blue-600' : 'text-gray-500'}`
                   })}
-                  active={isActiveLink(settingsNavItem.href)}
+                active={isActiveLink(settingsNavItem.href)}
                   className={`
                     flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     ${isActiveLink(settingsNavItem.href) 
@@ -317,10 +317,10 @@ export default function CMSSidebar() {
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }
                   `}
-                >
-                  {settingsNavItem.name}
-                </SidebarItem>
-              </Link>
+              >
+                {settingsNavItem.name}
+              </SidebarItem>
+            </Link>
             </div>
           </SidebarGroup>
         </SidebarContent>

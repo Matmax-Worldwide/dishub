@@ -322,6 +322,30 @@ export const PERFORM_SYSTEM_MAINTENANCE_MUTATION = `
   }
 `;
 
+export const ASSIGN_TENANT_ADMIN_MUTATION = `
+  mutation AssignTenantAdmin($tenantId: ID!, $userId: ID!) {
+    assignTenantAdmin(tenantId: $tenantId, userId: $userId) {
+      success
+      message
+      user {
+        id
+        email
+        firstName
+        lastName
+        phoneNumber
+        role {
+          id
+          name
+          description
+        }
+        tenantId
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
 // Type definitions for TypeScript
 export interface SuperAdminDashboard {
   stats: {
@@ -686,5 +710,48 @@ export class SuperAdminClient {
     await new Promise(resolve => setTimeout(resolve, 2000));
     console.log(`Creating backup for tenant ${id}`);
     return { success: true, message: 'Backup created successfully' };
+  }
+
+  static async assignTenantAdmin(tenantId: string, userId: string): Promise<{
+    success: boolean;
+    message: string;
+    user?: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      phoneNumber?: string;
+      role: {
+        id: string;
+        name: string;
+        description?: string;
+      };
+      tenantId: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }> {
+    const response = await gqlRequest<{
+      assignTenantAdmin: {
+        success: boolean;
+        message: string;
+        user?: {
+          id: string;
+          email: string;
+          firstName: string;
+          lastName: string;
+          phoneNumber?: string;
+          role: {
+            id: string;
+            name: string;
+            description?: string;
+          };
+          tenantId: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+      };
+    }>(ASSIGN_TENANT_ADMIN_MUTATION, { tenantId, userId });
+    return response.assignTenantAdmin;
   }
 } 

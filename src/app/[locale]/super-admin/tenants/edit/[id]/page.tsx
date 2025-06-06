@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   ArrowLeftIcon, 
   SaveIcon, 
@@ -17,9 +18,14 @@ import {
   UsersIcon,
   SettingsIcon,
   AlertCircleIcon,
+  PlusIcon,
+  UserPlusIcon,
+  SearchIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { SuperAdminClient, type TenantDetails } from '@/lib/graphql/superAdmin';
+import { graphqlClient } from '@/lib/graphql-client';
+import TenantAdminManager from '@/components/admin/TenantAdminManager';
 import { toast } from 'sonner';
 
 const AVAILABLE_FEATURES = [
@@ -28,7 +34,6 @@ const AVAILABLE_FEATURES = [
   { id: 'FORMS_MODULE', name: 'Forms Module', description: 'Form builder and submissions' },
   { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
   { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
-  { id: 'HRMS_MODULE', name: 'HRMS Module', description: 'Human resources management' },
 ];
 
 const STATUS_OPTIONS = [
@@ -37,6 +42,20 @@ const STATUS_OPTIONS = [
   { value: 'SUSPENDED', label: 'Suspended', color: 'red' },
   { value: 'ARCHIVED', label: 'Archived', color: 'gray' }
 ];
+
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  role: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  createdAt: string;
+}
 
 export default function EditTenantPage() {
   const params = useParams();
@@ -52,6 +71,24 @@ export default function EditTenantPage() {
     domain: '',
     status: 'ACTIVE',
     features: ['CMS_ENGINE'] as string[]
+  });
+
+  // Admin user management state
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [selectedAdminUser, setSelectedAdminUser] = useState<User | null>(null);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
+
+  // New user form state
+  const [newUserForm, setNewUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    confirmPassword: ''
   });
 
   const loadTenant = async () => {
@@ -88,6 +125,19 @@ export default function EditTenantPage() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const users = await graphqlClient.users();
+      setAvailableUsers(users);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -121,6 +171,57 @@ export default function EditTenantPage() {
     handleInputChange('name', name);
     if (!formData.slug || formData.slug === generateSlug(tenant?.name || '')) {
       handleInputChange('slug', generateSlug(name));
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserForm.firstName || !newUserForm.lastName || !newUserForm.email || !newUserForm.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (newUserForm.password !== newUserForm.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (newUserForm.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setCreatingUser(true);
+      const newUser = await graphqlClient.createUser({
+        email: newUserForm.email,
+        password: newUserForm.password,
+        firstName: newUserForm.firstName,
+        lastName: newUserForm.lastName,
+        phoneNumber: newUserForm.phoneNumber || undefined,
+        role: 'TenantAdmin'
+      });
+
+      toast.success(`User "${newUser.firstName} ${newUser.lastName}" created successfully!`);
+      
+      // Add to available users and select as admin
+      setAvailableUsers(prev => [...prev, newUser]);
+      setSelectedAdminUser(newUser);
+      
+      // Reset form and close modal
+      setNewUserForm({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        password: '',
+        confirmPassword: ''
+      });
+      setShowCreateUserModal(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -202,6 +303,21 @@ export default function EditTenantPage() {
         if (result.tenant) {
           setTenant(result.tenant);
         }
+
+        // Assign admin user if selected
+        if (selectedAdminUser) {
+          try {
+            const assignResult = await SuperAdminClient.assignTenantAdmin(tenantId, selectedAdminUser.id);
+            if (assignResult.success) {
+              toast.success(`Admin user assigned successfully: ${selectedAdminUser.firstName} ${selectedAdminUser.lastName}`);
+            } else {
+              toast.error(`Failed to assign admin user: ${assignResult.message}`);
+            }
+          } catch (error) {
+            console.error('Error assigning admin user:', error);
+            toast.error('Failed to assign admin user');
+          }
+        }
       }
     } catch (error) {
       console.error('Error updating tenant:', error);
@@ -216,9 +332,16 @@ export default function EditTenantPage() {
     }
   };
 
+  const filteredUsers = availableUsers.filter(user => 
+    user.firstName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.lastName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+  );
+
   useEffect(() => {
     if (tenantId) {
       loadTenant();
+      loadUsers();
     }
   }, [tenantId]);
 
@@ -344,8 +467,214 @@ export default function EditTenantPage() {
                   </Select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-             
+          {/* Admin User Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <UserPlusIcon className="h-5 w-5 mr-2" />
+                Initial Admin User
+              </CardTitle>
+              <CardDescription>
+                Create or select the initial administrator for this tenant
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {selectedAdminUser ? (
+                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-green-900">
+                        {selectedAdminUser.firstName} {selectedAdminUser.lastName}
+                      </h4>
+                      <p className="text-sm text-green-700">{selectedAdminUser.email}</p>
+                      <Badge className="mt-1 bg-green-100 text-green-800">
+                        {selectedAdminUser.role.name}
+                      </Badge>
+                    </div>
+                                         <div className="flex space-x-2">
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => setSelectedAdminUser(null)}
+                       >
+                         Change
+                       </Button>
+                       <Button
+                         size="sm"
+                         onClick={async () => {
+                           try {
+                             const assignResult = await SuperAdminClient.assignTenantAdmin(tenantId, selectedAdminUser.id);
+                             if (assignResult.success) {
+                               toast.success(`Admin user assigned successfully!`);
+                             } else {
+                               toast.error(`Failed to assign admin user: ${assignResult.message}`);
+                             }
+                           } catch (error) {
+                             console.error('Error assigning admin user:', error);
+                             toast.error('Failed to assign admin user');
+                           }
+                         }}
+                       >
+                         Assign Now
+                       </Button>
+                     </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Dialog open={showCreateUserModal} onOpenChange={setShowCreateUserModal}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Create New User
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Create New Admin User</DialogTitle>
+                          <DialogDescription>
+                            Create a new user who will be the initial administrator for this tenant.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="firstName">First Name *</Label>
+                              <Input
+                                id="firstName"
+                                value={newUserForm.firstName}
+                                onChange={(e) => setNewUserForm(prev => ({ ...prev, firstName: e.target.value }))}
+                                placeholder="John"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="lastName">Last Name *</Label>
+                              <Input
+                                id="lastName"
+                                value={newUserForm.lastName}
+                                onChange={(e) => setNewUserForm(prev => ({ ...prev, lastName: e.target.value }))}
+                                placeholder="Doe"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email *</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={newUserForm.email}
+                              onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+                              placeholder="john@example.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="phoneNumber">Phone Number</Label>
+                            <Input
+                              id="phoneNumber"
+                              value={newUserForm.phoneNumber}
+                              onChange={(e) => setNewUserForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                              placeholder="+1 (555) 123-4567"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="password">Password *</Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={newUserForm.password}
+                              onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+                              placeholder="Minimum 6 characters"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                            <Input
+                              id="confirmPassword"
+                              type="password"
+                              value={newUserForm.confirmPassword}
+                              onChange={(e) => setNewUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                              placeholder="Confirm password"
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowCreateUserModal(false)}
+                              disabled={creatingUser}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleCreateUser} disabled={creatingUser}>
+                              {creatingUser ? (
+                                <LoaderIcon className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <PlusIcon className="h-4 w-4 mr-2" />
+                              )}
+                              Create User
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <span className="text-gray-500">or</span>
+                    <span className="text-sm text-gray-600">select an existing user below</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search users..."
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    
+                    {loadingUsers ? (
+                      <div className="flex items-center justify-center py-8">
+                        <LoaderIcon className="h-6 w-6 animate-spin text-gray-400" />
+                        <span className="ml-2 text-gray-600">Loading users...</span>
+                      </div>
+                    ) : (
+                      <div className="max-h-60 overflow-y-auto border rounded-lg">
+                        {filteredUsers.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">
+                            {userSearchTerm ? 'No users found matching your search.' : 'No users available.'}
+                          </div>
+                        ) : (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              className="p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => setSelectedAdminUser(user)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium">
+                                    {user.firstName} {user.lastName}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">{user.email}</p>
+                                  <Badge variant="outline" className="mt-1">
+                                    {user.role.name}
+                                  </Badge>
+                                </div>
+                                <Button variant="outline" size="sm">
+                                  Select
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -410,6 +739,12 @@ export default function EditTenantPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Features:</span>
                 <span className="text-sm text-gray-600">{formData.features.length} selected</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Admin User:</span>
+                <span className="text-sm text-gray-600">
+                  {selectedAdminUser ? 'Selected' : 'Not set'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Created:</span>

@@ -3998,9 +3998,10 @@ export const typeDefs = gql`
     description: String
     features: [String!]!
     settings: JSON
-    userCount: Int!
-    pageCount: Int!
-    postCount: Int!
+    userCount: Int
+    pageCount: Int
+    postCount: Int
+    adminUser: User
     createdAt: String!
     updatedAt: String!
   }
@@ -4226,6 +4227,12 @@ export const typeDefs = gql`
     message: String!
   }
 
+  type AssignTenantAdminResult {
+    success: Boolean!
+    message: String!
+    user: User
+  }
+
   # Input Types
   input TenantFilterInput {
     search: String
@@ -4299,6 +4306,7 @@ export const typeDefs = gql`
     createTenantSuperAdmin(input: CreateTenantInput!): TenantMutationResult!
     updateTenantSuperAdmin(id: ID!, input: UpdateTenantInputSuperAdmin!): TenantMutationResult!
     deleteTenant(id: ID!): SimpleResult!
+    assignTenantAdmin(tenantId: ID!, userId: ID!): AssignTenantAdminResult!
     
     # Tenant Operations
     impersonateTenant(tenantId: ID!): ImpersonationResult!

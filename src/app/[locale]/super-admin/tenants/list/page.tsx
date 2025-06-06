@@ -222,10 +222,10 @@ export default function SuperAdminTenantsPage() {
             Refresh
           </Button>
           <Link href="/super-admin/tenants/create">
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create Tenant
-            </Button>
+          <Button>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Tenant
+          </Button>
           </Link>
         </div>
       </div>
@@ -306,14 +306,14 @@ export default function SuperAdminTenantsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
-                            <EditIcon className="h-4 w-4 mr-2" />
-                            Edit Tenant
+                          <EditIcon className="h-4 w-4 mr-2" />
+                          Edit Tenant
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/super-admin/tenants/settings/${tenant.id}`}>
-                            <SettingsIcon className="h-4 w-4 mr-2" />
-                            Manage Settings
+                          <SettingsIcon className="h-4 w-4 mr-2" />
+                          Manage Settings
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

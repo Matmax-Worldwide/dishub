@@ -141,7 +141,7 @@ export function createFeatureMiddleware() {
     
     // Remove locale from pathname for route checking
     const routeWithoutLocale = '/' + pathSegments.slice(1).join('/');
-    
+
     // Permitir rutas que siempre están disponibles
     if (isAlwaysAllowedRoute(routeWithoutLocale, pathname)) {
       return null; // Continuar con la siguiente middleware
