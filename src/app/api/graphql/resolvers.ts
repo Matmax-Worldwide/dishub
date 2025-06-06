@@ -1520,6 +1520,26 @@ const resolvers = {
   PaymentProvider: ecommerceResolvers.PaymentProvider,
   PaymentMethod: ecommerceResolvers.PaymentMethod,
   Payment: ecommerceResolvers.Payment,
+
+  // Add tenant type resolvers
+  Tenant: tenantResolvers.Tenant,
+  TenantDetails: tenantResolvers.TenantDetails,
+
+  // Add user type resolvers
+  User: {
+    tenant: async (parent: { tenantId?: string }) => {
+      if (!parent.tenantId) return null;
+      
+      try {
+        return await prisma.tenant.findUnique({
+          where: { id: parent.tenantId }
+        });
+      } catch (error) {
+        console.error('Error resolving user.tenant:', error);
+        return null;
+      }
+    },
+  },
 };
 
 export default resolvers; 

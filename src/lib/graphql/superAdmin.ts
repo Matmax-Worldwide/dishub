@@ -258,6 +258,21 @@ export const CREATE_TENANT_MUTATION = `
         createdAt
         updatedAt
       }
+      adminUser {
+        id
+        email
+        firstName
+        lastName
+        phoneNumber
+        role {
+          id
+          name
+          description
+        }
+        tenantId
+        createdAt
+        updatedAt
+      }
     }
   }
 `;
@@ -397,9 +412,26 @@ export interface TenantDetails {
     maintenanceMode?: boolean;
     [key: string]: unknown;
   };
+  users: User[];
   userCount: number;
   pageCount: number;
   postCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  role: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  tenantId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -608,9 +640,13 @@ export class SuperAdminClient {
     planId?: string;
     features?: string[];
     settings?: Record<string, unknown>;
-  }): Promise<{ success: boolean; message: string; tenant?: TenantDetails }> {
+    adminEmail?: string;
+    adminFirstName?: string;
+    adminLastName?: string;
+    adminPassword?: string;
+  }): Promise<{ success: boolean; message: string; tenant?: TenantDetails; adminUser?: User }> {
     const response = await gqlRequest<{
-      createTenantSuperAdmin: { success: boolean; message: string; tenant?: TenantDetails };
+      createTenantSuperAdmin: { success: boolean; message: string; tenant?: TenantDetails; adminUser?: User };
     }>(CREATE_TENANT_MUTATION, { input });
     return response.createTenantSuperAdmin;
   }

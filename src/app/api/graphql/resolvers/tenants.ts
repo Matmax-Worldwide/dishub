@@ -14,6 +14,11 @@ interface CreateTenantInput {
   planId?: string;
   features?: string[];
   settings?: Record<string, unknown>;
+  // Admin user data (extracted from settings for easier handling)
+  adminEmail?: string;
+  adminFirstName?: string;
+  adminLastName?: string;
+  adminPassword?: string;
 }
 
 interface RegisterUserWithTenantInput {
@@ -102,6 +107,65 @@ export const tenantResolvers = {
         throw error;
       }
     },
+
+    tenantUsers: async (_parent: unknown, { tenantId }: { tenantId: string }, context: GraphQLContext) => {
+      try {
+        console.log('TenantUsers query - User context:', context.user);
+        console.log('TenantUsers query - User role:', context.user?.role);
+        
+        // Check if user is authenticated
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Allow super admins (check for various role name formats)
+        const userRole = context.user.role;
+        const allowedRoles = ['SUPER_ADMIN', 'SuperAdmin', 'ADMIN', 'Admin'];
+        
+        if (!allowedRoles.includes(userRole)) {
+          console.log(`Access denied for role: ${userRole}. Allowed roles:`, allowedRoles);
+          throw new Error(`Unauthorized: Super admin access required. Current role: ${userRole}`);
+        }
+
+        console.log(`TenantUsers query - Access granted for role: ${userRole}`);
+
+        const users = await prisma.user.findMany({
+          where: { tenantId },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+            tenantId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+                description: true
+              }
+            },
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+
+        console.log(`TenantUsers query - Found ${users.length} users for tenant ${tenantId}`);
+
+        return users.map(user => ({
+          ...user,
+          role: user.role || { id: "default", name: "USER", description: null },
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
+        }));
+      } catch (error) {
+        console.error('Get tenant users error:', error);
+        throw error;
+      }
+    },
   },
 
   // Add resolvers for computed fields on Tenant type
@@ -117,6 +181,29 @@ export const tenantResolvers = {
     postCount: async (parent: { id: string }) => {
       const stats = await getTenantStats(parent.id);
       return stats.postCount;
+    },
+    users: async (parent: { id: string }) => {
+      try {
+        const users = await prisma.user.findMany({
+          where: { tenantId: parent.id },
+          include: {
+            role: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+        
+        return users.map(user => ({
+          ...user,
+          role: user.role || { id: "default", name: "USER", description: null },
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
+        }));
+      } catch (error) {
+        console.error('Error resolving tenant.users:', error);
+        return [];
+      }
     }
   },
 
@@ -192,22 +279,108 @@ export const tenantResolvers = {
           };
         }
 
-        const tenant = await prisma.tenant.create({
-          data: {
-            name: input.name,
-            slug: input.slug,
-            domain: input.domain,
-            status: input.status || 'ACTIVE',
-            planId: input.planId,
-            features: input.features || [],
-            settings: input.settings as Prisma.InputJsonValue
+        // Extract admin user data from settings if provided there, or use direct fields
+        let adminData = null;
+        if (input.settings && typeof input.settings === 'object') {
+          const settings = input.settings as Record<string, unknown>;
+          if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
+            adminData = {
+              email: (settings.adminEmail as string) || input.adminEmail,
+              firstName: (settings.adminFirstName as string) || input.adminFirstName,
+              lastName: (settings.adminLastName as string) || input.adminLastName,
+              password: (settings.adminPassword as string) || input.adminPassword
+            };
           }
+        } else if (input.adminEmail || input.adminFirstName || input.adminLastName || input.adminPassword) {
+          adminData = {
+            email: input.adminEmail,
+            firstName: input.adminFirstName,
+            lastName: input.adminLastName,
+            password: input.adminPassword
+          };
+        }
+
+        // Use transaction to create tenant and admin user atomically
+        const result = await prisma.$transaction(async (tx) => {
+          // Create tenant
+          const tenant = await tx.tenant.create({
+            data: {
+              name: input.name,
+              slug: input.slug,
+              domain: input.domain,
+              status: input.status || 'ACTIVE',
+              planId: input.planId,
+              features: input.features || [],
+              settings: input.settings as Prisma.InputJsonValue
+            }
+          });
+
+          let adminUser = null;
+
+          // Create admin user if admin data is provided
+          if (adminData && adminData.email && adminData.firstName && adminData.lastName && adminData.password) {
+            // Check if user with this email already exists
+            const existingUser = await tx.user.findUnique({
+              where: { email: adminData.email }
+            });
+
+            if (existingUser) {
+              throw new Error(`User with email "${adminData.email}" already exists`);
+            }
+
+            // Find or create TenantAdmin role
+            let tenantAdminRole = await tx.roleModel.findFirst({
+              where: { 
+                OR: [
+                  { name: 'TenantAdmin' },
+                  { name: 'TENANT_ADMIN' }
+                ]
+              }
+            });
+
+            if (!tenantAdminRole) {
+              tenantAdminRole = await tx.roleModel.create({
+                data: {
+                  name: 'TenantAdmin',
+                  description: 'Administrator of a tenant'
+                }
+              });
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(adminData.password, 12);
+
+            // Create admin user
+            adminUser = await tx.user.create({
+              data: {
+                email: adminData.email,
+                password: hashedPassword,
+                firstName: adminData.firstName,
+                lastName: adminData.lastName,
+                tenantId: tenant.id,
+                roleId: tenantAdminRole.id,
+                emailVerified: new Date(), // Auto-verify admin user
+                isActive: true
+              },
+              include: {
+                role: true,
+                tenant: true
+              }
+            });
+          }
+
+          return { tenant, adminUser };
         });
+
+        const message = result.adminUser 
+          ? `Tenant created successfully with admin user: ${result.adminUser.email}`
+          : 'Tenant created successfully';
 
         return {
           success: true,
-          message: 'Tenant created successfully',
-          tenant
+          message,
+          tenant: result.tenant,
+          adminUser: result.adminUser
         };
       } catch (error) {
         console.error('Create tenant error:', error);

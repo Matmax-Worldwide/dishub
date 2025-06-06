@@ -43,6 +43,7 @@ export const typeDefs = gql`
     role: Role
     isActive: Boolean
     tenantId: String
+    tenant: Tenant
     createdAt: String
     updatedAt: String
     notifications: [Notification!]
@@ -3685,6 +3686,7 @@ export const typeDefs = gql`
     planId: String
     # settings: Json # Might be too complex for initial list/form
     features: [String!]
+    users: [User!]
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -3693,6 +3695,7 @@ export const typeDefs = gql`
   extend type Query {
     tenants: [Tenant!]
     tenant(id: ID!): Tenant
+    tenantUsers(tenantId: ID!): [User!]
   }
 
   input CreateTenantInput {
@@ -4199,6 +4202,7 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
     tenant: TenantDetails
+    adminUser: User
   }
 
   type ImpersonationResult {
@@ -4252,6 +4256,11 @@ export const typeDefs = gql`
     planId: String
     features: [String!]
     settings: JSON
+    # Admin user data
+    adminEmail: String
+    adminFirstName: String
+    adminLastName: String
+    adminPassword: String
   }
 
   input UpdateTenantInputSuperAdmin {

@@ -98,13 +98,18 @@ export default function CreateTenantPage() {
     setLoading(true);
 
     try {
-      if (!formData.name || !formData.slug || !formData.adminEmail) {
+      if (!formData.name || !formData.slug || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName || !formData.adminPassword) {
         toast.error('Please fill in all required fields');
         return;
       }
 
       if (!formData.features.includes('CMS_ENGINE')) {
         toast.error('CMS Engine is required and must be selected');
+        return;
+      }
+
+      if (formData.adminPassword.length < 6) {
+        toast.error('Admin password must be at least 6 characters long');
         return;
       }
 
@@ -129,6 +134,10 @@ export default function CreateTenantPage() {
         slug: formData.slug.trim(),
         domain: formData.domain.trim() || undefined,
         features: formData.features,
+        adminEmail: formData.adminEmail,
+        adminFirstName: formData.adminFirstName,
+        adminLastName: formData.adminLastName,
+        adminPassword: formData.adminPassword,
         settings: {
           adminEmail: formData.adminEmail,
           adminFirstName: formData.adminFirstName,
@@ -141,7 +150,10 @@ export default function CreateTenantPage() {
 
       if (result.success) {
         toast.dismiss();
-        toast.success('Tenant created successfully!');
+        const message = result.adminUser 
+          ? `Tenant created successfully with admin user: ${result.adminUser.email}!`
+          : 'Tenant created successfully!';
+        toast.success(message);
         router.push('/super-admin/tenants/list');
       } else {
         toast.dismiss();
