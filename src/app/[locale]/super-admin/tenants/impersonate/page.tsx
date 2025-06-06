@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,35 +17,21 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  LogInIcon
+  LogInIcon,
+  ArrowLeftIcon,
+  LoaderIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface TenantDetails {
-  id: string;
-  name: string;
-  slug: string;
-  domain?: string;
-  status: string;
-  userCount: number;
-  pageCount: number;
-  postCount: number;
-  features: string[];
-  createdAt: string;
-}
-
-interface TenantList {
-  items: TenantDetails[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
+import Link from 'next/link';
+import { SuperAdminClient, type TenantList, type TenantDetails } from '@/lib/graphql/superAdmin';
 
 export default function TenantImpersonationPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantSlugParam = searchParams.get('tenant');
+  
   const [tenants, setTenants] = useState<TenantList | null>(null);
   const [loading, setLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,51 +41,33 @@ export default function TenantImpersonationPage() {
     try {
       setLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const filter = {
+        ...(searchTerm && { search: searchTerm }),
+        ...(statusFilter && statusFilter !== 'ALL' && { status: statusFilter })
+      };
       
-      // Mock data
-      const mockTenants: TenantDetails[] = [
-        {
-          id: '1',
-          name: 'Acme Corporation',
-          slug: 'acme-corp',
-          domain: 'acme.com',
-          status: 'ACTIVE',
-          userCount: 25,
-          pageCount: 45,
-          postCount: 120,
-          features: ['CMS_ENGINE', 'BLOG_MODULE', 'FORMS_MODULE'],
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Tech Startup',
-          slug: 'tech-startup',
-          status: 'ACTIVE',
-          userCount: 12,
-          pageCount: 20,
-          postCount: 45,
-          features: ['CMS_ENGINE', 'BOOKING_ENGINE'],
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
-
-      const filteredTenants = mockTenants.filter(tenant => {
-        const matchesSearch = !searchTerm || 
-          tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          tenant.slug.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'ALL' || tenant.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      });
-
-      setTenants({
-        items: filteredTenants,
-        totalCount: filteredTenants.length,
+      const pagination = {
         page: currentPage,
-        pageSize,
-        totalPages: Math.ceil(filteredTenants.length / pageSize)
-      });
+        pageSize
+      };
+
+      const tenantsData = await SuperAdminClient.getAllTenants(filter, pagination);
+      setTenants(tenantsData);
+
+      // If there's a tenant parameter, try to find and highlight it
+      if (tenantSlugParam && tenantsData.items.length > 0) {
+        const targetTenant = tenantsData.items.find(t => t.slug === tenantSlugParam);
+        if (targetTenant) {
+          // Scroll to tenant or highlight it
+          setTimeout(() => {
+            const element = document.getElementById(`tenant-${targetTenant.id}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              element.classList.add('ring-2', 'ring-indigo-500', 'ring-opacity-50');
+            }
+          }, 100);
+        }
+      }
     } catch (error) {
       console.error('Error loading tenants:', error);
       toast.error('Failed to load tenants');
@@ -113,27 +81,53 @@ export default function TenantImpersonationPage() {
     loadTenants();
   };
 
-  const handleImpersonate = (tenant: TenantDetails) => {
-    sessionStorage.setItem('superadmin_impersonation', JSON.stringify({
-      originalRole: 'SuperAdmin',
-      impersonatedTenant: tenant.id,
-      impersonatedTenantName: tenant.name,
-      impersonatedTenantSlug: tenant.slug,
-      timestamp: new Date().toISOString()
-    }));
+  const handleImpersonate = async (tenant: TenantDetails) => {
+    try {
+      setImpersonating(tenant.id);
+      
+      console.log('Starting impersonation for tenant:', tenant.slug);
+      
+      // Call the real GraphQL impersonation mutation
+      const result = await SuperAdminClient.impersonateTenant(tenant.id);
+      
+      if (result.success && result.impersonationData) {
+        // Store impersonation data in sessionStorage
+        sessionStorage.setItem('superadmin_impersonation', JSON.stringify({
+          originalRole: 'SuperAdmin',
+          impersonatedTenant: result.impersonationData.tenantId,
+          impersonatedTenantName: result.impersonationData.tenantName,
+          impersonatedTenantSlug: result.impersonationData.tenantSlug,
+          impersonatedUserId: result.impersonationData.userId,
+          impersonatedUserEmail: result.impersonationData.userEmail,
+          impersonatedUserRole: result.impersonationData.userRole,
+          timestamp: new Date().toISOString()
+        }));
 
-    const tenantDashboardUrl = `/tenants/${tenant.slug}/dashboard`;
-    toast.success(`Impersonating tenant: ${tenant.name}`);
-    
-    window.location.href = tenantDashboardUrl;
+        toast.success(`Successfully impersonating tenant: ${tenant.name}`);
+        
+        // Redirect to tenant dashboard
+        const tenantDashboardUrl = `/${tenant.slug}/dashboard`;
+        console.log('Redirecting to:', tenantDashboardUrl);
+        
+        // Use window.location for full page redirect to ensure session is properly established
+        window.location.href = tenantDashboardUrl;
+      } else {
+        toast.error(result.message || 'Failed to start impersonation session');
+      }
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      toast.error('Failed to start impersonation session');
+    } finally {
+      setImpersonating(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircleIcon className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200"><XCircleIcon className="h-3 w-3 mr-1" />Inactive</Badge>;
+      case 'archived':
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200"><XCircleIcon className="h-3 w-3 mr-1" />Archived</Badge>;
       case 'suspended':
         return <Badge className="bg-red-100 text-red-800 border-red-200"><AlertTriangleIcon className="h-3 w-3 mr-1" />Suspended</Badge>;
       case 'pending':
@@ -160,17 +154,32 @@ export default function TenantImpersonationPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            👤 Tenant Impersonation
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Switch to tenant admin view to manage tenants directly • {tenants?.totalCount || 0} total tenants
-          </p>
+        <div className="flex items-center space-x-4">
+          <Link href="/super-admin/tenants/list">
+            <Button variant="ghost" size="sm">
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Back to Tenants
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              👤 Tenant Impersonation
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Switch to tenant admin view to manage tenants directly • {tenants?.totalCount || 0} total tenants
+              {tenantSlugParam && (
+                <span className="ml-2 text-indigo-600 font-medium">
+                  • Targeting: {tenantSlugParam}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
+      {/* Impersonation Notice */}
       <Card className="border-yellow-200 bg-yellow-50">
         <CardHeader>
           <CardTitle className="flex items-center text-yellow-800">
@@ -194,6 +203,7 @@ export default function TenantImpersonationPage() {
         </CardContent>
       </Card>
 
+      {/* Search and Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -218,9 +228,9 @@ export default function TenantImpersonationPage() {
               <SelectContent>
                 <SelectItem value="ALL">All Statuses</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="ARCHIVED">Archived</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={handleSearch} className="w-full">
@@ -231,9 +241,14 @@ export default function TenantImpersonationPage() {
         </CardContent>
       </Card>
 
+      {/* Tenants Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {tenants?.items.map((tenant) => (
-          <Card key={tenant.id} className="hover:shadow-lg transition-shadow">
+          <Card 
+            key={tenant.id} 
+            id={`tenant-${tenant.id}`}
+            className="hover:shadow-lg transition-all duration-200"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -300,22 +315,24 @@ export default function TenantImpersonationPage() {
                     Created: {new Date(tenant.createdAt).toLocaleDateString()}
                   </div>
                   <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/super-admin/tenants/list`)}
-                    >
-                      <EyeIcon className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
+                      <Button variant="outline" size="sm">
+                        <EyeIcon className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </Link>
                     <Button
                       size="sm"
                       onClick={() => handleImpersonate(tenant)}
-                      disabled={tenant.status !== 'ACTIVE'}
-                      className="bg-indigo-600 hover:bg-indigo-700"
+                      disabled={tenant.status !== 'ACTIVE' || impersonating === tenant.id}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
                     >
-                      <LogInIcon className="h-4 w-4 mr-1" />
-                      Impersonate
+                      {impersonating === tenant.id ? (
+                        <LoaderIcon className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <LogInIcon className="h-4 w-4 mr-1" />
+                      )}
+                      {impersonating === tenant.id ? 'Starting...' : 'Impersonate'}
                     </Button>
                   </div>
                 </div>
@@ -325,6 +342,7 @@ export default function TenantImpersonationPage() {
         ))}
       </div>
 
+      {/* Pagination */}
       {tenants && tenants.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
@@ -352,6 +370,21 @@ export default function TenantImpersonationPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* No tenants found */}
+      {tenants && tenants.items.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No tenants found</h3>
+            <p className="text-gray-500">
+              {searchTerm || statusFilter !== 'ALL' 
+                ? 'Try adjusting your search criteria or filters.'
+                : 'No tenants are available for impersonation.'}
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

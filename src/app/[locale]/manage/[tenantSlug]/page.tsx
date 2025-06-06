@@ -143,7 +143,7 @@ export default function TenantRootPage() {
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-700">Ruta</h4>
-              <p className="text-sm text-gray-600 font-mono">/{params.locale}/tenants/{params.tenantSlug}</p>
+              <p className="text-sm text-gray-600 font-mono">/{params.locale}/{params.tenantSlug}</p>
             </div>
           </div>
         </div>

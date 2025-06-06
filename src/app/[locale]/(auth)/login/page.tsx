@@ -116,7 +116,7 @@ export default function LoginPage() {
       sessionStorage.setItem('justLoggedIn', 'true');
       
       // Determine redirect path based on user role
-      let redirectPath = `/${locale}/admin/dashboard`; // Fallback path if tenant not found
+      let redirectPath = `/${locale}`; // Fallback path if tenant not found
       
       if (transformedUser.role?.name === 'SuperAdmin') {
         redirectPath = `/${locale}/super-admin/dashboard`;

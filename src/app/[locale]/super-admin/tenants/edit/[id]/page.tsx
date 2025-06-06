@@ -66,11 +66,17 @@ export default function EditTenantPage() {
           ? tenantData.features 
           : ['CMS_ENGINE', ...tenantData.features];
 
+        // Handle legacy status values
+        let normalizedStatus = tenantData.status;
+        if (normalizedStatus === 'INACTIVE') {
+          normalizedStatus = 'ARCHIVED';
+        }
+
         setFormData({
           name: tenantData.name,
           slug: tenantData.slug,
           domain: tenantData.domain || '',
-          status: tenantData.status,
+          status: normalizedStatus,
           features: features
         });
       }
@@ -143,6 +149,12 @@ export default function EditTenantPage() {
         return;
       }
 
+      // Normalize status value (handle legacy values)
+      let normalizedStatus = formData.status;
+      if (normalizedStatus === 'INACTIVE') {
+        normalizedStatus = 'ARCHIVED';
+      }
+
       // Optimistic UI: Update tenant state immediately
       const previousTenant = tenant;
       const optimisticTenant: TenantDetails = {
@@ -150,7 +162,7 @@ export default function EditTenantPage() {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         domain: formData.domain.trim() || undefined,
-        status: formData.status,
+        status: normalizedStatus,
         features: formData.features,
         updatedAt: new Date().toISOString()
       };
@@ -164,7 +176,7 @@ export default function EditTenantPage() {
           name: formData.name.trim(),
           slug: formData.slug.trim(),
           domain: formData.domain.trim() || undefined,
-          status: formData.status,
+          status: normalizedStatus,
           features: formData.features
         }
       });
@@ -174,7 +186,7 @@ export default function EditTenantPage() {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         domain: formData.domain.trim() || undefined,
-        status: formData.status,
+        status: normalizedStatus,
         features: formData.features
       });
 
