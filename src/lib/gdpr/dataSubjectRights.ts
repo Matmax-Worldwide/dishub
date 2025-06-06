@@ -450,10 +450,14 @@ export class DataSubjectRightsPortal {
         settings: true,
         employee: true,
         addresses: true,
+        userTenants: {
+          where: { isActive: true },
+          select: { tenantId: true }
+        }
       },
     });
 
-    if (!user || user.tenantId !== tenantId) {
+    if (!user || !user.userTenants.some(ut => ut.tenantId === tenantId)) {
       throw new Error('User not found or access denied');
     }
 
