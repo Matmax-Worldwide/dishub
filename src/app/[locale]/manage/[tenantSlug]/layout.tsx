@@ -9,7 +9,15 @@ const GET_USER_DATA = gql`
   query GetUserData {
     me {
       id
-      tenantId
+      userTenants {
+        tenantId
+        role
+        tenant {
+          id
+          slug
+          name
+        }
+      }
       role {
         name
       }
@@ -51,10 +59,13 @@ export default function TenantLayout({
     }
   });
 
-  // Get tenant features based on user's tenantId
+  // Get first tenant from user's tenant relationships
+  const firstTenantId = userData?.me?.userTenants?.[0]?.tenantId;
+  
+  // Get tenant features based on user's first tenantId
   const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
-    variables: { tenantId: userData?.me?.tenantId || '' },
-    skip: !userData?.me?.tenantId,
+    variables: { tenantId: firstTenantId || '' },
+    skip: !firstTenantId,
     onCompleted: (data) => {
       console.log('Tenant features loaded:', data?.tenant?.features);
     },

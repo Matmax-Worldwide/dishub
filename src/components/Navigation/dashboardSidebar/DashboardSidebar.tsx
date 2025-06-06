@@ -40,7 +40,15 @@ const GET_USER_PROFILE = gql`
       email
       firstName
       lastName
-      tenantId
+      userTenants {
+          tenantId
+        role
+        tenant {
+          id
+          slug
+          name
+        }
+      }
       role {
         id
         name
@@ -137,11 +145,15 @@ export function DashboardSidebar() {
     },
   });
 
+  // Get first tenant from user's tenant relationships
+  const firstTenant = data?.me?.userTenants?.[0]?.tenant;
+  const firstTenantId = data?.me?.userTenants?.[0]?.tenantId;
+  
   // Cargar datos del tenant
   const { data: tenantData } = useQuery(GET_TENANT, {
     client,
-    variables: { id: data?.me?.tenantId },
-    skip: !data?.me?.tenantId,
+    variables: { id: firstTenantId },
+    skip: !firstTenantId,
     errorPolicy: 'all',
     fetchPolicy: 'cache-first',
     onCompleted: (data) => {
@@ -300,8 +312,8 @@ export function DashboardSidebar() {
 
   // Transform navigation items for admin/tenant admin
   const transformedBaseNavigationItems: NavItem[] = useMemo(() => {
-    // Get tenant slug from tenantData or params
-    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    // Get tenant slug from multiple sources
+    const currentTenantSlug = firstTenant?.slug || tenantData?.tenant?.slug || tenantSlug;
     
     const items = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
       ...item,
@@ -325,7 +337,7 @@ export function DashboardSidebar() {
     }
     
     return transformNavItemsForTenantDashboard(items);
-  }, [params.locale, t, isInTenantDashboard, tenantSlug, showAsTenantAdmin, tenantData?.tenant?.slug]);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug, showAsTenantAdmin, firstTenant?.slug, tenantData?.tenant?.slug]);
 
   const transformedAdminNavigationItems: NavItem[] = useMemo(() => {
     const items = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
@@ -340,8 +352,8 @@ export function DashboardSidebar() {
   }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
   const transformedTenantAdminNavigationItems: NavItem[] = useMemo(() => {
-    // Get tenant slug from tenantData or params
-    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    // Get tenant slug from multiple sources
+    const currentTenantSlug = firstTenant?.slug || tenantData?.tenant?.slug || tenantSlug;
     
     const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string, currentTenantSlug).map(item => ({
       ...item,
@@ -361,7 +373,7 @@ export function DashboardSidebar() {
     
     // Since we're now generating the correct URLs directly, we don't need to transform them
     return filteredItems;
-  }, [params.locale, t, tenantFeatures, tenantData?.tenant?.slug, tenantSlug]);
+  }, [params.locale, t, tenantFeatures, firstTenant?.slug, tenantData?.tenant?.slug, tenantSlug]);
 
   // SuperAdmin navigation items - MCP (Master Control Panel)
   const transformedSuperAdminNavigationItems: NavItem[] = useMemo(() => {
@@ -650,15 +662,15 @@ export function DashboardSidebar() {
 
   // Helper function to format tenant name for display
   const getTenantDisplayName = (): string => {
-    const tenantName = tenantData?.tenant?.name;
-    const tenantSlug = tenantData?.tenant?.slug;
+    const tenantName = firstTenant?.name || tenantData?.tenant?.name;
+    const tenantSlug = firstTenant?.slug || tenantData?.tenant?.slug;
     
     // Show loading indicator if tenant data is still loading
-    if (!data?.me?.tenantId) {
+    if (!firstTenantId) {
       return '...'; // Loading state - no tenant ID yet
     }
     
-    if (data?.me?.tenantId && !tenantData?.tenant) {
+    if (firstTenantId && !tenantName && !tenantSlug) {
       return '...'; // Loading state - have tenant ID but tenant data still loading
     }
     

@@ -261,7 +261,6 @@ Cada engine puede reportar métricas específicas:
 auditLog({
   engine: 'CMS_ENGINE',
   action: 'PAGE_CREATED',
-  tenantId: tenant.id,
   userId: user.id,
   metadata: { pageId, pageName }
 });

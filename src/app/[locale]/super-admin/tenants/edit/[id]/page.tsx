@@ -48,12 +48,15 @@ interface User {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  tenantId?: string;
-  tenant?: {
-    id: string;
-    name: string;
-    slug: string;
-  };
+  userTenants?: {
+    tenantId: string;
+    role: string;
+    tenant: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }[];
   role: {
     id: string;
     name: string;
@@ -133,34 +136,37 @@ export default function EditTenantPage() {
     
     try {
       setLoadingAdmin(true);
-      // Query to get users for this specific tenant
+      // Query to get tenant members (users with tenant relationships)
       const query = `
-        query GetTenantUsers($tenantId: ID!) {
-          tenantUsers(tenantId: $tenantId) {
-            id
-            email
-            firstName
-            lastName
-            phoneNumber
-            tenantId
-            role {
+        query GetTenantMembers($tenantId: ID!) {
+          tenantMembers(tenantId: $tenantId) {
+            user {
               id
-              name
-              description
+              email
+              firstName
+              lastName
+              phoneNumber
+              role {
+                id
+                name
+                description
+              }
+              createdAt
             }
-            createdAt
+            role
+            tenantId
           }
         }
       `;
       
-      const response = await gqlRequest<{ tenantUsers: User[] }>(query, { tenantId });
+      const response = await gqlRequest<{ tenantMembers: { user: User; role: string; tenantId: string }[] }>(query, { tenantId });
       
-      if (response && response.tenantUsers) {
-        // Find admin user from tenant users
-        const adminUser = response.tenantUsers.find(user => 
-          user.role.name === 'TenantAdmin' || user.role.name === 'TENANT_ADMIN'
+      if (response && response.tenantMembers) {
+        // Find admin user from tenant members
+        const adminMember = response.tenantMembers.find(member => 
+          member.role === 'OWNER' || member.role === 'ADMIN'
         );
-        setCurrentAdminUser(adminUser || null);
+        setCurrentAdminUser(adminMember?.user || null);
       }
     } catch (error) {
       console.error('Error loading current admin:', error);

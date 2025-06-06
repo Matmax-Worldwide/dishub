@@ -5,6 +5,7 @@ import { dpiaManager } from '@/lib/gdpr/dpiaManager';
 import { retentionManager } from '@/lib/gdpr/retentionManager';
 import { auditLogger } from '@/lib/audit/auditLogger';
 import { prismaManager } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // Types for better type safety
 interface Context {
@@ -38,21 +39,32 @@ interface ComplianceActionInput {
 
 // Helper function to get tenant ID from context
 function getTenantId(context: Context, inputTenantId?: string): string {
-  return inputTenantId || context.tenantId || context.user?.tenantId || 'default';
+  return inputTenantId || context.tenantId || 'default';
 }
 
 // Helper function to verify user permissions
 async function verifyUserAccess(context: Context, tenantId: string): Promise<boolean> {
   if (!context.user) return false;
   
-  // TenantAdmin can access their own tenant data
-  if (context.user.role === 'TenantAdmin' && context.user.tenantId === tenantId) {
-    return true;
-  }
-  
   // SuperAdmin can access any tenant
   if (context.user.role === 'SuperAdmin') {
     return true;
+  }
+  
+  // TenantAdmin can access their own tenant data - check through userTenants relationship
+  if (context.user.role === 'TenantAdmin') {
+    // Get user's tenant relationships to verify access
+    const user = await prisma.user.findUnique({
+      where: { id: context.user.id },
+      include: {
+        userTenants: {
+          where: { isActive: true },
+          select: { tenantId: true }
+        }
+      }
+    });
+    
+    return user?.userTenants.some((ut: { tenantId: string }) => ut.tenantId === tenantId) || false;
   }
   
   return false;
@@ -87,11 +99,11 @@ export const gdprResolvers = {
           expiredConsents,
           totalAuditLogs
         ] = await Promise.all([
-          prisma.user.count({ where: { tenantId } }),
-          prisma.user.count({ where: { tenantId, isActive: true } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId } } } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId, isActive: true } } } }),
           prisma.user.count({
             where: {
-              tenantId,
+              userTenants: { some: { tenantId } },
               createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
             }
           }),
@@ -177,11 +189,11 @@ export const gdprResolvers = {
           expiredConsents,
           totalAuditLogs
         ] = await Promise.all([
-          prisma.user.count({ where: { tenantId: finalTenantId } }),
-          prisma.user.count({ where: { tenantId: finalTenantId, isActive: true } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId: finalTenantId } } } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId: finalTenantId, isActive: true } } } }),
           prisma.user.count({
             where: {
-              tenantId: finalTenantId,
+              userTenants: { some: { tenantId: finalTenantId } },
               createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
             }
           }),
@@ -393,11 +405,11 @@ export const gdprResolvers = {
           expiredConsents,
           totalAuditLogs
         ] = await Promise.all([
-          prisma.user.count({ where: { tenantId } }),
-          prisma.user.count({ where: { tenantId, isActive: true } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId } } } }),
+          prisma.user.count({ where: { userTenants: { some: { tenantId, isActive: true } } } }),
           prisma.user.count({
             where: {
-              tenantId,
+              userTenants: { some: { tenantId } },
               createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
             }
           }),

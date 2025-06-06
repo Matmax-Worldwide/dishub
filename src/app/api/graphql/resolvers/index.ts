@@ -117,7 +117,11 @@ const authResolvers = {
         const user = await prisma.user.findUnique({
           where: { id: decoded.userId },
           include: {
-            role: true
+            role: true,
+            userTenants: {
+              where: { isActive: true },
+              select: { tenantId: true }
+            }
           }
         });
 
@@ -133,7 +137,7 @@ const authResolvers = {
           firstName: user.firstName,
           lastName: user.lastName,
           phoneNumber: user.phoneNumber,
-          tenantId: user.tenantId,
+          userTenants: user.userTenants,
           role: {
             id: user.role?.id || '',
             name: user.role?.name || 'USER'

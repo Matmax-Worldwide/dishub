@@ -47,11 +47,28 @@ interface UpdateTenantInput {
   settings?: Record<string, unknown>;
 }
 
+interface AddUserToTenantInput {
+  userId: string;
+  tenantId: string;
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
+}
+
+interface UpdateUserTenantRoleInput {
+  userId: string;
+  tenantId: string;
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
+}
+
+interface RemoveUserFromTenantInput {
+  userId: string;
+  tenantId: string;
+}
+
 // Helper function to get tenant statistics
 async function getTenantStats(tenantId: string) {
   try {
     const [userCount, pageCount, postCount] = await Promise.all([
-      prisma.user.count({ where: { tenantId } }),
+      prisma.userTenant.count({ where: { tenantId, isActive: true } }),
       prisma.page.count({ where: { tenantId } }),
       prisma.post.count({ where: { blog: { tenantId } } })
     ]);
@@ -64,7 +81,19 @@ async function getTenantStats(tenantId: string) {
   }
 }
 
-
+// Helper function to check if user has access to tenant
+async function userHasAccessToTenant(userId: string, tenantId: string): Promise<boolean> {
+  const userTenant = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId,
+        tenantId
+      }
+    }
+  });
+  
+  return userTenant?.isActive === true;
+}
 
 export const tenantResolvers = {
   Query: {
@@ -94,24 +123,18 @@ export const tenantResolvers = {
         }
 
         // Super admins can access any tenant
-        if (context.user.role === 'SuperAdmin' || context.user.role === 'SuperAdmin') {
+        if (context.user.role === 'SuperAdmin') {
           const tenant = await prisma.tenant.findUnique({
             where: { id }
           });
           return tenant;
         }
 
-        // TenantAdmin and other tenant users can only access their own tenant
-        // Check multiple sources: tenants array, currentTenantIdFromJwt, and context tenantId
-        const hasAccess = context.user.tenants?.some(tenant => tenant.id === id) || 
-                         context.user.currentTenantIdFromJwt === id ||
-                         context.tenantId === id;
+        // Check if user has access to this tenant
+        const hasAccess = await userHasAccessToTenant(context.user.id, id);
 
         if (!hasAccess) {
           console.log(`Access denied for user ${context.user.id} with role ${context.user.role} to tenant ${id}.`);
-          console.log(`  User currentTenantIdFromJwt: ${context.user.currentTenantIdFromJwt}`);
-          console.log(`  Context tenantId: ${context.tenantId}`);
-          console.log(`  Requested tenant ID: ${id}`);
           throw new Error('Unauthorized: Access denied');
         }
 
@@ -136,51 +159,145 @@ export const tenantResolvers = {
           throw new Error('Unauthorized: Authentication required');
         }
 
-        // Allow super admins (check for various role name formats)
+        // Allow super admins or users with access to the tenant
         const userRole = context.user.role;
-        const allowedRoles = ['SuperAdmin', 'SuperAdmin', 'ADMIN', 'Admin'];
+        const allowedRoles = ['SuperAdmin', 'ADMIN', 'Admin'];
         
         if (!allowedRoles.includes(userRole)) {
+          // Check if user has access to this tenant
+          const hasAccess = await userHasAccessToTenant(context.user.id, tenantId);
+          if (!hasAccess) {
           console.log(`Access denied for role: ${userRole}. Allowed roles:`, allowedRoles);
-          throw new Error(`Unauthorized: Super admin access required. Current role: ${userRole}`);
+            throw new Error(`Unauthorized: Access denied. Current role: ${userRole}`);
+          }
         }
 
         console.log(`TenantUsers query - Access granted for role: ${userRole}`);
 
-        const users = await prisma.user.findMany({
-          where: { tenantId },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
-            tenantId: true,
-            role: {
-              select: {
-                id: true,
-                name: true,
-                description: true
+        const userTenants = await prisma.userTenant.findMany({
+          where: { tenantId, isActive: true },
+          include: {
+            user: {
+              include: {
+                role: true
               }
-            },
-            createdAt: true,
-            updatedAt: true,
+            }
           },
           orderBy: {
-            createdAt: 'desc'
+            joinedAt: 'desc'
           }
         });
 
-        console.log(`TenantUsers query - Found ${users.length} users for tenant ${tenantId}`);
+        console.log(`TenantUsers query - Found ${userTenants.length} users for tenant ${tenantId}`);
 
-        return users.map(user => ({
-          ...user,
-          role: user.role || { id: "default", name: "USER", description: null },
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString()
+        return userTenants.map(userTenant => ({
+          ...userTenant.user,
+          role: userTenant.user.role || { id: "default", name: "USER", description: null },
+          createdAt: userTenant.user.createdAt.toISOString(),
+          updatedAt: userTenant.user.updatedAt.toISOString()
         }));
       } catch (error) {
         console.error('Get tenant users error:', error);
+        throw error;
+      }
+    },
+
+    userTenants: async (_parent: unknown, { userId }: { userId: string }, context: GraphQLContext) => {
+      try {
+        // Users can only see their own tenants or super admins can see any
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        if (context.user.role !== 'SuperAdmin' && context.user.id !== userId) {
+          throw new Error('Unauthorized: Can only view your own tenants');
+        }
+
+        const userTenants = await prisma.userTenant.findMany({
+          where: { userId, isActive: true },
+          include: {
+            tenant: true,
+            user: true
+          },
+          orderBy: {
+            joinedAt: 'desc'
+          }
+        });
+
+        return userTenants;
+      } catch (error) {
+        console.error('Get user tenants error:', error);
+        throw error;
+      }
+    },
+
+    tenantMembers: async (_parent: unknown, { tenantId }: { tenantId: string }, context: GraphQLContext) => {
+      try {
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Check if user has access to this tenant or is super admin
+        if (context.user.role !== 'SuperAdmin') {
+          const hasAccess = await userHasAccessToTenant(context.user.id, tenantId);
+          if (!hasAccess) {
+            throw new Error('Unauthorized: Access denied');
+          }
+        }
+
+        const userTenants = await prisma.userTenant.findMany({
+          where: { tenantId, isActive: true },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          },
+          orderBy: {
+            joinedAt: 'desc'
+          }
+        });
+
+        return userTenants;
+      } catch (error) {
+        console.error('Get tenant members error:', error);
+        throw error;
+      }
+    },
+
+    userTenant: async (_parent: unknown, { userId, tenantId }: { userId: string, tenantId: string }, context: GraphQLContext) => {
+      try {
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Users can only see their own relationship or super admins can see any
+        if (context.user.role !== 'SuperAdmin' && context.user.id !== userId) {
+          throw new Error('Unauthorized: Access denied');
+        }
+
+        const userTenant = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId,
+              tenantId
+            }
+          },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          }
+        });
+
+        return userTenant;
+      } catch (error) {
+        console.error('Get user tenant error:', error);
         throw error;
       }
     },
@@ -200,26 +317,98 @@ export const tenantResolvers = {
       const stats = await getTenantStats(parent.id);
       return stats.postCount;
     },
-    users: async (parent: { id: string }) => {
+    userTenants: async (parent: { id: string }) => {
       try {
-        const users = await prisma.user.findMany({
-          where: { tenantId: parent.id },
+        const userTenants = await prisma.userTenant.findMany({
+          where: { tenantId: parent.id, isActive: true },
           include: {
-            role: true
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
           },
           orderBy: {
-            createdAt: 'desc'
+            joinedAt: 'desc'
           }
         });
         
-        return users.map(user => ({
-          ...user,
-          role: user.role || { id: "default", name: "USER", description: null },
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString()
+        return userTenants;
+      } catch (error) {
+        console.error('Error resolving tenant.userTenants:', error);
+        return [];
+      }
+    },
+    users: async (parent: { id: string }) => {
+      try {
+        const userTenants = await prisma.userTenant.findMany({
+          where: { tenantId: parent.id, isActive: true },
+          include: {
+            user: {
+          include: {
+            role: true
+              }
+            }
+          },
+          orderBy: {
+            joinedAt: 'desc'
+          }
+        });
+        
+        return userTenants.map(userTenant => ({
+          ...userTenant.user,
+          role: userTenant.user.role || { id: "default", name: "USER", description: null },
+          createdAt: userTenant.user.createdAt.toISOString(),
+          updatedAt: userTenant.user.updatedAt.toISOString()
         }));
       } catch (error) {
         console.error('Error resolving tenant.users:', error);
+        return [];
+      }
+    }
+  },
+
+  // Add resolvers for User type
+  User: {
+    userTenants: async (parent: { id: string }) => {
+      try {
+        const userTenants = await prisma.userTenant.findMany({
+          where: { userId: parent.id, isActive: true },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          },
+          orderBy: {
+            joinedAt: 'desc'
+          }
+        });
+        
+        return userTenants;
+      } catch (error) {
+        console.error('Error resolving user.userTenants:', error);
+        return [];
+      }
+    },
+    tenants: async (parent: { id: string }) => {
+      try {
+        const userTenants = await prisma.userTenant.findMany({
+          where: { userId: parent.id, isActive: true },
+          include: {
+            tenant: true
+          },
+          orderBy: {
+            joinedAt: 'desc'
+          }
+        });
+        
+        return userTenants.map(userTenant => userTenant.tenant);
+      } catch (error) {
+        console.error('Error resolving user.tenants:', error);
         return [];
       }
     }
@@ -249,15 +438,6 @@ export const tenantResolvers = {
           throw new Error('Unauthorized: Super admin access required');
         }
 
-        // Check if slug is already taken
-        const existingTenant = await prisma.tenant.findUnique({
-          where: { slug: input.slug }
-        });
-
-        if (existingTenant) {
-          throw new Error(`Tenant with slug "${input.slug}" already exists`);
-        }
-
         const tenant = await prisma.tenant.create({
           data: {
             name: input.name,
@@ -266,7 +446,7 @@ export const tenantResolvers = {
             status: input.status || 'ACTIVE',
             planId: input.planId,
             features: input.features || [],
-            settings: input.settings as Prisma.InputJsonValue
+            settings: (input.settings as Prisma.JsonValue) || {}
           }
         });
 
@@ -277,330 +457,28 @@ export const tenantResolvers = {
       }
     },
 
-    createTenantSuperAdmin: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: GraphQLContext) => {
+    updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: GraphQLContext) => {
       try {
-        // Only super admins can create tenants directly
+        // Only super admins can update tenants directly
         if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
-        // Check if slug is already taken
-        const existingTenant = await prisma.tenant.findUnique({
-          where: { slug: input.slug }
-        });
+        const { id, ...updateData } = input;
 
-        if (existingTenant) {
-          return {
-            success: false,
-            message: `Tenant with slug "${input.slug}" already exists`,
-            tenant: null
-          };
-        }
-
-        // Extract admin user data from settings if provided there, or use direct fields
-        let adminData = null;
-        if (input.settings && typeof input.settings === 'object') {
-          const settings = input.settings as Record<string, unknown>;
-          if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
-            adminData = {
-              email: (settings.adminEmail as string) || input.adminEmail,
-              firstName: (settings.adminFirstName as string) || input.adminFirstName,
-              lastName: (settings.adminLastName as string) || input.adminLastName,
-              password: (settings.adminPassword as string) || input.adminPassword
-            };
-          }
-        } else if (input.adminEmail || input.adminFirstName || input.adminLastName || input.adminPassword) {
-          adminData = {
-            email: input.adminEmail,
-            firstName: input.adminFirstName,
-            lastName: input.adminLastName,
-            password: input.adminPassword
-          };
-        }
-
-        // Use transaction to create tenant and admin user atomically
-        const result = await prisma.$transaction(async (tx) => {
-          // Create tenant
-          const tenant = await tx.tenant.create({
-            data: {
-              name: input.name,
-              slug: input.slug,
-              domain: input.domain,
-              status: input.status || 'ACTIVE',
-              planId: input.planId,
-              features: input.features || [],
-              settings: input.settings as Prisma.InputJsonValue
-            }
-          });
-
-          let adminUser = null;
-
-          // Create admin user if admin data is provided
-          if (adminData && adminData.email && adminData.firstName && adminData.lastName && adminData.password) {
-            // Check if user with this email already exists
-            const existingUser = await tx.user.findUnique({
-              where: { email: adminData.email }
-            });
-
-            if (existingUser) {
-              throw new Error(`User with email "${adminData.email}" already exists`);
-            }
-
-            // Find or create TenantAdmin role
-            let tenantAdminRole = await tx.roleModel.findFirst({
-              where: { 
-                OR: [
-                  { name: 'TenantAdmin' },
-                  { name: 'TENANT_ADMIN' }
-                ]
-              }
-            });
-
-            if (!tenantAdminRole) {
-              tenantAdminRole = await tx.roleModel.create({
-                data: {
-                  name: 'TenantAdmin',
-                  description: 'Administrator of a tenant'
-                }
-              });
-            }
-
-            // Hash password
-            const hashedPassword = await bcrypt.hash(adminData.password, 12);
-
-            // Create admin user
-            adminUser = await tx.user.create({
-              data: {
-                email: adminData.email,
-                password: hashedPassword,
-                firstName: adminData.firstName,
-                lastName: adminData.lastName,
-                tenantId: tenant.id,
-                roleId: tenantAdminRole.id,
-                emailVerified: new Date(), // Auto-verify admin user
-                isActive: true
-              },
-              include: {
-                role: true,
-                tenant: true
-              }
-            });
-          }
-
-          return { tenant, adminUser };
-        });
-
-        const message = result.adminUser 
-          ? `Tenant created successfully with admin user: ${result.adminUser.email}`
-          : 'Tenant created successfully';
-
-        return {
-          success: true,
-          message,
-          tenant: result.tenant,
-          adminUser: result.adminUser
-        };
-      } catch (error) {
-        console.error('Create tenant error:', error);
-        return {
-          success: false,
-          message: `Failed to create tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          tenant: null
-        };
-      }
-    },
-
-    updateTenant: async (_parent: unknown, { id, input }: { id: string; input: UpdateTenantInput }, context: GraphQLContext) => {
-      try {
-        // Check authentication
-        if (!context.user) {
-          throw new Error('Unauthorized: Authentication required');
-        }
-
-        // For non-super admins, they can only update their own tenant
-        if (context.user.role !== 'SuperAdmin' && !context.user.tenants?.some(tenant => tenant.id === id)) {
-          throw new Error('Unauthorized: You can only update your own tenant');
-        }
-
-        // Check if the tenant exists
-        const existingTenant = await prisma.tenant.findUnique({
-          where: { id }
-        });
-
-        if (!existingTenant) {
-          throw new Error('Tenant not found');
-        }
-
-        // If slug is being changed, check if the new slug is available
-        if (input.slug && input.slug !== existingTenant.slug) {
-          const slugTaken = await prisma.tenant.findUnique({
-            where: { slug: input.slug }
-          });
-
-          if (slugTaken) {
-            throw new Error(`Tenant with slug "${input.slug}" already exists`);
-          }
-        }
-
-        const updatedTenant = await prisma.tenant.update({
+        const tenant = await prisma.tenant.update({
           where: { id },
-          data: {
-            ...(input.name && { name: input.name }),
-            ...(input.slug && { slug: input.slug }),
-            ...(input.domain !== undefined && { domain: input.domain }),
-            ...(input.status && { status: input.status }),
-            ...(input.planId !== undefined && { planId: input.planId }),
-            ...(input.features && { features: input.features }),
-            ...(input.settings && { settings: input.settings as Prisma.InputJsonValue })
-          }
+          data: updateData as Prisma.TenantUpdateInput
         });
 
-        return updatedTenant;
+        return tenant;
       } catch (error) {
         console.error('Update tenant error:', error);
         throw error;
       }
     },
 
-    updateTenantSuperAdmin: async (_parent: unknown, { id, input }: { id: string; input: UpdateTenantInput }, context: GraphQLContext) => {
-      try {
-        // Only super admins can use this mutation
-        if (!context.user || context.user.role !== 'SuperAdmin') {
-          throw new Error('Unauthorized: Super admin access required');
-        }
-
-        // Check if the tenant exists
-        const existingTenant = await prisma.tenant.findUnique({
-          where: { id }
-        });
-
-        if (!existingTenant) {
-          return {
-            success: false,
-            message: 'Tenant not found',
-            tenant: null
-          };
-        }
-
-        // If slug is being changed, check if the new slug is available
-        if (input.slug && input.slug !== existingTenant.slug) {
-          const slugTaken = await prisma.tenant.findUnique({
-            where: { slug: input.slug }
-          });
-
-          if (slugTaken) {
-            return {
-              success: false,
-              message: `Tenant with slug "${input.slug}" already exists`,
-              tenant: null
-            };
-          }
-        }
-
-        const updatedTenant = await prisma.tenant.update({
-          where: { id },
-          data: {
-            ...(input.name && { name: input.name }),
-            ...(input.slug && { slug: input.slug }),
-            ...(input.domain !== undefined && { domain: input.domain }),
-            ...(input.status && { status: input.status }),
-            ...(input.planId !== undefined && { planId: input.planId }),
-            ...(input.features && { features: input.features }),
-            ...(input.settings && { settings: input.settings as Prisma.InputJsonValue })
-          }
-        });
-
-        return {
-          success: true,
-          message: 'Tenant updated successfully',
-          tenant: updatedTenant
-        };
-      } catch (error) {
-        console.error('Update tenant error:', error);
-        return {
-          success: false,
-          message: `Failed to update tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          tenant: null
-        };
-      }
-    },
-
-    assignTenantAdmin: async (_parent: unknown, { tenantId, userId }: { tenantId: string; userId: string }, context: GraphQLContext) => {
-      try {
-        // Only super admins can assign tenant admins
-        if (!context.user || context.user.role !== 'SuperAdmin') {
-          throw new Error('Unauthorized: Super admin access required');
-        }
-
-        // Check if tenant exists
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: tenantId }
-        });
-
-        if (!tenant) {
-          return {
-            success: false,
-            message: 'Tenant not found',
-            user: null
-          };
-        }
-
-        // Check if user exists
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          include: { role: true }
-        });
-
-        if (!user) {
-          return {
-            success: false,
-            message: 'User not found',
-            user: null
-          };
-        }
-
-        // Find the TenantAdmin role
-        const tenantAdminRole = await prisma.roleModel.findUnique({
-          where: { name: 'TenantAdmin' }
-        });
-
-        if (!tenantAdminRole) {
-          return {
-            success: false,
-            message: 'TenantAdmin role not found in the system',
-            user: null
-          };
-        }
-
-        // Update user to assign them to the tenant and make them a TenantAdmin
-        const updatedUser = await prisma.user.update({
-          where: { id: userId },
-          data: {
-            tenantId: tenantId,
-            roleId: tenantAdminRole.id
-          },
-          include: {
-            role: true,
-            tenant: true
-          }
-        });
-
-        return {
-          success: true,
-          message: `User ${user.firstName} ${user.lastName} has been assigned as admin for tenant ${tenant.name}`,
-          user: updatedUser
-        };
-      } catch (error) {
-        console.error('Assign tenant admin error:', error);
-        return {
-          success: false,
-          message: `Failed to assign tenant admin: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          user: null
-        };
-      }
-    },
-
-    registerWithTenant: async (_parent: unknown, { input }: { input: RegisterUserWithTenantInput }) => {
+    registerUserWithTenant: async (_parent: unknown, { input }: { input: RegisterUserWithTenantInput }) => {
       try {
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
@@ -617,13 +495,13 @@ export const tenantResolvers = {
         });
 
         if (existingTenant) {
-          throw new Error(`Tenant with slug "${input.tenantSlug}" already exists`);
+          throw new Error('Tenant slug is already taken');
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(input.password, 12);
 
-        // Create tenant and user in a transaction
+        // Create user and tenant in a transaction
         const result = await prisma.$transaction(async (tx) => {
           // Create tenant
           const tenant = await tx.tenant.create({
@@ -632,25 +510,29 @@ export const tenantResolvers = {
               slug: input.tenantSlug,
               domain: input.tenantDomain,
               status: 'ACTIVE',
-              features: input.tenantFeatures || ['CMS_ENGINE']
+              features: input.tenantFeatures || []
             }
           });
 
           // Find or create TenantAdmin role
-          let tenantAdminRole = await tx.roleModel.findUnique({
-            where: { name: 'TenantAdmin' }
+          let tenantAdminRole = await tx.roleModel.findFirst({
+            where: { 
+              OR: [
+                { name: 'TenantAdmin' }
+              ]
+            }
           });
 
           if (!tenantAdminRole) {
             tenantAdminRole = await tx.roleModel.create({
               data: {
                 name: 'TenantAdmin',
-                description: 'Administrator of a tenant'
+                description: 'Administrator of a tenant with full access to tenant resources'
               }
             });
           }
 
-          // Create user
+          // Create user with TenantAdmin role
           const user = await tx.user.create({
             data: {
               email: input.email,
@@ -658,40 +540,345 @@ export const tenantResolvers = {
               firstName: input.firstName,
               lastName: input.lastName,
               phoneNumber: input.phoneNumber,
-              tenantId: tenant.id,
               roleId: tenantAdminRole.id,
-              emailVerified: new Date() // Auto-verify for tenant admin
+              isActive: true
             },
             include: {
-              role: true,
-              tenant: true
+              role: true
             }
           });
 
-          return { tenant, user };
+          // Create user-tenant relationship with OWNER role
+          await tx.userTenant.create({
+            data: {
+              userId: user.id,
+              tenantId: tenant.id,
+              role: 'OWNER',
+              isActive: true
+            }
+          });
+
+          return { user, tenant };
         });
 
         // Generate JWT token
         const token = jwt.sign(
           { 
             userId: result.user.id, 
-            email: result.user.email,
-            tenantId: result.tenant.id,
-            role: result.user.role?.name 
+            role: result.user.role?.name || 'USER',
+            roleId: result.user.roleId,
+            tenantId: result.tenant.id
           },
           JWT_SECRET,
           { expiresIn: '7d' }
         );
 
+        // Fetch complete user data with all relationships
+        const completeUser = await prisma.user.findUnique({
+          where: { id: result.user.id },
+          include: {
+            role: true,
+            userTenants: {
+              where: { isActive: true },
+              include: {
+                tenant: true
+              }
+            }
+          }
+        });
+
         return {
           token,
-          user: result.user,
+          user: {
+            ...completeUser!,
+            role: completeUser!.role || { id: "default", name: "USER", description: null },
+            createdAt: completeUser!.createdAt.toISOString(),
+            updatedAt: completeUser!.updatedAt.toISOString()
+          },
           tenant: result.tenant
         };
       } catch (error) {
-        console.error('Register with tenant error:', error);
+        console.error('Register user with tenant error:', error);
         throw error;
       }
-    }
+    },
+
+    addUserToTenant: async (_parent: unknown, { input }: { input: AddUserToTenantInput }, context: GraphQLContext) => {
+      try {
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Check if user has permission to add users to this tenant
+        if (context.user.role !== 'SuperAdmin') {
+          const userTenant = await prisma.userTenant.findUnique({
+            where: {
+              userId_tenantId: {
+                userId: context.user.id,
+                tenantId: input.tenantId
+              }
+            }
+          });
+
+          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+            throw new Error('Unauthorized: Only tenant owners and admins can add users');
+          }
+        }
+
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: input.userId }
+        });
+
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        // Check if tenant exists
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: input.tenantId }
+        });
+
+        if (!tenant) {
+          throw new Error('Tenant not found');
+        }
+
+        // Check if relationship already exists
+        const existingUserTenant = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: input.userId,
+              tenantId: input.tenantId
+            }
+          }
+        });
+
+        if (existingUserTenant) {
+          if (existingUserTenant.isActive) {
+            throw new Error('User is already a member of this tenant');
+          } else {
+            // Reactivate the relationship
+            const userTenant = await prisma.userTenant.update({
+              where: {
+                userId_tenantId: {
+                  userId: input.userId,
+                  tenantId: input.tenantId
+                }
+              },
+              data: {
+                role: input.role,
+                isActive: true,
+                leftAt: null
+              },
+              include: {
+                user: {
+                  include: {
+                    role: true
+                  }
+                },
+                tenant: true
+              }
+            });
+
+            return {
+              success: true,
+              message: 'User successfully re-added to tenant',
+              userTenant
+            };
+          }
+        }
+
+        // Create new user-tenant relationship
+        const userTenant = await prisma.userTenant.create({
+          data: {
+            userId: input.userId,
+            tenantId: input.tenantId,
+            role: input.role,
+            isActive: true
+          },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'User successfully added to tenant',
+          userTenant
+        };
+      } catch (error) {
+        console.error('Add user to tenant error:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to add user to tenant',
+          userTenant: null
+        };
+      }
+    },
+
+    updateUserTenantRole: async (_parent: unknown, { input }: { input: UpdateUserTenantRoleInput }, context: GraphQLContext) => {
+      try {
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Check if user has permission to update roles in this tenant
+        if (context.user.role !== 'SuperAdmin') {
+          const userTenant = await prisma.userTenant.findUnique({
+            where: {
+              userId_tenantId: {
+                userId: context.user.id,
+                tenantId: input.tenantId
+              }
+            }
+          });
+
+          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+            throw new Error('Unauthorized: Only tenant owners and admins can update user roles');
+          }
+        }
+
+        // Check if user-tenant relationship exists
+        const existingUserTenant = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: input.userId,
+              tenantId: input.tenantId
+            }
+          }
+        });
+
+        if (!existingUserTenant || !existingUserTenant.isActive) {
+          throw new Error('User is not a member of this tenant');
+        }
+
+        // Update the role
+        const userTenant = await prisma.userTenant.update({
+          where: {
+            userId_tenantId: {
+              userId: input.userId,
+              tenantId: input.tenantId
+            }
+          },
+          data: {
+            role: input.role
+          },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'User role successfully updated',
+          userTenant
+        };
+      } catch (error) {
+        console.error('Update user tenant role error:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update user role',
+          userTenant: null
+        };
+      }
+    },
+
+    removeUserFromTenant: async (_parent: unknown, { input }: { input: RemoveUserFromTenantInput }, context: GraphQLContext) => {
+      try {
+        if (!context.user) {
+          throw new Error('Unauthorized: Authentication required');
+        }
+
+        // Check if user has permission to remove users from this tenant
+        if (context.user.role !== 'SuperAdmin') {
+          const userTenant = await prisma.userTenant.findUnique({
+            where: {
+              userId_tenantId: {
+                userId: context.user.id,
+                tenantId: input.tenantId
+              }
+            }
+          });
+
+          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+            throw new Error('Unauthorized: Only tenant owners and admins can remove users');
+          }
+        }
+
+        // Check if user-tenant relationship exists
+        const existingUserTenant = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: input.userId,
+              tenantId: input.tenantId
+            }
+          }
+        });
+
+        if (!existingUserTenant || !existingUserTenant.isActive) {
+          throw new Error('User is not a member of this tenant');
+        }
+
+        // Prevent removing the last owner
+        if (existingUserTenant.role === 'OWNER') {
+          const ownerCount = await prisma.userTenant.count({
+            where: {
+              tenantId: input.tenantId,
+              role: 'OWNER',
+              isActive: true
+            }
+          });
+
+          if (ownerCount <= 1) {
+            throw new Error('Cannot remove the last owner of the tenant');
+          }
+        }
+
+        // Soft delete by setting isActive to false and leftAt timestamp
+        const userTenant = await prisma.userTenant.update({
+          where: {
+            userId_tenantId: {
+              userId: input.userId,
+              tenantId: input.tenantId
+            }
+          },
+          data: {
+            isActive: false,
+            leftAt: new Date()
+          },
+          include: {
+            user: {
+              include: {
+                role: true
+              }
+            },
+            tenant: true
+          }
+        });
+
+        return {
+          success: true,
+          message: 'User successfully removed from tenant',
+          userTenant
+        };
+      } catch (error) {
+        console.error('Remove user from tenant error:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to remove user from tenant',
+          userTenant: null
+        };
+      }
+    },
   }
 }; 

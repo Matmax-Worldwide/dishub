@@ -27,7 +27,7 @@ interface RequestHistory {
   type: 'MODULE' | 'CUSTOMIZATION' | 'FEATURE' | 'ACTIVATION' | 'SUPPORT';
   title: string;
   description: string;
-  tenantId: string;
+  tenantId: string; // Keep this for compatibility with existing data structures
   tenantName: string;
   requestedBy: string;
   requestedByEmail: string;

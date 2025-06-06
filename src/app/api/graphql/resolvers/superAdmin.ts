@@ -155,12 +155,12 @@ export const superAdminResolvers = {
             take: pageSize,
             orderBy: { createdAt: 'desc' },
             include: {
-              users: {
+              userTenants: {
                 select: { id: true }
               },
               _count: {
                 select: {
-                  users: true,
+                  userTenants: true,
                   pages: true,
                   posts: true
                 }
@@ -173,7 +173,7 @@ export const superAdminResolvers = {
         return {
           items: tenants.map(tenant => ({
             ...tenant,
-            userCount: tenant._count.users,
+            userCount: tenant._count.userTenants,
             pageCount: tenant._count.pages,
             postCount: tenant._count.posts,
             createdAt: tenant.createdAt.toISOString(),
@@ -200,7 +200,7 @@ export const superAdminResolvers = {
           include: {
             _count: {
               select: {
-                users: true,
+                userTenants: true,
                 pages: true,
                 posts: true
               }
@@ -214,7 +214,7 @@ export const superAdminResolvers = {
 
         return {
           ...tenant,
-          userCount: tenant._count.users,
+          userCount: tenant._count.userTenants,
           pageCount: tenant._count.pages,
           postCount: tenant._count.posts,
           createdAt: tenant.createdAt.toISOString(),
@@ -236,11 +236,16 @@ export const superAdminResolvers = {
         const tenants = await prisma.tenant.findMany({
           where,
           include: {
-            users: {
-              select: {
-                id: true,
-                isActive: true,
-                createdAt: true
+            userTenants: {
+              where: { isActive: true },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    isActive: true,
+                    createdAt: true
+                  }
+                }
               }
             },
             pages: {
@@ -259,13 +264,14 @@ export const superAdminResolvers = {
         });
 
         return tenants.map(tenant => {
-          const activeUsers = tenant.users.filter(u => u.isActive).length;
+          const users = tenant.userTenants.map(ut => ut.user);
+          const activeUsers = users.filter(u => u.isActive).length;
           const publishedPages = tenant.pages.filter(p => p.isPublished).length;
           const publishedPosts = tenant.posts.filter(p => p.status === 'PUBLISHED').length;
           
           // Calculate health score (0-100)
           let healthScore = 0;
-          if (tenant.users.length > 0) healthScore += 30;
+          if (users.length > 0) healthScore += 30;
           if (publishedPages > 0) healthScore += 25;
           if (publishedPosts > 0) healthScore += 20;
           if (tenant.status === 'ACTIVE') healthScore += 25;
@@ -276,7 +282,7 @@ export const superAdminResolvers = {
             status: tenant.status,
             healthScore,
             metrics: {
-              totalUsers: tenant.users.length,
+              totalUsers: users.length,
               activeUsers,
               totalPages: tenant.pages.length,
               publishedPages,
@@ -358,7 +364,7 @@ export const superAdminResolvers = {
           include: {
             _count: {
               select: {
-                users: true,
+                userTenants: true,
                 pages: true,
                 posts: true
               }
@@ -386,7 +392,7 @@ export const superAdminResolvers = {
             id: tenant.id,
             name: tenant.name,
             slug: tenant.slug,
-            userCount: tenant._count.users,
+            userCount: tenant._count.userTenants,
             pageCount: tenant._count.pages,
             postCount: tenant._count.posts,
             lastActivity: tenant.updatedAt.toISOString()
@@ -800,14 +806,18 @@ export const superAdminResolvers = {
                 password: hashedPassword,
                 firstName: adminData.firstName,
                 lastName: adminData.lastName,
-                tenantId: tenant.id,
                 roleId: tenantAdminRole.id,
+                userTenants: {
+                  create: {
+                    tenantId: tenant.id,
+                    role: 'OWNER'
+                  }
+                },
                 emailVerified: new Date(), // Auto-verify admin user
-                isActive: true
               },
               include: {
                 role: true,
-                tenant: true
+                userTenants: true
               }
             });
           }
@@ -833,12 +843,8 @@ export const superAdminResolvers = {
             firstName: result.adminUser.firstName,
             lastName: result.adminUser.lastName,
             phoneNumber: result.adminUser.phoneNumber,
-            role: {
-              id: result.adminUser.role!.id,
-              name: result.adminUser.role!.name,
-              description: result.adminUser.role!.description
-            },
-            tenantId: result.adminUser.tenantId!,
+            roleId: result.adminUser.roleId!,
+            tenantId: result.tenant.id,
             createdAt: result.adminUser.createdAt.toISOString(),
             updatedAt: result.adminUser.updatedAt.toISOString()
           } : null
@@ -903,7 +909,7 @@ export const superAdminResolvers = {
           include: {
             _count: {
               select: {
-                users: true,
+                userTenants: true,
                 pages: true,
                 posts: true
               }
@@ -916,7 +922,7 @@ export const superAdminResolvers = {
           message: 'Tenant updated successfully',
           tenant: {
             ...tenant,
-            userCount: tenant._count.users,
+            userCount: tenant._count.userTenants,
             pageCount: tenant._count.pages,
             postCount: tenant._count.posts,
             createdAt: tenant.createdAt.toISOString(),
@@ -941,7 +947,7 @@ export const superAdminResolvers = {
         const tenant = await prisma.tenant.findUnique({
           where: { id },
           include: {
-            users: true
+            userTenants: true
           }
         });
         
@@ -950,8 +956,8 @@ export const superAdminResolvers = {
         }
 
         // Check if tenant has users
-        if (tenant.users.length > 0) {
-          throw new Error(`Cannot delete tenant: ${tenant.users.length} users are still associated with this tenant`);
+        if (tenant.userTenants.length > 0) {
+          throw new Error(`Cannot delete tenant: ${tenant.userTenants.length} users are still associated with this tenant`);
         }
 
         await prisma.tenant.delete({
@@ -979,15 +985,14 @@ export const superAdminResolvers = {
         const tenant = await prisma.tenant.findUnique({
           where: { id: tenantId },
           include: {
-            users: {
+            userTenants: {
               where: {
-                role: {
-                  name: { in: ['TenantAdmin', 'ADMIN'] }
-                }
+                role: { in: ['OWNER', 'ADMIN'] },
+                isActive: true
               },
               take: 1,
               include: {
-                role: true
+                user: true
               }
             }
           }
@@ -997,7 +1002,7 @@ export const superAdminResolvers = {
           throw new Error(`Tenant with ID "${tenantId}" not found`);
         }
 
-        const adminUser = tenant.users[0];
+        const adminUser = tenant.userTenants[0];
         if (!adminUser) {
           throw new Error('No admin user found for this tenant');
         }
@@ -1011,9 +1016,9 @@ export const superAdminResolvers = {
             tenantId: tenant.id,
             tenantName: tenant.name,
             tenantSlug: tenant.slug,
-            userId: adminUser.id,
-            userEmail: adminUser.email,
-            userRole: adminUser.role?.name
+            userId: adminUser.user.id,
+            userEmail: adminUser.user.email,
+            userRole: adminUser.role
           }
         };
       } catch (error) {
@@ -1111,11 +1116,17 @@ export const superAdminResolvers = {
         const updatedUser = await prisma.user.update({
           where: { id: userId },
           data: {
-            tenantId: tenantId,
+            userTenants: {
+              create: {
+                tenantId: tenantId,
+                role: 'ADMIN'
+              }
+            },
             roleId: tenantAdminRole.id
           },
           include: {
-            role: true
+            role: true,
+            userTenants: true
           }
         });
 
@@ -1129,11 +1140,11 @@ export const superAdminResolvers = {
             lastName: updatedUser.lastName,
             phoneNumber: updatedUser.phoneNumber,
             role: {
-              id: updatedUser.role!.id,
-              name: updatedUser.role!.name,
-              description: updatedUser.role!.description
+              id: updatedUser.roleId || '',
+              name: updatedUser.role?.name || 'Unknown',
+              description: updatedUser.role?.description || 'No description'
             },
-            tenantId: updatedUser.tenantId!,
+            tenantId: updatedUser.userTenants[0]?.tenantId || '',
             createdAt: updatedUser.createdAt.toISOString(),
             updatedAt: updatedUser.updatedAt.toISOString()
           }

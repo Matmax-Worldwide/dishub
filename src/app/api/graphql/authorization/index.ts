@@ -329,7 +329,7 @@ export const permissions = shield({
     phoneNumber: allow, // Allow access to phoneNumber during login
     profileImageUrl: allow,
     role: allow, 
-    tenantId: allow,
+    userTenants: allow,
     isActive: or(isAdmin, and(isAuthenticated, hasPermission('read:user'))),
     createdAt: allow,
     updatedAt: allow,

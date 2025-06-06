@@ -40,7 +40,10 @@ export async function authenticateUser(request: NextRequest): Promise<Authentica
       where: { id: decoded.userId },
       include: {
         role: true,
-        tenant: true,
+        userTenants: {
+          where: { isActive: true },
+          select: { tenantId: true }
+        }
       }
     });
 
@@ -56,7 +59,7 @@ export async function authenticateUser(request: NextRequest): Promise<Authentica
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role?.name as RoleName,
-      tenantId: user.tenantId || undefined,
+      tenantId: user.userTenants[0]?.tenantId || undefined,
       permissions,
     };
   } catch (error) {

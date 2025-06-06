@@ -27,8 +27,10 @@ model Tenant {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  // Many-to-many relationship with Users
+  userTenants       UserTenant[]
+
   // Relations to tenant-specific data
-  users             User[]
   pages             Page[]
   posts             Post[]
   bookings          Booking[]
@@ -138,8 +140,8 @@ model User {
   reviewResponses  ReviewResponse[]     // Admin responses to reviews
   addresses        CustomerAddress[]    // Customer addresses
 
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  // Many-to-many relationship with Tenants
+  userTenants      UserTenant[]
 
   consentRecords    ConsentRecord[]
   auditLogs         AuditLog[]
@@ -147,7 +149,33 @@ model User {
 
   @@index([email])
   @@index([roleId])
+}
+
+// Junction table for User-Tenant many-to-many relationship
+model UserTenant {
+  id       String @id @default(cuid())
+  userId   String
+  tenantId String
+  role     UserTenantRole @default(MEMBER) // Role within the tenant
+  isActive Boolean @default(true)
+  joinedAt DateTime @default(now())
+  leftAt   DateTime?
+  
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
   @@index([tenantId])
+  @@index([role])
+}
+
+enum UserTenantRole {
+  OWNER       // Tenant owner (creator)
+  ADMIN       // Tenant administrator
+  MANAGER     // Tenant manager
+  MEMBER      // Regular member
+  VIEWER      // Read-only access
 }
 
 model Account {

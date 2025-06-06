@@ -115,7 +115,17 @@ export const notificationResolvers = {
     
     unreadNotificationsCount: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        // Try to get token from Authorization header first, then from cookies
+        let token = context.req.headers.get('authorization')?.split(' ')[1];
+        
+        if (!token) {
+          // Try to get token from cookies
+          const cookies = context.req.headers.get('cookie');
+          if (cookies) {
+            const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+            token = authTokenMatch ? authTokenMatch[1] : undefined;
+          }
+        }
         
         if (!token) {
           throw new Error('Not authenticated');
