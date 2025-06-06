@@ -35,12 +35,12 @@ export const GET = requireSuperAdmin()(async (request: NextRequest) => {
         skip,
         take: limit,
         include: {
-          users: {
-            select: { id: true, email: true, firstName: true, lastName: true }
+          userTenants: {
+            select: { id: true, user: { select: { id: true, email: true, firstName: true, lastName: true } }, role: true }
           },
           _count: {
             select: {
-              users: true,
+              userTenants: true,
               pages: true,
               posts: true,
               products: true,
