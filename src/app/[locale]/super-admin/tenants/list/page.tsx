@@ -38,15 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 
-} from '@/components/ui/dialog';
 
 interface TenantsPageData {
   tenants: TenantList | null;
@@ -476,33 +468,41 @@ export default function SuperAdminTenantsPage() {
             <CardContent>
               <div className="text-center py-12 text-gray-500">
                 <SettingsIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Analytics dashboard coming soon...</p>
+                <p>The Analytics Dashboard will be available soon. We’re currently collecting more data to generate meaningful insights.</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Tenant</DialogTitle>
-            <DialogDescription>
-                             Are you sure you want to delete the tenant &quot;{tenantToDelete?.name}&quot;? 
-               This action cannot be undone and will permanently remove all associated data.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteTenant}>
-              Delete Tenant
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Section */}
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full border-red-200 bg-red-50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-red-900 flex items-center">
+                <AlertCircleIcon className="h-5 w-5 mr-2" />
+                Delete Tenant
+              </CardTitle>
+              <CardDescription className="text-red-700">
+                Are you sure you want to delete the tenant &quot;{tenantToDelete?.name}&quot;? 
+                This action cannot be undone and will permanently remove all associated data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteTenant}>
+                  <TrashIcon className="h-4 w-4 mr-2" />
+                  Delete Tenant
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 } 

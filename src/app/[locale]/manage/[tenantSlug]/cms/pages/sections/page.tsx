@@ -22,15 +22,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -326,21 +318,26 @@ export default function CmsSectionsPage() {
           <h1 className="text-2xl font-bold">Gestión de Secciones</h1>
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center">
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Nueva Sección
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Crear nueva sección</DialogTitle>
-              <DialogDescription>
-                Las secciones son componentes reutilizables que puedes añadir a tus páginas.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        <Button 
+          className="flex items-center"
+          onClick={() => setIsCreateDialogOpen(!isCreateDialogOpen)}
+        >
+          <PlusIcon className="w-4 h-4 mr-2" />
+          Nueva Sección
+        </Button>
+      </div>
+
+      {/* Create Section Form */}
+      {isCreateDialogOpen && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Crear nueva sección</CardTitle>
+            <CardDescription>
+              Las secciones son componentes reutilizables que puedes añadir a tus páginas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre</Label>
                 <Input 
@@ -359,14 +356,14 @@ export default function CmsSectionsPage() {
                   onChange={(e) => setNewSectionDescription(e.target.value)}
                 />
               </div>
+              <div className="flex space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleCreateSection}>Crear sección</Button>
+              </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreateSection}>Crear sección</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </CardContent>
+        </Card>
+      )}
       
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative mb-4">
@@ -503,14 +500,14 @@ export default function CmsSectionsPage() {
         )}
       </div>
       
-      {/* Dialog for delete confirmation */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
+      {/* Delete Confirmation Section */}
+      {deleteConfirmOpen && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-900">Confirmar eliminación</CardTitle>
+            <CardDescription className="text-red-700">
               ¿Estás seguro de que deseas eliminar esta sección?
-            </DialogDescription>
+            </CardDescription>
             {isDeletingSection && (
               <div className="mt-2 bg-amber-50 p-2 rounded border border-amber-200">
                 <code className="text-xs font-mono">{isDeletingSection}</code>
@@ -519,84 +516,88 @@ export default function CmsSectionsPage() {
             <div className="mt-2 text-red-600 text-sm">
               Esta acción no se puede deshacer. Solo se eliminará la sección, los componentes podrán seguir siendo utilizados en otras secciones.
             </div>
-          </DialogHeader>
+          </CardHeader>
           
-          {deleteError && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
-              {deleteError}
+          <CardContent>
+            {deleteError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
+                {deleteError}
+              </div>
+            )}
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={cancelDeleteSection}
+                disabled={deleteProgress === 'loading'}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={confirmDeleteSection}
+                disabled={deleteProgress === 'loading' || deleteProgress === 'success'}
+                className="gap-2"
+              >
+                {deleteProgress === 'loading' ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full"></span>
+                    Eliminando...
+                  </>
+                ) : deleteProgress === 'success' ? (
+                  <>
+                    <CheckIcon className="h-4 w-4" />
+                    Eliminado
+                  </>
+                ) : (
+                  <>
+                    <TrashIcon className="h-4 w-4" />
+                    Eliminar
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={cancelDeleteSection}
-              disabled={deleteProgress === 'loading'}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={confirmDeleteSection}
-              disabled={deleteProgress === 'loading' || deleteProgress === 'success'}
-              className="gap-2"
-            >
-              {deleteProgress === 'loading' ? (
-                <>
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-20 border-t-white rounded-full"></span>
-                  Eliminando...
-                </>
-              ) : deleteProgress === 'success' ? (
-                <>
-                  <CheckIcon className="h-4 w-4" />
-                  Eliminado
-                </>
-              ) : (
-                <>
-                  <TrashIcon className="h-4 w-4" />
-                  Eliminar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
       
-      {/* Dialog for editing section */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar sección</DialogTitle>
-            <DialogDescription>
+      {/* Edit Section Form */}
+      {isEditDialogOpen && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-blue-900">Editar sección</CardTitle>
+            <CardDescription className="text-blue-700">
               Actualiza el nombre y la descripción de esta sección.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nombre</Label>
-              <Input 
-                id="edit-name" 
-                placeholder="Ej: Hero Principal" 
-                value={editSectionName}
-                onChange={(e) => setEditSectionName(e.target.value)}
-              />
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nombre</Label>
+                <Input 
+                  id="edit-name" 
+                  placeholder="Ej: Hero Principal" 
+                  value={editSectionName}
+                  onChange={(e) => setEditSectionName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Descripción</Label>
+                <Input 
+                  id="edit-description" 
+                  placeholder="Ej: Sección de héroe para la página principal" 
+                  value={editSectionDescription}
+                  onChange={(e) => setEditSectionDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={updateSectionDetails}>Guardar cambios</Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Descripción</Label>
-              <Input 
-                id="edit-description" 
-                placeholder="Ej: Sección de héroe para la página principal" 
-                value={editSectionDescription}
-                onChange={(e) => setEditSectionDescription(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={updateSectionDetails}>Guardar cambios</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

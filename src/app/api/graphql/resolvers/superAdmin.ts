@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma, TenantStatus } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
 import { verifySession } from '@/app/api/utils/auth';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -698,6 +699,10 @@ export const superAdminResolvers = {
         planId?: string;
         features?: string[];
         settings?: Prisma.InputJsonValue;
+        adminEmail?: string;
+        adminFirstName?: string;
+        adminLastName?: string;
+        adminPassword?: string;
       };
     }, context: Context) => {
       await requireSuperAdmin(context);
@@ -709,36 +714,142 @@ export const superAdminResolvers = {
         });
         
         if (existingTenant) {
-          throw new Error(`Tenant with slug "${input.slug}" already exists`);
+          return {
+            success: false,
+            message: `Tenant with slug "${input.slug}" already exists`,
+            tenant: null,
+            adminUser: null
+          };
         }
 
-        const tenant = await prisma.tenant.create({
-          data: {
-            name: input.name,
-            slug: input.slug,
-            domain: input.domain,
-            planId: input.planId,
-            features: input.features || ['CMS_ENGINE'],
-            settings: input.settings || Prisma.JsonNull,
-            status: 'ACTIVE'
+        // Extract admin user data from settings if provided there, or use direct fields
+        let adminData = null;
+        if (input.settings && typeof input.settings === 'object') {
+          const settings = input.settings as Record<string, unknown>;
+          if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
+            adminData = {
+              email: (settings.adminEmail as string) || input.adminEmail,
+              firstName: (settings.adminFirstName as string) || input.adminFirstName,
+              lastName: (settings.adminLastName as string) || input.adminLastName,
+              password: (settings.adminPassword as string) || input.adminPassword
+            };
           }
+        } else if (input.adminEmail || input.adminFirstName || input.adminLastName || input.adminPassword) {
+          adminData = {
+            email: input.adminEmail,
+            firstName: input.adminFirstName,
+            lastName: input.adminLastName,
+            password: input.adminPassword
+          };
+        }
+
+        // Use transaction to create tenant and admin user atomically
+        const result = await prisma.$transaction(async (tx) => {
+          // Create tenant
+          const tenant = await tx.tenant.create({
+            data: {
+              name: input.name,
+              slug: input.slug,
+              domain: input.domain,
+              planId: input.planId,
+              features: input.features || ['CMS_ENGINE'],
+              settings: input.settings || Prisma.JsonNull,
+              status: 'ACTIVE'
+            }
+          });
+
+          let adminUser = null;
+
+          // Create admin user if admin data is provided
+          if (adminData && adminData.email && adminData.firstName && adminData.lastName && adminData.password) {
+            // Check if user with this email already exists
+            const existingUser = await tx.user.findUnique({
+              where: { email: adminData.email }
+            });
+
+            if (existingUser) {
+              throw new Error(`User with email "${adminData.email}" already exists`);
+            }
+
+            // Find or create TenantAdmin role
+            let tenantAdminRole = await tx.roleModel.findFirst({
+              where: { 
+                OR: [
+                  { name: 'TenantAdmin' },
+                  { name: 'TENANT_ADMIN' }
+                ]
+              }
+            });
+
+            if (!tenantAdminRole) {
+              tenantAdminRole = await tx.roleModel.create({
+                data: {
+                  name: 'TenantAdmin',
+                  description: 'Administrator of a tenant'
+                }
+              });
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(adminData.password, 12);
+
+            // Create admin user
+            adminUser = await tx.user.create({
+              data: {
+                email: adminData.email,
+                password: hashedPassword,
+                firstName: adminData.firstName,
+                lastName: adminData.lastName,
+                tenantId: tenant.id,
+                roleId: tenantAdminRole.id,
+                emailVerified: new Date(), // Auto-verify admin user
+                isActive: true
+              },
+              include: {
+                role: true,
+                tenant: true
+              }
+            });
+          }
+
+          return { tenant, adminUser };
         });
+
+        const message = result.adminUser 
+          ? `Tenant created successfully with admin user: ${result.adminUser.email}`
+          : 'Tenant created successfully';
 
         return {
           success: true,
-          message: 'Tenant created successfully',
+          message,
           tenant: {
-            ...tenant,
-            createdAt: tenant.createdAt.toISOString(),
-            updatedAt: tenant.updatedAt.toISOString()
-          }
+            ...result.tenant,
+            createdAt: result.tenant.createdAt.toISOString(),
+            updatedAt: result.tenant.updatedAt.toISOString()
+          },
+          adminUser: result.adminUser ? {
+            id: result.adminUser.id,
+            email: result.adminUser.email,
+            firstName: result.adminUser.firstName,
+            lastName: result.adminUser.lastName,
+            phoneNumber: result.adminUser.phoneNumber,
+            role: {
+              id: result.adminUser.role!.id,
+              name: result.adminUser.role!.name,
+              description: result.adminUser.role!.description
+            },
+            tenantId: result.adminUser.tenantId!,
+            createdAt: result.adminUser.createdAt.toISOString(),
+            updatedAt: result.adminUser.updatedAt.toISOString()
+          } : null
         };
       } catch (error) {
         console.error('Error creating tenant:', error);
         return {
           success: false,
           message: error instanceof Error ? error.message : 'Failed to create tenant',
-          tenant: null
+          tenant: null,
+          adminUser: null
         };
       }
     },

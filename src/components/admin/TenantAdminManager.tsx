@@ -16,7 +16,7 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { SuperAdminClient } from '@/lib/graphql/superAdmin';
-import { graphqlClient } from '@/lib/graphql-client';
+import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 
 interface User {
@@ -61,7 +61,21 @@ export default function TenantAdminManager({ tenantId, tenantName, onAdminAssign
   const loadUsers = async () => {
     try {
       setLoadingUsers(true);
-      const users = await graphqlClient.users();
+      const calendarUsers = await graphqlClient.users();
+      // Convert CalendarUser to User format expected by the component
+      const users: User[] = calendarUsers.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: {
+          id: user.roleId || 'default',
+          name: 'USER', // Default since CalendarUser doesn't have role details
+          description: undefined
+        },
+        createdAt: user.createdAt.toISOString()
+      }));
       setAvailableUsers(users);
     } catch (error) {
       console.error('Error loading users:', error);
