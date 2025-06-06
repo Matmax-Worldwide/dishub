@@ -132,7 +132,7 @@ export default function Hero({ dictionary, locale }: HeroProps) {
               transition={{ delay: 0.4, duration: 0.8 }}
             >
               <Link
-                href={`/${locale}/register`}
+                href={`/${locale}/get-started`}
                 className="btn-primary text-lg px-6 py-3 rounded-lg shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
               >
                 {dictionary.hero.cta}

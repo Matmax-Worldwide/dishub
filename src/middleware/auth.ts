@@ -166,7 +166,7 @@ export const withAuth: MiddlewareFunction = async (req) => {
 
   // console.log(`withAuth Debug: currentLocale='${currentLocale}', pathToUseForPublicCheck='${pathToUseForPublicCheck}'`);
 
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/access-denied'];
+  const publicRoutes = ['/login', '/get-started', '/forgot-password', '/reset-password', '/access-denied'];
   if (publicRoutes.some(pRoute => pathToUseForPublicCheck === pRoute || (pRoute !== '/' && pathToUseForPublicCheck.startsWith(pRoute + '/')))) {
     return; // Allow public routes to pass through
   }

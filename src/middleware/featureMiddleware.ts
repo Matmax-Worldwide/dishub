@@ -45,7 +45,7 @@ const FEATURE_ROUTES: Record<string, string[]> = {
 const ALWAYS_ALLOWED_ROUTES = [
   // Authentication routes
   '/login',
-  '/register',
+  '/get-started',
   '/logout',
   '/forgot-password',
   '/reset-password',
