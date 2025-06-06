@@ -392,7 +392,7 @@
     "MANAGER": "Gerente",
     "EMPLOYEE": "Empleado",
     "USER": "Usuario",
-    "SUPER_ADMIN": "Super Administrador",
+    "SuperAdmin": "Super Administrador",
     "SuperAdmin": "Super Administrador"
   },
   "commerce": {
@@ -446,5 +446,117 @@
     "english": "Inglés",
     "spanish": "Español", 
     "german": "Alemán"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Comenzar"
+    },
+    "hero": {
+      "disruption": "Disrupción",
+      "isInnovation": "es Innovación",
+      "subtitle": "Donde la privacidad se encuentra con el poder. Soberanía de datos nativa por diseño, listo para IA y blockchain del mañana.",
+      "startDisrupting": "Comenzar a Disrumpir",
+      "learnMore": "Saber Más"
+    },
+    "features": {
+      "nativeByDesign": "Nativo por Diseño",
+      "privacyFirst": {
+        "title": "Privacidad Primero",
+        "desc": "Soberanía de datos integrada en cada capa"
+      },
+      "aiPowered": {
+        "title": "Potenciado por IA",
+        "desc": "Inteligencia de vanguardia al alcance de tus manos"
+      },
+      "blockchainReady": {
+        "title": "Listo para Blockchain",
+        "desc": "Confianza descentralizada para negocios globales"
+      },
+      "globalScale": {
+        "title": "Escala Global",
+        "desc": "Apoyando empresas emergentes en todo el mundo"
+      }
+    },
+    "privacy": {
+      "title": "Privacidad Sin Compromisos",
+      "subtitle": "Construido para el futuro de privacidad primero. Cada característica diseñada con protección de datos, cumplimiento y soberanía en su núcleo.",
+      "gdprCompliant": {
+        "title": "Cumple con GDPR",
+        "desc": "Cumplimiento regulatorio completo integrado desde el primer día"
+      },
+      "zeroKnowledge": {
+        "title": "Conocimiento Cero",
+        "desc": "Tus datos permanecen encriptados, incluso para nosotros"
+      },
+      "dataSovereignty": {
+        "title": "Soberanía de Datos",
+        "desc": "Control completo sobre dónde viven tus datos"
+      },
+      "federatedSystem": {
+        "title": "Sistema Federado",
+        "desc": "Arquitectura distribuida para máxima resistencia"
+      },
+      "architecture": {
+        "title": "Arquitectura de Conocimiento Cero",
+        "encryptedAtRest": {
+          "title": "Encriptado en Reposo",
+          "desc": "Datos encriptados antes del almacenamiento"
+        },
+        "zeroAccess": {
+          "title": "Acceso Cero",
+          "desc": "No podemos leer tus datos"
+        },
+        "clientSideKeys": {
+          "title": "Claves del Cliente",
+          "desc": "Tú controlas la encriptación"
+        }
+      },
+      "blockchain": {
+        "userTable": "Registros de Usuario",
+        "transactionTable": "Transacciones",
+        "encryptionTable": "Claves de Encriptación",
+        "auditTable": "Registros de Auditoría",
+        "permissionTable": "Permisos",
+        "sessionTable": "Sesiones",
+        "backupTable": "Hashes de Respaldo",
+        "validationTable": "Validación",
+        "masterKey": "Clave Maestra"
+      }
+    },
+    "technology": {
+      "title": "Stack Tecnológico",
+      "subtitle": "para el Mañana",
+      "description": "Construido sobre infraestructura de IA y blockchain de vanguardia, DISHUB empodera a empresas emergentes con tecnología de nivel empresarial que es accesible, escalable y segura.",
+      "endToEnd": "Encriptación extremo a extremo",
+      "decentralized": "Almacenamiento de datos descentralizado",
+      "aiInsights": "Insights potenciados por IA"
+    },
+    "federated": {
+      "title": "Federado por Diseño",
+      "trustNetwork": "Red de Confianza Distribuida",
+      "description": "Nuestra arquitectura federada asegura que tus datos nunca estén centralizados. Cada nodo opera independientemente mientras mantiene consistencia global a través de protocolos de consenso avanzados.",
+      "multiRegion": {
+        "title": "Resistencia Multi-Región",
+        "desc": "Datos replicados a través de fronteras geográficas con failover automático"
+      },
+      "sovereignZones": {
+        "title": "Zonas de Datos Soberanos",
+        "desc": "Elige exactamente dónde residen tus datos para cumplir requisitos de compliance"
+      },
+      "edgeComputing": {
+        "title": "Listo para Edge Computing",
+        "desc": "Procesa datos en el borde para aplicaciones de ultra-baja latencia"
+      }
+    },
+    "cta": {
+      "readyTo": "¿Listo para",
+      "disrupt": "Disrumpir?",
+      "subtitle": "Únete a la revolución. Construye sobre soberanía. Escala con confianza.",
+      "launchFuture": "Lanza Tu Futuro"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Disrumpiendo el futuro, hoy."
+    }
   }
 } 

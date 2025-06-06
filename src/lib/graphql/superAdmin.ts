@@ -1,7 +1,7 @@
 import { gqlRequest } from '@/lib/graphql-client';
 
 // SuperAdmin Dashboard Queries
-export const SUPER_ADMIN_DASHBOARD_QUERY = `
+export const SuperAdmin_DASHBOARD_QUERY = `
   query SuperAdminDashboard {
     superAdminDashboard {
       stats {
@@ -562,7 +562,7 @@ export class SuperAdminClient {
   // Dashboard
   static async getDashboard(): Promise<SuperAdminDashboard> {
     const response = await gqlRequest<{ superAdminDashboard: SuperAdminDashboard }>(
-      SUPER_ADMIN_DASHBOARD_QUERY
+      SuperAdmin_DASHBOARD_QUERY
     );
     return response.superAdminDashboard;
   }

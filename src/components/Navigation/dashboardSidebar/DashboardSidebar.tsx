@@ -194,7 +194,7 @@ export function DashboardSidebar() {
 
   // Detect if we're in tenant dashboard context
   const isInTenantDashboard = useMemo(() => {
-    return pathname.includes('/tenants/') && pathname.includes('/dashboard');
+    return pathname.includes('/manage/') && pathname.includes('/dashboard');
   }, [pathname]);
 
   // Get tenant slug from params
@@ -203,7 +203,7 @@ export function DashboardSidebar() {
       return params.tenantSlug as string;
     }
     // Fallback: extract from pathname if available
-    const match = pathname.match(/\/tenants\/([^\/]+)/);
+    const match = pathname.match(/\/manage\/([^\/]+)/);
     return match ? match[1] : null;
   }, [params.tenantSlug, pathname]);
 
@@ -215,12 +215,17 @@ export function DashboardSidebar() {
 
     // Transform admin routes to tenant dashboard routes
     if (url.includes('/admin/')) {
-      return url.replace('/admin/', `/tenants/${tenantSlug}/dashboard/`);
+      return url.replace('/admin/', `/manage/${tenantSlug}/dashboard/`);
     }
 
-    // Transform CMS routes to tenant dashboard routes
+    // Transform engines routes to tenant dashboard routes
+    if (url.includes('/(engines)/')) {
+      return url.replace('/(engines)/', `/manage/${tenantSlug}/(engines)/`);
+    }
+
+    // Transform CMS routes to tenant dashboard routes (legacy)
     if (url.includes('/cms/')) {
-      return url.replace('/cms/', `/tenants/${tenantSlug}/dashboard/cms/`);
+      return url.replace('/cms/', `/manage/${tenantSlug}/(engines)/cms/`);
     }
 
     return url;
@@ -295,6 +300,9 @@ export function DashboardSidebar() {
 
   // Transform navigation items for admin/tenant admin
   const transformedBaseNavigationItems: NavItem[] = useMemo(() => {
+    // Get tenant slug from tenantData or params
+    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    
     const items = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
       ...item,
       name: t(item.name),
@@ -303,8 +311,21 @@ export function DashboardSidebar() {
         name: t(child.name)
       }))
     }));
+    
+    // For TenantAdmin users, transform base navigation to use the manage path
+    if (showAsTenantAdmin && currentTenantSlug) {
+      return items.map(item => ({
+        ...item,
+        href: item.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`),
+        children: item.children?.map(child => ({
+          ...child,
+          href: child.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`)
+        }))
+      }));
+    }
+    
     return transformNavItemsForTenantDashboard(items);
-  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug, showAsTenantAdmin, tenantData?.tenant?.slug]);
 
   const transformedAdminNavigationItems: NavItem[] = useMemo(() => {
     const items = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
@@ -319,7 +340,10 @@ export function DashboardSidebar() {
   }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
   const transformedTenantAdminNavigationItems: NavItem[] = useMemo(() => {
-    const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string).map(item => ({
+    // Get tenant slug from tenantData or params
+    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    
+    const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string, currentTenantSlug).map(item => ({
       ...item,
       name: t(item.name),
       children: item.children?.map(child => ({
@@ -335,9 +359,9 @@ export function DashboardSidebar() {
     const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
     console.log('Filtered tenant admin items:', filteredItems);
     
-    // Transform for tenant dashboard context
-    return transformNavItemsForTenantDashboard(filteredItems);
-  }, [params.locale, t, tenantFeatures, isInTenantDashboard, tenantSlug]);
+    // Since we're now generating the correct URLs directly, we don't need to transform them
+    return filteredItems;
+  }, [params.locale, t, tenantFeatures, tenantData?.tenant?.slug, tenantSlug]);
 
   // SuperAdmin navigation items - MCP (Master Control Panel)
   const transformedSuperAdminNavigationItems: NavItem[] = useMemo(() => {
@@ -1119,7 +1143,7 @@ export function DashboardSidebar() {
                           >
                             {t('sidebar.defaultRole')}
                           </button>
-                          {sortedRoles.filter(role => role.name !== 'SUPER_ADMIN').map((role) => (
+                          {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
                             <button
                               key={role.id}
                               className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
@@ -1335,7 +1359,7 @@ export function DashboardSidebar() {
                                 >
                                   {t('sidebar.defaultRole')}
                                 </button>
-                                {sortedRoles.filter(role => role.name !== 'SUPER_ADMIN').map((role) => (
+                                {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
                                   <button
                                     key={role.id}
                                     className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${selectedRole === role.name ? 'bg-indigo-50 text-indigo-700' : ''}`}

@@ -54,7 +54,7 @@ export default function TenantDashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                🏢 Dashboard del Tenant
+                🏢 Dashboard de {params.tenantSlug}
               </h1>
               <p className="mt-1 text-gray-600">
                 Bienvenido al panel de administración de <span className="font-semibold text-indigo-600">{params.tenantSlug}</span>

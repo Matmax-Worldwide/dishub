@@ -455,7 +455,7 @@
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
     "USER": "User",
-    "SUPER_ADMIN": "Super Admin",
+    "SuperAdmin": "Super Admin",
     "SuperAdmin": "Super Admin"
   },
   "commerce": {
@@ -481,5 +481,117 @@
     "english": "English",
     "spanish": "Spanish", 
     "german": "German"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "disruption": "Disruption",
+      "isInnovation": "is Innovation",
+      "subtitle": "Where privacy meets power. Data sovereignty native by design, AI & blockchain ready for tomorrow's business.",
+      "startDisrupting": "Start Disrupting",
+      "learnMore": "Learn More"
+    },
+    "features": {
+      "nativeByDesign": "Native by Design",
+      "privacyFirst": {
+        "title": "Privacy First",
+        "desc": "Data sovereignty built into every layer"
+      },
+      "aiPowered": {
+        "title": "AI Powered",
+        "desc": "Cutting-edge intelligence at your fingertips"
+      },
+      "blockchainReady": {
+        "title": "Blockchain Ready",
+        "desc": "Decentralized trust for global business"
+      },
+      "globalScale": {
+        "title": "Global Scale",
+        "desc": "Supporting emerging businesses worldwide"
+      }
+    },
+    "privacy": {
+      "title": "Privacy Without Compromise",
+      "subtitle": "Built for the privacy-first future. Every feature designed with data protection, compliance, and sovereignty at its core.",
+      "gdprCompliant": {
+        "title": "GDPR Compliant",
+        "desc": "Full regulatory compliance built-in from day one"
+      },
+      "zeroKnowledge": {
+        "title": "Zero Knowledge",
+        "desc": "Your data remains encrypted, even from us"
+      },
+      "dataSovereignty": {
+        "title": "Data Sovereignty",
+        "desc": "Complete control over where your data lives"
+      },
+      "federatedSystem": {
+        "title": "Federated System",
+        "desc": "Distributed architecture for ultimate resilience"
+      },
+      "architecture": {
+        "title": "Zero Knowledge Architecture",
+        "encryptedAtRest": {
+          "title": "Encrypted at Rest",
+          "desc": "Data encrypted before storage"
+        },
+        "zeroAccess": {
+          "title": "Zero Access",
+          "desc": "We can't read your data"
+        },
+        "clientSideKeys": {
+          "title": "Client-Side Keys",
+          "desc": "You control the encryption"
+        }
+      },
+      "blockchain": {
+        "userTable": "User Records",
+        "transactionTable": "Transactions",
+        "encryptionTable": "Encryption Keys",
+        "auditTable": "Audit Logs",
+        "permissionTable": "Permissions",
+        "sessionTable": "Sessions",
+        "backupTable": "Backup Hashes",
+        "validationTable": "Validation",
+        "masterKey": "Master Key"
+      }
+    },
+    "technology": {
+      "title": "Tech Stack",
+      "subtitle": "for Tomorrow",
+      "description": "Built on cutting-edge AI and blockchain infrastructure, DISHUB empowers emerging businesses with enterprise-grade technology that's accessible, scalable, and secure.",
+      "endToEnd": "End-to-end encryption",
+      "decentralized": "Decentralized data storage",
+      "aiInsights": "AI-powered insights"
+    },
+    "federated": {
+      "title": "Federated by Design",
+      "trustNetwork": "Distributed Trust Network",
+      "description": "Our federated architecture ensures your data is never centralized. Each node operates independently while maintaining global consistency through advanced consensus protocols.",
+      "multiRegion": {
+        "title": "Multi-Region Resilience",
+        "desc": "Data replicated across geographic boundaries with automatic failover"
+      },
+      "sovereignZones": {
+        "title": "Sovereign Data Zones",
+        "desc": "Choose exactly where your data resides to meet compliance requirements"
+      },
+      "edgeComputing": {
+        "title": "Edge Computing Ready",
+        "desc": "Process data at the edge for ultra-low latency applications"
+      }
+    },
+    "cta": {
+      "readyTo": "Ready to",
+      "disrupt": "Disrupt?",
+      "subtitle": "Join the revolution. Build on sovereignty. Scale with confidence.",
+      "launchFuture": "Launch Your Future"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Disrupting the future, today."
+    }
   }
 } 

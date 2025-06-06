@@ -49,7 +49,7 @@ export interface NavItem {
 export interface SidebarConfig {
   baseNavigationItems: (locale: string) => NavItem[];
   adminNavigationItems: (locale: string) => NavItem[];
-  tenantAdminNavigationItems: (locale: string) => NavItem[];
+  tenantAdminNavigationItems: (locale: string, tenantSlug?: string) => NavItem[];
   superAdminNavigationItems: (locale: string) => NavItem[];
   featureBasedNavigationItems: (locale: string) => NavItem[];
 }
@@ -125,274 +125,348 @@ export const sidebarConfig: SidebarConfig = {
   ],
 
   // TenantAdmin navigation items - 6 main sections for tenant administrators
-  tenantAdminNavigationItems: (locale: string) => [
-    // 📊 Dashboard Overview
-    { 
-      name: 'sidebar.dashboard', 
-      href: `/${locale}/admin/dashboard`, 
-      icon: LayoutDashboardIcon,
-      permissions: ['admin:view']
-    },
+  tenantAdminNavigationItems: (locale: string, tenantSlug?: string) => {
+    const basePath = tenantSlug ? `/${locale}/manage/${tenantSlug}/dashboard` : `/${locale}/admin`;
     
-    // 🧩 1. Gestión de módulos
-    {
-      name: 'sidebar.moduleManagement',
-      href: `/${locale}/admin/modules`,
-      icon: PackageIcon,
-      permissions: ['modules:manage'],
-      children: [
-        {
-          name: 'sidebar.activeModules',
-          href: `/${locale}/admin/modules/active`,
-          icon: BarChartIcon,
-          permissions: ['modules:read']
-        },
-        {
-          name: 'sidebar.requestModules',
-          href: `/${locale}/admin/modules/request`,
-          icon: UserPlusIcon,
-          permissions: ['modules:request']
-        },
-        {
-          name: 'sidebar.moduleConfiguration',
-          href: `/${locale}/admin/modules/config`,
-          icon: SettingsIcon,
-          permissions: ['modules:configure']
-        }
-      ]
-    },
+    return [
+      // 📊 Dashboard Overview
+      { 
+        name: 'sidebar.dashboard', 
+        href: basePath, 
+        icon: LayoutDashboardIcon,
+        permissions: ['admin:view']
+      },
+      
+      // 🧩 1. Gestión de módulos
+      {
+        name: 'sidebar.moduleManagement',
+        href: `${basePath}/modules`,
+        icon: PackageIcon,
+        permissions: ['modules:manage'],
+        children: [
+          {
+            name: 'sidebar.activeModules',
+            href: `${basePath}/modules/active`,
+            icon: BarChartIcon,
+            permissions: ['modules:read']
+          },
+          {
+            name: 'sidebar.requestModules',
+            href: `${basePath}/modules/request`,
+            icon: UserPlusIcon,
+            permissions: ['modules:request']
+          },
+          {
+            name: 'sidebar.moduleConfiguration',
+            href: `${basePath}/modules/config`,
+            icon: SettingsIcon,
+            permissions: ['modules:configure']
+          }
+        ]
+      },
 
-    // 👥 2. Gestión de usuarios
-    {
-      name: 'sidebar.userManagement',
-      href: `/${locale}/admin/users`,
-      icon: UsersIcon,
-      permissions: ['users:read'],
-      children: [
-        {
-          name: 'sidebar.usersList',
-          href: `/${locale}/admin/users/list`,
-          icon: UserIcon,
-          permissions: ['users:read']
-        },
-        {
-          name: 'sidebar.rolesPermissions',
-          href: `/${locale}/admin/users/roles`,
-          icon: ShieldIcon,
-          permissions: ['roles:manage']
-        },
-        {
-          name: 'sidebar.activityLogs',
-          href: `/${locale}/admin/users/activity`,
-          icon: ClipboardListIcon,
-          permissions: ['audit:read']
-        }
-      ]
-    },
+      // 👥 2. Gestión de usuarios
+      {
+        name: 'sidebar.userManagement',
+        href: `${basePath}/users`,
+        icon: UsersIcon,
+        permissions: ['users:read'],
+        children: [
+          {
+            name: 'sidebar.usersList',
+            href: `${basePath}/users/list`,
+            icon: UserIcon,
+            permissions: ['users:read']
+          },
+          {
+            name: 'sidebar.rolesPermissions',
+            href: `${basePath}/users/roles`,
+            icon: ShieldIcon,
+            permissions: ['roles:manage']
+          },
+          {
+            name: 'sidebar.activityLogs',
+            href: `${basePath}/users/activity`,
+            icon: ClipboardListIcon,
+            permissions: ['audit:read']
+          }
+        ]
+      },
 
-    // 🏢 3. Gestión de la empresa
-    {
-      name: 'sidebar.companyManagement',
-      href: `/${locale}/admin/company`,
-      icon: HomeIcon,
-      permissions: ['company:manage'],
-      children: [
-        {
-          name: 'sidebar.companyProfile',
-          href: `/${locale}/admin/company/profile`,
-          icon: HomeIcon,
-          permissions: ['company:edit']
-        },
-        {
-          name: 'sidebar.brandingDesign',
-          href: `/${locale}/admin/company/branding`,
-          icon: PenToolIcon,
-          permissions: ['branding:manage']
-        },
-        {
-          name: 'sidebar.billing',
-          href: `/${locale}/admin/company/billing`,
-          icon: CreditCardIcon,
-          permissions: ['billing:read']
-        }
-      ]
-    },
+      // 🏢 3. Gestión de la empresa
+      {
+        name: 'sidebar.companyManagement',
+        href: `${basePath}/company`,
+        icon: HomeIcon,
+        permissions: ['company:manage'],
+        children: [
+          {
+            name: 'sidebar.companyProfile',
+            href: `${basePath}/company/profile`,
+            icon: HomeIcon,
+            permissions: ['company:edit']
+          },
+          {
+            name: 'sidebar.brandingDesign',
+            href: `${basePath}/company/branding`,
+            icon: PenToolIcon,
+            permissions: ['branding:manage']
+          },
+          {
+            name: 'sidebar.billing',
+            href: `${basePath}/company/billing`,
+            icon: CreditCardIcon,
+            permissions: ['billing:read']
+          }
+        ]
+      },
 
-    // 📊 4. Contenido (CMS) - Siempre disponible
-    {
-      name: 'sidebar.contentManagement',
-      href: `/${locale}/admin/cms`,
-      icon: FileTextIcon,
-      permissions: ['cms:access'],
-      // No features required - always available
-      children: [
-        {
-          name: 'sidebar.pages',
-          href: `/${locale}/admin/cms/pages`,
-          icon: FileTextIcon,
-          permissions: ['pages:manage']
-        },
-        {
-          name: 'sidebar.media',
-          href: `/${locale}/admin/cms/media`,
-          icon: ImageIcon,
-          permissions: ['media:manage']
-        },
-        {
-          name: 'sidebar.templates',
-          href: `/${locale}/admin/cms/templates`,
-          icon: LayoutDashboardIcon,
-          permissions: ['templates:manage']
-        },
-        {
-          name: 'sidebar.multilingual',
-          href: `/${locale}/admin/cms/languages`,
-          icon: SettingsIcon,
-          permissions: ['languages:manage']
-        }
-      ]
-    },
+      // 📊 4. Contenido (CMS) - Siempre disponible
+      {
+        name: 'sidebar.contentManagement',
+        href: `${basePath.replace('/dashboard', '')}/(engines)/cms`,
+        icon: FileTextIcon,
+        permissions: ['cms:access'],
+        children: [
+          {
+            name: 'sidebar.pages',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/pages`,
+            icon: FileTextIcon,
+            permissions: ['pages:manage']
+          },
+          {
+            name: 'sidebar.media',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/media`,
+            icon: ImageIcon,
+            permissions: ['media:manage']
+          },
+          {
+            name: 'sidebar.templates',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/templates`,
+            icon: LayoutDashboardIcon,
+            permissions: ['templates:manage']
+          },
+          {
+            name: 'sidebar.multilingual',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/languages`,
+            icon: SettingsIcon,
+            permissions: ['languages:manage']
+          },
+          {
+            name: 'sidebar.blog',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/blog`,
+            icon: BookOpenIcon,
+            permissions: ['blog:manage']
+          },
+          {
+            name: 'sidebar.forms',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/forms`,
+            icon: FormInputIcon,
+            permissions: ['forms:manage']
+          },
+          {
+            name: 'sidebar.menus',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/menus`,
+            icon: MenuIcon,
+            permissions: ['menus:manage']
+          },
+          {
+            name: 'sidebar.settings',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/cms/settings`,
+            icon: SettingsIcon,
+            permissions: ['cms:settings']
+          }
+        ]
+      },
 
-    // 🧾 5. Módulos de Negocio - Booking Engine
-    {
-      name: 'sidebar.bookingEngine',
-      href: `/${locale}/admin/business/booking`,
-      icon: CalendarIcon,
-      permissions: ['booking:access'],
-      features: ['BOOKING_ENGINE'], // Required feature
-      children: [
-        {
-          name: 'sidebar.calendar',
-          href: `/${locale}/admin/business/booking/calendar`,
-          icon: CalendarIcon,
-          permissions: ['booking:read']
-        },
-        {
-          name: 'sidebar.services',
-          href: `/${locale}/admin/business/booking/services`,
-          icon: ClipboardListIcon,
-          permissions: ['services:read']
-        },
-        {
-          name: 'sidebar.staff',
-          href: `/${locale}/admin/business/booking/staff`,
-          icon: UsersIcon,
-          permissions: ['staff:read']
-        },
-        {
-          name: 'sidebar.bookingSettings',
-          href: `/${locale}/admin/business/booking/settings`,
-          icon: SettingsIcon,
-          permissions: ['booking:manage']
-        }
-      ]
-    },
+      // 🧾 5. Módulos de Negocio - Booking Engine
+      {
+        name: 'sidebar.bookingEngine',
+        href: `${basePath.replace('/dashboard', '')}/(engines)/bookings`,
+        icon: CalendarIcon,
+        permissions: ['booking:access'],
+        features: ['BOOKING_ENGINE'], // Required feature
+        children: [
+          {
+            name: 'sidebar.calendar',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/calendar`,
+            icon: CalendarIcon,
+            permissions: ['booking:read']
+          },
+          {
+            name: 'sidebar.bookingsList',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/list`,
+            icon: ClipboardListIcon,
+            permissions: ['booking:read']
+          },
+          {
+            name: 'sidebar.services',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/services`,
+            icon: ClipboardListIcon,
+            permissions: ['services:read']
+          },
+          {
+            name: 'sidebar.categories',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/categories`,
+            icon: PackageIcon,
+            permissions: ['categories:read']
+          },
+          {
+            name: 'sidebar.staff',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/staff`,
+            icon: UsersIcon,
+            permissions: ['staff:read']
+          },
+          {
+            name: 'sidebar.locations',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/locations`,
+            icon: HomeIcon,
+            permissions: ['locations:read']
+          },
+          {
+            name: 'sidebar.rules',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/bookings/rules`,
+            icon: ShieldIcon,
+            permissions: ['rules:read']
+          }
+        ]
+      },
 
-    // 🛒 6. Módulos de Negocio - E-commerce Engine
-    {
-      name: 'sidebar.ecommerceEngine',
-      href: `/${locale}/admin/business/ecommerce`,
-      icon: ShoppingCartIcon,
-      permissions: ['ecommerce:access'],
-      features: ['ECOMMERCE_ENGINE'], // Required feature
-      children: [
-        {
-          name: 'sidebar.products',
-          href: `/${locale}/admin/business/ecommerce/products`,
-          icon: PackageIcon,
-          permissions: ['products:read']
-        },
-        {
-          name: 'sidebar.orders',
-          href: `/${locale}/admin/business/ecommerce/orders`,
-          icon: ClipboardListIcon,
-          permissions: ['orders:read']
-        },
-        {
-          name: 'sidebar.customers',
-          href: `/${locale}/admin/business/ecommerce/customers`,
-          icon: UsersIcon,
-          permissions: ['customers:read']
-        },
-        {
-          name: 'sidebar.payments',
-          href: `/${locale}/admin/business/ecommerce/payments`,
-          icon: CreditCardIcon,
-          permissions: ['payments:read']
-        },
-        {
-          name: 'sidebar.ecommerceSettings',
-          href: `/${locale}/admin/business/ecommerce/settings`,
-          icon: SettingsIcon,
-          permissions: ['ecommerce:manage']
-        }
-      ]
-    },
+      // 🛒 6. Módulos de Negocio - E-commerce Engine
+      {
+        name: 'sidebar.ecommerceEngine',
+        href: `${basePath.replace('/dashboard', '')}/(engines)/commerce`,
+        icon: ShoppingCartIcon,
+        permissions: ['ecommerce:access'],
+        features: ['ECOMMERCE_ENGINE'], // Required feature
+        children: [
+          {
+            name: 'sidebar.products',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/products`,
+            icon: PackageIcon,
+            permissions: ['products:read']
+          },
+          {
+            name: 'sidebar.categories',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/categories`,
+            icon: PackageIcon,
+            permissions: ['categories:read']
+          },
+          {
+            name: 'sidebar.inventory',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/inventory`,
+            icon: PackageIcon,
+            permissions: ['inventory:read']
+          },
+          {
+            name: 'sidebar.orders',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/orders`,
+            icon: ClipboardListIcon,
+            permissions: ['orders:read']
+          },
+          {
+            name: 'sidebar.customers',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/customers`,
+            icon: UsersIcon,
+            permissions: ['customers:read']
+          },
+          {
+            name: 'sidebar.payments',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/payments`,
+            icon: CreditCardIcon,
+            permissions: ['payments:read']
+          },
+          {
+            name: 'sidebar.shipping',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/shipping`,
+            icon: TruckIcon,
+            permissions: ['shipping:read']
+          },
+          {
+            name: 'sidebar.taxes',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/taxes`,
+            icon: CreditCardIcon,
+            permissions: ['taxes:read']
+          },
+          {
+            name: 'sidebar.analytics',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/analytics`,
+            icon: BarChartIcon,
+            permissions: ['analytics:read']
+          },
+          {
+            name: 'sidebar.ecommerceSettings',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/commerce/settings`,
+            icon: SettingsIcon,
+            permissions: ['ecommerce:manage']
+          }
+        ]
+      },
 
-    // 👥 7. Módulos de Negocio - HRMS
-    {
-      name: 'sidebar.hrmsEngine',
-      href: `/${locale}/admin/business/hrms`,
-      icon: UsersIcon,
-      permissions: ['hrms:access'],
-      features: ['HRMS_MODULE'], // Required feature
-      children: [
-        {
-          name: 'sidebar.employees',
-          href: `/${locale}/admin/business/hrms/employees`,
-          icon: UserIcon,
-          permissions: ['employees:read']
-        },
-        {
-          name: 'sidebar.departments',
-          href: `/${locale}/admin/business/hrms/departments`,
-          icon: HomeIcon,
-          permissions: ['departments:read']
-        },
-        {
-          name: 'sidebar.payroll',
-          href: `/${locale}/admin/business/hrms/payroll`,
-          icon: CreditCardIcon,
-          permissions: ['payroll:read']
-        },
-        {
-          name: 'sidebar.hrmsSettings',
-          href: `/${locale}/admin/business/hrms/settings`,
-          icon: SettingsIcon,
-          permissions: ['hrms:manage']
-        }
-      ]
-    },
+      // 👥 7. Módulos de Negocio - HRMS
+      {
+        name: 'sidebar.hrmsEngine',
+        href: `${basePath.replace('/dashboard', '')}/(engines)/hrms`,
+        icon: UsersIcon,
+        permissions: ['hrms:access'],
+        features: ['HRMS_MODULE'], // Required feature
+        children: [
+          {
+            name: 'sidebar.employees',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/hrms/employees`,
+            icon: UserIcon,
+            permissions: ['employees:read']
+          },
+          {
+            name: 'sidebar.departments',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/hrms/departments`,
+            icon: HomeIcon,
+            permissions: ['departments:read']
+          },
+          {
+            name: 'sidebar.payroll',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/hrms/payroll`,
+            icon: CreditCardIcon,
+            permissions: ['payroll:read']
+          },
+          {
+            name: 'sidebar.hrmsSettings',
+            href: `${basePath.replace('/dashboard', '')}/(engines)/hrms/settings`,
+            icon: SettingsIcon,
+            permissions: ['hrms:manage']
+          }
+        ]
+      },
 
-    // 📊 8. Reportes e insights
-    {
-      name: 'sidebar.reportsInsights',
-      href: `/${locale}/admin/reports`,
-      icon: BarChartIcon,
-      permissions: ['reports:read'],
-      // No features required for basic reporting
-      children: [
-        {
-          name: 'sidebar.kpiDashboard',
-          href: `/${locale}/admin/reports/kpis`,
-          icon: LineChartIcon,
-          permissions: ['kpis:read']
-        },
-        {
-          name: 'sidebar.exportData',
-          href: `/${locale}/admin/reports/export`,
-          icon: ClipboardListIcon,
-          permissions: ['data:export']
-        },
-        {
-          name: 'sidebar.activityHistory',
-          href: `/${locale}/admin/reports/activity`,
-          icon: BarChartIcon,
-          permissions: ['activity:read']
-        }
-      ]
-    }
-  ],
+      // 📊 8. Reportes e insights
+      {
+        name: 'sidebar.reportsInsights',
+        href: `${basePath}/reports`,
+        icon: BarChartIcon,
+        permissions: ['reports:read'],
+        children: [
+          {
+            name: 'sidebar.kpiDashboard',
+            href: `${basePath}/reports/kpis`,
+            icon: LineChartIcon,
+            permissions: ['kpis:read']
+          },
+          {
+            name: 'sidebar.exportData',
+            href: `${basePath}/reports/export`,
+            icon: ClipboardListIcon,
+            permissions: ['data:export']
+          },
+          {
+            name: 'sidebar.activityHistory',
+            href: `${basePath}/reports/activity`,
+            icon: BarChartIcon,
+            permissions: ['activity:read']
+          }
+        ]
+      }
+    ];
+  },
 
   // SuperAdmin navigation items - MCP (Master Control Panel)
   superAdminNavigationItems: (locale: string) => [

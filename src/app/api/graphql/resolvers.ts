@@ -65,7 +65,7 @@ async function ensureSystemRoles() {
     { name: 'ADMIN', description: 'Administrator with full system access' },
     { name: 'MANAGER', description: 'Manager with access to team resources' },
     { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
-    { name: 'SUPER_ADMIN', description: 'Super Administrator with platform-wide access across all tenants' },
+    { name: 'SuperAdmin', description: 'Super Administrator with platform-wide access across all tenants' },
   ];
   
   // Check if roles exist, if not create them
@@ -393,14 +393,14 @@ const resolvers = {
         const userRole = currentUser?.role?.name || 'USER';
         
         // Allow admins, managers, and super admins to access this endpoint
-        if (!['ADMIN', 'MANAGER', 'SUPER_ADMIN'].includes(userRole)) {
+        if (!['ADMIN', 'MANAGER', 'SuperAdmin'].includes(userRole)) {
           throw new Error('Unauthorized: Admin, Manager, or Super Admin access required');
         }
         
         // Build the where clause based on user role
         let whereClause = {};
         
-        if (userRole === 'SUPER_ADMIN') {
+        if (userRole === 'SuperAdmin') {
           // Super admins can see all users across all tenants
           whereClause = {};
         } else if (userRole === 'ADMIN' || userRole === 'MANAGER') {

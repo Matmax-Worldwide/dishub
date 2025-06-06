@@ -179,7 +179,7 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
           console.log('Actual role:', userRoleName);
 
           // If role is undefined or invalid, try to get it from database (fallback from original version)
-          if (!userRoleName || !['USER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SUPER_ADMIN', 'STAFF'].includes(userRoleName)) {
+          if (!userRoleName || !['USER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SuperAdmin', 'STAFF'].includes(userRoleName)) {
             console.log('Role undefined or invalid, fetching from database...');
             
             // First try to get role by roleId if available
@@ -220,11 +220,11 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
 
           // Security Check: If a tenant was resolved from the request (e.g. subdomain)
           // AND the user's JWT also has a tenantId, they should match,
-          // unless the user is a SUPER_ADMIN or platform admin.
+          // unless the user is a SuperAdmin or platform admin.
           if (resolvedTenantId &&
               decodedJwt.tenantId &&
               resolvedTenantId !== decodedJwt.tenantId &&
-              userRoleName !== 'SUPER_ADMIN' && // Add other platform admin roles if any
+              userRoleName !== 'SuperAdmin' && // Add other platform admin roles if any
               userRoleName !== 'ADMIN' // Assuming ADMIN can be a platform admin
           ) {
             console.warn(`Tenant ID mismatch! Request-resolved: ${resolvedTenantId}, JWT-derived: ${decodedJwt.tenantId}. User: ${decodedJwt.userId}, Role: ${userRoleName}. Invalidating user for this context.`);

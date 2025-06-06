@@ -67,25 +67,26 @@ export default function AccessDeniedPage() {
       const userRole = user.role?.name;
       console.log('Usuario actual:', user.email, 'Rol:', userRole, 'Tenant:', tenant?.slug);
       
-      if (userRole === 'SUPER_ADMIN') {
-        setRedirectPath(`/${locale}/admin`);
-      } else if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-        // Para ADMIN/MANAGER, necesitamos el tenant slug
+      if (userRole === 'SuperAdmin') {
+        setRedirectPath(`/${locale}/super-admin/dashboard`);
+      } else if (userRole === 'TenantAdmin' || userRole === 'TenantManager') {
+        // Para TenantAdmin/TenantManager, necesitamos el tenant slug
         if (tenant?.slug) {
-          setRedirectPath(`/${locale}/tenants/${tenant.slug}/admin`);
+          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
         } else if (user.tenantId) {
           // Si tenemos tenantId pero no el slug aún, usar dashboard general
-          setRedirectPath(`/${locale}/admin/dashboard`);
+          setRedirectPath(`/${locale}/dashboard`);
         } else {
-          setRedirectPath(`/${locale}/admin/dashboard`);
+          setRedirectPath(`/${locale}/dashboard`);
         }
       } else {
         // Para usuarios regulares, usar dashboard general por ahora
-        // TODO: Implementar dashboard específico por tenant
         if (tenant?.slug) {
-          console.log(`Usuario pertenece a tenant ${tenant.slug}, pero usando dashboard`);
+          console.log(`Usuario pertenece a tenant ${tenant.slug}, usando dashboard del tenant`);
+          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
+        } else {
+          setRedirectPath(`/${locale}/dashboard`);
         }
-        setRedirectPath(`/${locale}/admin/dashboard`);
       }
     } else if (!isAuthenticated) {
       setRedirectPath(`/${locale}/login`);

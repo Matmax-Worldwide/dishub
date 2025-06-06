@@ -408,7 +408,7 @@
     "MANAGER": "Manager",
     "EMPLOYEE": "Mitarbeiter",
     "USER": "Benutzer",
-    "SUPER_ADMIN": "Super Admin",
+    "SuperAdmin": "Super Admin",
     "SuperAdmin": "Super Admin"
   },
   "staffCreator": {
@@ -446,5 +446,117 @@
     "english": "Englisch",
     "spanish": "Spanisch", 
     "german": "Deutsch"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Loslegen"
+    },
+    "hero": {
+      "disruption": "Disruption",
+      "isInnovation": "ist Innovation",
+      "subtitle": "Wo Privatsphäre auf Macht trifft. Datensouveränität nativ im Design, KI & Blockchain bereit für das Geschäft von morgen.",
+      "startDisrupting": "Beginne zu Disruptieren",
+      "learnMore": "Mehr Erfahren"
+    },
+    "features": {
+      "nativeByDesign": "Nativ im Design",
+      "privacyFirst": {
+        "title": "Privatsphäre Zuerst",
+        "desc": "Datensouveränität in jede Schicht eingebaut"
+      },
+      "aiPowered": {
+        "title": "KI-Gestützt",
+        "desc": "Modernste Intelligenz auf Knopfdruck"
+      },
+      "blockchainReady": {
+        "title": "Blockchain-Bereit",
+        "desc": "Dezentrales Vertrauen für globale Geschäfte"
+      },
+      "globalScale": {
+        "title": "Globale Skalierung",
+        "desc": "Unterstützung aufstrebender Unternehmen weltweit"
+      }
+    },
+    "privacy": {
+      "title": "Privatsphäre Ohne Kompromisse",
+      "subtitle": "Gebaut für die privatsphäre-erste Zukunft. Jede Funktion mit Datenschutz, Compliance und Souveränität im Kern entworfen.",
+      "gdprCompliant": {
+        "title": "DSGVO-Konform",
+        "desc": "Vollständige regulatorische Compliance von Tag eins integriert"
+      },
+      "zeroKnowledge": {
+        "title": "Zero Knowledge",
+        "desc": "Ihre Daten bleiben verschlüsselt, sogar vor uns"
+      },
+      "dataSovereignty": {
+        "title": "Datensouveränität",
+        "desc": "Vollständige Kontrolle darüber, wo Ihre Daten leben"
+      },
+      "federatedSystem": {
+        "title": "Föderiertes System",
+        "desc": "Verteilte Architektur für ultimative Widerstandsfähigkeit"
+      },
+      "architecture": {
+        "title": "Zero Knowledge Architektur",
+        "encryptedAtRest": {
+          "title": "Verschlüsselt im Ruhezustand",
+          "desc": "Daten vor der Speicherung verschlüsselt"
+        },
+        "zeroAccess": {
+          "title": "Null Zugriff",
+          "desc": "Wir können Ihre Daten nicht lesen"
+        },
+        "clientSideKeys": {
+          "title": "Client-Seitige Schlüssel",
+          "desc": "Sie kontrollieren die Verschlüsselung"
+        }
+      },
+      "blockchain": {
+        "userTable": "Benutzer-Datensätze",
+        "transactionTable": "Transaktionen",
+        "encryptionTable": "Verschlüsselungsschlüssel",
+        "auditTable": "Audit-Protokolle",
+        "permissionTable": "Berechtigungen",
+        "sessionTable": "Sitzungen",
+        "backupTable": "Backup-Hashes",
+        "validationTable": "Validierung",
+        "masterKey": "Hauptschlüssel"
+      }
+    },
+    "technology": {
+      "title": "Tech Stack",
+      "subtitle": "für Morgen",
+      "description": "Aufgebaut auf modernster KI- und Blockchain-Infrastruktur, befähigt DISHUB aufstrebende Unternehmen mit Unternehmens-Technologie, die zugänglich, skalierbar und sicher ist.",
+      "endToEnd": "Ende-zu-Ende-Verschlüsselung",
+      "decentralized": "Dezentrale Datenspeicherung",
+      "aiInsights": "KI-gestützte Einblicke"
+    },
+    "federated": {
+      "title": "Föderiert im Design",
+      "trustNetwork": "Verteiltes Vertrauensnetzwerk",
+      "description": "Unsere föderierte Architektur stellt sicher, dass Ihre Daten nie zentralisiert sind. Jeder Knoten arbeitet unabhängig, während er globale Konsistenz durch fortgeschrittene Konsens-Protokolle aufrechterhält.",
+      "multiRegion": {
+        "title": "Multi-Region Widerstandsfähigkeit",
+        "desc": "Daten über geografische Grenzen repliziert mit automatischem Failover"
+      },
+      "sovereignZones": {
+        "title": "Souveräne Datenzonen",
+        "desc": "Wählen Sie genau, wo Ihre Daten residieren, um Compliance-Anforderungen zu erfüllen"
+      },
+      "edgeComputing": {
+        "title": "Edge Computing Bereit",
+        "desc": "Verarbeiten Sie Daten am Rand für ultra-niedrige Latenz-Anwendungen"
+      }
+    },
+    "cta": {
+      "readyTo": "Bereit zu",
+      "disrupt": "Disruptieren?",
+      "subtitle": "Schließen Sie sich der Revolution an. Bauen Sie auf Souveränität. Skalieren Sie mit Vertrauen.",
+      "launchFuture": "Starten Sie Ihre Zukunft"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Die Zukunft disruptieren, heute."
+    }
   }
 } 

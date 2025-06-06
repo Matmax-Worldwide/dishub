@@ -71,7 +71,7 @@ export const tenantResolvers = {
     tenants: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         // Only super admins can see all tenants
-        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+        if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -93,7 +93,25 @@ export const tenantResolvers = {
           throw new Error('Unauthorized: Authentication required');
         }
 
-        if (context.user.role !== 'SUPER_ADMIN' && !context.user.tenants?.some(tenant => tenant.id === id)) {
+        // Super admins can access any tenant
+        if (context.user.role === 'SuperAdmin' || context.user.role === 'SuperAdmin') {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id }
+          });
+          return tenant;
+        }
+
+        // TenantAdmin and other tenant users can only access their own tenant
+        // Check multiple sources: tenants array, currentTenantIdFromJwt, and context tenantId
+        const hasAccess = context.user.tenants?.some(tenant => tenant.id === id) || 
+                         context.user.currentTenantIdFromJwt === id ||
+                         context.tenantId === id;
+
+        if (!hasAccess) {
+          console.log(`Access denied for user ${context.user.id} with role ${context.user.role} to tenant ${id}.`);
+          console.log(`  User currentTenantIdFromJwt: ${context.user.currentTenantIdFromJwt}`);
+          console.log(`  Context tenantId: ${context.tenantId}`);
+          console.log(`  Requested tenant ID: ${id}`);
           throw new Error('Unauthorized: Access denied');
         }
 
@@ -120,7 +138,7 @@ export const tenantResolvers = {
 
         // Allow super admins (check for various role name formats)
         const userRole = context.user.role;
-        const allowedRoles = ['SUPER_ADMIN', 'SuperAdmin', 'ADMIN', 'Admin'];
+        const allowedRoles = ['SuperAdmin', 'SuperAdmin', 'ADMIN', 'Admin'];
         
         if (!allowedRoles.includes(userRole)) {
           console.log(`Access denied for role: ${userRole}. Allowed roles:`, allowedRoles);
@@ -227,7 +245,7 @@ export const tenantResolvers = {
     createTenant: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: GraphQLContext) => {
       try {
         // Only super admins can create tenants directly
-        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+        if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -262,7 +280,7 @@ export const tenantResolvers = {
     createTenantSuperAdmin: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: GraphQLContext) => {
       try {
         // Only super admins can create tenants directly
-        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+        if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -400,7 +418,7 @@ export const tenantResolvers = {
         }
 
         // For non-super admins, they can only update their own tenant
-        if (context.user.role !== 'SUPER_ADMIN' && !context.user.tenants?.some(tenant => tenant.id === id)) {
+        if (context.user.role !== 'SuperAdmin' && !context.user.tenants?.some(tenant => tenant.id === id)) {
           throw new Error('Unauthorized: You can only update your own tenant');
         }
 
@@ -447,7 +465,7 @@ export const tenantResolvers = {
     updateTenantSuperAdmin: async (_parent: unknown, { id, input }: { id: string; input: UpdateTenantInput }, context: GraphQLContext) => {
       try {
         // Only super admins can use this mutation
-        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+        if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -510,7 +528,7 @@ export const tenantResolvers = {
     assignTenantAdmin: async (_parent: unknown, { tenantId, userId }: { tenantId: string; userId: string }, context: GraphQLContext) => {
       try {
         // Only super admins can assign tenant admins
-        if (!context.user || context.user.role !== 'SUPER_ADMIN') {
+        if (!context.user || context.user.role !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 

@@ -283,7 +283,7 @@ const isAdminUser = (context: GraphQLContext): boolean => {
   
   const role = context.user?.role;
   console.log('isAdminUser check - user role:', role);
-  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+  return role === 'ADMIN' || role === 'SuperAdmin';
 };
 
 export const calendarResolvers = {
