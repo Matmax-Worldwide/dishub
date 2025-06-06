@@ -31,7 +31,10 @@ const REGISTER_USER_WITH_TENANT = gql`
           name
           description
         }
-        tenantId
+        userTenants {
+          tenantId
+          role
+        }
         createdAt
         updatedAt
       }

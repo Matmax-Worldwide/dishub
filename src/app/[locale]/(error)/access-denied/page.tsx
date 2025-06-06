@@ -20,7 +20,10 @@ const GET_ME = gql`
         name
         description
       }
-      tenantId
+      userTenants {
+        tenantId
+        role
+      }
     }
   }
 `;
@@ -52,10 +55,11 @@ export default function AccessDeniedPage() {
 
   const user = userData?.me;
 
-  // Obtener información del tenant si el usuario tiene tenantId
+  // Obtener información del tenant si el usuario tiene userTenants
+  const firstTenantId = user?.userTenants?.[0]?.tenantId;
   const { data: tenantData, loading: tenantLoading } = useQuery(GET_TENANT, {
-    variables: { id: user?.tenantId },
-    skip: !user?.tenantId,
+    variables: { id: firstTenantId },
+    skip: !firstTenantId,
     errorPolicy: 'ignore'
   });
 
@@ -73,7 +77,7 @@ export default function AccessDeniedPage() {
         // Para TenantAdmin/TenantManager, necesitamos el tenant slug
         if (tenant?.slug) {
           setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
-        } else if (user.tenantId) {
+        } else if (firstTenantId) {
           // Si tenemos tenantId pero no el slug aún, usar dashboard general
           setRedirectPath(`/${locale}/dashboard`);
         } else {
@@ -94,7 +98,7 @@ export default function AccessDeniedPage() {
   }, [isAuthenticated, user, tenant, locale]);
 
   // Mostrar loading mientras se obtienen los datos del usuario o tenant
-  if (isAuthenticated && (userLoading || (user?.tenantId && tenantLoading))) {
+  if (isAuthenticated && (userLoading || (firstTenantId && tenantLoading))) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6 py-8">
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-md">

@@ -259,13 +259,27 @@ export class TenantResolver {
       
       console.log('TenantResolver: Found userId in token:', decodedPayload.userId);
       
-      // Query user from database to get their tenantId
+      // Query user from database to get their tenant relationships
       const user = await prisma.user.findUnique({
         where: { id: decodedPayload.userId },
         select: { 
           id: true, 
-          tenantId: true,
-          email: true 
+          email: true,
+          userTenants: {
+            where: { isActive: true },
+            select: {
+              tenantId: true,
+              role: true,
+              tenant: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true
+                }
+              }
+            },
+            orderBy: { joinedAt: 'desc' }
+          }
         }
       });
       
@@ -274,25 +288,17 @@ export class TenantResolver {
         return null;
       }
       
-      if (!user.tenantId) {
-        console.log('TenantResolver: User has no tenantId association');
+      if (!user.userTenants || user.userTenants.length === 0) {
+        console.log('TenantResolver: User has no active tenant associations');
         return null;
       }
       
-      console.log(`TenantResolver: Found tenantId from user association: ${user.tenantId} for user: ${user.email}`);
+      // Use the first (most recent) tenant relationship
+      const firstTenantRelation = user.userTenants[0];
+      console.log(`TenantResolver: Found tenantId from user association: ${firstTenantRelation.tenantId} for user: ${user.email}`);
+      console.log(`TenantResolver: Validated tenant: ${firstTenantRelation.tenant.name} (${firstTenantRelation.tenant.id})`);
       
-      // Validate that the tenant exists
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: user.tenantId }
-      });
-      
-      if (!tenant) {
-        console.log(`TenantResolver: Tenant ${user.tenantId} not found in database`);
-        return null;
-      }
-      
-      console.log(`TenantResolver: Validated tenant: ${tenant.name} (${tenant.id})`);
-      return tenant.id;
+      return firstTenantRelation.tenantId;
       
     } catch (error) {
       console.error('TenantResolver: Error resolving tenant from user association:', error);

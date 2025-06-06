@@ -37,6 +37,18 @@ export interface Role {
   description?: string;
 }
 
+export interface UserTenant {
+  id: string;
+  userId: string;
+  tenantId: string;
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+  isActive: boolean;
+  joinedAt: string;
+  leftAt?: string;
+  user: User;
+  tenant: Tenant;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -46,8 +58,12 @@ export interface User {
   profileImageUrl?: string;
   role: Role;
   isActive?: boolean;
-  tenantId?: string;
-  tenant?: Tenant;
+  // Removed single tenant relationship
+  // tenantId?: string;
+  // tenant?: Tenant;
+  // Added many-to-many tenant relationships
+  userTenants?: UserTenant[];
+  tenants?: Tenant[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -61,12 +77,37 @@ export interface Tenant {
   planId?: string;
   features: string[];
   settings?: Record<string, unknown>;
+  // Updated to use many-to-many relationship
+  userTenants?: UserTenant[];
   users?: User[];
   userCount?: number;
   pageCount?: number;
   postCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserTenantResult {
+  success: boolean;
+  message: string;
+  userTenant: UserTenant | null;
+}
+
+export interface AddUserToTenantInput {
+  userId: string;
+  tenantId: string;
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+}
+
+export interface UpdateUserTenantRoleInput {
+  userId: string;
+  tenantId: string;
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+}
+
+export interface RemoveUserFromTenantInput {
+  userId: string;
+  tenantId: string;
 }
 
 // Función simple para realizar solicitudes GraphQL

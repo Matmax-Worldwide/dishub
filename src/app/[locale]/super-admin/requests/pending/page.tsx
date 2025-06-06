@@ -23,7 +23,7 @@ interface PendingRequest {
   title: string;
   description: string;
   tenantName: string;
-  tenantId: string;
+  tenantId: string; // Keep this for compatibility with existing data structures
   requestedBy: string;
   requestedAt: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';

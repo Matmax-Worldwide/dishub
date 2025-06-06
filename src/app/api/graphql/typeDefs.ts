@@ -42,8 +42,12 @@ export const typeDefs = gql`
     profileImageUrl: String
     role: Role
     isActive: Boolean
-    tenantId: String
-    tenant: Tenant
+    # Removed single tenant relationship
+    # tenantId: String
+    # tenant: Tenant
+    # Added many-to-many tenant relationships
+    userTenants: [UserTenant!]
+    tenants: [Tenant!] # Convenience field to get all tenants for this user
     createdAt: String
     updatedAt: String
     notifications: [Notification!]
@@ -51,6 +55,57 @@ export const typeDefs = gql`
     # For Booking Module
     staffProfile: StaffProfile 
     bookings: [Booking!] 
+  }
+
+  # UserTenant junction type for many-to-many relationship
+  type UserTenant {
+    id: ID!
+    userId: String!
+    tenantId: String!
+    role: UserTenantRole!
+    isActive: Boolean!
+    joinedAt: DateTime!
+    leftAt: DateTime
+    user: User!
+    tenant: Tenant!
+  }
+
+  # Enum for user roles within a tenant
+  enum UserTenantRole {
+    OWNER
+    ADMIN
+    MANAGER
+    MEMBER
+    VIEWER
+  }
+
+  # Add or ensure TenantStatus enum exists
+  enum TenantStatus {
+    PENDING
+    ACTIVE
+    SUSPENDED
+    ARCHIVED
+  }
+
+  type Tenant {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus!
+    planId: String
+    # settings: Json # Might be too complex for initial list/form
+    features: [String!]
+    # Removed single users relationship
+    # users: [User!]
+    # Added many-to-many user relationships
+    userTenants: [UserTenant!]
+    users: [User!] # Convenience field to get all users for this tenant
+    userCount: Int
+    pageCount: Int
+    postCount: Int
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
 
   # --------------- BOOKING MODULE TYPES (Placeholders and Full Defs) --- V1 ---
@@ -1988,6 +2043,31 @@ export const typeDefs = gql`
     tenantFeatures: [String!]
   }
 
+  # UserTenant input types
+  input AddUserToTenantInput {
+    userId: String!
+    tenantId: String!
+    role: UserTenantRole!
+  }
+
+  input UpdateUserTenantRoleInput {
+    userId: String!
+    tenantId: String!
+    role: UserTenantRole!
+  }
+
+  input RemoveUserFromTenantInput {
+    userId: String!
+    tenantId: String!
+  }
+
+  # UserTenant result types
+  type UserTenantResult {
+    success: Boolean!
+    message: String!
+    userTenant: UserTenant
+  }
+
   type RegisterUserWithTenantResponse {
     token: String!
     user: User!
@@ -3669,14 +3749,6 @@ export const typeDefs = gql`
 
   # Shipping result types
 
-  # Add or ensure TenantStatus enum exists
-  enum TenantStatus {
-    PENDING
-    ACTIVE
-    SUSPENDED
-    ARCHIVED
-  }
-
   type Tenant {
     id: ID!
     name: String!
@@ -3694,12 +3766,15 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # Extend Query type
-  extend type Query {
-    tenants: [Tenant!]
-    tenant(id: ID!): Tenant
-    tenantUsers(tenantId: ID!): [User!]
-  }
+      # Extend Query type
+    extend type Query {
+      tenants: [Tenant!]
+      tenant(id: ID!): Tenant
+      tenantUsers(tenantId: ID!): [User!]
+      userTenants(userId: ID!): [UserTenant!]
+      tenantMembers(tenantId: ID!): [UserTenant!]
+      userTenant(userId: ID!, tenantId: ID!): UserTenant
+    }
 
   input CreateTenantInput {
     name: String!
@@ -3721,28 +3796,33 @@ export const typeDefs = gql`
     settings: JSON
   }
 
-  # Extend Mutation type
-  extend type Mutation {
-    createTenant(input: CreateTenantInput!): Tenant
-    updateTenant(input: UpdateTenantInput!): Tenant
-    provisionTenantSite(tenantId: ID!): Tenant
-    # deleteTenant(id: ID!): Tenant # Add later if needed
+      # Extend Mutation type
+    extend type Mutation {
+      createTenant(input: CreateTenantInput!): Tenant
+      updateTenant(input: UpdateTenantInput!): Tenant
+      provisionTenantSite(tenantId: ID!): Tenant
+      # deleteTenant(id: ID!): Tenant # Add later if needed
 
-    "Adds or updates the custom domain for a tenant and initiates verification with Vercel."
-    addOrUpdateTenantCustomDomain(tenantId: ID!, domain: String!): VercelDomainConfig
+      "Adds or updates the custom domain for a tenant and initiates verification with Vercel."
+      addOrUpdateTenantCustomDomain(tenantId: ID!, domain: String!): VercelDomainConfig
 
-    "Checks the current status of a tenant's custom domain with Vercel."
-    checkTenantCustomDomainStatus(tenantId: ID!): VercelDomainConfig
+      "Checks the current status of a tenant's custom domain with Vercel."
+      checkTenantCustomDomainStatus(tenantId: ID!): VercelDomainConfig
 
-    "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
-    removeTenantCustomDomain(tenantId: ID!): Tenant
+      "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
+      removeTenantCustomDomain(tenantId: ID!): Tenant
 
-    "Registers a new user and creates their tenant in a single transaction"
-    registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
+      "Registers a new user and creates their tenant in a single transaction"
+      registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
 
-    "Illustrative: Updates page content and triggers revalidation for its tenant site."
-    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
-  }
+      "Illustrative: Updates page content and triggers revalidation for its tenant site."
+      updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+
+      # UserTenant management mutations
+      addUserToTenant(input: AddUserToTenantInput!): UserTenantResult!
+      updateUserTenantRole(input: UpdateUserTenantRoleInput!): UserTenantResult!
+      removeUserFromTenant(input: RemoveUserFromTenantInput!): UserTenantResult!
+    }
 
   input UpdatePageDetailsInput {
     id: ID!       # ID of the page to update

@@ -11,7 +11,14 @@ const GET_TENANT_FEATURES = gql`
   query GetTenantFeatures {
     me {
       id
-      tenantId
+      userTenants {
+        role
+        tenant {
+          id
+          slug
+          name
+        }
+      }
       role {
         name
       }

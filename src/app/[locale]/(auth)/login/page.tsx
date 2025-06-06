@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { client } from '@/lib/apollo-client';
 import { setGlobalAuthorizationHeader } from '@/lib/auth-header';
 import { gql } from '@apollo/client';
+import { Eye, EyeOff } from 'lucide-react';
 
 // GraphQL mutation for login - Fixed to request Role subfields
 const LOGIN_MUTATION = gql`
@@ -20,7 +21,9 @@ const LOGIN_MUTATION = gql`
         firstName
         lastName
         phoneNumber
-        tenantId
+        userTenants {
+          tenantId
+        }
         role {
           id
           name
@@ -51,7 +54,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
+  
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -97,7 +101,7 @@ export default function LoginPage() {
       console.log('User role name length:', user.role?.name?.length);
       console.log('User role name === "TenantAdmin":', user.role?.name === 'TenantAdmin');
       console.log('Transformed user role (keeping as object):', transformedUser.role);
-      console.log('User tenantId:', transformedUser.tenantId);
+      console.log('User tenants:', transformedUser.userTenants?.map((ut: { tenantId: string }) => ut.tenantId));
       console.log('======================');
 
       // Store the user and token in the auth context
@@ -124,16 +128,17 @@ export default function LoginPage() {
       console.log('=== Redirection Logic Debug ===');
       console.log('User role name for redirection:', transformedUser.role?.name);
       console.log('Is SuperAdmin?', transformedUser.role?.name === 'SuperAdmin');
-      console.log('Has tenantId?', !!transformedUser.tenantId);
+      console.log('Has userTenants?', !!transformedUser.userTenants?.length);
       
       if (transformedUser.role?.name === 'SuperAdmin') {
         redirectPath = `/${locale}/super-admin/dashboard`;
         console.log('SuperAdmin detected, redirecting to:', redirectPath);
       } else {
-        // For all other roles (TenantAdmin, TenantManager, TenantUser, TenantEmployee, TenantUser), get tenant info
-        if (transformedUser.tenantId) {
+        // For all other roles, get tenant info from the first tenant relationship
+        const firstTenant = transformedUser.userTenants?.[0];
+        if (firstTenant?.tenantId) {
           try {
-            console.log(`Fetching tenant data for tenantId: ${transformedUser.tenantId}`);
+            console.log(`Fetching tenant data for tenantId: ${firstTenant.tenantId}`);
             const { data: tenantData } = await client.query({
               query: gql`
                 query GetTenant($id: ID!) {
@@ -144,7 +149,7 @@ export default function LoginPage() {
                   }
                 }
               `,
-              variables: { id: transformedUser.tenantId }
+              variables: { id: firstTenant.tenantId }
             });
             
             console.log('GraphQL Tenant Query Response:', tenantData);
@@ -185,7 +190,7 @@ export default function LoginPage() {
               console.log(`User with role ${transformedUser.role?.name} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
             } else {
               console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
-              console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to fallback`);
+              console.warn(`User has tenantId ${firstTenant.tenantId} but tenant slug not found, redirecting to fallback`);
               redirectPath = `/${locale}`;
             }
           } catch (tenantError) { 
@@ -194,7 +199,7 @@ export default function LoginPage() {
             redirectPath = `/${locale}`;
           }
         } else {
-          console.warn(`User ${transformedUser.email} without tenantId, redirecting to home page`);
+          console.warn(`User ${transformedUser.email} without tenant relationships, redirecting to home page`);
           redirectPath = `/${locale}`;
         }
       }
@@ -287,6 +292,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-white mb-1">
                   Password
                 </label>
+                <div className="relative">
                 <input
                   id="password"
                   name="password"
@@ -296,6 +302,15 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-white/10 bg-white/5 text-white rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder-white/50 transition-all duration-300 hover:bg-white/10"
                   placeholder="Enter your password"
                 />
+                <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
               </div>
             </div>
 

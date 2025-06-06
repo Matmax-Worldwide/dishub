@@ -252,7 +252,12 @@ const resolvers = {
               lastName: true,
               phoneNumber: true,
               roleId: true,
-              tenantId: true, // Add tenantId to the selection
+              userTenants: {
+                select: {
+                  tenantId: true,
+                  role: true
+                }
+              },
               role: {
                 select: {
                   id: true,
@@ -269,7 +274,7 @@ const resolvers = {
             throw new Error('User not found');
           }
           
-          console.log('User found:', user?.email, 'with role:', user?.role, 'tenantId:', user?.tenantId);
+          console.log('User found:', user?.email, 'with role:', user?.role, 'tenants:', user?.userTenants.map(tenant => tenant.tenantId));
           
           // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
           return {
@@ -381,7 +386,12 @@ const resolvers = {
         const currentUser = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: {
-            tenantId: true,
+            userTenants: {
+              select: {
+                tenantId: true,
+                role: true
+              }
+            },
             role: {
               select: {
                 name: true
@@ -405,11 +415,15 @@ const resolvers = {
           whereClause = {};
         } else if (userRole === 'ADMIN' || userRole === 'MANAGER') {
           // Regular admins and managers can only see users from their tenant
-          if (!currentUser?.tenantId) {
+          if (!currentUser?.userTenants.length) {
             throw new Error('Admin/Manager user must be associated with a tenant');
           }
           whereClause = {
-            tenantId: currentUser.tenantId
+            userTenants: {
+              some: {
+                tenantId: currentUser.userTenants[0].tenantId
+              }
+            }
           };
         }
         
@@ -424,7 +438,12 @@ const resolvers = {
             phoneNumber: true,
             roleId: true,
             isActive: true,
-            tenantId: true,
+            userTenants: {
+              select: {
+                tenantId: true,
+                role: true
+              }
+            },
             role: {
               select: {
                 id: true,
@@ -449,7 +468,10 @@ const resolvers = {
           phoneNumber?: string | null;
           roleId?: string | null;
           isActive?: boolean;
-          tenantId?: string | null;
+          userTenants?: {
+            tenantId: string;
+            role: string;
+          }[];
           role?: {
             id: string;
             name: string;
@@ -1016,7 +1038,12 @@ const resolvers = {
           phoneNumber: true,
           password: true,
           roleId: true,
-          tenantId: true, // Include tenantId
+          userTenants: {
+            select: {
+              tenantId: true,
+              role: true
+            }
+          },
           role: {
             select: {
               id: true,
@@ -1061,7 +1088,7 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        tenantId: user.tenantId, // Include tenantId
+        userTenants: user.userTenants, // Include tenantId
         role: user.role || { id: '', name: 'USER', description: null }, // Return role as object
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -1122,7 +1149,12 @@ const resolvers = {
           lastName: true,
           phoneNumber: true,
           roleId: true,
-          tenantId: true,
+          userTenants: {
+            select: {
+              tenantId: true,
+              role: true
+            }
+          },
           role: {
             select: {
               id: true,
@@ -1152,7 +1184,7 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        tenantId: user.tenantId,
+        userTenants: user.userTenants,
         role: user.role || { id: '', name: 'USER', description: null },
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -1166,7 +1198,7 @@ const resolvers = {
 
     // Include tenant mutations
     createTenant: tenantResolvers.Mutation.createTenant,
-    registerUserWithTenant: tenantResolvers.Mutation.registerWithTenant,
+    registerUserWithTenant: tenantResolvers.Mutation.registerUserWithTenant,
 
     // Include other Mutation resolvers - using type assertion for safety
     ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),
@@ -1526,20 +1558,7 @@ const resolvers = {
   TenantDetails: tenantResolvers.TenantDetails,
 
   // Add user type resolvers
-  User: {
-    tenant: async (parent: { tenantId?: string }) => {
-      if (!parent.tenantId) return null;
-      
-      try {
-        return await prisma.tenant.findUnique({
-          where: { id: parent.tenantId }
-        });
-      } catch (error) {
-        console.error('Error resolving user.tenant:', error);
-        return null;
-      }
-    },
-  },
+  User: tenantResolvers.User,
 };
 
 export default resolvers; 
