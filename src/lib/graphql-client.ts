@@ -30,6 +30,45 @@ import {
   CalendarStaffScheduleInput
 } from '@/types/calendar';
 
+// Core domain interfaces
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  profileImageUrl?: string;
+  role: Role;
+  isActive?: boolean;
+  tenantId?: string;
+  tenant?: Tenant;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  status: string;
+  planId?: string;
+  features: string[];
+  settings?: Record<string, unknown>;
+  users?: User[];
+  userCount?: number;
+  pageCount?: number;
+  postCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Función simple para realizar solicitudes GraphQL
 export async function gqlRequest<T>(
   query: string,

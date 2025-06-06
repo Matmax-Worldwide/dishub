@@ -49,6 +49,11 @@ interface User {
   lastName: string;
   phoneNumber?: string;
   tenantId?: string;
+  tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   role: {
     id: string;
     name: string;
