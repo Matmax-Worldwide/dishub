@@ -691,15 +691,15 @@ export function DashboardSidebar() {
             onClick={() => setIsManuallyExpanded(!isManuallyExpanded)}
             className={`flex items-center justify-between w-full rounded-lg ${paddingLeft} py-3 text-sm font-medium transition-all duration-200 ${
               isActive || hasActiveChildPath
-                ? 'bg-indigo-600/90 text-white shadow-md' 
-                : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                ? 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm' 
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
             } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center gap-3">
               {item.locked ? (
                 <LockIcon className="h-4 w-4 text-gray-500" />
               ) : (
-                <item.icon className={`h-4 w-4 ${isActive || hasActiveChildPath ? 'text-white' : 'text-gray-400'}`} />
+                <item.icon className={`h-4 w-4 ${isActive || hasActiveChildPath ? 'text-blue-700' : 'text-gray-500'}`} />
               )}
               <span>{item.name}</span>
               {renderBadge(item)}
@@ -715,15 +715,15 @@ export function DashboardSidebar() {
             href={item.disabled ? "#" : item.href}
             className={`flex items-center gap-3 rounded-lg ${paddingLeft} py-3 text-sm font-medium transition-all duration-200 ${
               isActive
-                ? 'bg-indigo-600/90 text-white shadow-md' 
-                : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
             } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
           >
             {item.locked ? (
               <LockIcon className="h-4 w-4 text-gray-500" />
             ) : (
-              <item.icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                              <item.icon className={`h-4 w-4 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
             )}
             <span>{item.name}</span>
             {renderBadge(item)}
@@ -752,7 +752,7 @@ export function DashboardSidebar() {
         {isSuperAdmin && !selectedRole && (
           <>
             <div className="mb-4 mt-2">
-              <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+              <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
                 🌐 {t('sidebar.masterControlPanel')} (MCP)
               </h3>
             </div>
@@ -767,7 +767,7 @@ export function DashboardSidebar() {
         {showAsAdmin && !(isSuperAdmin && !selectedRole) && (
           <>
             <div className="mb-4 mt-2">
-              <h3 className="text-xs font-semibold uppercase text-gray-400 tracking-wider">
+              <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
                 {t('sidebar.administration')}
               </h3>
             </div>
@@ -778,15 +778,15 @@ export function DashboardSidebar() {
                 href={item.disabled ? "#" : item.href}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
                   isPathActive(item.href, pathname)
-                    ? 'bg-indigo-600/90 text-white shadow-md' 
-                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
               >
                 {item.locked ? (
                   <LockIcon className="h-4 w-4 text-gray-500" />
                 ) : (
-                  <item.icon className={`h-4 w-4 ${isPathActive(item.href, pathname) ? 'text-white' : 'text-gray-400'}`} />
+                  <item.icon className={`h-4 w-4 ${isPathActive(item.href, pathname) ? 'text-blue-700' : 'text-gray-500'}`} />
                 )}
                 <span>{item.name}</span>
                 {renderBadge(item)}
@@ -1005,13 +1005,13 @@ export function DashboardSidebar() {
     <>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-72 lg:flex-col lg:inset-y-0 h-screen">
-        <div className="flex flex-col bg-gray-900 border-r border-gray-700 h-screen">
+        <div className="flex flex-col bg-white border-r border-gray-200 h-screen">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between border-b border-gray-700 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <Link href={`/${params.locale}`} className="flex items-center">
               {/* Header Title instead of logo box */}
               <h1 
-                className="text-xl font-bold text-white hover:text-indigo-400 transition-colors"
+                className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors"
                 title={tenantData?.tenant?.name || 'Cargando...'}
               >
                 {getTenantDisplayName()}
@@ -1023,27 +1023,27 @@ export function DashboardSidebar() {
               
               {/* Role badges */}
               {isSuperAdmin && (
-                <span className="px-3 py-1 text-xs bg-indigo-600/80 text-indigo-100 rounded-full font-medium">
+                <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full font-medium">
                   Super Admin
                 </span>
               )}
               {isAdmin && !isSuperAdmin && (
-                <span className="px-3 py-1 text-xs bg-blue-600/80 text-blue-100 rounded-full font-medium">
+                <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
                   Admin
                 </span>
               )}
               {showAsTenantAdmin && !isSuperAdmin && !isAdmin && (
-                <span className="px-3 py-1 text-xs bg-purple-600/80 text-purple-100 rounded-full font-medium">
+                <span className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full font-medium">
                   Tenant Admin
                 </span>
               )}
               {isManager && !isAdmin && !isSuperAdmin && !showAsTenantAdmin && (
-                <span className="px-3 py-1 text-xs bg-blue-600/80 text-blue-100 rounded-full font-medium">
+                <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
                   Manager
                 </span>
               )}
               {showAsUser && (
-                <span className="px-3 py-1 text-xs bg-green-600/80 text-green-100 rounded-full font-medium">
+                <span className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
                   Usuario
                 </span>
               )}
@@ -1051,11 +1051,11 @@ export function DashboardSidebar() {
           </div>
 
           {isSuperAdmin && (
-            <div className="mt-4 p-4 bg-gray-800/50 border-b border-gray-700">
-              <h3 className="mb-3 text-xs font-semibold uppercase text-gray-400 tracking-wider">
+            <div className="mt-4 p-4 bg-gray-50 border-b border-gray-100">
+              <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                 {t('sidebar.adminTools')}
               </h3>
-              <div className="px-3 py-2 text-sm text-gray-300">
+              <div className="px-3 py-2 text-sm text-gray-700">
                 <p>{t('sidebar.adminMessage')}</p>
               </div>
               
@@ -1063,7 +1063,7 @@ export function DashboardSidebar() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex items-center justify-center gap-2 bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white transition-all duration-200"
+                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
                   onClick={() => window.location.href = `/${params.locale}/admin/users`}
                 >
                   <UserIcon className="h-3 w-3" />
@@ -1072,7 +1072,7 @@ export function DashboardSidebar() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex items-center justify-center gap-2 bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white transition-all duration-200"
+                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
                   onClick={() => window.location.href = `/${params.locale}/admin/notifications`}
                 >
                   <BellIcon className="h-3 w-3" />
@@ -1084,10 +1084,10 @@ export function DashboardSidebar() {
               <div className="mt-4">
                 <button 
                   onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                  className="flex items-center justify-between w-full rounded-lg px-3 py-3 text-sm bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 transition-all duration-200"
+                  className="flex items-center justify-between w-full rounded-lg px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200"
                 >
                   <div className="flex items-center gap-2">
-                    <EyeIcon className="h-4 w-4 text-indigo-400" />
+                    <EyeIcon className="h-4 w-4 text-indigo-600" />
                     <span>{getRoleSwitcherText()}</span>
                   </div>
                   {roleMenuOpen ? (
@@ -1098,10 +1098,10 @@ export function DashboardSidebar() {
                 </button>
                 
                 {roleMenuOpen && (
-                  <div className="mt-2 rounded-lg border border-gray-600 bg-gray-800 shadow-lg">
+                  <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-lg">
                     <div className="py-1">
                       {rolesLoading ? (
-                        <div className="px-4 py-2 text-sm text-gray-400">
+                        <div className="px-4 py-2 text-sm text-gray-600">
                           Loading...
                         </div>
                       ) : (
@@ -1109,8 +1109,8 @@ export function DashboardSidebar() {
                           <button
                             className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
                               !selectedRole 
-                                ? 'bg-indigo-600/80 text-white' 
-                                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                ? 'bg-indigo-100 text-indigo-800' 
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                             }`}
                             onClick={() => {
                               setSelectedRole(null);
@@ -1124,8 +1124,8 @@ export function DashboardSidebar() {
                               key={role.id}
                               className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
                                 selectedRole === role.name 
-                                  ? 'bg-indigo-600/80 text-white' 
-                                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                  ? 'bg-indigo-100 text-indigo-800' 
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                               }`}
                               onClick={() => {
                                 setSelectedRole(role.name);
@@ -1160,26 +1160,26 @@ export function DashboardSidebar() {
                 {!showAsUser && renderNavigationItems()}
              
 
-              <div className="mb-6 border-t border-gray-700 pt-4">
-                <h3 className="mb-3 text-xs font-semibold uppercase text-gray-400 tracking-wider">
+              <div className="mb-6 border-t border-gray-200 pt-4">
+                <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                   {t('sidebar.externalLinksTitle')}
                   {isSuperAdmin && selectedRole && (
-                    <span className="ml-2 font-normal text-indigo-400">
+                    <span className="ml-2 font-normal text-indigo-600">
                       ({formatTextWithRole('sidebar.viewingAsRole', selectedRole)})
                     </span>
                   )}
                 </h3>
                 {externalLinksLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin h-5 w-5 border-2 border-gray-400 rounded-full border-t-transparent"></div>
-                    <span className="ml-2 text-sm text-gray-400">Loading...</span>
+                    <div className="animate-spin h-5 w-5 border-2 border-gray-600 rounded-full border-t-transparent"></div>
+                    <span className="ml-2 text-sm text-gray-600">Loading...</span>
                   </div>
                 ) : externalLinksError ? (
-                  <div className="px-4 py-3 text-sm text-red-400 bg-red-900/20 rounded-lg">
+                  <div className="px-4 py-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
                     Error loading external links: {externalLinksError.message}
                   </div>
                 ) : externalLinks.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-400 bg-gray-800/30 rounded-lg">
+                  <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
                     {isSuperAdmin && selectedRole 
                       ? formatTextWithRole('sidebar.noExternalLinksForRole', selectedRole)
                       : t('sidebar.noExternalLinks')}
@@ -1192,20 +1192,20 @@ export function DashboardSidebar() {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer" 
-                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-200 hover:bg-gray-700/50 hover:text-white"
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
                       >
-                        <item.icon className="h-4 w-4 text-gray-400" />
+                        <item.icon className="h-4 w-4 text-gray-500" />
                         <span>{item.name}</span>
                        
                       </a>
                     ))}
                     {isSuperAdmin && !selectedRole && (
-                      <div className="mt-3 px-4 py-2 text-xs text-gray-500 bg-gray-800/20 rounded-lg">
+                      <div className="mt-3 px-4 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
                         {t('sidebar.adminViewingAllLinks')}
                       </div>
                     )}
                     {isSuperAdmin && selectedRole && (
-                      <div className="mt-3 px-4 py-2 text-xs text-indigo-400 bg-indigo-900/20 rounded-lg border border-indigo-700/30">
+                      <div className="mt-3 px-4 py-2 text-xs text-indigo-700 bg-indigo-50 rounded-lg border border-indigo-200">
                         {t('sidebar.adminRoleSwitchInfo')}
                       </div>
                     )}
@@ -1216,20 +1216,20 @@ export function DashboardSidebar() {
           </div>
           
           {/* Sidebar footer */}
-          <div className="border-t border-gray-700 p-4 bg-gray-800/30">
+          <div className="border-t border-gray-200 p-4 bg-gray-50">
             <div className="flex items-center gap-3 mb-3">
-              <Avatar className="border border-gray-600">
+              <Avatar className="border border-gray-200">
                 <AvatarImage src="" alt="User" />
-                <AvatarFallback className="bg-gray-700 text-gray-200">UN</AvatarFallback>
+                <AvatarFallback className="bg-gray-100 text-gray-700">UN</AvatarFallback>
               </Avatar>
               <div className="flex flex-col flex-1">
-                <span className="text-sm font-medium text-white">{data?.me?.firstName} {data?.me?.lastName}</span>
-                <span className="text-xs text-gray-400">{data?.me?.role?.name}</span>
+                <span className="text-sm font-medium text-gray-900">{data?.me?.firstName} {data?.me?.lastName}</span>
+                <span className="text-xs text-gray-600">{data?.me?.role?.name}</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="ml-auto text-gray-400 hover:text-white hover:bg-gray-700" 
+                className="ml-auto text-gray-600 hover:text-gray-900 hover:bg-gray-100" 
                 onClick={handleLogout}
               >
                 <LogOutIcon className="h-4 w-4" />
@@ -1246,7 +1246,7 @@ export function DashboardSidebar() {
       {/* Mobile sidebar */}
       {isOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-gray-900/80">
-          <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-gray-900 shadow-xl flex flex-col border-r border-gray-700">
+          <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-xl flex flex-col border-r border-gray-200">
             {/* Mobile sidebar header with close button */}
             <div className="flex items-center justify-between h-16 px-4 border-b shrink-0">
               <Link href={`/${params.locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
