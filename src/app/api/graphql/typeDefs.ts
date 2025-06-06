@@ -42,6 +42,8 @@ export const typeDefs = gql`
     profileImageUrl: String
     role: Role
     isActive: Boolean
+    tenantId: String
+    tenant: Tenant
     createdAt: String
     updatedAt: String
     notifications: [Notification!]
@@ -877,6 +879,29 @@ export const typeDefs = gql`
     user: User!
   }
 
+  # Enhanced auth payload that includes tenant information
+  type AuthPayloadWithTenant {
+    token: String!
+    user: User!
+    tenant: Tenant!
+  }
+
+  # Input for enhanced registration with tenant creation
+  input RegisterWithTenantInput {
+    # User information
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    
+    # Tenant information
+    tenantName: String!
+    tenantSlug: String!
+    tenantDomain: String
+    tenantFeatures: [String!]
+  }
+
   # Role and Permission input types
   input RoleCreateInput {
     name: String!
@@ -1672,6 +1697,9 @@ export const typeDefs = gql`
     login(email: String!, password: String!): AuthPayload!
     register(email: String!, password: String!, firstName: String!, lastName: String!, phoneNumber: String): AuthPayload!
     
+    # Enhanced registration that creates both user and tenant
+    registerWithTenant(input: RegisterWithTenantInput!): AuthPayloadWithTenant!
+    
     # Contact form mutation
     createContactFormSubmission(input: ContactFormSubmissionInput!): ContactFormSubmission!
     
@@ -1937,6 +1965,33 @@ export const typeDefs = gql`
     deleteDiscount(id: ID!): DiscountResult!
     activateDiscount(id: ID!): DiscountResult!
     deactivateDiscount(id: ID!): DiscountResult!
+
+    "Registers a new user and creates their tenant in a single transaction"
+    registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
+
+    "Illustrative: Updates page content and triggers revalidation for its tenant site."
+    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+  }
+
+  input RegisterUserWithTenantInput {
+    # User data
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    
+    # Tenant data
+    tenantName: String!
+    tenantSlug: String!
+    tenantDomain: String
+    tenantFeatures: [String!]
+  }
+
+  type RegisterUserWithTenantResponse {
+    token: String!
+    user: User!
+    tenant: Tenant!
   }
 
   # HeaderStyle type for storing header configuration
@@ -3613,4 +3668,664 @@ export const typeDefs = gql`
   # --------------- END FORM MODULE TYPES --- V1 ---
 
   # Shipping result types
+
+  # Add or ensure TenantStatus enum exists
+  enum TenantStatus {
+    PENDING
+    ACTIVE
+    SUSPENDED
+    ARCHIVED
+  }
+
+  type Tenant {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus!
+    planId: String
+    # settings: Json # Might be too complex for initial list/form
+    features: [String!]
+    users: [User!]
+    userCount: Int
+    pageCount: Int
+    postCount: Int
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # Extend Query type
+  extend type Query {
+    tenants: [Tenant!]
+    tenant(id: ID!): Tenant
+    tenantUsers(tenantId: ID!): [User!]
+  }
+
+  input CreateTenantInput {
+    name: String!
+    slug: String!
+    domain: String
+    status: TenantStatus # Defaults to ACTIVE in Prisma schema
+    planId: String
+    features: [String!]
+  }
+
+  input UpdateTenantInput {
+    id: ID!
+    name: String
+    slug: String
+    domain: String
+    status: TenantStatus
+    planId: String
+    features: [String!]
+    settings: JSON
+  }
+
+  # Extend Mutation type
+  extend type Mutation {
+    createTenant(input: CreateTenantInput!): Tenant
+    updateTenant(input: UpdateTenantInput!): Tenant
+    provisionTenantSite(tenantId: ID!): Tenant
+    # deleteTenant(id: ID!): Tenant # Add later if needed
+
+    "Adds or updates the custom domain for a tenant and initiates verification with Vercel."
+    addOrUpdateTenantCustomDomain(tenantId: ID!, domain: String!): VercelDomainConfig
+
+    "Checks the current status of a tenant's custom domain with Vercel."
+    checkTenantCustomDomainStatus(tenantId: ID!): VercelDomainConfig
+
+    "Removes the custom domain for a tenant from Vercel and clears it from the tenant record."
+    removeTenantCustomDomain(tenantId: ID!): Tenant
+
+    "Registers a new user and creates their tenant in a single transaction"
+    registerUserWithTenant(input: RegisterUserWithTenantInput!): RegisterUserWithTenantResponse
+
+    "Illustrative: Updates page content and triggers revalidation for its tenant site."
+    updatePageContentAndRevalidate(input: UpdatePageDetailsInput!): Page
+  }
+
+  input UpdatePageDetailsInput {
+    id: ID!       # ID of the page to update
+    title: String
+    slug: String    # Assuming slug can be changed
+    content: String # Example field
+    isPublished: Boolean
+
+  }
+
+  type VercelDNSRecord {
+    type: String!
+    name: String!
+    value: String!
+  }
+
+  type VercelDomainConfig {
+    name: String!
+    apexName: String!
+    projectId: String!
+    redirect: String
+    redirectStatusCode: Int
+    gitBranch: String
+    verified: Boolean!
+    verification: [VercelDNSRecord!]
+  }
+
+  # --------------- GDPR COMPLIANCE TYPES --- V1 ---
+
+  # GDPR Compliance Score Types
+  type ComplianceScore {
+    overall: Float!
+    breakdown: ComplianceBreakdown!
+    riskLevel: RiskLevel!
+    recommendations: [String!]!
+    criticalIssues: [String!]!
+  }
+
+  type ComplianceBreakdown {
+    dataProtection: Float!
+    consentManagement: Float!
+    retentionPolicies: Float!
+    subjectRights: Float!
+    riskAssessment: Float!
+    auditTrail: Float!
+  }
+
+  enum RiskLevel {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+  }
+
+  enum AlertLevel {
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+  }
+
+  enum TaskPriority {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+  }
+
+  # GDPR Alert Types
+  type ComplianceAlert {
+    level: AlertLevel!
+    message: String!
+    timestamp: DateTime!
+    action: String
+    category: String!
+  }
+
+  # GDPR Task Types
+  type ComplianceTask {
+    task: String!
+    dueDate: DateTime!
+    priority: TaskPriority!
+    category: String!
+    assignedTo: String
+    estimatedHours: Float
+  }
+
+  # GDPR Dashboard Data
+  type GDPRDashboard {
+    score: ComplianceScore!
+    alerts: [ComplianceAlert!]!
+    upcomingTasks: [ComplianceTask!]!
+    recentActivity: [ActivityRecord!]!
+    tenantStats: TenantStats!
+    lastUpdated: DateTime!
+  }
+
+  # Tenant Statistics
+  type TenantStats {
+    totalUsers: Int!
+    activeUsers: Int!
+    newUsersThisMonth: Int!
+    totalDataRequests: Int!
+    pendingDataRequests: Int!
+    totalConsentRecords: Int!
+    activeConsents: Int!
+    expiredConsents: Int!
+    totalAuditLogs: Int!
+    criticalAlerts: Int!
+    complianceScore: Float!
+  }
+
+  # Activity Record
+  type ActivityRecord {
+    id: ID!
+    action: String!
+    category: String!
+    userId: String
+    userName: String
+    description: String!
+    timestamp: DateTime!
+    metadata: JSON
+  }
+
+  # User Activity Data
+  type UserActivity {
+    date: String!
+    activeUsers: Int!
+    newRegistrations: Int!
+    dataRequests: Int!
+  }
+
+  # GDPR Metrics
+  type ConsentMetrics {
+    purpose: String!
+    granted: Int!
+    revoked: Int!
+    pending: Int!
+  }
+
+  type DataRequestMetrics {
+    type: String!
+    count: Int!
+    avgResponseTime: Float!
+    pendingCount: Int!
+  }
+
+  type RetentionMetrics {
+    dataType: String!
+    recordsManaged: Int!
+    recordsDue: Int!
+    nextReview: DateTime
+  }
+
+  type GDPRMetrics {
+    consentsByPurpose: [ConsentMetrics!]!
+    dataRequestsByType: [DataRequestMetrics!]!
+    retentionMetrics: [RetentionMetrics!]!
+    complianceOverTime: [ComplianceHistoryPoint!]!
+  }
+
+  type ComplianceHistoryPoint {
+    date: String!
+    score: Float!
+    riskLevel: RiskLevel!
+  }
+
+  # GDPR Inputs
+  input GDPRDashboardInput {
+    tenantId: String
+    dateRange: DateRangeInput
+  }
+
+  input DateRangeInput {
+    startDate: DateTime
+    endDate: DateTime
+  }
+
+  input ComplianceActionInput {
+    tenantId: String!
+    action: String!
+    parameters: JSON
+  }
+
+  # Extend Query type for GDPR
+  extend type Query {
+    gdprDashboard(input: GDPRDashboardInput): GDPRDashboard!
+    tenantStats(tenantId: String): TenantStats!
+    userActivity(tenantId: String, days: Int): [UserActivity!]!
+    gdprMetrics(tenantId: String): GDPRMetrics!
+    complianceHistory(tenantId: String, months: Int): [ComplianceHistoryPoint!]!
+  }
+
+  # Extend Mutation type for GDPR
+  extend type Mutation {
+    refreshCompliance(tenantId: String!): GDPRDashboard!
+    executeComplianceAction(input: ComplianceActionInput!): JSON!
+    generateComplianceReport(tenantId: String!, format: String): JSON!
+  }
+
+  # --------------- END GDPR COMPLIANCE TYPES --- V1 ---
+
+  # --------------- SUPER ADMIN TYPES --- V1 ---
+
+  # SuperAdmin Dashboard Types
+  type SuperAdminDashboard {
+    stats: SuperAdminStats!
+    recentActivity: SuperAdminRecentActivity!
+  }
+
+  type SuperAdminStats {
+    totalTenants: Int!
+    activeTenants: Int!
+    totalUsers: Int!
+    activeUsers: Int!
+    totalModules: Int!
+    pendingRequests: Int!
+    systemErrors: Int!
+  }
+
+  type SuperAdminRecentActivity {
+    tenants: [RecentTenant!]!
+    users: [RecentUser!]!
+  }
+
+  type RecentTenant {
+    id: ID!
+    name: String!
+    slug: String!
+    status: String!
+    createdAt: DateTime!
+  }
+
+  type RecentUser {
+    id: ID!
+    firstName: String
+    lastName: String
+    email: String!
+    createdAt: DateTime!
+    role: Role
+  }
+
+  # Tenant Management Types
+  type TenantList {
+    items: [TenantDetails!]!
+    totalCount: Int!
+    page: Int!
+    pageSize: Int!
+    totalPages: Int!
+  }
+
+  type TenantDetails {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: String!
+    planId: String
+    description: String
+    features: [String!]!
+    settings: JSON
+    userCount: Int
+    pageCount: Int
+    postCount: Int
+    adminUser: User
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  # Tenant Health Monitoring
+  type TenantHealthMetric {
+    tenantId: ID!
+    tenantName: String!
+    status: String!
+    healthScore: Int!
+    metrics: TenantMetrics!
+    lastActivity: String!
+  }
+
+  type TenantMetrics {
+    totalUsers: Int!
+    activeUsers: Int!
+    totalPages: Int!
+    publishedPages: Int!
+    totalPosts: Int!
+    publishedPosts: Int!
+    features: [String!]!
+  }
+
+  # Global Analytics Types
+  type GlobalAnalytics {
+    tenantGrowth: [GrowthPoint!]!
+    userGrowth: [GrowthPoint!]!
+    featureUsage: [FeatureUsage!]!
+    topTenants: [TopTenant!]!
+  }
+
+  type GrowthPoint {
+    date: String!
+    count: Int!
+  }
+
+  type FeatureUsage {
+    feature: String!
+    count: Int!
+  }
+
+  type TopTenant {
+    id: ID!
+    name: String!
+    slug: String!
+    userCount: Int!
+    pageCount: Int!
+    postCount: Int!
+    lastActivity: String!
+  }
+
+  # System Monitoring Types
+  type SystemStatus {
+    database: DatabaseHealth!
+    metrics: SystemMetrics!
+    timestamp: String!
+  }
+
+  type DatabaseHealth {
+    status: String!
+    responseTime: Float
+  }
+
+  type SystemMetrics {
+    tenants: TenantSystemMetrics!
+    users: UserSystemMetrics!
+    system: SystemCoreMetrics!
+  }
+
+  type TenantSystemMetrics {
+    total: Int!
+    active: Int!
+    inactive: Int!
+  }
+
+  type UserSystemMetrics {
+    total: Int!
+    active: Int!
+    inactive: Int!
+  }
+
+  type SystemCoreMetrics {
+    roles: Int!
+    permissions: Int!
+  }
+
+  # Module Management Types
+  type GlobalModules {
+    modules: [ModuleStats!]!
+    totalModules: Int!
+    totalTenants: Int!
+  }
+
+  type ModuleStats {
+    name: String!
+    usageCount: Int!
+    usagePercentage: Float!
+    isActive: Boolean!
+  }
+
+  # Module Versions Types
+  type ModuleVersionList {
+    versions: [ModuleVersion!]!
+    totalCount: Int!
+    modules: [String!]!
+  }
+
+  type ModuleVersion {
+    id: ID!
+    moduleName: String!
+    version: String!
+    releaseDate: String!
+    status: ModuleVersionStatus!
+    changelog: String!
+    downloadCount: Int!
+    tenantCount: Int!
+    compatibility: [String!]!
+    size: String!
+    author: String!
+    isLatest: Boolean!
+    dependencies: [String!]!
+    features: [String!]!
+  }
+
+  enum ModuleVersionStatus {
+    STABLE
+    BETA
+    ALPHA
+    DEPRECATED
+  }
+
+  # Request History Types
+  type RequestHistoryList {
+    requests: [RequestHistory!]!
+    totalCount: Int!
+    stats: RequestHistoryStats!
+  }
+
+  type RequestHistory {
+    id: ID!
+    type: RequestType!
+    title: String!
+    description: String!
+    tenantId: ID!
+    tenantName: String!
+    requestedBy: String!
+    requestedByEmail: String!
+    status: RequestStatus!
+    priority: RequestPriority!
+    createdAt: String!
+    updatedAt: String!
+    completedAt: String
+    estimatedHours: Int
+    actualHours: Int
+    assignedTo: String
+    notes: String
+    attachments: [String!]!
+  }
+
+  enum RequestType {
+    MODULE
+    CUSTOMIZATION
+    FEATURE
+    ACTIVATION
+    SUPPORT
+  }
+
+  enum RequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    COMPLETED
+    CANCELLED
+  }
+
+  enum RequestPriority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+  }
+
+  type RequestHistoryStats {
+    totalRequests: Int!
+    approved: Int!
+    rejected: Int!
+    completed: Int!
+    cancelled: Int!
+    avgCompletionTime: Float!
+  }
+
+  # Mutation Result Types
+  type TenantMutationResult {
+    success: Boolean!
+    message: String!
+    tenant: TenantDetails
+    adminUser: User
+  }
+
+  type ImpersonationResult {
+    success: Boolean!
+    message: String!
+    impersonationData: ImpersonationData
+  }
+
+  type ImpersonationData {
+    tenantId: ID!
+    tenantName: String!
+    tenantSlug: String!
+    userId: ID!
+    userEmail: String!
+    userRole: String
+  }
+
+  type MaintenanceResult {
+    success: Boolean!
+    message: String!
+    timestamp: String!
+  }
+
+  type SimpleResult {
+    success: Boolean!
+    message: String!
+  }
+
+  type AssignTenantAdminResult {
+    success: Boolean!
+    message: String!
+    user: User
+  }
+
+  # Input Types
+  input TenantFilterInput {
+    search: String
+    status: String
+    planId: String
+  }
+
+  input PaginationInput {
+    page: Int
+    pageSize: Int
+  }
+
+  input CreateTenantInput {
+    name: String!
+    slug: String!
+    domain: String
+    planId: String
+    features: [String!]
+    settings: JSON
+    # Admin user data
+    adminEmail: String
+    adminFirstName: String
+    adminLastName: String
+    adminPassword: String
+  }
+
+  input UpdateTenantInputSuperAdmin {
+    name: String
+    slug: String
+    domain: String
+    status: TenantStatus
+    planId: String
+    features: [String!]
+    settings: JSON
+  }
+
+  input ModuleVersionFilterInput {
+    search: String
+    moduleName: String
+    status: ModuleVersionStatus
+  }
+
+  input RequestHistoryFilterInput {
+    search: String
+    type: RequestType
+    status: RequestStatus
+    priority: RequestPriority
+    dateRange: String
+  }
+
+  # SuperAdmin Queries
+  extend type Query {
+    # Dashboard
+    superAdminDashboard: SuperAdminDashboard!
+    
+    # Tenant Management
+    allTenants(filter: TenantFilterInput, pagination: PaginationInput): TenantList!
+    tenantById(id: ID!): TenantDetails
+    tenantHealthMetrics(tenantId: ID): [TenantHealthMetric!]!
+    
+    # Analytics & Monitoring
+    globalAnalytics(timeRange: String): GlobalAnalytics!
+    systemStatus: SystemStatus!
+    globalModules: GlobalModules!
+    
+    # Module Management
+    moduleVersions(filter: ModuleVersionFilterInput, pagination: PaginationInput): ModuleVersionList!
+    
+    # Request Management
+    requestHistory(filter: RequestHistoryFilterInput, pagination: PaginationInput): RequestHistoryList!
+  }
+
+  # SuperAdmin Mutations
+  extend type Mutation {
+    # Tenant Management
+    createTenantSuperAdmin(input: CreateTenantInput!): TenantMutationResult!
+    updateTenantSuperAdmin(id: ID!, input: UpdateTenantInputSuperAdmin!): TenantMutationResult!
+    deleteTenant(id: ID!): SimpleResult!
+    assignTenantAdmin(tenantId: ID!, userId: ID!): AssignTenantAdminResult!
+    
+    # Tenant Operations
+    impersonateTenant(tenantId: ID!): ImpersonationResult!
+    
+    # System Maintenance
+    performSystemMaintenance(action: String!): MaintenanceResult!
+  }
+
+  # --------------- END SUPER ADMIN TYPES --- V1 ---
 `; 

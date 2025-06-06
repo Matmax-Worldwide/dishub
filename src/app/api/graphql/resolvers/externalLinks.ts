@@ -414,9 +414,9 @@ export const externalLinksResolvers = {
       }
       
       // Authorization check
-      if (context.user.role !== 'ADMIN' && 
-          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN')) {
-        console.error(`Authorization error: User role is not ADMIN`);
+      if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
+          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
+        console.error(`Authorization error: User role is not ADMIN or SuperAdmin`);
         throw new GraphQLError('You must be an admin to create external links', {
           extensions: { code: 'FORBIDDEN' }
         });
@@ -467,8 +467,8 @@ export const externalLinksResolvers = {
         }
         
         // Authorization check
-        if (context.user.role !== 'ADMIN' && 
-            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN')) {
+        if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
+            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
           throw new GraphQLError('You must be an admin to update external links', {
             extensions: { code: 'FORBIDDEN' }
           });
@@ -550,8 +550,8 @@ export const externalLinksResolvers = {
         }
         
         // Authorization check
-        if (context.user.role !== 'ADMIN' && 
-            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN')) {
+        if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
+            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
           throw new GraphQLError('You must be an admin to update link access', {
             extensions: { code: 'FORBIDDEN' }
           });
@@ -613,8 +613,8 @@ export const externalLinksResolvers = {
         });
       }
       
-      if (context.user.role !== 'ADMIN' && 
-          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN')) {
+      if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
+          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
         throw new GraphQLError('You must be an admin to delete external links', {
           extensions: { code: 'FORBIDDEN' }
         });

@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types for TypeScript
 interface CreateProjectInput {
@@ -28,7 +29,7 @@ const getPrismaClient = () => {
 
 export const projectResolvers = {
   Query: {
-    projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    projects: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       console.log('Projects resolver called');
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -92,7 +93,7 @@ export const projectResolvers = {
       }
     },
     
-    project: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    project: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -142,7 +143,7 @@ export const projectResolvers = {
   },
   
   Mutation: {
-    createProject: async (_parent: unknown, { input }: { input: CreateProjectInput }, context: { req: NextRequest }) => {
+    createProject: async (_parent: unknown, { input }: { input: CreateProjectInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -180,7 +181,8 @@ export const projectResolvers = {
               description: input.description || null,
               status: input.status || 'ACTIVE',
               clientId: input.clientId || null,
-              userId: decoded.userId
+              userId: decoded.userId,
+              tenantId: context.tenantId || ''
             },
             include: {
               client: {
@@ -203,7 +205,7 @@ export const projectResolvers = {
       }
     },
     
-    updateProject: async (_parent: unknown, { id, input }: { id: string, input: UpdateProjectInput }, context: { req: NextRequest }) => {
+    updateProject: async (_parent: unknown, { id, input }: { id: string, input: UpdateProjectInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -280,7 +282,7 @@ export const projectResolvers = {
       }
     },
     
-    deleteProject: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteProject: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define types for Prisma entities with relations
 type ShippingProviderWithRelations = {
@@ -199,7 +200,7 @@ interface UpdateShipmentInput {
 export const shippingResolvers = {
   Query: {
     // Shipping Providers
-    shippingProviders: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    shippingProviders: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -232,7 +233,7 @@ export const shippingResolvers = {
       }
     },
 
-    shippingProvider: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    shippingProvider: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -270,7 +271,7 @@ export const shippingResolvers = {
     },
 
     // Shipping Methods
-    shippingMethods: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    shippingMethods: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -305,7 +306,7 @@ export const shippingResolvers = {
     },
 
     // Shipping Zones
-    shippingZones: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    shippingZones: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -342,7 +343,7 @@ export const shippingResolvers = {
     },
 
     // Shipping Rates
-    shippingRates: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    shippingRates: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -376,7 +377,7 @@ export const shippingResolvers = {
     },
 
     // Shipments
-    shipments: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    shipments: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -418,7 +419,7 @@ export const shippingResolvers = {
       }
     },
 
-    shipment: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    shipment: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -470,7 +471,7 @@ export const shippingResolvers = {
     createShippingProvider: async (
       _parent: unknown,
       { input }: { input: CreateShippingProviderInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -510,7 +511,7 @@ export const shippingResolvers = {
     updateShippingProvider: async (
       _parent: unknown,
       { id, input }: { id: string; input: UpdateShippingProviderInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -553,7 +554,7 @@ export const shippingResolvers = {
     deleteShippingProvider: async (
       _parent: unknown,
       { id }: { id: string },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -579,7 +580,7 @@ export const shippingResolvers = {
     createShippingMethod: async (
       _parent: unknown,
       { input }: { input: CreateShippingMethodInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -620,7 +621,7 @@ export const shippingResolvers = {
     updateShippingMethod: async (
       _parent: unknown,
       { id, input }: { id: string; input: UpdateShippingMethodInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -664,7 +665,7 @@ export const shippingResolvers = {
     deleteShippingMethod: async (
       _parent: unknown,
       { id }: { id: string },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -690,7 +691,7 @@ export const shippingResolvers = {
     createShippingZone: async (
       _parent: unknown,
       { input }: { input: CreateShippingZoneInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -729,7 +730,7 @@ export const shippingResolvers = {
     updateShippingZone: async (
       _parent: unknown,
       { id, input }: { id: string; input: UpdateShippingZoneInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -771,7 +772,7 @@ export const shippingResolvers = {
     deleteShippingZone: async (
       _parent: unknown,
       { id }: { id: string },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -797,7 +798,7 @@ export const shippingResolvers = {
     createShippingRate: async (
       _parent: unknown,
       { input }: { input: CreateShippingRateInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -845,7 +846,7 @@ export const shippingResolvers = {
     updateShippingRate: async (
       _parent: unknown,
       { id, input }: { id: string; input: UpdateShippingRateInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -896,7 +897,7 @@ export const shippingResolvers = {
     deleteShippingRate: async (
       _parent: unknown,
       { id }: { id: string },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -922,7 +923,7 @@ export const shippingResolvers = {
     createShipment: async (
       _parent: unknown,
       { input }: { input: CreateShipmentInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -978,7 +979,7 @@ export const shippingResolvers = {
     updateShipment: async (
       _parent: unknown,
       { id, input }: { id: string; input: UpdateShipmentInput },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -1051,7 +1052,7 @@ export const shippingResolvers = {
     deleteShipment: async (
       _parent: unknown,
       { id }: { id: string },
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];

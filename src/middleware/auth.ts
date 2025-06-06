@@ -1,7 +1,125 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+import { getPermissionsForRole, RoleName } from '@/config/rolePermissions';
 import { MiddlewareFunction } from '@/lib/middleware/factory'; // Adjust if path is different
 import { verifyToken } from '@/lib/auth'; // Assuming this path is correct from src/
 import { cookies } from 'next/headers';
+  
+const prisma = new PrismaClient();
+
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: RoleName;
+  tenantId?: string;
+  permissions: string[];
+}
+
+interface JWTPayload {
+  userId: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
+export async function authenticateUser(request: NextRequest): Promise<AuthenticatedUser | null> {
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') ||
+                  request.cookies.get('auth-token')?.value;
+
+    if (!token) {
+      return null;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: {
+        role: true,
+        tenant: true,
+      }
+    });
+
+    if (!user || !user.isActive) {
+      return null;
+    }
+
+    const permissions = getPermissionsForRole(user.role?.name as RoleName);
+
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role?.name as RoleName,
+      tenantId: user.tenantId || undefined,
+      permissions,
+    };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
+}
+
+export function requireAuth(handler: (req: NextRequest, user: AuthenticatedUser) => Promise<NextResponse>) {
+  return async (request: NextRequest) => {
+    const user = await authenticateUser(request);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    return handler(request, user);
+  };
+}
+
+export function requireRole(roles: RoleName[]) {
+  return function(handler: (req: NextRequest, user: AuthenticatedUser) => Promise<NextResponse>) {
+    return async (request: NextRequest) => {
+      const user = await authenticateUser(request);
+      
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      if (!roles.includes(user.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      return handler(request, user);
+    };
+  };
+}
+
+export function requirePermission(permission: string) {
+  return function(handler: (req: NextRequest, user: AuthenticatedUser) => Promise<NextResponse>) {
+    return async (request: NextRequest) => {
+      const user = await authenticateUser(request);
+      
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      if (!user.permissions.includes(permission)) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      }
+
+      return handler(request, user);
+    };
+  };
+}
+
+export function requireSuperAdmin() {
+  return requireRole(['SuperAdmin']);
+}
+
+export function requirePlatformAccess() {
+  return requireRole(['SuperAdmin', 'PlatformAdmin', 'SupportAgent']);
+}
 
 // Fallback helper if x-active-locale header is not present
 const getLocaleFromPath = (pathname: string): string => {
@@ -73,7 +191,7 @@ export const withAuth: MiddlewareFunction = async (req) => {
       return NextResponse.redirect(loginUrl);
     }
 
-    let userRole = 'USER';
+    let userRole = 'TenantUser';
     if (decodedResult.role) {
       if (typeof decodedResult.role === 'string') {
         userRole = decodedResult.role;

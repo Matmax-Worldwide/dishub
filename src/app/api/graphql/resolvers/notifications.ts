@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types to avoid 'any'
 interface CreateNotificationInput {
@@ -33,7 +34,7 @@ interface UpdateNotificationInput {
 
 export const notificationResolvers = {
   Query: {
-    notifications: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    notifications: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -70,7 +71,7 @@ export const notificationResolvers = {
       }
     },
     
-    notification: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    notification: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -112,7 +113,7 @@ export const notificationResolvers = {
       }
     },
     
-    unreadNotificationsCount: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    unreadNotificationsCount: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -137,7 +138,7 @@ export const notificationResolvers = {
     },
     
     // Admin query to get all notifications in the system
-    allNotifications: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    allNotifications: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -188,7 +189,7 @@ export const notificationResolvers = {
     createNotification: async (
       _parent: unknown, 
       { input }: { input: CreateNotificationInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -249,6 +250,7 @@ export const notificationResolvers = {
                   isRead: false,
                   relatedItemId: input.relatedItemId || null,
                   relatedItemType: input.relatedItemType || null,
+                  tenantId: context.tenantId || ''
                 },
                 include: {
                   user: {
@@ -296,6 +298,7 @@ export const notificationResolvers = {
             isRead: false,
             relatedItemId: input.relatedItemId || null,
             relatedItemType: input.relatedItemType || null,
+            tenantId: context.tenantId || ''
           },
           include: {
             user: {
@@ -323,7 +326,7 @@ export const notificationResolvers = {
     updateNotification: async (
       _parent: unknown, 
       { id, input }: { id: string, input: UpdateNotificationInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -377,7 +380,7 @@ export const notificationResolvers = {
       }
     },
     
-    markAllNotificationsAsRead: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    markAllNotificationsAsRead: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -402,7 +405,7 @@ export const notificationResolvers = {
       }
     },
     
-    deleteNotification: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteNotification: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -445,7 +448,7 @@ export const notificationResolvers = {
     },
     
     // Admin mutation to delete multiple notifications 
-    deleteMultipleNotifications: async (_parent: unknown, { ids }: { ids: string[] }, context: { req: NextRequest }) => {
+    deleteMultipleNotifications: async (_parent: unknown, { ids }: { ids: string[] }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

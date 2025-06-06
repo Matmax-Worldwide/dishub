@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   LogOutIcon,
   MenuIcon,
@@ -28,8 +27,10 @@ import {
   sidebarConfig, 
   getIconComponent, 
   sortRoles,
+  filterNavigationByFeatures,
   type NavItem 
 } from './sidebarConfig';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 // GraphQL queries y mutations
 const GET_USER_PROFILE = gql`
@@ -39,11 +40,22 @@ const GET_USER_PROFILE = gql`
       email
       firstName
       lastName
+      tenantId
       role {
         id
         name
         description
       }
+    }
+  }
+`;
+
+const GET_TENANT = gql`
+  query GetTenant($id: ID!) {
+    tenant(id: $id) {
+      id
+      slug
+      name
     }
   }
 `;
@@ -101,13 +113,14 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const params = useParams();
   const { t } = useI18n();
+  const { features: tenantFeatures } = useFeatureAccess();
   const [isOpen, setIsOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/logo.png");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user: authUser } = useAuth();
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  
   // Cargar datos del perfil
   const { data } = useQuery(GET_USER_PROFILE, {
     client,
@@ -124,14 +137,27 @@ export function DashboardSidebar() {
     },
   });
 
-  // Check if user is an admin (using both sources of data)
+  // Cargar datos del tenant
+  const { data: tenantData } = useQuery(GET_TENANT, {
+    client,
+    variables: { id: data?.me?.tenantId },
+    skip: !data?.me?.tenantId,
+    errorPolicy: 'all',
+    fetchPolicy: 'cache-first',
+    onCompleted: (data) => {
+      console.log('Tenant data loaded:', data?.tenant);
+    },
+  });
+
+  // Check if user is a super admin (full administrative access)
+  const isSuperAdmin = data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin';
   const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';
   const isManager = data?.me?.role?.name === 'MANAGER' || authUser?.role?.name === 'MANAGER';
 
-  // Get all roles (for admin role switcher)
+  // Get all roles (for super admin role switcher)
   const { data: rolesData, loading: rolesLoading } = useQuery(GET_ALL_ROLES, {
     client,
-    skip: !isAdmin,
+    skip: !isSuperAdmin,
     onError: (error) => {
       console.error('Error fetching roles:', error);
     }
@@ -145,9 +171,9 @@ export function DashboardSidebar() {
 
   // Determinar el rol efectivo para mostrar (rol simulado o rol real del usuario)
   const effectiveRole = useMemo(() => {
-    // Si el usuario es admin y ha seleccionado un rol para simulación
-    if (isAdmin && selectedRole) {
-      console.log(`Admin user viewing as ${selectedRole}`);
+    // Si el usuario es super admin y ha seleccionado un rol para simulación
+    if (isSuperAdmin && selectedRole) {
+      console.log(`Super Admin user viewing as ${selectedRole}`);
       return selectedRole;
     }
     
@@ -156,14 +182,67 @@ export function DashboardSidebar() {
     console.log('Actual role:', actualRole);
     console.log(`Using actual user role: ${actualRole}`);
     return actualRole;
-  }, [isAdmin, selectedRole, data?.me?.role?.name]);
+  }, [isSuperAdmin, selectedRole, data?.me?.role?.name]);
   
   // Derived states based on effective role
-  const showAsAdmin = effectiveRole === 'ADMIN';
-  const showAsManager = effectiveRole === 'MANAGER' || (!showAsAdmin && isManager);
-  const showAsUser = effectiveRole === 'USER';
-  const showAsEmployee = effectiveRole === 'EMPLOYEE';
-  const shouldShowRegularUserView = !showAsAdmin && !showAsManager && !showAsUser && !showAsEmployee;
+  const showAsAdmin = effectiveRole === 'Admin' || effectiveRole === 'SuperAdmin';
+  const showAsTenantAdmin = effectiveRole === 'TenantAdmin';
+  const showAsManager = effectiveRole === 'TenantManager' || (!showAsAdmin && !showAsTenantAdmin && isManager);
+  const showAsUser = effectiveRole === 'User';
+  const showAsEmployee = effectiveRole === 'Employee';
+  const shouldShowRegularUserView = !showAsAdmin && !showAsTenantAdmin && !showAsManager && !showAsUser && !showAsEmployee;
+
+  // Detect if we're in tenant dashboard context
+  const isInTenantDashboard = useMemo(() => {
+    return pathname.includes('/manage/') && pathname.includes('/dashboard');
+  }, [pathname]);
+
+  // Get tenant slug from params
+  const tenantSlug = useMemo(() => {
+    if (params.tenantSlug) {
+      return params.tenantSlug as string;
+    }
+    // Fallback: extract from pathname if available
+    const match = pathname.match(/\/manage\/([^\/]+)/);
+    return match ? match[1] : null;
+  }, [params.tenantSlug, pathname]);
+
+  // Function to transform URLs for tenant dashboard context
+  const transformUrlForTenantDashboard = (url: string): string => {
+    if (!isInTenantDashboard || !tenantSlug) {
+      return url;
+    }
+
+    // Transform admin routes to tenant dashboard routes
+    if (url.includes('/admin/')) {
+      return url.replace('/admin/', `/manage/${tenantSlug}/dashboard/`);
+    }
+
+    // Transform engines routes to tenant dashboard routes
+    if (url.includes('/(engines)/')) {
+      return url.replace('/(engines)/', `/manage/${tenantSlug}/(engines)/`);
+    }
+
+    // Transform CMS routes to tenant dashboard routes (legacy)
+    if (url.includes('/cms/')) {
+      return url.replace('/cms/', `/manage/${tenantSlug}/(engines)/cms/`);
+    }
+
+    return url;
+  };
+
+  // Function to transform navigation items for tenant dashboard context
+  const transformNavItemsForTenantDashboard = (items: NavItem[]): NavItem[] => {
+    if (!isInTenantDashboard || !tenantSlug) {
+      return items;
+    }
+
+    return items.map(item => ({
+      ...item,
+      href: transformUrlForTenantDashboard(item.href),
+      children: item.children ? transformNavItemsForTenantDashboard(item.children) : undefined
+    }));
+  };
 
   // Cargar los datos de notificaciones no leídas
   const { data: notificationsData } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
@@ -171,116 +250,162 @@ export function DashboardSidebar() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Actualizar el contador de notificaciones cuando cambien los datos
+  // Actualizar el contador de notificaciones no leídas
   useEffect(() => {
-    if (notificationsData?.unreadNotificationsCount !== undefined) {
+    if (notificationsData?.unreadNotificationsCount) {
       setUnreadCount(notificationsData.unreadNotificationsCount);
     }
   }, [notificationsData]);
 
-  // Get external links
-  const { data: externalLinksData, loading: externalLinksLoading, error: externalLinksError, refetch: refetchExternalLinks } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
+  // Cargar enlaces externos
+  const { data: externalLinksData, loading: externalLinksLoading, error: externalLinksError } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
     client,
-    fetchPolicy: 'network-only', // Asegura datos frescos cada vez
-    nextFetchPolicy: 'network-only', // Para refetch también
-    context: {
-      headers: {
-        // Añadir explícitamente el token de autorización si está disponible
-        authorization: typeof window !== 'undefined' 
-          ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1] || ''}` 
-          : '',
-      }
-    },
+    fetchPolicy: 'cache-and-network',
     onCompleted: (data) => {
-      console.log('External links data loaded successfully:', data);
-      if (data && data.activeExternalLinks) {
-        console.log('Headers enviados en la request:', {
-          authorization: typeof window !== 'undefined' 
-            ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1] || ''}` 
-            : '',
-        });
-        
-        // Log each link to debug
-        data.activeExternalLinks.forEach((link: ExternalLinkType) => {
-          console.log(`Received link: ${link.name}, accessType: ${link.accessType}, roles:`, link.allowedRoles);
-        });
-      }
+      console.log('External links loaded:', data?.activeExternalLinks);
     },
     onError: (error) => {
-      console.error('Error fetching external links:', error);
-      console.error('GraphQL error details:', error.graphQLErrors);
-      console.error('Network error details:', error.networkError);
+      console.error('Error loading external links:', error);
     }
   });
 
-  // Añadir logs para depurar datos de enlaces externos
+
+
+  // Responsive behavior
   useEffect(() => {
-    console.log('External Links Data:', externalLinksData);
-    if (externalLinksData) {
-      console.log('Active External Links:', externalLinksData.activeExternalLinks);
-    }
-  }, [externalLinksData]);
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsOpen(false);
+      }
+    };
 
-  // Refrescar los enlaces cuando cambia el rol
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Cerrar menú al hacer clic fuera
   useEffect(() => {
-    if (refetchExternalLinks) {
-      console.log('Role changed, refreshing external links. Current effective role:', effectiveRole);
-      // Refrescar los enlaces externos cuando cambia el rol
-      refetchExternalLinks()
-        .then(result => {
-          console.log('External links refreshed after role change:', result.data?.activeExternalLinks?.length || 0, 'links');
-        })
-        .catch(error => {
-          console.error('Error refreshing external links:', error);
-        });
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuOpen && !(event.target as Element).closest('.user-menu')) {
+        setUserMenuOpen(false);
+      }
+      if (roleMenuOpen && !(event.target as Element).closest('.role-menu')) {
+        setRoleMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen, roleMenuOpen]);
+
+  // Transform navigation items for admin/tenant admin
+  const transformedBaseNavigationItems: NavItem[] = useMemo(() => {
+    // Get tenant slug from tenantData or params
+    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    
+    const items = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    // For TenantAdmin users, transform base navigation to use the manage path
+    if (showAsTenantAdmin && currentTenantSlug) {
+      return items.map(item => ({
+        ...item,
+        href: item.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`),
+        children: item.children?.map(child => ({
+          ...child,
+          href: child.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`)
+        }))
+      }));
     }
-  }, [effectiveRole, refetchExternalLinks]);
+    
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug, showAsTenantAdmin, tenantData?.tenant?.slug]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLogoUrl(`${window.location.origin}/logo.png`);
-      
-      // Close sidebar on mobile when route changes
-      setIsOpen(false);
-      
-      // Handle resize event
-      const handleResize = () => {
-        if (window.innerWidth >= 1024) {
-          setIsOpen(false);
-        }
-      };
-      
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, [pathname]);
+  const transformedAdminNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
-  // Get navigation items from config with translations
-  const baseNavigationItems: NavItem[] = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name),
-    badge: item.badge?.key === 'unread' ? { ...item.badge, value: unreadCount } : item.badge
-  }));
+  const transformedTenantAdminNavigationItems: NavItem[] = useMemo(() => {
+    // Get tenant slug from tenantData or params
+    const currentTenantSlug = tenantData?.tenant?.slug || tenantSlug;
+    
+    const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string, currentTenantSlug).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    console.log('Original tenant admin items:', items);
+    console.log('Filtering tenant admin items with tenant features:', tenantFeatures);
+    
+    // Filter items based on tenant features
+    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
+    console.log('Filtered tenant admin items:', filteredItems);
+    
+    // Since we're now generating the correct URLs directly, we don't need to transform them
+    return filteredItems;
+  }, [params.locale, t, tenantFeatures, tenantData?.tenant?.slug, tenantSlug]);
 
-  const adminNavigationItems: NavItem[] = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name)
-  }));
+  // SuperAdmin navigation items - MCP (Master Control Panel)
+  const transformedSuperAdminNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.superAdminNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    // SuperAdmin doesn't need feature filtering as they have access to everything
+    // Transform for tenant dashboard context if needed (though SuperAdmin mainly works outside tenant context)
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
-  const toolsNavigationItems: NavItem[] = sidebarConfig.toolsNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name),
-    children: item.children?.map(child => ({
-      ...child,
-      name: t(child.name)
-    }))
-  }));
+  // Get feature-based navigation items and filter by tenant features
+  const featureBasedNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.featureBasedNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    console.log('Original feature-based items:', items);
+    console.log('Filtering with tenant features:', tenantFeatures);
+    
+    // Filter items based on tenant features
+    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
+    console.log('Filtered feature-based items:', filteredItems);
+    
+    // Transform for tenant dashboard context
+    return transformNavItemsForTenantDashboard(filteredItems);
+  }, [params.locale, tenantFeatures, t, isInTenantDashboard, tenantSlug]);
 
   // Filtrar enlaces externos basados en el rol efectivo
   const getFilteredExternalLinks = (): NavItem[] => {
     console.log('Called getFilteredExternalLinks with:', {
       effectiveRole,
-      isAdmin,
+      isSuperAdmin,
       selectedRole,
       linksCount: externalLinksData?.activeExternalLinks?.length || 0
     });
@@ -320,9 +445,9 @@ export function DashboardSidebar() {
     console.log('Processing', externalLinksData.activeExternalLinks.length, 'external links');
     
     try {
-      // Si el usuario es admin y está simulando un rol, filtrar enlaces según el rol simulado
-      if (isAdmin && selectedRole) {
-        console.log(`Admin user simulating role ${selectedRole}`);
+      // Si el usuario es super admin y está simulando un rol, filtrar enlaces según el rol simulado
+      if (isSuperAdmin && selectedRole) {
+        console.log(`Super Admin user simulating role ${selectedRole}`);
         
         // Buscar el ID del rol seleccionado para filtrar
         const selectedRoleObj = sortedRoles.find(r => r.name === selectedRole);
@@ -376,9 +501,9 @@ export function DashboardSidebar() {
           }));
       }
       
-      // Si el usuario es admin sin simulación, mostrar todos los enlaces
-      if (isAdmin && !selectedRole) {
-        console.log('Admin user without role simulation - showing ALL links');
+      // Si el usuario es super admin sin simulación, mostrar todos los enlaces
+      if (isSuperAdmin && !selectedRole) {
+        console.log('Super Admin user without role simulation - showing ALL links');
         return externalLinksData.activeExternalLinks.map((link: ExternalLinkType): NavItem => ({
           name: link.name || 'Unnamed Link',
           href: link.url || '#',
@@ -388,7 +513,7 @@ export function DashboardSidebar() {
         }));
       }
       
-      // Para usuarios normales (no admin, o cuando no hay simulación)
+      // Para usuarios normales (no super admin, o cuando no hay simulación)
       return externalLinksData.activeExternalLinks
         .filter((link: ExternalLinkType) => {
           if (!link || typeof link !== 'object') {
@@ -459,7 +584,7 @@ export function DashboardSidebar() {
   // Redirigir a usuarios con rol USER si intentan acceder a rutas internas del dashboard
   useEffect(() => {
     if (showAsUser && pathname && 
-        (pathname.includes('/evoque/dashboard') || 
+        (pathname.includes('/admin/dashboard') || 
          pathname.includes('/admin') || 
          pathname.includes('/manager'))) {
       // Obtener el primer enlace externo disponible para redirigir al usuario
@@ -491,7 +616,7 @@ export function DashboardSidebar() {
   const renderBadge = (item: NavItem) => {
     if (item.badge && item.badge.value > 0) {
       return (
-        <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+        <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow-sm">
           {item.badge.value > 99 ? '99+' : item.badge.value}
         </span>
       );
@@ -523,6 +648,121 @@ export function DashboardSidebar() {
     return baseText.replace('{role}', translateRole(role));
   };
 
+  // Helper function to format tenant name for display
+  const getTenantDisplayName = (): string => {
+    const tenantName = tenantData?.tenant?.name;
+    const tenantSlug = tenantData?.tenant?.slug;
+    
+    // Show loading indicator if tenant data is still loading
+    if (!data?.me?.tenantId) {
+      return '...'; // Loading state - no tenant ID yet
+    }
+    
+    if (data?.me?.tenantId && !tenantData?.tenant) {
+      return '...'; // Loading state - have tenant ID but tenant data still loading
+    }
+    
+    // Use tenant name if available, otherwise use slug, otherwise show generic indicator
+    return tenantName || tenantSlug || 'T';
+  };
+
+  // Helper function to check if a path is active (including nested routes with slugs)
+  const isPathActive = (itemHref: string, currentPath: string): boolean => {
+    // Exact match
+    if (currentPath === itemHref) return true;
+    
+    // Check if current path starts with item href (for nested routes)
+    if (currentPath.startsWith(itemHref + '/')) return true;
+    
+    // Handle dynamic routes with slugs
+    const pathSegments = currentPath.split('/').filter(Boolean);
+    const itemSegments = itemHref.split('/').filter(Boolean);
+    
+    if (itemSegments.length === 0) return false;
+    
+    // Check if all item segments match the path (allowing for additional segments)
+    return itemSegments.every((segment, index) => {
+      if (index >= pathSegments.length) return false;
+      return pathSegments[index] === segment || segment.startsWith('[') && segment.endsWith(']');
+    });
+  };
+
+  // Helper function to check if any child is active
+  const hasActiveChild = (item: NavItem): boolean => {
+    if (!item.children) return false;
+    return item.children.some(child => 
+      isPathActive(child.href, pathname) || hasActiveChild(child)
+    );
+  };
+
+  // Component to render navigation items with children support
+  const NavigationItem = ({ item, level = 0 }: { item: NavItem; level?: number }) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isActive = isPathActive(item.href, pathname);
+    const hasActiveChildPath = hasActiveChild(item);
+    
+    // Keep expanded if any child is active or if this item is active
+    const shouldExpand = hasChildren && (isActive || hasActiveChildPath);
+    const [isManuallyExpanded, setIsManuallyExpanded] = useState(false);
+    const isExpanded = shouldExpand || isManuallyExpanded;
+    
+    const paddingLeft = level === 0 ? 'px-4' : 'px-6';
+    
+    return (
+      <div key={item.href}>
+        {hasChildren ? (
+          <button
+            onClick={() => setIsManuallyExpanded(!isManuallyExpanded)}
+            className={`flex items-center justify-between w-full rounded-lg ${paddingLeft} py-3 text-sm font-medium transition-all duration-200 ${
+              isActive || hasActiveChildPath
+                ? 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm' 
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+            } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+          >
+            <div className="flex items-center gap-3">
+              {item.locked ? (
+                <LockIcon className="h-4 w-4 text-gray-500" />
+              ) : (
+                <item.icon className={`h-4 w-4 ${isActive || hasActiveChildPath ? 'text-blue-700' : 'text-gray-500'}`} />
+              )}
+              <span>{item.name}</span>
+              {renderBadge(item)}
+            </div>
+            {isExpanded ? (
+              <ChevronUpIcon className="h-4 w-4" />
+            ) : (
+              <ChevronDownIcon className="h-4 w-4" />
+            )}
+          </button>
+        ) : (
+          <Link 
+            href={item.disabled ? "#" : item.href}
+            className={`flex items-center gap-3 rounded-lg ${paddingLeft} py-3 text-sm font-medium transition-all duration-200 ${
+              isActive
+                ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+            } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+            onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+          >
+            {item.locked ? (
+              <LockIcon className="h-4 w-4 text-gray-500" />
+            ) : (
+                              <item.icon className={`h-4 w-4 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+            )}
+            <span>{item.name}</span>
+            {renderBadge(item)}
+          </Link>
+        )}
+        
+        {hasChildren && isExpanded && (
+          <div className="mt-1 ml-2 space-y-1 border-l border-gray-600/30 pl-2">
+            {item.children!.map(child => <NavigationItem key={child.href} item={child} level={level + 1} />)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render navigation items
   const renderNavigationItems = () => {
     // If it's a regular USER, only show external links
@@ -531,8 +771,51 @@ export function DashboardSidebar() {
     }
     
     return (
-      <>
+      <> 
+        {/* SuperAdmin items - MCP (Master Control Panel) */}
+        {isSuperAdmin && !selectedRole && (
+          <>
+            <div className="mb-4 mt-2">
+              <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
+                🌐 {t('sidebar.masterControlPanel')} (MCP)
+              </h3>
+            </div>
 
+            {transformedSuperAdminNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
+            ))}
+          </>
+        )}
+                  
+        {/* Admin items */}
+        {showAsAdmin && !(isSuperAdmin && !selectedRole) && (
+          <>
+            <div className="mb-4 mt-2">
+              <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
+                {t('sidebar.administration')}
+              </h3>
+            </div>
+
+            {transformedAdminNavigationItems.map(item => (
+              <Link 
+                key={item.href}
+                href={item.disabled ? "#" : item.href}
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                  isPathActive(item.href, pathname)
+                    ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
+              >
+                {item.locked ? (
+                  <LockIcon className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <item.icon className={`h-4 w-4 ${isPathActive(item.href, pathname) ? 'text-blue-700' : 'text-gray-500'}`} />
+                )}
+                <span>{item.name}</span>
+                {renderBadge(item)}
+              </Link>
+            ))}
             
             {/* User section for admins */}
             <div className="pb-4">
@@ -553,7 +836,7 @@ export function DashboardSidebar() {
               
               {userMenuOpen && (
                 <div className="pl-4 mt-1 space-y-1">
-                  {baseNavigationItems.map(item => (
+                  {transformedBaseNavigationItems.map(item => (
                     <Link 
                       key={item.href}
                       href={item.disabled ? "#" : item.href}
@@ -572,68 +855,39 @@ export function DashboardSidebar() {
                 </div>
               )}
             </div>
-        {/* Admin items */}
-        {showAsAdmin && (
-          <>
 
-           
             {/* Tools section for admins */}
             <div className="mt-4 border-t pt-4 mb-2">
               <h3 className="text-xs font-medium uppercase text-gray-500">
                 {t('sidebar.tools')}
               </h3>
             </div>
-            {toolsNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
+
+
+            {featureBasedNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
             ))}
 
-            {/* Manager items for admins too */}
-            <div className="mt-4 border-t pt-4 mb-2">
+            </>
+        )}
+
+        {/* TenantAdmin items - Administrador de Tenant */}
+        {showAsTenantAdmin && (
+          <>
+            <div className="mb-4 mt-4">
               <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.management')}
+                🏢 {t('sidebar.tenantAdministration')}
               </h3>
             </div>
 
-<div className="mb-2 mt-4">
-              <h3 className="text-xs font-medium uppercase text-gray-500">
-                {t('sidebar.administration')}
-              </h3>
-            </div>
-            {adminNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
+            {transformedTenantAdminNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
             ))}
-           
           </>
         )}
         
         {/* Manager items */}
-        {showAsManager && !showAsAdmin && (
+        {showAsManager && !showAsAdmin && !showAsTenantAdmin && (
           <>
             {/* Notifications section for managers */}
             <div className="mb-4">
@@ -641,9 +895,9 @@ export function DashboardSidebar() {
                 {t('sidebar.notifications')}
               </h3>
               <Link 
-                href={`/${params.locale}/evoque/dashboard/notifications`}
+                href={`/${params.locale}/admin/dashboard/notifications`}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === `/${params.locale}/evoque/dashboard/notifications`
+                  pathname === `/${params.locale}/admin/dashboard/notifications`
                     ? 'bg-indigo-100 text-indigo-700' 
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -683,21 +937,8 @@ export function DashboardSidebar() {
                 {t('sidebar.tools')}
               </h3>
             </div>
-            {toolsNavigationItems.map(item => (
-              <Link 
-                key={item.href}
-                href={item.disabled ? "#" : item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href 
-                    ? 'bg-indigo-100 text-indigo-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={item.disabled ? (e) => e.preventDefault() : () => setIsOpen(false)}
-              >
-                {item.locked ? <LockIcon className="h-4 w-4 text-gray-400" /> : <item.icon className="h-4 w-4" />}
-                <span>{item.name}</span>
-                {renderBadge(item)}
-              </Link>
+            {featureBasedNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
             ))}
             
             {/* Base items for managers */}
@@ -706,8 +947,8 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.filter(item => 
-              !item.href.includes('/evoque/dashboard/notifications')
+            {transformedBaseNavigationItems.filter(item => 
+              !item.href.includes('/admin/dashboard/notifications')
             ).map(item => (
               <Link 
                 key={item.href}
@@ -735,7 +976,7 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.map(item => (
+            {transformedBaseNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -762,7 +1003,7 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.map(item => (
+            {transformedBaseNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -787,50 +1028,66 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 h-screen">
-        <div className="flex flex-col bg-white border-r h-screen">
+      <div className="hidden lg:flex lg:w-72 lg:flex-col lg:inset-y-0 h-screen">
+        <div className="flex flex-col bg-white border-r border-gray-200 h-screen">
           {/* Sidebar header */}
-          <div className="flex items-center border-b px-4">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <Link href={`/${params.locale}`} className="flex items-center">
-              <Image 
-                src={logoUrl} 
-                alt="E-voque Logo" 
-                width={12} 
-                height={12} 
-                className="h-14 w-16" 
-              />
+              {/* Header Title instead of logo box */}
+              <h1 
+                className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors"
+                title={tenantData?.tenant?.name || 'Cargando...'}
+              >
+                {getTenantDisplayName()}
+              </h1>
             </Link>
-            {isAdmin && (
-              <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
-                Admin
-              </span>
-            )}
-            {isManager && !isAdmin && (
-              <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
-                Manager
-              </span>
-            )}
-            {showAsUser && (
-              <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
-                Usuario
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {/* Language Switcher */}
+              <LanguageSwitcher variant="sidebar" />
+              
+              {/* Role badges */}
+              {isSuperAdmin && (
+                <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full font-medium">
+                  Super Admin
+                </span>
+              )}
+              {isAdmin && !isSuperAdmin && (
+                <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
+                  Admin
+                </span>
+              )}
+              {showAsTenantAdmin && !isSuperAdmin && !isAdmin && (
+                <span className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full font-medium">
+                  Tenant Admin
+                </span>
+              )}
+              {isManager && !isAdmin && !isSuperAdmin && !showAsTenantAdmin && (
+                <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
+                  Manager
+                </span>
+              )}
+              {showAsUser && (
+                <span className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                  Usuario
+                </span>
+              )}
+            </div>
           </div>
 
-          {isAdmin && (
-            <div className="mt-2 p-3">
-              <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+          {isSuperAdmin && (
+            <div className="mt-4 p-4 bg-gray-50 border-b border-gray-100">
+              <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                 {t('sidebar.adminTools')}
               </h3>
-              <div className="px-3 py-2 text-sm text-gray-500">
+              <div className="px-3 py-2 text-sm text-gray-700">
                 <p>{t('sidebar.adminMessage')}</p>
               </div>
               
-              <div className="mt-2 grid grid-cols-2 gap-2 px-3">
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
                   onClick={() => window.location.href = `/${params.locale}/admin/users`}
                 >
                   <UserIcon className="h-3 w-3" />
@@ -839,7 +1096,7 @@ export function DashboardSidebar() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
                   onClick={() => window.location.href = `/${params.locale}/admin/notifications`}
                 >
                   <BellIcon className="h-3 w-3" />
@@ -848,10 +1105,10 @@ export function DashboardSidebar() {
               </div>
               
               {/* Role Switcher for Admins */}
-              <div className="mt-4 border-t pt-3">
+              <div className="mt-4">
                 <button 
                   onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                  className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100"
+                  className="flex items-center justify-between w-full rounded-lg px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200"
                 >
                   <div className="flex items-center gap-2">
                     <EyeIcon className="h-4 w-4 text-indigo-600" />
@@ -865,16 +1122,20 @@ export function DashboardSidebar() {
                 </button>
                 
                 {roleMenuOpen && (
-                  <div className="mt-1 rounded-md border bg-white shadow-sm">
+                  <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-lg">
                     <div className="py-1">
                       {rolesLoading ? (
-                        <div className="px-4 py-2 text-sm text-gray-500">
+                        <div className="px-4 py-2 text-sm text-gray-600">
                           Loading...
                         </div>
                       ) : (
                         <>
                           <button
-                            className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${!selectedRole ? 'bg-indigo-50 text-indigo-700' : ''}`}
+                            className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
+                              !selectedRole 
+                                ? 'bg-indigo-100 text-indigo-800' 
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
                             onClick={() => {
                               setSelectedRole(null);
                               setRoleMenuOpen(false);
@@ -882,10 +1143,14 @@ export function DashboardSidebar() {
                           >
                             {t('sidebar.defaultRole')}
                           </button>
-                          {sortedRoles.filter(role => role.name !== 'ADMIN').map((role) => (
+                          {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
                             <button
                               key={role.id}
-                              className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${selectedRole === role.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
+                              className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
+                                selectedRole === role.name 
+                                  ? 'bg-indigo-100 text-indigo-800' 
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              }`}
                               onClick={() => {
                                 setSelectedRole(role.name);
                                 setRoleMenuOpen(false);
@@ -905,8 +1170,7 @@ export function DashboardSidebar() {
           
           {/* Nav items */}
           <div className="flex-1 overflow-y-auto">
-            <nav className="p-3 space-y-1">
-              <div className="border-t pt-3">
+            <nav className="p-4 space-y-2">
                 {showAsUser && (
                   <div className="mb-4">
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
@@ -918,12 +1182,12 @@ export function DashboardSidebar() {
                   </div>
                 )}
                 {!showAsUser && renderNavigationItems()}
-              </div>
+             
 
-              <div className="mb-6">
-                <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+              <div className="mb-6 border-t border-gray-200 pt-4">
+                <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                   {t('sidebar.externalLinksTitle')}
-                  {isAdmin && selectedRole && (
+                  {isSuperAdmin && selectedRole && (
                     <span className="ml-2 font-normal text-indigo-600">
                       ({formatTextWithRole('sidebar.viewingAsRole', selectedRole)})
                     </span>
@@ -931,16 +1195,16 @@ export function DashboardSidebar() {
                 </h3>
                 {externalLinksLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin h-5 w-5 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-                    <span className="ml-2 text-sm text-gray-500">Loading...</span>
+                    <div className="animate-spin h-5 w-5 border-2 border-gray-600 rounded-full border-t-transparent"></div>
+                    <span className="ml-2 text-sm text-gray-600">Loading...</span>
                   </div>
                 ) : externalLinksError ? (
-                  <div className="px-3 py-2 text-sm text-red-500">
+                  <div className="px-4 py-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
                     Error loading external links: {externalLinksError.message}
                   </div>
                 ) : externalLinks.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">
-                    {isAdmin && selectedRole 
+                  <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
+                    {isSuperAdmin && selectedRole 
                       ? formatTextWithRole('sidebar.noExternalLinksForRole', selectedRole)
                       : t('sidebar.noExternalLinks')}
                   </div>
@@ -952,20 +1216,20 @@ export function DashboardSidebar() {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer" 
-                        className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-4 w-4 text-gray-500" />
                         <span>{item.name}</span>
                        
                       </a>
                     ))}
-                    {isAdmin && !selectedRole && (
-                      <div className="mt-2 px-3 py-1 text-xs text-gray-500">
+                    {isSuperAdmin && !selectedRole && (
+                      <div className="mt-3 px-4 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
                         {t('sidebar.adminViewingAllLinks')}
                       </div>
                     )}
-                    {isAdmin && selectedRole && (
-                      <div className="mt-2 px-3 py-1 text-xs text-indigo-500 border-t pt-2">
+                    {isSuperAdmin && selectedRole && (
+                      <div className="mt-3 px-4 py-2 text-xs text-indigo-700 bg-indigo-50 rounded-lg border border-indigo-200">
                         {t('sidebar.adminRoleSwitchInfo')}
                       </div>
                     )}
@@ -976,17 +1240,22 @@ export function DashboardSidebar() {
           </div>
           
           {/* Sidebar footer */}
-          <div className="border-t p-3">
-            <div className="flex items-center gap-3 mb-2">
-              <Avatar>
+          <div className="border-t border-gray-200 p-4 bg-gray-50">
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar className="border border-gray-200">
                 <AvatarImage src="" alt="User" />
-                <AvatarFallback>UN</AvatarFallback>
+                <AvatarFallback className="bg-gray-100 text-gray-700">UN</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
-                <span className="text-xs text-gray-500">{data?.me?.role?.name}</span>
+              <div className="flex flex-col flex-1">
+                <span className="text-sm font-medium text-gray-900">{data?.me?.firstName} {data?.me?.lastName}</span>
+                <span className="text-xs text-gray-600">{data?.me?.role?.name}</span>
               </div>
-              <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="ml-auto text-gray-600 hover:text-gray-900 hover:bg-gray-100" 
+                onClick={handleLogout}
+              >
                 <LogOutIcon className="h-4 w-4" />
                 <span className="sr-only">{t('sidebar.logout')}</span>
               </Button>
@@ -1000,43 +1269,56 @@ export function DashboardSidebar() {
       
       {/* Mobile sidebar */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-gray-900/50">
-          <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-lg flex flex-col">
+        <div className="lg:hidden fixed inset-0 z-50 bg-gray-900/80">
+          <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-xl flex flex-col border-r border-gray-200">
             {/* Mobile sidebar header with close button */}
             <div className="flex items-center justify-between h-16 px-4 border-b shrink-0">
               <Link href={`/${params.locale}`} className="flex items-center" onClick={() => setIsOpen(false)}>
-                <Image 
-                  src={logoUrl} 
-                  alt="E-voque Logo" 
-                  width={24} 
-                  height={24} 
-                  className="h-12 w-12" 
-                />
+                {/* Header Title instead of logo box */}
+                <h1 
+                  className="text-lg font-bold text-gray-800 hover:text-indigo-600 transition-colors"
+                  title={tenantData?.tenant?.name || 'Cargando...'}
+                >
+                  {getTenantDisplayName()}
+                </h1>
               </Link>
-              {isAdmin && (
-                <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
-                  Admin
-                </span>
-              )}
-              {isManager && !isAdmin && (
-                <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
-                  Manager
-                </span>
-              )}
-              {showAsUser && (
-                <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
-                  Usuario
-                </span>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <XIcon className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Language Switcher */}
+                <LanguageSwitcher variant="sidebar" />
+                
+                {/* Role badges */}
+                {isSuperAdmin && (
+                  <span className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-md">
+                    Super Admin
+                  </span>
+                )}
+                {isAdmin && !isSuperAdmin && (
+                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
+                    Admin
+                  </span>
+                )}
+                {isManager && !isAdmin && !isSuperAdmin && (
+                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
+                    Manager
+                  </span>
+                )}
+                {showAsUser && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-md">
+                    Usuario
+                  </span>
+                )}
+                
+                {/* Close button */}
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                  <XIcon className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
             
             {/* Mobile nav items */}
             <div className="flex-1 overflow-y-auto">
               <nav className="p-3 space-y-1">
-                {isAdmin && (
+                {isSuperAdmin && (
                   <div className="mb-4">
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.adminTools')}
@@ -1077,7 +1359,7 @@ export function DashboardSidebar() {
                                 >
                                   {t('sidebar.defaultRole')}
                                 </button>
-                                {sortedRoles.filter(role => role.name !== 'ADMIN').map((role) => (
+                                {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
                                   <button
                                     key={role.id}
                                     className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${selectedRole === role.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
@@ -1141,7 +1423,7 @@ export function DashboardSidebar() {
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.administration')}
                     </h3>
-                    {adminNavigationItems.map((item) => (
+                    {transformedAdminNavigationItems.map((item) => (
                       <Link 
                         key={item.href}
                         href={item.disabled ? "#" : item.href}
@@ -1159,16 +1441,40 @@ export function DashboardSidebar() {
                     ))}
                   </div>
                 )}
+
+                {/* SuperAdmin items - Mobile */}
+                {isSuperAdmin && !showAsUser && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                      🚀 {t('sidebar.superAdministration')}
+                    </h3>
+                    {transformedSuperAdminNavigationItems.map((item) => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))}
+                  </div>
+                )}
+
+                {/* TenantAdmin items - Mobile */}
+                {showAsTenantAdmin && !showAsUser && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                      🏢 {t('sidebar.tenantAdministration')}
+                    </h3>
+                    {transformedTenantAdminNavigationItems.map((item) => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))}
+                  </div>
+                )}
                    
-                {showAsManager && !showAsUser && (
+                {showAsManager && !showAsUser && !showAsTenantAdmin && (
                   <div className="mb-4">
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.notifications')}
                     </h3>
                     <Link 
-                      href={`/${params.locale}/evoque/dashboard/notifications`}
+                      href={`/${params.locale}/admin/dashboard/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/evoque/dashboard/notifications`
+                        pathname === `/${params.locale}/admin/dashboard/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -1204,8 +1510,8 @@ export function DashboardSidebar() {
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.dashboard')}
                     </h3>
-                    {baseNavigationItems.filter(item => 
-                      !((showAsManager || showAsAdmin) && item.href.includes('/evoque/dashboard/notifications'))
+                    {transformedBaseNavigationItems.filter(item => 
+                      !((showAsManager || showAsAdmin || showAsTenantAdmin) && item.href.includes('/admin/dashboard/notifications'))
                     ).map((item) => (
                       <Link 
                         key={item.href}
@@ -1228,7 +1534,7 @@ export function DashboardSidebar() {
                 <div className="mb-6">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     {t('sidebar.externalLinksTitle')}
-                    {isAdmin && selectedRole && (
+                    {isSuperAdmin && selectedRole && (
                       <span className="ml-2 font-normal text-indigo-600">
                         ({formatTextWithRole('sidebar.viewingAsRole', selectedRole)})
                       </span>
@@ -1245,7 +1551,7 @@ export function DashboardSidebar() {
                     </div>
                   ) : externalLinks.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-500">
-                      {isAdmin && selectedRole 
+                      {isSuperAdmin && selectedRole 
                         ? formatTextWithRole('sidebar.noExternalLinksForRole', selectedRole)
                         : t('sidebar.noExternalLinks')}
                     </div>
@@ -1264,12 +1570,12 @@ export function DashboardSidebar() {
                           
                         </a>
                       ))}
-                      {isAdmin && !selectedRole && (
+                      {isSuperAdmin && !selectedRole && (
                         <div className="mt-2 px-3 py-1 text-xs text-gray-500">
                           {t('sidebar.adminViewingAllLinks')}
                         </div>
                       )}
-                      {isAdmin && selectedRole && (
+                      {isSuperAdmin && selectedRole && (
                         <div className="mt-2 px-3 py-1 text-xs text-indigo-500 border-t pt-2">
                           {t('sidebar.adminRoleSwitchInfo')}
                         </div>

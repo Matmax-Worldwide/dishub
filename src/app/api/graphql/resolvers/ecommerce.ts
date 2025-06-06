@@ -33,6 +33,7 @@ type ProductCategoryWithCount = {
 
 interface Context {
   req: NextRequest;
+  tenantId: string;
 }
 
 interface ShopFilterInput {
@@ -323,7 +324,12 @@ export const ecommerceResolvers = {
         }
 
         const product = await prisma.product.findUnique({
-          where: { sku },
+          where: { 
+            tenantId_sku: {
+              tenantId: context.tenantId || '',
+              sku: sku
+            }
+          },
           include: {
             shop: true,
             prices: {
@@ -718,7 +724,12 @@ export const ecommerceResolvers = {
         }
 
         const category = await prisma.productCategory.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
           include: {
             shop: true,
             parent: true,
@@ -1427,7 +1438,12 @@ export const ecommerceResolvers = {
         }
 
         const discount = await prisma.discount.findUnique({
-          where: { code },
+          where: { 
+            tenantId_code: {
+              tenantId: context.tenantId || '',
+              code: code
+            }
+          },
           include: {
             applicableProducts: {
               include: {
@@ -1466,7 +1482,12 @@ export const ecommerceResolvers = {
         }
 
         const discount = await prisma.discount.findUnique({
-          where: { code },
+          where: { 
+            tenantId_code: {
+              tenantId: context.tenantId || '',
+              code: code
+            }
+          },
           include: {
             orders: customerId ? {
               where: {
@@ -1700,6 +1721,7 @@ export const ecommerceResolvers = {
             name: input.name as string,
             defaultCurrencyId: input.defaultCurrencyId as string,
             adminUserId: input.adminUserId as string,
+            tenantId: context.tenantId || '',
             acceptedCurrencies: input.acceptedCurrencyIds ? {
               create: (input.acceptedCurrencyIds as string[]).map((currencyId: string) => ({
                 currencyId
@@ -1794,7 +1816,8 @@ export const ecommerceResolvers = {
             slug: input.slug as string,
             parentId: input.parentId as string || null,
             isActive: input.isActive as boolean ?? true,
-            shopId: input.shopId as string || null
+            shopId: input.shopId as string || null,
+            tenantId: context.tenantId || ''
           },
           include: {
             shop: true,
@@ -2412,7 +2435,8 @@ export const ecommerceResolvers = {
                 unitPrice: item.unitPrice,
                 totalPrice: item.quantity * item.unitPrice
               }))
-            }
+            },
+            tenantId: context.tenantId || ''
           },
           include: {
             customer: true,

@@ -82,8 +82,8 @@ export function n1DetectorPlugin(): Prisma.Middleware {
     const now = Date.now();
     const currentStack = new Error().stack || '';
 
-    let entry = operationCounts.get(operationSignature);
-    let sites = operationCallSites.get(operationSignature) || []; // Initialize sites array
+    const entry = operationCounts.get(operationSignature);
+    const sites = operationCallSites.get(operationSignature) || []; // Initialize sites array
 
     if (entry && (now - entry.timestamp < N1_WINDOW_MS)) {
       entry.count++;

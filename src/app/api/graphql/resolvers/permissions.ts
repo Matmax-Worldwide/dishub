@@ -22,7 +22,7 @@ export const permissionResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden ver los permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('permissions:read')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('permissions:read')) {
         throw new Error('Forbidden: You do not have permission to view permissions');
       }
       
@@ -60,7 +60,7 @@ export const permissionResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden ver los permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('permissions:read')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('permissions:read')) {
         throw new Error('Forbidden: You do not have permission to view role permissions');
       }
       
@@ -117,7 +117,7 @@ export const permissionResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden crear permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('permissions:create')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('permissions:create')) {
         throw new Error('Forbidden: You do not have permission to create permissions');
       }
       
@@ -196,7 +196,7 @@ export const permissionResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden asignar permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('permissions:update')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('permissions:update')) {
         throw new Error('Forbidden: You do not have permission to assign permissions to roles');
       }
       
@@ -268,7 +268,7 @@ export const permissionResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden remover permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('permissions:update')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('permissions:update')) {
         throw new Error('Forbidden: You do not have permission to remove permissions from roles');
       }
       

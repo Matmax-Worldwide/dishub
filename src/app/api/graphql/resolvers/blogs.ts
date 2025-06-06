@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 import { PostStatus, Blog as PrismaBlog } from '@prisma/client';
 // import { verifySession } from '@/app/api/utils/auth'; // Removed
-import { Context } from '@/app/api/graphql/types';
+import { GraphQLContext } from '../route';
 
 // Define interfaces for input types (preserved)
 interface BlogInput {
@@ -89,10 +89,15 @@ export const blogResolvers = {
         throw new GraphQLError('Failed to fetch blog');
       }
     },
-    blogBySlug: async (_: unknown, { slug }: { slug: string }) => {
+    blogBySlug: async (_: unknown, { slug }: { slug: string }, context: GraphQLContext) => {
       try {
         return await prisma.blog.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
         });
       } catch (error) {
         console.error('Error fetching blog by slug:', error);
@@ -145,10 +150,15 @@ export const blogResolvers = {
         throw new GraphQLError('Failed to fetch posts');
       }
     },
-    postBySlug: async (_: unknown, { slug }: { slug: string }) => {
+    postBySlug: async (_: unknown, { slug }: { slug: string }, context: GraphQLContext) => {
       try {
         return await prisma.post.findUnique({
-          where: { slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId || '',
+              slug: slug
+            }
+          },
           include: {
             author: { select: { id: true, firstName: true, lastName: true, email: true } },
             blog: { select: { id: true, title: true, slug: true } },
@@ -163,7 +173,7 @@ export const blogResolvers = {
   },
 
   Mutation: {
-    createBlog: async (_: unknown, { input }: { input: BlogInput }) => {
+    createBlog: async (_: unknown, { input }: { input: BlogInput }, context: GraphQLContext) => {
       // Auth handled by graphql-shield. context.user is available if needed.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       try {
@@ -172,7 +182,10 @@ export const blogResolvers = {
             title: input.title,
             description: input.description,
             slug: input.slug,
-            isActive: input.isActive ?? true
+            isActive: input.isActive ?? true,
+            tenant: {
+              connect: { id: context.tenantId || '' }
+            }
           }
         });
         return { success: true, message: 'Blog created successfully', blog };
@@ -233,7 +246,7 @@ export const blogResolvers = {
       }
     },
 
-    createPost: async (_: unknown, { input }: { input: CreatePostInput }) => {
+    createPost: async (_: unknown, { input }: { input: CreatePostInput }, context: GraphQLContext) => {
       // Auth handled by graphql-shield.
       // if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
       // Note: input.authorId is used. If this should be context.user.id, logic would change here.
@@ -247,17 +260,20 @@ export const blogResolvers = {
             excerpt: input.excerpt,
             featuredImage: input.featuredImage,
             featuredImageId: input.featuredImageId,
-            status: input.status || 'DRAFT',
+            status: input.status || PostStatus.DRAFT,
             publishedAt: input.publishedAt ? new Date(input.publishedAt) : null,
-            blogId: input.blogId,
-            authorId: input.authorId, // Explicitly from input
             metaTitle: input.metaTitle,
             metaDescription: input.metaDescription,
             tags: input.tags || [],
             categories: input.categories || [],
             readTime: input.readTime,
+            tenantId: context.tenantId || '',
+            blogId: input.blogId,
+            authorId: input.authorId,
             ...(input.mediaIds && input.mediaIds.length > 0 && {
-              media: { connect: input.mediaIds.map(id => ({ id })) }
+              media: {
+                connect: input.mediaIds.map(id => ({ id }))
+              }
             })
           },
           include: { author: true, blog: true, media: true, featuredImageMedia: true }
@@ -337,7 +353,7 @@ export const blogResolvers = {
   },
 
   Blog: {
-    posts: async (parentBlog: PrismaBlog, _args: unknown, context: Context) => {
+    posts: async (parentBlog: PrismaBlog, _args: unknown, context: GraphQLContext) => {
       if (!parentBlog.id) {
         return [];
       }

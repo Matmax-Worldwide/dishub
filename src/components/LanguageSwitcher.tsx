@@ -4,14 +4,30 @@ import { useRouter, usePathname } from 'next/navigation';
 import { locales } from '../app/i18n';
 import { useState } from 'react';
 import { GlobeAltIcon } from '@heroicons/react/24/outline';
+import { Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useI18n } from '@/hooks/useI18n';
 
 interface LanguageSwitcherProps {
   isContactInView?: boolean;
+  variant?: 'default' | 'compact' | 'sidebar';
+  className?: string;
 }
 
-export default function LanguageSwitcher({ isContactInView = false }: LanguageSwitcherProps) {
+export default function LanguageSwitcher({ 
+  isContactInView = false, 
+  variant = 'default',
+  className = ''
+}: LanguageSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   // Extract the current locale from the pathname
@@ -37,18 +53,56 @@ export default function LanguageSwitcher({ isContactInView = false }: LanguageSw
   const getLanguageName = (locale: string) => {
     switch (locale) {
       case 'en':
-        return 'English';
+        return t('language.english');
       case 'es':
-        return 'Español';
+        return t('language.spanish');
       case 'de':
-        return 'Deutsch';
+        return t('language.german');
       default:
         return locale.toUpperCase();
     }
   };
 
+  const getLanguageCode = (locale: string) => {
+    return locale.toUpperCase();
+  };
+
+  // Compact variant for sidebar header
+  if (variant === 'compact' || variant === 'sidebar') {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`flex items-center gap-2 h-8 px-2 text-xs hover:bg-gray-100 ${className}`}
+            title={t('language.switch')}
+          >
+            <Globe className="h-3 w-3" />
+            <span className="font-medium">{getLanguageCode(currentLocale)}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          {locales.map((locale) => (
+            <DropdownMenuItem
+              key={locale}
+              onClick={() => changeLanguage(locale)}
+              className={`flex items-center gap-2 text-sm ${
+                locale === currentLocale ? 'bg-indigo-50 text-indigo-700 font-medium' : ''
+              }`}
+            >
+              <span className="text-xs opacity-60">{getLanguageCode(locale)}</span>
+              <span>{getLanguageName(locale)}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // Default variant (original implementation)
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <button
         onClick={toggleDropdown}
         className={`flex items-center space-x-1 text-sm font-medium transition-colors duration-300 ${
@@ -57,6 +111,7 @@ export default function LanguageSwitcher({ isContactInView = false }: LanguageSw
             : 'text-[hsla(225,55%,21%,1)] hover:text-[hsla(225,55%,21%,0.8)]'
         }`}
         aria-expanded={isOpen}
+        title={t('language.switch')}
       >
         <GlobeAltIcon className={`h-5 w-5 ${isContactInView ? 'text-white' : ''}`} />
         <span>{getLanguageName(currentLocale)}</span>

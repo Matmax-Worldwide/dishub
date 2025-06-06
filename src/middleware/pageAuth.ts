@@ -5,13 +5,13 @@ import { RoleName } from '@/hooks/usePermission'; // Assuming RoleName is define
 // This route permissions object should be identical to or replace legacyRoutePermissions.
 // It can be defined here or imported from a central config file (e.g., src/config/permissions.ts).
 const ROUTE_PERMISSIONS: Record<string, { roles: RoleName[] }> = {
-  'admin': { roles: ['ADMIN'] },
-  'admin/users': { roles: ['ADMIN'] },
-  'admin/roles': { roles: ['ADMIN'] },
-  'dashboard/reports': { roles: ['ADMIN', 'MANAGER'] },
-  'dashboard/tasks': { roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
-  'dashboard/staff': { roles: ['ADMIN', 'MANAGER'] },
-  'dashboard/cms': { roles: ['ADMIN'] },
+  'admin': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin'] },
+  'admin/users': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin'] },
+  'admin/roles': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin'] },
+  'dashboard/reports': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin', 'TenantManager'] },
+  'dashboard/tasks': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin', 'TenantManager', 'Employee'] },
+  'dashboard/staff': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin', 'TenantManager', 'HRAdmin', 'HRManager'] },
+  'dashboard/cms': { roles: ['SuperAdmin', 'PlatformAdmin', 'TenantAdmin', 'ContentManager'] },
   // Ensure this list is comprehensive for all role-protected page routes.
 };
 

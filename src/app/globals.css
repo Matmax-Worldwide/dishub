@@ -46,15 +46,6 @@
   background: rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Ensures Dialog container doesn't get affected by other positioning */
-[role="dialog"] {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: fixed !important;
-  inset: 0 !important; 
-  z-index: 9999 !important;
-}
 
 /* Direct fix for component removal dialog */
 div[data-state="open"] > [data-radix-dialog-content] {

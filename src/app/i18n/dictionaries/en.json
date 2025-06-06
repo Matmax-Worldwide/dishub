@@ -216,15 +216,36 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "calendar": "Calendar",
-    "bookings": "Bookings & Schedule",
-    "commerce": "E-Commerce",
-    "cmsSettings": "Settings",
     "cms": "CMS",
     "cmsPages": "Pages",
     "cmsMedia": "Media",
     "cmsMenus": "Menus",
     "cmsComponents": "Components",
     "cmsSettings": "Settings",
+    "tenants": "Tenants",
+    "blog": "Blog",
+    "blogPosts": "Posts",
+    "blogCategories": "Categories",
+    "blogSettings": "Blog Settings",
+    "forms": "Forms",
+    "formBuilder": "Form Builder",
+    "formSubmissions": "Submissions",
+    "formSettings": "Form Settings",
+    "ecommerce": "E-Commerce",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "inventory": "Inventory",
+    "categories": "Categories",
+    "pricing": "Pricing",
+    "currencies": "Currencies",
+    "taxes": "Taxes",
+    "discounts": "Discounts",
+    "shipping": "Shipping",
+    "payments": "Payments",
+    "reviews": "Reviews",
+    "analytics": "Analytics",
+    "shops": "Shops",
     "admin": "Administration",
     "users": "Users",
     "roles": "Roles & Permissions",
@@ -235,11 +256,9 @@
     "tools": "Tools",
     "bookings": "Bookings & Schedule",
     "commerce": "E-Commerce",
-    "cmsSettings": "Settings",
     "staffManagement": "Staff Management",
     "services": "Services",
     "locations": "Locations",
-    "analytics": "Analytics",
     "reports": "Reports",
     "notifications": "Notifications",
     "help": "Help & Support",
@@ -287,11 +306,119 @@
     "cookie": "Cookie",
     "cors": "CORS",
     "csp": "Content Security Policy",
-    "hsts": "HTTP Strict Transport Security",
-    "xss": "XSS Protection",
-    "csrf": "CSRF Protection",
-    "clickjacking": "Clickjacking Protection",
-    "staff": "Staff"
+    "welcome": "Welcome",
+    "welcomeMessage": "Access your external benefits and resources below.",
+    "adminTools": "Administrative Tools",
+    "adminMessage": "You have full administrative access to manage the platform and its users.",
+    "newUser": "New User",
+    "message": "Message",
+    "externalLinksTitle": "External Links",
+    "noExternalLinks": "No external links available for your role",
+    "noExternalLinksForRole": "No external links available for role: {role}",
+    "viewingAsRole": "Viewing as {role}",
+    "adminViewingAllLinks": "As Admin, you are viewing all available links",
+    "adminRoleSwitchInfo": "You are viewing links as another role, access may be limited",
+    "administration": "Administration",
+    "management": "Management",
+    "roleSwitcher": "View as: {role}",
+    "defaultRole": "Admin (Default)",
+    "mainNavigation": "Main Navigation",
+    "configuration": "Configuration",
+    "operations": "Operations",
+    "tenantAdministration": "Tenant Administration",
+    "moduleManagement": "Module Management",
+    "activeModules": "Active Modules",
+    "requestModules": "Request Modules",
+    "moduleConfiguration": "Module Configuration",
+    "usersList": "Users List",
+    "rolesPermissions": "Roles & Permissions",
+    "activityLogs": "Activity Logs",
+    "companyManagement": "Company Management",
+    "companyProfile": "Company Profile",
+    "brandingDesign": "Branding & Design",
+    "billing": "Billing",
+    "contentManagement": "Content Management",
+    "pages": "Pages",
+    "media": "Media Files",
+    "templates": "Templates",
+    "multilingual": "Multilingual",
+    "businessModules": "Business Modules",
+    "bookingEngine": "Booking Engine",
+    "ecommerceEngine": "E-commerce Engine",
+    "hrmsEngine": "HR Management System",
+    "calendar": "Calendar",
+    "staff": "Staff",
+    "bookingSettings": "Booking Settings",
+    "ecommerceSettings": "E-commerce Settings",
+    "employees": "Employees",
+    "departments": "Departments",
+    "payroll": "Payroll",
+    "hrmsSettings": "HR Settings",
+    "hrms": "Human Resources",
+    "reportsInsights": "Reports & Insights",
+    "kpiDashboard": "KPI Dashboard",
+    "exportData": "Export Data",
+    "activityHistory": "Activity History",
+    "catalog": "Catalog",
+    "pricingAndTaxes": "Pricing & Taxes",
+    "returnToDashboard": "Return to Dashboard",
+    "loadingTenant": "Loading...",
+    "errorLoadingTenant": "Error loading tenant",
+    "noTenantData": "No tenant data available",
+    "viewProfile": "View Profile",
+    "viewNotifications": "View Notifications",
+    "previewMode": "Preview Mode",
+    "selectRole": "Select a role to preview",
+    "adminRoleNote": "Showing all links (Admin view)",
+    "switchingToRole": "Switching to role:",
+    "loadingRoleData": "Loading role data...",
+    "roleDataError": "Error loading role data",
+    "noLinksAvailable": "No links available",
+    "currentUserLabel": "Current User",
+    
+    "masterControlPanel": "Master Control Panel",
+    "mcpDashboard": "MCP Dashboard",
+    "tenantManagement": "Tenant Management",
+    "allTenants": "All Tenants",
+    "createTenant": "Create Tenant",
+    "tenantHealth": "Tenant Health",
+    "tenantImpersonation": "Tenant Impersonation",
+    "globalModuleManagement": "Global Module Management",
+    "moduleRegistry": "Module Registry",
+    "createModule": "Create Module",
+    "moduleVersions": "Module Versions",
+    "moduleCompatibility": "Module Compatibility",
+    "activationRequests": "Activation Requests",
+    "pendingRequests": "Pending Requests",
+    "requestHistory": "Request History",
+    "customizationRequests": "Customization Requests",
+    "mcpAutomation": "MCP Automation",
+    "tenantTemplates": "Tenant Templates",
+    "automatedProvisioning": "Automated Provisioning",
+    "migrationControl": "Migration Control",
+    "infrastructureControl": "Infrastructure Control",
+    "globalAnalytics": "Global Analytics",
+    "tenantMetrics": "Tenant Metrics",
+    "moduleUsage": "Module Usage",
+    "systemErrors": "System Errors",
+    "performanceMetrics": "Performance Metrics",
+    "systemLogs": "System Logs",
+    "globalFileManagement": "Global File Management",
+    "sharedAssets": "Shared Assets",
+    "assetVersioning": "Asset Versioning",
+    "templateLibrary": "Template Library",
+    "componentLibrary": "Component Library",
+    "mcpAccessControl": "MCP Access Control",
+    "mcpUsers": "MCP Users",
+    "mcpRoles": "MCP Roles",
+    "activityAudit": "Activity Audit",
+    "securityPolicies": "Security Policies",
+    "twoFactorAuth": "Two-Factor Authentication",
+    "testingEnvironment": "Testing Environment",
+    "sandboxTenants": "Sandbox Tenants",
+    "betaModules": "Beta Modules",
+    "featureTesting": "Feature Testing",
+    "stagingControl": "Staging Control"
   },
   "staffCreator": {
     "selectUser": "Select User to Make Staff",
@@ -323,9 +450,13 @@
   },
   "roles": {
     "ADMIN": "Admin",
+    "TENANT_ADMIN": "Tenant Admin",
+    "TenantAdmin": "Tenant Admin",
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
-    "USER": "User"
+    "USER": "User",
+    "SuperAdmin": "Super Admin",
+    "SuperAdmin": "Super Admin"
   },
   "commerce": {
     "title": "E-COMMERCE"
@@ -342,5 +473,125 @@
     "rules": "Rules",
     "main": "Main",
     "management": "Management"
+  },
+  "language": {
+    "selector": "Language",
+    "current": "Current Language",
+    "switch": "Switch Language",
+    "english": "English",
+    "spanish": "Spanish", 
+    "german": "German"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "disruption": "Disruption",
+      "isInnovation": "is Innovation",
+      "subtitle": "Where privacy meets power. Data sovereignty native by design, AI & blockchain ready for tomorrow's business.",
+      "startDisrupting": "Start Disrupting",
+      "learnMore": "Learn More"
+    },
+    "features": {
+      "nativeByDesign": "Native by Design",
+      "privacyFirst": {
+        "title": "Privacy First",
+        "desc": "Data sovereignty built into every layer"
+      },
+      "aiPowered": {
+        "title": "AI Powered",
+        "desc": "Cutting-edge intelligence at your fingertips"
+      },
+      "blockchainReady": {
+        "title": "Blockchain Ready",
+        "desc": "Decentralized trust for global business"
+      },
+      "globalScale": {
+        "title": "Global Scale",
+        "desc": "Supporting emerging businesses worldwide"
+      }
+    },
+    "privacy": {
+      "title": "Privacy Without Compromise",
+      "subtitle": "Built for the privacy-first future. Every feature designed with data protection, compliance, and sovereignty at its core.",
+      "gdprCompliant": {
+        "title": "GDPR Compliant",
+        "desc": "Full regulatory compliance built-in from day one"
+      },
+      "zeroKnowledge": {
+        "title": "Zero Knowledge",
+        "desc": "Your data remains encrypted, even from us"
+      },
+      "dataSovereignty": {
+        "title": "Data Sovereignty",
+        "desc": "Complete control over where your data lives"
+      },
+      "federatedSystem": {
+        "title": "Federated System",
+        "desc": "Distributed architecture for ultimate resilience"
+      },
+      "architecture": {
+        "title": "Zero Knowledge Architecture",
+        "encryptedAtRest": {
+          "title": "Encrypted at Rest",
+          "desc": "Data encrypted before storage"
+        },
+        "zeroAccess": {
+          "title": "Zero Access",
+          "desc": "We can't read your data"
+        },
+        "clientSideKeys": {
+          "title": "Client-Side Keys",
+          "desc": "You control the encryption"
+        }
+      },
+      "blockchain": {
+        "userTable": "User Records",
+        "transactionTable": "Transactions",
+        "encryptionTable": "Encryption Keys",
+        "auditTable": "Audit Logs",
+        "permissionTable": "Permissions",
+        "sessionTable": "Sessions",
+        "backupTable": "Backup Hashes",
+        "validationTable": "Validation",
+        "masterKey": "Master Key"
+      }
+    },
+    "technology": {
+      "title": "Tech Stack",
+      "subtitle": "for Tomorrow",
+      "description": "Built on cutting-edge AI and blockchain infrastructure, DISHUB empowers emerging businesses with enterprise-grade technology that's accessible, scalable, and secure.",
+      "endToEnd": "End-to-end encryption",
+      "decentralized": "Decentralized data storage",
+      "aiInsights": "AI-powered insights"
+    },
+    "federated": {
+      "title": "Federated by Design",
+      "trustNetwork": "Distributed Trust Network",
+      "description": "Our federated architecture ensures your data is never centralized. Each node operates independently while maintaining global consistency through advanced consensus protocols.",
+      "multiRegion": {
+        "title": "Multi-Region Resilience",
+        "desc": "Data replicated across geographic boundaries with automatic failover"
+      },
+      "sovereignZones": {
+        "title": "Sovereign Data Zones",
+        "desc": "Choose exactly where your data resides to meet compliance requirements"
+      },
+      "edgeComputing": {
+        "title": "Edge Computing Ready",
+        "desc": "Process data at the edge for ultra-low latency applications"
+      }
+    },
+    "cta": {
+      "readyTo": "Ready to",
+      "disrupt": "Disrupt?",
+      "subtitle": "Join the revolution. Build on sovereignty. Scale with confidence.",
+      "launchFuture": "Launch Your Future"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Disrupting the future, today."
+    }
   }
 } 

@@ -1,6 +1,6 @@
 // src/app/api/graphql/dataloaders/sectionLoader.ts
-import DataLoader from 'dataloader'; // Retained for potential type references if needed, though batch function signature is key
-import { prisma } from '@/lib/prisma';
+// import DataLoader from 'dataloader'; // Retained for potential type references if needed, though batch function signature is key
+import { PrismaClient } from '@prisma/client'; // Import PrismaClient type
 import { CMSSection, Page, SectionComponent, CMSComponent } from '@prisma/client';
 
 // Define a type for what the Page query with sections will return for clarity
@@ -12,11 +12,11 @@ type PageWithPopulatedSections = Page & {
   })[];
 };
 
-// Exported batch loading function
-export const batchSectionsByPageIds = async (pageIds: readonly string[]): Promise<(CMSSection[])[]> => {
+// Exported batch loading function - updated to accept PrismaClient parameter
+export const batchSectionsByPageIds = async (pageIds: readonly string[], prismaClient: PrismaClient): Promise<(CMSSection[])[]> => {
   console.log(`sectionLoader batch fn: Loading sections for page IDs: [${pageIds.join(', ')}]`);
 
-  const pagesWithSections: PageWithPopulatedSections[] = await prisma.page.findMany({
+  const pagesWithSections: PageWithPopulatedSections[] = await prismaClient.page.findMany({
     where: {
       id: { in: pageIds as string[] },
     },

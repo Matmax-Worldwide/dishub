@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Documentación Técnica | Evoque CMS',
-  description: 'Guías completas, referencias técnicas y mejores prácticas para el desarrollo y mantenimiento del sistema Evoque CMS.',
+  title: 'Documentación Técnica | CMS',
+  description: 'Guías completas, referencias técnicas y mejores prácticas para el desarrollo y mantenimiento del sistema Dishub City.',
   keywords: ['documentación', 'guías técnicas', 'CMS', 'desarrollo', 'API'],
   openGraph: {
-    title: 'Documentación Técnica | Evoque CMS',
-    description: 'Guías completas, referencias técnicas y mejores prácticas para el desarrollo y mantenimiento del sistema.',
+    title: 'Documentación Técnica | CMS',
+    description: 'Guías completas, referencias técnicas y mejores prácticas para el desarrollo y mantenimiento del sistema Dishub City.',
     type: 'website',
   },
 };

@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -29,6 +28,9 @@ import { blogResolvers } from './resolvers/blogs';
 import { calendarResolvers } from './resolvers/calendarResolvers';
 import { ecommerceResolvers } from './resolvers/ecommerce';
 import { reviewResolvers } from './resolvers/reviews';
+import { GraphQLContext } from './route';
+import { tenantResolvers } from './resolvers/tenants';
+import { superAdminResolvers } from './resolvers/superAdmin';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -63,6 +65,7 @@ async function ensureSystemRoles() {
     { name: 'ADMIN', description: 'Administrator with full system access' },
     { name: 'MANAGER', description: 'Manager with access to team resources' },
     { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
+    { name: 'SuperAdmin', description: 'Super Administrator with platform-wide access across all tenants' },
   ];
   
   // Check if roles exist, if not create them
@@ -209,7 +212,7 @@ const resolvers = {
   
   Query: {
     // User queries
-    me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    me: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -237,7 +240,7 @@ const resolvers = {
           throw new Error('User not found');
         }
         
-        // Then get the user with role relationship
+        // Then get the user with role relationship and tenantId
         console.log('Fetching user with ID:', decoded.userId);
         try {
           const user = await prisma.user.findUnique({
@@ -249,6 +252,7 @@ const resolvers = {
               lastName: true,
               phoneNumber: true,
               roleId: true,
+              tenantId: true, // Add tenantId to the selection
               role: {
                 select: {
                   id: true,
@@ -265,7 +269,7 @@ const resolvers = {
             throw new Error('User not found');
           }
           
-          console.log('User found:', user?.email, 'with role:', user?.role);
+          console.log('User found:', user?.email, 'with role:', user?.role, 'tenantId:', user?.tenantId);
           
           // Mantener la estructura del rol como un objeto para que coincida con la definición del tipo
           return {
@@ -284,7 +288,7 @@ const resolvers = {
     },
 
     // Get a single user by ID
-    user: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    user: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -359,7 +363,7 @@ const resolvers = {
     },
     
     // Get all users - admin and manager access
-    users: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    users: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -377,6 +381,7 @@ const resolvers = {
         const currentUser = await prisma.user.findUnique({
           where: { id: decoded.userId },
           select: {
+            tenantId: true,
             role: {
               select: {
                 name: true
@@ -387,13 +392,30 @@ const resolvers = {
         
         const userRole = currentUser?.role?.name || 'USER';
         
-        // Allow both admins and managers to access this endpoint
-        if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
-          throw new Error('Unauthorized: Admin or Manager access required');
+        // Allow admins, managers, and super admins to access this endpoint
+        if (!['ADMIN', 'MANAGER', 'SuperAdmin'].includes(userRole)) {
+          throw new Error('Unauthorized: Admin, Manager, or Super Admin access required');
         }
         
-        // Get all users with their roles
+        // Build the where clause based on user role
+        let whereClause = {};
+        
+        if (userRole === 'SuperAdmin') {
+          // Super admins can see all users across all tenants
+          whereClause = {};
+        } else if (userRole === 'ADMIN' || userRole === 'MANAGER') {
+          // Regular admins and managers can only see users from their tenant
+          if (!currentUser?.tenantId) {
+            throw new Error('Admin/Manager user must be associated with a tenant');
+          }
+          whereClause = {
+            tenantId: currentUser.tenantId
+          };
+        }
+        
+        // Get users with the appropriate scope
         const users = await prisma.user.findMany({
+          where: whereClause,
           select: {
             id: true,
             email: true,
@@ -402,6 +424,7 @@ const resolvers = {
             phoneNumber: true,
             roleId: true,
             isActive: true,
+            tenantId: true,
             role: {
               select: {
                 id: true,
@@ -426,6 +449,7 @@ const resolvers = {
           phoneNumber?: string | null;
           roleId?: string | null;
           isActive?: boolean;
+          tenantId?: string | null;
           role?: {
             id: string;
             name: string;
@@ -447,7 +471,7 @@ const resolvers = {
     },
     
     // Role and permission queries
-    role: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    role: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -470,7 +494,7 @@ const resolvers = {
       }
     },
     
-    roles: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    roles: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -515,7 +539,7 @@ const resolvers = {
       }
     },
     
-    rolesWithCounts: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    rolesWithCounts: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -577,7 +601,7 @@ const resolvers = {
       }
     },
     
-    permissions: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    permissions: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -601,7 +625,7 @@ const resolvers = {
       }
     },
     
-    rolePermissions: async (_parent: unknown, args: { roleId: string }, context: { req: NextRequest }) => {
+    rolePermissions: async (_parent: unknown, args: { roleId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -630,6 +654,10 @@ const resolvers = {
       }
     },
     
+    // Include tenant queries
+    tenants: tenantResolvers.Query.tenants,
+    tenant: tenantResolvers.Query.tenant,
+    
     // Include other Query resolvers from imported modules - using type assertion
     ...((appointmentResolvers.Query as object) || {}),
     ...((dashboardResolvers.Query as object) || {}),
@@ -650,6 +678,7 @@ const resolvers = {
     ...((formResolvers.Query as object) || {}),
     ...((blogResolvers.Query as object) || {}),
     ...((calendarResolvers.Query as object) || {}),
+    ...((superAdminResolvers.Query as object) || {}),
     
     // Add menu queries
     menus: menuResolvers.Query.menus,
@@ -659,7 +688,7 @@ const resolvers = {
     pages: menuResolvers.Query.pages,
     
     // Add explicit fallback for projects query to ensure it exists
-    projects: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    projects: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         if (projectResolvers.Query.projects) {
           return await projectResolvers.Query.projects(_parent, _args, context);
@@ -987,10 +1016,12 @@ const resolvers = {
           phoneNumber: true,
           password: true,
           roleId: true,
+          tenantId: true, // Include tenantId
           role: {
             select: {
               id: true,
-              name: true
+              name: true,
+              description: true
             }
           },
           createdAt: true,
@@ -1023,19 +1054,20 @@ const resolvers = {
         role: roleName 
       }, JWT_SECRET, { expiresIn: '7d' });
       
-      // Remove password from returned user object
+      // Remove password from returned user object and return role as object
       const userWithoutPassword = {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleName,
+        tenantId: user.tenantId, // Include tenantId
+        role: user.role || { id: '', name: 'USER', description: null }, // Return role as object
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
       
-      // Return user with role as string
+      // Return user with role as object
       return {
         token,
         user: userWithoutPassword,
@@ -1090,10 +1122,12 @@ const resolvers = {
           lastName: true,
           phoneNumber: true,
           roleId: true,
+          tenantId: true,
           role: {
             select: {
               id: true,
-              name: true
+              name: true,
+              description: true
             }
           },
           createdAt: true,
@@ -1118,7 +1152,8 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleName,
+        tenantId: user.tenantId,
+        role: user.role || { id: '', name: 'USER', description: null },
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -1129,7 +1164,10 @@ const resolvers = {
       };
     },
 
-  
+    // Include tenant mutations
+    createTenant: tenantResolvers.Mutation.createTenant,
+    registerUserWithTenant: tenantResolvers.Mutation.registerWithTenant,
+
     // Include other Mutation resolvers - using type assertion for safety
     ...('Mutation' in appointmentResolvers ? (appointmentResolvers.Mutation as object) : {}),
     ...('Mutation' in dashboardResolvers ? (dashboardResolvers.Mutation as object) : {}),
@@ -1150,9 +1188,10 @@ const resolvers = {
     ...('Mutation' in formResolvers ? (formResolvers.Mutation as object) : {}),
     ...('Mutation' in blogResolvers ? (blogResolvers.Mutation as object) : {}),
     ...('Mutation' in calendarResolvers ? (calendarResolvers.Mutation as object) : {}),
+    ...('Mutation' in superAdminResolvers ? (superAdminResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
-    createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: { req: NextRequest }) => {
+    createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1198,7 +1237,7 @@ const resolvers = {
       }
     },
 
-    createPermission: async (_parent: unknown, { input }: { input: { name: string; description?: string; roleId?: string } }, context: { req: NextRequest }) => {
+    createPermission: async (_parent: unknown, { input }: { input: { name: string; description?: string; roleId?: string } }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1259,7 +1298,7 @@ const resolvers = {
       }
     },
 
-    assignPermissionToRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+    assignPermissionToRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1323,7 +1362,7 @@ const resolvers = {
       }
     },
 
-    removePermissionFromRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: { req: NextRequest }) => {
+    removePermissionFromRole: async (_parent: unknown, { roleId, permissionId }: { roleId: string; permissionId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -1481,6 +1520,26 @@ const resolvers = {
   PaymentProvider: ecommerceResolvers.PaymentProvider,
   PaymentMethod: ecommerceResolvers.PaymentMethod,
   Payment: ecommerceResolvers.Payment,
+
+  // Add tenant type resolvers
+  Tenant: tenantResolvers.Tenant,
+  TenantDetails: tenantResolvers.TenantDetails,
+
+  // Add user type resolvers
+  User: {
+    tenant: async (parent: { tenantId?: string }) => {
+      if (!parent.tenantId) return null;
+      
+      try {
+        return await prisma.tenant.findUnique({
+          where: { id: parent.tenantId }
+        });
+      } catch (error) {
+        console.error('Error resolving user.tenant:', error);
+        return null;
+      }
+    },
+  },
 };
 
 export default resolvers; 

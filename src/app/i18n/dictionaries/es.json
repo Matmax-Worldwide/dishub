@@ -220,7 +220,7 @@
     "help": "Ayuda",
     "settings": "Configuración",
     "adminDashboard": "Panel de Administración",
-    "createNotifications": "Crear Notificaciones",
+    "createNotifications": "Enviar Notificaciones",
     "userManagement": "Usuarios",
     "roleManagement": "Roles y Permisos",
     "cms": "CMS",
@@ -228,9 +228,34 @@
     "cmsMedia": "Biblioteca de Medios",
     "cmsMenus": "Menús",
     "cmsSettings": "Configuración",
+    "cmsComponents": "Componentes",
     "externalLinks": "Gestionar Enlaces",
     "bookNow": "Reservar espacios",
     "design": "Diseño",
+    "tenants": "Inquilinos",
+    "blog": "Blog",
+    "blogPosts": "Artículos",
+    "blogCategories": "Categorías",
+    "blogSettings": "Configuración del Blog",
+    "forms": "Formularios",
+    "formBuilder": "Constructor de Formularios",
+    "formSubmissions": "Respuestas",
+    "formSettings": "Configuración de Formularios",
+    "ecommerce": "E-Commerce",
+    "products": "Productos",
+    "orders": "Pedidos",
+    "customers": "Clientes",
+    "inventory": "Inventario",
+    "categories": "Categorías",
+    "pricing": "Precios",
+    "currencies": "Monedas",
+    "taxes": "Impuestos",
+    "discounts": "Descuentos",
+    "shipping": "Envíos",
+    "payments": "Pagos",
+    "reviews": "Reseñas",
+    "analytics": "Analíticas",
+    "shops": "Tiendas",
     "tools": "Herramientas",
     "bookings": "Reservas y Calendario",
     "commerce": "E-Commerce",
@@ -239,6 +264,40 @@
     "approveRequests": "Aprobar Solicitudes",
     "user": "Usuario",
     "logout": "Cerrar sesión",
+    "tenantAdministration": "Administración de Tenant",
+    "moduleManagement": "Gestión de Módulos",
+    "activeModules": "Módulos Activos",
+    "requestModules": "Solicitar Módulos",
+    "moduleConfiguration": "Configuración de Módulos",
+    "usersList": "Lista de Usuarios",
+    "rolesPermissions": "Roles y Permisos",
+    "activityLogs": "Auditoría de Actividad",
+    "companyManagement": "Gestión de Empresa",
+    "companyProfile": "Perfil de Empresa",
+    "brandingDesign": "Marca y Diseño",
+    "billing": "Facturación",
+    "contentManagement": "Gestión de Contenido",
+    "pages": "Páginas",
+    "media": "Archivos Multimedia",
+    "templates": "Plantillas",
+    "multilingual": "Multilingüe",
+    "businessModules": "Módulos de Negocio",
+    "bookingEngine": "Motor de Reservas",
+    "ecommerceEngine": "Motor de E-commerce",
+    "hrmsEngine": "Sistema de RRHH",
+    "calendar": "Calendario",
+    "staff": "Personal",
+    "bookingSettings": "Configuración de Reservas",
+    "ecommerceSettings": "Configuración de E-commerce",
+    "employees": "Empleados",
+    "departments": "Departamentos",
+    "payroll": "Nómina",
+    "hrmsSettings": "Configuración de RRHH",
+    "hrms": "Recursos Humanos",
+    "reportsInsights": "Reportes e Insights",
+    "kpiDashboard": "Panel de KPIs",
+    "exportData": "Exportar Datos",
+    "activityHistory": "Historial de Actividad",
     "adminTools": "Herramientas de Administración",
     "adminMessage": "Tienes acceso administrativo completo para gestionar la plataforma y sus usuarios.",
     "newUser": "Nuevo Usuario",
@@ -254,13 +313,87 @@
     "welcome": "Bienvenido",
     "welcomeMessage": "Accede a tus beneficios y recursos externos a continuación.",
     "roleSwitcher": "Ver como: {role}",
-    "defaultRole": "Admin (Predeterminado)"
+    "defaultRole": "Admin (Predeterminado)",
+    "mainNavigation": "Navegación Principal",
+    "configuration": "Configuración",
+    "operations": "Operaciones",
+    "catalog": "Catálogo",
+    "pricingAndTaxes": "Precios e Impuestos",
+    "returnToDashboard": "Volver al Panel",
+    "loadingTenant": "Cargando...",
+    "errorLoadingTenant": "Error al cargar inquilino",
+    "noTenantData": "No hay datos de inquilino disponibles",
+    "viewProfile": "Ver Perfil",
+    "viewNotifications": "Ver Notificaciones",
+    "previewMode": "Modo Vista Previa",
+    "selectRole": "Selecciona un rol para vista previa",
+    "adminRoleNote": "Mostrando todos los enlaces (vista Admin)",
+    "switchingToRole": "Cambiando al rol:",
+    "loadingRoleData": "Cargando datos del rol...",
+    "roleDataError": "Error al cargar datos del rol",
+    "noLinksAvailable": "No hay enlaces disponibles",
+    "currentUserLabel": "Usuario Actual",
+    "services": "Servicios",
+    "locations": "Ubicaciones",
+    "reports": "Informes",
+    "admin": "Administración",
+    "users": "Usuarios",
+    "roles": "Roles y Permisos",
+    "profile": "Perfil",
+    
+    "masterControlPanel": "Panel de Control Maestro",
+    "mcpDashboard": "Dashboard MCP",
+    "tenantManagement": "Gestión de Tenants",
+    "allTenants": "Todos los Tenants",
+    "createTenant": "Crear Tenant",
+    "tenantHealth": "Salud de Tenants",
+    "tenantImpersonation": "Impersonación de Tenants",
+    "globalModuleManagement": "Gestión Global de Módulos",
+    "moduleRegistry": "Registro de Módulos",
+    "createModule": "Crear Módulo",
+    "moduleVersions": "Versiones de Módulos",
+    "moduleCompatibility": "Compatibilidad de Módulos",
+    "activationRequests": "Solicitudes de Activación",
+    "pendingRequests": "Solicitudes Pendientes",
+    "requestHistory": "Historial de Solicitudes",
+    "customizationRequests": "Solicitudes de Personalización",
+    "mcpAutomation": "Automatización MCP",
+    "tenantTemplates": "Plantillas de Tenant",
+    "automatedProvisioning": "Aprovisionamiento Automático",
+    "migrationControl": "Control de Migraciones",
+    "infrastructureControl": "Control de Infraestructura",
+    "globalAnalytics": "Analytics Globales",
+    "tenantMetrics": "Métricas de Tenants",
+    "moduleUsage": "Uso de Módulos",
+    "systemErrors": "Errores del Sistema",
+    "performanceMetrics": "Métricas de Rendimiento",
+    "systemLogs": "Logs del Sistema",
+    "globalFileManagement": "Gestión Global de Archivos",
+    "sharedAssets": "Assets Compartidos",
+    "assetVersioning": "Versionado de Assets",
+    "templateLibrary": "Biblioteca de Plantillas",
+    "componentLibrary": "Biblioteca de Componentes",
+    "mcpAccessControl": "Control de Acceso MCP",
+    "mcpUsers": "Usuarios MCP",
+    "mcpRoles": "Roles MCP",
+    "activityAudit": "Auditoría de Actividad",
+    "securityPolicies": "Políticas de Seguridad",
+    "twoFactorAuth": "Autenticación 2FA",
+    "testingEnvironment": "Entorno de Pruebas",
+    "sandboxTenants": "Tenants Sandbox",
+    "betaModules": "Módulos Beta",
+    "featureTesting": "Pruebas de Funcionalidades",
+    "stagingControl": "Control de Staging"
   },
   "roles": {
     "ADMIN": "Administrador",
+    "TENANT_ADMIN": "Administrador de Tenant",
+    "TenantAdmin": "Administrador de Tenant",
     "MANAGER": "Gerente",
     "EMPLOYEE": "Empleado",
-    "USER": "Usuario"
+    "USER": "Usuario",
+    "SuperAdmin": "Super Administrador",
+    "SuperAdmin": "Super Administrador"
   },
   "commerce": {
     "title": "E-COMMERCE"
@@ -305,5 +438,125 @@
     "createNewLocation": "Crear Nueva Ubicación",
     "createLocationDescription": "Crear una ubicación que puede ser asignada al personal",
     "createLocationAndContinue": "Crear Ubicación y Continuar"
+  },
+  "language": {
+    "selector": "Idioma",
+    "current": "Idioma Actual",
+    "switch": "Cambiar Idioma",
+    "english": "Inglés",
+    "spanish": "Español", 
+    "german": "Alemán"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Comenzar"
+    },
+    "hero": {
+      "disruption": "Disrupción",
+      "isInnovation": "es Innovación",
+      "subtitle": "Donde la privacidad se encuentra con el poder. Soberanía de datos nativa por diseño, listo para IA y blockchain del mañana.",
+      "startDisrupting": "Comenzar a Disrumpir",
+      "learnMore": "Saber Más"
+    },
+    "features": {
+      "nativeByDesign": "Nativo por Diseño",
+      "privacyFirst": {
+        "title": "Privacidad Primero",
+        "desc": "Soberanía de datos integrada en cada capa"
+      },
+      "aiPowered": {
+        "title": "Potenciado por IA",
+        "desc": "Inteligencia de vanguardia al alcance de tus manos"
+      },
+      "blockchainReady": {
+        "title": "Listo para Blockchain",
+        "desc": "Confianza descentralizada para negocios globales"
+      },
+      "globalScale": {
+        "title": "Escala Global",
+        "desc": "Apoyando empresas emergentes en todo el mundo"
+      }
+    },
+    "privacy": {
+      "title": "Privacidad Sin Compromisos",
+      "subtitle": "Construido para el futuro de privacidad primero. Cada característica diseñada con protección de datos, cumplimiento y soberanía en su núcleo.",
+      "gdprCompliant": {
+        "title": "Cumple con GDPR",
+        "desc": "Cumplimiento regulatorio completo integrado desde el primer día"
+      },
+      "zeroKnowledge": {
+        "title": "Conocimiento Cero",
+        "desc": "Tus datos permanecen encriptados, incluso para nosotros"
+      },
+      "dataSovereignty": {
+        "title": "Soberanía de Datos",
+        "desc": "Control completo sobre dónde viven tus datos"
+      },
+      "federatedSystem": {
+        "title": "Sistema Federado",
+        "desc": "Arquitectura distribuida para máxima resistencia"
+      },
+      "architecture": {
+        "title": "Arquitectura de Conocimiento Cero",
+        "encryptedAtRest": {
+          "title": "Encriptado en Reposo",
+          "desc": "Datos encriptados antes del almacenamiento"
+        },
+        "zeroAccess": {
+          "title": "Acceso Cero",
+          "desc": "No podemos leer tus datos"
+        },
+        "clientSideKeys": {
+          "title": "Claves del Cliente",
+          "desc": "Tú controlas la encriptación"
+        }
+      },
+      "blockchain": {
+        "userTable": "Registros de Usuario",
+        "transactionTable": "Transacciones",
+        "encryptionTable": "Claves de Encriptación",
+        "auditTable": "Registros de Auditoría",
+        "permissionTable": "Permisos",
+        "sessionTable": "Sesiones",
+        "backupTable": "Hashes de Respaldo",
+        "validationTable": "Validación",
+        "masterKey": "Clave Maestra"
+      }
+    },
+    "technology": {
+      "title": "Stack Tecnológico",
+      "subtitle": "para el Mañana",
+      "description": "Construido sobre infraestructura de IA y blockchain de vanguardia, DISHUB empodera a empresas emergentes con tecnología de nivel empresarial que es accesible, escalable y segura.",
+      "endToEnd": "Encriptación extremo a extremo",
+      "decentralized": "Almacenamiento de datos descentralizado",
+      "aiInsights": "Insights potenciados por IA"
+    },
+    "federated": {
+      "title": "Federado por Diseño",
+      "trustNetwork": "Red de Confianza Distribuida",
+      "description": "Nuestra arquitectura federada asegura que tus datos nunca estén centralizados. Cada nodo opera independientemente mientras mantiene consistencia global a través de protocolos de consenso avanzados.",
+      "multiRegion": {
+        "title": "Resistencia Multi-Región",
+        "desc": "Datos replicados a través de fronteras geográficas con failover automático"
+      },
+      "sovereignZones": {
+        "title": "Zonas de Datos Soberanos",
+        "desc": "Elige exactamente dónde residen tus datos para cumplir requisitos de compliance"
+      },
+      "edgeComputing": {
+        "title": "Listo para Edge Computing",
+        "desc": "Procesa datos en el borde para aplicaciones de ultra-baja latencia"
+      }
+    },
+    "cta": {
+      "readyTo": "¿Listo para",
+      "disrupt": "Disrumpir?",
+      "subtitle": "Únete a la revolución. Construye sobre soberanía. Escala con confianza.",
+      "launchFuture": "Lanza Tu Futuro"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Disrumpiendo el futuro, hoy."
+    }
   }
 } 

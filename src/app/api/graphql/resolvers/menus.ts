@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { GraphQLContext } from '../route';
 
 const prisma = new PrismaClient();
 
@@ -182,42 +181,50 @@ export const menuResolvers = {
   },
   
   Mutation: {
-    createMenu: async (_parent: unknown, { input }: { input: MenuInput }) => {
+    createMenu: async (_parent: unknown, { input }: { input: MenuInput }, context: GraphQLContext) => {
       try {
-        // Extract headerStyle from input if provided
-        const { headerStyle, ...menuData } = input;
+        const { name, location, headerStyle } = input;
         
-        // Create the menu first
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
+        }
+        
         const menu = await prisma.menu.create({
-          data: menuData,
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            createdAt: true,
-            updatedAt: true,
+          data: {
+            name,
+            location,
+            tenantId: context.tenantId,
+          },
+          include: {
             items: true
           }
         });
         
-        // If headerStyle was provided, create it separately
+        // If headerStyle was provided, update or create it
         if (headerStyle) {
           const { advancedOptions, ...headerStyleData } = headerStyle;
           
-          // Create the header style
-          await prisma.headerStyle.create({
-            data: {
+          // Prepare the advancedOptions data
+          const processedAdvancedOptions = advancedOptions 
+            ? JSON.parse(JSON.stringify(advancedOptions)) 
+            : undefined;
+          
+          await prisma.headerStyle.upsert({
+            where: { menuId: menu.id },
+            update: {
               ...headerStyleData,
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
+            },
+            create: {
               menuId: menu.id,
-              // Handle the advancedOptions safely
-              ...(advancedOptions ? { 
-                advancedOptions: JSON.parse(JSON.stringify(advancedOptions)) 
-              } : {})
+              tenantId: context.tenantId,
+              ...headerStyleData,
+              ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
         }
         
-        // Return the full menu with relationships
+        // Return the updated menu with all relationships
         return await prisma.menu.findUnique({
           where: { id: menu.id },
           select: {
@@ -232,12 +239,16 @@ export const menuResolvers = {
         });
       } catch (error) {
         console.error('Error creating menu:', error);
-        throw new Error(`Failed to create menu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw error;
       }
     },
     
-    updateMenu: async (_parent: unknown, { id, input }: { id: string, input: MenuInput }) => {
+    updateMenu: async (_parent: unknown, { id, input }: { id: string, input: MenuInput }, context: GraphQLContext) => {
       try {
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
+        }
+        
         // Extract headerStyle from input if provided
         const { headerStyle, ...menuData } = input;
         
@@ -271,8 +282,9 @@ export const menuResolvers = {
               ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             },
             create: {
-              ...headerStyleData,
               menuId: menu.id,
+              tenantId: context.tenantId,
+              ...headerStyleData,
               ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
@@ -489,77 +501,19 @@ export const menuResolvers = {
     },
 
     // Add new resolver for updating just the headerStyle
-    updateHeaderStyle: async (_parent: unknown, { menuId, input }: { menuId: string, input: HeaderStyleInput }, context: { req: NextRequest }) => {
-      console.log('🔍 updateHeaderStyle called with:', { menuId, input });
-      
-      // Wrap everything in try-catch to ensure we never throw and always return HeaderStyleResult
+    updateHeaderStyle: async (_parent: unknown, { menuId, input }: { menuId: string; input: HeaderStyleInput }, context: GraphQLContext) => {
       try {
-        // Validate authentication
-        console.log('🔐 Checking authentication...');
-        const token = context.req.headers.get('authorization')?.split(' ')[1];
-        if (!token) {
-          console.log('❌ No token provided');
-          return {
-            success: false,
-            message: 'Not authenticated - no token provided',
-            headerStyle: null
-          };
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
         }
-        
-        // Verify token and get user info
-        console.log('🔑 Verifying token...');
-        let decoded: { userId: string; role?: string };
-        try {
-          decoded = await verifyToken(token) as { userId: string; role?: string };
-          console.log('✅ Token verified for user:', decoded.userId);
-        } catch (tokenError) {
-          console.log('❌ Token verification failed:', tokenError);
-          return {
-            success: false,
-            message: 'Invalid authentication token',
-            headerStyle: null
-          };
-        }
-        
-        if (!decoded || !decoded.userId) {
-          console.log('❌ No user ID in decoded token');
-          return {
-            success: false,
-            message: 'Invalid token - no user ID found',
-            headerStyle: null
-          };
-        }
-        
-        // Check if the menu exists
-        console.log('🔍 Checking if menu exists:', menuId);
-        const menu = await prisma.menu.findUnique({
-          where: { id: menuId }
-        });
-        
-        if (!menu) {
-          console.log('❌ Menu not found:', menuId);
-          return {
-            success: false,
-            message: `Menu with ID ${menuId} not found`,
-            headerStyle: null
-          };
-        }
-        console.log('✅ Menu found:', menu.name);
-        
-        // Extract advancedOptions for proper JSON handling
-        console.log('🔧 Processing input data...');
+
         const { advancedOptions, ...headerStyleData } = input;
-        console.log('📝 Header style data:', headerStyleData);
-        console.log('⚙️ Advanced options:', advancedOptions);
         
-        // Process advancedOptions
+        // Prepare the advancedOptions data
         const processedAdvancedOptions = advancedOptions 
           ? JSON.parse(JSON.stringify(advancedOptions)) 
           : undefined;
-        console.log('✅ Processed advanced options:', processedAdvancedOptions);
         
-        // Update or create the header style
-        console.log('💾 Performing upsert operation...');
         const headerStyle = await prisma.headerStyle.upsert({
           where: { menuId },
           update: {
@@ -567,70 +521,43 @@ export const menuResolvers = {
             ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
           },
           create: {
-            ...headerStyleData,
             menuId,
+            tenantId: context.tenantId,
+            ...headerStyleData,
             ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
           }
         });
         
-        console.log('✅ Header style upserted successfully:', headerStyle.id);
-        
-        const result = {
-          success: true,
-          message: 'Header style updated successfully',
-          headerStyle
-        };
-        
-        console.log('🎉 Returning success result');
-        return result;
+        return headerStyle;
       } catch (error) {
-        console.error('💥 Error in updateHeaderStyle resolver:', error);
-        console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-        
-        // Always return a structured response, never throw
-        const errorResult = {
-          success: false,
-          message: `Failed to update header style: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          headerStyle: null
-        };
-        
-        console.log('❌ Returning error result:', errorResult);
-        return errorResult;
+        console.error('Error updating header style:', error);
+        throw error;
       }
     },
 
-    updateFooterStyle: async (_parent: unknown, { menuId, input }: { menuId: string; input: FooterStyleInput }) => {
+    updateFooterStyle: async (_parent: unknown, { menuId, input }: { menuId: string; input: FooterStyleInput }, context: GraphQLContext) => {
       try {
-        // Find the menu to make sure it exists
-        const menu = await prisma.menu.findUnique({
-          where: { id: menuId },
-        });
-
-        if (!menu) {
-          return {
-            success: false,
-            message: `Menu with ID ${menuId} not found`,
-            footerStyle: null
-          };
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
         }
 
-        // Extract advancedOptions for proper JSON handling
         const { advancedOptions, ...footerStyleData } = input;
         
-        // Process advancedOptions
+        // Prepare the advancedOptions data
         const processedAdvancedOptions = advancedOptions 
           ? JSON.parse(JSON.stringify(advancedOptions)) 
           : undefined;
-
-        // First check if a footer style already exists for this menu
-        let footerStyle = await prisma.footerStyle.findUnique({
+        
+        let footerStyle;
+        
+        // Check if footer style already exists
+        const existingFooterStyle = await prisma.footerStyle.findUnique({
           where: { menuId }
         });
-
-        // If it exists, update it, otherwise create a new one
-        if (footerStyle) {
+        
+        if (existingFooterStyle) {
           footerStyle = await prisma.footerStyle.update({
-            where: { id: footerStyle.id },
+            where: { menuId },
             data: {
               ...footerStyleData,
               ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
@@ -640,24 +567,17 @@ export const menuResolvers = {
           footerStyle = await prisma.footerStyle.create({
             data: {
               menuId,
+              tenantId: context.tenantId,
               ...footerStyleData,
               ...(processedAdvancedOptions ? { advancedOptions: processedAdvancedOptions } : {})
             }
           });
         }
-
-        return {
-          success: true,
-          message: "Footer style updated successfully",
-          footerStyle
-        };
+        
+        return footerStyle;
       } catch (error) {
-        console.error("Error updating footer style:", error);
-        return {
-          success: false,
-          message: `Error updating footer style: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          footerStyle: null
-        };
+        console.error('Error updating footer style:', error);
+        throw error;
       }
     },
   },

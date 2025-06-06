@@ -4,7 +4,10 @@ import { setGlobalAuthorizationHeader, clearGlobalAuthorizationHeader } from '@/
 interface AuthUser {
   id: string;
   email: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  tenantId?: string;
   role: {
     id: string;
     name: string;
@@ -20,6 +23,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   setAuthorizationHeader: (token: string) => void;
+  refreshUser: () => Promise<void>;
 }
 
 // Extend Window interface to include our custom properties
@@ -96,6 +100,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setGlobalAuthorizationHeader(authToken);
   };
 
+  const refreshUser = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `
+            query Me {
+              me {
+                id
+                email
+                firstName
+                lastName
+                phoneNumber
+                tenantId
+                role {
+                  id
+                  name
+                }
+                createdAt
+                updatedAt
+              }
+            }
+          `
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.me) {
+          setUser(result.data.me);
+          if (isBrowser) {
+            localStorage.setItem('auth_user', JSON.stringify(result.data.me));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   const value = {
     user,
     isLoading,
@@ -104,6 +154,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     isAuthenticated: !!user && !!token,
     setAuthorizationHeader,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

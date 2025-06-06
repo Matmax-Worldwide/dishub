@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Correct enum types
 type DocumentStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
@@ -22,7 +22,7 @@ interface DocumentUpdateInput {
 
 export const documentResolvers = {
   Query: {
-    documents: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    documents: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -54,7 +54,7 @@ export const documentResolvers = {
       }
     },
     
-    document: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    document: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -94,7 +94,7 @@ export const documentResolvers = {
   },
   
   Mutation: {
-    createDocument: async (_parent: unknown, { input }: { input: DocumentCreateInput }, context: { req: NextRequest }) => {
+    createDocument: async (_parent: unknown, { input }: { input: DocumentCreateInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -110,7 +110,8 @@ export const documentResolvers = {
             description: input.description || '',
             fileUrl: input.fileUrl || '',
             status: input.status || 'DRAFT',
-            userId: decoded.userId
+            userId: decoded.userId,
+            tenantId: context.tenantId || ''
           },
           include: {
             user: {
@@ -131,7 +132,7 @@ export const documentResolvers = {
       }
     },
     
-    updateDocument: async (_parent: unknown, { id, input }: { id: string, input: DocumentUpdateInput }, context: { req: NextRequest }) => {
+    updateDocument: async (_parent: unknown, { id, input }: { id: string, input: DocumentUpdateInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -188,7 +189,7 @@ export const documentResolvers = {
       }
     },
     
-    deleteDocument: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteDocument: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

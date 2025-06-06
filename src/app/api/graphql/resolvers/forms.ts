@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
-import { NextRequest } from 'next/server';
 import { SubmissionStatus, FormFieldType } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { GraphQLContext } from '../route';
 
 // Define interfaces for the input types
 interface FormInput {
@@ -151,12 +151,19 @@ export const formResolvers = {
     },
     
     // Get a single form by slug
-    formBySlug: async (_parent: unknown, args: { slug: string }) => {
+    formBySlug: async (_parent: unknown, args: { slug: string }, context: GraphQLContext) => {
       try {
-        
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
+        }
         
         return prisma.form.findUnique({
-          where: { slug: args.slug },
+          where: { 
+            tenantId_slug: {
+              tenantId: context.tenantId,
+              slug: args.slug
+            }
+          },
           include: {
             fields: {
               orderBy: { order: 'asc' },
@@ -233,7 +240,7 @@ export const formResolvers = {
     },
     
     // Get a single form field
-    formField: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    formField: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -257,7 +264,7 @@ export const formResolvers = {
     },
     
     // Get form submissions
-    formSubmissions: async (_parent: unknown, args: { formId: string, limit?: number, offset?: number }, context: { req: NextRequest }) => {
+    formSubmissions: async (_parent: unknown, args: { formId: string, limit?: number, offset?: number }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -284,7 +291,7 @@ export const formResolvers = {
     },
     
     // Get a single form submission
-    formSubmission: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    formSubmission: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -308,7 +315,7 @@ export const formResolvers = {
     },
     
     // Get form submission statistics
-    formSubmissionStats: async (_parent: unknown, args: { formId: string }, context: { req: NextRequest }) => {
+    formSubmissionStats: async (_parent: unknown, args: { formId: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -358,7 +365,7 @@ export const formResolvers = {
   
   Mutation: {
     // Create a new form
-    createForm: async (_parent: unknown, args: { input: FormInput }, context: { req: NextRequest }) => {
+    createForm: async (_parent: unknown, args: { input: FormInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -371,11 +378,19 @@ export const formResolvers = {
         if (!decoded || !decoded.userId) {
           throw new Error('Invalid token');
         }
+
+        if (!context.tenantId) {
+          throw new Error('Tenant context is required');
+        }
+        
+        const { pageId, ...formData } = args.input;
         
         const form = await prisma.form.create({
           data: {
-            ...args.input,
+            ...formData,
+            tenantId: context.tenantId,
             createdById: decoded.userId,
+            pageId: pageId || null
           },
         });
         
@@ -395,7 +410,7 @@ export const formResolvers = {
     },
     
     // Update a form
-    updateForm: async (_parent: unknown, args: { id: string, input: FormInput }, context: { req: NextRequest }) => {
+    updateForm: async (_parent: unknown, args: { id: string, input: FormInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -433,7 +448,7 @@ export const formResolvers = {
     },
     
     // Delete a form
-    deleteForm: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    deleteForm: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -467,7 +482,7 @@ export const formResolvers = {
     },
     
     // Create a form step
-    createFormStep: async (_parent: unknown, args: { input: FormStepInput }, context: { req: NextRequest }) => {
+    createFormStep: async (_parent: unknown, args: { input: FormStepInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -501,7 +516,7 @@ export const formResolvers = {
     },
     
     // Update a form step
-    updateFormStep: async (_parent: unknown, args: { id: string, input: FormStepInput }, context: { req: NextRequest }) => {
+    updateFormStep: async (_parent: unknown, args: { id: string, input: FormStepInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -536,7 +551,7 @@ export const formResolvers = {
     },
     
     // Delete a form step
-    deleteFormStep: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    deleteFormStep: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -723,7 +738,7 @@ export const formResolvers = {
     },
     
     // Delete a form submission
-    deleteFormSubmission: async (_parent: unknown, args: { id: string }, context: { req: NextRequest }) => {
+    deleteFormSubmission: async (_parent: unknown, args: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -757,7 +772,7 @@ export const formResolvers = {
     },
     
     // Update multiple form field orders at once
-    updateFieldOrders: async (_parent: unknown, args: { updates: Array<{ id: string; order: number }> }, context: { req: NextRequest }) => {
+    updateFieldOrders: async (_parent: unknown, args: { updates: Array<{ id: string; order: number }> }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

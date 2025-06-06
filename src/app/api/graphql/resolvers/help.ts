@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types to avoid 'any'
 interface CreateHelpArticleInput {
@@ -108,7 +109,7 @@ export const helpResolvers = {
     createHelpArticle: async (
       _parent: unknown, 
       { input }: { input: CreateHelpArticleInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -148,7 +149,7 @@ export const helpResolvers = {
     updateHelpArticle: async (
       _parent: unknown, 
       { id, input }: { id: string, input: UpdateHelpArticleInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -203,7 +204,7 @@ export const helpResolvers = {
       }
     },
     
-    deleteHelpArticle: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteHelpArticle: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         

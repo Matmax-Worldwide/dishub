@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types
 interface CreateReviewInput {
@@ -295,7 +296,7 @@ export const reviewResolvers = {
   },
 
   Mutation: {
-    createReview: async (_parent: unknown, { input }: { input: CreateReviewInput }, context: { req: NextRequest }) => {
+    createReview: async (_parent: unknown, { input }: { input: CreateReviewInput }, context: GraphQLContext) => {
       try {
         // Verify if customer is authenticated (optional for guest reviews)
         let userId: string | null = null;
@@ -368,7 +369,8 @@ export const reviewResolvers = {
                 altText: image.altText,
                 order: image.order || index
               }))
-            } : undefined
+            } : undefined,
+            tenantId: context.tenantId || ''
           },
           include: {
             product: true,
@@ -400,7 +402,7 @@ export const reviewResolvers = {
       }
     },
 
-    updateReview: async (_parent: unknown, { id, input }: { id: string; input: UpdateReviewInput }, context: { req: NextRequest }) => {
+    updateReview: async (_parent: unknown, { id, input }: { id: string; input: UpdateReviewInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -500,7 +502,7 @@ export const reviewResolvers = {
       }
     },
 
-    deleteReview: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteReview: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -570,7 +572,7 @@ export const reviewResolvers = {
       }
     },
 
-    approveReview: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    approveReview: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -638,7 +640,7 @@ export const reviewResolvers = {
       }
     },
 
-    rejectReview: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    rejectReview: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -783,7 +785,7 @@ export const reviewResolvers = {
       }
     },
 
-    createReviewResponse: async (_parent: unknown, { input }: { input: CreateReviewResponseInput }, context: { req: NextRequest }) => {
+    createReviewResponse: async (_parent: unknown, { input }: { input: CreateReviewResponseInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -871,7 +873,7 @@ export const reviewResolvers = {
       }
     },
 
-    updateReviewResponse: async (_parent: unknown, { id, input }: { id: string; input: UpdateReviewResponseInput }, context: { req: NextRequest }) => {
+    updateReviewResponse: async (_parent: unknown, { id, input }: { id: string; input: UpdateReviewResponseInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
@@ -932,7 +934,7 @@ export const reviewResolvers = {
       }
     },
 
-    deleteReviewResponse: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    deleteReviewResponse: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {

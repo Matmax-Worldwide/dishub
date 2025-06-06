@@ -236,18 +236,43 @@
     "help": "Hilfe",
     "settings": "Einstellungen",
     "adminDashboard": "Admin-Dashboard",
-    "createNotifications": "Benachrichtigungen erstellen",
+    "createNotifications": "Benachrichtigungen senden",
     "userManagement": "Benutzer",
     "roleManagement": "Rollen und Berechtigungen",
     "cms": "CMS",
+    "tenants": "Mandanten",
+    "blog": "Blog",
+    "blogPosts": "Beiträge",
+    "blogCategories": "Kategorien",
+    "blogSettings": "Blog-Einstellungen",
+    "forms": "Formulare",
+    "formBuilder": "Formular-Builder",
+    "formSubmissions": "Übermittlungen",
+    "formSettings": "Formular-Einstellungen",
+    "ecommerce": "E-Commerce",
+    "products": "Produkte",
+    "orders": "Bestellungen",
+    "customers": "Kunden",
+    "inventory": "Inventar",
+    "categories": "Kategorien",
+    "pricing": "Preise",
+    "currencies": "Währungen",
+    "taxes": "Steuern",
+    "discounts": "Rabatte",
+    "shipping": "Versand",
+    "payments": "Zahlungen",
+    "reviews": "Bewertungen",
+    "analytics": "Analysen",
+    "shops": "Shops",
     "cmsPages": "Seiten",
     "cmsMedia": "Medienbibliothek",
     "cmsMenus": "Menüs",
+    "cmsSettings": "Einstellungen",
+    "cmsComponents": "Komponenten",
     "design": "Design",
     "tools": "Tools",
     "bookings": "Buchungen & Terminplan",
     "commerce": "E-Commerce",
-    "cmsSettings": "Einstellungen",
     "externalLinks": "Links verwalten",
     "bookNow": "Räume buchen",
     "staffManagement": "Personalverwaltung",
@@ -255,6 +280,40 @@
     "approveRequests": "Anfragen genehmigen",
     "user": "Benutzer",
     "logout": "Abmelden",
+    "tenantAdministration": "Mandanten-Administration",
+    "moduleManagement": "Modul-Verwaltung",
+    "activeModules": "Aktive Module",
+    "requestModules": "Module Anfragen",
+    "moduleConfiguration": "Modul-Konfiguration",
+    "usersList": "Benutzerliste",
+    "rolesPermissions": "Rollen & Berechtigungen",
+    "activityLogs": "Aktivitätsprotokolle",
+    "companyManagement": "Firmenverwaltung",
+    "companyProfile": "Firmenprofil",
+    "brandingDesign": "Markendesign",
+    "billing": "Abrechnung",
+    "contentManagement": "Inhaltsverwaltung",
+    "pages": "Seiten",
+    "media": "Mediendateien",
+    "templates": "Vorlagen",
+    "multilingual": "Mehrsprachig",
+    "businessModules": "Geschäftsmodule",
+    "bookingEngine": "Buchungsmotor",
+    "ecommerceEngine": "E-Commerce-Motor",
+    "hrmsEngine": "Personal-Management-System",
+    "calendar": "Kalender",
+    "staff": "Personal",
+    "bookingSettings": "Buchungseinstellungen",
+    "ecommerceSettings": "E-Commerce-Einstellungen",
+    "employees": "Mitarbeiter",
+    "departments": "Abteilungen",
+    "payroll": "Gehaltsabrechnung",
+    "hrmsSettings": "Personal-Einstellungen",
+    "hrms": "Personalwesen",
+    "reportsInsights": "Berichte & Einblicke",
+    "kpiDashboard": "KPI-Dashboard",
+    "exportData": "Daten Exportieren",
+    "activityHistory": "Aktivitätsverlauf",
     "adminTools": "Admin-Tools",
     "adminMessage": "Sie haben vollständigen administrativen Zugriff zur Verwaltung der Plattform und ihrer Benutzer.",
     "newUser": "Neuer Benutzer",
@@ -270,13 +329,87 @@
     "welcome": "Willkommen",
     "welcomeMessage": "Greifen Sie unten auf Ihre externen Vorteile und Ressourcen zu.",
     "roleSwitcher": "Anzeigen als: {role}",
-    "defaultRole": "Admin (Standard)"
+    "defaultRole": "Admin (Standard)",
+    "mainNavigation": "Hauptnavigation",
+    "configuration": "Konfiguration",
+    "operations": "Operationen",
+    "catalog": "Katalog",
+    "pricingAndTaxes": "Preise & Steuern",
+    "returnToDashboard": "Zurück zum Dashboard",
+    "loadingTenant": "Lädt...",
+    "errorLoadingTenant": "Fehler beim Laden des Mandanten",
+    "noTenantData": "Keine Mandantendaten verfügbar",
+    "viewProfile": "Profil anzeigen",
+    "viewNotifications": "Benachrichtigungen anzeigen",
+    "previewMode": "Vorschaumodus",
+    "selectRole": "Rolle für Vorschau auswählen",
+    "adminRoleNote": "Alle Links anzeigen (Admin-Ansicht)",
+    "switchingToRole": "Wechsel zur Rolle:",
+    "loadingRoleData": "Rollendaten werden geladen...",
+    "roleDataError": "Fehler beim Laden der Rollendaten",
+    "noLinksAvailable": "Keine Links verfügbar",
+    "currentUserLabel": "Aktueller Benutzer",
+    "services": "Dienstleistungen",
+    "locations": "Standorte",
+    "reports": "Berichte",
+    "admin": "Administration",
+    "users": "Benutzer",
+    "roles": "Rollen und Berechtigungen",
+    "profile": "Profil",
+    
+    "masterControlPanel": "Master Control Panel",
+    "mcpDashboard": "MCP Dashboard",
+    "tenantManagement": "Mandantenverwaltung",
+    "allTenants": "Alle Mandanten",
+    "createTenant": "Mandant Erstellen",
+    "tenantHealth": "Mandanten-Gesundheit",
+    "tenantImpersonation": "Mandanten-Imitation",
+    "globalModuleManagement": "Globale Modulverwaltung",
+    "moduleRegistry": "Modul-Register",
+    "createModule": "Modul Erstellen",
+    "moduleVersions": "Modul-Versionen",
+    "moduleCompatibility": "Modul-Kompatibilität",
+    "activationRequests": "Aktivierungsanfragen",
+    "pendingRequests": "Ausstehende Anfragen",
+    "requestHistory": "Anfragenverlauf",
+    "customizationRequests": "Anpassungsanfragen",
+    "mcpAutomation": "MCP Automatisierung",
+    "tenantTemplates": "Mandanten-Vorlagen",
+    "automatedProvisioning": "Automatisierte Bereitstellung",
+    "migrationControl": "Migrations-Kontrolle",
+    "infrastructureControl": "Infrastruktur-Kontrolle",
+    "globalAnalytics": "Globale Analytik",
+    "tenantMetrics": "Mandanten-Metriken",
+    "moduleUsage": "Modul-Nutzung",
+    "systemErrors": "System-Fehler",
+    "performanceMetrics": "Leistungsmetriken",
+    "systemLogs": "System-Logs",
+    "globalFileManagement": "Globale Dateiverwaltung",
+    "sharedAssets": "Geteilte Assets",
+    "assetVersioning": "Asset-Versionierung",
+    "templateLibrary": "Vorlagen-Bibliothek",
+    "componentLibrary": "Komponenten-Bibliothek",
+    "mcpAccessControl": "MCP Zugriffskontrolle",
+    "mcpUsers": "MCP Benutzer",
+    "mcpRoles": "MCP Rollen",
+    "activityAudit": "Aktivitäts-Audit",
+    "securityPolicies": "Sicherheitsrichtlinien",
+    "twoFactorAuth": "Zwei-Faktor-Authentifizierung",
+    "testingEnvironment": "Testumgebung",
+    "sandboxTenants": "Sandbox-Mandanten",
+    "betaModules": "Beta-Module",
+    "featureTesting": "Feature-Tests",
+    "stagingControl": "Staging-Kontrolle"
   },
   "roles": {
     "ADMIN": "Admin",
+    "TENANT_ADMIN": "Mandanten-Admin",
+    "TenantAdmin": "Mandanten-Admin",
     "MANAGER": "Manager",
     "EMPLOYEE": "Mitarbeiter",
-    "USER": "Benutzer"
+    "USER": "Benutzer",
+    "SuperAdmin": "Super Admin",
+    "SuperAdmin": "Super Admin"
   },
   "staffCreator": {
     "selectUser": "Benutzer für Personal auswählen",
@@ -305,5 +438,125 @@
     "createNewLocation": "Neuen Standort erstellen",
     "createLocationDescription": "Erstellen Sie einen Standort, der dem Personal zugewiesen werden kann",
     "createLocationAndContinue": "Standort erstellen und fortfahren"
+  },
+  "language": {
+    "selector": "Sprache",
+    "current": "Aktuelle Sprache",
+    "switch": "Sprache wechseln",
+    "english": "Englisch",
+    "spanish": "Spanisch", 
+    "german": "Deutsch"
+  },
+  "dishub": {
+    "nav": {
+      "brand": "DISHUB",
+      "getStarted": "Loslegen"
+    },
+    "hero": {
+      "disruption": "Disruption",
+      "isInnovation": "ist Innovation",
+      "subtitle": "Wo Privatsphäre auf Macht trifft. Datensouveränität nativ im Design, KI & Blockchain bereit für das Geschäft von morgen.",
+      "startDisrupting": "Beginne zu Disruptieren",
+      "learnMore": "Mehr Erfahren"
+    },
+    "features": {
+      "nativeByDesign": "Nativ im Design",
+      "privacyFirst": {
+        "title": "Privatsphäre Zuerst",
+        "desc": "Datensouveränität in jede Schicht eingebaut"
+      },
+      "aiPowered": {
+        "title": "KI-Gestützt",
+        "desc": "Modernste Intelligenz auf Knopfdruck"
+      },
+      "blockchainReady": {
+        "title": "Blockchain-Bereit",
+        "desc": "Dezentrales Vertrauen für globale Geschäfte"
+      },
+      "globalScale": {
+        "title": "Globale Skalierung",
+        "desc": "Unterstützung aufstrebender Unternehmen weltweit"
+      }
+    },
+    "privacy": {
+      "title": "Privatsphäre Ohne Kompromisse",
+      "subtitle": "Gebaut für die privatsphäre-erste Zukunft. Jede Funktion mit Datenschutz, Compliance und Souveränität im Kern entworfen.",
+      "gdprCompliant": {
+        "title": "DSGVO-Konform",
+        "desc": "Vollständige regulatorische Compliance von Tag eins integriert"
+      },
+      "zeroKnowledge": {
+        "title": "Zero Knowledge",
+        "desc": "Ihre Daten bleiben verschlüsselt, sogar vor uns"
+      },
+      "dataSovereignty": {
+        "title": "Datensouveränität",
+        "desc": "Vollständige Kontrolle darüber, wo Ihre Daten leben"
+      },
+      "federatedSystem": {
+        "title": "Föderiertes System",
+        "desc": "Verteilte Architektur für ultimative Widerstandsfähigkeit"
+      },
+      "architecture": {
+        "title": "Zero Knowledge Architektur",
+        "encryptedAtRest": {
+          "title": "Verschlüsselt im Ruhezustand",
+          "desc": "Daten vor der Speicherung verschlüsselt"
+        },
+        "zeroAccess": {
+          "title": "Null Zugriff",
+          "desc": "Wir können Ihre Daten nicht lesen"
+        },
+        "clientSideKeys": {
+          "title": "Client-Seitige Schlüssel",
+          "desc": "Sie kontrollieren die Verschlüsselung"
+        }
+      },
+      "blockchain": {
+        "userTable": "Benutzer-Datensätze",
+        "transactionTable": "Transaktionen",
+        "encryptionTable": "Verschlüsselungsschlüssel",
+        "auditTable": "Audit-Protokolle",
+        "permissionTable": "Berechtigungen",
+        "sessionTable": "Sitzungen",
+        "backupTable": "Backup-Hashes",
+        "validationTable": "Validierung",
+        "masterKey": "Hauptschlüssel"
+      }
+    },
+    "technology": {
+      "title": "Tech Stack",
+      "subtitle": "für Morgen",
+      "description": "Aufgebaut auf modernster KI- und Blockchain-Infrastruktur, befähigt DISHUB aufstrebende Unternehmen mit Unternehmens-Technologie, die zugänglich, skalierbar und sicher ist.",
+      "endToEnd": "Ende-zu-Ende-Verschlüsselung",
+      "decentralized": "Dezentrale Datenspeicherung",
+      "aiInsights": "KI-gestützte Einblicke"
+    },
+    "federated": {
+      "title": "Föderiert im Design",
+      "trustNetwork": "Verteiltes Vertrauensnetzwerk",
+      "description": "Unsere föderierte Architektur stellt sicher, dass Ihre Daten nie zentralisiert sind. Jeder Knoten arbeitet unabhängig, während er globale Konsistenz durch fortgeschrittene Konsens-Protokolle aufrechterhält.",
+      "multiRegion": {
+        "title": "Multi-Region Widerstandsfähigkeit",
+        "desc": "Daten über geografische Grenzen repliziert mit automatischem Failover"
+      },
+      "sovereignZones": {
+        "title": "Souveräne Datenzonen",
+        "desc": "Wählen Sie genau, wo Ihre Daten residieren, um Compliance-Anforderungen zu erfüllen"
+      },
+      "edgeComputing": {
+        "title": "Edge Computing Bereit",
+        "desc": "Verarbeiten Sie Daten am Rand für ultra-niedrige Latenz-Anwendungen"
+      }
+    },
+    "cta": {
+      "readyTo": "Bereit zu",
+      "disrupt": "Disruptieren?",
+      "subtitle": "Schließen Sie sich der Revolution an. Bauen Sie auf Souveränität. Skalieren Sie mit Vertrauen.",
+      "launchFuture": "Starten Sie Ihre Zukunft"
+    },
+    "footer": {
+      "copyright": "© 2025 DISHUB. Die Zukunft disruptieren, heute."
+    }
   }
 } 

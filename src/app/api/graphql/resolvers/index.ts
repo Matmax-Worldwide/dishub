@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { GraphQLContext } from '../route';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -22,6 +22,8 @@ import { menuResolvers } from './menus';
 import { calendarResolvers } from './calendarResolvers';
 import { shippingResolvers } from './shipping';
 import { ecommerceResolvers } from './ecommerce';
+import { tenantResolvers } from './tenants';
+import { superAdminResolvers } from './superAdmin';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -100,7 +102,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Basic auth resolvers
 const authResolvers = {
   Query: {
-    me: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    me: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -124,14 +126,18 @@ const authResolvers = {
           throw new Error('User not found');
         }
 
-        // Convert role to string for the response
+        // Return role as object for consistency with login endpoint
         return {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           phoneNumber: user.phoneNumber,
-          role: user.role?.name || 'USER',
+          tenantId: user.tenantId,
+          role: {
+            id: user.role?.id || '',
+            name: user.role?.name || 'USER'
+          },
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         };
@@ -259,7 +265,7 @@ const authResolvers = {
       };
     },
     
-    updateUser: async (_parent: unknown, { input }: { input: UpdateUserInput }, context: { req: NextRequest }) => {
+    updateUser: async (_parent: unknown, { input }: { input: UpdateUserInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -355,7 +361,7 @@ const authResolvers = {
       }
     },
     
-    updateUserProfile: async (_parent: unknown, { input }: { input: UpdateUserProfileInput }, context: { req: NextRequest }) => {
+    updateUserProfile: async (_parent: unknown, { input }: { input: UpdateUserProfileInput }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -476,7 +482,8 @@ const resolvers = {
     ...calendarResolvers.Query, // Add calendar queries
     ...shippingResolvers.Query,
     ...ecommerceResolvers.Query,
-
+    ...tenantResolvers.Query,
+    ...superAdminResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -497,6 +504,8 @@ const resolvers = {
     ...calendarResolvers.Mutation, // Add calendar mutations
     ...shippingResolvers.Mutation,
     ...ecommerceResolvers.Mutation,
+    ...tenantResolvers.Mutation,
+    ...superAdminResolvers.Mutation,
   },
   
   // Type resolvers

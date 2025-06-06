@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { GraphQLContext } from '../route';
 
 // Define input types to avoid 'any'
 interface CreateTaskInput {
@@ -23,7 +24,7 @@ interface UpdateTaskInput {
 
 export const taskResolvers = {
   Query: {
-    tasks: async (_parent: unknown, _args: unknown, context: { req: NextRequest }) => {
+    tasks: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -62,7 +63,7 @@ export const taskResolvers = {
       }
     },
     
-    task: async (_parent: unknown, { id }: { id: string }, context: { req: NextRequest }) => {
+    task: async (_parent: unknown, { id }: { id: string }, context: GraphQLContext) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
         
@@ -105,7 +106,7 @@ export const taskResolvers = {
     createTask: async (
       _parent: unknown, 
       { input }: { input: CreateTaskInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -127,6 +128,7 @@ export const taskResolvers = {
             projectId: input.projectId,
             creatorId: decoded.userId,
             assigneeId: decoded.userId, // Self-assigned task
+            tenantId: context.tenantId || ''
           },
           include: {
             project: {
@@ -148,7 +150,7 @@ export const taskResolvers = {
     updateTask: async (
       _parent: unknown, 
       { id, input }: { id: string; input: UpdateTaskInput }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];
@@ -203,6 +205,7 @@ export const taskResolvers = {
               message: `You marked "${task.title}" as completed`,
               relatedItemId: task.id,
               relatedItemType: 'TASK',
+              tenantId: context.tenantId || ''
             }
           });
         }
@@ -217,7 +220,7 @@ export const taskResolvers = {
     deleteTask: async (
       _parent: unknown, 
       { id }: { id: string }, 
-      context: { req: NextRequest }
+      context: GraphQLContext
     ) => {
       try {
         const token = context.req.headers.get('authorization')?.split(' ')[1];

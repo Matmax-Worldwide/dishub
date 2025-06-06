@@ -125,6 +125,7 @@ export const appointmentResolvers = {
             isVirtual: input.isVirtual || false,
             meetingUrl: input.meetingUrl || '',
             clientId: input.clientId || null,
+            tenantId: context.tenantId || '',
             userId: context.user.id // Use context.user.id
           },
           include: {

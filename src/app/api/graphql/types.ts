@@ -63,7 +63,7 @@ export interface Context {
   req?: NextRequest;
   user: AuthenticatedUser | null;
   loaders: MyLoaders;
-  // tenantId?: string | null;
+  tenantId?: string | null;
 }
 
 // Tipo para roles (GraphQL type)
@@ -112,6 +112,10 @@ export interface PageBasic {
   title: string;
   slug: string;
 }
+
+// Tenant Settings type - for JSON settings field in Tenant model
+export type TenantSettings = Record<string, unknown>;
+
 
 export interface Menu {
   id: string;

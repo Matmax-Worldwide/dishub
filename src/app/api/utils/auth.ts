@@ -143,7 +143,7 @@ export function hasPermission(session: Session | null, permissionName: string): 
   }
   
   // Administradores tienen todos los permisos
-  if (session.user.role.name === 'ADMIN') {
+  if (session.user.role.name === 'ADMIN' || session.user.role.name === 'SuperAdmin') {
     return true;
   }
   
@@ -163,7 +163,7 @@ export function hasAllPermissions(session: Session | null, permissionNames: stri
   }
   
   // Administradores tienen todos los permisos
-  if (session.user.role.name === 'ADMIN') {
+  if (session.user.role.name === 'ADMIN' || session.user.role.name === 'SuperAdmin') {
     return true;
   }
   
@@ -185,7 +185,7 @@ export function hasAnyPermission(session: Session | null, permissionNames: strin
   }
   
   // Administradores tienen todos los permisos
-  if (session.user.role.name === 'ADMIN') {
+  if (session.user.role.name === 'ADMIN' || session.user.role.name === 'SuperAdmin') {
     return true;
   }
   

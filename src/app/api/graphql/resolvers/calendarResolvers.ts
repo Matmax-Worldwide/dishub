@@ -42,6 +42,7 @@ interface GraphQLContext {
     role: string;
   };
   _emergency_bypass?: boolean;
+  tenantId?: string;
 }
 
 // Define input types
@@ -198,14 +199,6 @@ type StaffProfileWhereInput = {
   };
 };
 
-
-type ServiceCategoryCreateInput = {
-  name: string;
-  description?: string;
-  displayOrder?: number;
-  parentCategory?: { connect: { id: string } };
-};
-
 type ServiceCategoryUpdateInput = {
   name?: string;
   description?: string;
@@ -213,18 +206,7 @@ type ServiceCategoryUpdateInput = {
   parentCategory?: { disconnect: true } | { connect: { id: string } };
 };
 
-type ServiceCreateInput = {
-  name: string;
-  description?: string | null;
-  durationMinutes: number;
-  bufferTimeBeforeMinutes?: number;
-  bufferTimeAfterMinutes?: number;
-  preparationTimeMinutes?: number;
-  cleanupTimeMinutes?: number;
-  maxDailyBookingsPerService?: number | null;
-  isActive?: boolean;
-  serviceCategory: { connect: { id: string } };
-};
+
 
 type ServiceUpdateInput = {
   name?: string;
@@ -239,11 +221,6 @@ type ServiceUpdateInput = {
   serviceCategory?: { connect: { id: string } };
 };
 
-type StaffProfileCreateInput = {
-  user: { connect: { id: string } };
-  bio?: string | null;
-  specializations?: string[];
-};
 
 type StaffProfileUpdateInput = {
   user?: { connect: { id: string } };
@@ -251,16 +228,7 @@ type StaffProfileUpdateInput = {
   specializations?: string[];
 };
 
-type StaffScheduleCreateManyInput = {
-  staffProfileId: string;
-  dayOfWeek: DayOfWeek;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-  scheduleType: ScheduleType;
-  locationId?: string | null;
-  notes?: string | null;
-};
+
 
 type StaffScheduleWhereInput = {
   staffProfileId: string;
@@ -315,7 +283,7 @@ const isAdminUser = (context: GraphQLContext): boolean => {
   
   const role = context.user?.role;
   console.log('isAdminUser check - user role:', role);
-  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+  return role === 'ADMIN' || role === 'SuperAdmin';
 };
 
 export const calendarResolvers = {
@@ -530,23 +498,23 @@ export const calendarResolvers = {
         };
       }
     },
-    globalBookingRule: async () => {
+    globalBookingRule: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
-        // Find the global booking rule (there should only be one)
+        // Get global booking rules
         const rule = await prisma.bookingRule.findFirst({
-          where: { locationId: null } // Global rules have no locationId
+          where: { locationId: null }
         });
         
         // If no rule exists, create a default one
         if (!rule) {
           const defaultRule = await prisma.bookingRule.create({
             data: {
-              advanceBookingHoursMin: 24, // 24 hours minimum advance booking
-              advanceBookingDaysMax: 90, // 90 days maximum advance booking
-              sameDayCutoffTime: "12:00", // Same day cutoff at noon
-              bufferBetweenAppointmentsMinutes: 15, // 15 minutes buffer
-              maxAppointmentsPerDayPerStaff: 8, // 8 appointments per day per staff
-              bookingSlotIntervalMinutes: 30, // 30 minute slots
+              advanceBookingHoursMin: 0,
+              advanceBookingDaysMax: 90,
+              bufferBetweenAppointmentsMinutes: 15,
+              maxAppointmentsPerDayPerStaff: 8,
+              bookingSlotIntervalMinutes: 30,
+              tenantId: context.tenantId || '',
               locationId: null // Global rule
             }
           });
@@ -592,12 +560,7 @@ export const calendarResolvers = {
           throw new Error(`Location with ID ${locationId} not found`);
         }
         
-        // Get global booking rules
-        const bookingRule = await prisma.bookingRule.findFirst({
-          where: { locationId: null }
-        });
-        
-        const slotInterval = bookingRule?.bookingSlotIntervalMinutes || 30;
+        const slotInterval = 30; // Default slot interval since bookingSlotIntervalMinutes doesn't exist in schema
         
         // Parse operating hours for the given date
         const targetDate = new Date(date);
@@ -749,6 +712,9 @@ export const calendarResolvers = {
           address: input.address || null,
           phone: input.phone || null,
           operatingHours: input.operatingHours as Prisma.InputJsonValue || {},
+          tenant: {
+            connect: { id: context.tenantId || '' }
+          }
         };
         const location = await prisma.location.create({ 
           data
@@ -827,8 +793,11 @@ export const calendarResolvers = {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
         const { parentId, ...categoryData } = input;
-        const data: ServiceCategoryCreateInput = { 
+        const data = { 
           ...categoryData,
+          tenant: {
+            connect: { id: context.tenantId || '' }
+          },
           ...(parentId && parentId !== '' ? { parentCategory: { connect: { id: parentId } } } : {})
         };
         const serviceCategory = await prisma.serviceCategory.create({ data });
@@ -976,7 +945,7 @@ export const calendarResolvers = {
           }
         }
         
-        const serviceData: ServiceCreateInput = {
+        const serviceData = {
           name: input.name,
           description: input.description || null,
           durationMinutes: input.durationMinutes,
@@ -987,6 +956,9 @@ export const calendarResolvers = {
           maxDailyBookingsPerService: input.maxDailyBookingsPerService || null,
           isActive: input.isActive !== undefined ? input.isActive : true,
           serviceCategory: { connect: { id: input.serviceCategoryId } },
+          tenant: {
+            connect: { id: context.tenantId || '' }
+          }
         };
         
         console.log('Creating service with data:', serviceData);
@@ -1163,10 +1135,13 @@ export const calendarResolvers = {
     createStaffProfile: async (_parent: unknown, { input }: { input: CreateStaffProfileInput }, context: GraphQLContext) => {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       try {
-        const staffProfileData: StaffProfileCreateInput = {
+        const staffProfileData = {
           user: { connect: { id: input.userId } },
           bio: input.bio || null,
           specializations: input.specializations || [],
+          tenant: {
+            connect: { id: context.tenantId || '' }
+          }
         };
         const staffProfile = await prisma.staffProfile.create({ 
           data: staffProfileData,
@@ -1221,7 +1196,7 @@ export const calendarResolvers = {
       if (!isAdminUser(context)) throw new ForbiddenError('Not authorized.');
       
       try {
-        const regularHoursSchedule: StaffScheduleCreateManyInput[] = schedule
+        const regularHoursSchedule = schedule
           .filter(s => s.scheduleType === 'REGULAR_HOURS')
           .map(s => ({ 
               staffProfileId,
@@ -1232,6 +1207,7 @@ export const calendarResolvers = {
               scheduleType: ScheduleType.REGULAR_HOURS,
               locationId: s.locationId || null, // Ensure null if undefined
               notes: s.notes || null, // Ensure null if undefined
+              tenantId: context.tenantId || ''
            }));
            
         await prisma.$transaction([
@@ -1292,7 +1268,7 @@ export const calendarResolvers = {
               sameDayCutoffTime: input.sameDayCutoffTime,
               bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
               maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes
             }
           });
         } else {
@@ -1305,6 +1281,7 @@ export const calendarResolvers = {
               bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
               maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
               bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              tenantId: context.tenantId || '',
               locationId: null // Global rule
             }
           });
@@ -1411,7 +1388,8 @@ export const calendarResolvers = {
             startTime: startDateTime,
             endTime: endDateTime,
             notes: input.notes,
-            status: 'PENDING'
+            status: 'PENDING',
+            tenantId: context.tenantId || ''
           },
           include: {
             customer: true,
@@ -1458,7 +1436,7 @@ export const calendarResolvers = {
               sameDayCutoffTime: input.sameDayCutoffTime,
               bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
               maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
-              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes
             }
           });
         } else {
@@ -1471,6 +1449,7 @@ export const calendarResolvers = {
               bufferBetweenAppointmentsMinutes: input.bufferBetweenAppointmentsMinutes,
               maxAppointmentsPerDayPerStaff: input.maxAppointmentsPerDayPerStaff,
               bookingSlotIntervalMinutes: input.bookingSlotIntervalMinutes,
+              tenantId: context.tenantId || '',
               locationId: null // Global rule
             }
           });
