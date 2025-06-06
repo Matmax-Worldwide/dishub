@@ -1088,7 +1088,7 @@ export function DashboardSidebar() {
                   variant="outline" 
                   size="sm" 
                   className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/admin/users`}
+                  onClick={() => window.location.href = `/${params.locale}/manage/${params.tenantSlug}/settings/users`}
                 >
                   <UserIcon className="h-3 w-3" />
                   {t('sidebar.newUser')}
@@ -1097,7 +1097,7 @@ export function DashboardSidebar() {
                   variant="outline" 
                   size="sm" 
                   className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/admin/notifications`}
+                  onClick={() => window.location.href = `/${params.locale}/manage/${params.tenantSlug}/notifications`}
                 >
                   <BellIcon className="h-3 w-3" />
                   {t('sidebar.message')}
@@ -1384,7 +1384,7 @@ export function DashboardSidebar() {
                         size="sm" 
                         className="flex items-center justify-center gap-2"
                         onClick={() => {
-                          window.location.href = `/${params.locale}/admin/users`;
+                          window.location.href = `/${params.locale}/manage/${params.tenantSlug}/settings/users`;
                           setIsOpen(false);
                         }}
                       >
@@ -1396,7 +1396,7 @@ export function DashboardSidebar() {
                         size="sm" 
                         className="flex items-center justify-center gap-2"
                         onClick={() => {
-                          window.location.href = `/${params.locale}/admin/notifications`;
+                          window.location.href = `/${params.locale}/manage/${params.tenantSlug}/notifications`;
                           setIsOpen(false);
                         }}
                       >
@@ -1472,9 +1472,9 @@ export function DashboardSidebar() {
                       {t('sidebar.notifications')}
                     </h3>
                     <Link 
-                      href={`/${params.locale}/admin/dashboard/notifications`}
+                      href={`/${params.locale}/manage/${params.tenantSlug}/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/admin/dashboard/notifications`
+                        pathname === `/${params.locale}/manage/${params.tenantSlug}/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -1489,9 +1489,9 @@ export function DashboardSidebar() {
                       )}
                     </Link>
                     <Link 
-                      href={`/${params.locale}/admin/notifications`}
+                      href={`/${params.locale}/manage/${params.tenantSlug}/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/admin/notifications`
+                        pathname === `/${params.locale}/manage/${params.tenantSlug}/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -1511,7 +1511,7 @@ export function DashboardSidebar() {
                       {t('sidebar.dashboard')}
                     </h3>
                     {transformedBaseNavigationItems.filter(item => 
-                      !((showAsManager || showAsAdmin || showAsTenantAdmin) && item.href.includes('/admin/dashboard/notifications'))
+                      !((showAsManager || showAsAdmin || showAsTenantAdmin) && item.href.includes('/notifications'))
                     ).map((item) => (
                       <Link 
                         key={item.href}

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check, User, Building, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, Building, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features';
 import { PhoneInput } from '@/components/ui/PhoneInput';
@@ -78,6 +78,8 @@ function setCookie(name: string, value: string, days: number) {
 export default function GetStartedPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -103,8 +105,9 @@ export default function GetStartedPage() {
       
       toast.success('¡Registro exitoso! Bienvenido a tu nueva plataforma.');
       
-      // Redirect to dashboard or tenant setup
-      router.push('/admin');
+      // Redirect to tenant dashboard
+      const tenantSlug = data.registerUserWithTenant.tenant.slug;
+      router.push(`/manage/${tenantSlug}/dashboard`);
     },
     onError: (error) => {
       console.error('Registration error:', error);
@@ -396,28 +399,48 @@ export default function GetStartedPage() {
 
       <div>
         <Label htmlFor="password" className="text-white">Contraseña *</Label>
-        <Input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) => updateFormData('password', e.target.value)}
-          placeholder="Mínimo 8 caracteres"
-          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) => updateFormData('password', e.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       <div>
         <Label htmlFor="confirmPassword" className="text-white">Confirmar Contraseña *</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-          placeholder="Repite tu contraseña"
-          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+            placeholder="Repite tu contraseña"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
     </div>
   );

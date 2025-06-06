@@ -186,16 +186,16 @@ export default function LoginPage() {
             } else {
               console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
               console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to fallback`);
-              redirectPath = `/${locale}/dashboard`;
+              redirectPath = `/${locale}`;
             }
           } catch (tenantError) { 
             console.error('GraphQL Tenant Query Error:', tenantError);
             console.error('Error details:', JSON.stringify(tenantError, null, 2));
-            redirectPath = `/${locale}/dashboard`;
+            redirectPath = `/${locale}`;
           }
         } else {
-          console.warn(`User ${transformedUser.email} without tenantId, redirecting to general dashboard`);
-          redirectPath = `/${locale}/dashboard`;
+          console.warn(`User ${transformedUser.email} without tenantId, redirecting to home page`);
+          redirectPath = `/${locale}`;
         }
       }
       
