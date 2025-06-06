@@ -165,7 +165,16 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
 
     let userContext = null;
     const authHeader = req.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    // If no token in Authorization header, try to get from cookies
+    if (!token) {
+      const cookies = req.headers.get('cookie');
+      if (cookies) {
+        const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+        token = authTokenMatch ? authTokenMatch[1] : null;
+      }
+    }
 
     if (token) {
       try {

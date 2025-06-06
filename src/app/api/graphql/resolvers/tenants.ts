@@ -514,7 +514,25 @@ export const tenantResolvers = {
             }
           });
 
-          // Create user
+          // Find or create TenantAdmin role
+          let tenantAdminRole = await tx.roleModel.findFirst({
+            where: { 
+              OR: [
+                { name: 'TenantAdmin' }
+              ]
+            }
+          });
+
+          if (!tenantAdminRole) {
+            tenantAdminRole = await tx.roleModel.create({
+              data: {
+                name: 'TenantAdmin',
+                description: 'Administrator of a tenant with full access to tenant resources'
+              }
+            });
+          }
+
+          // Create user with TenantAdmin role
           const user = await tx.user.create({
             data: {
               email: input.email,
@@ -522,6 +540,7 @@ export const tenantResolvers = {
               firstName: input.firstName,
               lastName: input.lastName,
               phoneNumber: input.phoneNumber,
+              roleId: tenantAdminRole.id,
               isActive: true
             },
             include: {
@@ -547,19 +566,34 @@ export const tenantResolvers = {
           { 
             userId: result.user.id, 
             role: result.user.role?.name || 'USER',
+            roleId: result.user.roleId,
             tenantId: result.tenant.id
           },
           JWT_SECRET,
           { expiresIn: '7d' }
         );
 
+        // Fetch complete user data with all relationships
+        const completeUser = await prisma.user.findUnique({
+          where: { id: result.user.id },
+          include: {
+            role: true,
+            userTenants: {
+              where: { isActive: true },
+              include: {
+                tenant: true
+              }
+            }
+          }
+        });
+
         return {
           token,
           user: {
-            ...result.user,
-            role: result.user.role || { id: "default", name: "USER", description: null },
-            createdAt: result.user.createdAt.toISOString(),
-            updatedAt: result.user.updatedAt.toISOString()
+            ...completeUser!,
+            role: completeUser!.role || { id: "default", name: "USER", description: null },
+            createdAt: completeUser!.createdAt.toISOString(),
+            updatedAt: completeUser!.updatedAt.toISOString()
           },
           tenant: result.tenant
         };

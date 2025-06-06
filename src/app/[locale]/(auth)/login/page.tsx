@@ -324,6 +324,15 @@ export default function LoginPage() {
               {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </motion.button>
           </form>
+
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-200">
+              ¿No tienes una cuenta?{' '}
+              <Link href="/get-started" className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
+                Crea una cuenta aquí
+              </Link>
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>
