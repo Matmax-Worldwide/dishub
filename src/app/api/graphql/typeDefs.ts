@@ -3687,6 +3687,9 @@ export const typeDefs = gql`
     # settings: Json # Might be too complex for initial list/form
     features: [String!]
     users: [User!]
+    userCount: Int
+    pageCount: Int
+    postCount: Int
     createdAt: DateTime!
     updatedAt: DateTime!
   }
