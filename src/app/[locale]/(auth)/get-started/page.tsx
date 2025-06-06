@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check, User, Building } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, Building, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features';
-import { motion } from 'framer-motion';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+
+
 
 const REGISTER_USER_WITH_TENANT = gql`
   mutation RegisterUserWithTenant($input: RegisterUserWithTenantInput!) {
@@ -73,9 +75,11 @@ function setCookie(name: string, value: string, days: number) {
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;secure;samesite=strict`;
 }
 
-export default function RegisterPage() {
+export default function GetStartedPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -101,8 +105,9 @@ export default function RegisterPage() {
       
       toast.success('¡Registro exitoso! Bienvenido a tu nueva plataforma.');
       
-      // Redirect to dashboard or tenant setup
-      router.push('/admin');
+      // Redirect to tenant dashboard
+      const tenantSlug = data.registerUserWithTenant.tenant.slug;
+      router.push(`/manage/${tenantSlug}/dashboard`);
     },
     onError: (error) => {
       console.error('Registration error:', error);
@@ -158,15 +163,26 @@ export default function RegisterPage() {
   };
 
   const validateStep1 = () => {
-    const { email, password, confirmPassword, firstName, lastName } = formData;
+    const { email, firstName, lastName } = formData;
     
-    if (!email || !password || !confirmPassword || !firstName || !lastName) {
+    if (!email || !firstName || !lastName) {
       toast.error('Por favor completa todos los campos obligatorios');
       return false;
     }
     
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error('Por favor ingresa un email válido');
+      return false;
+    }
+    
+    return true;
+  };
+
+  const validateStep2 = () => {
+    const { password, confirmPassword } = formData;
+    
+    if (!password || !confirmPassword) {
+      toast.error('Por favor completa todos los campos de contraseña');
       return false;
     }
     
@@ -183,7 +199,7 @@ export default function RegisterPage() {
     return true;
   };
 
-  const validateStep2 = () => {
+  const validateStep3 = () => {
     const { tenantName, tenantSlug } = formData;
     
     if (!tenantName || !tenantSlug) {
@@ -199,9 +215,7 @@ export default function RegisterPage() {
     return true;
   };
 
-  const validateStep3 = () => {
-    // CMS_ENGINE siempre está seleccionado, así que siempre es válido
-    // Pero podemos agregar validaciones adicionales si es necesario
+  const validateStep4 = () => {
     if (formData.tenantFeatures.length === 0) {
       toast.error('Error interno: No hay funcionalidades seleccionadas');
       return false;
@@ -214,6 +228,8 @@ export default function RegisterPage() {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep2()) {
       setCurrentStep(3);
+    } else if (currentStep === 3 && validateStep3()) {
+      setCurrentStep(4);
     }
   };
 
@@ -224,7 +240,7 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep1() || !validateStep2() || !validateStep3()) {
+    if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) {
       return;
     }
 
@@ -313,12 +329,12 @@ export default function RegisterPage() {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <User className="mx-auto h-12 w-12 text-blue-300 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Información Personal</h2>
-        <p className="text-gray-200">Crea tu cuenta de usuario</p>
+        <User className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-purple-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Información Personal</h2>
+        <p className="text-sm sm:text-base text-gray-200">Crea tu cuenta de usuario</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="firstName" className="text-white">Nombre *</Label>
           <Input
@@ -327,7 +343,7 @@ export default function RegisterPage() {
             value={formData.firstName}
             onChange={(e) => updateFormData('firstName', e.target.value)}
             placeholder="Tu nombre"
-            className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
             required
           />
         </div>
@@ -339,7 +355,7 @@ export default function RegisterPage() {
             value={formData.lastName}
             onChange={(e) => updateFormData('lastName', e.target.value)}
             placeholder="Tu apellido"
-            className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
             required
           />
         </div>
@@ -353,46 +369,21 @@ export default function RegisterPage() {
           value={formData.email}
           onChange={(e) => updateFormData('email', e.target.value)}
           placeholder="tu@email.com"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
           required
         />
       </div>
 
       <div>
         <Label htmlFor="phoneNumber" className="text-white">Teléfono</Label>
-        <Input
+        <PhoneInput
           id="phoneNumber"
-          type="tel"
+          name="phoneNumber"
           value={formData.phoneNumber}
-          onChange={(e) => updateFormData('phoneNumber', e.target.value)}
-          placeholder="+1234567890"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="password" className="text-white">Contraseña *</Label>
-        <Input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) => updateFormData('password', e.target.value)}
-          placeholder="Mínimo 8 caracteres"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="confirmPassword" className="text-white">Confirmar Contraseña *</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-          placeholder="Repite tu contraseña"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-          required
+          onChange={(value) => updateFormData('phoneNumber', value)}
+          placeholder="600 00 00 00"
+          defaultCountry="ES"
+          className="w-full"
         />
       </div>
     </div>
@@ -401,9 +392,65 @@ export default function RegisterPage() {
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Building className="mx-auto h-12 w-12 text-blue-300 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Información de tu Organización</h2>
-        <p className="text-gray-200">Configura tu espacio de trabajo</p>
+        <Lock className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-cyan-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Configurar Contraseña</h2>
+        <p className="text-sm sm:text-base text-gray-200">Crea una contraseña segura para tu cuenta</p>
+      </div>
+
+      <div>
+        <Label htmlFor="password" className="text-white">Contraseña *</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) => updateFormData('password', e.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="confirmPassword" className="text-white">Confirmar Contraseña *</Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+            placeholder="Repite tu contraseña"
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <Building className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-green-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Información de tu Organización</h2>
+        <p className="text-sm sm:text-base text-gray-200">Configura tu espacio de trabajo</p>
       </div>
 
       <div>
@@ -421,7 +468,7 @@ export default function RegisterPage() {
             }
           }}
           placeholder="Mi Empresa S.A."
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
           required
         />
       </div>
@@ -434,7 +481,7 @@ export default function RegisterPage() {
           value={formData.tenantSlug}
           onChange={(e) => updateFormData('tenantSlug', e.target.value)}
           placeholder="mi-empresa"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
           required
         />
         <p className="text-sm text-gray-300 mt-1">
@@ -450,7 +497,7 @@ export default function RegisterPage() {
           value={formData.tenantDomain}
           onChange={(e) => updateFormData('tenantDomain', e.target.value)}
           placeholder="www.miempresa.com"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
         />
         <p className="text-sm text-gray-300 mt-1">
           Puedes configurar tu dominio personalizado más tarde
@@ -459,12 +506,12 @@ export default function RegisterPage() {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Check className="mx-auto h-12 w-12 text-green-300 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Selecciona tus Funcionalidades</h2>
-        <p className="text-gray-200">CMS Engine está incluido por defecto. Elige funcionalidades adicionales (puedes cambiar esto después)</p>
+        <Check className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-pink-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Selecciona tus Funcionalidades</h2>
+        <p className="text-sm sm:text-base text-gray-200">CMS Engine está incluido por defecto. Elige funcionalidades adicionales (puedes cambiar esto después)</p>
       </div>
 
       {/* Group features by category */}
@@ -490,7 +537,7 @@ export default function RegisterPage() {
                       isDisabled 
                         ? 'border-white/20 bg-white/5 cursor-not-allowed opacity-75'
                         : isSelected
-                          ? 'border-blue-400 bg-blue-500/20 cursor-pointer'
+                          ? 'border-purple-400 bg-purple-500/20 cursor-pointer'
                           : 'border-white/20 bg-white/5 hover:border-white/30 cursor-pointer'
                     }`}
                     onClick={() => !isDisabled && toggleFeature(feature.id)}
@@ -498,7 +545,7 @@ export default function RegisterPage() {
                     <div className="flex items-start space-x-3">
                       <div className={`mt-1 w-4 h-4 rounded border-2 flex items-center justify-center ${
                         isSelected
-                          ? 'border-blue-400 bg-blue-400'
+                          ? 'border-purple-400 bg-purple-400'
                           : 'border-white/30'
                       }`}>
                         {isSelected && (
@@ -509,7 +556,7 @@ export default function RegisterPage() {
                         <h4 className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-white'}`}>
                           {feature.label}
                           {isDisabled && (
-                            <span className="text-xs ml-2 text-blue-300">
+                            <span className="text-xs ml-2 text-purple-300">
                               {feature.id === 'CMS_ENGINE' ? '(Incluido)' : '(Requerido)'}
                             </span>
                           )}
@@ -536,7 +583,7 @@ export default function RegisterPage() {
         );
       })}
 
-      <div className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+      <div className="mt-6 p-4 backdrop-blur-xl bg-white/5 border border-white/10 rounded-lg">
         <h3 className="font-medium mb-2 text-white">Resumen de tu configuración:</h3>
         <div className="text-sm space-y-1 text-gray-200">
           <p><strong>Usuario:</strong> {formData.firstName} {formData.lastName}</p>
@@ -553,7 +600,7 @@ export default function RegisterPage() {
                   return feature ? (
                     <li key={featureId}>
                       {feature.label}
-                      {featureId === 'CMS_ENGINE' && <span className="text-blue-300 ml-1">(Incluido por defecto)</span>}
+                      {featureId === 'CMS_ENGINE' && <span className="text-purple-300 ml-1">(Incluido por defecto)</span>}
                     </li>
                   ) : null;
                 })}
@@ -565,101 +612,81 @@ export default function RegisterPage() {
     </div>
   );
 
-  const progress = (currentStep / 3) * 100;
+  const progress = (currentStep / 4) * 100;
 
   const getStepTitle = (step: number) => {
     switch (step) {
       case 1: return 'Información Personal';
-      case 2: return 'Configuración de Organización';
-      case 3: return 'Selección de Funcionalidades';
+      case 2: return 'Configurar Contraseña';
+      case 3: return 'Configuración de Organización';
+      case 4: return 'Selección de Funcionalidades';
       default: return '';
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
-      <div
-        className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
-        style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0" />
-      
-      {/* Stars animation effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
-            transition={{
-              duration: Math.random() * 3 + 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+    <div className="min-h-screen bg-black text-white overflow-x-hidden flex items-center justify-center">
+      {/* Animated Background - Same as DishubLanding */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600 rounded-full filter blur-3xl opacity-20 animate-pulse" />
       </div>
 
-      <Card className="w-full max-w-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl shadow-blue-500/10 relative z-10">
-        <CardHeader>
-          <CardTitle className="text-center text-white">Crear Nueva Cuenta</CardTitle>
-          <CardDescription className="text-center text-gray-200">
-            Paso {currentStep} de 3: {getStepTitle(currentStep)}
+      <Card className="w-full max-w-2xl mx-4 sm:mx-6 lg:mx-auto backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all duration-500 shadow-2xl relative z-10">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-center text-white text-xl sm:text-2xl">Crear Nueva Cuenta</CardTitle>
+          <CardDescription className="text-center text-gray-200 text-sm sm:text-base">
+            Paso {currentStep} de 4: {getStepTitle(currentStep)}
           </CardDescription>
           <Progress value={progress} className="w-full" />
           
           {/* Step indicators */}
-          <div className="flex justify-center space-x-4 mt-4">
-            {[1, 2, 3].map((step) => (
+          <div className="flex justify-center space-x-2 sm:space-x-4 mt-4 overflow-x-auto">
+            {[1, 2, 3, 4].map((step) => (
               <div
                 key={step}
-                className={`flex items-center space-x-2 ${
-                  step === currentStep ? 'text-blue-300' : 
+                className={`flex items-center space-x-1 sm:space-x-2 flex-shrink-0 ${
+                  step === currentStep ? 'text-purple-300' : 
                   step < currentStep ? 'text-green-300' : 'text-gray-400'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step === currentStep ? 'bg-blue-100/20 border-2 border-blue-300' :
+                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
+                  step === currentStep ? 'bg-purple-100/20 border-2 border-purple-300' :
                   step < currentStep ? 'bg-green-100/20 border-2 border-green-300' :
                   'bg-gray-100/20 border-2 border-gray-400'
                 }`}>
-                  {step < currentStep ? <Check className="w-4 h-4" /> : step}
+                  {step < currentStep ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : step}
                 </div>
-                <span className="text-sm font-medium hidden sm:block">
-                  {step === 1 ? 'Usuario' : step === 2 ? 'Organización' : 'Funcionalidades'}
+                <span className="text-xs sm:text-sm font-medium hidden md:block">
+                  {step === 1 ? 'Usuario' : step === 2 ? 'Contraseña' : step === 3 ? 'Organización' : 'Funcionalidades'}
                 </span>
               </div>
             ))}
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
 
-          <div className="flex justify-between mt-8">
+          <div className="flex flex-col sm:flex-row justify-between gap-4 sm:gap-0 mt-8">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50"
+              className="backdrop-blur-xl bg-white/5 border border-white/10 text-white hover:bg-white/20 disabled:opacity-50 rounded-full transition-all duration-300 w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Anterior
             </Button>
 
-            {currentStep < 3 ? (
+            {currentStep < 4 ? (
               <Button 
                 onClick={handleNext}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30"
+                className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 rounded-full w-full sm:w-auto"
               >
                 Siguiente
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -668,7 +695,7 @@ export default function RegisterPage() {
               <Button 
                 onClick={handleSubmit} 
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 rounded-full disabled:opacity-50 w-full sm:w-auto"
               >
                 {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
               </Button>
@@ -678,7 +705,7 @@ export default function RegisterPage() {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-200">
               ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-blue-300 hover:text-blue-200 hover:underline">
+              <Link href="/login" className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
                 Inicia sesión aquí
               </Link>
             </p>

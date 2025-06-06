@@ -16,8 +16,8 @@ export default function TenantDashboard() {
       const hasAccess = hasRole('TenantAdmin') || hasRole('TenantManager') || hasRole('Employee');
       
       if (!hasAccess) {
-        // Redirect unauthorized users
-        window.location.href = `/${params.locale}/admin/dashboard`;
+        // Redirect unauthorized users to login
+        window.location.href = `/${params.locale}/login`;
         return;
       }
     }

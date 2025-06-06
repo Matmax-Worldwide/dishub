@@ -186,16 +186,16 @@ export default function LoginPage() {
             } else {
               console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
               console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to fallback`);
-              redirectPath = `/${locale}/dashboard`;
+              redirectPath = `/${locale}`;
             }
           } catch (tenantError) { 
             console.error('GraphQL Tenant Query Error:', tenantError);
             console.error('Error details:', JSON.stringify(tenantError, null, 2));
-            redirectPath = `/${locale}/dashboard`;
+            redirectPath = `/${locale}`;
           }
         } else {
-          console.warn(`User ${transformedUser.email} without tenantId, redirecting to general dashboard`);
-          redirectPath = `/${locale}/dashboard`;
+          console.warn(`User ${transformedUser.email} without tenantId, redirecting to home page`);
+          redirectPath = `/${locale}`;
         }
       }
       
@@ -224,34 +224,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
-      <div
-        className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b z-10 pointer-events-none"
-        style={{ background: `linear-gradient(to bottom, #1a253b, rgba(26, 37, 59, 0.5), transparent)` }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-[#01112A] via-[#01319c] to-[#1E0B4D] opacity-95 z-0" />
-      
-      {/* Stars animation effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{ opacity: [0.1, 0.8, 0.1], scale: [1, 1.2, 1] }}
-            transition={{
-              duration: Math.random() * 3 + 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+    <div className="min-h-screen bg-black text-white overflow-x-hidden flex items-center justify-center">
+      {/* Animated Background - Same as DishubLanding */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600 rounded-full filter blur-3xl opacity-20 animate-pulse" />
       </div>
 
       <div className="max-w-md w-full space-y-8 relative z-10 px-4">
@@ -277,7 +255,7 @@ export default function LoginPage() {
         </div>
         
         <motion.div
-          className="bg-white/10 backdrop-blur-md p-8 rounded-xl border border-white/20 shadow-2xl shadow-blue-500/10"
+          className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all duration-500 shadow-2xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -300,7 +278,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
+                  className="w-full px-4 py-3 border border-white/10 bg-white/5 text-white rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder-white/50 transition-all duration-300 hover:bg-white/10"
                   placeholder="Enter your email"
                 />
               </div>
@@ -315,7 +293,7 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full px-4 py-3 border-white/20 bg-white/10 text-white rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-white/50 transition-all duration-300"
+                  className="w-full px-4 py-3 border border-white/10 bg-white/5 text-white rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder-white/50 transition-all duration-300 hover:bg-white/10"
                   placeholder="Enter your password"
                 />
               </div>
@@ -324,9 +302,9 @@ export default function LoginPage() {
             <motion.button
               type="submit"
               disabled={loading}
-              whileHover={{ scale: 1.03, boxShadow: '0 0 15px 5px rgba(59, 130, 246, 0.3)' }}
+              whileHover={{ scale: 1.03, boxShadow: '0 0 20px 8px rgba(139, 92, 246, 0.5)' }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-md font-bold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white py-3 px-6 rounded-full font-bold text-lg shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50"
             >
               {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </motion.button>
