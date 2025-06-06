@@ -78,7 +78,7 @@ export const userPermissionResolvers = {
       }
       
       // Solo administradores o usuarios con permiso específico pueden modificar permisos
-      if (currentUser.role.name !== 'ADMIN' && !currentUser.permissions?.includes('permissions:update')) {
+      if (currentUser.role.name !== 'ADMIN' && currentUser.role.name !== 'SuperAdmin' && !currentUser.permissions?.includes('permissions:update')) {
         throw new Error('Forbidden: You do not have permission to modify user permissions');
       }
       

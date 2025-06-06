@@ -87,12 +87,22 @@ export const FeatureProvider: React.FC<FeatureProviderProps> = ({
 export const useFeatureAccess = (): FeatureContextType => {
   const context = useContext(FeatureContext);
   if (!context) {
-    throw new Error('useFeatureAccess must be used within a FeatureProvider');
+    // Instead of throwing error immediately, provide fallback values
+    console.warn('useFeatureAccess used outside FeatureProvider, providing fallback values');
+    return {
+      features: ['CMS_ENGINE'], // Default fallback features
+      hasFeature: (feature: FeatureType) => feature === 'CMS_ENGINE',
+      hasAllFeatures: (features: FeatureType[]) => features.every(f => f === 'CMS_ENGINE'),
+      hasAnyFeature: (features: FeatureType[]) => features.includes('CMS_ENGINE'),
+      getAvailableFeatures: () => ['CMS_ENGINE'],
+      calculateCost: () => 0,
+      isLoading: false
+    };
   }
   return context;
 };
 
-// Convenience hooks
+// Convenience hooks with fallback handling
 export const useHasFeature = (feature: FeatureType): boolean => {
   const { hasFeature } = useFeatureAccess();
   return hasFeature(feature);

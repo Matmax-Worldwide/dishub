@@ -49,6 +49,8 @@ export interface NavItem {
 export interface SidebarConfig {
   baseNavigationItems: (locale: string) => NavItem[];
   adminNavigationItems: (locale: string) => NavItem[];
+  tenantAdminNavigationItems: (locale: string) => NavItem[];
+  superAdminNavigationItems: (locale: string) => NavItem[];
   featureBasedNavigationItems: (locale: string) => NavItem[];
 }
 
@@ -122,7 +124,568 @@ export const sidebarConfig: SidebarConfig = {
     },
   ],
 
+  // TenantAdmin navigation items - 6 main sections for tenant administrators
+  tenantAdminNavigationItems: (locale: string) => [
+    // 📊 Dashboard Overview
+    { 
+      name: 'sidebar.dashboard', 
+      href: `/${locale}/admin/dashboard`, 
+      icon: LayoutDashboardIcon,
+      permissions: ['admin:view']
+    },
+    
+    // 🧩 1. Gestión de módulos
+    {
+      name: 'sidebar.moduleManagement',
+      href: `/${locale}/admin/modules`,
+      icon: PackageIcon,
+      permissions: ['modules:manage'],
+      children: [
+        {
+          name: 'sidebar.activeModules',
+          href: `/${locale}/admin/modules/active`,
+          icon: BarChartIcon,
+          permissions: ['modules:read']
+        },
+        {
+          name: 'sidebar.requestModules',
+          href: `/${locale}/admin/modules/request`,
+          icon: UserPlusIcon,
+          permissions: ['modules:request']
+        },
+        {
+          name: 'sidebar.moduleConfiguration',
+          href: `/${locale}/admin/modules/config`,
+          icon: SettingsIcon,
+          permissions: ['modules:configure']
+        }
+      ]
+    },
 
+    // 👥 2. Gestión de usuarios
+    {
+      name: 'sidebar.userManagement',
+      href: `/${locale}/admin/users`,
+      icon: UsersIcon,
+      permissions: ['users:read'],
+      children: [
+        {
+          name: 'sidebar.usersList',
+          href: `/${locale}/admin/users/list`,
+          icon: UserIcon,
+          permissions: ['users:read']
+        },
+        {
+          name: 'sidebar.rolesPermissions',
+          href: `/${locale}/admin/users/roles`,
+          icon: ShieldIcon,
+          permissions: ['roles:manage']
+        },
+        {
+          name: 'sidebar.activityLogs',
+          href: `/${locale}/admin/users/activity`,
+          icon: ClipboardListIcon,
+          permissions: ['audit:read']
+        }
+      ]
+    },
+
+    // 🏢 3. Gestión de la empresa
+    {
+      name: 'sidebar.companyManagement',
+      href: `/${locale}/admin/company`,
+      icon: HomeIcon,
+      permissions: ['company:manage'],
+      children: [
+        {
+          name: 'sidebar.companyProfile',
+          href: `/${locale}/admin/company/profile`,
+          icon: HomeIcon,
+          permissions: ['company:edit']
+        },
+        {
+          name: 'sidebar.brandingDesign',
+          href: `/${locale}/admin/company/branding`,
+          icon: PenToolIcon,
+          permissions: ['branding:manage']
+        },
+        {
+          name: 'sidebar.billing',
+          href: `/${locale}/admin/company/billing`,
+          icon: CreditCardIcon,
+          permissions: ['billing:read']
+        }
+      ]
+    },
+
+    // 📊 4. Contenido (CMS) - Siempre disponible
+    {
+      name: 'sidebar.contentManagement',
+      href: `/${locale}/admin/cms`,
+      icon: FileTextIcon,
+      permissions: ['cms:access'],
+      // No features required - always available
+      children: [
+        {
+          name: 'sidebar.pages',
+          href: `/${locale}/admin/cms/pages`,
+          icon: FileTextIcon,
+          permissions: ['pages:manage']
+        },
+        {
+          name: 'sidebar.media',
+          href: `/${locale}/admin/cms/media`,
+          icon: ImageIcon,
+          permissions: ['media:manage']
+        },
+        {
+          name: 'sidebar.templates',
+          href: `/${locale}/admin/cms/templates`,
+          icon: LayoutDashboardIcon,
+          permissions: ['templates:manage']
+        },
+        {
+          name: 'sidebar.multilingual',
+          href: `/${locale}/admin/cms/languages`,
+          icon: SettingsIcon,
+          permissions: ['languages:manage']
+        }
+      ]
+    },
+
+    // 🧾 5. Módulos de Negocio - Booking Engine
+    {
+      name: 'sidebar.bookingEngine',
+      href: `/${locale}/admin/business/booking`,
+      icon: CalendarIcon,
+      permissions: ['booking:access'],
+      features: ['BOOKING_ENGINE'], // Required feature
+      children: [
+        {
+          name: 'sidebar.calendar',
+          href: `/${locale}/admin/business/booking/calendar`,
+          icon: CalendarIcon,
+          permissions: ['booking:read']
+        },
+        {
+          name: 'sidebar.services',
+          href: `/${locale}/admin/business/booking/services`,
+          icon: ClipboardListIcon,
+          permissions: ['services:read']
+        },
+        {
+          name: 'sidebar.staff',
+          href: `/${locale}/admin/business/booking/staff`,
+          icon: UsersIcon,
+          permissions: ['staff:read']
+        },
+        {
+          name: 'sidebar.bookingSettings',
+          href: `/${locale}/admin/business/booking/settings`,
+          icon: SettingsIcon,
+          permissions: ['booking:manage']
+        }
+      ]
+    },
+
+    // 🛒 6. Módulos de Negocio - E-commerce Engine
+    {
+      name: 'sidebar.ecommerceEngine',
+      href: `/${locale}/admin/business/ecommerce`,
+      icon: ShoppingCartIcon,
+      permissions: ['ecommerce:access'],
+      features: ['ECOMMERCE_ENGINE'], // Required feature
+      children: [
+        {
+          name: 'sidebar.products',
+          href: `/${locale}/admin/business/ecommerce/products`,
+          icon: PackageIcon,
+          permissions: ['products:read']
+        },
+        {
+          name: 'sidebar.orders',
+          href: `/${locale}/admin/business/ecommerce/orders`,
+          icon: ClipboardListIcon,
+          permissions: ['orders:read']
+        },
+        {
+          name: 'sidebar.customers',
+          href: `/${locale}/admin/business/ecommerce/customers`,
+          icon: UsersIcon,
+          permissions: ['customers:read']
+        },
+        {
+          name: 'sidebar.payments',
+          href: `/${locale}/admin/business/ecommerce/payments`,
+          icon: CreditCardIcon,
+          permissions: ['payments:read']
+        },
+        {
+          name: 'sidebar.ecommerceSettings',
+          href: `/${locale}/admin/business/ecommerce/settings`,
+          icon: SettingsIcon,
+          permissions: ['ecommerce:manage']
+        }
+      ]
+    },
+
+    // 👥 7. Módulos de Negocio - HRMS
+    {
+      name: 'sidebar.hrmsEngine',
+      href: `/${locale}/admin/business/hrms`,
+      icon: UsersIcon,
+      permissions: ['hrms:access'],
+      features: ['HRMS_MODULE'], // Required feature
+      children: [
+        {
+          name: 'sidebar.employees',
+          href: `/${locale}/admin/business/hrms/employees`,
+          icon: UserIcon,
+          permissions: ['employees:read']
+        },
+        {
+          name: 'sidebar.departments',
+          href: `/${locale}/admin/business/hrms/departments`,
+          icon: HomeIcon,
+          permissions: ['departments:read']
+        },
+        {
+          name: 'sidebar.payroll',
+          href: `/${locale}/admin/business/hrms/payroll`,
+          icon: CreditCardIcon,
+          permissions: ['payroll:read']
+        },
+        {
+          name: 'sidebar.hrmsSettings',
+          href: `/${locale}/admin/business/hrms/settings`,
+          icon: SettingsIcon,
+          permissions: ['hrms:manage']
+        }
+      ]
+    },
+
+    // 📊 8. Reportes e insights
+    {
+      name: 'sidebar.reportsInsights',
+      href: `/${locale}/admin/reports`,
+      icon: BarChartIcon,
+      permissions: ['reports:read'],
+      // No features required for basic reporting
+      children: [
+        {
+          name: 'sidebar.kpiDashboard',
+          href: `/${locale}/admin/reports/kpis`,
+          icon: LineChartIcon,
+          permissions: ['kpis:read']
+        },
+        {
+          name: 'sidebar.exportData',
+          href: `/${locale}/admin/reports/export`,
+          icon: ClipboardListIcon,
+          permissions: ['data:export']
+        },
+        {
+          name: 'sidebar.activityHistory',
+          href: `/${locale}/admin/reports/activity`,
+          icon: BarChartIcon,
+          permissions: ['activity:read']
+        }
+      ]
+    }
+  ],
+
+  // SuperAdmin navigation items - MCP (Master Control Panel)
+  superAdminNavigationItems: (locale: string) => [
+    // 📊 Dashboard Overview
+    { 
+      name: 'sidebar.mcpDashboard', 
+      href: `/${locale}/super-admin/dashboard`, 
+      icon: LayoutDashboardIcon,
+      permissions: ['superadmin:view']
+    },
+
+    // 🏙️ 1. Gestión de Tenants
+    {
+      name: 'sidebar.tenantManagement',
+      href: `/${locale}/super-admin/tenants`,
+      icon: HomeIcon,
+      permissions: ['tenants:manage'],
+      children: [
+        {
+          name: 'sidebar.allTenants',
+          href: `/${locale}/super-admin/tenants/list`,
+          icon: HomeIcon,
+          permissions: ['tenants:read']
+        },
+        {
+          name: 'sidebar.createTenant',
+          href: `/${locale}/super-admin/tenants/create`,
+          icon: UserPlusIcon,
+          permissions: ['tenants:create']
+        },
+        {
+          name: 'sidebar.tenantHealth',
+          href: `/${locale}/super-admin/tenants/health`,
+          icon: BarChartIcon,
+          permissions: ['tenants:monitor']
+        },
+        {
+          name: 'sidebar.tenantImpersonation',
+          href: `/${locale}/super-admin/tenants/impersonate`,
+          icon: UserIcon,
+          permissions: ['tenants:impersonate']
+        }
+      ]
+    },
+
+    // 🧩 2. Módulos disponibles
+    {
+      name: 'sidebar.globalModuleManagement',
+      href: `/${locale}/super-admin/modules`,
+      icon: PackageIcon,
+      permissions: ['modules:manage'],
+      children: [
+        {
+          name: 'sidebar.moduleRegistry',
+          href: `/${locale}/super-admin/modules/registry`,
+          icon: ClipboardListIcon,
+          permissions: ['modules:read']
+        },
+        {
+          name: 'sidebar.createModule',
+          href: `/${locale}/super-admin/modules/create`,
+          icon: UserPlusIcon,
+          permissions: ['modules:create']
+        },
+        {
+          name: 'sidebar.moduleVersions',
+          href: `/${locale}/super-admin/modules/versions`,
+          icon: SettingsIcon,
+          permissions: ['modules:versions']
+        },
+        {
+          name: 'sidebar.moduleCompatibility',
+          href: `/${locale}/super-admin/modules/compatibility`,
+          icon: ShieldIcon,
+          permissions: ['modules:compatibility']
+        }
+      ]
+    },
+
+    // 🧑‍💻 3. Solicitudes de Activación / Customización
+    {
+      name: 'sidebar.activationRequests',
+      href: `/${locale}/super-admin/requests`,
+      icon: MessageSquareIcon,
+      permissions: ['requests:manage'],
+      badge: {
+        key: 'pendingRequests',
+        value: 0
+      },
+      children: [
+        {
+          name: 'sidebar.pendingRequests',
+          href: `/${locale}/super-admin/requests/pending`,
+          icon: ClipboardListIcon,
+          permissions: ['requests:read']
+        },
+        {
+          name: 'sidebar.requestHistory',
+          href: `/${locale}/super-admin/requests/history`,
+          icon: BarChartIcon,
+          permissions: ['requests:history']
+        },
+        {
+          name: 'sidebar.customizationRequests',
+          href: `/${locale}/super-admin/requests/customization`,
+          icon: PenToolIcon,
+          permissions: ['requests:customization']
+        }
+      ]
+    },
+
+    // 🧠 4. Automatizaciones del MCP
+    {
+      name: 'sidebar.mcpAutomation',
+      href: `/${locale}/super-admin/automation`,
+      icon: SettingsIcon,
+      permissions: ['automation:manage'],
+      children: [
+        {
+          name: 'sidebar.tenantTemplates',
+          href: `/${locale}/super-admin/automation/templates`,
+          icon: LayoutDashboardIcon,
+          permissions: ['templates:manage']
+        },
+        {
+          name: 'sidebar.automatedProvisioning',
+          href: `/${locale}/super-admin/automation/provisioning`,
+          icon: UserPlusIcon,
+          permissions: ['provisioning:manage']
+        },
+        {
+          name: 'sidebar.migrationControl',
+          href: `/${locale}/super-admin/automation/migrations`,
+          icon: ClipboardListIcon,
+          permissions: ['migrations:manage']
+        },
+        {
+          name: 'sidebar.infrastructureControl',
+          href: `/${locale}/super-admin/automation/infrastructure`,
+          icon: ShieldIcon,
+          permissions: ['infrastructure:manage']
+        }
+      ]
+    },
+
+    // 📊 5. Analytics y Monitoreo Global
+    {
+      name: 'sidebar.globalAnalytics',
+      href: `/${locale}/super-admin/analytics`,
+      icon: BarChartIcon,
+      permissions: ['analytics:global'],
+      children: [
+        {
+          name: 'sidebar.tenantMetrics',
+          href: `/${locale}/super-admin/analytics/tenants`,
+          icon: LineChartIcon,
+          permissions: ['analytics:tenants']
+        },
+        {
+          name: 'sidebar.moduleUsage',
+          href: `/${locale}/super-admin/analytics/modules`,
+          icon: PackageIcon,
+          permissions: ['analytics:modules']
+        },
+        {
+          name: 'sidebar.systemErrors',
+          href: `/${locale}/super-admin/analytics/errors`,
+          icon: ClipboardListIcon,
+          permissions: ['errors:monitor']
+        },
+        {
+          name: 'sidebar.performanceMetrics',
+          href: `/${locale}/super-admin/analytics/performance`,
+          icon: BarChartIcon,
+          permissions: ['performance:monitor']
+        },
+        {
+          name: 'sidebar.systemLogs',
+          href: `/${locale}/super-admin/analytics/logs`,
+          icon: FileTextIcon,
+          permissions: ['logs:read']
+        }
+      ]
+    },
+
+    // 📦 6. Gestión de archivos globales
+    {
+      name: 'sidebar.globalFileManagement',
+      href: `/${locale}/super-admin/files`,
+      icon: ImageIcon,
+      permissions: ['files:global'],
+      children: [
+        {
+          name: 'sidebar.sharedAssets',
+          href: `/${locale}/super-admin/files/shared`,
+          icon: ImageIcon,
+          permissions: ['assets:shared']
+        },
+        {
+          name: 'sidebar.assetVersioning',
+          href: `/${locale}/super-admin/files/versions`,
+          icon: SettingsIcon,
+          permissions: ['assets:versions']
+        },
+        {
+          name: 'sidebar.templateLibrary',
+          href: `/${locale}/super-admin/files/templates`,
+          icon: LayoutDashboardIcon,
+          permissions: ['templates:library']
+        },
+        {
+          name: 'sidebar.componentLibrary',
+          href: `/${locale}/super-admin/files/components`,
+          icon: PackageIcon,
+          permissions: ['components:library']
+        }
+      ]
+    },
+
+    // 🔒 7. Control de acceso
+    {
+      name: 'sidebar.mcpAccessControl',
+      href: `/${locale}/super-admin/access`,
+      icon: ShieldIcon,
+      permissions: ['access:control'],
+      children: [
+        {
+          name: 'sidebar.mcpUsers',
+          href: `/${locale}/super-admin/access/users`,
+          icon: UsersIcon,
+          permissions: ['mcp:users']
+        },
+        {
+          name: 'sidebar.mcpRoles',
+          href: `/${locale}/super-admin/access/roles`,
+          icon: ShieldIcon,
+          permissions: ['mcp:roles']
+        },
+        {
+          name: 'sidebar.activityAudit',
+          href: `/${locale}/super-admin/access/audit`,
+          icon: ClipboardListIcon,
+          permissions: ['audit:read']
+        },
+        {
+          name: 'sidebar.securityPolicies',
+          href: `/${locale}/super-admin/access/security`,
+          icon: LockIcon,
+          permissions: ['security:policies']
+        },
+        {
+          name: 'sidebar.twoFactorAuth',
+          href: `/${locale}/super-admin/access/2fa`,
+          icon: ShieldIcon,
+          permissions: ['security:2fa']
+        }
+      ]
+    },
+
+    // 🧪 8. Entorno de pruebas / staging
+    {
+      name: 'sidebar.testingEnvironment',
+      href: `/${locale}/super-admin/testing`,
+      icon: SettingsIcon,
+      permissions: ['testing:manage'],
+      children: [
+        {
+          name: 'sidebar.sandboxTenants',
+          href: `/${locale}/super-admin/testing/sandbox`,
+          icon: HomeIcon,
+          permissions: ['sandbox:manage']
+        },
+        {
+          name: 'sidebar.betaModules',
+          href: `/${locale}/super-admin/testing/beta`,
+          icon: PackageIcon,
+          permissions: ['beta:manage']
+        },
+        {
+          name: 'sidebar.featureTesting',
+          href: `/${locale}/super-admin/testing/features`,
+          icon: PenToolIcon,
+          permissions: ['features:test']
+        },
+        {
+          name: 'sidebar.stagingControl',
+          href: `/${locale}/super-admin/testing/staging`,
+          icon: SettingsIcon,
+          permissions: ['staging:control']
+        }
+      ]
+    }
+  ],
 
   // Feature-based navigation items (based on tenant features)
   featureBasedNavigationItems: (locale: string) => [

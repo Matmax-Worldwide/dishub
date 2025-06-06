@@ -113,6 +113,10 @@ export interface PageBasic {
   slug: string;
 }
 
+// Tenant Settings type - for JSON settings field in Tenant model
+export type TenantSettings = Record<string, unknown>;
+
+
 export interface Menu {
   id: string;
   name: string;

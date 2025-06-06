@@ -23,6 +23,7 @@ import { calendarResolvers } from './calendarResolvers';
 import { shippingResolvers } from './shipping';
 import { ecommerceResolvers } from './ecommerce';
 import { tenantResolvers } from './tenants';
+import { superAdminResolvers } from './superAdmin';
 
 // Verificar la importación de cmsResolvers al inicio
 console.log('Verificando resolvers CMS importados:', {
@@ -125,14 +126,18 @@ const authResolvers = {
           throw new Error('User not found');
         }
 
-        // Convert role to string for the response
+        // Return role as object for consistency with login endpoint
         return {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           phoneNumber: user.phoneNumber,
-          role: user.role?.name || 'USER',
+          tenantId: user.tenantId,
+          role: {
+            id: user.role?.id || '',
+            name: user.role?.name || 'USER'
+          },
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         };
@@ -478,6 +483,7 @@ const resolvers = {
     ...shippingResolvers.Query,
     ...ecommerceResolvers.Query,
     ...tenantResolvers.Query,
+    ...superAdminResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -499,6 +505,7 @@ const resolvers = {
     ...shippingResolvers.Mutation,
     ...ecommerceResolvers.Mutation,
     ...tenantResolvers.Mutation,
+    ...superAdminResolvers.Mutation,
   },
   
   // Type resolvers

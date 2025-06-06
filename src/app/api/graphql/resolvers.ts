@@ -30,6 +30,7 @@ import { ecommerceResolvers } from './resolvers/ecommerce';
 import { reviewResolvers } from './resolvers/reviews';
 import { GraphQLContext } from './route';
 import { tenantResolvers } from './resolvers/tenants';
+import { superAdminResolvers } from './resolvers/superAdmin';
 
 // DateTime scalar type resolver
 const dateTimeScalar = new GraphQLScalarType({
@@ -654,7 +655,7 @@ const resolvers = {
     },
     
     // Include tenant queries
-    allTenants: tenantResolvers.Query.allTenants,
+    tenants: tenantResolvers.Query.tenants,
     tenant: tenantResolvers.Query.tenant,
     
     // Include other Query resolvers from imported modules - using type assertion
@@ -677,6 +678,7 @@ const resolvers = {
     ...((formResolvers.Query as object) || {}),
     ...((blogResolvers.Query as object) || {}),
     ...((calendarResolvers.Query as object) || {}),
+    ...((superAdminResolvers.Query as object) || {}),
     
     // Add menu queries
     menus: menuResolvers.Query.menus,
@@ -1014,10 +1016,12 @@ const resolvers = {
           phoneNumber: true,
           password: true,
           roleId: true,
+          tenantId: true, // Include tenantId
           role: {
             select: {
               id: true,
-              name: true
+              name: true,
+              description: true
             }
           },
           createdAt: true,
@@ -1050,19 +1054,20 @@ const resolvers = {
         role: roleName 
       }, JWT_SECRET, { expiresIn: '7d' });
       
-      // Remove password from returned user object
+      // Remove password from returned user object and return role as object
       const userWithoutPassword = {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleName,
+        tenantId: user.tenantId, // Include tenantId
+        role: user.role || { id: '', name: 'USER', description: null }, // Return role as object
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
       
-      // Return user with role as string
+      // Return user with role as object
       return {
         token,
         user: userWithoutPassword,
@@ -1117,10 +1122,12 @@ const resolvers = {
           lastName: true,
           phoneNumber: true,
           roleId: true,
+          tenantId: true,
           role: {
             select: {
               id: true,
-              name: true
+              name: true,
+              description: true
             }
           },
           createdAt: true,
@@ -1145,7 +1152,8 @@ const resolvers = {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
-        role: roleName,
+        tenantId: user.tenantId,
+        role: user.role || { id: '', name: 'USER', description: null },
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -1180,6 +1188,7 @@ const resolvers = {
     ...('Mutation' in formResolvers ? (formResolvers.Mutation as object) : {}),
     ...('Mutation' in blogResolvers ? (blogResolvers.Mutation as object) : {}),
     ...('Mutation' in calendarResolvers ? (calendarResolvers.Mutation as object) : {}),
+    ...('Mutation' in superAdminResolvers ? (superAdminResolvers.Mutation as object) : {}),
 
     // Role and permission mutations
     createRole: async (_parent: unknown, { input }: { input: { name: string; description?: string } }, context: GraphQLContext) => {

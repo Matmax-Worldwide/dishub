@@ -146,6 +146,24 @@ export const gdprResolvers = {
           throw new Error('Unauthorized to access tenant stats');
         }
 
+        // Check if DATABASE_URL is available before trying to use Prisma
+        if (!process.env.DATABASE_URL) {
+          console.warn('DATABASE_URL not available, returning mock tenant stats');
+          return {
+            totalUsers: 0,
+            activeUsers: 0,
+            newUsersThisMonth: 0,
+            totalDataRequests: 0,
+            pendingDataRequests: 0,
+            totalConsentRecords: 0,
+            activeConsents: 0,
+            expiredConsents: 0,
+            totalAuditLogs: 0,
+            criticalAlerts: 0,
+            complianceScore: 0
+          };
+        }
+
         const prisma = prismaManager.getClient(finalTenantId);
         
         const [

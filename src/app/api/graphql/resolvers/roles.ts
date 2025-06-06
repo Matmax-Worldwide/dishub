@@ -23,7 +23,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden ver los roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:read')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:read')) {
         throw new Error('Forbidden: You do not have permission to view roles');
       }
       
@@ -61,7 +61,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden ver los roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:read')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:read')) {
         throw new Error('Forbidden: You do not have permission to view roles');
       }
       
@@ -105,7 +105,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden ver los roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:read')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:read')) {
         throw new Error('Forbidden: You do not have permission to view roles');
       }
       
@@ -173,7 +173,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden crear roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:create')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:create')) {
         throw new Error('Forbidden: You do not have permission to create roles');
       }
       
@@ -224,7 +224,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden actualizar roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:update')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:update')) {
         throw new Error('Forbidden: You do not have permission to update roles');
       }
       
@@ -290,7 +290,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden eliminar roles
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:delete')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:delete')) {
         throw new Error('Forbidden: You do not have permission to delete roles');
       }
       
@@ -341,7 +341,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden asignar permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:update')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:update')) {
         throw new Error('Forbidden: You do not have permission to assign permissions to roles');
       }
       
@@ -397,7 +397,7 @@ export const roleResolvers = {
       }
       
       // Solo los administradores o usuarios con permisos pueden remover permisos
-      if (user.role.name !== 'ADMIN' && !user.permissions?.includes('roles:update')) {
+      if (user.role.name !== 'ADMIN' && user.role.name !== 'SuperAdmin' && !user.permissions?.includes('roles:update')) {
         throw new Error('Forbidden: You do not have permission to remove permissions from roles');
       }
       

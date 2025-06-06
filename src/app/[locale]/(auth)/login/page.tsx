@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { client } from '@/lib/apollo-client';
@@ -84,17 +83,17 @@ export default function LoginPage() {
         throw new Error('Invalid response from server');
       }
 
-      // Transform user data to match expected format (role as string)
+      // Keep user data as received (role as object)
       const transformedUser = {
         ...user,
-        role: user.role?.name || 'User' // Convert role object to string
+        role: user.role || { id: '', name: 'User' } // Keep role as object
       };
 
       console.log('=== User Role Debug ===');
       console.log('Raw user from GraphQL:', user);
       console.log('User role object:', user.role);
       console.log('User role name:', user.role?.name);
-      console.log('Transformed user role:', transformedUser.role);
+      console.log('Transformed user role (keeping as object):', transformedUser.role);
       console.log('User tenantId:', transformedUser.tenantId);
       console.log('======================');
 
@@ -119,8 +118,8 @@ export default function LoginPage() {
       // Determine redirect path based on user role
       let redirectPath = `/${locale}/admin/dashboard`; // Fallback path if tenant not found
       
-      if (transformedUser.role === 'SuperAdmin') {
-        redirectPath = `/${locale}/admin`;
+      if (transformedUser.role?.name === 'SuperAdmin') {
+        redirectPath = `/${locale}/super-admin/dashboard`;
       } else {
         // For all other roles (TenantAdmin, TenantManager, TenantUser, TenantEmployee, TenantUser), get tenant info
         if (transformedUser.tenantId) {
@@ -152,15 +151,18 @@ export default function LoginPage() {
               }));
               
               // Redirect based on role using actual tenant slug
-              if (transformedUser.role === 'TenantAdmin' || transformedUser.role === 'TenantManager') {
-                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
-                console.log(`TenantAdmin/TenantManager redirect path: ${redirectPath}`);
-              } else if (transformedUser.role === 'TenantEmployee') {
-                // TenantEmployee ahora va a la misma ruta admin que TenantAdmin/TenantManager
-                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/admin`;
+              if (transformedUser.role?.name === 'TenantAdmin') {
+                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/dashboard`;
+                console.log(`TenantAdmin redirect path: ${redirectPath}`);
+              } else if (transformedUser.role?.name === 'TenantManager') {
+                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}/dashboard`;
+                console.log(`TenantManager redirect path: ${redirectPath}`);
+              } else if (transformedUser.role?.name === 'TenantEmployee') {
+                // TenantEmployee ahora va al mismo dashboard que TenantAdmin
+                redirectPath = `/${locale}/tenants/${tenantData.tenant.slug}`;
                 console.log(`TenantEmployee redirect path: ${redirectPath}`);
               } else {
-                // For USER and other roles, redirect to general dashboard
+                // For USER and other roles, redirect to general dashboard (por definir)
                 // Log the actual tenant but use dashboard for now
                 console.log(`User belongs to tenant: ${tenantData.tenant.slug}, but redirecting to dashboard`);
                 sessionStorage.setItem('userTenantSlug', tenantData.tenant.slug);
@@ -168,7 +170,7 @@ export default function LoginPage() {
                 redirectPath = `/${locale}/admin/dashboard`;
                 console.log(`User redirect path: ${redirectPath}`);
               }
-              console.log(`User with role ${transformedUser.role} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
+              console.log(`User with role ${transformedUser.role?.name} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);
             } else {
               console.warn(`Tenant query returned but no slug found. tenantData:`, tenantData);
               console.warn(`User has tenantId ${transformedUser.tenantId} but tenant slug not found, redirecting to default`);
@@ -243,21 +245,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8 relative z-10 px-4">
         <div className="flex flex-col items-center">
           <Link href={`/${locale}`}>
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Image 
-              src="/logo.png" 
-              alt="E-voque Logo" 
-              width={150} 
-              height={150}
-              className="mb-6" 
-            />
-          </motion.div>
           </Link>
-          
           <motion.h2 
             className="text-center text-3xl font-extrabold text-white"
             initial={{ opacity: 0 }}

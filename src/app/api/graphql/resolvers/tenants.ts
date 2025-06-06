@@ -29,9 +29,20 @@ interface RegisterUserWithTenantInput {
   tenantFeatures?: string[];
 }
 
+interface UpdateTenantInput {
+  id: string;
+  name?: string;
+  slug?: string;
+  domain?: string;
+  status?: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+  planId?: string;
+  features?: string[];
+  settings?: Record<string, unknown>;
+}
+
 export const tenantResolvers = {
   Query: {
-    allTenants: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
+    tenants: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         // Only super admins can see all tenants
         if (!context.user || context.user.role !== 'SUPER_ADMIN') {
@@ -53,20 +64,16 @@ export const tenantResolvers = {
       try {
         // Users can only see their own tenant or super admins can see any
         if (!context.user) {
-          throw new Error('Not authenticated');
+          throw new Error('Unauthorized: Authentication required');
         }
 
-        if (context.user.role !== 'SUPER_ADMIN' && context.tenantId !== id) {
-          throw new Error('Unauthorized: You can only view your own tenant');
+        if (context.user.role !== 'SUPER_ADMIN' && context.user.tenantId !== id) {
+          throw new Error('Unauthorized: Access denied');
         }
 
         const tenant = await prisma.tenant.findUnique({
           where: { id }
         });
-
-        if (!tenant) {
-          throw new Error(`Tenant with ID ${id} not found`);
-        }
 
         return tenant;
       } catch (error) {
@@ -227,6 +234,69 @@ export const tenantResolvers = {
         };
       } catch (error) {
         console.error('Register user with tenant error:', error);
+        throw error;
+      }
+    },
+
+    updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: GraphQLContext) => {
+      try {
+        // Check authentication
+        if (!context.user) {
+          throw new Error('Not authenticated');
+        }
+
+        // Only super admins or tenant admins can update tenants
+        if (context.user.role !== 'SUPER_ADMIN' && context.user.role !== 'ADMIN') {
+          throw new Error('Unauthorized: Admin access required');
+        }
+
+        const tenantId = input.id;
+
+        // For non-super admins, they can only update their own tenant
+        if (context.user.role !== 'SUPER_ADMIN' && context.tenantId !== tenantId) {
+          throw new Error('Unauthorized: You can only update your own tenant');
+        }
+
+        // Check if tenant exists
+        const existingTenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+
+        if (!existingTenant) {
+          throw new Error(`Tenant with ID ${tenantId} not found`);
+        }
+
+        // If slug is being updated, check if it's already taken by another tenant
+        if (input.slug && input.slug !== existingTenant.slug) {
+          const slugTaken = await prisma.tenant.findFirst({
+            where: { 
+              slug: input.slug,
+              id: { not: tenantId }
+            }
+          });
+
+          if (slugTaken) {
+            throw new Error(`Tenant with slug "${input.slug}" already exists`);
+          }
+        }
+
+        // Update the tenant
+        const updatedTenant = await prisma.tenant.update({
+          where: { id: tenantId },
+          data: {
+            ...(input.name && { name: input.name }),
+            ...(input.slug && { slug: input.slug }),
+            ...(input.domain !== undefined && { domain: input.domain }),
+            ...(input.status && { status: input.status }),
+            ...(input.planId !== undefined && { planId: input.planId }),
+            ...(input.features && { features: input.features }),
+            ...(input.settings !== undefined && { settings: input.settings }),
+          }
+        });
+
+        return updatedTenant;
+      } catch (error) {
+        console.error('Update tenant error:', error);
         throw error;
       }
     },

@@ -6,7 +6,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieC
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
-import { complianceDashboard } from '@/lib/gdpr/complianceDashboard';
+
 
 // GraphQL Queries for Tenant Admin Dashboard
 const GET_TENANT_STATS = gql`
@@ -106,35 +106,55 @@ interface ComplianceDashboardData {
 
 export default function TenantAdminDashboard() {
   const { hasPermission, hasRole } = usePermission();
-  const { user } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const [complianceData, setComplianceData] = useState<ComplianceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // GraphQL queries
+  // GraphQL queries - temporarily disabled to avoid DATABASE_URL errors
   const { loading: statsLoading, data: statsData } = useQuery(GET_TENANT_STATS, {
     client,
     errorPolicy: 'all',
+    skip: true, // Skip these queries for now
   });
 
   const { loading: activityLoading, data: activityData } = useQuery(GET_USER_ACTIVITY, {
     client,
     errorPolicy: 'all',
+    skip: true, // Skip these queries for now
   });
 
   const { loading: gdprLoading } = useQuery(GET_GDPR_METRICS, {
     client,
     errorPolicy: 'all',
+    skip: true, // Skip these queries for now
   });
 
   // Load GDPR compliance data
   useEffect(() => {
     async function loadComplianceData() {
-      if (!user?.tenantId) return;
+      if (!user?.tenantId || !token) return;
       
       try {
         setLoading(true);
-        const dashboard = await complianceDashboard.generateDashboard(user.tenantId);
-        setComplianceData(dashboard);
+        
+        // Call the API instead of direct function call
+        const response = await fetch(`/api/gdpr/compliance?tenantId=${user.tenantId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setComplianceData(result.data);
+        } else {
+          throw new Error(result.error || 'Failed to load compliance data');
+        }
       } catch (error) {
         console.error('Error loading compliance data:', error);
       } finally {
@@ -143,7 +163,14 @@ export default function TenantAdminDashboard() {
     }
 
     loadComplianceData();
-  }, [user?.tenantId]);
+  }, [user?.tenantId, token]);
+
+  // Debug information
+  console.log('Dashboard Debug Info:', {
+    user,
+    hasTenantAdminRole: hasRole('TenantAdmin'),
+    hasAdminDashboardPermission: hasPermission('access:adminDashboard'),
+  });
 
   // Check permissions
   if (!hasRole('TenantAdmin') && !hasPermission('access:adminDashboard')) {
@@ -152,6 +179,28 @@ export default function TenantAdminDashboard() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Acceso Denegado</h1>
           <p className="text-gray-600">No tienes permisos para acceder al dashboard de administrador.</p>
+          
+          {/* Debug info - remove in production */}
+          <div className="mt-4 p-4 bg-gray-100 rounded text-left text-sm">
+            <h3 className="font-bold">Debug Info:</h3>
+            <p><strong>User:</strong> {user?.email}</p>
+            <p><strong>Role:</strong> {user?.role?.name || 'No role'}</p>
+            <p><strong>Role ID:</strong> {user?.role?.id || 'No role ID'}</p>
+            <p><strong>Has TenantAdmin Role:</strong> {hasRole('TenantAdmin') ? 'Yes' : 'No'}</p>
+            <p><strong>Has access:adminDashboard Permission:</strong> {hasPermission('access:adminDashboard') ? 'Yes' : 'No'}</p>
+            <p><strong>Tenant ID:</strong> {user?.tenantId || 'No tenant'}</p>
+            
+            <button 
+              onClick={async () => {
+                console.log('Refreshing user data...');
+                await refreshUser();
+                console.log('User data refreshed');
+              }}
+              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+            >
+              Refrescar datos del usuario
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -184,6 +233,8 @@ export default function TenantAdminDashboard() {
     { date: '2024-01-07', activeUsers: 201, newRegistrations: 11, dataRequests: 1 },
   ];
 
+  // Using mock data while GraphQL queries are disabled
+  // TODO: Re-enable GraphQL queries once DATABASE_URL issues are fully resolved
   const stats = statsData?.tenantStats || mockStats;
   const activityChartData = activityData?.userActivity || mockActivityData;
 

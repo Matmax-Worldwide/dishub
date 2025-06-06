@@ -150,7 +150,7 @@ export function DashboardSidebar() {
   });
 
   // Check if user is a super admin (full administrative access)
-  const isSuperAdmin = data?.me?.role?.name === 'SUPER_ADMIN' || authUser?.role?.name === 'SUPER_ADMIN';
+  const isSuperAdmin = data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin';
   const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';
   const isManager = data?.me?.role?.name === 'MANAGER' || authUser?.role?.name === 'MANAGER';
 
@@ -185,11 +185,59 @@ export function DashboardSidebar() {
   }, [isSuperAdmin, selectedRole, data?.me?.role?.name]);
   
   // Derived states based on effective role
-  const showAsAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN';
-  const showAsManager = effectiveRole === 'MANAGER' || (!showAsAdmin && isManager);
-  const showAsUser = effectiveRole === 'USER';
-  const showAsEmployee = effectiveRole === 'EMPLOYEE';
-  const shouldShowRegularUserView = !showAsAdmin && !showAsManager && !showAsUser && !showAsEmployee;
+  const showAsAdmin = effectiveRole === 'Admin' || effectiveRole === 'SuperAdmin';
+  const showAsTenantAdmin = effectiveRole === 'TenantAdmin';
+  const showAsManager = effectiveRole === 'TenantManager' || (!showAsAdmin && !showAsTenantAdmin && isManager);
+  const showAsUser = effectiveRole === 'User';
+  const showAsEmployee = effectiveRole === 'Employee';
+  const shouldShowRegularUserView = !showAsAdmin && !showAsTenantAdmin && !showAsManager && !showAsUser && !showAsEmployee;
+
+  // Detect if we're in tenant dashboard context
+  const isInTenantDashboard = useMemo(() => {
+    return pathname.includes('/tenants/') && pathname.includes('/dashboard');
+  }, [pathname]);
+
+  // Get tenant slug from params
+  const tenantSlug = useMemo(() => {
+    if (params.tenantSlug) {
+      return params.tenantSlug as string;
+    }
+    // Fallback: extract from pathname if available
+    const match = pathname.match(/\/tenants\/([^\/]+)/);
+    return match ? match[1] : null;
+  }, [params.tenantSlug, pathname]);
+
+  // Function to transform URLs for tenant dashboard context
+  const transformUrlForTenantDashboard = (url: string): string => {
+    if (!isInTenantDashboard || !tenantSlug) {
+      return url;
+    }
+
+    // Transform admin routes to tenant dashboard routes
+    if (url.includes('/admin/')) {
+      return url.replace('/admin/', `/tenants/${tenantSlug}/dashboard/`);
+    }
+
+    // Transform CMS routes to tenant dashboard routes
+    if (url.includes('/cms/')) {
+      return url.replace('/cms/', `/tenants/${tenantSlug}/dashboard/cms/`);
+    }
+
+    return url;
+  };
+
+  // Function to transform navigation items for tenant dashboard context
+  const transformNavItemsForTenantDashboard = (items: NavItem[]): NavItem[] => {
+    if (!isInTenantDashboard || !tenantSlug) {
+      return items;
+    }
+
+    return items.map(item => ({
+      ...item,
+      href: transformUrlForTenantDashboard(item.href),
+      children: item.children ? transformNavItemsForTenantDashboard(item.children) : undefined
+    }));
+  };
 
   // Cargar los datos de notificaciones no leídas
   const { data: notificationsData } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
@@ -197,100 +245,115 @@ export function DashboardSidebar() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Actualizar el contador de notificaciones cuando cambien los datos
+  // Actualizar el contador de notificaciones no leídas
   useEffect(() => {
-    if (notificationsData?.unreadNotificationsCount !== undefined) {
+    if (notificationsData?.unreadNotificationsCount) {
       setUnreadCount(notificationsData.unreadNotificationsCount);
     }
   }, [notificationsData]);
 
-  // Get external links
-  const { data: externalLinksData, loading: externalLinksLoading, error: externalLinksError, refetch: refetchExternalLinks } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
+  // Cargar enlaces externos
+  const { data: externalLinksData, loading: externalLinksLoading, error: externalLinksError } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
     client,
-    fetchPolicy: 'network-only', // Asegura datos frescos cada vez
-    nextFetchPolicy: 'network-only', // Para refetch también
-    context: {
-      headers: {
-        // Añadir explícitamente el token de autorización si está disponible
-        authorization: typeof window !== 'undefined' 
-          ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1] || ''}` 
-          : '',
-      }
-    },
+    fetchPolicy: 'cache-and-network',
     onCompleted: (data) => {
-      console.log('External links data loaded successfully:', data);
-      if (data && data.activeExternalLinks) {
-        console.log('Headers enviados en la request:', {
-          authorization: typeof window !== 'undefined' 
-            ? `Bearer ${document.cookie.split('; ').find(row => row.startsWith('session-token='))?.split('=')[1] || ''}` 
-            : '',
-        });
-        
-        // Log each link to debug
-        data.activeExternalLinks.forEach((link: ExternalLinkType) => {
-          console.log(`Received link: ${link.name}, accessType: ${link.accessType}, roles:`, link.allowedRoles);
-        });
-      }
+      console.log('External links loaded:', data?.activeExternalLinks);
     },
     onError: (error) => {
-      console.error('Error fetching external links:', error);
-      console.error('GraphQL error details:', error.graphQLErrors);
-      console.error('Network error details:', error.networkError);
+      console.error('Error loading external links:', error);
     }
   });
 
-  // Añadir logs para depurar datos de enlaces externos
+
+
+  // Responsive behavior
   useEffect(() => {
-    console.log('External Links Data:', externalLinksData);
-    if (externalLinksData) {
-      console.log('Active External Links:', externalLinksData.activeExternalLinks);
-    }
-  }, [externalLinksData]);
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsOpen(false);
+      }
+    };
 
-  // Refrescar los enlaces cuando cambia el rol
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Cerrar menú al hacer clic fuera
   useEffect(() => {
-    if (refetchExternalLinks) {
-      console.log('Role changed, refreshing external links. Current effective role:', effectiveRole);
-      // Refrescar los enlaces externos cuando cambia el rol
-      refetchExternalLinks()
-        .then(result => {
-          console.log('External links refreshed after role change:', result.data?.activeExternalLinks?.length || 0, 'links');
-        })
-        .catch(error => {
-          console.error('Error refreshing external links:', error);
-        });
-    }
-  }, [effectiveRole, refetchExternalLinks]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuOpen && !(event.target as Element).closest('.user-menu')) {
+        setUserMenuOpen(false);
+      }
+      if (roleMenuOpen && !(event.target as Element).closest('.role-menu')) {
+        setRoleMenuOpen(false);
+      }
+    };
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Close sidebar on mobile when route changes
-      setIsOpen(false);
-      
-      // Handle resize event
-      const handleResize = () => {
-        if (window.innerWidth >= 1024) {
-          setIsOpen(false);
-        }
-      };
-      
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, [pathname]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen, roleMenuOpen]);
 
-  // Get navigation items from config with translations
-  const baseNavigationItems: NavItem[] = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name),
-    badge: item.badge?.key === 'unread' ? { ...item.badge, value: unreadCount } : item.badge
-  }));
+  // Transform navigation items for admin/tenant admin
+  const transformedBaseNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.baseNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
-  const adminNavigationItems: NavItem[] = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
-    ...item,
-    name: t(item.name)
-  }));
+  const transformedAdminNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.adminNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
+  const transformedTenantAdminNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    console.log('Original tenant admin items:', items);
+    console.log('Filtering tenant admin items with tenant features:', tenantFeatures);
+    
+    // Filter items based on tenant features
+    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
+    console.log('Filtered tenant admin items:', filteredItems);
+    
+    // Transform for tenant dashboard context
+    return transformNavItemsForTenantDashboard(filteredItems);
+  }, [params.locale, t, tenantFeatures, isInTenantDashboard, tenantSlug]);
+
+  // SuperAdmin navigation items - MCP (Master Control Panel)
+  const transformedSuperAdminNavigationItems: NavItem[] = useMemo(() => {
+    const items = sidebarConfig.superAdminNavigationItems(params.locale as string).map(item => ({
+      ...item,
+      name: t(item.name),
+      children: item.children?.map(child => ({
+        ...child,
+        name: t(child.name)
+      }))
+    }));
+    
+    // SuperAdmin doesn't need feature filtering as they have access to everything
+    // Transform for tenant dashboard context if needed (though SuperAdmin mainly works outside tenant context)
+    return transformNavItemsForTenantDashboard(items);
+  }, [params.locale, t, isInTenantDashboard, tenantSlug]);
 
   // Get feature-based navigation items and filter by tenant features
   const featureBasedNavigationItems: NavItem[] = useMemo(() => {
@@ -310,8 +373,9 @@ export function DashboardSidebar() {
     const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
     console.log('Filtered feature-based items:', filteredItems);
     
-    return filteredItems;
-  }, [params.locale, tenantFeatures, t]);
+    // Transform for tenant dashboard context
+    return transformNavItemsForTenantDashboard(filteredItems);
+  }, [params.locale, tenantFeatures, t, isInTenantDashboard, tenantSlug]);
 
   // Filtrar enlaces externos basados en el rol efectivo
   const getFilteredExternalLinks = (): NavItem[] => {
@@ -640,9 +704,23 @@ export function DashboardSidebar() {
     
     return (
       <> 
+        {/* SuperAdmin items - MCP (Master Control Panel) */}
+        {isSuperAdmin && !selectedRole && (
+          <>
+            <div className="mb-4 mt-4">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                🌐 {t('sidebar.masterControlPanel')} (MCP)
+              </h3>
+            </div>
+
+            {transformedSuperAdminNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
+            ))}
+          </>
+        )}
                   
         {/* Admin items */}
-        {showAsAdmin && (
+        {showAsAdmin && !(isSuperAdmin && !selectedRole) && (
           <>
 
             
@@ -653,7 +731,7 @@ export function DashboardSidebar() {
               </h3>
             </div>
 
-            {adminNavigationItems.map(item => (
+            {transformedAdminNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -689,7 +767,7 @@ export function DashboardSidebar() {
               
               {userMenuOpen && (
                 <div className="pl-4 mt-1 space-y-1">
-                  {baseNavigationItems.map(item => (
+                  {transformedBaseNavigationItems.map(item => (
                     <Link 
                       key={item.href}
                       href={item.disabled ? "#" : item.href}
@@ -723,9 +801,24 @@ export function DashboardSidebar() {
 
             </>
         )}
+
+        {/* TenantAdmin items - Administrador de Tenant */}
+        {showAsTenantAdmin && (
+          <>
+            <div className="mb-4 mt-4">
+              <h3 className="text-xs font-medium uppercase text-gray-500">
+                🏢 {t('sidebar.tenantAdministration')}
+              </h3>
+            </div>
+
+            {transformedTenantAdminNavigationItems.map(item => (
+              <NavigationItem key={item.href} item={item} />
+            ))}
+          </>
+        )}
         
         {/* Manager items */}
-        {showAsManager && !showAsAdmin && (
+        {showAsManager && !showAsAdmin && !showAsTenantAdmin && (
           <>
             {/* Notifications section for managers */}
             <div className="mb-4">
@@ -785,7 +878,7 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.filter(item => 
+            {transformedBaseNavigationItems.filter(item => 
               !item.href.includes('/admin/dashboard/notifications')
             ).map(item => (
               <Link 
@@ -814,7 +907,7 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.map(item => (
+            {transformedBaseNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -841,7 +934,7 @@ export function DashboardSidebar() {
                 {t('sidebar.dashboard')}
               </h3>
             </div>
-            {baseNavigationItems.map(item => (
+            {transformedBaseNavigationItems.map(item => (
               <Link 
                 key={item.href}
                 href={item.disabled ? "#" : item.href}
@@ -894,7 +987,12 @@ export function DashboardSidebar() {
                   Admin
                 </span>
               )}
-              {isManager && !isAdmin && !isSuperAdmin && (
+              {showAsTenantAdmin && !isSuperAdmin && !isAdmin && (
+                <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-md">
+                  Tenant Admin
+                </span>
+              )}
+              {isManager && !isAdmin && !isSuperAdmin && !showAsTenantAdmin && (
                 <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md">
                   Manager
                 </span>
@@ -1243,7 +1341,7 @@ export function DashboardSidebar() {
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.administration')}
                     </h3>
-                    {adminNavigationItems.map((item) => (
+                    {transformedAdminNavigationItems.map((item) => (
                       <Link 
                         key={item.href}
                         href={item.disabled ? "#" : item.href}
@@ -1261,8 +1359,32 @@ export function DashboardSidebar() {
                     ))}
                   </div>
                 )}
+
+                {/* SuperAdmin items - Mobile */}
+                {isSuperAdmin && !showAsUser && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                      🚀 {t('sidebar.superAdministration')}
+                    </h3>
+                    {transformedSuperAdminNavigationItems.map((item) => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))}
+                  </div>
+                )}
+
+                {/* TenantAdmin items - Mobile */}
+                {showAsTenantAdmin && !showAsUser && (
+                  <div className="mb-4">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                      🏢 {t('sidebar.tenantAdministration')}
+                    </h3>
+                    {transformedTenantAdminNavigationItems.map((item) => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))}
+                  </div>
+                )}
                    
-                {showAsManager && !showAsUser && (
+                {showAsManager && !showAsUser && !showAsTenantAdmin && (
                   <div className="mb-4">
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.notifications')}
@@ -1306,8 +1428,8 @@ export function DashboardSidebar() {
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                       {t('sidebar.dashboard')}
                     </h3>
-                    {baseNavigationItems.filter(item => 
-                      !((showAsManager || showAsAdmin) && item.href.includes('/admin/dashboard/notifications'))
+                    {transformedBaseNavigationItems.filter(item => 
+                      !((showAsManager || showAsAdmin || showAsTenantAdmin) && item.href.includes('/admin/dashboard/notifications'))
                     ).map((item) => (
                       <Link 
                         key={item.href}

@@ -74,7 +74,7 @@ export const permissions = shield({
     
     // Tenant queries - PUBLIC ACCESS (needed for login redirection)
     tenant: allow,
-    allTenants: allow,
+    tenants: allow,
     
     // Menu queries - PUBLIC ACCESS (needed for navigation)
     menus: allow,
@@ -326,7 +326,7 @@ export const permissions = shield({
     email: allow, 
     firstName: allow,
     lastName: allow,
-    phoneNumber: or(isAdmin, or(isSelf, isAdmin)),
+    phoneNumber: allow, // Allow access to phoneNumber during login
     profileImageUrl: allow,
     role: allow, 
     tenantId: allow,

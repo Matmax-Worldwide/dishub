@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 // GraphQL queries for platform-wide data
 const GET_PLATFORM_STATS = gql`
   query GetPlatformStats {
-    allTenants {
+    tenants {
       id
       name
       isActive
@@ -28,6 +28,7 @@ const GET_PLATFORM_STATS = gql`
     }
     users {
       id
+      
       email
       role {
         name
@@ -46,8 +47,8 @@ export default function SuperAdminDashboard() {
   
   // Calculate platform metrics
   const platformStats = {
-    totalTenants: data?.allTenants?.length || 0,
-    activeTenants: data?.allTenants?.filter((t: { isActive: boolean }) => t.isActive)?.length || 0,
+    totalTenants: data?.tenants?.length || 0,
+    activeTenants: data?.tenants?.filter((t: { isActive: boolean }) => t.isActive)?.length || 0,
     totalUsers: data?.users?.length || 0,
     superAdmins: data?.users?.filter((u: { role: { name: string } }) => u.role?.name === 'SUPER_ADMIN')?.length || 0,
     admins: data?.users?.filter((u: { role: { name: string } }) => u.role?.name === 'ADMIN')?.length || 0,
@@ -55,7 +56,7 @@ export default function SuperAdminDashboard() {
       !['SUPER_ADMIN', 'ADMIN'].includes(u.role?.name))?.length || 0
   };
 
-  const recentTenants = data?.allTenants
+  const recentTenants = data?.tenants
     ?.slice()
     ?.sort((a: { createdAt: string }, b: { createdAt: string }) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

@@ -3691,7 +3691,7 @@ export const typeDefs = gql`
 
   # Extend Query type
   extend type Query {
-    allTenants: [Tenant!]
+    tenants: [Tenant!]
     tenant(id: ID!): Tenant
   }
 
@@ -3712,6 +3712,7 @@ export const typeDefs = gql`
     status: TenantStatus
     planId: String
     features: [String!]
+    settings: JSON
   }
 
   # Extend Mutation type
@@ -3937,4 +3938,374 @@ export const typeDefs = gql`
   }
 
   # --------------- END GDPR COMPLIANCE TYPES --- V1 ---
+
+  # --------------- SUPER ADMIN TYPES --- V1 ---
+
+  # SuperAdmin Dashboard Types
+  type SuperAdminDashboard {
+    stats: SuperAdminStats!
+    recentActivity: SuperAdminRecentActivity!
+  }
+
+  type SuperAdminStats {
+    totalTenants: Int!
+    activeTenants: Int!
+    totalUsers: Int!
+    activeUsers: Int!
+    totalModules: Int!
+    pendingRequests: Int!
+    systemErrors: Int!
+  }
+
+  type SuperAdminRecentActivity {
+    tenants: [RecentTenant!]!
+    users: [RecentUser!]!
+  }
+
+  type RecentTenant {
+    id: ID!
+    name: String!
+    slug: String!
+    status: String!
+    createdAt: DateTime!
+  }
+
+  type RecentUser {
+    id: ID!
+    firstName: String
+    lastName: String
+    email: String!
+    createdAt: DateTime!
+    role: Role
+  }
+
+  # Tenant Management Types
+  type TenantList {
+    items: [TenantDetails!]!
+    totalCount: Int!
+    page: Int!
+    pageSize: Int!
+    totalPages: Int!
+  }
+
+  type TenantDetails {
+    id: ID!
+    name: String!
+    slug: String!
+    domain: String
+    status: String!
+    planId: String
+    description: String
+    features: [String!]!
+    settings: JSON
+    userCount: Int!
+    pageCount: Int!
+    postCount: Int!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  # Tenant Health Monitoring
+  type TenantHealthMetric {
+    tenantId: ID!
+    tenantName: String!
+    status: String!
+    healthScore: Int!
+    metrics: TenantMetrics!
+    lastActivity: String!
+  }
+
+  type TenantMetrics {
+    totalUsers: Int!
+    activeUsers: Int!
+    totalPages: Int!
+    publishedPages: Int!
+    totalPosts: Int!
+    publishedPosts: Int!
+    features: [String!]!
+  }
+
+  # Global Analytics Types
+  type GlobalAnalytics {
+    tenantGrowth: [GrowthPoint!]!
+    userGrowth: [GrowthPoint!]!
+    featureUsage: [FeatureUsage!]!
+    topTenants: [TopTenant!]!
+  }
+
+  type GrowthPoint {
+    date: String!
+    count: Int!
+  }
+
+  type FeatureUsage {
+    feature: String!
+    count: Int!
+  }
+
+  type TopTenant {
+    id: ID!
+    name: String!
+    slug: String!
+    userCount: Int!
+    pageCount: Int!
+    postCount: Int!
+    lastActivity: String!
+  }
+
+  # System Monitoring Types
+  type SystemStatus {
+    database: DatabaseHealth!
+    metrics: SystemMetrics!
+    timestamp: String!
+  }
+
+  type DatabaseHealth {
+    status: String!
+    responseTime: Float
+  }
+
+  type SystemMetrics {
+    tenants: TenantSystemMetrics!
+    users: UserSystemMetrics!
+    system: SystemCoreMetrics!
+  }
+
+  type TenantSystemMetrics {
+    total: Int!
+    active: Int!
+    inactive: Int!
+  }
+
+  type UserSystemMetrics {
+    total: Int!
+    active: Int!
+    inactive: Int!
+  }
+
+  type SystemCoreMetrics {
+    roles: Int!
+    permissions: Int!
+  }
+
+  # Module Management Types
+  type GlobalModules {
+    modules: [ModuleStats!]!
+    totalModules: Int!
+    totalTenants: Int!
+  }
+
+  type ModuleStats {
+    name: String!
+    usageCount: Int!
+    usagePercentage: Float!
+    isActive: Boolean!
+  }
+
+  # Module Versions Types
+  type ModuleVersionList {
+    versions: [ModuleVersion!]!
+    totalCount: Int!
+    modules: [String!]!
+  }
+
+  type ModuleVersion {
+    id: ID!
+    moduleName: String!
+    version: String!
+    releaseDate: String!
+    status: ModuleVersionStatus!
+    changelog: String!
+    downloadCount: Int!
+    tenantCount: Int!
+    compatibility: [String!]!
+    size: String!
+    author: String!
+    isLatest: Boolean!
+    dependencies: [String!]!
+    features: [String!]!
+  }
+
+  enum ModuleVersionStatus {
+    STABLE
+    BETA
+    ALPHA
+    DEPRECATED
+  }
+
+  # Request History Types
+  type RequestHistoryList {
+    requests: [RequestHistory!]!
+    totalCount: Int!
+    stats: RequestHistoryStats!
+  }
+
+  type RequestHistory {
+    id: ID!
+    type: RequestType!
+    title: String!
+    description: String!
+    tenantId: ID!
+    tenantName: String!
+    requestedBy: String!
+    requestedByEmail: String!
+    status: RequestStatus!
+    priority: RequestPriority!
+    createdAt: String!
+    updatedAt: String!
+    completedAt: String
+    estimatedHours: Int
+    actualHours: Int
+    assignedTo: String
+    notes: String
+    attachments: [String!]!
+  }
+
+  enum RequestType {
+    MODULE
+    CUSTOMIZATION
+    FEATURE
+    ACTIVATION
+    SUPPORT
+  }
+
+  enum RequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    COMPLETED
+    CANCELLED
+  }
+
+  enum RequestPriority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+  }
+
+  type RequestHistoryStats {
+    totalRequests: Int!
+    approved: Int!
+    rejected: Int!
+    completed: Int!
+    cancelled: Int!
+    avgCompletionTime: Float!
+  }
+
+  # Mutation Result Types
+  type TenantMutationResult {
+    success: Boolean!
+    message: String!
+    tenant: TenantDetails
+  }
+
+  type ImpersonationResult {
+    success: Boolean!
+    message: String!
+    impersonationData: ImpersonationData
+  }
+
+  type ImpersonationData {
+    tenantId: ID!
+    tenantName: String!
+    tenantSlug: String!
+    userId: ID!
+    userEmail: String!
+    userRole: String
+  }
+
+  type MaintenanceResult {
+    success: Boolean!
+    message: String!
+    timestamp: String!
+  }
+
+  type SimpleResult {
+    success: Boolean!
+    message: String!
+  }
+
+  # Input Types
+  input TenantFilterInput {
+    search: String
+    status: String
+    planId: String
+  }
+
+  input PaginationInput {
+    page: Int
+    pageSize: Int
+  }
+
+  input CreateTenantInput {
+    name: String!
+    slug: String!
+    domain: String
+    planId: String
+    features: [String!]
+    settings: JSON
+  }
+
+  input UpdateTenantInputSuperAdmin {
+    name: String
+    slug: String
+    domain: String
+    status: TenantStatus
+    planId: String
+    features: [String!]
+    settings: JSON
+  }
+
+  input ModuleVersionFilterInput {
+    search: String
+    moduleName: String
+    status: ModuleVersionStatus
+  }
+
+  input RequestHistoryFilterInput {
+    search: String
+    type: RequestType
+    status: RequestStatus
+    priority: RequestPriority
+    dateRange: String
+  }
+
+  # SuperAdmin Queries
+  extend type Query {
+    # Dashboard
+    superAdminDashboard: SuperAdminDashboard!
+    
+    # Tenant Management
+    allTenants(filter: TenantFilterInput, pagination: PaginationInput): TenantList!
+    tenantById(id: ID!): TenantDetails
+    tenantHealthMetrics(tenantId: ID): [TenantHealthMetric!]!
+    
+    # Analytics & Monitoring
+    globalAnalytics(timeRange: String): GlobalAnalytics!
+    systemStatus: SystemStatus!
+    globalModules: GlobalModules!
+    
+    # Module Management
+    moduleVersions(filter: ModuleVersionFilterInput, pagination: PaginationInput): ModuleVersionList!
+    
+    # Request Management
+    requestHistory(filter: RequestHistoryFilterInput, pagination: PaginationInput): RequestHistoryList!
+  }
+
+  # SuperAdmin Mutations
+  extend type Mutation {
+    # Tenant Management
+    createTenantSuperAdmin(input: CreateTenantInput!): TenantMutationResult!
+    updateTenantSuperAdmin(id: ID!, input: UpdateTenantInputSuperAdmin!): TenantMutationResult!
+    deleteTenant(id: ID!): SimpleResult!
+    
+    # Tenant Operations
+    impersonateTenant(tenantId: ID!): ImpersonationResult!
+    
+    # System Maintenance
+    performSystemMaintenance(action: String!): MaintenanceResult!
+  }
+
+  # --------------- END SUPER ADMIN TYPES --- V1 ---
 `; 

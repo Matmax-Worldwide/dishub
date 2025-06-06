@@ -158,8 +158,7 @@ export async function gqlRequest<T>(
       // Check for GraphQL errors
       if (responseData.errors && responseData.errors.length > 0) {
         const errorMessages = responseData.errors.map((e: { message: string }) => e.message).join(', ');
-        console.error(`GraphQL errors for [${requestId}]:`, errorMessages);
-        
+
         // For public operations, handle auth errors gracefully
         if (isPublicOperation && (errorMessages.includes('Not authenticated') || errorMessages.includes('Unauthorized'))) {
           console.warn(`Authentication error in public operation [${requestId}], continuing with partial data`);
@@ -8373,6 +8372,151 @@ const graphqlClient = {
     return result.orders || [];
   },
 
+  // Tenant Management (SuperAdmin)
+  async getTenantById(id: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string;
+    status: string;
+    planId?: string;
+    features: string[];
+    userCount: number;
+    pageCount: number;
+    postCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query TenantById($id: ID!) {
+        tenantById(id: $id) {
+          id
+          name
+          slug
+          domain
+          status
+          planId
+          features
+          userCount
+          pageCount
+          postCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ tenantById: {
+        id: string;
+        name: string;
+        slug: string;
+        domain?: string;
+        status: string;
+        planId?: string;
+        features: string[];
+        userCount: number;
+        pageCount: number;
+        postCount: number;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query, { id });
+
+      return result.tenantById;
+    } catch (error) {
+      console.error('Error fetching tenant by ID:', error);
+      return null;
+    }
+  },
+
+  async updateTenant(
+    id: string,
+    input: {
+      name?: string;
+      slug?: string;
+      domain?: string;
+      status?: string;
+      planId?: string;
+      description?: string;
+      features?: string[];
+      settings?: Record<string, unknown>;
+    }
+  ): Promise<{ success: boolean; message: string; tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string;
+    status: string;
+    planId?: string;
+    description?: string;
+    features: string[];
+    settings?: Record<string, unknown>;
+    userCount: number;
+    pageCount: number;
+    postCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } }> {
+    const mutation = `
+      mutation UpdateTenant($input: UpdateTenantInput!) {
+        updateTenant(input: $input) {
+          id
+          name
+          slug
+          domain
+          status
+          planId
+          features
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{
+        updateTenant: {
+          id: string;
+          name: string;
+          slug: string;
+          domain?: string;
+          status: string;
+          planId?: string;
+          features: string[];
+          createdAt: string;
+          updatedAt: string;
+        };
+      }>(mutation, { 
+        input: {
+          id,
+          name: input.name,
+          slug: input.slug,
+          domain: input.domain,
+          status: input.status,
+          planId: input.planId,
+          features: input.features
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Tenant updated successfully',
+        tenant: {
+          ...result.updateTenant,
+          userCount: 0, // These would need to be fetched separately
+          pageCount: 0,
+          postCount: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update tenant'
+      };
+    }
+  },
+
 };
 
 // Export all functions
@@ -10199,6 +10343,151 @@ export const ecommerce = {
     }> }>(query, variables);
 
     return result.shipments || [];
+  },
+
+  // Tenant Management (SuperAdmin)
+  async getTenantById(id: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string;
+    status: string;
+    planId?: string;
+    features: string[];
+    userCount: number;
+    pageCount: number;
+    postCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null> {
+    const query = `
+      query TenantById($id: ID!) {
+        tenantById(id: $id) {
+          id
+          name
+          slug
+          domain
+          status
+          planId
+          features
+          userCount
+          pageCount
+          postCount
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ tenantById: {
+        id: string;
+        name: string;
+        slug: string;
+        domain?: string;
+        status: string;
+        planId?: string;
+        features: string[];
+        userCount: number;
+        pageCount: number;
+        postCount: number;
+        createdAt: string;
+        updatedAt: string;
+      } | null }>(query, { id });
+
+      return result.tenantById;
+    } catch (error) {
+      console.error('Error fetching tenant by ID:', error);
+      return null;
+    }
+  },
+
+  async updateTenant(
+    id: string,
+    input: {
+      name?: string;
+      slug?: string;
+      domain?: string;
+      status?: string;
+      planId?: string;
+      description?: string;
+      features?: string[];
+      settings?: Record<string, unknown>;
+    }
+  ): Promise<{ success: boolean; message: string; tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string;
+    status: string;
+    planId?: string;
+    description?: string;
+    features: string[];
+    settings?: Record<string, unknown>;
+    userCount: number;
+    pageCount: number;
+    postCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } }> {
+    const mutation = `
+      mutation UpdateTenant($input: UpdateTenantInput!) {
+        updateTenant(input: $input) {
+          id
+          name
+          slug
+          domain
+          status
+          planId
+          features
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{
+        updateTenant: {
+          id: string;
+          name: string;
+          slug: string;
+          domain?: string;
+          status: string;
+          planId?: string;
+          features: string[];
+          createdAt: string;
+          updatedAt: string;
+        };
+      }>(mutation, { 
+        input: {
+          id,
+          name: input.name,
+          slug: input.slug,
+          domain: input.domain,
+          status: input.status,
+          planId: input.planId,
+          features: input.features
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Tenant updated successfully',
+        tenant: {
+          ...result.updateTenant,
+          userCount: 0, // These would need to be fetched separately
+          pageCount: 0,
+          postCount: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update tenant'
+      };
+    }
   },
 
 };

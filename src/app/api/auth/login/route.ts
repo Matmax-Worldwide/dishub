@@ -92,7 +92,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       user: {
         ...userWithoutPassword,
-        role: user.role?.name || 'USER'
+        role: {
+          id: user.role?.id || '',
+          name: user.role?.name || 'USER'
+        }
       },
       token
     });
