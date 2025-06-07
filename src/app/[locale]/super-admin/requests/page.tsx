@@ -82,7 +82,7 @@ export default function ActivationRequestsPage() {
       tenantSlug: 'tech-company',
       requestType: 'module_activation',
       moduleName: 'HRMS Module',
-      description: 'Human Resource Management System for employee management, payroll, and performance tracking.',
+      description: 'Human Asset Management System for employee management, payroll, and performance tracking.',
       priority: 'medium',
       status: 'approved',
       requestedBy: 'John Smith',

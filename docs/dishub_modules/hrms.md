@@ -1,4 +1,4 @@
-# Human Resource Management System (HRMS)
+# Human Asset Management System (HRMS)
 
 ## Propósito
 Gestiona empleados, posiciones, horarios, asistencias, turnos y contratos.
