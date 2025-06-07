@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
 import { verifySession } from '@/app/api/auth/route';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 type Parent = object;
 type EmptyArgs = Record<string, never>;

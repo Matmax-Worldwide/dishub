@@ -7,7 +7,7 @@ import resolvers from './resolvers';
 import { prismaManager } from '@/lib/prisma'; // Changed to prismaManager
 import { tenantScopeExtension } from '@/lib/prisma-extensions/tenant-scope'; // Added
 import { TenantResolver } from '@/lib/tenant/resolver'; // Added
-
+import { PrismaClient } from '@prisma/client'; // Added
 import { verifyToken } from '@/lib/auth'; // UserJwtPayload for better typing
 
 
@@ -27,7 +27,7 @@ import { batchPostsByBlogIds, EnrichedPost as EnrichedBlogPost } from './dataloa
 import { batchOrderItemsByOrderIds, EnrichedOrderItem } from './dataloaders/orderItemsByOrderIdLoader';
 import { batchUsersByIds, PublicUser } from './dataloaders/userByIdLoader';
 
-import { PrismaClient, Tenant } from '@prisma/client'; // Import Tenant (not PrismaTenant)
+import { Tenant } from '@prisma/client'; // Import Tenant (not PrismaTenant)
 
 
 // Create the base schema
