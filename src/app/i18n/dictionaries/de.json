@@ -317,6 +317,7 @@
     "adminTools": "Admin-Tools",
     "adminMessage": "Sie haben vollständigen administrativen Zugriff zur Verwaltung der Plattform und ihrer Benutzer.",
     "newUser": "Neuer Benutzer",
+    "newTenant": "Neuer Mandant",
     "message": "Nachricht",
     "externalLinksTitle": "Externe Links",
     "noExternalLinks": "Keine externen Links für Ihre Rolle verfügbar",

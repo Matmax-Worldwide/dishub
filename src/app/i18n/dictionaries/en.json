@@ -311,6 +311,7 @@
     "adminTools": "Administrative Tools",
     "adminMessage": "You have full administrative access to manage the platform and its users.",
     "newUser": "New User",
+    "newTenant": "New Tenant",
     "message": "Message",
     "externalLinksTitle": "External Links",
     "noExternalLinks": "No external links available for your role",

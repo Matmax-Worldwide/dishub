@@ -91,15 +91,7 @@ const GET_ACTIVE_EXTERNAL_LINKS = gql`
 `;
 
 
-const GET_ALL_ROLES = gql`
-  query GetAllRoles {
-    roles {
-      id
-      name
-      description
-    }
-  }
-`;
+
 
 interface ExternalLinkType {
   id: string;
@@ -554,24 +546,6 @@ export function DashboardSidebar() {
     return null;
   };
 
-  // Helper function to translate role names safely
-  const translateRole = (roleName: string): string => {
-    try {
-      const roleKey = `roles.${roleName}`;
-      const translation = t(roleKey);
-      return translation === roleKey ? roleName : translation;
-    } catch {
-      return roleName;
-    }
-  };
-  
-
-  // Helper function to format text with a role parameter
-  const formatTextWithRole = (key: string, role: string): string => {
-    const baseText = t(key);
-    return baseText.replace('{role}', translateRole(role));
-  };
-
   // Helper function to format tenant name for display
   const getTenantDisplayName = (): string => {
     const tenantName = firstTenant?.name || tenantData?.tenant?.name;
@@ -1012,10 +986,10 @@ export function DashboardSidebar() {
                   variant="outline" 
                   size="sm" 
                   className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/manage/${params.tenantSlug}/settings/users`}
+                  onClick={() => window.location.href = `/${params.locale}/super-admin/tenants/create`}
                 >
                   <UserIcon className="h-3 w-3" />
-                  {t('sidebar.newUser')}
+                  {t('sidebar.newTenant')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -1179,18 +1153,18 @@ export function DashboardSidebar() {
 
                     
                     <div className="grid grid-cols-2 gap-2 px-3 mb-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center justify-center gap-2"
-                        onClick={() => {
-                          window.location.href = `/${params.locale}/manage/${params.tenantSlug}/settings/users`;
-                          setIsOpen(false);
-                        }}
-                      >
-                        <UserIcon className="h-3 w-3" />
-                        {t('sidebar.newUser')}
-                      </Button>
+                                              <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center justify-center gap-2"
+                          onClick={() => {
+                            window.location.href = `/${params.locale}/super-admin/tenants/create`;
+                            setIsOpen(false);
+                          }}
+                        >
+                          <UserIcon className="h-3 w-3" />
+                          {t('sidebar.newTenant')}
+                        </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 

@@ -301,6 +301,7 @@
     "adminTools": "Herramientas de Administración",
     "adminMessage": "Tienes acceso administrativo completo para gestionar la plataforma y sus usuarios.",
     "newUser": "Nuevo Usuario",
+    "newTenant": "Nuevo Tenant",
     "message": "Mensaje",
     "externalLinksTitle": "Enlaces Externos",
     "noExternalLinks": "No hay enlaces externos disponibles para tu rol",
