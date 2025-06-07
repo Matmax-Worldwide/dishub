@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
-import { verifySession } from '@/app/api/utils/auth';
+import { verifySession } from '@/app/api/auth/login/auth';
 
 const prisma = new PrismaClient();
 

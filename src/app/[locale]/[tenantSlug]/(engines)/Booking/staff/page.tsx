@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import CategoryManager from '@/components/modules/calendar/CategoryManager'; // Adjust path if necessary
+import StaffManager from '@/components/engines/booking/StaffManager'; // Adjust path as necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
-export default function ServiceCategoriesPage() {
+export default function StaffPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
@@ -18,19 +18,19 @@ export default function ServiceCategoriesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Service Categories</BreadcrumbPage>
+            <BreadcrumbPage>Staff Management</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Manage Service Categories</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Manage Staff Members</h1>
       </div>
       <p className="text-muted-foreground text-sm">
-        Organize your services by creating and managing categories.
+        Configure staff profiles, assign services & locations, and set weekly availability.
       </p>
       
-      <CategoryManager />
+      <StaffManager />
     </div>
   );
 }

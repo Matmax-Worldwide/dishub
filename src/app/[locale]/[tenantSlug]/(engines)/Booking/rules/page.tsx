@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import StaffManager from '@/components/modules/calendar/StaffManager'; // Adjust path as necessary
+import BookingRulesManager from '@/components/engines/booking/BookingRulesManager'; // Adjust path as necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
-export default function StaffPage() {
+export default function BookingRulesPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
@@ -18,19 +18,19 @@ export default function StaffPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Staff Management</BreadcrumbPage>
+            <BreadcrumbPage>Booking Rules</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Manage Staff Members</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Global Booking Rules Configuration</h1>
       </div>
       <p className="text-muted-foreground text-sm">
-        Configure staff profiles, assign services & locations, and set weekly availability.
+        Define the global rules that govern how bookings can be made. These rules apply site-wide unless overridden by location-specific rules (future feature).
       </p>
       
-      <StaffManager />
+      <BookingRulesManager />
     </div>
   );
 }

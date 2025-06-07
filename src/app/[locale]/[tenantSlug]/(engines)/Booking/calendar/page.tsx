@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
-import MultiStepBookingForm from '@/components/modules/calendar/MultiStepBookingForm';
+import MultiStepBookingForm from '@/components/engines/booking/MultiStepBookingForm';
 
 // Types
 interface Location {

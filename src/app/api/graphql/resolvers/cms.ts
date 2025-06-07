@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma, PageType } from '@prisma/client';
-import { verifySession } from '@/app/api/utils/auth';
+import { verifySession } from '@/app/api/auth/login/auth';
 import { GraphQLContext } from '../route';
 import { GraphQLError } from 'graphql';
 

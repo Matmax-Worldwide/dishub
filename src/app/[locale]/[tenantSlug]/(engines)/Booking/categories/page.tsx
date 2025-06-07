@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import ServiceManager from '@/components/modules/calendar/ServiceManager'; // Adjust path as necessary
+import CategoryManager from '@/components/engines/booking/CategoryManager'; // Adjust path if necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
-export default function ServicesPage() {
+export default function ServiceCategoriesPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
@@ -18,19 +18,19 @@ export default function ServicesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Services</BreadcrumbPage>
+            <BreadcrumbPage>Service Categories</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Manage Services</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Manage Service Categories</h1>
       </div>
       <p className="text-muted-foreground text-sm">
-        Define and manage the bookable services offered.
+        Organize your services by creating and managing categories.
       </p>
       
-      <ServiceManager />
+      <CategoryManager />
     </div>
   );
 }

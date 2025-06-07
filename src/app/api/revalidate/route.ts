@@ -1,4 +1,4 @@
-// packages/tenant-site-template/src/app/api/revalidate/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag, revalidatePath } from 'next/cache';
 

@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import BookingRulesManager from '@/components/modules/calendar/BookingRulesManager'; // Adjust path as necessary
+import ServiceManager from '@/components/engines/booking/ServiceManager'; // Adjust path as necessary
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
-export default function BookingRulesPage() {
+export default function ServicesPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <Breadcrumb>
@@ -18,19 +18,19 @@ export default function BookingRulesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Booking Rules</BreadcrumbPage>
+            <BreadcrumbPage>Services</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Global Booking Rules Configuration</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Manage Services</h1>
       </div>
       <p className="text-muted-foreground text-sm">
-        Define the global rules that govern how bookings can be made. These rules apply site-wide unless overridden by location-specific rules (future feature).
+        Define and manage the bookable services offered.
       </p>
       
-      <BookingRulesManager />
+      <ServiceManager />
     </div>
   );
 }

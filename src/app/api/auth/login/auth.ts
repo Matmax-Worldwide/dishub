@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { Session } from '../graphql/types';
+import { Session } from '../../graphql/types';
 
 // Define a type for the permission object
 type UserPermissionItem = {
