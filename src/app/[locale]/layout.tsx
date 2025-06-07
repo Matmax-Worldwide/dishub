@@ -1,6 +1,6 @@
 import { Inter } from "next/font/google";
-import { Providers } from '@/app/providers';
 import { getMessages } from '@/lib/getMessages';
+import { LocaleProviders } from '@/app/locale-providers';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,10 +17,10 @@ export default async function LocaleLayout({
   const messages = await getMessages(locale);
   
   return (
-    <Providers locale={locale} messages={messages}>
+    <LocaleProviders locale={locale} messages={messages}>
       <main className={inter.className + " "}>
         {children}
       </main>
-    </Providers>
+    </LocaleProviders>
   );
 } 
