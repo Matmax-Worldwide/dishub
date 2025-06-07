@@ -76,7 +76,7 @@ export default function AccessDeniedPage() {
       } else if (userRole === 'TenantAdmin' || userRole === 'TenantManager') {
         // Para TenantAdmin/TenantManager, necesitamos el tenant slug
         if (tenant?.slug) {
-          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
+          setRedirectPath(`/${locale}/${tenant.slug}/dashboard`);
         } else if (firstTenantId) {
           // Si tenemos tenantId pero no el slug aún, usar dashboard general
           setRedirectPath(`/${locale}/dashboard`);
@@ -87,9 +87,9 @@ export default function AccessDeniedPage() {
         // Para usuarios regulares, usar dashboard general por ahora
         if (tenant?.slug) {
           console.log(`Usuario pertenece a tenant ${tenant.slug}, usando dashboard del tenant`);
-          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
+          setRedirectPath(`/${locale}/${tenant.slug}/dashboard`);
         } else {
-          setRedirectPath(`/${locale}/dashboard`);
+          setRedirectPath(`/${locale}/super-admin`);
         }
       }
     } else if (!isAuthenticated) {

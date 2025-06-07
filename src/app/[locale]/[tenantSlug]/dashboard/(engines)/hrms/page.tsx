@@ -26,7 +26,7 @@ export default function HRMSEngine() {
       title: 'Gestión de Empleados',
       description: 'Administra la información y perfiles de empleados',
       icon: UsersIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/employees`,
+      href: `/${locale}/${tenantSlug}/hrms/employees`,
       color: 'blue',
       stats: '12 empleados activos'
     },
@@ -34,7 +34,7 @@ export default function HRMSEngine() {
       title: 'Departamentos',
       description: 'Organiza y gestiona departamentos y equipos',
       icon: HomeIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/departments`,
+      href: `/${locale}/${tenantSlug}/hrms/departments`,
       color: 'green',
       stats: '5 departamentos'
     },
@@ -42,7 +42,7 @@ export default function HRMSEngine() {
       title: 'Nómina',
       description: 'Procesamiento y gestión de nóminas',
       icon: DollarSignIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/payroll`,
+      href: `/${locale}/${tenantSlug}/hrms/payroll`,
       color: 'yellow',
       stats: 'Próximo: 15 dic'
     },
@@ -50,7 +50,7 @@ export default function HRMSEngine() {
       title: 'Asistencia',
       description: 'Control de horarios y asistencia',
       icon: CalendarIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/attendance`,
+      href: `/${locale}/${tenantSlug}/hrms/attendance`,
       color: 'purple',
       stats: '98% asistencia'
     },
@@ -58,7 +58,7 @@ export default function HRMSEngine() {
       title: 'Evaluaciones',
       description: 'Sistema de evaluación de desempeño',
       icon: ClipboardListIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/evaluations`,
+      href: `/${locale}/${tenantSlug}/hrms/evaluations`,
       color: 'indigo',
       stats: '8 pendientes'
     },
@@ -66,7 +66,7 @@ export default function HRMSEngine() {
       title: 'Reportes',
       description: 'Análisis y reportes de recursos humanos',
       icon: TrendingUpIcon,
-      href: `/${locale}/manage/${tenantSlug}/hrms/reports`,
+      href: `/${locale}/${tenantSlug}/hrms/reports`,
       color: 'pink',
       stats: '15 reportes'
     }
@@ -103,7 +103,7 @@ export default function HRMSEngine() {
             Nuevo Empleado
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/${locale}/manage/${tenantSlug}/hrms/settings`}>
+            <Link href={`/${locale}/${tenantSlug}/hrms/settings`}>
               <SettingsIcon className="h-4 w-4 mr-2" />
               Configuración
             </Link>

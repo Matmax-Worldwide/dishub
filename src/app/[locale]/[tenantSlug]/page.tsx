@@ -21,7 +21,7 @@ export default function TenantRootPage() {
       
       // If TenantAdmin or TenantManager, redirect to dashboard
       if (hasRole('TenantAdmin') || hasRole('TenantManager')) {
-        window.location.href = `/${params.locale}/manage/${params.tenantSlug}/dashboard`;
+        window.location.href = `/${params.locale}/${params.tenantSlug}/dashboard`;
         return;
       }
       

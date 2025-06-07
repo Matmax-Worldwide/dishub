@@ -170,21 +170,21 @@ export default function LoginPage() {
               console.log('Tenant slug:', tenantData.tenant.slug);
               
               if (transformedUser.role?.name === 'TenantAdmin') {
-                redirectPath = `/${locale}/manage/${tenantData.tenant.slug}/dashboard`;
+                redirectPath = `/${locale}/${tenantData.tenant.slug}/dashboard`;
                 console.log(`✅ TenantAdmin redirect path: ${redirectPath}`);
               } else if (transformedUser.role?.name === 'TenantManager') {
-                redirectPath = `/${locale}/manage/${tenantData.tenant.slug}/dashboard`;
+                redirectPath = `/${locale}/${tenantData.tenant.slug}/dashboard`;
                 console.log(`✅ TenantManager redirect path: ${redirectPath}`);
               } else if (transformedUser.role?.name === 'TenantEmployee') {
                 // TenantEmployee goes to the main tenant page
-                redirectPath = `/${locale}/manage/${tenantData.tenant.slug}`;
+                redirectPath = `/${locale}/${tenantData.tenant.slug}`;
                 console.log(`✅ TenantEmployee redirect path: ${redirectPath}`);
               } else {
                 // For any other role associated with a tenant, redirect to tenant dashboard
                 console.log(`⚠️ Unknown role "${transformedUser.role?.name}" but user belongs to tenant: ${tenantData.tenant.slug}, redirecting to tenant dashboard`);
                 sessionStorage.setItem('userTenantSlug', tenantData.tenant.slug);
                 sessionStorage.setItem('userTenantName', tenantData.tenant.name);
-                redirectPath = `/${locale}/manage/${tenantData.tenant.slug}/dashboard`;
+                redirectPath = `/${locale}/${tenantData.tenant.slug}/dashboard`;
                 console.log(`✅ Fallback redirect path: ${redirectPath}`);
               }
               console.log(`User with role ${transformedUser.role?.name} from tenant ${tenantData.tenant.slug} redirecting to: ${redirectPath}`);

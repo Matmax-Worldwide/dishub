@@ -175,7 +175,7 @@ export function DashboardSidebar() {
 
   // Detect if we're in tenant dashboard context
   const isInTenantDashboard = useMemo(() => {
-    return pathname.includes('/manage/') && pathname.includes('/dashboard');
+    return pathname.includes('/') && pathname.includes('/dashboard');
   }, [pathname]);
 
   // Get tenant slug from params
@@ -184,7 +184,7 @@ export function DashboardSidebar() {
       return params.tenantSlug as string;
     }
     // Fallback: extract from pathname if available
-    const match = pathname.match(/\/manage\/([^\/]+)/);
+    const match = pathname.match(/\/([^\/]+)/);
     return match ? match[1] : null;
   }, [params.tenantSlug, pathname]);
 
@@ -196,17 +196,12 @@ export function DashboardSidebar() {
 
     // Transform admin routes to tenant dashboard routes
     if (url.includes('/admin/')) {
-      return url.replace('/admin/', `/manage/${tenantSlug}/dashboard/`);
-    }
-
-    // Transform engines routes to tenant dashboard routes
-    if (url.includes('/(engines)/')) {
-      return url.replace('/(engines)/', `/manage/${tenantSlug}/(engines)/`);
+      return url.replace('/admin/', `/${tenantSlug}/`);
     }
 
     // Transform CMS routes to tenant dashboard routes (legacy)
     if (url.includes('/cms/')) {
-      return url.replace('/cms/', `/manage/${tenantSlug}/(engines)/cms/`);
+      return url.replace('/cms/', `/${tenantSlug}/cms/`);
     }
 
     return url;
@@ -295,10 +290,10 @@ export function DashboardSidebar() {
     if (showAsTenantAdmin && currentTenantSlug) {
       return items.map(item => ({
         ...item,
-        href: item.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`),
+        href: item.href.replace(`/${params.locale}/admin`, `/${params.locale}/${currentTenantSlug}`),
         children: item.children?.map(child => ({
           ...child,
-          href: child.href.replace(`/${params.locale}/admin`, `/${params.locale}/manage/${currentTenantSlug}`)
+          href: child.href.replace(`/${params.locale}/admin`, `/${params.locale}/${currentTenantSlug}`)
         }))
       }));
     }
@@ -502,28 +497,6 @@ export function DashboardSidebar() {
       console.error('External links error:', externalLinksError.message);
     }
   }, [externalLinksLoading, externalLinksError]);
-
-  // Redirigir a usuarios con rol USER si intentan acceder a rutas internas del dashboard
-  useEffect(() => {
-    if (showAsUser && pathname && 
-        (pathname.includes('/admin/dashboard') || 
-         pathname.includes('/admin') || 
-         pathname.includes('/manager'))) {
-      // Obtener el primer enlace externo disponible para redirigir al usuario
-      const firstExternalLink = externalLinks && externalLinks.length > 0 
-        ? externalLinks[0].href 
-        : `/${params.locale}`;
-      
-      console.log('Usuario con rol USER intentando acceder a ruta interna, redirigiendo a:', firstExternalLink);
-      
-      // Espera un momento antes de redirigir para asegurar que todo esté cargado
-      const redirectTimeout = setTimeout(() => {
-        window.location.href = firstExternalLink;
-      }, 1000);
-      
-      return () => clearTimeout(redirectTimeout);
-    }
-  }, [showAsUser, pathname, externalLinks, params.locale]);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -793,9 +766,9 @@ export function DashboardSidebar() {
                 {t('sidebar.notifications')}
               </h3>
               <Link 
-                href={`/${params.locale}/admin/dashboard/notifications`}
+                href={`/${params.locale}/${tenantSlug}/notifications`}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === `/${params.locale}/admin/dashboard/notifications`
+                  pathname === `/${params.locale}/${tenantSlug}/notifications`
                     ? 'bg-indigo-100 text-indigo-700' 
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -810,9 +783,9 @@ export function DashboardSidebar() {
                 )}
               </Link>
               <Link 
-                href={`/${params.locale}/admin/notifications`}
+                href={`/${params.locale}/${tenantSlug}/notifications`}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                  pathname === `/${params.locale}/admin/notifications`
+                  pathname === `/${params.locale}/${tenantSlug}/notifications`
                     ? 'bg-indigo-100 text-indigo-700' 
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -846,7 +819,7 @@ export function DashboardSidebar() {
               </h3>
             </div>
             {transformedBaseNavigationItems.filter(item => 
-              !item.href.includes('/admin/dashboard/notifications')
+              !item.href.includes('/notifications')
             ).map(item => (
               <Link 
                 key={item.href}
@@ -995,7 +968,7 @@ export function DashboardSidebar() {
                   variant="outline" 
                   size="sm" 
                   className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/manage/${params.tenantSlug}/notifications`}
+                  onClick={() => window.location.href = `/${params.locale}/${tenantSlug}/notifications`}
                 >
                   <BellIcon className="h-3 w-3" />
                   {t('sidebar.message')}
@@ -1170,7 +1143,7 @@ export function DashboardSidebar() {
                         size="sm" 
                         className="flex items-center justify-center gap-2"
                         onClick={() => {
-                          window.location.href = `/${params.locale}/manage/${params.tenantSlug}/notifications`;
+                        window.location.href = `/${params.locale}/${tenantSlug}/notifications`;
                           setIsOpen(false);
                         }}
                       >
@@ -1246,9 +1219,9 @@ export function DashboardSidebar() {
                       {t('sidebar.notifications')}
                     </h3>
                     <Link 
-                      href={`/${params.locale}/manage/${params.tenantSlug}/notifications`}
+                      href={`/${params.locale}/${params.tenantSlug}/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/manage/${params.tenantSlug}/notifications`
+                        pathname === `/${params.locale}/${params.tenantSlug}/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -1263,9 +1236,9 @@ export function DashboardSidebar() {
                       )}
                     </Link>
                     <Link 
-                      href={`/${params.locale}/manage/${params.tenantSlug}/notifications`}
+                      href={`/${params.locale}/${params.tenantSlug}/notifications`}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                        pathname === `/${params.locale}/manage/${params.tenantSlug}/notifications`
+                        pathname === `/${params.locale}/${params.tenantSlug}/notifications`
                           ? 'bg-indigo-100 text-indigo-700' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}

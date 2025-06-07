@@ -110,7 +110,7 @@ export default function GetStartedPage() {
       
       // Redirect to tenant dashboard
       const tenantSlug = data.registerUserWithTenant.tenant.slug;
-      router.push(`/manage/${tenantSlug}/dashboard`);
+      router.push(`/${tenantSlug}/dashboard`);
     },
     onError: (error) => {
       console.error('Registration error:', error);
