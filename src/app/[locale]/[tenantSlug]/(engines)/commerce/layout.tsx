@@ -1,7 +1,7 @@
 'use client';
 
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
-import CommerceSidebar from '@/components/CommerceSidebar';
+import CommerceSidebar from '@/components/engines/commerce/CommerceSidebar';
 import { use } from 'react';
 
 interface CommerceLayoutProps {
