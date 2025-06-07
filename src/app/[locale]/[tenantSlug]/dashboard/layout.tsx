@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { DashboardSidebar } from '@/components/navigation/dashboardSidebar/DashboardSidebar';
+import { DashboardSidebar } from '@/app/components/navigation/dashboardSidebar/DashboardSidebar';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
 

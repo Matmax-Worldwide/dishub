@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Upload, AlertTriangle, Package, TrendingDown, Warehouse } from 'lucide-react';
-import StatCard from '@/components/engines/commerce/StatCard';
+import StatCard from '@/app/components/engines/commerce/StatCard';
 import { ecommerce } from '@/lib/graphql-client';
 
 interface InventoryItem {

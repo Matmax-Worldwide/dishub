@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import StaffManager from '@/components/engines/booking/StaffManager'; // Adjust path as necessary
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import StaffManager from '@/app/components/engines/booking/StaffManager'; // Adjust path as necessary
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/app/components/ui/breadcrumb";
 
 export default function StaffPage() {
   return (

@@ -1,8 +1,8 @@
 'use client';
 
-import { MediaLibrary } from '@/components/engines/cms/modules/media/MediaLibrary';
-import { CacheWarning } from '@/components/shared/CacheWarning';
-import { CacheHelpButton } from '@/components/shared/CacheHelpButton';
+import { MediaLibrary } from '@/app/components/engines/cms/modules/media/MediaLibrary';
+import { CacheWarning } from '@/app/components/shared/CacheWarning';
+import { CacheHelpButton } from '@/app/components/shared/CacheHelpButton';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
 

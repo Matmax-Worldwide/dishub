@@ -1,5 +1,5 @@
 
-import { PostList } from '@/components/engines/cms/modules/blog/post/PostList';
+import { PostList } from '@/app/components/engines/cms/modules/blog/post/PostList';
 
 interface ServerPageProps {
   params: Promise<{ 

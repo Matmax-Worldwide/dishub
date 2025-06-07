@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { DashboardSidebar } from '@/components/navigation/dashboardSidebar/DashboardSidebar';
+import { DashboardSidebar } from '@/app/components/navigation/dashboardSidebar/DashboardSidebar';
 
 interface SuperAdminLayoutProps {
   children: ReactNode;

@@ -1,7 +1,7 @@
 'use client';
 
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
-import BookingsSidebar from '@/components/engines/booking/BookingsSidebar';
+import BookingsSidebar from '@/app/components/engines/booking/BookingsSidebar';
 
 interface BookingsLayoutProps {
   children: React.ReactNode;

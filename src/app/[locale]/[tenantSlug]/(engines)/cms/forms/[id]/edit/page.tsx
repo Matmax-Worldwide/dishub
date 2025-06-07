@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useFormComponent } from '@/components/engines/cms/modules/forms/hooks/useFormComponent';
+import { useFormComponent } from '@/app/components/engines/cms/modules/forms/hooks/useFormComponent';
 import { FormFieldBase, FormBase, FormFieldInput } from '@/types/forms';
 import { ArrowLeft, Save, PlusCircle, Trash2, X, Edit2, Loader, ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { FieldEditor } from '@/components/engines/cms/modules/forms/fields';
-import { Button } from '@/components/ui/button';
+import { FieldEditor } from '@/app/components/engines/cms/modules/forms/fields';
+import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
-import FormStepManager from '@/components/engines/cms/modules/forms/FormStepManager';
-import FormPreview from '@/components/engines/cms/modules/forms/FormPreview';
-import FormResults from '@/components/engines/cms/modules/forms/FormResults';
+import FormStepManager from '@/app/components/engines/cms/modules/forms/FormStepManager';
+import FormPreview from '@/app/components/engines/cms/modules/forms/FormPreview';
+import FormResults from '@/app/components/engines/cms/modules/forms/FormResults';
 
 interface RouteParams {
   locale: string;

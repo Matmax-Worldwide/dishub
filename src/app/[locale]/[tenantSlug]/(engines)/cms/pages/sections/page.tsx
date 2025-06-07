@@ -14,14 +14,14 @@ import {
   CheckIcon,
   PencilIcon
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/app/components/ui/button';
 import { 
   Card, 
   CardContent, 
   CardDescription, 
   CardHeader, 
   CardTitle 
-} from '@/components/ui/card';
+} from '@/app/components/ui/card';
 
 import {
   DropdownMenu,
@@ -29,9 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/app/components/ui/dropdown-menu";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import { cmsOperations } from '@/lib/graphql-client';
 import { deleteCMSSection } from '@/lib/cms-delete';
 import { updateCMSSection } from '@/lib/cms-update';

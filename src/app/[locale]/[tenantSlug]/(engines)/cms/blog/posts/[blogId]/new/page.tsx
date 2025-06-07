@@ -1,5 +1,5 @@
-import PostCreateForm from '@/components/engines/cms/modules/blog/post/PostCreateForm';
-import ClientProviders from '@/components/ClientProviders';
+import PostCreateForm from '@/app/components/engines/cms/modules/blog/post/PostCreateForm';
+import ClientProviders from '@/app/components/ClientProviders';
 
 // This is a server component
 interface PageProps {

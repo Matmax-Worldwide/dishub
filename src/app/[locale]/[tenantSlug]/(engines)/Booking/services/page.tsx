@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import ServiceManager from '@/components/engines/booking/ServiceManager'; // Adjust path as necessary
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import ServiceManager from '@/app/components/engines/booking/ServiceManager'; // Adjust path as necessary
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/app/components/ui/breadcrumb";
 
 export default function ServicesPage() {
   return (

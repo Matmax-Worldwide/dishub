@@ -6,7 +6,7 @@ import { PermissionProvider } from '@/hooks/usePermission';
 import { NextIntlClientProvider } from 'next-intl';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
-import { AuthInitializer } from '@/components/auth/AuthInitializer';
+import { AuthInitializer } from '@/app/components/auth/AuthInitializer';
 
 type ProvidersProps = {
   children: ReactNode;

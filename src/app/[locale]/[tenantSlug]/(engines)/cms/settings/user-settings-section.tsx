@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client'; 
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/app/components/ui/button';
+import { Switch } from '@/app/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Label } from '@/app/components/ui/label';
 import { toast } from 'sonner'; // Assuming sonner is available for notifications
 
 // Define a type for the settings state, matching UserSettings GraphQL type
