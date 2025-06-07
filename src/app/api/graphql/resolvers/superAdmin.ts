@@ -1,6 +1,6 @@
 import { Prisma, TenantStatus } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
-import { verifySession } from '@/app/api/auth/route';
+import { verifySession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 

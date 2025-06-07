@@ -1,5 +1,5 @@
 import { Context } from '@/app/api/graphql/types';
-import { verifySession } from '@/app/api/auth/route';
+import { verifySession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 type Parent = object;
