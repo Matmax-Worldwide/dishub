@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { GraphQLError } from 'graphql';
 import { PostStatus, Blog as PrismaBlog } from '@prisma/client';
-// import { verifySession } from '@/app/api/utils/auth'; // Removed
 import { GraphQLContext } from '../route';
 
 // Define interfaces for input types (preserved)

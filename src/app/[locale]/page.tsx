@@ -1,6 +1,6 @@
 import { Locale, locales } from '@/app/i18n';
 import { notFound } from 'next/navigation';
-import DishubLanding from '@/components/pages/DishubLanding';
+import DishubLanding from '@/app/components/pages/homePage/DishubLanding';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));

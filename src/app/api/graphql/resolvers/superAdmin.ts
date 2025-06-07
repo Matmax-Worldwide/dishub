@@ -1,9 +1,8 @@
-import { PrismaClient, Prisma, TenantStatus } from '@prisma/client';
+import { Prisma, TenantStatus } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
-import { verifySession } from '@/app/api/utils/auth';
+import { verifySession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 type Parent = object;
 type EmptyArgs = Record<string, never>;

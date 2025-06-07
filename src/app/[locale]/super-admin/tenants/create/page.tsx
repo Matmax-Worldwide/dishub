@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { 
   ArrowLeftIcon,
   SaveIcon,
@@ -38,7 +38,7 @@ const AVAILABLE_FEATURES = [
   { id: 'FORMS_MODULE', name: 'Forms Module', description: 'Form builder and submissions' },
   { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
   { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
-  { id: 'HRMS_MODULE', name: 'HRMS Module', description: 'Human resources management' },
+  { id: 'HRMS_MODULE', name: 'HRMS Module', description: 'Human assets management' },
 ];
 
 const TENANT_STATUSES = [

@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useMutation, gql } from '@apollo/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Progress } from '@/app/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check, User, Building, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features';
-import { PhoneInput } from '@/components/ui/PhoneInput';
+import { PhoneInput } from '@/app/components/ui/PhoneInput';
 
 
 

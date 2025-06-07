@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { GraphQLContext } from '../route';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Tipos para los parámetros de los resolvers
 interface MenuArgs {

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { 
   MessageSquareIcon, 
   ClockIcon, 
@@ -82,7 +82,7 @@ export default function ActivationRequestsPage() {
       tenantSlug: 'tech-company',
       requestType: 'module_activation',
       moduleName: 'HRMS Module',
-      description: 'Human Resource Management System for employee management, payroll, and performance tracking.',
+      description: 'Human Asset Management System for employee management, payroll, and performance tracking.',
       priority: 'medium',
       status: 'approved',
       requestedBy: 'John Smith',

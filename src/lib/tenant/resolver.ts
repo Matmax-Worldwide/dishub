@@ -1,4 +1,3 @@
-// src/lib/tenant/resolver.ts
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma'; // Using the default prisma instance for Tenant model queries
 import { verifyToken } from '@/lib/auth'; // Assuming verifyToken can extract tenantId from JWT

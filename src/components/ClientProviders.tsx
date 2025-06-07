@@ -1,26 +1,20 @@
 'use client';
 
-import { SessionProvider } from 'next-auth/react';
-import { Suspense, ReactNode } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ReactNode } from 'react';
+import { AuthProvider } from '@/hooks/useAuth';
+import { ApolloProvider } from '@apollo/client';
+import { client } from '@/lib/apollo-client';
 
-interface ClientProvidersProps {
+type ClientProvidersProps = {
   children: ReactNode;
-}
+};
 
-export default function ClientProviders({ children }: ClientProvidersProps) {
+export function ClientProviders({ children }: ClientProvidersProps) {
   return (
-    <SessionProvider>
-      <Suspense fallback={
-        <div className="container mx-auto py-8 px-4 max-w-4xl">
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-1/3" />
-            <Skeleton className="h-96 w-full" />
-          </div>
-        </div>
-      }>
+    <ApolloProvider client={client}>
+      <AuthProvider>
         {children}
-      </Suspense>
-    </SessionProvider>
+      </AuthProvider>
+    </ApolloProvider>
   );
 } 

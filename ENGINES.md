@@ -11,7 +11,7 @@ src/app/[locale]/manage/[tenantSlug]/(engines)/
 ├── cms/           # Content Management System Engine
 ├── bookings/      # Booking Engine
 ├── commerce/      # E-commerce Engine
-└── hrms/          # Human Resource Management System Engine
+└── hrms/          # Human Asset Management System Engine
 ```
 
 ## 🎯 Engines Disponibles
