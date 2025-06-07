@@ -9,7 +9,6 @@ import {
   XIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  EyeIcon,
   UserIcon,
   LockIcon,
   BellIcon,
@@ -26,7 +25,6 @@ import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import { 
   sidebarConfig, 
   getIconComponent, 
-  sortRoles,
   filterNavigationByFeatures,
   type NavItem 
 } from './sidebarConfig';
@@ -126,8 +124,7 @@ export function DashboardSidebar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user: authUser } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+
   
   // Cargar datos del perfil
   const { data } = useQuery(GET_USER_PROFILE, {
@@ -166,35 +163,15 @@ export function DashboardSidebar() {
   const isAdmin = data?.me?.role?.name === 'ADMIN' || authUser?.role?.name === 'ADMIN';
   const isManager = data?.me?.role?.name === 'MANAGER' || authUser?.role?.name === 'MANAGER';
 
-  // Get all roles (for super admin role switcher)
-  const { data: rolesData, loading: rolesLoading } = useQuery(GET_ALL_ROLES, {
-    client,
-    skip: !isSuperAdmin,
-    onError: (error) => {
-      console.error('Error fetching roles:', error);
-    }
-  });
 
-  // Sort roles in the required order: admin, manager, employee, user, others
-  const sortedRoles = React.useMemo(() => {
-    if (!rolesData?.roles) return [];
-    return sortRoles(rolesData.roles);
-  }, [rolesData?.roles]);
 
-  // Determinar el rol efectivo para mostrar (rol simulado o rol real del usuario)
+  // Determinar el rol efectivo para mostrar
   const effectiveRole = useMemo(() => {
-    // Si el usuario es super admin y ha seleccionado un rol para simulación
-    if (isSuperAdmin && selectedRole) {
-      console.log(`Super Admin user viewing as ${selectedRole}`);
-      return selectedRole;
-    }
-    
-    // En caso contrario, usar el rol real del usuario
     const actualRole = data?.me?.role?.name;
     console.log('Actual role:', actualRole);
     console.log(`Using actual user role: ${actualRole}`);
     return actualRole;
-  }, [isSuperAdmin, selectedRole, data?.me?.role?.name]);
+  }, [data?.me?.role?.name]);
   
   // Derived states based on effective role
   const showAsAdmin = effectiveRole === 'Admin' || effectiveRole === 'SuperAdmin';
@@ -301,14 +278,12 @@ export function DashboardSidebar() {
       if (userMenuOpen && !(event.target as Element).closest('.user-menu')) {
         setUserMenuOpen(false);
       }
-      if (roleMenuOpen && !(event.target as Element).closest('.role-menu')) {
-        setRoleMenuOpen(false);
-      }
+
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen, roleMenuOpen]);
+  }, [userMenuOpen]);
 
   // Transform navigation items for admin/tenant admin
   const transformedBaseNavigationItems: NavItem[] = useMemo(() => {
@@ -418,7 +393,6 @@ export function DashboardSidebar() {
     console.log('Called getFilteredExternalLinks with:', {
       effectiveRole,
       isSuperAdmin,
-      selectedRole,
       linksCount: externalLinksData?.activeExternalLinks?.length || 0
     });
     
@@ -457,65 +431,9 @@ export function DashboardSidebar() {
     console.log('Processing', externalLinksData.activeExternalLinks.length, 'external links');
     
     try {
-      // Si el usuario es super admin y está simulando un rol, filtrar enlaces según el rol simulado
-      if (isSuperAdmin && selectedRole) {
-        console.log(`Super Admin user simulating role ${selectedRole}`);
-        
-        // Buscar el ID del rol seleccionado para filtrar
-        const selectedRoleObj = sortedRoles.find(r => r.name === selectedRole);
-        if (!selectedRoleObj) {
-          console.warn(`Selected role ${selectedRole} not found in available roles`);
-        }
-        
-        return externalLinksData.activeExternalLinks
-          .filter((link: ExternalLinkType) => {
-            if (!link || typeof link !== 'object') {
-              console.warn('Invalid link object:', link);
-              return false;
-            }
-            
-            // Mostrar siempre enlaces públicos
-            if (link.accessType === 'PUBLIC') {
-              return true;
-            }
-            
-            // Para enlaces basados en roles, verificar si el rol simulado tiene acceso
-            if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
-              // Para enlaces de tipo ROLES, verificar si el rol simulado está permitido
-              const hasRoleAccess = Array.isArray(link.allowedRoles) && 
-                                  link.allowedRoles.some(roleId => {
-                                    // Buscar el rol por ID
-                                    const allowedRole = sortedRoles.find(r => r.id === roleId);
-                                    // Verificar si coincide con el rol simulado
-                                    return allowedRole && allowedRole.name === selectedRole;
-                                  });
-              
-              if (hasRoleAccess) {
-                console.log(`Link ${link.name} allowed for simulated role ${selectedRole}`);
-                return true;
-              }
-              
-              // Si es solo ROLES y no tiene acceso, rechazar
-              if (link.accessType === 'ROLES') {
-                return false;
-              }
-            }
-            
-            // Para MIXED o USERS, verificar también el usuario (que en este caso es irrelevante porque estamos simulando un rol)
-            return false;
-          })
-          .map((link: ExternalLinkType): NavItem => ({
-            name: link.name || 'Unnamed Link',
-            href: link.url || '#',
-            icon: getIconComponent(link.icon || 'LinkIcon'),
-            accessType: link.accessType || 'PUBLIC',
-            allowedRoles: Array.isArray(link.allowedRoles) ? link.allowedRoles : [],
-          }));
-      }
-      
-      // Si el usuario es super admin sin simulación, mostrar todos los enlaces
-      if (isSuperAdmin && !selectedRole) {
-        console.log('Super Admin user without role simulation - showing ALL links');
+      // Si el usuario es super admin, mostrar todos los enlaces
+      if (isSuperAdmin) {
+        console.log('Super Admin user - showing ALL links');
         return externalLinksData.activeExternalLinks.map((link: ExternalLinkType): NavItem => ({
           name: link.name || 'Unnamed Link',
           href: link.url || '#',
@@ -647,12 +565,6 @@ export function DashboardSidebar() {
     }
   };
   
-  // Helper function to format the role switcher text
-  const getRoleSwitcherText = (): string => {
-    const baseText = t('sidebar.roleSwitcher');
-    const roleText = selectedRole ? translateRole(selectedRole) : translateRole('ADMIN');
-    return baseText.replace('{role}', roleText);
-  };
 
   // Helper function to format text with a role parameter
   const formatTextWithRole = (key: string, role: string): string => {
@@ -785,7 +697,7 @@ export function DashboardSidebar() {
     return (
       <> 
         {/* SuperAdmin items - MCP (Master Control Panel) */}
-        {isSuperAdmin && !selectedRole && (
+        {isSuperAdmin && (
           <>
             <div className="mb-4 mt-2">
               <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
@@ -800,7 +712,7 @@ export function DashboardSidebar() {
         )}
                   
         {/* Admin items */}
-        {showAsAdmin && !(isSuperAdmin && !selectedRole) && (
+        {showAsAdmin && !(isSuperAdmin) && (
           <>
             <div className="mb-4 mt-2">
               <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
@@ -1116,67 +1028,7 @@ export function DashboardSidebar() {
                 </Button>
               </div>
               
-              {/* Role Switcher for Admins */}
-              <div className="mt-4">
-                <button 
-                  onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                  className="flex items-center justify-between w-full rounded-lg px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200"
-                >
-                  <div className="flex items-center gap-2">
-                    <EyeIcon className="h-4 w-4 text-indigo-600" />
-                    <span>{getRoleSwitcherText()}</span>
-                  </div>
-                  {roleMenuOpen ? (
-                    <ChevronUpIcon className="h-4 w-4" />
-                  ) : (
-                    <ChevronDownIcon className="h-4 w-4" />
-                  )}
-                </button>
-                
-                {roleMenuOpen && (
-                  <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    <div className="py-1">
-                      {rolesLoading ? (
-                        <div className="px-4 py-2 text-sm text-gray-600">
-                          Loading...
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
-                              !selectedRole 
-                                ? 'bg-indigo-100 text-indigo-800' 
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                            }`}
-                            onClick={() => {
-                              setSelectedRole(null);
-                              setRoleMenuOpen(false);
-                            }}
-                          >
-                            {t('sidebar.defaultRole')}
-                          </button>
-                          {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
-                            <button
-                              key={role.id}
-                              className={`w-full px-4 py-2 text-sm text-left transition-colors duration-200 ${
-                                selectedRole === role.name 
-                                  ? 'bg-indigo-100 text-indigo-800' 
-                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                              }`}
-                              onClick={() => {
-                                setSelectedRole(role.name);
-                                setRoleMenuOpen(false);
-                              }}
-                            >
-                              {translateRole(role.name)}
-                            </button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+
             </div>
           )}
           
@@ -1199,11 +1051,6 @@ export function DashboardSidebar() {
               <div className="mb-6 border-t border-gray-200 pt-4">
                 <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                   {t('sidebar.externalLinksTitle')}
-                  {isSuperAdmin && selectedRole && (
-                    <span className="ml-2 font-normal text-indigo-600">
-                      ({formatTextWithRole('sidebar.viewingAsRole', selectedRole)})
-                    </span>
-                  )}
                 </h3>
                 {externalLinksLoading ? (
                   <div className="flex items-center justify-center py-4">
@@ -1216,9 +1063,7 @@ export function DashboardSidebar() {
                   </div>
                 ) : externalLinks.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
-                    {isSuperAdmin && selectedRole 
-                      ? formatTextWithRole('sidebar.noExternalLinksForRole', selectedRole)
-                      : t('sidebar.noExternalLinks')}
+                    {t('sidebar.noExternalLinks')}
                   </div>
                 ) : (
                   <>
@@ -1235,14 +1080,9 @@ export function DashboardSidebar() {
                        
                       </a>
                     ))}
-                    {isSuperAdmin && !selectedRole && (
+                    {isSuperAdmin && (
                       <div className="mt-3 px-4 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
                         {t('sidebar.adminViewingAllLinks')}
-                      </div>
-                    )}
-                    {isSuperAdmin && selectedRole && (
-                      <div className="mt-3 px-4 py-2 text-xs text-indigo-700 bg-indigo-50 rounded-lg border border-indigo-200">
-                        {t('sidebar.adminRoleSwitchInfo')}
                       </div>
                     )}
                   </>
@@ -1336,59 +1176,7 @@ export function DashboardSidebar() {
                       {t('sidebar.adminTools')}
                     </h3>
                     
-                    {/* Role Switcher for Admins (Mobile) */}
-                    <div className="px-3 mb-3">
-                      <button 
-                        onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                        className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100"
-                      >
-                        <div className="flex items-center gap-2">
-                          <EyeIcon className="h-4 w-4 text-indigo-600" />
-                          <span>{getRoleSwitcherText()}</span>
-                        </div>
-                        {roleMenuOpen ? (
-                          <ChevronUpIcon className="h-4 w-4" />
-                        ) : (
-                          <ChevronDownIcon className="h-4 w-4" />
-                        )}
-                      </button>
-                      
-                      {roleMenuOpen && (
-                        <div className="mt-1 rounded-md border bg-white shadow-sm">
-                          <div className="py-1">
-                            {rolesLoading ? (
-                              <div className="px-4 py-2 text-sm text-gray-500">
-                                Loading...
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${!selectedRole ? 'bg-indigo-50 text-indigo-700' : ''}`}
-                                  onClick={() => {
-                                    setSelectedRole(null);
-                                    setRoleMenuOpen(false);
-                                  }}
-                                >
-                                  {t('sidebar.defaultRole')}
-                                </button>
-                                {sortedRoles.filter(role => role.name !== 'SuperAdmin').map((role) => (
-                                  <button
-                                    key={role.id}
-                                    className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-100 ${selectedRole === role.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
-                                    onClick={() => {
-                                      setSelectedRole(role.name);
-                                      setRoleMenuOpen(false);
-                                    }}
-                                  >
-                                    {translateRole(role.name)}
-                                  </button>
-                                ))}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+
                     
                     <div className="grid grid-cols-2 gap-2 px-3 mb-2">
                       <Button 
@@ -1546,11 +1334,6 @@ export function DashboardSidebar() {
                 <div className="mb-6">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     {t('sidebar.externalLinksTitle')}
-                    {isSuperAdmin && selectedRole && (
-                      <span className="ml-2 font-normal text-indigo-600">
-                        ({formatTextWithRole('sidebar.viewingAsRole', selectedRole)})
-                      </span>
-                    )}
                   </h3>
                   {externalLinksLoading ? (
                     <div className="flex items-center justify-center py-4">
@@ -1563,9 +1346,7 @@ export function DashboardSidebar() {
                     </div>
                   ) : externalLinks.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-500">
-                      {isSuperAdmin && selectedRole 
-                        ? formatTextWithRole('sidebar.noExternalLinksForRole', selectedRole)
-                        : t('sidebar.noExternalLinks')}
+                      {t('sidebar.noExternalLinks')}
                     </div>
                   ) : (
                     <>
@@ -1582,14 +1363,9 @@ export function DashboardSidebar() {
                           
                         </a>
                       ))}
-                      {isSuperAdmin && !selectedRole && (
+                      {isSuperAdmin && (
                         <div className="mt-2 px-3 py-1 text-xs text-gray-500">
                           {t('sidebar.adminViewingAllLinks')}
-                        </div>
-                      )}
-                      {isSuperAdmin && selectedRole && (
-                        <div className="mt-2 px-3 py-1 text-xs text-indigo-500 border-t pt-2">
-                          {t('sidebar.adminRoleSwitchInfo')}
                         </div>
                       )}
                     </>

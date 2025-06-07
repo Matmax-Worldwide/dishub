@@ -418,7 +418,11 @@
     "sandboxTenants": "Sandbox Tenants",
     "betaModules": "Beta Modules",
     "featureTesting": "Feature Testing",
-    "stagingControl": "Staging Control"
+    "stagingControl": "Staging Control",
+    "superAdminAccess": "Super Admin Access",
+    "superAdminTenantMessage": "You are accessing this tenant with Super Administrator privileges. You have full access to all functionalities.",
+    "backToSuperAdmin": "Back to Super Admin Panel",
+    "superAdministration": "Super Administration"
   },
   "staffCreator": {
     "selectUser": "Select User to Make Staff",

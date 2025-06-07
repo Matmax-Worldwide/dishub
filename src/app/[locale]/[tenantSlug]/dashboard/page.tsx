@@ -13,7 +13,7 @@ export default function TenantDashboard() {
   // Check if user has access to this tenant dashboard
   useEffect(() => {
     if (!isLoading) {
-      const hasAccess = hasRole('TenantAdmin') || hasRole('TenantManager') || hasRole('Employee');
+      const hasAccess = hasRole('SuperAdmin') || hasRole('TenantAdmin') || hasRole('TenantManager') || hasRole('Employee');
       
       if (!hasAccess) {
         // Redirect unauthorized users to login
@@ -33,6 +33,7 @@ export default function TenantDashboard() {
 
   // Determine user role for display
   const getUserRoleDisplay = () => {
+    if (hasRole('SuperAdmin')) return 'SuperAdmin';
     if (hasRole('TenantAdmin')) return 'TenantAdmin';
     if (hasRole('TenantManager')) return 'TenantManager';
     if (hasRole('Employee')) return 'Employee';
@@ -40,6 +41,7 @@ export default function TenantDashboard() {
   };
 
   const getUserRoleColor = () => {
+    if (hasRole('SuperAdmin')) return 'bg-red-100 text-red-800';
     if (hasRole('TenantAdmin')) return 'bg-purple-100 text-purple-800';
     if (hasRole('TenantManager')) return 'bg-blue-100 text-blue-800';
     if (hasRole('Employee')) return 'bg-green-100 text-green-800';
@@ -73,7 +75,23 @@ export default function TenantDashboard() {
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* Role-specific welcome section */}
         <div className="mb-8">
-          {hasRole('TenantAdmin') && (
+          {hasRole('SuperAdmin') && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">🚀</span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-semibold text-red-900">Super Administrador</h3>
+                  <p className="text-red-700">Tienes acceso completo a todos los tenants y funcionalidades de la plataforma</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasRole('TenantAdmin') && !hasRole('SuperAdmin') && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -89,7 +107,7 @@ export default function TenantDashboard() {
             </div>
           )}
 
-          {hasRole('TenantManager') && (
+          {hasRole('TenantManager') && !hasRole('SuperAdmin') && !hasRole('TenantAdmin') && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -105,7 +123,7 @@ export default function TenantDashboard() {
             </div>
           )}
 
-          {hasRole('Employee') && (
+          {hasRole('Employee') && !hasRole('SuperAdmin') && !hasRole('TenantAdmin') && !hasRole('TenantManager') && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">

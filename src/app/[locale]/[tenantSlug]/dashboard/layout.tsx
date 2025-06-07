@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { DashboardSidebar } from '@/app/components/navigation/dashboardSidebar/DashboardSidebar';
+import { TenantDashboard } from '@/app/components/navigation/tenantDashboard/TenantDashboard';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
 
@@ -85,8 +85,8 @@ export default function TenantDashboardLayout({
   return (
     <FeatureProvider features={tenantFeatures} isLoading={isLoading || userLoading}>
       <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar */}
-        <DashboardSidebar />
+        {/* Tenant-specific Sidebar */}
+        <TenantDashboard />
         
         {/* Main content area */}
         <div className="flex-1 lg:ml-0">

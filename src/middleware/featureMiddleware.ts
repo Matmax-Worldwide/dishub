@@ -104,7 +104,7 @@ const ALWAYS_ALLOWED_ROUTES = [
   
   // SuperAdmin routes (no feature restrictions)
   '/super-admin',
-  '/super-admin/dashboard',
+  '/super-admin',
   '/super-admin/tenants',
   '/super-admin/tenants/list',
   '/super-admin/tenants/create',

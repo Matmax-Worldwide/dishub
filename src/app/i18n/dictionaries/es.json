@@ -383,7 +383,11 @@
     "sandboxTenants": "Tenants Sandbox",
     "betaModules": "Módulos Beta",
     "featureTesting": "Pruebas de Funcionalidades",
-    "stagingControl": "Control de Staging"
+    "stagingControl": "Control de Staging",
+    "superAdminAccess": "Acceso de Super Administrador",
+    "superAdminTenantMessage": "Estás accediendo a este tenant con privilegios de Super Administrador. Tienes acceso completo a todas las funcionalidades.",
+    "backToSuperAdmin": "Volver al Panel de Super Admin",
+    "superAdministration": "Super Administración"
   },
   "roles": {
     "ADMIN": "Administrador",

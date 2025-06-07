@@ -131,7 +131,7 @@ export default function LoginPage() {
       console.log('Has userTenants?', !!transformedUser.userTenants?.length);
       
       if (transformedUser.role?.name === 'SuperAdmin') {
-        redirectPath = `/${locale}/super-admin/dashboard`;
+        redirectPath = `/${locale}/super-admin`;
         console.log('SuperAdmin detected, redirecting to:', redirectPath);
       } else {
         // For all other roles, get tenant info from the first tenant relationship

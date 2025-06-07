@@ -72,7 +72,7 @@ export default function AccessDeniedPage() {
       console.log('Usuario actual:', user.email, 'Rol:', userRole, 'Tenant:', tenant?.slug);
       
       if (userRole === 'SuperAdmin') {
-        setRedirectPath(`/${locale}/super-admin/dashboard`);
+        setRedirectPath(`/${locale}/super-admin`);
       } else if (userRole === 'TenantAdmin' || userRole === 'TenantManager') {
         // Para TenantAdmin/TenantManager, necesitamos el tenant slug
         if (tenant?.slug) {

@@ -399,7 +399,11 @@
     "sandboxTenants": "Sandbox-Mandanten",
     "betaModules": "Beta-Module",
     "featureTesting": "Feature-Tests",
-    "stagingControl": "Staging-Kontrolle"
+    "stagingControl": "Staging-Kontrolle",
+    "superAdminAccess": "Super Admin Zugriff",
+    "superAdminTenantMessage": "Sie greifen auf diesen Mandanten mit Super-Administrator-Privilegien zu. Sie haben vollen Zugriff auf alle Funktionalitäten.",
+    "backToSuperAdmin": "Zurück zum Super Admin Panel",
+    "superAdministration": "Super Administration"
   },
   "roles": {
     "ADMIN": "Admin",

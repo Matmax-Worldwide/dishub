@@ -473,7 +473,7 @@ export const sidebarConfig: SidebarConfig = {
     // 📊 Dashboard Overview
     { 
       name: 'sidebar.mcpDashboard', 
-      href: `/${locale}/super-admin/dashboard`, 
+      href: `/${locale}/super-admin`, 
       icon: LayoutDashboardIcon,
       permissions: ['superadmin:view']
     },
