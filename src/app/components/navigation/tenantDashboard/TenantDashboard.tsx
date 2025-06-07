@@ -25,6 +25,11 @@ import {
   filterNavigationByFeatures,
   type NavItem 
 } from '../dashboardSidebar/sidebarConfig';
+import { 
+  tenantSidebarConfig,
+  filterTenantNavigationByFeatures,
+  type TenantNavItem 
+} from './tenantSidebarConfig';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 // GraphQL queries
@@ -186,23 +191,42 @@ export function TenantDashboard() {
 
 
 
-  // Transform navigation items for tenant context
-  const transformedTenantNavigationItems: NavItem[] = useMemo(() => {
-    const items = sidebarConfig.tenantAdminNavigationItems(params.locale as string, tenantSlug).map(item => ({
-      ...item,
-      name: t(item.name),
-      children: item.children?.map(child => ({
-        ...child,
-        name: t(child.name)
-      }))
-    }));
+  // Transform navigation items for tenant context - ONLY ADMINISTRATION
+  const transformedTenantNavigationItems: TenantNavItem[] = useMemo(() => {
+    const items = tenantSidebarConfig.tenantAdministrationItems(params.locale as string, tenantSlug)
+      .map(item => ({
+        ...item,
+        name: t(item.name),
+        children: item.children?.map(child => ({
+          ...child,
+          name: t(child.name)
+        }))
+      }));
     
     // Filter items based on tenant features
-    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
+    const filteredItems = filterTenantNavigationByFeatures(items, tenantFeatures);
     return filteredItems;
   }, [params.locale, t, tenantFeatures, tenantSlug]);
 
-  // Get feature-based navigation items
+  // Get engine navigation items - ONLY ENGINES
+  const engineNavigationItems: TenantNavItem[] = useMemo(() => {
+    // Get engines from dedicated tenant engine navigation
+    const tenantEngineItems = tenantSidebarConfig.tenantEngineItems(params.locale as string, tenantSlug)
+      .map(item => ({
+        ...item,
+        name: t(item.name),
+        children: item.children?.map(child => ({
+          ...child,
+          name: t(child.name)
+        }))
+      }));
+    
+    // Filter items based on tenant features
+    const filteredItems = filterTenantNavigationByFeatures(tenantEngineItems, tenantFeatures);
+    return filteredItems;
+  }, [params.locale, tenantFeatures, t, tenantSlug]);
+
+  // Get feature-based navigation items - DEPRECATED (keeping for compatibility)
   const featureBasedNavigationItems: NavItem[] = useMemo(() => {
     const items = sidebarConfig.featureBasedNavigationItems(params.locale as string).map(item => ({
       ...item,
@@ -250,7 +274,7 @@ export function TenantDashboard() {
           
           return false;
         })
-        .map((link: ExternalLinkType): NavItem => ({
+        .map((link: ExternalLinkType): TenantNavItem => ({
           name: link.name || 'Unnamed Link',
           href: link.url || '#',
           icon: getIconComponent(link.icon || 'LinkIcon'),
@@ -275,7 +299,7 @@ export function TenantDashboard() {
   };
 
   // Render notification badge
-  const renderBadge = (item: NavItem) => {
+  const renderBadge = (item: TenantNavItem) => {
     if (item.badge && item.badge.value > 0) {
       return (
         <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow-sm">
@@ -315,7 +339,7 @@ export function TenantDashboard() {
   };
 
   // Helper function to check if any child is active
-  const hasActiveChild = (item: NavItem): boolean => {
+  const hasActiveChild = (item: TenantNavItem): boolean => {
     if (!item.children) return false;
     return item.children.some(child => 
       isPathActive(child.href, pathname) || hasActiveChild(child)
@@ -323,7 +347,7 @@ export function TenantDashboard() {
   };
 
   // Component to render navigation items with children support
-  const NavigationItem = ({ item, level = 0 }: { item: NavItem; level?: number }) => {
+  const NavigationItem = ({ item, level = 0 }: { item: TenantNavItem; level?: number }) => {
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isPathActive(item.href, pathname);
     const hasActiveChildPath = hasActiveChild(item);
@@ -444,7 +468,7 @@ export function TenantDashboard() {
           <div className="flex-1 overflow-y-auto">
             <nav className="p-4 space-y-2">
               {/* Tenant Administration */}
-              <div className="mb-4">
+              <div className="mb-6">
                 <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
                   🏢 {t('sidebar.tenantAdministration')}
                 </h3>
@@ -453,12 +477,51 @@ export function TenantDashboard() {
                 ))}
               </div>
 
-              {/* Feature-based tools */}
-              {featureBasedNavigationItems.length > 0 && (
-                <div className="mb-4 border-t pt-4">
-                  <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                    {t('sidebar.tools')}
+              {/* Engines Section */}
+              {engineNavigationItems.length > 0 && (
+                <div className="mb-6 border-t border-gray-200 pt-4">
+                  <h3 className="mb-3 text-xs font-semibold uppercase text-blue-600 tracking-wider">
+                    ⚙️ {t('sidebar.engines')}
                   </h3>
+                  <div className="bg-blue-50 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-blue-700 mb-1 font-medium">{t('sidebar.enginesDescription')}</p>
+                    <p className="text-xs text-blue-600">{t('sidebar.enginesSubtext')}</p>
+                  </div>
+                  {engineNavigationItems.map(item => (
+                    <NavigationItem key={item.href} item={item} />
+                  ))}
+                </div>
+              )}
+
+              {/* Reports Section */}
+              <div className="mb-6 border-t border-gray-200 pt-4">
+                <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
+                  📊 {t('sidebar.reportsInsights')}
+                </h3>
+                {tenantSidebarConfig.tenantReportsItems(params.locale as string, tenantSlug)
+                  .map(item => ({
+                    ...item,
+                    name: t(item.name),
+                    children: item.children?.map(child => ({
+                      ...child,
+                      name: t(child.name)
+                    }))
+                  }))
+                  .map(item => (
+                    <NavigationItem key={item.href} item={item} />
+                  ))
+                }
+              </div>
+
+              {/* Legacy Feature-based tools (deprecated, keeping for compatibility) */}
+              {featureBasedNavigationItems.length > 0 && (
+                <div className="mb-4 border-t border-gray-200 pt-4">
+                  <h3 className="mb-3 text-xs font-semibold uppercase text-gray-500 tracking-wider">
+                    🔧 {t('sidebar.legacyTools')}
+                  </h3>
+                  <div className="bg-yellow-50 rounded-lg p-2 mb-3">
+                    <p className="text-xs text-yellow-700">{t('sidebar.legacyToolsWarning')}</p>
+                  </div>
                   {featureBasedNavigationItems.map(item => (
                     <NavigationItem key={item.href} item={item} />
                   ))}
@@ -468,7 +531,7 @@ export function TenantDashboard() {
               {/* External Links */}
               <div className="mb-6 border-t border-gray-200 pt-4">
                 <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                  {t('sidebar.externalLinksTitle')}
+                  🔗 {t('sidebar.externalLinksTitle')}
                 </h3>
                 {externalLinksLoading ? (
                   <div className="flex items-center justify-center py-4">
@@ -484,7 +547,7 @@ export function TenantDashboard() {
                     {t('sidebar.noExternalLinks')}
                   </div>
                 ) : (
-                  externalLinks.map((item: NavItem) => (
+                  externalLinks.map((item: TenantNavItem) => (
                     <a
                       key={item.href}
                       href={item.href}
@@ -587,6 +650,7 @@ export function TenantDashboard() {
                   </div>
                 )}
                 
+                {/* Tenant Administration */}
                 <div className="mb-4">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
                     🏢 {t('sidebar.tenantAdministration')}
@@ -596,20 +660,61 @@ export function TenantDashboard() {
                   ))}
                 </div>
 
-                {featureBasedNavigationItems.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                      {t('sidebar.tools')}
+                {/* Engines Section */}
+                {engineNavigationItems.length > 0 && (
+                  <div className="mb-4 border-t border-gray-200 pt-3">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-blue-500">
+                      ⚙️ {t('sidebar.engines')}
                     </h3>
+                    <div className="bg-blue-50 rounded-md p-2 mb-3">
+                      <p className="text-xs text-blue-700 mb-1 font-medium">{t('sidebar.enginesDescription')}</p>
+                      <p className="text-xs text-blue-600">{t('sidebar.enginesSubtext')}</p>
+                    </div>
+                    {engineNavigationItems.map((item) => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Reports Section */}
+                <div className="mb-4 border-t border-gray-200 pt-3">
+                  <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
+                    📊 {t('sidebar.reportsInsights')}
+                  </h3>
+                  {tenantSidebarConfig.tenantReportsItems(params.locale as string, tenantSlug)
+                    .map(item => ({
+                      ...item,
+                      name: t(item.name),
+                      children: item.children?.map(child => ({
+                        ...child,
+                        name: t(child.name)
+                      }))
+                    }))
+                    .map(item => (
+                      <NavigationItem key={item.href} item={item} />
+                    ))
+                  }
+                </div>
+
+                {/* Legacy Feature-based tools (deprecated) */}
+                {featureBasedNavigationItems.length > 0 && (
+                  <div className="mb-4 border-t border-gray-200 pt-3">
+                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-400">
+                      🔧 {t('sidebar.legacyTools')}
+                    </h3>
+                    <div className="bg-yellow-50 rounded-md p-2 mb-2">
+                      <p className="text-xs text-yellow-700">{t('sidebar.legacyToolsWarning')}</p>
+                    </div>
                     {featureBasedNavigationItems.map((item) => (
                       <NavigationItem key={item.href} item={item} />
                     ))}
                   </div>
                 )}
                 
-                <div className="mb-6">
+                {/* External Links */}
+                <div className="mb-6 border-t border-gray-200 pt-3">
                   <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                    {t('sidebar.externalLinksTitle')}
+                    🔗 {t('sidebar.externalLinksTitle')}
                   </h3>
                   {externalLinksLoading ? (
                     <div className="flex items-center justify-center py-4">
@@ -625,7 +730,7 @@ export function TenantDashboard() {
                       {t('sidebar.noExternalLinks')}
                     </div>
                   ) : (
-                    externalLinks.map((item: NavItem) => (
+                    externalLinks.map((item: TenantNavItem) => (
                       <a
                         key={item.href}
                         href={item.href}

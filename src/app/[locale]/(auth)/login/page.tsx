@@ -9,6 +9,7 @@ import { client } from '@/lib/apollo-client';
 import { setGlobalAuthorizationHeader } from '@/lib/auth-header';
 import { gql } from '@apollo/client';
 import { Eye, EyeOff } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 
 // GraphQL mutation for login - Fixed to request Role subfields
 const LOGIN_MUTATION = gql`
@@ -52,6 +53,7 @@ function setCookie(name: string, value: string, days: number) {
 export default function LoginPage() {
   const { locale } = useParams();
   const { login } = useAuth();
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -247,7 +249,7 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            Welcome Back
+            {t('auth.login.welcomeBack')}
           </motion.h2>
           <motion.p
             className="mt-2 text-center text-sm text-gray-200"
@@ -255,7 +257,7 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            Sign in to access your account
+            {t('auth.login.signInMessage')}
           </motion.p>
         </div>
         
@@ -275,7 +277,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-white mb-1">
-                  Email address
+                  {t('auth.login.emailLabel')}
                 </label>
                 <input
                   id="email"
@@ -284,13 +286,13 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   className="w-full px-4 py-3 border border-white/10 bg-white/5 text-white rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder-white/50 transition-all duration-300 hover:bg-white/10"
-                  placeholder="Enter your email"
+                  placeholder={t('auth.login.emailPlaceholder')}
                 />
               </div>
               
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-white mb-1">
-                  Password
+                  {t('auth.login.passwordLabel')}
                 </label>
                 <div className="relative">
                 <input
@@ -300,13 +302,13 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   className="w-full px-4 py-3 pr-12 border border-white/10 bg-white/5 text-white rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder-white/50 transition-all duration-300 hover:bg-white/10"
-                  placeholder="Enter your password"
+                  placeholder={t('auth.login.passwordPlaceholder')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -321,15 +323,15 @@ export default function LoginPage() {
               whileTap={{ scale: 0.98 }}
               className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white py-3 px-6 rounded-full font-bold text-lg shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {loading ? t('auth.login.signingIn') : t('auth.login.signIn')}
             </motion.button>
           </form>
 
           <div className="text-center mt-6">
             <p className="text-sm text-gray-200">
-              ¿No tienes una cuenta?{' '}
-              <Link href="/get-started" className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
-                Crea una cuenta aquí
+              {t('auth.login.noAccount')}{' '}
+              <Link href={`/${locale}/get-started`} className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
+                {t('auth.login.createAccount')}
               </Link>
             </p>
           </div>

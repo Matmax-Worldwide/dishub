@@ -9,12 +9,11 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Progress } from '@/app/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check, User, Building, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, Building, Eye, EyeOff, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { AVAILABLE_FEATURES } from '@/config/features';
 import { PhoneInput } from '@/app/components/ui/PhoneInput';
-
-
+import { useI18n } from '@/hooks/useI18n';
 
 const REGISTER_USER_WITH_TENANT = gql`
   mutation RegisterUserWithTenant($input: RegisterUserWithTenantInput!) {
@@ -80,6 +79,7 @@ function setCookie(name: string, value: string, days: number) {
 
 export default function GetStartedPage() {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -106,7 +106,7 @@ export default function GetStartedPage() {
       // Clear the form data from localStorage
       localStorage.removeItem(STORAGE_KEY);
       
-      toast.success('¡Registro exitoso! Bienvenido a tu nueva plataforma.');
+      toast.success(t('onboarding.registrationSuccess'));
       
       // Redirect to tenant dashboard
       const tenantSlug = data.registerUserWithTenant.tenant.slug;
@@ -114,7 +114,7 @@ export default function GetStartedPage() {
     },
     onError: (error) => {
       console.error('Registration error:', error);
-      toast.error(`Error en el registro: ${error.message}`);
+      toast.error(`${t('onboarding.registrationError')}: ${error.message}`);
     }
   });
 
@@ -126,7 +126,7 @@ export default function GetStartedPage() {
         const parsed = JSON.parse(savedData);
         const savedFormData = parsed.formData || formData;
         
-        // Asegurar que CMS_ENGINE siempre esté incluido
+        // Ensure CMS_ENGINE is always included
         if (!savedFormData.tenantFeatures.includes('CMS_ENGINE')) {
           savedFormData.tenantFeatures = ['CMS_ENGINE', ...savedFormData.tenantFeatures];
         }
@@ -165,64 +165,61 @@ export default function GetStartedPage() {
       .trim();
   };
 
+  // Step 1: Functionalities validation
   const validateStep1 = () => {
-    const { email, firstName, lastName } = formData;
-    
-    if (!email || !firstName || !lastName) {
-      toast.error('Por favor completa todos los campos obligatorios');
+    if (formData.tenantFeatures.length === 0) {
+      toast.error(t('onboarding.validation.noFeaturesSelected'));
       return false;
     }
-    
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Por favor ingresa un email válido');
-      return false;
-    }
-    
     return true;
   };
 
+  // Step 2: Organization validation
   const validateStep2 = () => {
-    const { password, confirmPassword } = formData;
-    
-    if (!password || !confirmPassword) {
-      toast.error('Por favor completa todos los campos de contraseña');
-      return false;
-    }
-    
-    if (password.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres');
-      return false;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
-      return false;
-    }
-    
-    return true;
-  };
-
-  const validateStep3 = () => {
     const { tenantName, tenantSlug } = formData;
     
     if (!tenantName || !tenantSlug) {
-      toast.error('Por favor completa el nombre y slug de tu organización');
+      toast.error(t('onboarding.validation.organizationRequired'));
       return false;
     }
     
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tenantSlug)) {
-      toast.error('El slug debe contener solo letras minúsculas, números y guiones');
+      toast.error(t('onboarding.validation.invalidSlug'));
       return false;
     }
     
     return true;
   };
 
-  const validateStep4 = () => {
-    if (formData.tenantFeatures.length === 0) {
-      toast.error('Error interno: No hay funcionalidades seleccionadas');
+  // Step 3: User and Password validation
+  const validateStep3 = () => {
+    const { email, firstName, lastName, password, confirmPassword } = formData;
+    
+    if (!email || !firstName || !lastName) {
+      toast.error(t('onboarding.validation.userFieldsRequired'));
       return false;
     }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error(t('onboarding.validation.invalidEmail'));
+      return false;
+    }
+
+    if (!password || !confirmPassword) {
+      toast.error(t('onboarding.validation.passwordRequired'));
+      return false;
+    }
+    
+    if (password.length < 8) {
+      toast.error(t('onboarding.validation.passwordTooShort'));
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      toast.error(t('onboarding.validation.passwordMismatch'));
+      return false;
+    }
+    
     return true;
   };
 
@@ -231,8 +228,6 @@ export default function GetStartedPage() {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep2()) {
       setCurrentStep(3);
-    } else if (currentStep === 3 && validateStep3()) {
-      setCurrentStep(4);
     }
   };
 
@@ -243,7 +238,7 @@ export default function GetStartedPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) {
+    if (!validateStep1() || !validateStep2() || !validateStep3()) {
       return;
     }
 
@@ -269,9 +264,9 @@ export default function GetStartedPage() {
   };
 
   const toggleFeature = (featureId: string) => {
-    // CMS_ENGINE es requerido y no se puede deseleccionar
+    // CMS_ENGINE is required and cannot be deselected
     if (featureId === 'CMS_ENGINE') {
-      toast.info('CMS Engine es una funcionalidad base requerida y no se puede deseleccionar');
+      toast.info(t('onboarding.cmsEngineRequired'));
       return;
     }
 
@@ -286,7 +281,7 @@ export default function GetStartedPage() {
       
       if (dependentFeatures.length > 0) {
         const dependentNames = dependentFeatures.map(f => f.label).join(', ');
-        toast.warning(`No puedes desactivar ${feature?.label} porque es requerido por: ${dependentNames}`);
+        toast.warning(t('onboarding.cannotRemoveFeature', { feature: feature?.label || '', dependents: dependentNames }));
         return;
       }
       
@@ -304,7 +299,7 @@ export default function GetStartedPage() {
             newFeatures.push(depId);
             const depFeature = AVAILABLE_FEATURES.find(f => f.id === depId);
             if (depFeature) {
-              toast.info(`Se agregó automáticamente ${depFeature.label} como dependencia`);
+              toast.info(t('onboarding.dependencyAdded', { dependency: depFeature.label || '' }));
             }
           }
         }
@@ -317,7 +312,7 @@ export default function GetStartedPage() {
   };
 
   const isFeatureDisabled = (featureId: string) => {
-    // CMS_ENGINE siempre está requerido
+    // CMS_ENGINE is always required
     if (featureId === 'CMS_ENGINE') {
       return true;
     }
@@ -329,135 +324,95 @@ export default function GetStartedPage() {
     return dependentFeatures.length > 0;
   };
 
+  // Step 1: Functionalities Selection
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <User className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-purple-400 mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Información Personal</h2>
-        <p className="text-sm sm:text-base text-gray-200">Crea tu cuenta de usuario</p>
+        <Settings className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-purple-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{t('onboarding.steps.functionalities.title')}</h2>
+        <p className="text-sm sm:text-base text-gray-200">{t('onboarding.steps.functionalities.description')}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="firstName" className="text-white">Nombre *</Label>
-          <Input
-            id="firstName"
-            type="text"
-            value={formData.firstName}
-            onChange={(e) => updateFormData('firstName', e.target.value)}
-            placeholder="Tu nombre"
-            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="lastName" className="text-white">Apellido *</Label>
-          <Input
-            id="lastName"
-            type="text"
-            value={formData.lastName}
-            onChange={(e) => updateFormData('lastName', e.target.value)}
-            placeholder="Tu apellido"
-            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="email" className="text-white">Email *</Label>
-        <Input
-          id="email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => updateFormData('email', e.target.value)}
-          placeholder="tu@email.com"
-          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="phoneNumber" className="text-white">Teléfono</Label>
-        <PhoneInput
-          id="phoneNumber"
-          name="phoneNumber"
-          value={formData.phoneNumber}
-          onChange={(value) => updateFormData('phoneNumber', value)}
-          placeholder="600 00 00 00"
-          defaultCountry="ES"
-          className="w-full"
-        />
+      {/* All features in a compact grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {AVAILABLE_FEATURES.map((feature) => {
+          const isSelected = formData.tenantFeatures.includes(feature.id);
+          const isDisabled = isFeatureDisabled(feature.id);
+          
+          return (
+            <div
+              key={feature.id}
+              className={`p-3 border rounded-lg transition-colors ${
+                isDisabled 
+                  ? 'border-white/20 bg-white/5 cursor-not-allowed opacity-75'
+                  : isSelected
+                    ? 'border-purple-400 bg-purple-500/20 cursor-pointer'
+                    : 'border-white/20 bg-white/5 hover:border-white/30 cursor-pointer'
+              }`}
+              onClick={() => !isDisabled && toggleFeature(feature.id)}
+            >
+              <div className="flex items-start space-x-2">
+                <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                  isSelected
+                    ? 'border-purple-400 bg-purple-400'
+                    : 'border-white/30'
+                }`}>
+                  {isSelected && (
+                    <Check className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-1">
+                    <h4 className={`font-medium text-sm ${isDisabled ? 'text-gray-400' : 'text-white'} truncate`}>
+                      {feature.label}
+                    </h4>
+                    {isDisabled && (
+                      <span className="text-xs text-purple-300 flex-shrink-0">
+                        {feature.id === 'CMS_ENGINE' ? t('onboarding.included') : t('onboarding.required')}
+                      </span>
+                    )}
+                  </div>
+                  {feature.description && (
+                    <p className={`text-xs ${isDisabled ? 'text-gray-500' : 'text-gray-300'} line-clamp-2`}>
+                      {feature.description}
+                    </p>
+                  )}
+                  {feature.dependencies && feature.dependencies.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1 truncate">
+                      {t('onboarding.requires')}: {feature.dependencies.map(dep => 
+                        AVAILABLE_FEATURES.find(f => f.id === dep)?.label || dep
+                      ).join(', ')}
+                    </p>
+                  )}
+                  <div className="mt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
+                      feature.category === 'Engine' ? 'bg-blue-500/20 text-blue-300' :
+                      feature.category === 'Module' ? 'bg-green-500/20 text-green-300' :
+                      'bg-orange-500/20 text-orange-300'
+                    }`}>
+                      {feature.category ? t(`onboarding.categories.${feature.category.toLowerCase()}`) : 'Other'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 
+  // Step 2: Organization Information
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Lock className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-cyan-400 mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Configurar Contraseña</h2>
-        <p className="text-sm sm:text-base text-gray-200">Crea una contraseña segura para tu cuenta</p>
-      </div>
-
-      <div>
-        <Label htmlFor="password" className="text-white">Contraseña *</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            value={formData.password}
-            onChange={(e) => updateFormData('password', e.target.value)}
-            placeholder="Mínimo 8 caracteres"
-            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-          >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="confirmPassword" className="text-white">Confirmar Contraseña *</Label>
-        <div className="relative">
-          <Input
-            id="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            value={formData.confirmPassword}
-            onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-            placeholder="Repite tu contraseña"
-            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-          >
-            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
         <Building className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-green-400 mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Información de tu Organización</h2>
-        <p className="text-sm sm:text-base text-gray-200">Configura tu espacio de trabajo</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{t('onboarding.steps.organization.title')}</h2>
+        <p className="text-sm sm:text-base text-gray-200">{t('onboarding.steps.organization.description')}</p>
       </div>
 
       <div>
-        <Label htmlFor="tenantName" className="text-white">Nombre de la Organización *</Label>
+        <Label htmlFor="tenantName" className="text-white">{t('onboarding.fields.organizationName')} *</Label>
         <Input
           id="tenantName"
           type="text"
@@ -470,140 +425,171 @@ export default function GetStartedPage() {
               updateFormData('tenantSlug', generateSlugFromName(value));
             }
           }}
-          placeholder="Mi Empresa S.A."
+          placeholder={t('onboarding.placeholders.organizationName')}
           className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
           required
         />
       </div>
 
       <div>
-        <Label htmlFor="tenantSlug" className="text-white">Slug de la Organización *</Label>
+        <Label htmlFor="tenantSlug" className="text-white">{t('onboarding.fields.organizationSlug')} *</Label>
         <Input
           id="tenantSlug"
           type="text"
           value={formData.tenantSlug}
           onChange={(e) => updateFormData('tenantSlug', e.target.value)}
-          placeholder="mi-empresa"
+          placeholder={t('onboarding.placeholders.organizationSlug')}
           className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
           required
         />
         <p className="text-sm text-gray-300 mt-1">
-          Este será tu identificador único: {formData.tenantSlug}.dishub.city
+          {t('onboarding.slugPreview')}: {formData.tenantSlug}.dishub.city
         </p>
       </div>
 
       <div>
-        <Label htmlFor="tenantDomain" className="text-white">Dominio Personalizado (Opcional)</Label>
+        <Label htmlFor="tenantDomain" className="text-white">{t('onboarding.fields.customDomain')}</Label>
         <Input
           id="tenantDomain"
           type="text"
           value={formData.tenantDomain}
           onChange={(e) => updateFormData('tenantDomain', e.target.value)}
-          placeholder="www.miempresa.com"
+          placeholder={t('onboarding.placeholders.customDomain')}
           className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
         />
         <p className="text-sm text-gray-300 mt-1">
-          Puedes configurar tu dominio personalizado más tarde
+          {t('onboarding.customDomainNote')}
         </p>
       </div>
     </div>
   );
 
-  const renderStep4 = () => (
+  // Step 3: User Information and Password
+  const renderStep3 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Check className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-pink-400 mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Selecciona tus Funcionalidades</h2>
-        <p className="text-sm sm:text-base text-gray-200">CMS Engine está incluido por defecto. Elige funcionalidades adicionales (puedes cambiar esto después)</p>
+        <User className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-cyan-400 mb-4" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{t('onboarding.steps.userInfo.title')}</h2>
+        <p className="text-sm sm:text-base text-gray-200">{t('onboarding.steps.userInfo.description')}</p>
       </div>
 
-      {/* Group features by category */}
-      {['Engine', 'Module', 'Integration'].map(category => {
-        const categoryFeatures = AVAILABLE_FEATURES.filter(feature => feature.category === category);
-        if (categoryFeatures.length === 0) return null;
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="firstName" className="text-white">{t('onboarding.fields.firstName')} *</Label>
+          <Input
+            id="firstName"
+            type="text"
+            value={formData.firstName}
+            onChange={(e) => updateFormData('firstName', e.target.value)}
+            placeholder={t('onboarding.placeholders.firstName')}
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="lastName" className="text-white">{t('onboarding.fields.lastName')} *</Label>
+          <Input
+            id="lastName"
+            type="text"
+            value={formData.lastName}
+            onChange={(e) => updateFormData('lastName', e.target.value)}
+            placeholder={t('onboarding.placeholders.lastName')}
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
+            required
+          />
+        </div>
+      </div>
 
-        return (
-          <div key={category} className="space-y-3">
-            <h3 className="font-semibold text-lg text-white border-b border-white/20 pb-2">
-              {category === 'Engine' ? 'Motores Principales' : 
-               category === 'Module' ? 'Módulos Adicionales' : 'Integraciones'}
-            </h3>
-            <div className="grid gap-3">
-              {categoryFeatures.map((feature) => {
-                const isSelected = formData.tenantFeatures.includes(feature.id);
-                const isDisabled = isFeatureDisabled(feature.id);
-                
-                return (
-                  <div
-                    key={feature.id}
-                    className={`p-4 border rounded-lg transition-colors ${
-                      isDisabled 
-                        ? 'border-white/20 bg-white/5 cursor-not-allowed opacity-75'
-                        : isSelected
-                          ? 'border-purple-400 bg-purple-500/20 cursor-pointer'
-                          : 'border-white/20 bg-white/5 hover:border-white/30 cursor-pointer'
-                    }`}
-                    onClick={() => !isDisabled && toggleFeature(feature.id)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className={`mt-1 w-4 h-4 rounded border-2 flex items-center justify-center ${
-                        isSelected
-                          ? 'border-purple-400 bg-purple-400'
-                          : 'border-white/30'
-                      }`}>
-                        {isSelected && (
-                          <Check className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-white'}`}>
-                          {feature.label}
-                          {isDisabled && (
-                            <span className="text-xs ml-2 text-purple-300">
-                              {feature.id === 'CMS_ENGINE' ? '(Incluido)' : '(Requerido)'}
-                            </span>
-                          )}
-                        </h4>
-                        {feature.description && (
-                          <p className={`text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
-                            {feature.description}
-                          </p>
-                        )}
-                        {feature.dependencies && feature.dependencies.length > 0 && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Requiere: {feature.dependencies.map(dep => 
-                              AVAILABLE_FEATURES.find(f => f.id === dep)?.label || dep
-                            ).join(', ')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      <div>
+        <Label htmlFor="email" className="text-white">{t('onboarding.fields.email')} *</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => updateFormData('email', e.target.value)}
+          placeholder={t('onboarding.placeholders.email')}
+          className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="phoneNumber" className="text-white">{t('onboarding.fields.phone')}</Label>
+        <PhoneInput
+          id="phoneNumber"
+          name="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={(value) => updateFormData('phoneNumber', value)}
+          placeholder={t('onboarding.placeholders.phone')}
+          defaultCountry="ES"
+          className="w-full"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="password" className="text-white">{t('onboarding.fields.password')} *</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) => updateFormData('password', e.target.value)}
+            placeholder={t('onboarding.placeholders.password')}
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="confirmPassword" className="text-white">{t('onboarding.fields.confirmPassword')} *</Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+            placeholder={t('onboarding.placeholders.confirmPassword')}
+            className="backdrop-blur-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-purple-400 focus:border-transparent hover:bg-white/10 transition-all duration-300 rounded-xl pr-12"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute inset-y-0 right-0 px-3 flex items-center text-white/50 hover:text-white transition-colors"
+            aria-label={showConfirmPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
+          >
+            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
 
       <div className="mt-6 p-4 backdrop-blur-xl bg-white/5 border border-white/10 rounded-lg">
-        <h3 className="font-medium mb-2 text-white">Resumen de tu configuración:</h3>
+        <h3 className="font-medium mb-2 text-white">{t('onboarding.summary.title')}:</h3>
         <div className="text-sm space-y-1 text-gray-200">
-          <p><strong>Usuario:</strong> {formData.firstName} {formData.lastName}</p>
-          <p><strong>Email:</strong> {formData.email}</p>
-          <p><strong>Organización:</strong> {formData.tenantName}</p>
-          <p><strong>Slug:</strong> {formData.tenantSlug}</p>
-          <p><strong>Funcionalidades:</strong> {formData.tenantFeatures.length} seleccionadas</p>
+          <p><strong>{t('onboarding.summary.user')}:</strong> {formData.firstName} {formData.lastName}</p>
+          <p><strong>{t('onboarding.summary.email')}:</strong> {formData.email}</p>
+          <p><strong>{t('onboarding.summary.organization')}:</strong> {formData.tenantName}</p>
+          <p><strong>{t('onboarding.summary.slug')}:</strong> {formData.tenantSlug}</p>
+          <p><strong>{t('onboarding.summary.features')}:</strong> {formData.tenantFeatures.length} {t('onboarding.summary.selected')}</p>
           {formData.tenantFeatures.length > 0 && (
             <div className="mt-2">
-              <p className="font-medium text-white">Funcionalidades seleccionadas:</p>
+              <p className="font-medium text-white">{t('onboarding.summary.selectedFeatures')}:</p>
               <ul className="list-disc list-inside text-xs text-gray-300 mt-1">
                 {formData.tenantFeatures.map(featureId => {
                   const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
                   return feature ? (
                     <li key={featureId}>
                       {feature.label}
-                      {featureId === 'CMS_ENGINE' && <span className="text-purple-300 ml-1">(Incluido por defecto)</span>}
+                      {featureId === 'CMS_ENGINE' && <span className="text-purple-300 ml-1">({t('onboarding.includedByDefault')})</span>}
                     </li>
                   ) : null;
                 })}
@@ -615,14 +601,13 @@ export default function GetStartedPage() {
     </div>
   );
 
-  const progress = (currentStep / 4) * 100;
+  const progress = (currentStep / 3) * 100;
 
   const getStepTitle = (step: number) => {
     switch (step) {
-      case 1: return 'Información Personal';
-      case 2: return 'Configurar Contraseña';
-      case 3: return 'Configuración de Organización';
-      case 4: return 'Selección de Funcionalidades';
+      case 1: return t('onboarding.stepTitles.functionalities');
+      case 2: return t('onboarding.stepTitles.organization');
+      case 3: return t('onboarding.stepTitles.userInfo');
       default: return '';
     }
   };
@@ -638,15 +623,15 @@ export default function GetStartedPage() {
 
       <Card className="w-full max-w-2xl mx-4 sm:mx-6 lg:mx-auto backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all duration-500 shadow-2xl relative z-10">
         <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-center text-white text-xl sm:text-2xl">Crear Nueva Cuenta</CardTitle>
+          <CardTitle className="text-center text-white text-xl sm:text-2xl">{t('onboarding.title')}</CardTitle>
           <CardDescription className="text-center text-gray-200 text-sm sm:text-base">
-            Paso {currentStep} de 4: {getStepTitle(currentStep)}
+{t('onboarding.stepProgress', { current: currentStep.toString(), total: '3' })}: {getStepTitle(currentStep)}
           </CardDescription>
           <Progress value={progress} className="w-full" />
           
           {/* Step indicators */}
           <div className="flex justify-center space-x-2 sm:space-x-4 mt-4 overflow-x-auto">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3].map((step) => (
               <div
                 key={step}
                 className={`flex items-center space-x-1 sm:space-x-2 flex-shrink-0 ${
@@ -662,7 +647,9 @@ export default function GetStartedPage() {
                   {step < currentStep ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : step}
                 </div>
                 <span className="text-xs sm:text-sm font-medium hidden md:block">
-                  {step === 1 ? 'Usuario' : step === 2 ? 'Contraseña' : step === 3 ? 'Organización' : 'Funcionalidades'}
+                  {step === 1 ? t('onboarding.stepLabels.functionalities') : 
+                   step === 2 ? t('onboarding.stepLabels.organization') : 
+                   t('onboarding.stepLabels.userInfo')}
                 </span>
               </div>
             ))}
@@ -673,7 +660,6 @@ export default function GetStartedPage() {
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
 
           <div className="flex flex-col sm:flex-row justify-between gap-4 sm:gap-0 mt-8">
             <Button
@@ -683,15 +669,15 @@ export default function GetStartedPage() {
               className="backdrop-blur-xl bg-white/5 border border-white/10 text-white hover:bg-white/20 disabled:opacity-50 rounded-full transition-all duration-300 w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Anterior
+              {t('common.back')}
             </Button>
 
-            {currentStep < 4 ? (
+            {currentStep < 3 ? (
               <Button 
                 onClick={handleNext}
                 className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 rounded-full w-full sm:w-auto"
               >
-                Siguiente
+                {t('common.next')}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
@@ -700,16 +686,16 @@ export default function GetStartedPage() {
                 disabled={loading}
                 className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 rounded-full disabled:opacity-50 w-full sm:w-auto"
               >
-                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+                {loading ? t('onboarding.creatingAccount') : t('onboarding.createAccount')}
               </Button>
             )}
           </div>
 
           <div className="text-center mt-6">
             <p className="text-sm text-gray-200">
-              ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
-                Inicia sesión aquí
+              {t('onboarding.alreadyHaveAccount')}{' '}
+              <Link href={`/${locale}/login`} className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
+                {t('onboarding.signInHere')}
               </Link>
             </p>
           </div>
