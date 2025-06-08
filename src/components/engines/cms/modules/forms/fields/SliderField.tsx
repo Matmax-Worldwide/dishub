@@ -3,9 +3,9 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { Checkbox } from '@/app/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 // Assuming a Slider component from shadcn/ui or similar is available.
 // If not, a standard HTML range input will be used for preview.
 // import { Slider as UiSlider } from '@/components/ui/slider'; 

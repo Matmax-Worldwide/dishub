@@ -167,7 +167,8 @@ export function FeatureStatusCard() {
     'BLOG_MODULE': { label: 'Blog Module', description: 'Blog functionality', category: 'Module' },
     'FORMS_MODULE': { label: 'Forms Module', description: 'Form builder', category: 'Module' },
     'BOOKING_ENGINE': { label: 'Booking Engine', description: 'Reservation system', category: 'Engine' },
-    'ECOMMERCE_ENGINE': { label: 'E-commerce Engine', description: 'Online store', category: 'Engine' }
+    'ECOMMERCE_ENGINE': { label: 'E-commerce Engine', description: 'Online store', category: 'Engine' },
+    'LEGAL_ENGINE': { label: 'Legal Engine', description: 'Legal services and compliance', category: 'Engine' }
   } as const;
 
   return (

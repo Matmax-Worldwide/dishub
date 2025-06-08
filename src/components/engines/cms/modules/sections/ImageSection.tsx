@@ -10,7 +10,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import { 
   ComponentStyling, 
   ComponentStyleProps, 

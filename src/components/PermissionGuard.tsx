@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from 'react';
 import { usePermission, RoleName } from '@/hooks/usePermission';
-import { Alert, AlertDescription } from '@/app/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShieldIcon } from 'lucide-react';
 
 interface PermissionGuardProps {

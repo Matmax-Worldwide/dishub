@@ -3,9 +3,9 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { Checkbox } from '@/app/components/ui/checkbox'; // Assuming Checkbox is used like this
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox'; // Assuming Checkbox is used like this
 
 // Componente de vista previa para campos de número
 export function NumberFieldPreview({ field }: { field: FormFieldBase }) {

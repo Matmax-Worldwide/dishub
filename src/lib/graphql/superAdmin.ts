@@ -786,7 +786,13 @@ export class SuperAdminClient {
             name: string;
             description?: string;
           };
-          tenantId: string;
+          userTenants: Array<{
+            id: string;
+            tenantId: string;
+            role: string;
+            isActive: boolean;
+            joinedAt: string;
+          }>;
           createdAt: string;
           updatedAt: string;
         };

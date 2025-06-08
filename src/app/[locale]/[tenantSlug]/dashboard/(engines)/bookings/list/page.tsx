@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import BookingsList from '@/app/components/engines/booking/BookingsList'; 
-import PageHeader from '@/app/components/engines/booking/page-header';
+import BookingsList from '@/components/engines/booking/BookingsList'; 
+import PageHeader from '@/components/engines/booking/page-header';
 
 const ManageBookingsPage = () => {
   return (

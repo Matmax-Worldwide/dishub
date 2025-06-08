@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/app/components/engines/cms/UnsavedChangesAlert';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import dynamic from 'next/dynamic';
 import { 
   PlusIcon, 
@@ -17,12 +17,12 @@ import {
   Grid3X3Icon
 } from 'lucide-react';
 import { cmsOperations } from '@/lib/graphql-client';
-import { Input } from '@/app/components/ui/input';
-import { Button } from '@/app/components/ui/button';
-import { Skeleton } from '@/app/components/ui/skeleton';
-import { Badge } from '@/app/components/ui/badge';
-import { ScrollArea } from '@/app/components/ui/scroll-area';
-import { Label } from "@/app/components/ui/label";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from "@/components/ui/label";
 import { ComponentType } from '@/types/cms';
 
 interface PageItem {

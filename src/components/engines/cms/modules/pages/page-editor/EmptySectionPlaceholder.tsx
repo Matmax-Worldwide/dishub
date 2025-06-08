@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutIcon, MonitorIcon, SmartphoneIcon, SplitIcon, EyeIcon } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Card, CardContent } from '@/app/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface EmptySectionPlaceholderProps {
   isCreatingSection: boolean;

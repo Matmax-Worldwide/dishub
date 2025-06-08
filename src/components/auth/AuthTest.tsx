@@ -9,7 +9,7 @@ import { createAuthHeaders, getSessionToken } from '@/lib/auth-header';
  * This component can be temporarily added to any page to test auth
  */
 export function AuthTest() {
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [testResult, setTestResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
@@ -22,8 +22,7 @@ export function AuthTest() {
       const sessionToken = getSessionToken();
       console.log('Session token from cookies:', sessionToken ? 'Found' : 'Not found');
 
-      // Test 2: Check if auth context has token
-      console.log('Auth context token:', token ? 'Found' : 'Not found');
+      // Test 2: Check authentication status
       console.log('Is authenticated:', isAuthenticated);
 
       // Test 3: Test GraphQL query with authorization
@@ -84,8 +83,7 @@ export function AuthTest() {
       <div className="space-y-2 text-sm">
         <p><strong>User:</strong> {user?.email}</p>
         <p><strong>Role:</strong> {user?.role?.name}</p>
-        <p><strong>Has Token:</strong> {token ? '✅' : '❌'}</p>
-        <p><strong>Session Cookie:</strong> {getSessionToken() ? '✅' : '❌'}</p>
+          <p><strong>Session Cookie:</strong> {getSessionToken() ? '✅' : '❌'}</p>
       </div>
       
       <button

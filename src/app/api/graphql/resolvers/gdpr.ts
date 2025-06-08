@@ -17,7 +17,11 @@ interface Context {
   prisma: unknown;
   user?: {
     id: string;
-    role: string;
+    role: {
+      id: string;
+      name: string;
+      description?: string;
+    };
     tenantId?: string;
   };
   tenantId?: string;
@@ -47,12 +51,12 @@ async function verifyUserAccess(context: Context, tenantId: string): Promise<boo
   if (!context.user) return false;
   
   // SuperAdmin can access any tenant
-  if (context.user.role === 'SuperAdmin') {
+  if (context.user.role.name === 'SuperAdmin') {
     return true;
   }
   
   // TenantAdmin can access their own tenant data - check through userTenants relationship
-  if (context.user.role === 'TenantAdmin') {
+  if (context.user.role.name === 'TenantAdmin') {
     // Get user's tenant relationships to verify access
     const user = await prisma.user.findUnique({
       where: { id: context.user.id },

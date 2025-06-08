@@ -53,7 +53,11 @@ export interface GraphQLContext {
   tenantId: string | null;
   user: {
     id: string;
-    role: RoleName; // Assuming RoleName is an enum or string literal type
+    role: {
+      id: string;
+      name: string;
+      description?: string;
+    };
     permissions: string[];
 
     tenants?: Array<{ id: string; role: string; status: string }>; // From original, might be needed if user has multiple tenants in JWT
@@ -219,12 +223,14 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
 
           userContext = {
             id: decodedJwt.userId,
-            role: userRoleName,
+            role: {
+              id: decodedJwt.roleId || '', // Ensure it's never undefined
+              name: userRoleName,
+              description: decodedJwt.roleDescription as string | undefined
+            },
             permissions: resolvedPermissions,
-            currentTenantIdFromJwt: decodedJwt.tenantId || null, // TenantId from JWT
-
             tenants: [], // Initialize as empty array, could be populated from JWT if needed
-
+            currentTenantIdFromJwt: decodedJwt.tenantId || null, // TenantId from JWT
           };
 
           // Security Check: If a tenant was resolved from the request (e.g. subdomain)

@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { SaveIcon } from 'lucide-react';
 import {
   CardDescription,
-} from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { PageFormContent } from './PageFormContent';
 import { useI18n } from '@/hooks/useI18n';
 

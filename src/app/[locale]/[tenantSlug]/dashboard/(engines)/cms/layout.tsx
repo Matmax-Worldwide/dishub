@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import CMSSidebar from '@/app/components/engines/cms/CMSSidebar';
+import CMSSidebar from '@/components/engines/cms/CMSSidebar';
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery } from '@apollo/client';

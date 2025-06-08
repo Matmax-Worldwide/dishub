@@ -23,8 +23,8 @@ import {
   AddSectionDialog,
   ExitConfirmationDialog,
   CSSInjector,  
-} from '@/app/components/engines/cms/modules/pages/page-editor';
-import { Button } from '@/app/components/ui/button';
+} from '@/components/engines/cms/modules/pages/page-editor';
+import { Button } from '@/components/ui/button';
 import { PageEvents } from './PagesSidebar';
 import { ComponentType } from '@/types/cms';
 // Extend PageData to include SEO properties

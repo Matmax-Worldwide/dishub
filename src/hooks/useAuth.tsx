@@ -8,7 +8,10 @@ interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+  };
   tenantId?: string | null;
   tenantSlug?: string | null;
   tenantName?: string | null;

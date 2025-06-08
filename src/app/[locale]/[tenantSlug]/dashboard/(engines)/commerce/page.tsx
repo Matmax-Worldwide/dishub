@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 
 // Import our reusable components
-import StatCard from '@/app/components/engines/commerce/StatCard';
-import ProductCard from '@/app/components/engines/commerce/ProductCard';
-import OrderTable from '@/app/components/engines/commerce/OrderTable';
-import AlertCard from '@/app/components/engines/commerce/AlertCard';
-import QuickActions from '@/app/components/engines/commerce/QuickActions';
+import StatCard from '@/components/engines/commerce/StatCard';
+import ProductCard from '@/components/engines/commerce/ProductCard';
+import OrderTable from '@/components/engines/commerce/OrderTable';
+import AlertCard from '@/components/engines/commerce/AlertCard';
+import QuickActions from '@/components/engines/commerce/QuickActions';
 
 export default function CommerceDashboard() {
   // Mock data for the dashboard based on the Prisma schema

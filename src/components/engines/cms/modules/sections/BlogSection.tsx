@@ -3,11 +3,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import StableInput from './StableInput';
 import { Search, User, ChevronLeft, ChevronRight, ImageIcon, Calendar, Clock, Check, AlertTriangle } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/app/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { gqlRequest } from '@/lib/graphql-client';
 import Image from 'next/image';
 import {
@@ -15,10 +15,10 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
-import BackgroundSelector from '@/app/components/engines/cms/ui/selectors/BackgroundSelector';
-import MediaSelector from '@/app/components/engines/cms/ui/selectors/MediaSelector';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
+} from "@/components/ui/tabs";
+import BackgroundSelector from '@/components/engines/cms/ui/selectors/BackgroundSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 
 interface BlogPost {
   id: string;

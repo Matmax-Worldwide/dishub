@@ -17,15 +17,15 @@ import {
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { cmsOperations } from '@/lib/graphql-client';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
-import S3FilePreview from '@/app/components/shared/S3FilePreview';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
+import S3FilePreview from '@/components/shared/S3FilePreview';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
-import MediaSelector from '@/app/components/engines/cms/ui/selectors/MediaSelector';
+} from "@/components/ui/tabs";
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
 
 // Types from schema.prisma
 interface SocialLink {

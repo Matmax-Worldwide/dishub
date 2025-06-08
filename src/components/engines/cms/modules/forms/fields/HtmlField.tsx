@@ -3,9 +3,9 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { Textarea } from '@/app/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle } from 'lucide-react';
 
 // Componente de vista previa para campos HTML personalizados

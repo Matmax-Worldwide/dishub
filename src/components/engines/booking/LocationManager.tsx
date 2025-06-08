@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import graphqlClient from '@/lib/graphql-client';
 import { Location } from '@/types/calendar'; // Assuming this type is defined
 import LocationForm from './LocationForm';
-import { Button } from '@/app/components/ui/button';
-import { Card } from '@/app/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -13,13 +13,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/app/components/ui/table';
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,7 +31,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/app/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog"
 
 export default function LocationManager() {
   const [locations, setLocations] = useState<Location[]>([]);

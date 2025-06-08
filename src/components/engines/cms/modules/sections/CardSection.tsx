@@ -8,7 +8,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { 
   ComponentStyling, 

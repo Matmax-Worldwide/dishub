@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import { PermissionProvider } from '@/hooks/usePermission';
 import { NextIntlClientProvider } from 'next-intl';
-import { AuthInitializer } from '@/app/components/auth/AuthInitializer';
+import { AuthInitializer } from '@/components/auth/AuthInitializer';
 
 type LocaleProvidersProps = {
   children: ReactNode;

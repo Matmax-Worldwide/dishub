@@ -2,18 +2,18 @@
 
 import React, { useState } from 'react';
 import { InfoIcon, AlignLeftIcon, FileIcon, LayoutTemplateIcon, RocketIcon, BarChartIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Switch } from '@/app/components/ui/switch';
-import { Label } from '@/app/components/ui/label';
-import { Button } from '@/app/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/app/components/ui/select';
+} from '@/components/ui/select';
 import { useI18n } from '@/hooks/useI18n';
 
 interface PageFormContentProps {

@@ -4,8 +4,8 @@ import {
   Card,
   CardContent,
   CardFooter,
-} from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/app/components/ui/dialog';
-import ManageableSection from '@/app/components/engines/cms/modules/sections/ManageableSection';
+} from '@/components/ui/dialog';
+import ManageableSection from '@/components/engines/cms/modules/sections/ManageableSection';
 import { Section, ManageableSectionHandle } from '@/types/cms';
 import EmptySectionPlaceholder from './EmptySectionPlaceholder';
 import { DEFAULT_STYLING } from '@/types/cms-styling';

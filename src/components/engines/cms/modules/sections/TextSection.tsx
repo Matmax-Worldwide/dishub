@@ -2,13 +2,13 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import StableInput from '@/app/components/engines/cms/modules/sections/StableInput';
+import StableInput from '@/components/engines/cms/modules/sections/StableInput';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import { 
   ComponentStyling, 
   ComponentStyleProps, 

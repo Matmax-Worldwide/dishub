@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SaveIcon } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/useI18n';
 
 interface PageSaveButtonProps {

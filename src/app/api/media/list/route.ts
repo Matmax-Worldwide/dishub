@@ -3,7 +3,7 @@ import {
   S3Client, 
   ListObjectsV2Command 
 } from '@aws-sdk/client-s3';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 
 // Create S3 client (server-side only)
 const s3Client = new S3Client({

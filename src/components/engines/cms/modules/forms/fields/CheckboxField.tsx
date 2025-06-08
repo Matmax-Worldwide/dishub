@@ -3,10 +3,10 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { Button } from '@/app/components/ui/button';
-import { Checkbox as UiCheckbox } from '@/app/components/ui/checkbox'; // Renamed to avoid conflict
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox as UiCheckbox } from '@/components/ui/checkbox'; // Renamed to avoid conflict
 import { PlusCircle, XCircle, GripVertical } from 'lucide-react';
 import { normalizeValue } from '@/lib/normalize';
 

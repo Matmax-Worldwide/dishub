@@ -8,7 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/app/components/ui/alert-dialog';
+} from '@/components/ui/alert-dialog';
 import { Section } from '@/types/cms';
 
 interface DeleteSectionDialogProps {

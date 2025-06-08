@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { gqlRequest } from '@/lib/graphql-client';
 import { ArrowLeftIcon, Loader2Icon, PlusIcon, TrashIcon } from 'lucide-react';
 import { MenuItem } from '@/app/api/graphql/types';
-import AuthenticationGuard from '@/app/components/auth/AuthenticationGuard';
+import AuthenticationGuard from '@/components/auth/AuthenticationGuard';
 
 interface PageBasic {
   id: string;

@@ -4,8 +4,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit3, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import RichTextEditor from '@/app/components/ui/rich-text-editor';
-import { EditorUtils } from '@/app/components/ui/rich-text-editor/utils';
+import RichTextEditor from '@/components/ui/rich-text-editor';
+import { EditorUtils } from '@/components/ui/rich-text-editor/utils';
 
 interface RichStableInputProps {
   value: string;

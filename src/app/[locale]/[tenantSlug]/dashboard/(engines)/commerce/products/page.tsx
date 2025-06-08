@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Package, Grid, List } from 'lucide-react';
-import ProductCard from '@/app/components/engines/commerce/ProductCard';
-import StatCard from '@/app/components/engines/commerce/StatCard';
+import ProductCard from '@/components/engines/commerce/ProductCard';
+import StatCard from '@/components/engines/commerce/StatCard';
 import { ecommerce } from '@/lib/graphql-client';
 
 interface Product {

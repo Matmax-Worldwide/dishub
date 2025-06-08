@@ -7,7 +7,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 
 interface TestimonialSectionProps {
   quote: string;

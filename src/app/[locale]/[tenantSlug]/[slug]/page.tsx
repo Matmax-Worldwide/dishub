@@ -1,6 +1,6 @@
 'use client';
 
-import CMSPageRenderer from '@/app/components/engines/cms/CMSPageRenderer';
+import CMSPageRenderer from '@/components/engines/cms/CMSPageRenderer';
 
 export default function CMSPage() {
   return <CMSPageRenderer />;

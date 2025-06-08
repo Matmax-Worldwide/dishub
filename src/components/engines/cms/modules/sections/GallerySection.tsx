@@ -3,16 +3,16 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
-import S3FilePreview from '@/app/components/shared/S3FilePreview';
-import MediaSelector from '@/app/components/engines/cms/ui/selectors/MediaSelector';
-import ColorSelector from '@/app/components/engines/cms/ui/selectors/ColorSelector';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
+import S3FilePreview from '@/components/shared/S3FilePreview';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import ColorSelector from '@/components/engines/cms/ui/selectors/ColorSelector';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 
 interface GalleryImage {
   id: string;

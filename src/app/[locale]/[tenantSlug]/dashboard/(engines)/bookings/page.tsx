@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   CalendarIcon, 
   MapPinIcon, 
@@ -19,12 +19,12 @@ import {
 } from 'lucide-react';
 
 // Import calendar management components
-import ServiceManager from '@/app/components/engines/booking/ServiceManager';
-import StaffManager from '@/app/components/engines/booking/StaffManager';
-import LocationManager from '@/app/components/engines/booking/LocationManager';
-import CategoryManager from '@/app/components/engines/booking/CategoryManager';
-import BookingsList from '@/app/components/engines/booking/BookingsList';
-import CalendarSection from '@/app/components/engines/cms/modules/sections/CalendarSection';
+import ServiceManager from '@/components/engines/booking/ServiceManager';
+import StaffManager from '@/components/engines/booking/StaffManager';
+import LocationManager from '@/components/engines/booking/LocationManager';
+import CategoryManager from '@/components/engines/booking/CategoryManager';
+import BookingsList from '@/components/engines/booking/BookingsList';
+import CalendarSection from '@/components/engines/cms/modules/sections/CalendarSection';
 import graphqlClient from '@/lib/graphql-client';
 import { toast } from 'sonner';
 

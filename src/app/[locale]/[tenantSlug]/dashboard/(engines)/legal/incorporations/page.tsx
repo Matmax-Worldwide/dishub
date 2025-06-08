@@ -13,7 +13,7 @@ import {
   MapPin
 } from 'lucide-react';
 import Link from 'next/link';
-import BookIncorporationAppointment from '@/app/components/engines/legal/BookIncorporationAppointment';
+import BookIncorporationAppointment from '@/components/engines/legal/BookIncorporationAppointment';
 
 // Mock data - En producción esto vendría de la API
 const mockIncorporations = [

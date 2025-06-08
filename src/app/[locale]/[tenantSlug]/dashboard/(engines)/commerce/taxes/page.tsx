@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, MoreHorizontal, Receipt, Store, Percent, TrendingUp } from 'lucide-react';
-import StatCard from '@/app/components/engines/commerce/StatCard';
+import StatCard from '@/components/engines/commerce/StatCard';
 import { ecommerce } from '@/lib/graphql-client';
 
 interface Tax {

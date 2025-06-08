@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircleIcon, XIcon, LoaderIcon } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 interface DeletePageDialogProps {

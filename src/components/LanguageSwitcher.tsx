@@ -1,17 +1,17 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { locales } from '../i18n';
+import { locales } from '@/app/i18n';
 import { useState } from 'react';
 import { GlobeAltIcon } from '@heroicons/react/24/outline';
 import { Globe } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/hooks/useI18n';
 
 interface LanguageSwitcherProps {

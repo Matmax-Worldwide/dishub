@@ -3,10 +3,10 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
-import { Switch } from '@/app/components/ui/switch'; // ShadCN Switch
-import { Checkbox } from '@/app/components/ui/checkbox'; // For setting default value in editor
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch'; // ShadCN Switch
+import { Checkbox } from '@/components/ui/checkbox'; // For setting default value in editor
 
 // Componente de vista previa para campos de Toggle (Switch)
 export function ToggleFieldPreview({ field }: { field: FormFieldBase }) {

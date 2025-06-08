@@ -7,7 +7,7 @@ import { ExternalLink } from '@prisma/client';
 interface Context {
   user?: {
     id: string;
-    role: string | {
+    role: {
       id: string;
       name: string;
       description?: string;
@@ -38,13 +38,13 @@ interface AccessControlInput {
 }
 
 // Comprobar si un usuario tiene acceso a un enlace
-async function userHasAccessToLink(userId: string, userRole: string, link: ExternalLink): Promise<boolean> {
+async function userHasAccessToLink(userId: string, userRole: { id: string; name: string; description?: string }, link: ExternalLink): Promise<boolean> {
   // Verificaciones de seguridad para valores null o undefined
   if (!link) return false;
   if (!userId) return link.accessType === 'PUBLIC';
   
   // Si el usuario es ADMIN, tiene acceso a todos los enlaces
-  if (userRole === 'ADMIN') {
+  if (userRole.name === 'SuperAdmin') {
     return true;
   }
   
@@ -62,13 +62,13 @@ async function userHasAccessToLink(userId: string, userRole: string, link: Exter
   // Control basado en roles
   if (link.accessType === 'ROLES' || link.accessType === 'MIXED') {
     try {
-      // Obtener el ID del rol del usuario si se proporcionó el nombre del rol
-      let userRoleId = userRole;
+      // Usar el ID del rol del usuario
+      let userRoleId = userRole.id;
       
-      // Si userRole no parece ser un ID (no tiene formato CUID), buscar el rol por nombre
-      if (!userRole.startsWith('cm')) {
+      // Si no tenemos el ID del rol, buscar por nombre
+      if (!userRoleId && userRole.name) {
         const role = await prisma.roleModel.findFirst({
-          where: { name: userRole }
+          where: { name: userRole.name }
         });
         if (role) {
           userRoleId = role.id;
@@ -212,9 +212,13 @@ export const externalLinksResolvers = {
         
         // Filtrar enlaces según el acceso del usuario
         console.log(`RESOLVER: Filtering links for user ${userId} with role ${userRole}`);
+        
+        // Crear objeto de rol para la función userHasAccessToLink
+        const roleObject = { id: '', name: userRole, description: undefined };
+        
         const accessibleLinks = await Promise.all(
           allActiveLinks.map(async (link) => {
-            const hasAccess = await userHasAccessToLink(userId, userRole, link);
+            const hasAccess = await userHasAccessToLink(userId, roleObject, link);
             console.log(`RESOLVER: Link ${link.name}, accessType ${link.accessType}, hasAccess: ${hasAccess}`);
             return hasAccess ? link : null;
           })
@@ -263,7 +267,9 @@ export const externalLinksResolvers = {
         const allLinks = await prisma.externalLink.findMany();
         
         const accessStatusPromises = allLinks.map(async (link) => {
-          const hasAccess = await userHasAccessToLink(userId, userRole, link);
+          // Crear objeto de rol para la función userHasAccessToLink
+          const roleObject = { id: userRoleId, name: userRole, description: undefined };
+          const hasAccess = await userHasAccessToLink(userId, roleObject, link);
           return {
             linkId: link.id,
             linkName: link.name,
@@ -414,8 +420,8 @@ export const externalLinksResolvers = {
       }
       
       // Authorization check
-      if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
-          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
+      const userRoleName = typeof context.user.role === 'string' ? context.user.role : context.user.role.name;
+      if (userRoleName !== 'ADMIN' && userRoleName !== 'SuperAdmin') {
         console.error(`Authorization error: User role is not ADMIN or SuperAdmin`);
         throw new GraphQLError('You must be an admin to create external links', {
           extensions: { code: 'FORBIDDEN' }
@@ -467,8 +473,8 @@ export const externalLinksResolvers = {
         }
         
         // Authorization check
-        if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
-            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
+        const userRoleName = typeof context.user.role === 'string' ? context.user.role : context.user.role.name;
+        if (userRoleName !== 'ADMIN' && userRoleName !== 'SuperAdmin') {
           throw new GraphQLError('You must be an admin to update external links', {
             extensions: { code: 'FORBIDDEN' }
           });
@@ -550,8 +556,8 @@ export const externalLinksResolvers = {
         }
         
         // Authorization check
-        if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
-            (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
+        const userRoleName = typeof context.user.role === 'string' ? context.user.role : context.user.role.name;
+        if (userRoleName !== 'ADMIN' && userRoleName !== 'SuperAdmin') {
           throw new GraphQLError('You must be an admin to update link access', {
             extensions: { code: 'FORBIDDEN' }
           });
@@ -613,8 +619,8 @@ export const externalLinksResolvers = {
         });
       }
       
-      if (context.user.role !== 'ADMIN' && context.user.role !== 'SuperAdmin' && 
-          (typeof context.user.role === 'object' && context.user.role.name !== 'ADMIN' && context.user.role.name !== 'SuperAdmin')) {
+      const userRoleName = typeof context.user.role === 'string' ? context.user.role : context.user.role.name;
+      if (userRoleName !== 'ADMIN' && userRoleName !== 'SuperAdmin') {
         throw new GraphQLError('You must be an admin to delete external links', {
           extensions: { code: 'FORBIDDEN' }
         });

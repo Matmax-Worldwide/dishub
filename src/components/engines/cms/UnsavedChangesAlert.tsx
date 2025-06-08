@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Save, X } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 interface UnsavedChangesAlertProps {
   isVisible: boolean;

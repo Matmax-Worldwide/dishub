@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { FormStepBase } from '@/types/forms';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Switch } from '@/app/components/ui/switch';
-import { Textarea } from '@/app/components/ui/textarea'; // Added for description
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/app/components/ui/dialog'; // Assuming Dialog components from shadcn/ui
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea'; // Added for description
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Assuming Dialog components from shadcn/ui
 
 interface EditStepModalProps {
   isOpen: boolean;

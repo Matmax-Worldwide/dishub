@@ -4,9 +4,9 @@ import { ReactNode, useState, useEffect } from 'react';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { CustomSidebar } from './CustomSidebar';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Menu, Bell, User, Search } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +14,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
-import { Badge } from '@/app/components/ui/badge';
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 interface AdminLayoutProps {
   children: ReactNode;

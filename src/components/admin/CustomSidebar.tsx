@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FeatureType, useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { FeatureGuard } from '@/app/components/FeatureGuard';
+import { FeatureGuard } from '@/components/FeatureGuard';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -35,8 +35,8 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SidebarSection {
   id: string;

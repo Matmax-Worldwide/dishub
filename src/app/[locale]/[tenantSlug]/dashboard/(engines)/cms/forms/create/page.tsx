@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormComponent } from '@/app/components/engines/cms/modules/forms/hooks/useFormComponent';
+import { useFormComponent } from '@/components/engines/cms/modules/forms/hooks/useFormComponent';
 import { FormInput } from '@/types/forms';
 import { ArrowLeft, Save, FileText, Settings, Eye, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export default function NewFormPage() {
   const router = useRouter();

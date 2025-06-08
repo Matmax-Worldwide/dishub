@@ -6,15 +6,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/app/components/ui/dialog';
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/app/components/ui/select';
-import { Button } from '@/app/components/ui/button';
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { AvailableSection } from '@/types/cms';
 
 interface AddSectionDialogProps {

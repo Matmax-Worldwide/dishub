@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Textarea } from "@/app/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ConditionBuilderProps {
   value: string;

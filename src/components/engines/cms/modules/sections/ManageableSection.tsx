@@ -6,7 +6,7 @@ import SectionManager, { Component } from './SectionManager';
 import { cn } from '@/lib/utils';
 import BackgroundSelector from '../../ui/selectors/BackgroundSelector';
 import MediaSelector from '../../ui/selectors/MediaSelector';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import { Edit, Eye } from 'lucide-react';
 import { useViewMode } from '@/contexts/ViewModeContext';
 

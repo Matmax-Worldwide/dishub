@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { TenantDashboard } from '@/app/components/navigation/tenantDashboard/TenantDashboard';
+import { TenantDashboard } from '@/components/navigation/tenantDashboard/TenantDashboard';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
 

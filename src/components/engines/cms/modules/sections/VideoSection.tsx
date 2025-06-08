@@ -4,20 +4,20 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
-import S3FilePreview from '@/app/components/shared/S3FilePreview';
-import MediaSelector from '@/app/components/engines/cms/ui/selectors/MediaSelector';
-import ColorSelector from '@/app/components/engines/cms/ui/selectors/ColorSelector';
-import TransparencySelector from '@/app/components/engines/cms/ui/selectors/TransparencySelector';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
+import S3FilePreview from '@/components/shared/S3FilePreview';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import ColorSelector from '@/components/engines/cms/ui/selectors/ColorSelector';
+import TransparencySelector from '@/components/engines/cms/ui/selectors/TransparencySelector';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import { useOptimizedVideo, useOptimizedImage } from '@/hooks/useOptimizedMedia';
 import { videoPreloader } from '@/lib/video-preloader';
-import { RichStableInput } from '@/app/components/engines/cms/modules/sections/RichStableInput';
+import { RichStableInput } from '@/components/engines/cms/modules/sections/RichStableInput';
 
 interface VideoSectionProps {
   videoUrl?: string;

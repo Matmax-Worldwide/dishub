@@ -5,8 +5,8 @@ import graphqlClient from '@/lib/graphql-client';
 import { Service, ServiceCategory, Location } from '@/types/calendar';
 import ServiceForm from './ServiceForm';
 import DeleteServiceDialog from './DeleteServiceDialog';
-import { Button } from '@/app/components/ui/button';
-import { Card } from '@/app/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -14,13 +14,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/app/components/ui/table';
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, PlusCircle, Edit, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

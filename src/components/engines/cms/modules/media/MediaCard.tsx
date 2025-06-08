@@ -2,7 +2,7 @@ import { MediaItem, Folder } from './types';
 import { MediaActions } from './MediaActions';
 import { MediaFileMenu } from './MediaFileMenu';
 import { formatFileSize } from './utils';
-import S3FilePreview from '@/app/components/shared/S3FilePreview';
+import S3FilePreview from '@/components/shared/S3FilePreview';
 import { useRef, useState, useCallback } from 'react';
 
 interface MediaCardProps {

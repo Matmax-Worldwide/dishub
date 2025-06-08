@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
-import IconSelector from '@/app/components/engines/cms/ui/selectors/IconSelector';
-import StyleControls from '@/app/components/engines/cms/StyleControls';
+import IconSelector from '@/components/engines/cms/ui/selectors/IconSelector';
+import StyleControls from '@/components/engines/cms/StyleControls';
 import {  
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import * as LucideIcons from 'lucide-react';
 import { 
   ComponentStyling, 

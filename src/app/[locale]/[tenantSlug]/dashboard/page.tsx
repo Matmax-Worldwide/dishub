@@ -80,7 +80,10 @@ interface ExtendedUser {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+  };
   userTenants?: UserTenant[];
 }
 

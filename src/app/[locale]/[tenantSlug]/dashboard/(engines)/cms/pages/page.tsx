@@ -3,7 +3,7 @@
 import React from 'react';
 import { FileTextIcon, PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export default function PagesPage() {
   const router = useRouter();

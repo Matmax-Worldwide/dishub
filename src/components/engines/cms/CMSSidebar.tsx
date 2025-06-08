@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/app/components/engines/cms/UnsavedChangesAlert';
-import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/hooks/useI18n';
 import { 
   LayoutDashboard,
@@ -33,7 +33,7 @@ import {
   SidebarItem,
   SidebarCollapseButton,
   useSidebar
-} from '@/app/components/ui/sidebar';
+} from '@/components/ui/sidebar';
 
 // Custom component for the collapsible button with dynamic icon
 function CollapsibleButton({ className = "" }) {

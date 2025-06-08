@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import graphqlClient from '@/lib/graphql-client';
 import { StaffProfile, User } from '@/types/calendar';
 import StaffCreator from './StaffCreator';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -13,13 +13,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/app/components/ui/table';
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,9 +31,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/app/components/ui/alert-dialog";
-import { Badge } from '@/app/components/ui/badge';
-import { Card } from '@/app/components/ui/card';
+} from "@/components/ui/alert-dialog";
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 export default function StaffManager() {
   const router = useRouter();

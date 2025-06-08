@@ -12,11 +12,11 @@ import {
   ChevronsDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/app/components/ui/button';
-import { FormDesignType } from '@/app/components/engines/cms/modules/forms/MultiStepFormRenderer';
+import { Button } from '@/components/ui/button';
+import { FormDesignType } from '@/components/engines/cms/modules/forms/MultiStepFormRenderer';
 import { ComponentType, HeaderAdvancedOptions } from '@/types/cms';
-import ComponentSelector from '@/app/components/engines/cms/ui/selectors/ComponentSelector';
-import ComponentTitleInput from '@/app/components/engines/cms/ComponentTitleInput';
+import ComponentSelector from '@/components/engines/cms/ui/selectors/ComponentSelector';
+import ComponentTitleInput from '@/components/engines/cms/ComponentTitleInput';
 import { FormStyles } from './FormStyleConfig';
 import { FormCustomConfig } from './FormConfig';
 

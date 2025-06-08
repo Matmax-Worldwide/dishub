@@ -3,8 +3,8 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { FormFieldBase, FormFieldType } from '@/types/forms';
 import { FieldProps, BaseFieldPreview, FieldLayout } from './FieldBase';
-import { Label } from '@/app/components/ui/label';
-import { Input } from '@/app/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 // Componente de vista previa para campos de espaciador
 export function SpacerFieldPreview({ field }: { field: FormFieldBase }) {

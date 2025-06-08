@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import LocationManager from '@/app/components/engines/booking/LocationManager';
-import EmptyLocationList from '@/app/components/engines/booking/EmptyLocationList';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/app/components/ui/breadcrumb";
+import LocationManager from '@/components/engines/booking/LocationManager';
+import EmptyLocationList from '@/components/engines/booking/EmptyLocationList';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Loader2 } from 'lucide-react';
 import graphqlClient from '@/lib/graphql-client';
 import { Location } from '@/types/calendar';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckIcon, PlusIcon, XIcon } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface CreateSectionFormProps {
   isCreatingSection: boolean;

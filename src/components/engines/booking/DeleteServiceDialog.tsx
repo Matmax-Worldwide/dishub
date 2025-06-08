@@ -12,7 +12,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/app/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 
 interface DeleteServiceDialogProps {
   service: Service | null;

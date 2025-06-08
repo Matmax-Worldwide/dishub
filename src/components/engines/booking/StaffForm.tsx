@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Switch } from '@/app/components/ui/switch'; // For multi-select items if needed
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch'; // For multi-select items if needed
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StaffProfile, User, Service, Location, StaffScheduleInput, StaffSchedule, PrismaDayOfWeek, PrismaScheduleType } from '@/types/calendar';
 import WeeklyScheduleEditor from './WeeklyScheduleEditor';
 import { toast } from 'sonner';
-import { ScrollArea } from '@/app/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { X } from 'lucide-react';
 
 interface StaffFormProps {

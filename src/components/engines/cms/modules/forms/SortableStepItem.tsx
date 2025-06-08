@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from '@/app/components/ui/card'; // Assuming Card is used for step display
+import { Card } from '@/components/ui/card'; // Assuming Card is used for step display
 import { GripVertical } from 'lucide-react';
 
 interface SortableStepItemProps {

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Service, Location, AvailableTimeSlot, Booking } from '@/types/calendar'; 
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { 
   User, 
   Calendar, 
@@ -26,7 +26,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 import graphqlClient from '@/lib/graphql-client';
 
 // Add design template type

@@ -143,7 +143,7 @@ src/app/[locale]/[tenantSlug]/dashboard/(engines)/nuevo/
 'use client';
 
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function NuevoEnginePage() {
   const { hasFeature } = useFeatureAccess();

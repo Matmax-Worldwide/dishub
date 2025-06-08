@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { ChevronDownIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import StableInput from './StableInput';
-import ColorSelector from '@/app/components/engines/cms/ui/selectors/ColorSelector';
+import ColorSelector from '@/components/engines/cms/ui/selectors/ColorSelector';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/app/components/ui/tabs";
+} from "@/components/ui/tabs";
 
 interface DropdownLink {
   id: string;

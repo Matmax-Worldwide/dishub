@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useCMSPage, PageData } from '@/hooks/useCMSPage';
-import SectionManager from '@/app/components/engines/cms/modules/sections/SectionManager';
+import SectionManager from '@/components/engines/cms/modules/sections/SectionManager';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
-import ModernLoader from '@/app/components/ui/ModernLoader';
+import ModernLoader from '@/components/ui/ModernLoader';
 import { Menu } from '@/app/api/graphql/types';
 import { ComponentType } from '@/types/cms';
 

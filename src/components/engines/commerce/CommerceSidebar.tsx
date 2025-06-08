@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
-import { UnsavedChangesAlert } from '@/app/components/engines/cms/UnsavedChangesAlert';
+import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { 
   LayoutDashboard,
   Package,
@@ -39,7 +39,7 @@ import {
   SidebarItem,
   SidebarCollapseButton,
   useSidebar
-} from '@/app/components/ui/sidebar';
+} from '@/components/ui/sidebar';
 
 interface CommerceSidebarProps {
   dictionary?: {

@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { FormBase } from '@/types/forms';
 import MultiStepFormRenderer from './MultiStepFormRenderer';
 import FormRenderer from './FormRenderer';
-import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Eye, ExternalLink, Smartphone, Monitor, Tablet } from 'lucide-react';
 import { toast } from 'sonner';
 

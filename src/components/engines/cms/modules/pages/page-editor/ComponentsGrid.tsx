@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Sparkles, Check, Search } from 'lucide-react';
-import { Input } from '@/app/components/ui/input';
-import { Button } from '@/app/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ComponentType } from '@/types/cms';
 
 interface ComponentsGridProps {

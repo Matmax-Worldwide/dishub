@@ -5,11 +5,11 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import StableInput from './StableInput';
 import { cn } from '@/lib/utils';
-import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/app/components/engines/cms/ui/selectors/BackgroundSelector';
-import MediaSelector from '@/app/components/engines/cms/ui/selectors/MediaSelector';
-import { CmsTabs } from '@/app/components/engines/cms/ui/CmsTabs';
+import BackgroundSelector, { BACKGROUND_TEMPLATES } from '@/components/engines/cms/ui/selectors/BackgroundSelector';
+import MediaSelector from '@/components/engines/cms/ui/selectors/MediaSelector';
+import { CmsTabs } from '@/components/engines/cms/ui/CmsTabs';
 import { FileText, Palette, LayoutTemplate, Upload, Eye } from 'lucide-react';
-import { MediaItem } from '@/app/components/engines/cms/modules/media/types';
+import { MediaItem } from '@/components/engines/cms/modules/media/types';
 import { 
   ComponentStyling, 
   ComponentStyleProps, 
