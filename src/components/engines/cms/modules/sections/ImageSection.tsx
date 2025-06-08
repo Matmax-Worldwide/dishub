@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import StableInput from './StableInput';
-import StyleControls from '../../StyleControls';
+import StyleControls from '@/components/engines/cms/StyleControls';
 import {
   Tabs,
   TabsContent,
@@ -228,8 +228,7 @@ export default function ImageSection({
           <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <StyleControls
               styling={localStyling}
-              onStylingChange={handleStylingChange}
-              showAdvanced={true}
+              onChange={handleStylingChange}
             />
           </TabsContent>
 

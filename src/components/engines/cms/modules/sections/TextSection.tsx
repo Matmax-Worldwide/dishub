@@ -16,7 +16,7 @@ import {
   generateStylesFromStyling,
   generateClassesFromStyling
 } from '@/types/cms-styling';
-import StyleControls from '../../StyleControls';
+import StyleControls from '@/components/engines/cms/StyleControls';
 
 interface TextSectionProps extends ComponentStyleProps {
   title?: string;
@@ -182,8 +182,7 @@ export default function TextSection({
           <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <StyleControls
               styling={localStyling}
-              onStylingChange={handleStylingChange}
-              showAdvanced={true}
+              onChange={handleStylingChange}
             />
           </TabsContent>
 

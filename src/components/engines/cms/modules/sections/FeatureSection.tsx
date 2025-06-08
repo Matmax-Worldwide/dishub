@@ -201,10 +201,9 @@ const FeatureSection = React.memo(function FeatureSection({
 
           {/* STYLING TAB */}
           <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <StyleControls
+                        <StyleControls
               styling={localStyling}
-              onStylingChange={handleStylingChange}
-              showAdvanced={true}
+              onChange={handleStylingChange}
             />
           </TabsContent>
 
