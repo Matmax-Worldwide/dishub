@@ -1,21 +1,43 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Shield, Cpu, Blocks, Globe, Zap, Lock, Database, Rocket, ArrowRight, Key, Hash, FileText, Users, Activity, Server, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ChevronDown, Shield, Cpu, Blocks, Globe, Zap, Lock, Database, Rocket, ArrowRight, Key, Hash, FileText, Users, Activity, Server, AlertTriangle, CheckCircle, LogOut, User } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DishubLanding() {
   const { t } = useI18n();
   const [scrollY, setScrollY] = useState(0);
   const router = useRouter();
   const params = useParams();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleAuthAction = () => {
+    if (isAuthenticated && user) {
+      // Redirect to appropriate dashboard based on user role and tenant
+      if (user.role === 'SuperAdmin') {
+        router.push(`/${params.locale}/super-admin/dashboard`);
+      } else if (user.tenantSlug) {
+        router.push(`/${params.locale}/${user.tenantSlug}/dashboard`);
+      } else {
+        router.push(`/${params.locale}/dashboard`);
+      }
+    } else {
+      router.push(`/${params.locale}/get-started`);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   const features = [
     {
@@ -166,9 +188,41 @@ export default function DishubLanding() {
                 {t('dishub.nav.brand')}
               </span>
             </div>
-            <button onClick={() => router.push(`/${params.locale}/get-started`)} className="px-6 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105">
-              {t('dishub.nav.getStarted')}
-            </button>
+            
+            {/* Authentication-aware navigation */}
+            <div className="flex items-center space-x-3">
+              {isLoading ? (
+                <div className="w-8 h-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent"></div>
+              ) : isAuthenticated && user ? (
+                <>
+                  <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-300">
+                    <User className="w-4 h-4" />
+                    <span>{user.firstName} {user.lastName}</span>
+                  </div>
+                  <button 
+                    onClick={handleAuthAction}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105 flex items-center space-x-2"
+                  >
+                    <span>{t('dishub.nav.dashboard')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="px-4 py-2 border border-white/20 rounded-full font-semibold hover:bg-white/10 transition-all duration-300 hover:scale-105 flex items-center space-x-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('dishub.nav.logout')}</span>
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleAuthAction} 
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105"
+                >
+                  {t('dishub.nav.getStarted')}
+                </button>
+              )}
+            </div>
           </div>
         </nav>
 
@@ -195,10 +249,23 @@ export default function DishubLanding() {
               className="flex flex-col sm:flex-row gap-4 justify-center"
               style={{ transform: `translateY(${scrollY * -0.1}px)` }}
             >
-              <button onClick={() => router.push(`/${params.locale}/get-started`)} className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center">
-                {t('dishub.hero.startDisrupting')}
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              {isAuthenticated && user ? (
+                <button 
+                  onClick={handleAuthAction} 
+                  className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center"
+                >
+                  {t('dishub.hero.goToDashboard')}
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              ) : (
+                <button 
+                  onClick={handleAuthAction} 
+                  className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center"
+                >
+                  {t('dishub.hero.startDisrupting')}
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
               <button className="px-8 py-4 border-2 border-white/20 rounded-full font-bold text-lg hover:bg-white/10 backdrop-blur-xl transition-all duration-300">
                 {t('dishub.hero.learnMore')}
               </button>
@@ -510,10 +577,23 @@ export default function DishubLanding() {
             <p className="text-xl text-gray-300 mb-8">
               {t('dishub.cta.subtitle')}
             </p>
-            <button onClick={() => router.push(`/${params.locale}/get-started`)} className="group px-12 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center mx-auto">
-              {t('dishub.cta.launchFuture')}
-              <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
-            </button>
+            {isAuthenticated && user ? (
+              <button 
+                onClick={handleAuthAction} 
+                className="group px-12 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center mx-auto"
+              >
+                {t('dishub.cta.accessDashboard')}
+                <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
+              </button>
+            ) : (
+              <button 
+                onClick={handleAuthAction} 
+                className="group px-12 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center mx-auto"
+              >
+                {t('dishub.cta.launchFuture')}
+                <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
+              </button>
+            )}
           </div>
         </section>
 

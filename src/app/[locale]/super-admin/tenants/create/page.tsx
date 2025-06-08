@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SuperAdminClient } from '@/lib/graphql/superAdmin';
+import { ALL_FEATURES_CONFIG, getRequiredFeatures, addFeatureWithDependencies, removeFeatureWithDependents, getEngineById } from '@/config/engines';
 
 interface TenantFormData {
   name: string;
@@ -32,15 +33,16 @@ interface TenantFormData {
   adminPassword: string;
 }
 
-const AVAILABLE_FEATURES = [
-  { id: 'CMS_ENGINE', name: 'CMS Engine', description: 'Core content management system' },
-  { id: 'BLOG_MODULE', name: 'Blog Module', description: 'Blog and article management' },
-  { id: 'FORMS_MODULE', name: 'Forms Module', description: 'Form builder and submissions' },
-  { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
-  { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
-  { id: 'HRMS_MODULE', name: 'HRMS Module', description: 'Human assets management' },
-  { id: 'LEGAL_ENGINE', name: 'Legal Engine', description: 'Company incorporation and legal services' },
-];
+// Features are now loaded from centralized configuration
+const AVAILABLE_FEATURES = ALL_FEATURES_CONFIG.map(feature => ({
+  id: feature.id,
+  name: feature.name,
+  description: feature.description,
+  category: feature.category,
+  pricing: feature.pricing,
+  dependencies: feature.dependencies,
+  required: feature.id === 'CMS_ENGINE' // CMS_ENGINE is always required
+}));
 
 const TENANT_STATUSES = [
   { value: 'ACTIVE', label: 'Active' },
@@ -58,7 +60,7 @@ export default function CreateTenantPage() {
     domain: '',
     description: '',
     status: 'ACTIVE',
-    features: ['CMS_ENGINE'],
+    features: getRequiredFeatures(),
     adminEmail: '',
     adminFirstName: '',
     adminLastName: '',
@@ -86,12 +88,44 @@ export default function CreateTenantPage() {
   };
 
   const handleFeatureToggle = (featureId: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      features: checked 
-        ? [...prev.features, featureId]
-        : prev.features.filter(f => f !== featureId)
-    }));
+    // Prevent disabling CMS_ENGINE
+    if (featureId === 'CMS_ENGINE' && !checked) {
+      toast.error('CMS Engine is required and cannot be disabled');
+      return;
+    }
+
+    const currentFeatures = formData.features;
+    
+    if (checked) {
+      // Adding feature - automatically add dependencies
+      const newFeatures = addFeatureWithDependencies(currentFeatures, featureId);
+      
+      // Show toast for added dependencies
+      const feature = getEngineById(featureId);
+      if (feature?.dependencies) {
+        feature.dependencies.forEach(depId => {
+          if (!currentFeatures.includes(depId)) {
+            const depFeature = getEngineById(depId);
+            if (depFeature) {
+              toast.info(`Added dependency: ${depFeature.name}`);
+            }
+          }
+        });
+      }
+      
+      setFormData(prev => ({ ...prev, features: newFeatures }));
+    } else {
+      // Removing feature - check if other features depend on it
+      const { newFeatures, removedDependents } = removeFeatureWithDependents(currentFeatures, featureId);
+      
+      if (removedDependents.length > 0) {
+        const feature = getEngineById(featureId);
+        toast.warning(`Cannot remove ${feature?.name || featureId}. Required by: ${removedDependents.join(', ')}`);
+        return;
+      }
+      
+      setFormData(prev => ({ ...prev, features: newFeatures }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -342,28 +376,78 @@ export default function CreateTenantPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AVAILABLE_FEATURES.map(feature => (
-                <div key={feature.id} className="flex items-start space-x-3 p-3 border rounded-lg">
-                  <Checkbox
-                    id={feature.id}
-                    checked={formData.features.includes(feature.id)}
-                    onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
-                    disabled={feature.id === 'CMS_ENGINE'}
-                  />
-                  <div className="flex-1">
-                    <Label htmlFor={feature.id} className="font-medium">
-                      {feature.name}
-                    </Label>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {feature.description}
-                    </p>
+              {AVAILABLE_FEATURES.map(feature => {
+                const isSelected = formData.features.includes(feature.id);
+                const isRequired = feature.required;
+                const hasSelectedDependents = AVAILABLE_FEATURES.some(f => 
+                  f.dependencies?.includes(feature.id) && formData.features.includes(f.id)
+                );
+                const isDisabled = isRequired || hasSelectedDependents;
+                
+                return (
+                  <div key={feature.id} className={`flex items-start space-x-3 p-3 border rounded-lg ${
+                    isDisabled ? 'bg-gray-50' : ''
+                  }`}>
+                    <Checkbox
+                      id={feature.id}
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
+                      disabled={isDisabled}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Label htmlFor={feature.id} className="font-medium">
+                          {feature.name}
+                        </Label>
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                          feature.category === 'Engine' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {feature.category}
+                        </span>
+                        {feature.pricing > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
+                            ${feature.pricing}/mo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {feature.description}
+                      </p>
+                      {feature.dependencies && feature.dependencies.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Requires: {feature.dependencies.map(dep => 
+                            getEngineById(dep)?.name || dep
+                          ).join(', ')}
+                        </p>
+                      )}
+                      {isRequired && (
+                        <p className="text-xs text-blue-600 mt-1 font-medium">
+                          ✓ Required
+                        </p>
+                      )}
+                      {hasSelectedDependents && !isRequired && (
+                        <p className="text-xs text-orange-600 mt-1 font-medium">
+                          ⚠ Required by selected features
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <p className="text-xs text-gray-500 mt-4">
-              * CMS Engine is required and cannot be disabled
-            </p>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800 font-medium mb-1">
+                💡 Feature Selection Tips:
+              </p>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• CMS Engine is required for all tenants</li>
+                <li>• Dependencies are automatically added when selecting features</li>
+                <li>• Features with dependents cannot be removed</li>
+                <li>• Pricing is calculated based on selected features</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

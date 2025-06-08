@@ -574,13 +574,16 @@
   "dishub": {
     "nav": {
       "brand": "DISHUB",
-      "getStarted": "Iniciar Sesión"
+      "getStarted": "Iniciar Sesión",
+      "dashboard": "Panel de Control",
+      "logout": "Cerrar Sesión"
     },
     "hero": {
       "disruption": "Disrupción",
       "isInnovation": "es Innovación",
       "subtitle": "Donde la privacidad se encuentra con el poder. Soberanía de datos nativa por diseño, listo para IA y blockchain del mañana.",
       "startDisrupting": "Comenzar a ser disruptivo",
+      "goToDashboard": "Ir al Panel de Control",
       "learnMore": "Saber Más"
     },
     "features": {
@@ -677,7 +680,8 @@
       "readyTo": "¿Listo para",
       "disrupt": "Ser disruptivo?",
       "subtitle": "Únete a la revolución. Construye sobre soberanía. Escala con confianza.",
-      "launchFuture": "Lanza Tu Futuro"
+              "launchFuture": "Lanza Tu Futuro",
+        "accessDashboard": "Acceder al Panel"
     },
     "footer": {
       "copyright": "© 2025 DISHUB. Ser disruptivo, hoy."

@@ -609,13 +609,16 @@
   "dishub": {
     "nav": {
       "brand": "DISHUB",
-      "getStarted": "Login"
+      "getStarted": "Login",
+      "dashboard": "Dashboard",
+      "logout": "Logout"
     },
     "hero": {
       "disruption": "Disruption",
       "isInnovation": "is Innovation",
       "subtitle": "Where privacy meets power. Data sovereignty native by design, AI & blockchain ready for tomorrow's business.",
       "startDisrupting": "Start Disrupting",
+      "goToDashboard": "Go to Dashboard",
       "learnMore": "Learn More"
     },
     "features": {
@@ -712,7 +715,8 @@
       "readyTo": "Ready to",
       "disrupt": "Disrupt?",
       "subtitle": "Join the revolution. Build on sovereignty. Scale with confidence.",
-      "launchFuture": "Launch Your Future"
+      "launchFuture": "Launch Your Future",
+      "accessDashboard": "Access Dashboard"
     },
     "footer": {
       "copyright": "© 2025 DISHUB. Disrupting the future, today."
