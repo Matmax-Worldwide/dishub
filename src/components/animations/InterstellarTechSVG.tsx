@@ -4,10 +4,10 @@ import React from 'react';
 
 const InterstellarTechSVG = () => {
   return (
-    <div className="absolute inset-0 overflow-hidden opacity-40">
+    <div className="absolute inset-0 overflow-hidden opacity-40 pointer-events-none">
       <svg
         viewBox="0 0 1200 600"
-        className="w-full h-full"
+        className="w-full h-full pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>

@@ -18,7 +18,7 @@ export default function Header({ className = '' }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <nav className={`fixed top-0 w-full z-50 backdrop-blur-xl bg-black/30 border-b border-white/10 pointer-events-auto ${className}`}>
+    <nav className={`fixed top-0 w-full z-[9999] backdrop-blur-xl bg-black/30 border-b border-white/10 pointer-events-auto ${className}`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Brand Logo */}
         <div className="flex items-center space-x-2">

@@ -1383,3 +1383,64 @@ video[preload="auto"] {
     color: #f0f0f0;
   }
 }
+
+/* Custom animations */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+/* Header should always be on top */
+.header-element {
+  z-index: 9999 !important;
+}
+
+/* Hero section should be below header */
+.hero-section {
+  z-index: 0 !important;
+}
+
+/* Ensure interactive elements are clickable but below header */
+.interactive-element {
+  position: relative;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure SVG backgrounds don't interfere with interactions */
+.svg-background {
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #8b5cf6, #06b6d4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #a855f7, #0891b2);
+}
