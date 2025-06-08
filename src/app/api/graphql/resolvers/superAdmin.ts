@@ -809,7 +809,7 @@ export const superAdminResolvers = {
                 userTenants: {
                   create: {
                     tenantId: tenant.id,
-                    role: 'OWNER'
+                    role: 'TenantAdmin'
                   }
                 },
                 emailVerified: new Date(), // Auto-verify admin user
@@ -986,7 +986,7 @@ export const superAdminResolvers = {
           include: {
             userTenants: {
               where: {
-                role: { in: ['OWNER', 'ADMIN'] },
+                role: { in: ['TenantAdmin', 'TenantManager'] },
                 isActive: true
               },
               take: 1,
@@ -1118,7 +1118,7 @@ export const superAdminResolvers = {
             userTenants: {
               create: {
                 tenantId: tenantId,
-                role: 'ADMIN'
+                role: 'TenantAdmin'
               }
             },
             roleId: tenantAdminRole.id

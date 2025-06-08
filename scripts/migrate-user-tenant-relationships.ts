@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserTenantRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -45,7 +45,7 @@ async function migrateUserTenantRelationships() {
       console.log(`🔄 Processing user: ${user.email} (${user.role?.name || 'No Role'})`);
 
       // Determine the appropriate role and tenant assignment
-      let tenantRole: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER' = 'MEMBER';
+      let tenantRole: UserTenantRole = UserTenantRole.TenantUser;
       const targetTenant = tenants[0]; // Default to first tenant
 
       // Assign roles based on user's current role
@@ -57,28 +57,28 @@ async function migrateUserTenantRelationships() {
         
         case 'TenantAdmin':
         case 'TENANTADMIN':
-          tenantRole = 'OWNER';
+          tenantRole = UserTenantRole.TenantAdmin;
           break;
         
         case 'TenantManager':
         case 'TENANTMANAGER':
-          tenantRole = 'ADMIN';
+          tenantRole = UserTenantRole.TenantManager;
           break;
         
         case 'Manager':
         case 'MANAGER':
-          tenantRole = 'MANAGER';
+          tenantRole = UserTenantRole.TenantManager;
           break;
         
         case 'Employee':
         case 'EMPLOYEE':
-          tenantRole = 'MEMBER';
+          tenantRole = UserTenantRole.Employee;
           break;
         
         case 'User':
         case 'USER':
         default:
-          tenantRole = 'VIEWER';
+          tenantRole = UserTenantRole.TenantUser;
           break;
       }
 

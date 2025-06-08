@@ -165,16 +165,22 @@ export function TenantDashboard() {
       console.log('GraphQL user data:', data?.me);
       console.log('Auth user data:', authUser);
       console.log('Current user tenant:', currentUserTenant);
+      console.log('Current user tenant role:', currentUserTenant?.role);
       console.log('Tenant slug:', tenantSlug);
+      console.log('Role checks:');
+      console.log('  isSuperAdmin:', data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin');
+      console.log('  isTenantAdmin:', currentUserTenant?.role === 'TenantAdmin');
+      console.log('  isTenantManager:', currentUserTenant?.role === 'TenantManager');
+      console.log('  isEmployee:', currentUserTenant?.role === 'Employee');
       console.log('==================');
     }
   }, [data?.me?.id, authUser?.id, currentUserTenant?.tenantId, tenantSlug]); // Only depend on IDs
 
   // Check user roles
   const isSuperAdmin = data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin';
-  const isTenantAdmin = currentUserTenant?.role === 'TenantAdmin';
-  const isTenantManager = currentUserTenant?.role === 'TenantManager';
-  const isEmployee = currentUserTenant?.role === 'Employee';
+      const isTenantAdmin = currentUserTenant?.role === 'TenantAdmin';
+    const isTenantManager = currentUserTenant?.role === 'TenantManager';
+    const isEmployee = currentUserTenant?.role === 'Employee';
 
   // Determine effective role for this tenant
   const effectiveRole = useMemo(() => {

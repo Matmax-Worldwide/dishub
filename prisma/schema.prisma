@@ -156,7 +156,7 @@ model UserTenant {
   id       String @id @default(cuid())
   userId   String
   tenantId String
-  role     UserTenantRole @default(MEMBER) // Role within the tenant
+  role     UserTenantRole @default(TenantUser) // Role within the tenant
   isActive Boolean @default(true)
   joinedAt DateTime @default(now())
   leftAt   DateTime?
@@ -171,11 +171,10 @@ model UserTenant {
 }
 
 enum UserTenantRole {
-  OWNER       // Tenant owner (creator)
-  ADMIN       // Tenant administrator
-  MANAGER     // Tenant manager
-  MEMBER      // Regular member
-  VIEWER      // Read-only access
+  TenantAdmin    // Tenant administrator (highest level)
+  TenantManager  // Tenant manager
+  TenantUser     // Regular tenant user
+  Employee       // Employee with limited access
 }
 
 model Account {

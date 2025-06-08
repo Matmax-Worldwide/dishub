@@ -261,7 +261,7 @@ async function seedTestUsers() {
         lastName: 'User',
         phoneNumber: '+1-555-0001',
         role: tenantAdminRole.id,
-        tenantRole: 'OWNER'
+        tenantRole: 'TenantAdmin'
       },
       {
         email: 'manager@test-company.com',
@@ -269,7 +269,7 @@ async function seedTestUsers() {
         lastName: 'User',
         phoneNumber: '+1-555-0002',
         role: managerRole.id,
-        tenantRole: 'ADMIN'
+        tenantRole: 'TenantManager'
       },
       {
         email: 'john.doe@test-company.com',
@@ -277,7 +277,7 @@ async function seedTestUsers() {
         lastName: 'Doe',
         phoneNumber: '+1-555-0101',
         role: userRole.id,
-        tenantRole: 'MEMBER'
+        tenantRole: 'TenantUser'
       },
       {
         email: 'jane.smith@test-company.com',
@@ -285,7 +285,7 @@ async function seedTestUsers() {
         lastName: 'Smith',
         phoneNumber: '+1-555-0102',
         role: userRole.id,
-        tenantRole: 'MEMBER'
+        tenantRole: 'TenantUser'
       },
       {
         email: 'mike.johnson@test-company.com',
@@ -293,7 +293,7 @@ async function seedTestUsers() {
         lastName: 'Johnson',
         phoneNumber: '+1-555-0103',
         role: managerRole.id,
-        tenantRole: 'MANAGER'
+        tenantRole: 'Employee'
       }
     ];
 

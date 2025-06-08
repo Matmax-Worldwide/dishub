@@ -41,7 +41,7 @@ export interface UserTenant {
   id: string;
   userId: string;
   tenantId: string;
-  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser' | 'Employee';
   isActive: boolean;
   joinedAt: string;
   leftAt?: string;
@@ -96,13 +96,13 @@ export interface UserTenantResult {
 export interface AddUserToTenantInput {
   userId: string;
   tenantId: string;
-  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser' | 'Employee';
 }
 
 export interface UpdateUserTenantRoleInput {
   userId: string;
   tenantId: string;
-  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser';
+  role: 'TenantAdmin' | 'TenantManager' | 'TenantUser' | 'Employee';
 }
 
 export interface RemoveUserFromTenantInput {
