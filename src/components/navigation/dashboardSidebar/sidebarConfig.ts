@@ -1045,13 +1045,6 @@ export const getIconComponent = (iconName: string): React.ElementType => {
   return iconMapping[iconName] || UserIcon; // Default to UserIcon if not found
 };
 
-// Role hierarchy for sorting
-export const roleOrder = {
-  'ADMIN': 1,
-  'MANAGER': 2,
-  'EMPLOYEE': 3, 
-  'USER': 4
-};
 
 // Helper function to filter navigation items based on tenant features
 export const filterNavigationByFeatures = (
@@ -1100,14 +1093,6 @@ export const filterNavigationByFeatures = (
       };
     }
     return item;
-  });
-};
-
-export const sortRoles = (roles: { id: string; name: string; description?: string }[]) => {
-  return [...roles].sort((a, b) => {
-    const orderA = roleOrder[a.name as keyof typeof roleOrder] || 999;
-    const orderB = roleOrder[b.name as keyof typeof roleOrder] || 999;
-    return orderA - orderB;
   });
 };
 

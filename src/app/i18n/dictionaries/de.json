@@ -236,7 +236,12 @@
     "help": "Hilfe",
     "settings": "Einstellungen",
     "adminDashboard": "Admin-Dashboard",
-    "createNotifications": "Benachrichtigungen senden",
+    "communications": "Kommunikation",
+    "messageTemplates": "Nachrichtenvorlagen",
+    "messageLogs": "Nachrichtenprotokolle",
+    "messageAnalytics": "Nachrichtenanalysen",
+    "messageReports": "Nachrichtenberichte",
+    "messageIntegrations": "Nachrichtenintegrationen",
     "userManagement": "Benutzer",
     "roleManagement": "Rollen und Berechtigungen",
     "cms": "CMS",
@@ -418,7 +423,8 @@
     "legalBilling": "Rechtsabrechnung",
     "legalReports": "Rechtsberichte",
     "legalBookingConfig": "Terminbuchung Konfiguration",
-    "legalSettings": "Rechtseinstellungen"
+    "legalSettings": "Rechtseinstellungen",
+    "createNotifications": "Benachrichtigungen Senden"
   },
   "auth": {
     "login": {
