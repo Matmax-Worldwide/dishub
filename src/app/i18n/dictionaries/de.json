@@ -227,7 +227,68 @@
   "footer": {
     "rights": "Alle Rechte vorbehalten",
     "privacy": "Datenschutzrichtlinie",
-    "terms": "Nutzungsbedingungen"
+    "terms": "Nutzungsbedingungen",
+    "copyright": "Alle Rechte vorbehalten.",
+    "madeWith": "Mit Liebe für die Zukunft gemacht",
+    "brand": {
+      "description": "Die datenschutzorientierte Plattform, die aufstrebende Unternehmen mit Unternehmenstechnologie stärkt, die zugänglich, skalierbar und sicher ist."
+    },
+    "platform": {
+      "title": "Plattform",
+      "features": "Funktionen",
+      "pricing": "Preise",
+      "demo": "Live-Demo",
+      "getStarted": "Loslegen",
+      "documentation": "Dokumentation"
+    },
+    "solutions": {
+      "title": "Lösungen",
+      "ecommerce": "E-Commerce",
+      "cms": "Content-Management",
+      "crm": "Kundenbeziehungen",
+      "analytics": "Analytics",
+      "ai": "KI & Automatisierung"
+    },
+    "developers": {
+      "title": "Entwickler",
+      "api": "API-Referenz",
+      "sdk": "SDK & Tools",
+      "webhooks": "Webhooks",
+      "github": "GitHub",
+      "community": "Community"
+    },
+    "company": {
+      "title": "Unternehmen",
+      "about": "Über uns",
+      "careers": "Karriere",
+      "blog": "Blog",
+      "press": "Presse-Kit",
+      "contact": "Kontakt"
+    },
+    "resources": {
+      "title": "Ressourcen",
+      "help": "Hilfe-Center",
+      "tutorials": "Tutorials",
+      "webinars": "Webinare",
+      "status": "System-Status",
+      "changelog": "Änderungsprotokoll"
+    },
+    "legal": {
+      "privacy": "Datenschutz",
+      "terms": "Nutzungsbedingungen",
+      "cookies": "Cookie-Richtlinie",
+      "gdpr": "DSGVO-Konformität",
+      "security": "Sicherheit"
+    },
+    "newsletter": {
+      "title": "Auf dem Laufenden bleiben",
+      "description": "Erhalten Sie die neuesten Updates zu Funktionen, Sicherheit und Plattform-News.",
+      "placeholder": "E-Mail eingeben",
+      "subscribe": "Abonnieren"
+    },
+    "status": {
+      "operational": "Alle Systeme betriebsbereit"
+    }
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -693,7 +754,67 @@
       "accessDashboard": "Dashboard Zugreifen"
     },
     "footer": {
-      "copyright": "© 2025 DISHUB. Die Zukunft disruptieren, heute."
+      "copyright": "Alle Rechte vorbehalten.",
+      "madeWith": "Mit Liebe für die Zukunft gemacht",
+      "brand": {
+        "description": "Die datenschutzorientierte Plattform, die aufstrebende Unternehmen mit Unternehmenstechnologie stärkt, die zugänglich, skalierbar und sicher ist."
+      },
+      "platform": {
+        "title": "Plattform",
+        "features": "Funktionen",
+        "pricing": "Preise",
+        "demo": "Live-Demo",
+        "getStarted": "Loslegen",
+        "documentation": "Dokumentation"
+      },
+      "solutions": {
+        "title": "Lösungen",
+        "ecommerce": "E-Commerce",
+        "cms": "Content-Management",
+        "crm": "Kundenbeziehungen",
+        "analytics": "Analytics",
+        "ai": "KI & Automatisierung"
+      },
+      "developers": {
+        "title": "Entwickler",
+        "api": "API-Referenz",
+        "sdk": "SDK & Tools",
+        "webhooks": "Webhooks",
+        "github": "GitHub",
+        "community": "Community"
+      },
+      "company": {
+        "title": "Unternehmen",
+        "about": "Über uns",
+        "careers": "Karriere",
+        "blog": "Blog",
+        "press": "Presse-Kit",
+        "contact": "Kontakt"
+      },
+      "resources": {
+        "title": "Ressourcen",
+        "help": "Hilfe-Center",
+        "tutorials": "Tutorials",
+        "webinars": "Webinare",
+        "status": "System-Status",
+        "changelog": "Änderungsprotokoll"
+      },
+      "legal": {
+        "privacy": "Datenschutz",
+        "terms": "Nutzungsbedingungen",
+        "cookies": "Cookie-Richtlinie",
+        "gdpr": "DSGVO-Konformität",
+        "security": "Sicherheit"
+      },
+      "newsletter": {
+        "title": "Auf dem Laufenden bleiben",
+        "description": "Erhalten Sie die neuesten Updates zu Funktionen, Sicherheit und Plattform-News.",
+        "placeholder": "E-Mail eingeben",
+        "subscribe": "Abonnieren"
+      },
+      "status": {
+        "operational": "Alle Systeme betriebsbereit"
+      }
     }
   },
   "countries": {

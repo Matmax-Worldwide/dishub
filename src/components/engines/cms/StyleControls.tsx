@@ -1,242 +1,240 @@
-import React, { useCallback } from 'react';
-import ColorSelector from './ui/selectors/ColorSelector';
-import TransparencySelector from './ui/selectors/TransparencySelector';
-import { 
-  ComponentStyling, 
-  DEFAULT_STYLING,
-  PADDING_OPTIONS,
-  MARGIN_OPTIONS,
-  BORDER_RADIUS_OPTIONS,
-  SHADOW_OPTIONS
-} from '@/types/cms-styling';
+import React from 'react';
+import { ComponentStyling, PADDING_OPTIONS, MARGIN_OPTIONS, BORDER_RADIUS_OPTIONS, SHADOW_OPTIONS } from '@/types/cms-styling';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StyleControlsProps {
   styling: ComponentStyling;
-  onStylingChange: (styling: ComponentStyling) => void;
-  showAdvanced?: boolean;
-  className?: string;
+  onChange: (styling: ComponentStyling) => void;
 }
 
-export default function StyleControls({ 
-  styling, 
-  onStylingChange, 
-  showAdvanced = true,
-  className = '' 
-}: StyleControlsProps) {
-  
-  const handleStyleChange = useCallback((field: keyof ComponentStyling, value: string | number | boolean) => {
-    onStylingChange({
+const StyleControls: React.FC<StyleControlsProps> = ({ styling, onChange }) => {
+  const handleChange = (key: keyof ComponentStyling, value: string | number | ComponentStyling['border']) => {
+    onChange({
       ...styling,
-      [field]: value
+      [key]: value
     });
-  }, [styling, onStylingChange]);
+  };
 
-  const handleBorderChange = useCallback((borderField: string, value: string | number) => {
-    onStylingChange({
+  const handleBorderChange = (childKey: 'width' | 'color' | 'style', value: string | number) => {
+    const currentBorder = styling.border || { width: 0, color: '#e5e7eb', style: 'solid' as const };
+    onChange({
       ...styling,
       border: {
-        ...styling.border,
-        [borderField]: value
+        ...currentBorder,
+        [childKey]: value
       }
     });
-  }, [styling, onStylingChange]);
+  };
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Colors Section */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-          Colors & Transparency
-        </h4>
-        
-        <div className="grid grid-cols-1 gap-4">
-          {/* Background Color */}
-          <div className="space-y-2">
-            <ColorSelector
-              value={styling.backgroundColor || DEFAULT_STYLING.backgroundColor!}
-              onChange={(color) => handleStyleChange('backgroundColor', color)}
-              label="Background Color"
-            />
-            <TransparencySelector
-              value={styling.backgroundTransparency || DEFAULT_STYLING.backgroundTransparency!}
-              onChange={(transparency) => handleStyleChange('backgroundTransparency', transparency)}
-              label="Background Transparency"
-            />
-          </div>
+    <div className="space-y-6 p-4">
+      <Tabs defaultValue="colors" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="colors">Colors</TabsTrigger>
+          <TabsTrigger value="spacing">Spacing</TabsTrigger>
+          <TabsTrigger value="border">Border</TabsTrigger>
+          <TabsTrigger value="effects">Effects</TabsTrigger>
+        </TabsList>
 
-          {/* Text Color */}
-          <div className="space-y-2">
-            <ColorSelector
-              value={styling.textColor || DEFAULT_STYLING.textColor!}
-              onChange={(color) => handleStyleChange('textColor', color)}
-              label="Text Color"
-            />
-            <TransparencySelector
-              value={styling.textTransparency || DEFAULT_STYLING.textTransparency!}
-              onChange={(transparency) => handleStyleChange('textTransparency', transparency)}
-              label="Text Transparency"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Layout Section */}
-      {showAdvanced && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-            Layout & Spacing
-          </h4>
-          
+        <TabsContent value="colors" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Padding */}
             <div>
-              <label className="text-sm font-medium block mb-2">Padding</label>
-              <select
-                value={styling.padding || DEFAULT_STYLING.padding}
-                onChange={(e) => handleStyleChange('padding', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {PADDING_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Margin */}
-            <div>
-              <label className="text-sm font-medium block mb-2">Margin</label>
-              <select
-                value={styling.margin || DEFAULT_STYLING.margin}
-                onChange={(e) => handleStyleChange('margin', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {MARGIN_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Appearance Section */}
-      {showAdvanced && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-            Appearance
-          </h4>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {/* Border Radius */}
-            <div>
-              <label className="text-sm font-medium block mb-2">Border Radius</label>
-              <select
-                value={styling.borderRadius || DEFAULT_STYLING.borderRadius}
-                onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {BORDER_RADIUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Shadow */}
-            <div>
-              <label className="text-sm font-medium block mb-2">Shadow</label>
-              <select
-                value={styling.shadow || DEFAULT_STYLING.shadow}
-                onChange={(e) => handleStyleChange('shadow', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {SHADOW_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Border Section */}
-      {showAdvanced && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-            Border
-          </h4>
-          
-          <div className="space-y-3">
-            {/* Border Width */}
-            <div>
-              <label className="text-sm font-medium block mb-2">Border Width (px)</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={styling.border?.width || 0}
-                onChange={(e) => handleBorderChange('width', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <Label htmlFor="backgroundColor">Background Color</Label>
+              <Input
+                id="backgroundColor"
+                type="color"
+                value={styling.backgroundColor || '#ffffff'}
+                onChange={(e) => handleChange('backgroundColor', e.target.value)}
               />
             </div>
-
-            {/* Border Color */}
-            {(styling.border?.width || 0) > 0 && (
-              <ColorSelector
-                value={styling.border?.color || DEFAULT_STYLING.border!.color!}
-                onChange={(color) => handleBorderChange('color', color)}
-                label="Border Color"
+            <div>
+              <Label htmlFor="textColor">Text Color</Label>
+              <Input
+                id="textColor"
+                type="color"
+                value={styling.textColor || '#000000'}
+                onChange={(e) => handleChange('textColor', e.target.value)}
               />
-            )}
-
-            {/* Border Style */}
-            {(styling.border?.width || 0) > 0 && (
-              <div>
-                <label className="text-sm font-medium block mb-2">Border Style</label>
-                <select
-                  value={styling.border?.style || DEFAULT_STYLING.border!.style}
-                  onChange={(e) => handleBorderChange('style', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="solid">Solid</option>
-                  <option value="dashed">Dashed</option>
-                  <option value="dotted">Dotted</option>
-                </select>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Custom CSS Section */}
-      {showAdvanced && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-            Custom CSS
-          </h4>
-          
           <div>
-            <label className="text-sm font-medium block mb-2">Additional CSS</label>
-            <textarea
-              value={styling.customCss || ''}
-              onChange={(e) => handleStyleChange('customCss', e.target.value)}
-              placeholder="Enter custom CSS properties..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-            <div className="text-xs text-gray-500 mt-1">
-              Example: font-weight: bold; letter-spacing: 1px;
+            <Label htmlFor="backgroundTransparency">Background Transparency</Label>
+            <div className="flex items-center space-x-2">
+              <Slider
+                value={[styling.backgroundTransparency || 0]}
+                onValueChange={(value) => handleChange('backgroundTransparency', value[0])}
+                max={100}
+                min={0}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm text-gray-500 w-12">
+                {styling.backgroundTransparency || 0}%
+              </span>
             </div>
           </div>
-        </div>
-      )}
+
+          <div>
+            <Label htmlFor="textTransparency">Text Transparency</Label>
+            <div className="flex items-center space-x-2">
+              <Slider
+                value={[styling.textTransparency || 0]}
+                onValueChange={(value) => handleChange('textTransparency', value[0])}
+                max={100}
+                min={0}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm text-gray-500 w-12">
+                {styling.textTransparency || 0}%
+              </span>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="spacing" className="space-y-4">
+          <div>
+            <Label htmlFor="padding">Padding</Label>
+            <Select value={styling.padding || 'none'} onValueChange={(value) => handleChange('padding', value as ComponentStyling['padding'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select padding" />
+              </SelectTrigger>
+              <SelectContent>
+                {PADDING_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="margin">Margin</Label>
+            <Select value={styling.margin || 'none'} onValueChange={(value) => handleChange('margin', value as ComponentStyling['margin'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select margin" />
+              </SelectTrigger>
+              <SelectContent>
+                {MARGIN_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="border" className="space-y-4">
+          <div>
+            <Label htmlFor="borderRadius">Border Radius</Label>
+            <Select value={styling.borderRadius || 'none'} onValueChange={(value) => handleChange('borderRadius', value as ComponentStyling['borderRadius'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select border radius" />
+              </SelectTrigger>
+              <SelectContent>
+                {BORDER_RADIUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="borderColor">Border Color</Label>
+            <Input
+              id="borderColor"
+              type="color"
+              value={styling.borderColor || '#e5e7eb'}
+              onChange={(e) => handleChange('borderColor', e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Border Settings</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label htmlFor="borderWidth" className="text-xs">Width</Label>
+                <Input
+                  id="borderWidth"
+                  type="number"
+                  value={styling.border?.width || 0}
+                  onChange={(e) => handleBorderChange('width', parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="borderColor" className="text-xs">Color</Label>
+                <Input
+                  id="borderColor"
+                  type="color"
+                  value={styling.border?.color || '#e5e7eb'}
+                  onChange={(e) => handleBorderChange('color', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="borderStyle" className="text-xs">Style</Label>
+                <Select value={styling.border?.style || 'solid'} onValueChange={(value) => handleBorderChange('style', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solid">Solid</SelectItem>
+                    <SelectItem value="dashed">Dashed</SelectItem>
+                    <SelectItem value="dotted">Dotted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="effects" className="space-y-4">
+          <div>
+            <Label htmlFor="shadow">Shadow</Label>
+            <Select value={styling.shadow || 'none'} onValueChange={(value) => handleChange('shadow', value as ComponentStyling['shadow'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select shadow" />
+              </SelectTrigger>
+              <SelectContent>
+                {SHADOW_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="customCss">Custom CSS</Label>
+            <Textarea
+              id="customCss"
+              value={styling.customCss || ''}
+              onChange={(e) => handleChange('customCss', e.target.value)}
+              placeholder="Enter custom CSS rules..."
+              rows={4}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-} 
+};
+
+export default StyleControls; 

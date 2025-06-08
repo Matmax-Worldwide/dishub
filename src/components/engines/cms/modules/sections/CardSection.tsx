@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import StableInput from './StableInput';
-import StyleControls from '../../StyleControls';
+import StyleControls from '@/components/engines/cms/StyleControls';
 import {
   Tabs,
   TabsContent,
@@ -261,8 +261,7 @@ const CardSection = React.memo(function CardSection({
           <TabsContent value="styling" className="p-8 space-y-8 max-h-[650px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <StyleControls
               styling={localStyling}
-              onStylingChange={handleStylingChange}
-              showAdvanced={true}
+              onChange={handleStylingChange}
             />
           </TabsContent>
 
