@@ -211,7 +211,68 @@
   "footer": {
     "rights": "Todos los derechos reservados",
     "privacy": "Política de Privacidad",
-    "terms": "Términos de Servicio"
+    "terms": "Términos de Servicio",
+    "copyright": "Todos los derechos reservados.",
+    "madeWith": "Hecho con amor para el futuro",
+    "brand": {
+      "description": "La plataforma centrada en la privacidad que empodera a empresas emergentes con tecnología de nivel empresarial que es accesible, escalable y segura."
+    },
+    "platform": {
+      "title": "Plataforma",
+      "features": "Características",
+      "pricing": "Precios",
+      "demo": "Demo en Vivo",
+      "getStarted": "Comenzar",
+      "documentation": "Documentación"
+    },
+    "solutions": {
+      "title": "Soluciones",
+      "ecommerce": "Comercio Electrónico",
+      "cms": "Gestión de Contenido",
+      "crm": "Relaciones con Clientes",
+      "analytics": "Analíticas",
+      "ai": "IA y Automatización"
+    },
+    "developers": {
+      "title": "Desarrolladores",
+      "api": "Referencia API",
+      "sdk": "SDK y Herramientas",
+      "webhooks": "Webhooks",
+      "github": "GitHub",
+      "community": "Comunidad"
+    },
+    "company": {
+      "title": "Empresa",
+      "about": "Acerca de Nosotros",
+      "careers": "Carreras",
+      "blog": "Blog",
+      "press": "Kit de Prensa",
+      "contact": "Contacto"
+    },
+    "resources": {
+      "title": "Recursos",
+      "help": "Centro de Ayuda",
+      "tutorials": "Tutoriales",
+      "webinars": "Webinarios",
+      "status": "Estado del Sistema",
+      "changelog": "Registro de Cambios"
+    },
+    "legal": {
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio",
+      "cookies": "Política de Cookies",
+      "gdpr": "Cumplimiento GDPR",
+      "security": "Seguridad"
+    },
+    "newsletter": {
+      "title": "Mantente Actualizado",
+      "description": "Recibe las últimas actualizaciones sobre características, seguridad y noticias de la plataforma.",
+      "placeholder": "Ingresa tu email",
+      "subscribe": "Suscribirse"
+    },
+    "status": {
+      "operational": "Todos los sistemas operativos"
+    }
   },
   "sidebar": {
     "dashboard": "Panel Principal",
@@ -689,7 +750,67 @@
         "accessDashboard": "Acceder al Panel"
     },
     "footer": {
-      "copyright": "© 2025 DISHUB. Ser disruptivo, hoy."
+      "copyright": "Todos los derechos reservados.",
+      "madeWith": "Hecho con amor para el futuro",
+      "brand": {
+        "description": "La plataforma centrada en la privacidad que empodera a empresas emergentes con tecnología de nivel empresarial que es accesible, escalable y segura."
+      },
+      "platform": {
+        "title": "Plataforma",
+        "features": "Características",
+        "pricing": "Precios",
+        "demo": "Demo en Vivo",
+        "getStarted": "Comenzar",
+        "documentation": "Documentación"
+      },
+      "solutions": {
+        "title": "Soluciones",
+        "ecommerce": "Comercio Electrónico",
+        "cms": "Gestión de Contenido",
+        "crm": "Relaciones con Clientes",
+        "analytics": "Analíticas",
+        "ai": "IA y Automatización"
+      },
+      "developers": {
+        "title": "Desarrolladores",
+        "api": "Referencia API",
+        "sdk": "SDK y Herramientas",
+        "webhooks": "Webhooks",
+        "github": "GitHub",
+        "community": "Comunidad"
+      },
+      "company": {
+        "title": "Empresa",
+        "about": "Acerca de Nosotros",
+        "careers": "Carreras",
+        "blog": "Blog",
+        "press": "Kit de Prensa",
+        "contact": "Contacto"
+      },
+      "resources": {
+        "title": "Recursos",
+        "help": "Centro de Ayuda",
+        "tutorials": "Tutoriales",
+        "webinars": "Webinarios",
+        "status": "Estado del Sistema",
+        "changelog": "Registro de Cambios"
+      },
+      "legal": {
+        "privacy": "Política de Privacidad",
+        "terms": "Términos de Servicio",
+        "cookies": "Política de Cookies",
+        "gdpr": "Cumplimiento GDPR",
+        "security": "Seguridad"
+      },
+      "newsletter": {
+        "title": "Mantente Actualizado",
+        "description": "Recibe las últimas actualizaciones sobre características, seguridad y noticias de la plataforma.",
+        "placeholder": "Ingresa tu email",
+        "subscribe": "Suscribirse"
+      },
+      "status": {
+        "operational": "Todos los sistemas operativos"
+      }
     }
   },
   "countries": {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Lock, Database, Rocket } from 'lucide-react';
+import { Lock, Database, Rocket } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
 import Header from '@/components/layout/Header';
 import HeroSection from '@/components/DishubLandingSection/HeroSection';
@@ -9,6 +9,7 @@ import CTASection from '@/components/DishubLandingSection/CTASection';
 import FeaturesSection from '@/components/DishubLandingSection/FeaturesSection';
 import PrivacySection from '@/components/DishubLandingSection/PrivacySection';
 import TechArchitectureSVG from '@/components/animations/TechArchitectureSVG';
+import Footer from '@/components/navigation/footer/Footer';
 import { AuthProvider } from '@/hooks/useAuth';
 
 
@@ -163,19 +164,16 @@ export default function DishubLanding() {
         <CTASection />
 
         {/* Footer */}
-        <footer className="relative  py-8 px-6 border-t border-white/10 pointer-events-auto">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold">{t('dishub.nav.brand')}</span>
-            </div>
-            <p className="text-gray-400 text-sm">
-              {t('dishub.footer.copyright')}
-            </p>
-          </div>
-        </footer>
+        <Footer 
+          menu={{
+            id: 'footer-menu',
+            name: 'Footer Navigation',
+            location: 'footer',
+            items: []
+          }}
+          title="DISHUB"
+          subtitle={t('footer.brand.description')}
+        />
 
         {/* Custom Styles */}
         <style jsx>{`

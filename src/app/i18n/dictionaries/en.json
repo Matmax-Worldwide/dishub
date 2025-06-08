@@ -211,7 +211,68 @@
   "footer": {
     "rights": "All rights reserved",
     "privacy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "copyright": "All rights reserved.",
+    "madeWith": "Made with love for the future",
+    "brand": {
+      "description": "The privacy-first platform empowering emerging businesses with enterprise-grade technology that's accessible, scalable, and secure."
+    },
+    "platform": {
+      "title": "Platform",
+      "features": "Features",
+      "pricing": "Pricing",
+      "demo": "Live Demo",
+      "getStarted": "Get Started",
+      "documentation": "Documentation"
+    },
+    "solutions": {
+      "title": "Solutions",
+      "ecommerce": "E-commerce",
+      "cms": "Content Management",
+      "crm": "Customer Relations",
+      "analytics": "Analytics",
+      "ai": "AI & Automation"
+    },
+    "developers": {
+      "title": "Developers",
+      "api": "API Reference",
+      "sdk": "SDK & Tools",
+      "webhooks": "Webhooks",
+      "github": "GitHub",
+      "community": "Community"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About Us",
+      "careers": "Careers",
+      "blog": "Blog",
+      "press": "Press Kit",
+      "contact": "Contact"
+    },
+    "resources": {
+      "title": "Resources",
+      "help": "Help Center",
+      "tutorials": "Tutorials",
+      "webinars": "Webinars",
+      "status": "System Status",
+      "changelog": "Changelog"
+    },
+    "legal": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
+      "gdpr": "GDPR Compliance",
+      "security": "Security"
+    },
+    "newsletter": {
+      "title": "Stay Updated",
+      "description": "Get the latest updates on features, security, and platform news.",
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe"
+    },
+    "status": {
+      "operational": "All systems operational"
+    }
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -735,7 +796,67 @@
       "accessDashboard": "Access Dashboard"
     },
     "footer": {
-      "copyright": "© 2025 DISHUB. Disrupting the future, today."
+      "copyright": "All rights reserved.",
+      "madeWith": "Made with love for the future",
+      "brand": {
+        "description": "The privacy-first platform empowering emerging businesses with enterprise-grade technology that's accessible, scalable, and secure."
+      },
+      "platform": {
+        "title": "Platform",
+        "features": "Features",
+        "pricing": "Pricing",
+        "demo": "Live Demo",
+        "getStarted": "Get Started",
+        "documentation": "Documentation"
+      },
+      "solutions": {
+        "title": "Solutions",
+        "ecommerce": "E-commerce",
+        "cms": "Content Management",
+        "crm": "Customer Relations",
+        "analytics": "Analytics",
+        "ai": "AI & Automation"
+      },
+      "developers": {
+        "title": "Developers",
+        "api": "API Reference",
+        "sdk": "SDK & Tools",
+        "webhooks": "Webhooks",
+        "github": "GitHub",
+        "community": "Community"
+      },
+      "company": {
+        "title": "Company",
+        "about": "About Us",
+        "careers": "Careers",
+        "blog": "Blog",
+        "press": "Press Kit",
+        "contact": "Contact"
+      },
+      "resources": {
+        "title": "Resources",
+        "help": "Help Center",
+        "tutorials": "Tutorials",
+        "webinars": "Webinars",
+        "status": "System Status",
+        "changelog": "Changelog"
+      },
+      "legal": {
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "cookies": "Cookie Policy",
+        "gdpr": "GDPR Compliance",
+        "security": "Security"
+      },
+      "newsletter": {
+        "title": "Stay Updated",
+        "description": "Get the latest updates on features, security, and platform news.",
+        "placeholder": "Enter your email",
+        "subscribe": "Subscribe"
+      },
+      "status": {
+        "operational": "All systems operational"
+      }
     }
   },
   "countries": {
