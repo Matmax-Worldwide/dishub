@@ -215,13 +215,24 @@
   },
   "sidebar": {
     "dashboard": "Dashboard",
-    "calendar": "Calendar",
     "cms": "CMS",
     "cmsPages": "Pages",
     "cmsMedia": "Media",
     "cmsMenus": "Menus",
     "cmsComponents": "Components",
     "cmsSettings": "Settings",
+    "communications": "Notifications",
+    "messageTemplates": "Message Templates",
+    "messageLogs": "Message Logs",
+    "messageAnalytics": "Message Analytics",
+    "messageReports": "Message Reports",
+    "messageIntegrations": "Message Integrations",
+    "communicationSettings": "Communication Settings",
+    "communicationTemplates": "Templates",
+    "communicationLogs": "Logs",
+    "communicationAnalytics": "Analytics",
+    "communicationReports": "Reports",
+    "communicationIntegrations": "Integrations",
     "tenants": "Tenants",
     "blog": "Blog",
     "blogPosts": "Posts",
@@ -437,7 +448,9 @@
     "legalBilling": "Legal Billing",
     "legalReports": "Legal Reports",
     "legalBookingConfig": "Booking Configuration",
-    "legalSettings": "Legal Settings"
+    "legalSettings": "Legal Settings",
+    "user": "User",
+    "createNotifications": "Send Notifications"
   },
   "auth": {
     "login": {
@@ -583,7 +596,6 @@
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
     "USER": "User",
-    "SuperAdmin": "Super Admin",
     "SuperAdmin": "Super Admin"
   },
   "commerce": {

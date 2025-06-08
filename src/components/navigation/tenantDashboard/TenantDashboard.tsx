@@ -21,9 +21,7 @@ import { useI18n } from '@/hooks/useI18n';
 import React from 'react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { 
-  sidebarConfig, 
   getIconComponent, 
-  filterNavigationByFeatures,
   type NavItem 
 } from '../dashboardSidebar/sidebarConfig';
 import { 
@@ -253,21 +251,6 @@ export function TenantDashboard() {
     return filteredItems;
   }, [params.locale, tenantFeatures, t, tenantSlug]);
 
-  // Get feature-based navigation items - DEPRECATED (keeping for compatibility)
-  const featureBasedNavigationItems: NavItem[] = useMemo(() => {
-    const items = sidebarConfig.featureBasedNavigationItems(params.locale as string).map(item => ({
-      ...item,
-      name: t(item.name),
-      children: item.children?.map(child => ({
-        ...child,
-        name: t(child.name)
-      }))
-    }));
-    
-    // Filter items based on tenant features
-    const filteredItems = filterNavigationByFeatures(items, tenantFeatures);
-    return filteredItems;
-  }, [params.locale, tenantFeatures, t]);
 
   // Filter external links based on user role
   const getFilteredExternalLinks = (): NavItem[] => {
@@ -614,22 +597,6 @@ export function TenantDashboard() {
                   ))
                 }
               </div>
-
-              {/* Legacy Feature-based tools (deprecated, keeping for compatibility) */}
-              {featureBasedNavigationItems.length > 0 && (
-                <div className="mb-4 border-t border-gray-200 pt-4">
-                  <h3 className="mb-3 text-xs font-semibold uppercase text-gray-500 tracking-wider">
-                    🔧 {t('sidebar.legacyTools')}
-                  </h3>
-                  <div className="bg-yellow-50 rounded-lg p-2 mb-3">
-                    <p className="text-xs text-yellow-700">{t('sidebar.legacyToolsWarning')}</p>
-                  </div>
-                  {featureBasedNavigationItems.map(item => (
-                    <NavigationItem key={item.href} item={item} />
-                  ))}
-                </div>
-              )}
-
               {/* External Links */}
               <div className="mb-6 border-t border-gray-200 pt-4">
                 <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
@@ -797,21 +764,6 @@ export function TenantDashboard() {
                     ))
                   }
                 </div>
-
-                {/* Legacy Feature-based tools (deprecated) */}
-                {featureBasedNavigationItems.length > 0 && (
-                  <div className="mb-4 border-t border-gray-200 pt-3">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-400">
-                      🔧 {t('sidebar.legacyTools')}
-                    </h3>
-                    <div className="bg-yellow-50 rounded-md p-2 mb-2">
-                      <p className="text-xs text-yellow-700">{t('sidebar.legacyToolsWarning')}</p>
-                    </div>
-                    {featureBasedNavigationItems.map((item) => (
-                      <NavigationItem key={item.href} item={item} />
-                    ))}
-                  </div>
-                )}
                 
                 {/* External Links */}
                 <div className="mb-6 border-t border-gray-200 pt-3">

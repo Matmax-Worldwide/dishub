@@ -220,7 +220,8 @@
     "help": "Ayuda",
     "settings": "Configuración",
     "adminDashboard": "Panel de Administración",
-    "createNotifications": "Enviar Notificaciones",
+    "communications": "Notificaciones",
+    "messageTemplates": "Plantillas de Mensajes",
     "userManagement": "Usuarios",
     "roleManagement": "Roles y Permisos",
     "cms": "CMS",
@@ -402,7 +403,8 @@
     "legalBilling": "Facturación Legal",
     "legalReports": "Reportes Legales",
     "legalBookingConfig": "Configuración de Citas",
-    "legalSettings": "Configuración Legal"
+    "legalSettings": "Configuración Legal",
+    "createNotifications": "Enviar Notificaciones"
   },
   "auth": {
     "login": {
@@ -520,7 +522,6 @@
     "MANAGER": "Gerente",
     "EMPLOYEE": "Empleado",
     "USER": "Usuario",
-    "SuperAdmin": "Super Administrador",
     "SuperAdmin": "Super Administrador"
   },
   "commerce": {
