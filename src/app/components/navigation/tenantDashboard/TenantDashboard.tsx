@@ -15,7 +15,7 @@ import { Button } from '@/app/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
-import { clearUserCache, clearTenantCache, clearAllCache } from '@/lib/apollo-cache-utils';
+import { clearTenantCache, clearAllCache } from '@/lib/apollo-cache-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import React from 'react';
@@ -70,8 +70,6 @@ const GET_TENANT = gql`
   }
 `;
 
-
-
 const GET_ACTIVE_EXTERNAL_LINKS = gql`
   query GetActiveExternalLinks {
     activeExternalLinks {
@@ -115,8 +113,8 @@ export function TenantDashboard() {
   // Get tenant slug from params
   const tenantSlug = params.tenantSlug as string;
   
-  // Load user profile
-  const { data, refetch: refetchProfile } = useQuery(GET_USER_PROFILE, {
+  // Load user profile - removed unnecessary refetch triggers
+  const { data } = useQuery(GET_USER_PROFILE, {
     client,
     errorPolicy: 'all',
     fetchPolicy: 'cache-and-network',
@@ -134,23 +132,17 @@ export function TenantDashboard() {
     },
   });
 
-  // Refetch profile when tenant slug changes
-  useEffect(() => {
-    if (tenantSlug && refetchProfile) {
-      console.log('Tenant slug changed, refetching profile:', tenantSlug);
-      refetchProfile();
-    }
-  }, [tenantSlug, refetchProfile]);
-
   // Find the current tenant from user's tenant relationships
-  const currentUserTenant = data?.me?.userTenants?.find(
-    (ut: { tenant: { slug: string } }) => ut.tenant.slug === tenantSlug
-  );
+  const currentUserTenant = useMemo(() => {
+    return data?.me?.userTenants?.find(
+      (ut: { tenant: { slug: string } }) => ut.tenant.slug === tenantSlug
+    );
+  }, [data?.me?.userTenants, tenantSlug]);
   
-  // Load tenant data
-  const { data: tenantData, refetch: refetchTenant } = useQuery(GET_TENANT, {
+  // Load tenant data - removed unnecessary refetch triggers
+  const { data: tenantData } = useQuery(GET_TENANT, {
     client,
-    variables: { id: currentUserTenant?.tenantId },
+    variables: { id: currentUserTenant?.tenantId || '' },
     skip: !currentUserTenant?.tenantId,
     errorPolicy: 'all',
     fetchPolicy: 'cache-and-network',
@@ -160,73 +152,28 @@ export function TenantDashboard() {
     },
   });
 
-  // Refetch tenant data when currentUserTenant changes
-  useEffect(() => {
-    if (currentUserTenant?.tenantId && refetchTenant) {
-      console.log('Current user tenant changed, refetching tenant data:', currentUserTenant.tenantId);
-      refetchTenant({ id: currentUserTenant.tenantId });
-    }
-  }, [currentUserTenant?.tenantId, refetchTenant]);
-
-  // Clear cache and refetch when auth user changes (important for role switching)
-  useEffect(() => {
-    // Only clear cache if we have a different user ID than what's in GraphQL
-    if (authUser?.id && data?.me?.id && authUser.id !== data.me.id && refetchProfile) {
-      console.log('Different auth user detected, clearing cache and refetching:', authUser.id, 'vs', data.me.id);
-      clearUserCache().then(() => {
-        refetchProfile();
-      });
-    }
-  }, [authUser?.id, data?.me?.id, refetchProfile]);
-
-  // Clear tenant-specific cache when tenant slug changes (but only if we have user data)
+  // Simplified cache clearing - only when tenant slug changes and we have user data
   useEffect(() => {
     if (tenantSlug && data?.me) {
       console.log('Tenant slug changed with user data, clearing tenant cache:', tenantSlug);
       clearTenantCache();
     }
-  }, [tenantSlug, data?.me]);
+  }, [tenantSlug, data?.me?.id]); // Only depend on user ID, not entire user object
 
-  // Force refresh when user email changes (indicates different user session)
+  // Debug logging - reduced frequency
   useEffect(() => {
-    if (data?.me?.email && authUser?.email && data.me.email !== authUser.email) {
-      console.log('User email mismatch detected, clearing cache and refetching');
-      clearUserCache().then(() => {
-        if (refetchProfile) {
-          refetchProfile();
-        }
-      });
+    if (data?.me || authUser) {
+      console.log('=== ROLE DEBUG ===');
+      console.log('GraphQL user data:', data?.me);
+      console.log('Auth user data:', authUser);
+      console.log('Current user tenant:', currentUserTenant);
+      console.log('Tenant slug:', tenantSlug);
+      console.log('==================');
     }
-  }, [data?.me?.email, authUser?.email, refetchProfile]);
-
-  // Force logout if user role is inconsistent (but only after data has loaded)
-  useEffect(() => {
-    // Only check if both data sources have loaded and are different
-    if (data?.me?.role && authUser?.role && 
-        data.me.role.name !== authUser.role.name &&
-        data.me.email === authUser.email) { // Same user, different role
-      console.log('User role mismatch detected for same user, clearing cache and refetching');
-      console.log('GraphQL role:', data.me.role.name, 'Auth role:', authUser.role.name);
-      clearUserCache().then(() => {
-        if (refetchProfile) {
-          refetchProfile();
-        }
-      });
-    }
-  }, [data?.me?.role?.name, authUser?.role?.name, data?.me?.email, authUser?.email, refetchProfile]);
-
-  // Debug logging for role detection
-  useEffect(() => {
-    console.log('=== ROLE DEBUG ===');
-    console.log('GraphQL user data:', data?.me);
-    console.log('Auth user data:', authUser);
-    console.log('Current user tenant:', currentUserTenant);
-    console.log('Tenant slug:', tenantSlug);
-    console.log('==================');
-  }, [data?.me, authUser, currentUserTenant, tenantSlug]);
+  }, [data?.me?.id, authUser?.id, currentUserTenant?.tenantId, tenantSlug]); // Only depend on IDs
 
   // Check user roles
-  const isSuperAdmin = data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin';
+  const isSuperAdmin = data?.me?.role === 'SuperAdmin' || authUser?.role === 'SuperAdmin';
   const isTenantAdmin = currentUserTenant?.role === 'TenantAdmin';
   const isTenantManager = currentUserTenant?.role === 'TenantManager';
   const isEmployee = currentUserTenant?.role === 'Employee';
@@ -246,8 +193,6 @@ export function TenantDashboard() {
     if (isSuperAdmin) return true; // SuperAdmin has access to all tenants
     return !!currentUserTenant; // Has a relationship with this tenant
   }, [data?.me, isSuperAdmin, currentUserTenant]);
-
-
 
   // Load external links
   const { data: externalLinksData, loading: externalLinksLoading, error: externalLinksError } = useQuery(GET_ACTIVE_EXTERNAL_LINKS, {
@@ -272,8 +217,6 @@ export function TenantDashboard() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-
 
   // Transform navigation items for tenant context - ONLY ADMINISTRATION
   const transformedTenantNavigationItems: TenantNavItem[] = useMemo(() => {

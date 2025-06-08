@@ -7,6 +7,7 @@ import Header from '@/app/components/layout/Header';
 import HeroSection from '@/app/components/sections/HeroSection';
 import CTASection from '@/app/components/sections/CTASection';
 import TechArchitectureSVG from '@/app/components/animations/TechArchitectureSVG';
+import GlobalScaleSVG from '@/app/components/animations/GlobalScaleSVG';
 import { AuthProvider } from '@/hooks/useAuth';
 
 
@@ -114,8 +115,14 @@ export default function DishubLanding() {
             </div>
 
         {/* Features Grid */}
-        <section className="relative py-20 px-6 pointer-events-auto">
-          <div className="max-w-7xl mx-auto">
+        <section className="relative py-20 px-6 pointer-events-auto overflow-hidden">
+          {/* Global Scale Background - City to World Transition */}
+          <GlobalScaleSVG />
+          
+          {/* Subtle overlay for better text readability */}
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.3px]"></div>
+          
+          <div className="relative max-w-7xl mx-auto">
             <h2 className="text-5xl font-bold text-center mb-16">
               <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 {t('dishub.features.nativeByDesign')}
@@ -147,8 +154,11 @@ export default function DishubLanding() {
 
        
         {/* Technology Section */}
-        <section className="relative py-10 px-6 pointer-events-auto">
-          <div className="max-w-7xl mx-auto">
+        <section className="relative py-10 px-6 pointer-events-auto overflow-hidden">
+          {/* Transition background from global to deep tech */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/10 to-black/30"></div>
+          
+          <div className="relative max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
                 <h2 className="text-5xl font-bold mb-6">
@@ -188,7 +198,26 @@ export default function DishubLanding() {
 
  {/* Privacy & Compliance Section */}
  <section className="relative px-6 overflow-hidden pointer-events-auto">
-          <div className="max-w-7xl mx-auto">
+          {/* Deep space transition background */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-purple-900/20 to-black/40"></div>
+          
+          {/* Floating cosmic particles */}
+          <div className="absolute inset-0">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-60"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animation: `float ${Math.random() * 10 + 5}s ease-in-out infinite`,
+                  animationDelay: `${Math.random() * 5}s`
+                }}
+              />
+            ))}
+          </div>
+          
+          <div className="relative max-w-7xl mx-auto">
             <h2 className="text-5xl font-bold text-center mb-4">
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 {t('dishub.privacy.title')}
@@ -245,6 +274,16 @@ export default function DishubLanding() {
           .animate-gradient {
             background-size: 200% 200%;
             animation: gradient 3s ease infinite;
+          }
+          @keyframes float {
+            0%, 100% { 
+              transform: translateY(0px) translateX(0px); 
+              opacity: 0.6;
+            }
+            50% { 
+              transform: translateY(-20px) translateX(10px); 
+              opacity: 0.9;
+            }
           }
         `}</style>
       </div>

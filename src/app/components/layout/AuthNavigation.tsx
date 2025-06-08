@@ -37,6 +37,16 @@ const LOGIN_MUTATION = gql`
   }
 `;
 
+// GraphQL mutation for logout
+const LOGOUT_MUTATION = gql`
+  mutation Logout {
+    logout {
+      success
+      message
+    }
+  }
+`;
+
 // Helper function to set a cookie
 function setCookie(name: string, value: string, days: number) {
   try {
@@ -59,6 +69,7 @@ export default function AuthNavigation() {
   // States for inline login form
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -195,8 +206,64 @@ export default function AuthNavigation() {
     setLoginError(null);
   };
 
-  const handleLogout = async () => {
-    await logout();
+    const handleLogout = async () => {
+    setLogoutLoading(true);
+    
+    try {
+      // 1. Intentar logout con GraphQL primero
+      try {
+        await client.mutate({
+          mutation: LOGOUT_MUTATION,
+          errorPolicy: 'all'
+        });
+      } catch (graphqlError) {
+        console.warn('GraphQL logout failed, proceeding with API logout:', graphqlError);
+      }
+
+      // 2. Llamar a la API de logout para limpiar cookies del servidor
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } catch (apiError) {
+        console.warn('API logout failed, proceeding with local cleanup:', apiError);
+      }
+
+      // 3. Limpiar cookies manualmente (fallback)
+      const cookiesToClear = [
+        'session-token',
+        'auth-token', 
+        'user-session',
+        'tenant-context'
+      ];
+
+      cookiesToClear.forEach(cookieName => {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}; secure; samesite=strict`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      });
+
+      // 4. Limpiar almacenamiento local
+      sessionStorage.removeItem('currentTenant');
+      localStorage.removeItem('auth-state');
+      
+      // 5. Limpiar Apollo cache
+      await client.clearStore();
+      
+      // 6. Remover authorization header
+      setGlobalAuthorizationHeader('');
+      
+      // 7. Usar el logout del contexto (redirige y actualiza estado)
+      await logout();
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Forzar logout local incluso si hay errores
+      await logout();
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   return (
@@ -216,13 +283,22 @@ export default function AuthNavigation() {
             <span>{t('dishub.nav.dashboard')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-          <button 
+          <motion.button 
             onClick={handleLogout}
-            className="px-4 py-2 border border-white/20 rounded-full font-semibold hover:bg-white/10 transition-all duration-300 hover:scale-105 flex items-center space-x-2 relative z-50 cursor-pointer pointer-events-auto"
+            disabled={logoutLoading}
+            whileHover={{ scale: logoutLoading ? 1 : 1.05 }}
+            whileTap={{ scale: logoutLoading ? 1 : 0.95 }}
+            className="px-4 py-2 border border-white/20 rounded-full font-semibold hover:bg-white/10 transition-all duration-300 flex items-center space-x-2 relative z-50 cursor-pointer pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('dishub.nav.logout')}</span>
-          </button>
+            {logoutLoading ? (
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            ) : (
+              <LogOut className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">
+              {logoutLoading ? 'Signing out...' : t('dishub.nav.logout')}
+            </span>
+          </motion.button>
         </>
       ) : (
         <div className="relative">

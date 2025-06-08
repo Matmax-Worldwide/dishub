@@ -44,12 +44,12 @@ export const dynamic = 'force-dynamic';
 
 export default function AccessDeniedPage() {
   const { locale } = useParams();
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [redirectPath, setRedirectPath] = useState('/dashboard');
 
   // Obtener datos reales del usuario desde GraphQL
   const { data: userData, loading: userLoading, error } = useQuery(GET_ME, {
-    skip: !isAuthenticated || !token,
+    skip: !isAuthenticated,
     errorPolicy: 'ignore' // Ignore errors if not authenticated
   });
 

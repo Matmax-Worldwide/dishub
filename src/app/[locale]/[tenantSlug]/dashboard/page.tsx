@@ -3,45 +3,201 @@
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
-import { useEffect } from 'react';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useEffect, useMemo } from 'react';
 import { client } from '@/lib/apollo-client';
+import Link from 'next/link';
+import { 
+  CalendarIcon, 
+  ShoppingCartIcon, 
+  FileTextIcon, 
+  UsersIcon,
+  BarChartIcon,
+  DollarSignIcon,
+  ClockIcon,
+  StarIcon,
+  BellIcon,
+  SettingsIcon,
+  PlusIcon,
+  ArrowRightIcon,
+  ScaleIcon,
+  TrendingUpIcon,
+  ActivityIcon
+} from 'lucide-react';
 
 export default function TenantDashboard() {
   const params = useParams();
   const { user, isLoading } = useAuth();
   const { hasRole } = usePermission();
+  const { features: tenantFeatures } = useFeatureAccess();
 
-  // Check if user has access to this tenant dashboard
+  // Check if user has access to this tenant dashboard - simplified to avoid loops
   useEffect(() => {
-    if (!isLoading && user) {
-      // For now, just check if user is authenticated - the TenantDashboard component will handle detailed access control
-      const hasAccess = !!user;
-      
-      console.log('=== ACCESS CHECK ===');
-      console.log('User:', user?.email);
-      console.log('Tenant slug:', params.tenantSlug);
-      console.log('Has access:', hasAccess);
-      console.log('==================');
-      
-      if (!hasAccess) {
-        console.log('No access detected, redirecting to login');
-        // Clear cache and redirect unauthorized users to login
-        client.clearStore().then(() => {
-          window.location.href = `/${params.locale}/login`;
-        });
-        return;
-      }
+    if (!isLoading && !user) {
+      console.log('No user detected, redirecting to login');
+      // Clear cache and redirect unauthorized users to login
+      client.clearStore().then(() => {
+        window.location.href = `/${params.locale}/login`;
+      });
     }
-  }, [isLoading, user, params.locale, params.tenantSlug]);
+  }, [isLoading, user?.id, params.locale]); // Only depend on user ID, not entire user object
 
-  // Clear cache when tenant slug changes to ensure fresh data (but only if user is loaded)
-  useEffect(() => {
-    if (params.tenantSlug && user) {
-      console.log('Tenant dashboard: clearing cache for tenant slug change:', params.tenantSlug);
-      client.cache.evict({ fieldName: 'tenant' });
-      client.cache.gc();
+  // Get enabled engines based on tenant features
+  const enabledEngines = useMemo(() => {
+    const engines = [];
+    
+    // CMS Engine - Always available
+    engines.push({
+      name: 'Gestión de Contenido',
+      description: 'Administra tu sitio web, páginas y contenido',
+      icon: FileTextIcon,
+      href: `/${params.locale}/${params.tenantSlug}/cms`,
+      color: 'bg-blue-500',
+      stats: { pages: 12, media: 45 },
+      enabled: true
+    });
+
+    // Booking Engine
+    if (tenantFeatures.includes('BOOKING_ENGINE')) {
+      engines.push({
+        name: 'Sistema de Reservas',
+        description: 'Gestiona citas y reservas de tus clientes',
+        icon: CalendarIcon,
+        href: `/${params.locale}/${params.tenantSlug}/bookings`,
+        color: 'bg-green-500',
+        stats: { today: 8, week: 32 },
+        enabled: true
+      });
     }
-  }, [params.tenantSlug, user]);
+
+    // E-commerce Engine
+    if (tenantFeatures.includes('ECOMMERCE_ENGINE')) {
+      engines.push({
+        name: 'Tienda Online',
+        description: 'Vende productos y gestiona tu inventario',
+        icon: ShoppingCartIcon,
+        href: `/${params.locale}/${params.tenantSlug}/commerce`,
+        color: 'bg-purple-500',
+        stats: { products: 156, orders: 23 },
+        enabled: true
+      });
+    }
+
+    // Legal Engine
+    if (tenantFeatures.includes('LEGAL_ENGINE')) {
+      engines.push({
+        name: 'Gestión Legal',
+        description: 'Administra casos legales y documentos',
+        icon: ScaleIcon,
+        href: `/${params.locale}/${params.tenantSlug}/dashboard/legal`,
+        color: 'bg-amber-500',
+        stats: { cases: 15, documents: 89 },
+        enabled: true
+      });
+    }
+
+    return engines;
+  }, [tenantFeatures, params.locale, params.tenantSlug]);
+
+  // Quick stats for business overview
+  const businessStats = [
+    {
+      name: 'Ventas del Mes',
+      value: '$12,450',
+      change: '+12%',
+      changeType: 'positive',
+      icon: DollarSignIcon
+    },
+    {
+      name: 'Clientes Activos',
+      value: '1,234',
+      change: '+5%',
+      changeType: 'positive',
+      icon: UsersIcon
+    },
+    {
+      name: 'Reservas Hoy',
+      value: '8',
+      change: '+2',
+      changeType: 'positive',
+      icon: CalendarIcon
+    },
+    {
+      name: 'Satisfacción',
+      value: '4.8/5',
+      change: '+0.2',
+      changeType: 'positive',
+      icon: StarIcon
+    }
+  ];
+
+  // Recent activities
+  const recentActivities = [
+    {
+      id: 1,
+      type: 'booking',
+      message: 'Nueva reserva de María González para mañana a las 10:00',
+      time: 'Hace 5 minutos',
+      icon: CalendarIcon,
+      color: 'text-green-600'
+    },
+    {
+      id: 2,
+      type: 'order',
+      message: 'Pedido #1234 completado - $89.99',
+      time: 'Hace 15 minutos',
+      icon: ShoppingCartIcon,
+      color: 'text-purple-600'
+    },
+    {
+      id: 3,
+      type: 'user',
+      message: 'Nuevo cliente registrado: Juan Pérez',
+      time: 'Hace 1 hora',
+      icon: UsersIcon,
+      color: 'text-blue-600'
+    },
+    {
+      id: 4,
+      type: 'review',
+      message: 'Nueva reseña 5 estrellas recibida',
+      time: 'Hace 2 horas',
+      icon: StarIcon,
+      color: 'text-yellow-600'
+    }
+  ];
+
+  // Quick actions for business management
+  const quickActions = [
+    {
+      name: 'Gestionar Usuarios',
+      description: 'Administra empleados y permisos',
+      icon: UsersIcon,
+      href: `/${params.locale}/${params.tenantSlug}/dashboard/users`,
+      color: 'bg-blue-500'
+    },
+    {
+      name: 'Configuración',
+      description: 'Ajusta la configuración de tu negocio',
+      icon: SettingsIcon,
+      href: `/${params.locale}/${params.tenantSlug}/dashboard/company`,
+      color: 'bg-gray-500'
+    },
+    {
+      name: 'Reportes',
+      description: 'Ve estadísticas y análisis detallados',
+      icon: BarChartIcon,
+      href: `/${params.locale}/${params.tenantSlug}/dashboard/reports`,
+      color: 'bg-indigo-500'
+    },
+    {
+      name: 'Notificaciones',
+      description: 'Gestiona comunicaciones con clientes',
+      icon: BellIcon,
+      href: `/${params.locale}/${params.tenantSlug}/dashboard/notifications`,
+      color: 'bg-orange-500'
+    }
+  ];
 
   if (isLoading) {
     return (
@@ -53,10 +209,10 @@ export default function TenantDashboard() {
 
   // Determine user role for display
   const getUserRoleDisplay = () => {
-    if (hasRole('SuperAdmin')) return 'SuperAdmin';
-    if (hasRole('TenantAdmin')) return 'TenantAdmin';
-    if (hasRole('TenantManager')) return 'TenantManager';
-    if (hasRole('Employee')) return 'Employee';
+    if (hasRole('SuperAdmin')) return 'Super Administrador';
+    if (hasRole('TenantAdmin')) return 'Administrador';
+    if (hasRole('TenantManager')) return 'Gerente';
+    if (hasRole('Employee')) return 'Empleado';
     return 'Usuario';
   };
 
@@ -75,15 +231,15 @@ export default function TenantDashboard() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                🏢 Dashboard de {params.tenantSlug}
+              <h1 className="text-3xl font-bold text-gray-900">
+                Bienvenido de vuelta
               </h1>
-              <p className="mt-1 text-gray-600">
-                Bienvenido al panel de administración de <span className="font-semibold text-indigo-600">{params.tenantSlug}</span>
+              <p className="mt-1 text-lg text-gray-600">
+                Resumen de tu negocio <span className="font-semibold text-indigo-600">{params.tenantSlug}</span>
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <span className={`px-3 py-1 text-sm rounded-full ${getUserRoleColor()}`}>
+              <span className={`px-4 py-2 text-sm rounded-full font-medium ${getUserRoleColor()}`}>
                 {getUserRoleDisplay()}
               </span>
             </div>
@@ -93,137 +249,169 @@ export default function TenantDashboard() {
 
       {/* Main Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-8">
-        {/* Role-specific welcome section */}
+        {/* Business Stats */}
         <div className="mb-8">
-          {hasRole('SuperAdmin') && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">🚀</span>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen del Negocio</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {businessStats.map((stat) => (
+              <div key={stat.name} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <stat.icon className="h-6 w-6 text-gray-600" />
+                    </div>
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h3 className="text-sm font-medium text-gray-500">{stat.name}</h3>
+                    <div className="flex items-center">
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <span className={`ml-2 text-sm font-medium flex items-center ${
+                        stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        <TrendingUpIcon className="h-4 w-4 mr-1" />
+                        {stat.change}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-red-900">Super Administrador</h3>
-                  <p className="text-red-700">Tienes acceso completo a todos los tenants y funcionalidades de la plataforma</p>
-                </div>
               </div>
-            </div>
-          )}
-
-          {hasRole('TenantAdmin') && !hasRole('SuperAdmin') && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">👑</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-purple-900">Administrador de Tenant</h3>
-                  <p className="text-purple-700">Tienes acceso completo a todas las funcionalidades del tenant</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {hasRole('TenantManager') && !hasRole('SuperAdmin') && !hasRole('TenantAdmin') && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">👨‍💼</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-blue-900">Gerente de Tenant</h3>
-                  <p className="text-blue-700">Tienes permisos de gestión y supervisión del tenant</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {hasRole('Employee') && !hasRole('SuperAdmin') && !hasRole('TenantAdmin') && !hasRole('TenantManager') && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">👨‍💻</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-green-900">Empleado</h3>
-                  <p className="text-green-700">Tienes acceso a funcionalidades específicas del empleado</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Quick access cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">🧩</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Gestión de Módulos</h3>
-                <p className="text-gray-600">Administra los módulos activos</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">👥</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Gestión de Usuarios</h3>
-                <p className="text-gray-600">Controla usuarios y permisos</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">🏢</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Configuración</h3>
-                <p className="text-gray-600">Perfil y branding del tenant</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Stats or content area */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+        {/* Enabled Engines */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Herramientas de Negocio</h2>
+            <Link 
+              href={`/${params.locale}/${params.tenantSlug}/dashboard/modules`}
+              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center group"
+            >
+              Ver todas 
+              <ArrowRightIcon className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {enabledEngines.map((engine) => (
+              <Link key={engine.name} href={engine.href}>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center mb-4">
+                    <div className={`w-12 h-12 ${engine.color} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <engine.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                        {engine.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">{engine.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex space-x-4 text-sm text-gray-500">
+                      {Object.entries(engine.stats).map(([key, value]) => (
+                        <span key={key}>
+                          <span className="font-medium">{value}</span> {key}
+                        </span>
+                      ))}
+                    </div>
+                    <ArrowRightIcon className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Recent Activities */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <ActivityIcon className="h-5 w-5 text-gray-600 mr-2" />
+                <h2 className="text-lg font-semibold text-gray-900">Actividad Reciente</h2>
+              </div>
+              <Link 
+                href={`/${params.locale}/${params.tenantSlug}/dashboard/reports/activity`}
+                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              >
+                Ver todo
+              </Link>
+            </div>
+            <div className="space-y-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center`}>
+                    <activity.icon className={`h-4 w-4 ${activity.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900">{activity.message}</p>
+                    <p className="text-xs text-gray-500 flex items-center mt-1">
+                      <ClockIcon className="h-3 w-3 mr-1" />
+                      {activity.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {quickActions.map((action) => (
+                <Link key={action.name} href={action.href}>
+                  <div className="p-4 rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                    <div className="flex items-center mb-2">
+                      <div className={`w-8 h-8 ${action.color} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                        <action.icon className="h-4 w-4 text-white" />
+                      </div>
+                      <h3 className="ml-3 text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                        {action.name}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-600">{action.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Modules Available */}
+        <div className="mt-8 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-indigo-900">¿Necesitas más funcionalidades?</h3>
+              <p className="text-indigo-700 mt-1">
+                Explora módulos adicionales para hacer crecer tu negocio
+              </p>
+            </div>
+            <Link 
+              href={`/${params.locale}/${params.tenantSlug}/dashboard/modules/request`}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center group"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Explorar Módulos
+            </Link>
+          </div>
+        </div>
+
+        {/* System Information */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Información del Sistema</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700">Tenant</h4>
+              <h4 className="text-sm font-medium text-gray-700">Negocio</h4>
               <p className="text-lg font-semibold text-gray-900">{params.tenantSlug}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700">Rol</h4>
+              <h4 className="text-sm font-medium text-gray-700">Tu Rol</h4>
               <p className="text-lg font-semibold text-gray-900">{getUserRoleDisplay()}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-700">Usuario</h4>
-              <p className="text-lg font-semibold text-gray-900">{user?.email}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700">Ruta</h4>
-              <p className="text-sm text-gray-600 font-mono">/{params.locale}/{params.tenantSlug}/dashboard</p>
+              <p className="text-sm text-gray-600 truncate">{user?.email}</p>
             </div>
           </div>
         </div>

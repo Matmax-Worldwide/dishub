@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
+import WebsiteBuilderSVG from '@/app/components/animations/WebsiteBuilderSVG';
 
 interface HeroSectionProps {
   scrollY: number;
@@ -41,8 +42,12 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 pointer-events-auto">
-      <div className="max-w-5xl mx-auto text-center">
+    <section className="relative min-h-screen flex items-center justify-center px-6 pointer-events-auto overflow-hidden">
+      {/* Website Builder Background */}
+      <WebsiteBuilderSVG />
+      
+      {/* Content overlay */}
+      <div className="relative max-w-5xl mx-auto text-center">
         <h1 
           className="text-6xl md:text-8xl font-bold mb-6 leading-tight"
           style={{ transform: `translateY(${scrollY * -0.2}px)` }}
@@ -73,7 +78,7 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
             </button>
           ) : (
             <Link href={`/${params.locale}/get-started`}>
-              <button className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto relative z-50">
+              <button className="group z-50 px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto relative z-50">
                 {t('dishub.hero.startDisrupting')}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>

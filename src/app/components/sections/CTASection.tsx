@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useI18n } from '@/hooks/useI18n';
 import { useAuth } from '@/hooks/useAuth';
+import InterstellarTechSVG from '@/app/components/animations/InterstellarTechSVG';
 
 export default function CTASection() {
   const { t } = useI18n();
@@ -29,8 +30,15 @@ export default function CTASection() {
   };
 
   return (
-    <section className="relative py-20 px-6 pointer-events-auto">
-      <div className="max-w-4xl mx-auto text-center">
+    <section className="relative py-20 px-6 pointer-events-auto overflow-hidden">
+      {/* Interstellar Tech Background */}
+      <InterstellarTechSVG />
+      
+      {/* Subtle overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-[0.5px]"></div>
+      
+      {/* Content overlay */}
+      <div className="relative max-w-4xl mx-auto text-center">
         <h2 className="text-5xl font-bold mb-6">
           {t('dishub.cta.readyTo')}
           <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent ml-3">
