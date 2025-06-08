@@ -768,6 +768,10 @@ const resolvers = {
     taxes: ecommerceResolvers.Query.taxes,
     tax: ecommerceResolvers.Query.tax,
     
+    // Order queries
+    orders: ecommerceResolvers.Query.orders,
+    order: ecommerceResolvers.Query.order,
+    
     // Payment queries
     paymentProviders: ecommerceResolvers.Query.paymentProviders,
     paymentProvider: ecommerceResolvers.Query.paymentProvider,
@@ -775,6 +779,21 @@ const resolvers = {
     paymentMethod: ecommerceResolvers.Query.paymentMethod,
     payments: ecommerceResolvers.Query.payments,
     payment: ecommerceResolvers.Query.payment,
+    
+    // Customer queries
+    customers: ecommerceResolvers.Query.customers,
+    customer: ecommerceResolvers.Query.customer,
+    customerByEmail: ecommerceResolvers.Query.customerByEmail,
+    customerStats: ecommerceResolvers.Query.customerStats,
+    
+    // Discount queries
+    discounts: ecommerceResolvers.Query.discounts,
+    discount: ecommerceResolvers.Query.discount,
+    discountByCode: ecommerceResolvers.Query.discountByCode,
+    validateDiscount: ecommerceResolvers.Query.validateDiscount,
+    
+    // Review queries (additional ones)
+    review: ecommerceResolvers.Query.review,
     
     // Shipping queries
     shippingProviders: async () => {
@@ -1506,10 +1525,23 @@ const resolvers = {
 
     // Add e-commerce mutations
     createShop: ecommerceResolvers.Mutation.createShop,
+    createProduct: ecommerceResolvers.Mutation.createProduct,
+    updateProduct: ecommerceResolvers.Mutation.updateProduct,
+    deleteProduct: ecommerceResolvers.Mutation.deleteProduct,
     createCurrency: ecommerceResolvers.Mutation.createCurrency,
     createProductCategory: ecommerceResolvers.Mutation.createProductCategory,
     updateProductCategory: ecommerceResolvers.Mutation.updateProductCategory,
     deleteProductCategory: ecommerceResolvers.Mutation.deleteProductCategory,
+    
+    // Order mutations
+    createOrder: ecommerceResolvers.Mutation.createOrder,
+    updateOrder: ecommerceResolvers.Mutation.updateOrder,
+    deleteOrder: ecommerceResolvers.Mutation.deleteOrder,
+    
+    // Customer mutations
+    createCustomer: ecommerceResolvers.Mutation.createCustomer,
+    updateCustomer: ecommerceResolvers.Mutation.updateCustomer,
+    deleteCustomer: ecommerceResolvers.Mutation.deleteCustomer,
     
     // Payment mutations
     createPaymentProvider: ecommerceResolvers.Mutation.createPaymentProvider,
@@ -1558,10 +1590,20 @@ const resolvers = {
   Price: ecommerceResolvers.Price,
   Tax: ecommerceResolvers.Tax,
   
+  // Order type resolvers
+  Order: ecommerceResolvers.Order,
+  OrderItem: ecommerceResolvers.OrderItem,
+  
   // Payment type resolvers
   PaymentProvider: ecommerceResolvers.PaymentProvider,
   PaymentMethod: ecommerceResolvers.PaymentMethod,
   Payment: ecommerceResolvers.Payment,
+  
+  // Customer type resolvers
+  Customer: ecommerceResolvers.Customer,
+  
+  // Review type resolvers
+  Review: ecommerceResolvers.Review,
 
   // Add tenant type resolvers
   Tenant: tenantResolvers.Tenant,
