@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComponentStyling } from '@/types/cms-styling';
+import { ComponentStyling, PADDING_OPTIONS, MARGIN_OPTIONS, BORDER_RADIUS_OPTIONS, SHADOW_OPTIONS } from '@/types/cms-styling';
 import {
   Tabs,
   TabsContent,
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StyleControlsProps {
   styling: ComponentStyling;
@@ -18,19 +18,19 @@ interface StyleControlsProps {
 }
 
 const StyleControls: React.FC<StyleControlsProps> = ({ styling, onChange }) => {
-  const handleChange = (key: keyof ComponentStyling, value: any) => {
+  const handleChange = (key: keyof ComponentStyling, value: string | number | ComponentStyling['border']) => {
     onChange({
       ...styling,
       [key]: value
     });
   };
 
-  const handleNestedChange = (parentKey: keyof ComponentStyling, childKey: string, value: any) => {
-    const parent = styling[parentKey] as any;
+  const handleBorderChange = (childKey: 'width' | 'color' | 'style', value: string | number) => {
+    const currentBorder = styling.border || { width: 0, color: '#e5e7eb', style: 'solid' as const };
     onChange({
       ...styling,
-      [parentKey]: {
-        ...parent,
+      border: {
+        ...currentBorder,
         [childKey]: value
       }
     });
@@ -38,105 +38,13 @@ const StyleControls: React.FC<StyleControlsProps> = ({ styling, onChange }) => {
 
   return (
     <div className="space-y-6 p-4">
-      <Tabs defaultValue="layout" className="w-full">
+      <Tabs defaultValue="colors" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="layout">Layout</TabsTrigger>
           <TabsTrigger value="colors">Colors</TabsTrigger>
-          <TabsTrigger value="typography">Typography</TabsTrigger>
+          <TabsTrigger value="spacing">Spacing</TabsTrigger>
+          <TabsTrigger value="border">Border</TabsTrigger>
           <TabsTrigger value="effects">Effects</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="layout" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="width">Width</Label>
-              <Input
-                id="width"
-                value={styling.width || ''}
-                onChange={(e) => handleChange('width', e.target.value)}
-                placeholder="auto, 100%, 300px"
-              />
-            </div>
-            <div>
-              <Label htmlFor="height">Height</Label>
-              <Input
-                id="height"
-                value={styling.height || ''}
-                onChange={(e) => handleChange('height', e.target.value)}
-                placeholder="auto, 100vh, 200px"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Padding</Label>
-            <div className="grid grid-cols-4 gap-2">
-              <Input
-                placeholder="Top"
-                value={styling.padding?.top || ''}
-                onChange={(e) => handleNestedChange('padding', 'top', e.target.value)}
-              />
-              <Input
-                placeholder="Right"
-                value={styling.padding?.right || ''}
-                onChange={(e) => handleNestedChange('padding', 'right', e.target.value)}
-              />
-              <Input
-                placeholder="Bottom"
-                value={styling.padding?.bottom || ''}
-                onChange={(e) => handleNestedChange('padding', 'bottom', e.target.value)}
-              />
-              <Input
-                placeholder="Left"
-                value={styling.padding?.left || ''}
-                onChange={(e) => handleNestedChange('padding', 'left', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Margin</Label>
-            <div className="grid grid-cols-4 gap-2">
-              <Input
-                placeholder="Top"
-                value={styling.margin?.top || ''}
-                onChange={(e) => handleNestedChange('margin', 'top', e.target.value)}
-              />
-              <Input
-                placeholder="Right"
-                value={styling.margin?.right || ''}
-                onChange={(e) => handleNestedChange('margin', 'right', e.target.value)}
-              />
-              <Input
-                placeholder="Bottom"
-                value={styling.margin?.bottom || ''}
-                onChange={(e) => handleNestedChange('margin', 'bottom', e.target.value)}
-              />
-              <Input
-                placeholder="Left"
-                value={styling.margin?.left || ''}
-                onChange={(e) => handleNestedChange('margin', 'left', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="display">Display</Label>
-            <Select value={styling.display || 'block'} onValueChange={(value) => handleChange('display', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select display type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="block">Block</SelectItem>
-                <SelectItem value="inline">Inline</SelectItem>
-                <SelectItem value="inline-block">Inline Block</SelectItem>
-                <SelectItem value="flex">Flex</SelectItem>
-                <SelectItem value="grid">Grid</SelectItem>
-                <SelectItem value="none">None</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </TabsContent>
 
         <TabsContent value="colors" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -154,10 +62,96 @@ const StyleControls: React.FC<StyleControlsProps> = ({ styling, onChange }) => {
               <Input
                 id="textColor"
                 type="color"
-                value={styling.color || '#000000'}
-                onChange={(e) => handleChange('color', e.target.value)}
+                value={styling.textColor || '#000000'}
+                onChange={(e) => handleChange('textColor', e.target.value)}
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="backgroundTransparency">Background Transparency</Label>
+            <div className="flex items-center space-x-2">
+              <Slider
+                value={[styling.backgroundTransparency || 0]}
+                onValueChange={(value) => handleChange('backgroundTransparency', value[0])}
+                max={100}
+                min={0}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm text-gray-500 w-12">
+                {styling.backgroundTransparency || 0}%
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="textTransparency">Text Transparency</Label>
+            <div className="flex items-center space-x-2">
+              <Slider
+                value={[styling.textTransparency || 0]}
+                onValueChange={(value) => handleChange('textTransparency', value[0])}
+                max={100}
+                min={0}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm text-gray-500 w-12">
+                {styling.textTransparency || 0}%
+              </span>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="spacing" className="space-y-4">
+          <div>
+            <Label htmlFor="padding">Padding</Label>
+            <Select value={styling.padding || 'none'} onValueChange={(value) => handleChange('padding', value as ComponentStyling['padding'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select padding" />
+              </SelectTrigger>
+              <SelectContent>
+                {PADDING_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="margin">Margin</Label>
+            <Select value={styling.margin || 'none'} onValueChange={(value) => handleChange('margin', value as ComponentStyling['margin'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select margin" />
+              </SelectTrigger>
+              <SelectContent>
+                {MARGIN_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="border" className="space-y-4">
+          <div>
+            <Label htmlFor="borderRadius">Border Radius</Label>
+            <Select value={styling.borderRadius || 'none'} onValueChange={(value) => handleChange('borderRadius', value as ComponentStyling['borderRadius'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select border radius" />
+              </SelectTrigger>
+              <SelectContent>
+                {BORDER_RADIUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -170,129 +164,72 @@ const StyleControls: React.FC<StyleControlsProps> = ({ styling, onChange }) => {
             />
           </div>
 
-          <div>
-            <Label htmlFor="borderWidth">Border Width</Label>
-            <Input
-              id="borderWidth"
-              value={styling.borderWidth || ''}
-              onChange={(e) => handleChange('borderWidth', e.target.value)}
-              placeholder="1px, 2px, 0"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="borderRadius">Border Radius</Label>
-            <Input
-              id="borderRadius"
-              value={styling.borderRadius || ''}
-              onChange={(e) => handleChange('borderRadius', e.target.value)}
-              placeholder="4px, 8px, 50%"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="typography" className="space-y-4">
-          <div>
-            <Label htmlFor="fontSize">Font Size</Label>
-            <Input
-              id="fontSize"
-              value={styling.fontSize || ''}
-              onChange={(e) => handleChange('fontSize', e.target.value)}
-              placeholder="16px, 1rem, 1.2em"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="fontWeight">Font Weight</Label>
-            <Select value={styling.fontWeight || 'normal'} onValueChange={(value) => handleChange('fontWeight', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select font weight" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="100">Thin</SelectItem>
-                <SelectItem value="200">Extra Light</SelectItem>
-                <SelectItem value="300">Light</SelectItem>
-                <SelectItem value="400">Normal</SelectItem>
-                <SelectItem value="500">Medium</SelectItem>
-                <SelectItem value="600">Semi Bold</SelectItem>
-                <SelectItem value="700">Bold</SelectItem>
-                <SelectItem value="800">Extra Bold</SelectItem>
-                <SelectItem value="900">Black</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="textAlign">Text Align</Label>
-            <Select value={styling.textAlign || 'left'} onValueChange={(value) => handleChange('textAlign', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select text alignment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="left">Left</SelectItem>
-                <SelectItem value="center">Center</SelectItem>
-                <SelectItem value="right">Right</SelectItem>
-                <SelectItem value="justify">Justify</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="lineHeight">Line Height</Label>
-            <Input
-              id="lineHeight"
-              value={styling.lineHeight || ''}
-              onChange={(e) => handleChange('lineHeight', e.target.value)}
-              placeholder="1.5, 24px, normal"
-            />
+          <div className="space-y-2">
+            <Label>Border Settings</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label htmlFor="borderWidth" className="text-xs">Width</Label>
+                <Input
+                  id="borderWidth"
+                  type="number"
+                  value={styling.border?.width || 0}
+                  onChange={(e) => handleBorderChange('width', parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="borderColor" className="text-xs">Color</Label>
+                <Input
+                  id="borderColor"
+                  type="color"
+                  value={styling.border?.color || '#e5e7eb'}
+                  onChange={(e) => handleBorderChange('color', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="borderStyle" className="text-xs">Style</Label>
+                <Select value={styling.border?.style || 'solid'} onValueChange={(value) => handleBorderChange('style', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solid">Solid</SelectItem>
+                    <SelectItem value="dashed">Dashed</SelectItem>
+                    <SelectItem value="dotted">Dotted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="effects" className="space-y-4">
           <div>
-            <Label htmlFor="opacity">Opacity</Label>
-            <div className="flex items-center space-x-2">
-              <Slider
-                value={[parseFloat(styling.opacity || '1') * 100]}
-                onValueChange={(value) => handleChange('opacity', (value[0] / 100).toString())}
-                max={100}
-                min={0}
-                step={1}
-                className="flex-1"
-              />
-              <span className="text-sm text-gray-500 w-12">
-                {Math.round(parseFloat(styling.opacity || '1') * 100)}%
-              </span>
-            </div>
+            <Label htmlFor="shadow">Shadow</Label>
+            <Select value={styling.shadow || 'none'} onValueChange={(value) => handleChange('shadow', value as ComponentStyling['shadow'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select shadow" />
+              </SelectTrigger>
+              <SelectContent>
+                {SHADOW_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label htmlFor="boxShadow">Box Shadow</Label>
-            <Input
-              id="boxShadow"
-              value={styling.boxShadow || ''}
-              onChange={(e) => handleChange('boxShadow', e.target.value)}
-              placeholder="0 4px 6px rgba(0, 0, 0, 0.1)"
+            <Label htmlFor="customCss">Custom CSS</Label>
+            <Textarea
+              id="customCss"
+              value={styling.customCss || ''}
+              onChange={(e) => handleChange('customCss', e.target.value)}
+              placeholder="Enter custom CSS rules..."
+              rows={4}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="transform">Transform</Label>
-            <Input
-              id="transform"
-              value={styling.transform || ''}
-              onChange={(e) => handleChange('transform', e.target.value)}
-              placeholder="rotate(45deg), scale(1.1)"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="overflow-hidden"
-              checked={styling.overflow === 'hidden'}
-              onCheckedChange={(checked) => handleChange('overflow', checked ? 'hidden' : 'visible')}
-            />
-            <Label htmlFor="overflow-hidden">Hide Overflow</Label>
           </div>
         </TabsContent>
       </Tabs>
