@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ClipboardListIcon,
   SearchIcon,
@@ -21,6 +21,7 @@ import {
   DownloadIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SuperAdminClient, RequestHistoryList } from '@/lib/graphql/superAdmin';
 
 interface RequestHistory {
   id: string;
@@ -31,7 +32,7 @@ interface RequestHistory {
   tenantName: string;
   requestedBy: string;
   requestedByEmail: string;
-  status: 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   createdAt: string;
   updatedAt: string;
@@ -48,6 +49,7 @@ interface RequestHistoryData {
   totalCount: number;
   stats: {
     totalRequests: number;
+    pending?: number;
     approved: number;
     rejected: number;
     completed: number;
@@ -62,6 +64,7 @@ export default function SuperAdminRequestHistoryPage() {
     totalCount: 0,
     stats: {
       totalRequests: 0,
+      pending: 0,
       approved: 0,
       rejected: 0,
       completed: 0,
@@ -83,143 +86,80 @@ export default function SuperAdminRequestHistoryPage() {
     try {
       setLoading(true);
       
-      // Mock data for demonstration - replace with actual GraphQL call
-      const mockData: RequestHistoryData = {
-        requests: [
-          {
-            id: '1',
-            type: 'MODULE',
-            title: 'E-commerce Engine Activation',
-            description: 'Request to activate e-commerce module for online store functionality',
-            tenantId: 'tenant-1',
-            tenantName: 'TechCorp Solutions',
-            requestedBy: 'John Smith',
-            requestedByEmail: 'john@techcorp.com',
-            status: 'COMPLETED',
-            priority: 'HIGH',
-            createdAt: '2024-01-10T10:00:00Z',
-            updatedAt: '2024-01-15T16:30:00Z',
-            completedAt: '2024-01-15T16:30:00Z',
-            estimatedHours: 8,
-            actualHours: 6,
-            assignedTo: 'Sarah Johnson',
-            notes: 'Successfully activated with custom payment gateway integration',
-            attachments: ['requirements.pdf', 'config.json']
-          },
-          {
-            id: '2',
-            type: 'CUSTOMIZATION',
-            title: 'Custom Dashboard Layout',
-            description: 'Request for custom dashboard layout with specific KPI widgets',
-            tenantId: 'tenant-2',
-            tenantName: 'Marketing Pro',
-            requestedBy: 'Emily Davis',
-            requestedByEmail: 'emily@marketingpro.com',
-            status: 'APPROVED',
-            priority: 'MEDIUM',
-            createdAt: '2024-01-08T14:20:00Z',
-            updatedAt: '2024-01-12T09:15:00Z',
-            estimatedHours: 12,
-            assignedTo: 'Mike Wilson',
-            notes: 'Approved with minor modifications to original design',
-            attachments: ['mockup.png', 'specifications.docx']
-          },
-          {
-            id: '3',
-            type: 'FEATURE',
-            title: 'Advanced Reporting Module',
-            description: 'Request for advanced analytics and reporting capabilities',
-            tenantId: 'tenant-3',
-            tenantName: 'DataInsights Inc',
-            requestedBy: 'Robert Chen',
-            requestedByEmail: 'robert@datainsights.com',
-            status: 'REJECTED',
-            priority: 'LOW',
-            createdAt: '2024-01-05T11:45:00Z',
-            updatedAt: '2024-01-07T13:20:00Z',
-            notes: 'Rejected due to technical limitations with current infrastructure',
-            attachments: ['requirements.pdf']
-          },
-          {
-            id: '4',
-            type: 'ACTIVATION',
-            title: 'Booking Engine Setup',
-            description: 'Request to activate and configure booking engine for appointment scheduling',
-            tenantId: 'tenant-4',
-            tenantName: 'HealthCare Plus',
-            requestedBy: 'Dr. Lisa Anderson',
-            requestedByEmail: 'lisa@healthcareplus.com',
-            status: 'COMPLETED',
-            priority: 'URGENT',
-            createdAt: '2024-01-03T08:30:00Z',
-            updatedAt: '2024-01-04T17:45:00Z',
-            completedAt: '2024-01-04T17:45:00Z',
-            estimatedHours: 4,
-            actualHours: 5,
-            assignedTo: 'Alex Thompson',
-            notes: 'Completed with additional calendar integration',
-            attachments: ['setup-guide.pdf']
-          },
-          {
-            id: '5',
-            type: 'SUPPORT',
-            title: 'Performance Optimization',
-            description: 'Request for performance optimization and database tuning',
-            tenantId: 'tenant-5',
-            tenantName: 'FastTrack Logistics',
-            requestedBy: 'Mark Rodriguez',
-            requestedByEmail: 'mark@fasttrack.com',
-            status: 'CANCELLED',
-            priority: 'MEDIUM',
-            createdAt: '2024-01-01T12:00:00Z',
-            updatedAt: '2024-01-02T10:30:00Z',
-            notes: 'Cancelled by client due to budget constraints',
-            attachments: []
-          }
-        ],
-        totalCount: 5,
-        stats: {
-          totalRequests: 5,
-          approved: 1,
-          rejected: 1,
-          completed: 2,
-          cancelled: 1,
-          avgCompletionTime: 5.5
-        }
+      // Build filter object
+      const filter: {
+        search?: string;
+        type?: string;
+        status?: string;
+        priority?: string;
+        dateRange?: string;
+      } = {};
+      
+      if (searchTerm) filter.search = searchTerm;
+      if (typeFilter && typeFilter !== 'ALL') filter.type = typeFilter;
+      if (statusFilter && statusFilter !== 'ALL') filter.status = statusFilter;
+      if (priorityFilter && priorityFilter !== 'ALL') filter.priority = priorityFilter;
+      if (dateRange && dateRange !== 'ALL') filter.dateRange = dateRange;
+      
+      // Call the GraphQL API
+      const response: RequestHistoryList = await SuperAdminClient.getRequestHistory(
+        filter,
+        { page: 1, pageSize: 50 } // You can add pagination controls later
+      );
+      
+      // Transform the data to match the component's expected format
+      const transformedData: RequestHistoryData = {
+        requests: response.requests.map(request => ({
+          id: request.id,
+          type: request.type,
+          title: request.title,
+          description: request.description,
+          tenantId: request.tenantId,
+          tenantName: request.tenantName,
+          requestedBy: request.requestedBy,
+          requestedByEmail: request.requestedByEmail,
+          status: request.status,
+          priority: request.priority,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt,
+          completedAt: request.completedAt,
+          estimatedHours: request.estimatedHours,
+          actualHours: request.actualHours,
+          assignedTo: request.assignedTo,
+          notes: request.notes,
+          attachments: request.attachments
+        })),
+        totalCount: response.totalCount,
+                 stats: {
+           totalRequests: response.stats.totalRequests,
+           pending: 'pending' in response.stats ? (response.stats as { pending: number }).pending : 0,
+           approved: response.stats.approved,
+           rejected: response.stats.rejected,
+           completed: response.stats.completed,
+           cancelled: response.stats.cancelled,
+           avgCompletionTime: response.stats.avgCompletionTime
+         }
       };
 
-      // Apply filters
-      let filteredRequests = mockData.requests;
-      
-      if (searchTerm) {
-        filteredRequests = filteredRequests.filter(request =>
-          request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          request.tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          request.requestedBy.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-      
-      if (typeFilter && typeFilter !== 'ALL') {
-        filteredRequests = filteredRequests.filter(request => request.type === typeFilter);
-      }
-      
-      if (statusFilter && statusFilter !== 'ALL') {
-        filteredRequests = filteredRequests.filter(request => request.status === statusFilter);
-      }
-      
-      if (priorityFilter && priorityFilter !== 'ALL') {
-        filteredRequests = filteredRequests.filter(request => request.priority === priorityFilter);
-      }
-
-      setData({
-        ...mockData,
-        requests: filteredRequests,
-        totalCount: filteredRequests.length
-      });
+      setData(transformedData);
     } catch (error) {
       console.error('Error loading request history:', error);
       toast.error('Failed to load request history');
+      
+             // Fallback to empty data on error
+       setData({
+         requests: [],
+         totalCount: 0,
+         stats: {
+           totalRequests: 0,
+           pending: 0,
+           approved: 0,
+           rejected: 0,
+           completed: 0,
+           cancelled: 0,
+           avgCompletionTime: 0
+         }
+       });
     } finally {
       setLoading(false);
     }
@@ -233,11 +173,14 @@ export default function SuperAdminRequestHistoryPage() {
   };
 
   const handleSearch = () => {
-    loadRequestHistoryData();
+    // Data will reload automatically due to useEffect dependency on searchTerm
+    // This function is kept for the search button click handler
   };
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><ClockIcon className="h-3 w-3 mr-1" />Pending</Badge>;
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircleIcon className="h-3 w-3 mr-1" />Completed</Badge>;
       case 'approved':
@@ -306,7 +249,7 @@ export default function SuperAdminRequestHistoryPage() {
 
   useEffect(() => {
     loadRequestHistoryData();
-  }, []);
+  }, [searchTerm, typeFilter, statusFilter, priorityFilter, dateRange]);
 
   if (loading) {
     return (
@@ -349,11 +292,17 @@ export default function SuperAdminRequestHistoryPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-indigo-600">{data.stats.totalRequests}</div>
             <div className="text-sm text-gray-600">Total Requests</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{data.stats.pending || 0}</div>
+            <div className="text-sm text-gray-600">Pending</div>
           </CardContent>
         </Card>
         <Card>
@@ -437,8 +386,9 @@ export default function SuperAdminRequestHistoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>

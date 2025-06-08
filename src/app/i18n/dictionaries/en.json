@@ -311,6 +311,7 @@
     "adminTools": "Administrative Tools",
     "adminMessage": "You have full administrative access to manage the platform and its users.",
     "newUser": "New User",
+    "newTenant": "New Tenant",
     "message": "Message",
     "externalLinksTitle": "External Links",
     "noExternalLinks": "No external links available for your role",
@@ -418,7 +419,134 @@
     "sandboxTenants": "Sandbox Tenants",
     "betaModules": "Beta Modules",
     "featureTesting": "Feature Testing",
-    "stagingControl": "Staging Control"
+    "stagingControl": "Staging Control",
+    "superAdminAccess": "Super Admin Access",
+    "superAdminTenantMessage": "You are accessing this tenant with Super Administrator privileges. You have full access to all functionalities.",
+    "backToSuperAdmin": "Back to Super Admin Panel",
+    "superAdministration": "Super Administration",
+    "engines": "Engines",
+    "enginesDescription": "Business Engines",
+    "enginesSubtext": "Powerful modules to drive your business operations",
+    "legacyTools": "Legacy Tools",
+    "legacyToolsWarning": "These tools are deprecated and will be removed in future versions",
+    "legalEngine": "Legal Engine",
+    "incorporations": "Incorporations",
+    "legalCalendar": "Legal Calendar",
+    "legalClients": "Legal Clients",
+    "legalDocuments": "Legal Documents",
+    "legalBilling": "Legal Billing",
+    "legalReports": "Legal Reports",
+    "legalBookingConfig": "Booking Configuration",
+    "legalSettings": "Legal Settings"
+  },
+  "auth": {
+    "login": {
+      "welcomeBack": "Welcome Back",
+      "signInMessage": "Sign in to access your account",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "signIn": "Sign In",
+      "signingIn": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Start free trial",
+      "startFreeTrial": "Start Free Trial",
+      "joinThousands": "Join thousands of companies already using us",
+      "noCredit": "No credit card required",
+      "setupInMinutes": "Setup in less than 5 minutes"
+    }
+  },
+  "onboarding": {
+    "title": "Start Your Free Trial",
+    "stepProgress": "Step {current} of {total}",
+    "stepTitles": {
+      "functionalities": "Feature Selection",
+      "organization": "Organization Information",
+      "userInfo": "User Information"
+    },
+    "stepLabels": {
+      "functionalities": "Features",
+      "organization": "Organization",
+      "userInfo": "User"
+    },
+    "steps": {
+      "functionalities": {
+        "title": "Select Your Business Engines",
+        "description": "CMS Engine is included by default. Choose additional engines for your platform."
+      },
+      "organization": {
+        "title": "Organization Information",
+        "description": "Set up your workspace and custom domain."
+      },
+      "userInfo": {
+        "title": "Personal Information & Password",
+        "description": "Create your administrator account for the platform."
+      }
+    },
+    "categories": {
+      "engine": "Engine"
+    },
+    "fields": {
+      "organizationName": "Organization Name",
+      "organizationSlug": "Organization Slug",
+      "customDomain": "Custom Domain (Optional)",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "organizationName": "My Company Inc.",
+      "organizationSlug": "my-company",
+      "customDomain": "www.mycompany.com",
+      "firstName": "Your first name",
+      "lastName": "Your last name",
+      "email": "you@email.com",
+      "phone": "600 00 00 00",
+      "password": "Minimum 8 characters",
+      "confirmPassword": "Repeat your password"
+    },
+    "slugPreview": "This will be your unique identifier",
+    "customDomainNote": "You can configure your custom domain later",
+    "included": "(Included)",
+    "required": "(Required)",
+    "requires": "Requires",
+    "cmsEngineRequired": "CMS Engine is a required base feature and cannot be deselected",
+    "requiredFeatureCannotBeRemoved": "This feature is required and cannot be deselected",
+    "cannotRemoveFeature": "You cannot disable {feature} because it is required by: {dependents}",
+    "dependencyAdded": "Automatically added {dependency} as dependency",
+    "summary": {
+      "title": "Configuration Summary",
+      "user": "User",
+      "email": "Email",
+      "organization": "Organization",
+      "slug": "Slug",
+      "features": "Features",
+      "selected": "selected",
+      "selectedFeatures": "Selected Features"
+    },
+    "includedByDefault": "Included by default",
+    "validation": {
+      "noFeaturesSelected": "Internal error: No features selected",
+      "organizationRequired": "Please complete the organization name and slug",
+      "invalidSlug": "Slug must contain only lowercase letters, numbers and hyphens",
+      "userFieldsRequired": "Please complete all required fields",
+      "invalidEmail": "Please enter a valid email",
+      "passwordRequired": "Please complete all password fields",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "registrationSuccess": "Registration successful! Welcome to your new platform.",
+    "registrationError": "Registration error",
+    "creatingAccount": "Creating account...",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInHere": "Sign in here"
   },
   "staffCreator": {
     "selectUser": "Select User to Make Staff",
@@ -485,13 +613,16 @@
   "dishub": {
     "nav": {
       "brand": "DISHUB",
-      "getStarted": "Free Trial"
+      "getStarted": "Login",
+      "dashboard": "Dashboard",
+      "logout": "Logout"
     },
     "hero": {
       "disruption": "Disruption",
       "isInnovation": "is Innovation",
       "subtitle": "Where privacy meets power. Data sovereignty native by design, AI & blockchain ready for tomorrow's business.",
       "startDisrupting": "Start Disrupting",
+      "goToDashboard": "Go to Dashboard",
       "learnMore": "Learn More"
     },
     "features": {
@@ -588,7 +719,8 @@
       "readyTo": "Ready to",
       "disrupt": "Disrupt?",
       "subtitle": "Join the revolution. Build on sovereignty. Scale with confidence.",
-      "launchFuture": "Launch Your Future"
+      "launchFuture": "Launch Your Future",
+      "accessDashboard": "Access Dashboard"
     },
     "footer": {
       "copyright": "© 2025 DISHUB. Disrupting the future, today."

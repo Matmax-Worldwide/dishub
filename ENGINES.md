@@ -7,7 +7,7 @@ Los **Engines** son módulos especializados que proporcionan funcionalidades com
 ## 📁 Estructura de Carpetas
 
 ```
-src/app/[locale]/manage/[tenantSlug]/(engines)/
+src/app/[locale]/manage/[tenantSlug]/
 ├── cms/           # Content Management System Engine
 ├── bookings/      # Booking Engine
 ├── commerce/      # E-commerce Engine
@@ -32,7 +32,7 @@ src/app/[locale]/manage/[tenantSlug]/(engines)/
 
 **Rutas principales:**
 ```
-/[locale]/manage/[tenantSlug]/(engines)/cms
+/[locale]/manage/[tenantSlug]/cms
 ├── /pages
 ├── /media
 ├── /blog
@@ -58,7 +58,7 @@ src/app/[locale]/manage/[tenantSlug]/(engines)/
 
 **Rutas principales:**
 ```
-/[locale]/manage/[tenantSlug]/(engines)/bookings
+/[locale]/manage/[tenantSlug]/bookings
 ├── /calendar
 ├── /list
 ├── /services
@@ -86,7 +86,7 @@ src/app/[locale]/manage/[tenantSlug]/(engines)/
 
 **Rutas principales:**
 ```
-/[locale]/manage/[tenantSlug]/(engines)/commerce
+/[locale]/manage/[tenantSlug]/commerce
 ├── /products
 ├── /categories
 ├── /inventory
@@ -114,7 +114,7 @@ src/app/[locale]/manage/[tenantSlug]/(engines)/
 
 **Rutas principales:**
 ```
-/[locale]/manage/[tenantSlug]/(engines)/hrms
+/[locale]/manage/[tenantSlug]/hrms
 ├── /employees
 ├── /departments
 ├── /payroll
@@ -204,14 +204,14 @@ if (!hasFeature) {
 
 1. **Crear la estructura de carpetas:**
    ```bash
-   mkdir -p src/app/[locale]/manage/[tenantSlug]/(engines)/nuevo-engine
+   mkdir -p src/app/[locale]/manage/[tenantSlug]/nuevo-engine
    ```
 
 2. **Añadir al sidebarConfig.ts:**
    ```typescript
    {
      name: 'sidebar.nuevoEngine',
-     href: `${basePath.replace('/dashboard', '')}/(engines)/nuevo-engine`,
+     href: `${basePath.replace('/dashboard', '')}/nuevo-engine`,
      icon: IconComponent,
      permissions: ['nuevo:access'],
      features: ['NUEVO_ENGINE']

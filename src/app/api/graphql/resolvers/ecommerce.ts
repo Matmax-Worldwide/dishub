@@ -1758,6 +1758,165 @@ export const ecommerceResolvers = {
     },
 
     // Currency mutations
+    // Product mutations
+    createProduct: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const product = await prisma.product.create({
+          data: {
+            name: input.name as string,
+            description: input.description as string || null,
+            sku: input.sku as string || null,
+            shopId: input.shopId as string,
+            categoryId: input.categoryId as string || null,
+            tenantId: context.tenantId || ''
+          },
+          include: {
+            shop: true,
+            category: true,
+            prices: {
+              include: {
+                currency: true
+              }
+            }
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Product created successfully',
+          product
+        };
+      } catch (error) {
+        console.error('Error creating product:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create product',
+          product: null
+        };
+      }
+    },
+
+    updateProduct: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const updateData: Record<string, unknown> = {};
+        if (input.name) updateData.name = input.name as string;
+        if (input.description !== undefined) updateData.description = input.description as string || null;
+        if (input.sku !== undefined) updateData.sku = input.sku as string || null;
+        if (input.categoryId !== undefined) updateData.categoryId = input.categoryId as string || null;
+
+        const product = await prisma.product.update({
+          where: { id },
+          data: updateData,
+          include: {
+            shop: true,
+            category: true,
+            prices: {
+              include: {
+                currency: true
+              }
+            }
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Product updated successfully',
+          product
+        };
+      } catch (error) {
+        console.error('Error updating product:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update product',
+          product: null
+        };
+      }
+    },
+
+    deleteProduct: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if product has orders or reviews
+        const productWithRelations = await prisma.product.findUnique({
+          where: { id },
+          include: {
+            orderItems: true,
+            reviews: true
+          }
+        });
+
+        if (!productWithRelations) {
+          throw new Error('Product not found');
+        }
+
+        if (productWithRelations.orderItems.length > 0) {
+          throw new Error('Cannot delete product with existing orders');
+        }
+
+        if (productWithRelations.reviews.length > 0) {
+          throw new Error('Cannot delete product with existing reviews');
+        }
+
+        await prisma.product.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Product deleted successfully',
+          product: null
+        };
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete product',
+          product: null
+        };
+      }
+    },
+
     createCurrency: async (
       _parent: unknown,
       { input }: { input: Record<string, unknown> },
@@ -2568,6 +2727,188 @@ export const ecommerceResolvers = {
           success: false,
           message: error instanceof Error ? error.message : 'Failed to delete order',
           order: null
+        };
+      }
+    },
+
+    // Customer mutations
+    createCustomer: async (
+      _parent: unknown,
+      { input }: { input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if user with email already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: input.email as string }
+        });
+
+        if (existingUser) {
+          throw new Error('User with this email already exists');
+        }
+
+        // Hash password if provided
+        let hashedPassword = null;
+        if (input.password) {
+          const bcrypt = await import('bcryptjs');
+          hashedPassword = await bcrypt.hash(input.password as string, 10);
+        }
+
+        // Get default USER role
+        const userRole = await prisma.roleModel.findFirst({
+          where: { name: 'USER' }
+        });
+
+        const customer = await prisma.user.create({
+          data: {
+            email: input.email as string,
+            firstName: input.firstName as string,
+            lastName: input.lastName as string,
+            phoneNumber: input.phoneNumber as string || null,
+            password: hashedPassword || '',
+            isActive: input.isActive as boolean ?? true,
+            roleId: userRole?.id || null
+          }
+        });
+
+        return {
+          success: true,
+          message: 'Customer created successfully',
+          customer: {
+            ...customer,
+            totalOrders: 0,
+            totalSpent: 0,
+            averageOrderValue: 0,
+            lastOrderDate: null,
+            orders: [],
+            reviews: [],
+            addresses: []
+          }
+        };
+      } catch (error) {
+        console.error('Error creating customer:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create customer',
+          customer: null
+        };
+      }
+    },
+
+    updateCustomer: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: Record<string, unknown> },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        const updateData: Record<string, unknown> = {};
+        if (input.firstName) updateData.firstName = input.firstName as string;
+        if (input.lastName) updateData.lastName = input.lastName as string;
+        if (input.phoneNumber) updateData.phoneNumber = input.phoneNumber as string;
+        if (input.profileImageUrl) updateData.profileImageUrl = input.profileImageUrl as string;
+        if (typeof input.isActive === 'boolean') updateData.isActive = input.isActive as boolean;
+
+        const customer = await prisma.user.update({
+          where: { id },
+          data: updateData
+        });
+
+        return {
+          success: true,
+          message: 'Customer updated successfully',
+          customer: {
+            ...customer,
+            totalOrders: 0,
+            totalSpent: 0,
+            averageOrderValue: 0,
+            lastOrderDate: null,
+            orders: [],
+            reviews: [],
+            addresses: []
+          }
+        };
+      } catch (error) {
+        console.error('Error updating customer:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to update customer',
+          customer: null
+        };
+      }
+    },
+
+    deleteCustomer: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: Context
+    ) => {
+      try {
+        const token = context.req.headers.get('authorization')?.split(' ')[1];
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        const decoded = await verifyToken(token) as { userId: string };
+        if (!decoded?.userId) {
+          throw new Error('Invalid token');
+        }
+
+        // Check if customer has orders
+        const customerWithOrders = await prisma.user.findUnique({
+          where: { id },
+          include: {
+            orders: true,
+            reviews: true
+          }
+        });
+
+        if (!customerWithOrders) {
+          throw new Error('Customer not found');
+        }
+
+        if (customerWithOrders.orders.length > 0) {
+          throw new Error('Cannot delete customer with existing orders');
+        }
+
+        if (customerWithOrders.reviews.length > 0) {
+          throw new Error('Cannot delete customer with existing reviews');
+        }
+
+        await prisma.user.delete({
+          where: { id }
+        });
+
+        return {
+          success: true,
+          message: 'Customer deleted successfully',
+          customer: null
+        };
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to delete customer',
+          customer: null
         };
       }
     }

@@ -269,7 +269,13 @@ export const CREATE_TENANT_MUTATION = `
           name
           description
         }
+        userTenants {
+          id
         tenantId
+          role
+          isActive
+          joinedAt
+        }
         createdAt
         updatedAt
       }
@@ -353,7 +359,13 @@ export const ASSIGN_TENANT_ADMIN_MUTATION = `
           name
           description
         }
+        userTenants {
+          id
         tenantId
+          role
+          isActive
+          joinedAt
+        }
         createdAt
         updatedAt
       }
@@ -431,7 +443,13 @@ export interface User {
     name: string;
     description?: string;
   };
+  userTenants: Array<{
+    id: string;
   tenantId: string;
+    role: string;
+    isActive: boolean;
+    joinedAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -751,21 +769,7 @@ export class SuperAdminClient {
   static async assignTenantAdmin(tenantId: string, userId: string): Promise<{
     success: boolean;
     message: string;
-    user?: {
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      phoneNumber?: string;
-      role: {
-        id: string;
-        name: string;
-        description?: string;
-      };
-      tenantId: string;
-      createdAt: string;
-      updatedAt: string;
-    };
+    user?: User;
   }> {
     const response = await gqlRequest<{
       assignTenantAdmin: {
@@ -782,7 +786,13 @@ export class SuperAdminClient {
             name: string;
             description?: string;
           };
-          tenantId: string;
+          userTenants: Array<{
+            id: string;
+            tenantId: string;
+            role: string;
+            isActive: boolean;
+            joinedAt: string;
+          }>;
           createdAt: string;
           updatedAt: string;
         };

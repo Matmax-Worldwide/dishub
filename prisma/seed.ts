@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserTenantRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -327,7 +327,7 @@ async function seedTestUsers() {
             data: {
               userId: user.id,
               tenantId: testTenant.id,
-              role: userData.tenantRole as any,
+              role: userData.tenantRole as UserTenantRole,
               isActive: true
             }
           });

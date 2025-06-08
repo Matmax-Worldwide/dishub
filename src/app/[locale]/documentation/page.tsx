@@ -9,7 +9,7 @@ import {
   TagIcon,
   ExternalLinkIcon
 } from 'lucide-react';
-import { MarkdownRenderer } from '@/app/components/documentation/MarkdownRenderer';
+import { MarkdownRenderer } from '@/components/documentation/MarkdownRenderer';
 import { getClientDocuments, DocumentSection } from '@/lib/documentation';
 
 const DocumentationPage = () => {

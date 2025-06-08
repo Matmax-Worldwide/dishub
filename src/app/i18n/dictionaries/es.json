@@ -301,6 +301,7 @@
     "adminTools": "Herramientas de Administración",
     "adminMessage": "Tienes acceso administrativo completo para gestionar la plataforma y sus usuarios.",
     "newUser": "Nuevo Usuario",
+    "newTenant": "Nuevo Tenant",
     "message": "Mensaje",
     "externalLinksTitle": "Enlaces Externos",
     "noExternalLinks": "No hay enlaces externos disponibles para tu rol",
@@ -383,7 +384,134 @@
     "sandboxTenants": "Tenants Sandbox",
     "betaModules": "Módulos Beta",
     "featureTesting": "Pruebas de Funcionalidades",
-    "stagingControl": "Control de Staging"
+    "stagingControl": "Control de Staging",
+    "superAdminAccess": "Acceso de Super Administrador",
+    "superAdminTenantMessage": "Estás accediendo a este tenant con privilegios de Super Administrador. Tienes acceso completo a todas las funcionalidades.",
+    "backToSuperAdmin": "Volver al Panel de Super Admin",
+    "superAdministration": "Super Administración",
+    "engines": "Motores",
+    "enginesDescription": "Motores de Negocio",
+    "enginesSubtext": "Módulos potentes para impulsar las operaciones de tu negocio",
+    "legacyTools": "Herramientas Heredadas",
+    "legacyToolsWarning": "Estas herramientas están obsoletas y serán eliminadas en futuras versiones",
+    "legalEngine": "Motor Legal",
+    "incorporations": "Incorporaciones",
+    "legalCalendar": "Calendario Legal",
+    "legalClients": "Clientes Legales",
+    "legalDocuments": "Documentos Legales",
+    "legalBilling": "Facturación Legal",
+    "legalReports": "Reportes Legales",
+    "legalBookingConfig": "Configuración de Citas",
+    "legalSettings": "Configuración Legal"
+  },
+  "auth": {
+    "login": {
+      "welcomeBack": "Bienvenido de Vuelta",
+      "signInMessage": "Inicia sesión para acceder a tu cuenta",
+      "emailLabel": "Dirección de correo electrónico",
+      "emailPlaceholder": "Ingresa tu correo electrónico",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "showPassword": "Mostrar contraseña",
+      "hidePassword": "Ocultar contraseña",
+      "signIn": "Iniciar Sesión",
+      "signingIn": "Iniciando sesión...",
+      "noAccount": "¿No tienes una cuenta?",
+      "createAccount": "Comienza tu prueba gratuita",
+      "startFreeTrial": "Comenzar Prueba Gratuita",
+      "joinThousands": "Únete a miles de empresas que ya confían en nosotros",
+      "noCredit": "Sin tarjeta de crédito requerida",
+      "setupInMinutes": "Configuración en menos de 5 minutos"
+    }
+  },
+  "onboarding": {
+    "title": "Comienza tu Prueba Gratuita",
+    "stepProgress": "Paso {current} de {total}",
+    "stepTitles": {
+      "functionalities": "Selección de Funcionalidades",
+      "organization": "Información de Organización",
+      "userInfo": "Información de Usuario"
+    },
+    "stepLabels": {
+      "functionalities": "Funcionalidades",
+      "organization": "Organización",
+      "userInfo": "Usuario"
+    },
+    "steps": {
+      "functionalities": {
+        "title": "Selecciona tus Motores de Negocio",
+        "description": "CMS Engine está incluido por defecto. Elige motores adicionales para tu plataforma."
+      },
+      "organization": {
+        "title": "Información de tu Organización",
+        "description": "Configura tu espacio de trabajo y dominio personalizado."
+      },
+      "userInfo": {
+        "title": "Información Personal y Contraseña",
+        "description": "Crea tu cuenta de administrador para la plataforma."
+      }
+    },
+    "categories": {
+      "engine": "Motor"
+    },
+    "fields": {
+      "organizationName": "Nombre de la Organización",
+      "organizationSlug": "Slug de la Organización",
+      "customDomain": "Dominio Personalizado (Opcional)",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Email",
+      "phone": "Teléfono",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña"
+    },
+    "placeholders": {
+      "organizationName": "Mi Empresa S.A.",
+      "organizationSlug": "mi-empresa",
+      "customDomain": "www.miempresa.com",
+      "firstName": "Tu nombre",
+      "lastName": "Tu apellido",
+      "email": "tu@email.com",
+      "phone": "600 00 00 00",
+      "password": "Mínimo 8 caracteres",
+      "confirmPassword": "Repite tu contraseña"
+    },
+    "slugPreview": "Este será tu identificador único",
+    "customDomainNote": "Puedes configurar tu dominio personalizado más tarde",
+    "included": "(Incluido)",
+    "required": "(Requerido)",
+    "requires": "Requiere",
+    "cmsEngineRequired": "CMS Engine es una funcionalidad base requerida y no se puede deseleccionar",
+    "requiredFeatureCannotBeRemoved": "Esta funcionalidad es requerida y no se puede deseleccionar",
+    "cannotRemoveFeature": "No puedes desactivar {feature} porque es requerido por: {dependents}",
+    "dependencyAdded": "Se agregó automáticamente {dependency} como dependencia",
+    "summary": {
+      "title": "Resumen de tu configuración",
+      "user": "Usuario",
+      "email": "Email",
+      "organization": "Organización",
+      "slug": "Slug",
+      "features": "Funcionalidades",
+      "selected": "seleccionadas",
+      "selectedFeatures": "Funcionalidades seleccionadas"
+    },
+    "includedByDefault": "Incluido por defecto",
+    "validation": {
+      "noFeaturesSelected": "Error interno: No hay funcionalidades seleccionadas",
+      "organizationRequired": "Por favor completa el nombre y slug de tu organización",
+      "invalidSlug": "El slug debe contener solo letras minúsculas, números y guiones",
+      "userFieldsRequired": "Por favor completa todos los campos obligatorios",
+      "invalidEmail": "Por favor ingresa un email válido",
+      "passwordRequired": "Por favor completa todos los campos de contraseña",
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "passwordMismatch": "Las contraseñas no coinciden"
+    },
+    "registrationSuccess": "¡Registro exitoso! Bienvenido a tu nueva plataforma.",
+    "registrationError": "Error en el registro",
+    "creatingAccount": "Creando cuenta...",
+    "createAccount": "Crear Cuenta",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "signInHere": "Inicia sesión aquí"
   },
   "roles": {
     "ADMIN": "Administrador",
@@ -450,13 +578,16 @@
   "dishub": {
     "nav": {
       "brand": "DISHUB",
-      "getStarted": "Comenzar"
+      "getStarted": "Iniciar Sesión",
+      "dashboard": "Panel de Control",
+      "logout": "Cerrar Sesión"
     },
     "hero": {
       "disruption": "Disrupción",
       "isInnovation": "es Innovación",
       "subtitle": "Donde la privacidad se encuentra con el poder. Soberanía de datos nativa por diseño, listo para IA y blockchain del mañana.",
       "startDisrupting": "Comenzar a ser disruptivo",
+      "goToDashboard": "Ir al Panel de Control",
       "learnMore": "Saber Más"
     },
     "features": {
@@ -553,7 +684,8 @@
       "readyTo": "¿Listo para",
       "disrupt": "Ser disruptivo?",
       "subtitle": "Únete a la revolución. Construye sobre soberanía. Escala con confianza.",
-      "launchFuture": "Lanza Tu Futuro"
+              "launchFuture": "Lanza Tu Futuro",
+        "accessDashboard": "Acceder al Panel"
     },
     "footer": {
       "copyright": "© 2025 DISHUB. Ser disruptivo, hoy."

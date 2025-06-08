@@ -6,27 +6,27 @@ const FEATURE_ROUTES: Record<string, string[]> = {
   // Blog Module routes
   '/admin/cms/blog': ['BLOG_MODULE'],
   '/admin/business/blog': ['BLOG_MODULE'],
-  '/manage/[tenantSlug]/cms/blog': ['BLOG_MODULE'],
+  '/[tenantSlug]/cms/blog': ['BLOG_MODULE'],
   
   // Forms Module routes
   '/admin/cms/forms': ['FORMS_MODULE'],
   '/admin/business/forms': ['FORMS_MODULE'],
-  '/manage/[tenantSlug]/cms/forms': ['FORMS_MODULE'],
+  '/[tenantSlug]/cms/forms': ['FORMS_MODULE'],
   
   // E-commerce Engine routes
   '/admin/business/ecommerce': ['ECOMMERCE_ENGINE'],
   '/admin/commerce': ['ECOMMERCE_ENGINE'],
-  '/manage/[tenantSlug]/commerce': ['ECOMMERCE_ENGINE'],
+  '/[tenantSlug]/commerce': ['ECOMMERCE_ENGINE'],
   
   // Booking Engine routes
   '/admin/business/booking': ['BOOKING_ENGINE'],
   '/admin/bookings': ['BOOKING_ENGINE'],
-  '/manage/[tenantSlug]/bookings': ['BOOKING_ENGINE'],
+  '/[tenantSlug]/bookings': ['BOOKING_ENGINE'],
   
   // HRMS Module routes
   '/admin/business/hrms': ['HRMS_MODULE'],
   '/admin/hrms': ['HRMS_MODULE'],
-  '/manage/[tenantSlug]/hrms': ['HRMS_MODULE'],
+  '/[tenantSlug]/hrms': ['HRMS_MODULE'],
   
   // Performance and analytics
   '/admin/reports/advanced': ['PERFORMANCE_MODULE'],
@@ -93,18 +93,18 @@ const ALWAYS_ALLOWED_ROUTES = [
   '/admin/cms/settings',
   
   // Tenant management routes
-  '/manage',
-  '/manage/[tenantSlug]',
-  '/manage/[tenantSlug]/dashboard',
-  '/manage/[tenantSlug]/cms',
-  '/manage/[tenantSlug]/cms/pages',
-  '/manage/[tenantSlug]/cms/media',
-  '/manage/[tenantSlug]/cms/menus',
-  '/manage/[tenantSlug]/cms/settings',
+  '/[tenantSlug]',
+  '/[tenantSlug]/dashboard',
+  '/[tenantSlug]/cms',
+  '/[tenantSlug]/cms/pages',
+  '/[tenantSlug]/cms/media',
+  '/[tenantSlug]/cms/menus',
+  '/[tenantSlug]/cms/settings',
+
   
   // SuperAdmin routes (no feature restrictions)
   '/super-admin',
-  '/super-admin/dashboard',
+  '/super-admin',
   '/super-admin/tenants',
   '/super-admin/tenants/list',
   '/super-admin/tenants/create',
@@ -191,7 +191,7 @@ function isAlwaysAllowedRoute(routeWithoutLocale: string, fullPathname: string):
   }
 
   // Special handling for dynamic routes
-  if (routeWithoutLocale.includes('/manage/') && routeWithoutLocale.split('/').length >= 3) {
+  if (routeWithoutLocale.includes('/[tenantSlug]/') && routeWithoutLocale.split('/').length >= 3) {
     const routeParts = routeWithoutLocale.split('/');
     const baseRoute = '/' + routeParts.slice(0, 3).join('/').replace(/^\//, '');
     const dynamicRoute = baseRoute.replace(routeParts[2], '[tenantSlug]');
@@ -217,8 +217,8 @@ function getRequiredFeaturesForRoute(routeWithoutLocale: string): string[] {
     }
   }
 
-  // Handle dynamic routes (like /manage/[tenantSlug]/...)
-  if (routeWithoutLocale.includes('/manage/')) {
+  // Handle dynamic routes (like /[tenantSlug]/...)
+  if (routeWithoutLocale.includes('/[tenantSlug]/')) {
     const routeParts = routeWithoutLocale.split('/');
     if (routeParts.length >= 4) {
       const dynamicRoute = routeParts.slice(0, 2).join('/') + '/[tenantSlug]' + '/' + routeParts.slice(3).join('/');

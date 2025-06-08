@@ -27,8 +27,11 @@ const isAdmin = rule()(async (parent, args, context) => {
     'FinanceManager'       // Finance admin
   ];
   
-  if (!adminRoles.includes(context.user.role)) {
-    return new Error(`Access denied. Admin role required. Current role: ${context.user.role}`);
+  // Get role name from the role object
+  const userRoleName = typeof context.user.role === 'string' ? context.user.role : context.user.role.name;
+  
+  if (!adminRoles.includes(userRoleName)) {
+    return new Error(`Access denied. Admin role required. Current role: ${userRoleName}`);
   }
   
   return true;

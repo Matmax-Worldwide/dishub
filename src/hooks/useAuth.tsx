@@ -1,169 +1,152 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { setGlobalAuthorizationHeader, clearGlobalAuthorizationHeader } from '@/lib/auth-header';
+'use client';
 
-interface AuthUser {
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
-  tenantId?: string;
   role: {
     id: string;
     name: string;
-  }; // role name (USER, ADMIN, etc.)
-  roleId?: string; // Added roleId
+  };
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  tenantName?: string | null;
 }
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
   isLoading: boolean;
-  token: string | null;
-  login: (user: AuthUser, token: string) => void;
-  logout: () => void;
   isAuthenticated: boolean;
-  setAuthorizationHeader: (token: string) => void;
-  refreshUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; redirectUrl?: string }>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
 }
 
-// Extend Window interface to include our custom properties
-declare global {
-  interface Window {
-    __originalFetch?: typeof fetch;
-  }
-}
-
-// Create a context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// SSR safe storage check
-const isBrowser = typeof window !== 'undefined';
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-  useEffect(() => {
-    // Initialize auth state from localStorage
-    if (isBrowser) {
-      const storedUser = localStorage.getItem('auth_user');
-      const storedToken = localStorage.getItem('auth_token');
-      
-      if (storedUser && storedToken) {
-        try {
-          setUser(JSON.parse(storedUser));
-          setToken(storedToken);
-          // Set authorization header for stored token
-          setGlobalAuthorizationHeader(storedToken);
-        } catch (e) {
-          console.error('Failed to parse stored user:', e);
-          // Clear invalid data
-          localStorage.removeItem('auth_user');
-          localStorage.removeItem('auth_token');
-        }
-      }
-      
-      setIsLoading(false);
-    }
-  }, []);
-
-  const login = (userData: AuthUser, authToken: string) => {
-    setUser(userData);
-    setToken(authToken);
-    
-    if (isBrowser) {
-      localStorage.setItem('auth_user', JSON.stringify(userData));
-      localStorage.setItem('auth_token', authToken);
-    }
-    
-    // Set global authorization header
-    setGlobalAuthorizationHeader(authToken);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    
-    if (isBrowser) {
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
-      // Clear session cookie
-      document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    }
-    
-    // Clear authorization header
-    clearGlobalAuthorizationHeader();
-  };
-
-  const setAuthorizationHeader = (authToken: string) => {
-    setGlobalAuthorizationHeader(authToken);
-  };
-
-  const refreshUser = async () => {
-    if (!token) return;
-    
+  const checkAuth = async () => {
     try {
-      const response = await fetch('/api/graphql', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `
-            query Me {
-              me {
-                id
-                email
-                firstName
-                lastName
-                phoneNumber
-                tenantId
-                role {
-                  id
-                  name
-                }
-                createdAt
-                updatedAt
-              }
-            }
-          `
-        })
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
       });
-      
+
       if (response.ok) {
-        const result = await response.json();
-        if (result.data?.me) {
-          setUser(result.data.me);
-          if (isBrowser) {
-            localStorage.setItem('auth_user', JSON.stringify(result.data.me));
-          }
-        }
+        const userData = await response.json();
+        setUser(userData.user);
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      console.error('Auth check failed:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUser(data.user);
+        return { 
+          success: true, 
+          redirectUrl: data.redirectUrl || '/dashboard' 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: data.message || 'Login failed' 
+        };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        error: 'Network error occurred' 
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      // Clear all auth-related cookies
+      const cookiesToClear = [
+        'session-token',
+        'auth-token', 
+        'user-session',
+        'tenant-context'
+      ];
+
+      cookiesToClear.forEach(cookieName => {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}; secure; samesite=strict`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      });
+
+      // Call logout API
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      setUser(null);
+      
+      // Redirect to home page
+      router.push('/');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if API call fails, clear local state
+      setUser(null);
+      router.push('/');
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const value = {
     user,
     isLoading,
-    token,
+    isAuthenticated: !!user,
     login,
     logout,
-    isAuthenticated: !!user && !!token,
-    setAuthorizationHeader,
-    refreshUser,
+    checkAuth,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+} 

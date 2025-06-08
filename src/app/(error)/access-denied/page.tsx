@@ -44,12 +44,12 @@ export const dynamic = 'force-dynamic';
 
 export default function AccessDeniedPage() {
   const { locale } = useParams();
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [redirectPath, setRedirectPath] = useState('/dashboard');
 
   // Obtener datos reales del usuario desde GraphQL
   const { data: userData, loading: userLoading, error } = useQuery(GET_ME, {
-    skip: !isAuthenticated || !token,
+    skip: !isAuthenticated,
     errorPolicy: 'ignore' // Ignore errors if not authenticated
   });
 
@@ -72,11 +72,11 @@ export default function AccessDeniedPage() {
       console.log('Usuario actual:', user.email, 'Rol:', userRole, 'Tenant:', tenant?.slug);
       
       if (userRole === 'SuperAdmin') {
-        setRedirectPath(`/${locale}/super-admin/dashboard`);
+        setRedirectPath(`/${locale}/super-admin`);
       } else if (userRole === 'TenantAdmin' || userRole === 'TenantManager') {
         // Para TenantAdmin/TenantManager, necesitamos el tenant slug
         if (tenant?.slug) {
-          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
+          setRedirectPath(`/${locale}/${tenant.slug}/dashboard`);
         } else if (firstTenantId) {
           // Si tenemos tenantId pero no el slug aún, usar dashboard general
           setRedirectPath(`/${locale}/dashboard`);
@@ -87,9 +87,9 @@ export default function AccessDeniedPage() {
         // Para usuarios regulares, usar dashboard general por ahora
         if (tenant?.slug) {
           console.log(`Usuario pertenece a tenant ${tenant.slug}, usando dashboard del tenant`);
-          setRedirectPath(`/${locale}/manage/${tenant.slug}/dashboard`);
+          setRedirectPath(`/${locale}/${tenant.slug}/dashboard`);
         } else {
-          setRedirectPath(`/${locale}/dashboard`);
+          setRedirectPath(`/${locale}/super-admin`);
         }
       }
     } else if (!isAuthenticated) {

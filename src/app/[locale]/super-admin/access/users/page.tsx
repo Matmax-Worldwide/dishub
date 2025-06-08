@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { UsersIcon, ArrowLeftIcon, ShieldIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -47,7 +47,7 @@ export default function MCPUsersPage() {
           <p className="text-gray-500 mb-6">
             The MCP user management interface will be available in a future update.
           </p>
-          <Button onClick={() => router.push('/super-admin/dashboard')}>
+          <Button onClick={() => router.push('/super-admin')}>
             Back to Dashboard
           </Button>
         </CardContent>

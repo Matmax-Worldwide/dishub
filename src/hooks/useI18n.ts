@@ -6,7 +6,7 @@ export function useI18n() {
   const locale = params?.locale as Locale || 'en';
   const dictionary = getDictionary(locale);
 
-  const t = (key: string) => {
+  const t = (key: string, variables?: Record<string, string | number>) => {
     // Split the key by dots to navigate through the dictionary
     const keys = key.split('.');
     let result: unknown = dictionary;
@@ -20,7 +20,16 @@ export function useI18n() {
       }
     }
     
-    return result as string;
+    let translation = result as string;
+    
+    // Handle variable interpolation
+    if (variables && typeof translation === 'string') {
+      Object.entries(variables).forEach(([key, value]) => {
+        translation = translation.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+      });
+    }
+    
+    return translation;
   };
 
   return { t, locale, dictionary };

@@ -100,7 +100,7 @@ export const tenantResolvers = {
     tenants: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       try {
         // Only super admins can see all tenants
-        if (!context.user || context.user.role !== 'SuperAdmin') {
+        if (!context.user || context.user.role.name !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -123,7 +123,7 @@ export const tenantResolvers = {
         }
 
         // Super admins can access any tenant
-        if (context.user.role === 'SuperAdmin') {
+        if (context.user.role.name === 'SuperAdmin') {
           const tenant = await prisma.tenant.findUnique({
             where: { id }
           });
@@ -134,7 +134,7 @@ export const tenantResolvers = {
         const hasAccess = await userHasAccessToTenant(context.user.id, id);
 
         if (!hasAccess) {
-          console.log(`Access denied for user ${context.user.id} with role ${context.user.role} to tenant ${id}.`);
+          console.log(`Access denied for user ${context.user.id} with role ${context.user.role.name} to tenant ${id}.`);
           throw new Error('Unauthorized: Access denied');
         }
 
@@ -160,7 +160,7 @@ export const tenantResolvers = {
         }
 
         // Allow super admins or users with access to the tenant
-        const userRole = context.user.role;
+        const userRole = context.user.role.name;
         const allowedRoles = ['SuperAdmin', 'ADMIN', 'Admin'];
         
         if (!allowedRoles.includes(userRole)) {
@@ -209,7 +209,7 @@ export const tenantResolvers = {
           throw new Error('Unauthorized: Authentication required');
         }
 
-        if (context.user.role !== 'SuperAdmin' && context.user.id !== userId) {
+        if (context.user.role.name !== 'SuperAdmin' && context.user.id !== userId) {
           throw new Error('Unauthorized: Can only view your own tenants');
         }
 
@@ -238,7 +238,7 @@ export const tenantResolvers = {
         }
 
         // Check if user has access to this tenant or is super admin
-        if (context.user.role !== 'SuperAdmin') {
+        if (context.user.role.name !== 'SuperAdmin') {
           const hasAccess = await userHasAccessToTenant(context.user.id, tenantId);
           if (!hasAccess) {
             throw new Error('Unauthorized: Access denied');
@@ -274,7 +274,7 @@ export const tenantResolvers = {
         }
 
         // Users can only see their own relationship or super admins can see any
-        if (context.user.role !== 'SuperAdmin' && context.user.id !== userId) {
+        if (context.user.role.name !== 'SuperAdmin' && context.user.id !== userId) {
           throw new Error('Unauthorized: Access denied');
         }
 
@@ -434,7 +434,7 @@ export const tenantResolvers = {
     createTenant: async (_parent: unknown, { input }: { input: CreateTenantInput }, context: GraphQLContext) => {
       try {
         // Only super admins can create tenants directly
-        if (!context.user || context.user.role !== 'SuperAdmin') {
+        if (!context.user || context.user.role.name !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -460,7 +460,7 @@ export const tenantResolvers = {
     updateTenant: async (_parent: unknown, { input }: { input: UpdateTenantInput }, context: GraphQLContext) => {
       try {
         // Only super admins can update tenants directly
-        if (!context.user || context.user.role !== 'SuperAdmin') {
+        if (!context.user || context.user.role.name !== 'SuperAdmin') {
           throw new Error('Unauthorized: Super admin access required');
         }
 
@@ -566,7 +566,8 @@ export const tenantResolvers = {
           { 
             userId: result.user.id, 
             role: result.user.role?.name || 'USER',
-            roleId: result.user.roleId,
+            roleId: result.user.role?.id || 'default',
+            roleDescription: result.user.role?.description || null,
             tenantId: result.tenant.id
           },
           JWT_SECRET,
@@ -610,7 +611,7 @@ export const tenantResolvers = {
         }
 
         // Check if user has permission to add users to this tenant
-        if (context.user.role !== 'SuperAdmin') {
+        if (context.user.role.name !== 'SuperAdmin') {
           const userTenant = await prisma.userTenant.findUnique({
             where: {
               userId_tenantId: {
@@ -728,7 +729,7 @@ export const tenantResolvers = {
         }
 
         // Check if user has permission to update roles in this tenant
-        if (context.user.role !== 'SuperAdmin') {
+        if (context.user.role.name !== 'SuperAdmin') {
           const userTenant = await prisma.userTenant.findUnique({
             where: {
               userId_tenantId: {
@@ -800,7 +801,7 @@ export const tenantResolvers = {
         }
 
         // Check if user has permission to remove users from this tenant
-        if (context.user.role !== 'SuperAdmin') {
+        if (context.user.role.name !== 'SuperAdmin') {
           const userTenant = await prisma.userTenant.findUnique({
             where: {
               userId_tenantId: {
