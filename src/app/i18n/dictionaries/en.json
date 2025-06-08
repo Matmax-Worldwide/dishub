@@ -452,7 +452,11 @@
       "signIn": "Sign In",
       "signingIn": "Signing in...",
       "noAccount": "Don't have an account?",
-      "createAccount": "Start free trial"
+      "createAccount": "Start free trial",
+      "startFreeTrial": "Start Free Trial",
+      "joinThousands": "Join thousands of companies already using us",
+      "noCredit": "No credit card required",
+      "setupInMinutes": "Setup in less than 5 minutes"
     }
   },
   "onboarding": {

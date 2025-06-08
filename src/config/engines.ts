@@ -406,7 +406,11 @@ export const validateDependencies = (features: string[]): { valid: boolean; miss
 
 export const getRequiredFeatures = (): string[] => {
   return ALL_FEATURES_CONFIG
-    .filter(engine => engine.id === 'CMS_ENGINE') // CMS_ENGINE es requerido
+    .filter(engine => 
+      engine.id === 'CMS_ENGINE' || // CMS_ENGINE es requerido
+      engine.id === 'BLOG_MODULE' || // Blog viene por defecto
+      engine.id === 'FORMS_MODULE'   // Forms viene por defecto
+    )
     .map(engine => engine.id);
 };
 

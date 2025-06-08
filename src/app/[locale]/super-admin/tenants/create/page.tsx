@@ -388,17 +388,17 @@ export default function CreateTenantPage() {
                   <div key={feature.id} className={`flex items-start space-x-3 p-3 border rounded-lg ${
                     isDisabled ? 'bg-gray-50' : ''
                   }`}>
-                    <Checkbox
-                      id={feature.id}
+                  <Checkbox
+                    id={feature.id}
                       checked={isSelected}
-                      onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
+                    onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
                       disabled={isDisabled}
-                    />
-                    <div className="flex-1">
+                  />
+                  <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Label htmlFor={feature.id} className="font-medium">
-                          {feature.name}
-                        </Label>
+                    <Label htmlFor={feature.id} className="font-medium">
+                      {feature.name}
+                    </Label>
                         <span className={`px-2 py-0.5 rounded-full text-xs ${
                           feature.category === 'Engine' 
                             ? 'bg-blue-100 text-blue-800' 
@@ -412,9 +412,9 @@ export default function CreateTenantPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {feature.description}
-                      </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {feature.description}
+                    </p>
                       {feature.dependencies && feature.dependencies.length > 0 && (
                         <p className="text-xs text-gray-400 mt-1">
                           Requires: {feature.dependencies.map(dep => 
@@ -436,7 +436,7 @@ export default function CreateTenantPage() {
                   </div>
                 );
               })}
-            </div>
+                </div>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-xs text-blue-800 font-medium mb-1">
                 💡 Feature Selection Tips:

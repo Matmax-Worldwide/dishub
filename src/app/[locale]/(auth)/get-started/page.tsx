@@ -342,7 +342,12 @@ export default function GetStartedPage() {
 
       {/* All features in a compact grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {ALL_FEATURES_CONFIG.map((feature) => {
+        {ALL_FEATURES_CONFIG
+          .filter(feature => 
+            // Hide Blog and Forms modules since they come by default
+            !['BLOG_MODULE', 'FORMS_MODULE'].includes(feature.id)
+          )
+          .map((feature) => {
           const isSelected = formData.tenantFeatures.includes(feature.id);
           const isDisabled = isFeatureDisabled(feature.id);
           

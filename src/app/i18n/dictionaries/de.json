@@ -433,7 +433,11 @@
       "signIn": "Anmelden",
       "signingIn": "Anmeldung läuft...",
       "noAccount": "Haben Sie noch kein Konto?",
-      "createAccount": "Loslegen"
+      "createAccount": "Loslegen",
+      "startFreeTrial": "Kostenlose Testversion Starten",
+      "joinThousands": "Schließen Sie sich Tausenden von Unternehmen an",
+      "noCredit": "Keine Kreditkarte erforderlich",
+      "setupInMinutes": "Einrichtung in weniger als 5 Minuten"
     }
   },
   "onboarding": {
@@ -532,7 +536,6 @@
     "MANAGER": "Manager",
     "EMPLOYEE": "Mitarbeiter",
     "USER": "Benutzer",
-    "SuperAdmin": "Super Admin",
     "SuperAdmin": "Super Admin"
   },
   "staffCreator": {
@@ -574,13 +577,16 @@
   "dishub": {
     "nav": {
       "brand": "DISHUB",
-      "getStarted": "Login"
+      "getStarted": "Login",
+      "dashboard": "Dashboard",
+      "logout": "Abmelden"
     },
     "hero": {
       "disruption": "Disruption",
       "isInnovation": "ist Innovation",
       "subtitle": "Wo Privatsphäre auf Macht trifft. Datensouveränität nativ im Design, KI & Blockchain bereit für das Geschäft von morgen.",
       "startDisrupting": "Beginne zu Disruptieren",
+      "goToDashboard": "Zum Dashboard",
       "learnMore": "Mehr Erfahren"
     },
     "features": {
@@ -677,7 +683,8 @@
       "readyTo": "Bereit zu",
       "disrupt": "Disruptieren?",
       "subtitle": "Schließen Sie sich der Revolution an. Bauen Sie auf Souveränität. Skalieren Sie mit Vertrauen.",
-      "launchFuture": "Starten Sie Ihre Zukunft"
+      "launchFuture": "Starten Sie Ihre Zukunft",
+      "accessDashboard": "Dashboard Zugreifen"
     },
     "footer": {
       "copyright": "© 2025 DISHUB. Die Zukunft disruptieren, heute."

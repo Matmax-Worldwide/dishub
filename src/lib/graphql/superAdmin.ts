@@ -271,7 +271,7 @@ export const CREATE_TENANT_MUTATION = `
         }
         userTenants {
           id
-          tenantId
+        tenantId
           role
           isActive
           joinedAt
@@ -361,7 +361,7 @@ export const ASSIGN_TENANT_ADMIN_MUTATION = `
         }
         userTenants {
           id
-          tenantId
+        tenantId
           role
           isActive
           joinedAt
@@ -445,7 +445,7 @@ export interface User {
   };
   userTenants: Array<{
     id: string;
-    tenantId: string;
+  tenantId: string;
     role: string;
     isActive: boolean;
     joinedAt: string;

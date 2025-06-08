@@ -417,7 +417,11 @@
       "signIn": "Iniciar Sesión",
       "signingIn": "Iniciando sesión...",
       "noAccount": "¿No tienes una cuenta?",
-      "createAccount": "Comienza tu prueba gratuita"
+      "createAccount": "Comienza tu prueba gratuita",
+      "startFreeTrial": "Comenzar Prueba Gratuita",
+      "joinThousands": "Únete a miles de empresas que ya confían en nosotros",
+      "noCredit": "Sin tarjeta de crédito requerida",
+      "setupInMinutes": "Configuración en menos de 5 minutos"
     }
   },
   "onboarding": {
