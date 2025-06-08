@@ -18,13 +18,9 @@ import {
   UsersIcon,
   SettingsIcon,
   AlertCircleIcon,
-  PlusIcon,
-  UserPlusIcon,
-
 } from 'lucide-react';
 import Link from 'next/link';
 import { SuperAdminClient, type TenantDetails } from '@/lib/graphql/superAdmin';
-import  graphqlClient, { gqlRequest }  from '@/lib/graphql-client';
 import { toast } from 'sonner';
 
 const AVAILABLE_FEATURES = [
@@ -43,29 +39,6 @@ const STATUS_OPTIONS = [
   { value: 'ARCHIVED', label: 'Archived', color: 'gray' }
 ];
 
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  userTenants?: {
-    tenantId: string;
-    role: string;
-    tenant: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  }[];
-  role: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  createdAt: string;
-}
-
 export default function EditTenantPage() {
   const params = useParams();
   const router = useRouter();
@@ -82,21 +55,7 @@ export default function EditTenantPage() {
     features: ['CMS_ENGINE'] as string[]
   });
 
-  // Admin user management state
-  const [currentAdminUser, setCurrentAdminUser] = useState<User | null>(null);
-  const [selectedAdminUser, setSelectedAdminUser] = useState<User | null>(null);
-  const [creatingUser, setCreatingUser] = useState(false);
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
 
-  // New user form state
-  const [newUserForm, setNewUserForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: ''
-  });
 
   const loadTenant = async () => {
     try {
@@ -132,50 +91,7 @@ export default function EditTenantPage() {
     }
     };
 
-  const loadCurrentAdmin = async () => {
-    if (!tenantId) return;
-    
-    try {
-      setLoadingAdmin(true);
-      // Query to get tenant members (users with tenant relationships)
-      const query = `
-        query GetTenantMembers($tenantId: ID!) {
-          tenantMembers(tenantId: $tenantId) {
-            user {
-              id
-              email
-              firstName
-              lastName
-              phoneNumber
-              role {
-                id
-                name
-                description
-              }
-              createdAt
-            }
-            role
-            tenantId
-          }
-        }
-      `;
-      
-      const response = await gqlRequest<{ tenantMembers: { user: User; role: string; tenantId: string }[] }>(query, { tenantId });
-      
-      if (response && response.tenantMembers) {
-        // Find admin user from tenant members
-        const adminMember = response.tenantMembers.find(member => 
-          member.role === 'OWNER' || member.role === 'ADMIN'
-        );
-        setCurrentAdminUser(adminMember?.user || null);
-      }
-    } catch (error) {
-      console.error('Error loading current admin:', error);
-      setCurrentAdminUser(null);
-    } finally {
-      setLoadingAdmin(false);
-    }
-  };
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -213,55 +129,7 @@ export default function EditTenantPage() {
     }
   };
 
-  const handleCreateUser = async () => {
-    if (!newUserForm.firstName || !newUserForm.lastName || !newUserForm.email || !newUserForm.password) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
 
-    if (newUserForm.password !== newUserForm.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    if (newUserForm.password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
-      return;
-    }
-
-    try {
-      setCreatingUser(true);
-      const newUser = await graphqlClient.createUser({
-        email: newUserForm.email,
-        password: newUserForm.password,
-        firstName: newUserForm.firstName,
-        lastName: newUserForm.lastName,
-        phoneNumber: newUserForm.phoneNumber || undefined,
-        role: 'TenantAdmin'
-      });
-
-      toast.success(`User "${newUser.firstName} ${newUser.lastName}" created successfully!`);
-      
-      // Set as the selected admin user
-      setSelectedAdminUser(newUser);
-      
-      // Reset form and close modal
-      setNewUserForm({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        password: '',
-        confirmPassword: ''
-      });
-
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setCreatingUser(false);
-    }
-  };
 
   const handleSave = async () => {
     try {
@@ -342,20 +210,7 @@ export default function EditTenantPage() {
           setTenant(result.tenant);
         }
 
-        // Assign admin user if selected
-        if (selectedAdminUser) {
-          try {
-            const assignResult = await SuperAdminClient.assignTenantAdmin(tenantId, selectedAdminUser.id);
-            if (assignResult.success) {
-              toast.success(`Admin user assigned successfully: ${selectedAdminUser.firstName} ${selectedAdminUser.lastName}`);
-            } else {
-              toast.error(`Failed to assign admin user: ${assignResult.message}`);
-            }
-          } catch (error) {
-            console.error('Error assigning admin user:', error);
-            toast.error('Failed to assign admin user');
-          }
-        }
+
       }
     } catch (error) {
       console.error('Error updating tenant:', error);
@@ -375,7 +230,6 @@ export default function EditTenantPage() {
   useEffect(() => {
     if (tenantId) {
       loadTenant();
-      loadCurrentAdmin();
     }
   }, [tenantId]);
 
@@ -504,211 +358,7 @@ export default function EditTenantPage() {
             </CardContent>
           </Card>
 
-          {/* Current Admin User */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <UsersIcon className="h-5 w-5 mr-2" />
-                Current Admin User
-              </CardTitle>
-              <CardDescription>
-                The user currently assigned as administrator for this tenant
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {loadingAdmin ? (
-                <div className="flex items-center justify-center py-8">
-                  <LoaderIcon className="h-6 w-6 animate-spin text-gray-400" />
-                  <span className="ml-2 text-gray-600">Loading admin user...</span>
-                </div>
-              ) : currentAdminUser ? (
-                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-green-900">
-                        {currentAdminUser.firstName} {currentAdminUser.lastName}
-                      </h4>
-                      <p className="text-sm text-green-700">{currentAdminUser.email}</p>
-                      {currentAdminUser.phoneNumber && (
-                        <p className="text-sm text-green-600">{currentAdminUser.phoneNumber}</p>
-                      )}
-                      <Badge className="mt-1 bg-green-100 text-green-800">
-                        {currentAdminUser.role.name}
-                      </Badge>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          toast.info('Admin user management coming soon');
-                        }}
-                      >
-                        Manage
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-blue-900">No admin user assigned</h4>
-                      <p className="text-sm text-blue-700">This tenant does not have an admin user assigned yet</p>
-                      <Badge variant="outline" className="mt-1 border-blue-300 text-blue-800">
-                        No Admin
-                      </Badge>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                      >
-                        Not Available
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Create New Admin User */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <UserPlusIcon className="h-5 w-5 mr-2" />
-                Create New Admin User
-              </CardTitle>
-              <CardDescription>
-                Create a new user who will be the administrator for this tenant
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedAdminUser ? (
-                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-green-900">
-                        {selectedAdminUser.firstName} {selectedAdminUser.lastName}
-                      </h4>
-                      <p className="text-sm text-green-700">{selectedAdminUser.email}</p>
-                      <Badge className="mt-1 bg-green-100 text-green-800">
-                        {selectedAdminUser.role.name}
-                      </Badge>
-                      <p className="text-xs text-green-600 mt-1">✅ User created successfully</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedAdminUser(null)}
-                      >
-                        Create Another
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const assignResult = await SuperAdminClient.assignTenantAdmin(tenantId, selectedAdminUser.id);
-                            if (assignResult.success) {
-                              toast.success(`Admin user assigned successfully!`);
-                            } else {
-                              toast.error(`Failed to assign admin user: ${assignResult.message}`);
-                            }
-                          } catch (error) {
-                            console.error('Error assigning admin user:', error);
-                            toast.error('Failed to assign admin user');
-                          }
-                        }}
-                      >
-                        Assign Now
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="adminFirstName">First Name *</Label>
-                      <Input
-                        id="adminFirstName"
-                        value={newUserForm.firstName}
-                        onChange={(e) => setNewUserForm(prev => ({ ...prev, firstName: e.target.value }))}
-                        placeholder="John"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="adminLastName">Last Name *</Label>
-                      <Input
-                        id="adminLastName"
-                        value={newUserForm.lastName}
-                        onChange={(e) => setNewUserForm(prev => ({ ...prev, lastName: e.target.value }))}
-                        placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="adminEmail">Email *</Label>
-                      <Input
-                        id="adminEmail"
-                        type="email"
-                        value={newUserForm.email}
-                        onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="admin@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="adminPassword">Password *</Label>
-                      <Input
-                        id="adminPassword"
-                        type="password"
-                        value={newUserForm.password}
-                        onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
-                        placeholder="Secure password"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="adminPhone">Phone Number</Label>
-                    <Input
-                      id="adminPhone"
-                      value={newUserForm.phoneNumber}
-                      onChange={(e) => setNewUserForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={newUserForm.confirmPassword}
-                      onChange={(e) => setNewUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Confirm password"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button onClick={handleCreateUser} disabled={creatingUser}>
-                      {creatingUser ? (
-                        <LoaderIcon className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                      )}
-                      Create Admin User
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Features */}
           <Card>
@@ -772,12 +422,7 @@ export default function EditTenantPage() {
                 <span className="text-sm font-medium">Features:</span>
                 <span className="text-sm text-gray-600">{formData.features.length} selected</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Admin User:</span>
-                <span className="text-sm text-gray-600">
-                  {selectedAdminUser ? 'Selected' : 'Not set'}
-                </span>
-              </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Created:</span>
                 <span className="text-sm text-gray-600">
