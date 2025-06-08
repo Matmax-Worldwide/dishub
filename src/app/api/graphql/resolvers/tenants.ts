@@ -134,7 +134,7 @@ export const tenantResolvers = {
         const hasAccess = await userHasAccessToTenant(context.user.id, id);
 
         if (!hasAccess) {
-          console.log(`Access denied for user ${context.user.id} with role ${context.user.role} to tenant ${id}.`);
+          console.log(`Access denied for user ${context.user.id} with role ${context.user.role.name} to tenant ${id}.`);
           throw new Error('Unauthorized: Access denied');
         }
 
