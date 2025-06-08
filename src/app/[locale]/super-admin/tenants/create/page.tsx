@@ -39,6 +39,7 @@ const AVAILABLE_FEATURES = [
   { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
   { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
   { id: 'HRMS_MODULE', name: 'HRMS Module', description: 'Human assets management' },
+  { id: 'LEGAL_ENGINE', name: 'Legal Engine', description: 'Company incorporation and legal services' },
 ];
 
 const TENANT_STATUSES = [

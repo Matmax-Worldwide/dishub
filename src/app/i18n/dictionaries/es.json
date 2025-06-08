@@ -393,7 +393,16 @@
     "enginesDescription": "Motores de Negocio",
     "enginesSubtext": "Módulos potentes para impulsar las operaciones de tu negocio",
     "legacyTools": "Herramientas Heredadas",
-    "legacyToolsWarning": "Estas herramientas están obsoletas y serán eliminadas en futuras versiones"
+    "legacyToolsWarning": "Estas herramientas están obsoletas y serán eliminadas en futuras versiones",
+    "legalEngine": "Motor Legal",
+    "incorporations": "Incorporaciones",
+    "legalCalendar": "Calendario Legal",
+    "legalClients": "Clientes Legales",
+    "legalDocuments": "Documentos Legales",
+    "legalBilling": "Facturación Legal",
+    "legalReports": "Reportes Legales",
+    "legalBookingConfig": "Configuración de Citas",
+    "legalSettings": "Configuración Legal"
   },
   "auth": {
     "login": {
@@ -426,8 +435,8 @@
     },
     "steps": {
       "functionalities": {
-        "title": "Selecciona tus Funcionalidades",
-        "description": "CMS Engine está incluido por defecto. Elige funcionalidades adicionales para tu plataforma."
+        "title": "Selecciona tus Motores de Negocio",
+        "description": "CMS Engine está incluido por defecto. Elige motores adicionales para tu plataforma."
       },
       "organization": {
         "title": "Información de tu Organización",
@@ -439,9 +448,7 @@
       }
     },
     "categories": {
-      "engine": "Motores Principales",
-      "module": "Módulos Adicionales",
-      "integration": "Integraciones"
+      "engine": "Motor"
     },
     "fields": {
       "organizationName": "Nombre de la Organización",
@@ -471,6 +478,7 @@
     "required": "(Requerido)",
     "requires": "Requiere",
     "cmsEngineRequired": "CMS Engine es una funcionalidad base requerida y no se puede deseleccionar",
+    "requiredFeatureCannotBeRemoved": "Esta funcionalidad es requerida y no se puede deseleccionar",
     "cannotRemoveFeature": "No puedes desactivar {feature} porque es requerido por: {dependents}",
     "dependencyAdded": "Se agregó automáticamente {dependency} como dependencia",
     "summary": {

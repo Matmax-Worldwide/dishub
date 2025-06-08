@@ -15,6 +15,7 @@ import { Button } from '@/app/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { gql, useQuery } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
+import { clearUserCache, clearTenantCache, clearAllCache } from '@/lib/apollo-cache-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import React from 'react';
@@ -64,8 +65,6 @@ const GET_TENANT = gql`
       id
       slug
       name
-      description
-      isActive
       features
     }
   }
@@ -117,10 +116,11 @@ export function TenantDashboard() {
   const tenantSlug = params.tenantSlug as string;
   
   // Load user profile
-  const { data } = useQuery(GET_USER_PROFILE, {
+  const { data, refetch: refetchProfile } = useQuery(GET_USER_PROFILE, {
     client,
     errorPolicy: 'all',
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
     context: {
       headers: {
         credentials: 'include',
@@ -129,7 +129,18 @@ export function TenantDashboard() {
     onCompleted: (data) => {
       console.log('Profile data loaded:', data?.me);
     },
+    onError: (error) => {
+      console.log('Profile query error (this is normal during logout):', error.message);
+    },
   });
+
+  // Refetch profile when tenant slug changes
+  useEffect(() => {
+    if (tenantSlug && refetchProfile) {
+      console.log('Tenant slug changed, refetching profile:', tenantSlug);
+      refetchProfile();
+    }
+  }, [tenantSlug, refetchProfile]);
 
   // Find the current tenant from user's tenant relationships
   const currentUserTenant = data?.me?.userTenants?.find(
@@ -137,16 +148,82 @@ export function TenantDashboard() {
   );
   
   // Load tenant data
-  const { data: tenantData } = useQuery(GET_TENANT, {
+  const { data: tenantData, refetch: refetchTenant } = useQuery(GET_TENANT, {
     client,
     variables: { id: currentUserTenant?.tenantId },
     skip: !currentUserTenant?.tenantId,
     errorPolicy: 'all',
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
     onCompleted: (data) => {
       console.log('Tenant data loaded:', data?.tenant);
     },
   });
+
+  // Refetch tenant data when currentUserTenant changes
+  useEffect(() => {
+    if (currentUserTenant?.tenantId && refetchTenant) {
+      console.log('Current user tenant changed, refetching tenant data:', currentUserTenant.tenantId);
+      refetchTenant({ id: currentUserTenant.tenantId });
+    }
+  }, [currentUserTenant?.tenantId, refetchTenant]);
+
+  // Clear cache and refetch when auth user changes (important for role switching)
+  useEffect(() => {
+    // Only clear cache if we have a different user ID than what's in GraphQL
+    if (authUser?.id && data?.me?.id && authUser.id !== data.me.id && refetchProfile) {
+      console.log('Different auth user detected, clearing cache and refetching:', authUser.id, 'vs', data.me.id);
+      clearUserCache().then(() => {
+        refetchProfile();
+      });
+    }
+  }, [authUser?.id, data?.me?.id, refetchProfile]);
+
+  // Clear tenant-specific cache when tenant slug changes (but only if we have user data)
+  useEffect(() => {
+    if (tenantSlug && data?.me) {
+      console.log('Tenant slug changed with user data, clearing tenant cache:', tenantSlug);
+      clearTenantCache();
+    }
+  }, [tenantSlug, data?.me]);
+
+  // Force refresh when user email changes (indicates different user session)
+  useEffect(() => {
+    if (data?.me?.email && authUser?.email && data.me.email !== authUser.email) {
+      console.log('User email mismatch detected, clearing cache and refetching');
+      clearUserCache().then(() => {
+        if (refetchProfile) {
+          refetchProfile();
+        }
+      });
+    }
+  }, [data?.me?.email, authUser?.email, refetchProfile]);
+
+  // Force logout if user role is inconsistent (but only after data has loaded)
+  useEffect(() => {
+    // Only check if both data sources have loaded and are different
+    if (data?.me?.role && authUser?.role && 
+        data.me.role.name !== authUser.role.name &&
+        data.me.email === authUser.email) { // Same user, different role
+      console.log('User role mismatch detected for same user, clearing cache and refetching');
+      console.log('GraphQL role:', data.me.role.name, 'Auth role:', authUser.role.name);
+      clearUserCache().then(() => {
+        if (refetchProfile) {
+          refetchProfile();
+        }
+      });
+    }
+  }, [data?.me?.role?.name, authUser?.role?.name, data?.me?.email, authUser?.email, refetchProfile]);
+
+  // Debug logging for role detection
+  useEffect(() => {
+    console.log('=== ROLE DEBUG ===');
+    console.log('GraphQL user data:', data?.me);
+    console.log('Auth user data:', authUser);
+    console.log('Current user tenant:', currentUserTenant);
+    console.log('Tenant slug:', tenantSlug);
+    console.log('==================');
+  }, [data?.me, authUser, currentUserTenant, tenantSlug]);
 
   // Check user roles
   const isSuperAdmin = data?.me?.role?.name === 'SuperAdmin' || authUser?.role?.name === 'SuperAdmin';
@@ -162,6 +239,13 @@ export function TenantDashboard() {
     if (isEmployee) return 'Employee';
     return 'User';
   }, [isSuperAdmin, isTenantAdmin, isTenantManager, isEmployee]);
+
+  // Check if user has access to this tenant
+  const hasAccessToTenant = useMemo(() => {
+    if (!data?.me) return false; // No user data yet
+    if (isSuperAdmin) return true; // SuperAdmin has access to all tenants
+    return !!currentUserTenant; // Has a relationship with this tenant
+  }, [data?.me, isSuperAdmin, currentUserTenant]);
 
 
 
@@ -293,9 +377,62 @@ export function TenantDashboard() {
     setIsOpen(!isOpen);
   };
 
-  const handleLogout = () => {
-    document.cookie = 'session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    window.location.href = `/${params.locale}/login`;
+  const handleLogout = async () => {
+    try {
+      // Clear Apollo Client cache using utility
+      await clearAllCache();
+      
+      // Clear all authentication cookies
+      const clearAllAuthCookies = () => {
+        const expireDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
+        const authCookies = [
+          'session-token',
+          'auth-token',
+          'access-token',
+          'refresh-token',
+          'user-role',
+          'user-id',
+          'tenant-id',
+          'tenant-slug'
+        ];
+        
+        authCookies.forEach(cookieName => {
+          // Multiple deletion attempts to ensure complete removal
+          document.cookie = `${cookieName}=; expires=${expireDate}; path=/;`;
+          document.cookie = `${cookieName}=; expires=${expireDate}; path=/; SameSite=Strict;`;
+          document.cookie = `${cookieName}=; expires=${expireDate}; path=/; Secure;`;
+          document.cookie = `${cookieName}=; expires=${expireDate}; path=/; SameSite=Strict; Secure;`;
+        });
+        
+        // Also clear any cookies that might contain user data
+        const allCookies = document.cookie.split(';');
+        allCookies.forEach(cookie => {
+          const cookieName = cookie.split('=')[0].trim();
+          if (cookieName.includes('user') || cookieName.includes('auth') || cookieName.includes('session') || cookieName.includes('tenant')) {
+            document.cookie = `${cookieName}=; expires=${expireDate}; path=/;`;
+            document.cookie = `${cookieName}=; expires=${expireDate}; path=/; SameSite=Strict;`;
+            document.cookie = `${cookieName}=; expires=${expireDate}; path=/; Secure;`;
+          }
+        });
+        
+        console.log('All authentication cookies cleared');
+      };
+      
+      clearAllAuthCookies();
+      
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      
+      // Redirect to login
+      window.location.href = `/${params.locale}/login`;
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Force redirect even if cache clearing fails
+      window.location.href = `/${params.locale}/login`;
+    }
   };
 
   // Render notification badge
@@ -412,6 +549,28 @@ export function TenantDashboard() {
       </div>
     );
   };
+
+  // Show access denied if user doesn't have access to this tenant (but only after data has loaded)
+  if (data?.me && !hasAccessToTenant) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You don&apos;t have access to this tenant dashboard.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -581,7 +740,7 @@ export function TenantDashboard() {
                 variant="ghost" 
                 size="icon" 
                 className="ml-auto text-gray-600 hover:text-gray-900 hover:bg-gray-100" 
-                onClick={handleLogout}
+                onClick={() => handleLogout()}
               >
                 <LogOutIcon className="h-4 w-4" />
                 <span className="sr-only">{t('sidebar.logout')}</span>
@@ -760,7 +919,7 @@ export function TenantDashboard() {
                   <span className="text-sm font-medium">{data?.me?.firstName} {data?.me?.lastName}</span>
                   <span className="text-xs text-gray-500">{effectiveRole}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
+                <Button variant="ghost" size="icon" className="ml-auto" onClick={() => handleLogout()}>
                   <LogOutIcon className="h-4 w-4" />
                   <span className="sr-only">{t('sidebar.logout')}</span>
                 </Button>

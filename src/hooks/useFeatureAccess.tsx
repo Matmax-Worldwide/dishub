@@ -9,7 +9,8 @@ export type FeatureType =
   | 'BLOG_MODULE' 
   | 'FORMS_MODULE'
   | 'BOOKING_ENGINE'
-  | 'ECOMMERCE_ENGINE';
+  | 'ECOMMERCE_ENGINE'
+  | 'LEGAL_ENGINE';
 
 // Feature context type
 interface FeatureContextType {
@@ -60,7 +61,8 @@ export const FeatureProvider: React.FC<FeatureProviderProps> = ({
       'BLOG_MODULE': 10,
       'FORMS_MODULE': 15,
       'BOOKING_ENGINE': 25,
-      'ECOMMERCE_ENGINE': 35
+      'ECOMMERCE_ENGINE': 35,
+      'LEGAL_ENGINE': 75
     };
     
     return features.reduce((total, feature) => total + (pricing[feature] || 0), 0);

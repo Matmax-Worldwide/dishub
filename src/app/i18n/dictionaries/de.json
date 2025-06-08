@@ -409,7 +409,16 @@
     "enginesDescription": "Business Engines",
     "enginesSubtext": "Leistungsstarke Module für Ihre Geschäftsabläufe",
     "legacyTools": "Legacy Tools",
-    "legacyToolsWarning": "Diese Tools sind veraltet und werden in zukünftigen Versionen entfernt"
+    "legacyToolsWarning": "Diese Tools sind veraltet und werden in zukünftigen Versionen entfernt",
+    "legalEngine": "Rechts-Engine",
+    "incorporations": "Unternehmensgründungen",
+    "legalCalendar": "Rechtskalender",
+    "legalClients": "Rechtskunden",
+    "legalDocuments": "Rechtsdokumente",
+    "legalBilling": "Rechtsabrechnung",
+    "legalReports": "Rechtsberichte",
+    "legalBookingConfig": "Terminbuchung Konfiguration",
+    "legalSettings": "Rechtseinstellungen"
   },
   "auth": {
     "login": {
@@ -442,8 +451,8 @@
     },
     "steps": {
       "functionalities": {
-        "title": "Wählen Sie Ihre Funktionen",
-        "description": "CMS Engine ist standardmäßig enthalten. Wählen Sie zusätzliche Funktionen für Ihre Plattform."
+        "title": "Wählen Sie Ihre Business Engines",
+        "description": "CMS Engine ist standardmäßig enthalten. Wählen Sie zusätzliche Engines für Ihre Plattform."
       },
       "organization": {
         "title": "Organisationsinformationen",
@@ -455,9 +464,7 @@
       }
     },
     "categories": {
-      "engine": "Haupt-Engines",
-      "module": "Zusätzliche Module",
-      "integration": "Integrationen"
+      "engine": "Engine"
     },
     "fields": {
       "organizationName": "Organisationsname",
@@ -487,6 +494,7 @@
     "required": "(Erforderlich)",
     "requires": "Benötigt",
     "cmsEngineRequired": "CMS Engine ist eine erforderliche Basisfunktion und kann nicht abgewählt werden",
+    "requiredFeatureCannotBeRemoved": "Diese Funktion ist erforderlich und kann nicht abgewählt werden",
     "cannotRemoveFeature": "Sie können {feature} nicht deaktivieren, da es von folgenden benötigt wird: {dependents}",
     "dependencyAdded": "{dependency} wurde automatisch als Abhängigkeit hinzugefügt",
     "summary": {

@@ -79,7 +79,7 @@ export default function TenantLayout({
     ? (Array.isArray(tenantData.tenant.features) 
         ? tenantData.tenant.features as FeatureType[]
         : [tenantData.tenant.features as FeatureType])
-    : ['CMS_ENGINE', 'BLOG_MODULE', 'FORMS_MODULE', 'BOOKING_ENGINE', 'ECOMMERCE_ENGINE']; // Default features for tenant
+    : ['CMS_ENGINE', 'BLOG_MODULE', 'FORMS_MODULE', 'BOOKING_ENGINE', 'ECOMMERCE_ENGINE', 'LEGAL_ENGINE']; // Default features for tenant
 
   return (
     <FeatureProvider features={tenantFeatures} isLoading={isLoading || userLoading}>

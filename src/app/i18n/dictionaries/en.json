@@ -428,7 +428,16 @@
     "enginesDescription": "Business Engines",
     "enginesSubtext": "Powerful modules to drive your business operations",
     "legacyTools": "Legacy Tools",
-    "legacyToolsWarning": "These tools are deprecated and will be removed in future versions"
+    "legacyToolsWarning": "These tools are deprecated and will be removed in future versions",
+    "legalEngine": "Legal Engine",
+    "incorporations": "Incorporations",
+    "legalCalendar": "Legal Calendar",
+    "legalClients": "Legal Clients",
+    "legalDocuments": "Legal Documents",
+    "legalBilling": "Legal Billing",
+    "legalReports": "Legal Reports",
+    "legalBookingConfig": "Booking Configuration",
+    "legalSettings": "Legal Settings"
   },
   "auth": {
     "login": {
@@ -461,8 +470,8 @@
     },
     "steps": {
       "functionalities": {
-        "title": "Select Your Features",
-        "description": "CMS Engine is included by default. Choose additional features for your platform."
+        "title": "Select Your Business Engines",
+        "description": "CMS Engine is included by default. Choose additional engines for your platform."
       },
       "organization": {
         "title": "Organization Information",
@@ -474,9 +483,7 @@
       }
     },
     "categories": {
-      "engine": "Main Engines",
-      "module": "Additional Modules",
-      "integration": "Integrations"
+      "engine": "Engine"
     },
     "fields": {
       "organizationName": "Organization Name",
@@ -506,6 +513,7 @@
     "required": "(Required)",
     "requires": "Requires",
     "cmsEngineRequired": "CMS Engine is a required base feature and cannot be deselected",
+    "requiredFeatureCannotBeRemoved": "This feature is required and cannot be deselected",
     "cannotRemoveFeature": "You cannot disable {feature} because it is required by: {dependents}",
     "dependencyAdded": "Automatically added {dependency} as dependency",
     "summary": {

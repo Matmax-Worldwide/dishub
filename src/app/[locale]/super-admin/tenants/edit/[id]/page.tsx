@@ -33,6 +33,7 @@ const AVAILABLE_FEATURES = [
   { id: 'FORMS_MODULE', name: 'Forms Module', description: 'Form builder and submissions' },
   { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
   { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
+  { id: 'LEGAL_ENGINE', name: 'Legal Engine', description: 'Company incorporation and legal services' },
 ];
 
 const STATUS_OPTIONS = [

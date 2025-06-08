@@ -11,7 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Progress } from '@/app/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check, User, Building, Eye, EyeOff, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import { AVAILABLE_FEATURES } from '@/config/features';
+import { 
+  getSelectableFeatures,
+  getRequiredFeatures,
+  getFeatureById, 
+  addFeatureWithDependencies, 
+  removeFeatureWithDependents
+} from '@/config/onboarding-features';
 import { PhoneInput } from '@/app/components/ui/PhoneInput';
 import { useI18n } from '@/hooks/useI18n';
 
@@ -93,7 +99,7 @@ export default function GetStartedPage() {
     tenantName: '',
     tenantSlug: '',
     tenantDomain: '',
-    tenantFeatures: ['CMS_ENGINE'],
+    tenantFeatures: [...getRequiredFeatures().map(f => f.id)],
   });
 
   const [registerUserWithTenant, { loading }] = useMutation(REGISTER_USER_WITH_TENANT, {
@@ -126,10 +132,13 @@ export default function GetStartedPage() {
         const parsed = JSON.parse(savedData);
         const savedFormData = parsed.formData || formData;
         
-        // Ensure CMS_ENGINE is always included
-        if (!savedFormData.tenantFeatures.includes('CMS_ENGINE')) {
-          savedFormData.tenantFeatures = ['CMS_ENGINE', ...savedFormData.tenantFeatures];
-        }
+        // Ensure all required features are always included
+        const requiredFeatureIds = getRequiredFeatures().map(f => f.id);
+        requiredFeatureIds.forEach(featureId => {
+          if (!savedFormData.tenantFeatures.includes(featureId)) {
+            savedFormData.tenantFeatures.push(featureId);
+          }
+        });
         
         setFormData(savedFormData);
         setCurrentStep(parsed.currentStep || 1);
@@ -204,7 +213,7 @@ export default function GetStartedPage() {
       toast.error(t('onboarding.validation.invalidEmail'));
       return false;
     }
-
+    
     if (!password || !confirmPassword) {
       toast.error(t('onboarding.validation.passwordRequired'));
       return false;
@@ -243,6 +252,10 @@ export default function GetStartedPage() {
     }
 
     try {
+      // Ensure all required features are included
+      const requiredFeatureIds = getRequiredFeatures().map(f => f.id);
+      const allFeatures = [...new Set([...formData.tenantFeatures, ...requiredFeatureIds])];
+
       await registerUserWithTenant({
         variables: {
           input: {
@@ -254,7 +267,7 @@ export default function GetStartedPage() {
             tenantName: formData.tenantName,
             tenantSlug: formData.tenantSlug,
             tenantDomain: formData.tenantDomain || null,
-            tenantFeatures: formData.tenantFeatures,
+            tenantFeatures: allFeatures,
           }
         }
       });
@@ -264,61 +277,56 @@ export default function GetStartedPage() {
   };
 
   const toggleFeature = (featureId: string) => {
-    // CMS_ENGINE is required and cannot be deselected
-    if (featureId === 'CMS_ENGINE') {
-      toast.info(t('onboarding.cmsEngineRequired'));
+    // Required features cannot be deselected
+    const feature = getFeatureById(featureId);
+    if (feature?.required) {
+      toast.info(t('onboarding.requiredFeatureCannotBeRemoved'));
       return;
     }
-
-    const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
     const currentFeatures = formData.tenantFeatures;
     
     if (currentFeatures.includes(featureId)) {
       // Removing feature - check if other features depend on it
-      const dependentFeatures = AVAILABLE_FEATURES.filter(f => 
-        f.dependencies?.includes(featureId) && currentFeatures.includes(f.id)
-      );
+      const { newFeatures, removedDependents } = removeFeatureWithDependents(currentFeatures, featureId);
       
-      if (dependentFeatures.length > 0) {
-        const dependentNames = dependentFeatures.map(f => f.label).join(', ');
-        toast.warning(t('onboarding.cannotRemoveFeature', { feature: feature?.label || '', dependents: dependentNames }));
+      if (removedDependents.length > 0) {
+        toast.warning(t('onboarding.cannotRemoveFeature', { 
+          feature: feature?.label || '', 
+          dependents: removedDependents.join(', ') 
+        }));
         return;
       }
       
-      // Remove the feature
-      const newFeatures = currentFeatures.filter(id => id !== featureId);
       updateFormData('tenantFeatures', newFeatures);
     } else {
       // Adding feature - automatically add dependencies
-      const newFeatures = [...currentFeatures];
+      const newFeatures = addFeatureWithDependencies(currentFeatures, featureId);
       
-      // Add dependencies first
+      // Show toast for added dependencies
       if (feature?.dependencies) {
-        for (const depId of feature.dependencies) {
-          if (!newFeatures.includes(depId)) {
-            newFeatures.push(depId);
-            const depFeature = AVAILABLE_FEATURES.find(f => f.id === depId);
+        feature.dependencies.forEach(depId => {
+          if (!currentFeatures.includes(depId)) {
+            const depFeature = getFeatureById(depId);
             if (depFeature) {
               toast.info(t('onboarding.dependencyAdded', { dependency: depFeature.label || '' }));
             }
           }
-        }
+        });
       }
       
-      // Add the feature itself
-      newFeatures.push(featureId);
       updateFormData('tenantFeatures', newFeatures);
     }
   };
 
   const isFeatureDisabled = (featureId: string) => {
-    // CMS_ENGINE is always required
-    if (featureId === 'CMS_ENGINE') {
+    // Required features are always disabled (cannot be toggled)
+    const featureInfo = getFeatureById(featureId);
+    if (featureInfo?.required) {
       return true;
     }
     
     // A feature is disabled if it's a dependency of a selected feature
-    const dependentFeatures = AVAILABLE_FEATURES.filter(f => 
+    const dependentFeatures = getSelectableFeatures().filter(f => 
       f.dependencies?.includes(featureId) && formData.tenantFeatures.includes(f.id)
     );
     return dependentFeatures.length > 0;
@@ -335,7 +343,7 @@ export default function GetStartedPage() {
 
       {/* All features in a compact grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {AVAILABLE_FEATURES.map((feature) => {
+        {getSelectableFeatures().map((feature) => {
           const isSelected = formData.tenantFeatures.includes(feature.id);
           const isDisabled = isFeatureDisabled(feature.id);
           
@@ -363,12 +371,15 @@ export default function GetStartedPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 mb-1">
+                    {feature.icon && (
+                      <span className="text-sm flex-shrink-0">{feature.icon}</span>
+                    )}
                     <h4 className={`font-medium text-sm ${isDisabled ? 'text-gray-400' : 'text-white'} truncate`}>
                       {feature.label}
                     </h4>
                     {isDisabled && (
                       <span className="text-xs text-purple-300 flex-shrink-0">
-                        {feature.id === 'CMS_ENGINE' ? t('onboarding.included') : t('onboarding.required')}
+                        {feature.required ? t('onboarding.included') : t('onboarding.required')}
                       </span>
                     )}
                   </div>
@@ -380,17 +391,13 @@ export default function GetStartedPage() {
                   {feature.dependencies && feature.dependencies.length > 0 && (
                     <p className="text-xs text-gray-400 mt-1 truncate">
                       {t('onboarding.requires')}: {feature.dependencies.map(dep => 
-                        AVAILABLE_FEATURES.find(f => f.id === dep)?.label || dep
+                        getFeatureById(dep)?.label || dep
                       ).join(', ')}
                     </p>
                   )}
                   <div className="mt-1">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
-                      feature.category === 'Engine' ? 'bg-blue-500/20 text-blue-300' :
-                      feature.category === 'Module' ? 'bg-green-500/20 text-green-300' :
-                      'bg-orange-500/20 text-orange-300'
-                    }`}>
-                      {feature.category ? t(`onboarding.categories.${feature.category.toLowerCase()}`) : 'Other'}
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-blue-500/20 text-blue-300">
+                      {t('onboarding.categories.engine')}
                     </span>
                   </div>
                 </div>
@@ -585,11 +592,11 @@ export default function GetStartedPage() {
               <p className="font-medium text-white">{t('onboarding.summary.selectedFeatures')}:</p>
               <ul className="list-disc list-inside text-xs text-gray-300 mt-1">
                 {formData.tenantFeatures.map(featureId => {
-                  const feature = AVAILABLE_FEATURES.find(f => f.id === featureId);
+                  const feature = getFeatureById(featureId);
                   return feature ? (
                     <li key={featureId}>
                       {feature.label}
-                      {featureId === 'CMS_ENGINE' && <span className="text-purple-300 ml-1">({t('onboarding.includedByDefault')})</span>}
+                      {getFeatureById(featureId)?.required && <span className="text-purple-300 ml-1">({t('onboarding.includedByDefault')})</span>}
                     </li>
                   ) : null;
                 })}

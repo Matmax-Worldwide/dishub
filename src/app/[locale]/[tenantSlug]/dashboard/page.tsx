@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { useEffect } from 'react';
+import { client } from '@/lib/apollo-client';
 
 export default function TenantDashboard() {
   const params = useParams();
@@ -12,16 +13,35 @@ export default function TenantDashboard() {
 
   // Check if user has access to this tenant dashboard
   useEffect(() => {
-    if (!isLoading) {
-      const hasAccess = hasRole('SuperAdmin') || hasRole('TenantAdmin') || hasRole('TenantManager') || hasRole('Employee');
+    if (!isLoading && user) {
+      // For now, just check if user is authenticated - the TenantDashboard component will handle detailed access control
+      const hasAccess = !!user;
+      
+      console.log('=== ACCESS CHECK ===');
+      console.log('User:', user?.email);
+      console.log('Tenant slug:', params.tenantSlug);
+      console.log('Has access:', hasAccess);
+      console.log('==================');
       
       if (!hasAccess) {
-        // Redirect unauthorized users to login
-        window.location.href = `/${params.locale}/login`;
+        console.log('No access detected, redirecting to login');
+        // Clear cache and redirect unauthorized users to login
+        client.clearStore().then(() => {
+          window.location.href = `/${params.locale}/login`;
+        });
         return;
       }
     }
-  }, [isLoading, hasRole, params.locale]);
+  }, [isLoading, user, params.locale, params.tenantSlug]);
+
+  // Clear cache when tenant slug changes to ensure fresh data (but only if user is loaded)
+  useEffect(() => {
+    if (params.tenantSlug && user) {
+      console.log('Tenant dashboard: clearing cache for tenant slug change:', params.tenantSlug);
+      client.cache.evict({ fieldName: 'tenant' });
+      client.cache.gc();
+    }
+  }, [params.tenantSlug, user]);
 
   if (isLoading) {
     return (

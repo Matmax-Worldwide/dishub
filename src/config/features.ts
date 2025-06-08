@@ -40,6 +40,12 @@ export const AVAILABLE_FEATURES: FeatureDefinition[] = [
     description: 'Enables building and managing custom forms.',
     category: 'Module',
   },
+  {
+    id: 'LEGAL_ENGINE',
+    label: 'Legal Engine',
+    description: 'Company incorporation and legal services management.',
+    category: 'Engine',
+  },
   // Examples of other potential features (commented out as per prompt)
   // {
   //   id: 'LOYALTY_ENGINE',
