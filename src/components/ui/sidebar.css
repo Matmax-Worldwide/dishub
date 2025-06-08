@@ -1,0 +1,120 @@
+/* Sidebar Component Styles */
+
+/* Improved collapse icon animation and styling */
+.sidebar-collapse-icon {
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+
+/* Style for the expanded state */
+.sidebar-collapse-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-collapse-icon-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Position the collapse button in the middle of the sidebar when collapsed */
+.sidebar-provider[data-collapsed="true"] .sidebar-header-collapse-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+}
+
+/* Style for the collapsed state */
+.sidebar-provider[data-collapsed="true"] .sidebar-collapse-icon-wrapper {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-provider[data-collapsed="true"] .sidebar-collapse-icon-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Add a subtle tooltip using pseudo-element */
+.sidebar-provider[data-collapsed="true"] .sidebar-collapse-icon-wrapper::after {
+  content: "Expand sidebar";
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%) scale(0);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.sidebar-provider[data-collapsed="true"] .sidebar-collapse-icon-wrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-100%) scale(1);
+}
+
+.sidebar-provider[data-collapsed="true"] .sidebar-title {
+  display: none;
+}
+
+/* Hide the header collapse button when collapsed, as we'll show the centered one */
+.sidebar-provider[data-collapsed="true"] .sidebar-header-collapse-button {
+  display: none;
+}
+
+/* Improved icon centering for collapsed sidebar */
+.sidebar-provider[data-collapsed="true"] button[class*="bg-primary"] svg,
+.sidebar-provider[data-collapsed="true"] button:hover svg {
+  color: currentColor;
+}
+
+.sidebar-provider[data-collapsed="true"] button span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fix icon sizing and positioning */
+.sidebar-provider[data-collapsed="true"] .h-5,
+.sidebar-provider[data-collapsed="true"] .w-5 {
+  height: 1rem;
+  width: 1rem;
+  margin: 0 auto;
+}
+
+/* Ensure proper centering for active items */
+.sidebar-provider[data-collapsed="true"] button[class*="bg-primary"] {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Additional padding for collapsed sidebar items */
+.sidebar-provider[data-collapsed="true"] button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+} 
