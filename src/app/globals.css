@@ -101,6 +101,28 @@ body [role="dialog"][aria-modal="true"] {
   justify-content: center !important;
 }
 
+/* Hide scrollbar for all browsers */
+/* Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* IE, Edge and Firefox */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Utility class for hiding scrollbars */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Scroll behavior styling */
 html, body {
   height: 100%;
