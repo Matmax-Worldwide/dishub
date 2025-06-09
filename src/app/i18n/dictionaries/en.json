@@ -534,7 +534,16 @@
     "interpretationReports": "Reports",
     "interpretationBilling": "Billing",
     "interpretationSettings": "Settings",
-    "reportsInsights": "Reports & Insights"
+    "reportsInsights": "Reports & Insights",
+    "bookAppointment": "Book Appointment",
+    "bookIncorporationAppointment": "Book Incorporation Appointment",
+    "incorporationDetails": "Incorporation Details",
+    "selectAppointmentType": "Select appointment type",
+    "selectMeetingType": "Select meeting type",
+    "minutes": "min",
+    "continueToBooking": "Continue to Booking",
+    "bookingIntegrationInfo": "You will be redirected to the booking system to select available date and time.",
+    "incorporationWillBeLinked": "The appointment will be automatically linked to the incorporation if available."
   },
   "engines": {
     "cms": "CMS",
@@ -1352,6 +1361,16 @@
       "totalClients": "Total Clients",
       "totalCases": "Total Cases",
       "totalRevenue": "Total Revenue"
-    }
+    },
+    
+    "bookAppointment": "Book Appointment",
+    "bookIncorporationAppointment": "Book Incorporation Appointment",
+    "incorporationDetails": "Incorporation Details",
+    "selectAppointmentType": "Select appointment type",
+    "selectMeetingType": "Select meeting type",
+    "minutes": "min",
+    "continueToBooking": "Continue to Booking",
+    "bookingIntegrationInfo": "You will be redirected to the booking system to select available date and time.",
+    "incorporationWillBeLinked": "The appointment will be automatically linked to the incorporation if available."
   }
 } 

@@ -1058,8 +1058,15 @@
     "dashboard": "Panel Principal",
     "dashboardSubtitle": "Gestiona incorporaciones de empresas en jurisdicciones internacionales",
     "clients": "Clientes",
+    "documents": "Documentos",
+    "calendar": "Calendario",
+    "billing": "Facturación",
+    "timeTracking": "Control de Tiempo",
+    "reports": "Reportes",
     "settings": "Configuración",
     "bookingConfiguration": "Configuración de Citas",
+    "jurisdictions": "Jurisdicciones",
+    "companyTypes": "Tipos de Empresa",
     "navigation": "Gestión Legal",
     "management": "Finanzas y Reportes",
     "configuration": "Configuración",
@@ -1237,7 +1244,7 @@
     
     "timeTracking": {
       "title": "Control de Tiempo",
-      "subtitle": "Seguimiento de tiempo facturale",
+      "subtitle": "Seguimiento de tiempo facturable",
       "startTimer": "Iniciar Cronómetro",
       "stopTimer": "Detener Cronómetro",
       "addEntry": "Agregar Entrada",
@@ -1335,6 +1342,37 @@
     "noIncorporationsDescription": "Comienza creando una nueva incorporación.",
     "completed": "Completado",
     "inProgress": "En Progreso",
-    "highPriority": "Alta Prioridad"
+    "highPriority": "Alta Prioridad",
+    
+    "clients": {
+      "subtitle": "Gestiona tus clientes legales y su información",
+      "searchPlaceholder": "Buscar por nombre, email o empresa...",
+      "allStatuses": "Todos los Estados",
+      "name": "Nombre",
+      "contact": "Contacto",
+      "company": "Empresa",
+      "location": "Ubicación",
+      "incorporations": "Incorporaciones",
+      "revenue": "Ingresos",
+      "cases": "casos",
+      "total": "total",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "noClients": "No se encontraron clientes",
+      "noClientsDescription": "Comienza agregando un nuevo cliente.",
+      "totalClients": "Total de Clientes",
+      "totalCases": "Total de Casos",
+      "totalRevenue": "Ingresos Totales"
+    },
+    
+    "bookAppointment": "Programar Cita",
+    "bookIncorporationAppointment": "Programar Cita de Incorporación",
+    "incorporationDetails": "Detalles de la Incorporación",
+    "selectAppointmentType": "Selecciona el tipo de cita",
+    "selectMeetingType": "Selecciona el tipo de reunión",
+    "minutes": "min",
+    "continueToBooking": "Continuar a Reserva",
+    "bookingIntegrationInfo": "Serás redirigido al sistema de reservas para seleccionar fecha y hora disponible.",
+    "incorporationWillBeLinked": "La cita se vinculará automáticamente con la incorporación si está disponible."
   }
 } 

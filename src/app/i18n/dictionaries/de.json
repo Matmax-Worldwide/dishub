@@ -504,7 +504,16 @@
     "languages": "Sprachen",
     "interpretationReports": "Berichte",
     "interpretationBilling": "Abrechnung",
-    "interpretationSettings": "Einstellungen"
+    "interpretationSettings": "Einstellungen",
+    "bookAppointment": "Termin buchen",
+    "bookIncorporationAppointment": "Gründungstermin buchen",
+    "incorporationDetails": "Gründungsdetails",
+    "selectAppointmentType": "Termintyp auswählen",
+    "selectMeetingType": "Besprechungstyp auswählen",
+    "minutes": "Min",
+    "continueToBooking": "Zur Buchung fortfahren",
+    "bookingIntegrationInfo": "Sie werden zum Buchungssystem weitergeleitet, um verfügbare Datum und Uhrzeit auszuwählen.",
+    "incorporationWillBeLinked": "Der Termin wird automatisch mit der Unternehmensgründung verknüpft, falls verfügbar."
   },
   "auth": {
     "logout": "Abmelden",
@@ -995,8 +1004,15 @@
     "dashboardSubtitle": "Unternehmensgründungen in internationalen Gerichtsbarkeiten verwalten",
     "incorporations": "Unternehmensgründungen",
     "clients": "Kunden",
+    "documents": "Dokumente",
+    "calendar": "Kalender",
+    "billing": "Abrechnung",
+    "timeTracking": "Zeiterfassung",
+    "reports": "Berichte",
     "settings": "Einstellungen",
     "bookingConfiguration": "Terminbuchung Konfiguration",
+    "jurisdictions": "Gerichtsbarkeiten",
+    "companyTypes": "Unternehmenstypen",
     "navigation": "Rechtsverwaltung",
     "management": "Finanzen & Berichte",
     "configuration": "Konfiguration",
@@ -1293,7 +1309,17 @@
       "totalClients": "Gesamte Kunden",
       "totalCases": "Gesamte Fälle",
       "totalRevenue": "Gesamteinnahmen"
-    }
+    },
+    
+    "bookAppointment": "Termin buchen",
+    "bookIncorporationAppointment": "Gründungstermin buchen",
+    "incorporationDetails": "Gründungsdetails",
+    "selectAppointmentType": "Termintyp auswählen",
+    "selectMeetingType": "Besprechungstyp auswählen",
+    "minutes": "Min",
+    "continueToBooking": "Zur Buchung fortfahren",
+    "bookingIntegrationInfo": "Sie werden zum Buchungssystem weitergeleitet, um verfügbare Datum und Uhrzeit auszuwählen.",
+    "incorporationWillBeLinked": "Der Termin wird automatisch mit der Unternehmensgründung verknüpft, falls verfügbar."
   },
   "engines": {
     "cms": "CMS",
