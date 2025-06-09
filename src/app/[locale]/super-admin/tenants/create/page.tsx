@@ -243,10 +243,10 @@ export default function CreateTenantPage() {
           toast.error('Please fill in all admin user fields');
           return;
         }
-        if (formData.adminPassword.length < 6) {
-          toast.error('Admin password must be at least 6 characters long');
-          return;
-        }
+      if (formData.adminPassword.length < 6) {
+        toast.error('Admin password must be at least 6 characters long');
+        return;
+      }
       } else if (formData.adminMode === 'select') {
         if (!formData.selectedUserId) {
           toast.error('Please select an existing user');
@@ -266,16 +266,16 @@ export default function CreateTenantPage() {
       const createData = formData.adminMode === 'create' 
         ? {
             ...tenantData,
-            adminEmail: formData.adminEmail,
-            adminFirstName: formData.adminFirstName,
-            adminLastName: formData.adminLastName,
-            adminPassword: formData.adminPassword,
-            settings: {
-              adminEmail: formData.adminEmail,
-              adminFirstName: formData.adminFirstName,
-              adminLastName: formData.adminLastName,
-              adminPassword: formData.adminPassword
-            }
+        adminEmail: formData.adminEmail,
+        adminFirstName: formData.adminFirstName,
+        adminLastName: formData.adminLastName,
+        adminPassword: formData.adminPassword,
+        settings: {
+          adminEmail: formData.adminEmail,
+          adminFirstName: formData.adminFirstName,
+          adminLastName: formData.adminLastName,
+          adminPassword: formData.adminPassword
+        }
           }
         : {
             ...tenantData,
@@ -454,53 +454,53 @@ export default function CreateTenantPage() {
             {/* Create New User Form */}
             {formData.adminMode === 'create' && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="adminFirstName">First Name *</Label>
-                    <Input
-                      id="adminFirstName"
-                      value={formData.adminFirstName}
-                      onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
-                      placeholder="John"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adminLastName">Last Name *</Label>
-                    <Input
-                      id="adminLastName"
-                      value={formData.adminLastName}
-                      onChange={(e) => handleInputChange('adminLastName', e.target.value)}
-                      placeholder="Doe"
-                      required
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminFirstName">First Name *</Label>
+                <Input
+                  id="adminFirstName"
+                  value={formData.adminFirstName}
+                  onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
+                  placeholder="John"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminLastName">Last Name *</Label>
+                <Input
+                  id="adminLastName"
+                  value={formData.adminLastName}
+                  onChange={(e) => handleInputChange('adminLastName', e.target.value)}
+                  placeholder="Doe"
+                  required
+                />
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="adminEmail">Email *</Label>
-                    <Input
-                      id="adminEmail"
-                      type="email"
-                      value={formData.adminEmail}
-                      onChange={(e) => handleInputChange('adminEmail', e.target.value)}
-                      placeholder="admin@acme.com"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adminPassword">Password *</Label>
-                    <Input
-                      id="adminPassword"
-                      type="password"
-                      value={formData.adminPassword}
-                      onChange={(e) => handleInputChange('adminPassword', e.target.value)}
-                      placeholder="Secure password"
-                      required
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminEmail">Email *</Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={formData.adminEmail}
+                  onChange={(e) => handleInputChange('adminEmail', e.target.value)}
+                  placeholder="admin@acme.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminPassword">Password *</Label>
+                <Input
+                  id="adminPassword"
+                  type="password"
+                  value={formData.adminPassword}
+                  onChange={(e) => handleInputChange('adminPassword', e.target.value)}
+                  placeholder="Secure password"
+                  required
+                />
+              </div>
+            </div>
               </>
             )}
 
