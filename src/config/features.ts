@@ -46,6 +46,13 @@ export const AVAILABLE_FEATURES: FeatureDefinition[] = [
     description: 'Company incorporation and legal services management.',
     category: 'Engine',
   },
+  {
+    id: 'INTERPRETATION_ENGINE',
+    label: 'Interpretation Engine',
+    description: 'AI-powered translation and interpretation services.',
+    category: 'Engine',
+    dependencies: ['CMS_ENGINE'],
+  },
   // Examples of other potential features (commented out as per prompt)
   // {
   //   id: 'LOYALTY_ENGINE',

@@ -1001,7 +1001,15 @@ export const superAdminResolvers = {
         const tenant = await prisma.tenant.findUnique({
           where: { id },
           include: {
-            userTenants: true
+            _count: {
+              select: {
+                userTenants: true,
+                pages: true,
+                posts: true,
+                media: true,
+                forms: true,
+              }
+            }
           }
         });
         
@@ -1009,18 +1017,23 @@ export const superAdminResolvers = {
           throw new Error(`Tenant with ID "${id}" not found`);
         }
 
-        // Check if tenant has users
-        if (tenant.userTenants.length > 0) {
-          throw new Error(`Cannot delete tenant: ${tenant.userTenants.length} users are still associated with this tenant`);
-        }
+        // Log what will be deleted (for audit purposes)
+        console.log(`Deleting tenant "${tenant.name}" (${id}) with:`, {
+          users: tenant._count.userTenants,
+          pages: tenant._count.pages,
+          posts: tenant._count.posts,
+          media: tenant._count.media,
+          forms: tenant._count.forms
+        });
 
+        // Delete tenant - cascade will handle all related data
         await prisma.tenant.delete({
           where: { id }
         });
 
         return {
           success: true,
-          message: 'Tenant deleted successfully'
+          message: `Tenant "${tenant.name}" and all associated data deleted successfully`
         };
       } catch (error) {
         console.error('Error deleting tenant:', error);
