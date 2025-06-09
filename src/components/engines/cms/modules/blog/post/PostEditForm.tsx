@@ -18,9 +18,10 @@ interface PostEditFormProps {
   blogId: string;
   postId: string;
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProps) {
+export function PostEditForm({ blogId, postId, locale = 'en', tenantSlug = 'admin' }: PostEditFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -183,7 +184,7 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
 
       if (result.updatePost.success) {
         toast.success('Post updated successfully!');
-        router.push(`/${locale}/cms/blog/posts/${blogId}`);
+        router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${blogId}`);
       } else {
         toast.error(result.updatePost.message || 'Failed to update post');
       }
@@ -244,7 +245,7 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Post Not Found</h2>
             <p className="text-muted-foreground mb-4">The post you&apos;re looking for could not be found.</p>
-            <Button onClick={() => router.push(`/${locale}/cms/blog/posts/${blogId}`)}>
+            <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${blogId}`)}>
               Return to Posts
             </Button>
           </CardContent>
@@ -261,7 +262,7 @@ export function PostEditForm({ blogId, postId, locale = 'en' }: PostEditFormProp
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => router.push(`/${locale}/cms/blog/posts/${blogId}`)}
+            onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${blogId}`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

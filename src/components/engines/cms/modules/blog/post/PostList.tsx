@@ -33,9 +33,10 @@ import { gqlRequest } from '@/lib/graphql-client';
 interface PostListProps {
   blogId: string;
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function PostList({ blogId, locale = 'en' }: PostListProps) {
+export function PostList({ blogId, locale = 'en', tenantSlug = 'admin' }: PostListProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -149,11 +150,11 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
   }
 
   const handleCreatePost = () => {
-    router.push(`/${locale}/cms/blog/posts/${blogId}/new`);
+    router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${blogId}/new`);
   };
 
   const handleEditPost = (postId: string) => {
-    router.push(`/${locale}/cms/blog/posts/${blogId}/edit/${postId}`);
+    router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${blogId}/edit/${postId}`);
   };
 
   const handleViewPost = (postId: string) => {
@@ -161,7 +162,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
     const post = posts.find(p => p.id === postId);
     if (post) {
       // Navigate to the public blog post page using the post slug
-      router.push(`/${locale}/blog/post/${post.slug}`);
+      router.push(`/${locale}/${tenantSlug}/blog/post/${post.slug}`);
     } else {
       toast.error('Post not found');
     }
@@ -257,7 +258,7 @@ export function PostList({ blogId, locale = 'en' }: PostListProps) {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center">
-            <Button onClick={() => router.push(`/${locale}/cms/blog`)}>
+            <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog`)}>
               Return to Blogs
             </Button>
           </CardFooter>

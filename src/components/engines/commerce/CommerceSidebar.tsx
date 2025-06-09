@@ -308,14 +308,14 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                     <Link
-                      href={`/${locale}/cms`}
+                      href={`/${locale}/${tenantSlug}/cms`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span>CMS</span>
                     </Link>
                     <Link
-                      href={`/${locale}/bookings`}
+                      href={`/${locale}/${tenantSlug}/bookings`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {  SearchIcon, LayoutIcon, Settings } from 'lucide-react';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { cmsOperations } from '@/lib/graphql-client';
@@ -50,10 +50,9 @@ interface PageData extends Omit<BasePageData, 'sections'> {
 
 interface PageEditorProps {
   slug: string;
-  locale: string;
 }
 
-const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
+const PageEditor: React.FC<PageEditorProps> = ({ slug }) => {
   // Unsaved changes context
   const { 
     setHasUnsavedChanges: setGlobalUnsavedChanges, 
@@ -69,7 +68,7 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
     template: 'default',
     isPublished: false,
     pageType: 'CONTENT',
-    locale: locale,
+    locale: 'en',
     sections: [], // Initialize as empty array to avoid null issues
     metaTitle: '',
     metaDescription: '',
@@ -124,6 +123,8 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   const [isSavingSection, setIsSavingSection] = useState(false);
 
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string || 'en';
 
   // Save section components function
   const saveSectionEdits = async () => {
@@ -836,11 +837,14 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug, locale }) => {
   
   // Handle cancel/back button
   const handleCancel = () => {
+    const params = useParams();
+    const locale = params.locale as string || 'en';
+    const tenantSlug = params.tenantSlug as string || 'admin';
     if (hasUnsavedChanges) {
-      setRedirectTarget(`/${locale}/cms/pages`);
+      setRedirectTarget(`/${locale}/${tenantSlug}/cms/pages`);
       setIsExitConfirmationOpen(true);
     } else {
-      router.push(`/${locale}/cms/pages`);
+      router.push(`/${locale}/${tenantSlug}/cms/pages`);
     }
   };
   

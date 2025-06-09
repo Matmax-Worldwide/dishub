@@ -52,7 +52,7 @@ interface Section {
 }
 
 export default function CmsSectionsPage() {
-  const { locale } = useParams();
+  const { locale, tenantSlug } = useParams();
   const [sections, setSections] = useState<Section[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPagesLoading, setIsPagesLoading] = useState(false);
@@ -311,7 +311,7 @@ export default function CmsSectionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Link href={`/${locale}/cms`} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
+          <Link href={`/${locale}/${tenantSlug}/cms`} className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
             <ArrowLeftIcon className="w-4 h-4 mr-1" />
             Volver al CMS
           </Link>
@@ -434,7 +434,7 @@ export default function CmsSectionsPage() {
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/${locale}/cms/sections/preview/${section.id}`}>
+                        <Link href={`/${locale}/${tenantSlug}/cms/sections/preview/${section.id}`}>
                           <EyeIcon className="h-4 w-4 mr-2" />
                           Ver y Personalizar
                         </Link>
@@ -477,7 +477,7 @@ export default function CmsSectionsPage() {
                         <li key={page.id} className="text-xs flex items-center space-x-1">
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
                           <Link 
-                            href={`/${locale}/cms/pages/edit/${page.id}`}
+                            href={`/${locale}/${tenantSlug}/cms/pages/edit/${page.id}`}
                             className="text-blue-600 hover:text-blue-800 truncate max-w-full"
                             title={page.title}
                           >

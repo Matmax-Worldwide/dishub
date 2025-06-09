@@ -85,9 +85,10 @@ interface Blog {
 interface BlogPostListProps {
   blogId?: string;
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
+export function BlogPostList({ blogId, locale, tenantSlug }: BlogPostListProps) {
   const router = useRouter();
   
   // State management
@@ -314,7 +315,7 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
             Manage your blog posts and content
           </p>
         </div>
-        <Button onClick={() => router.push(`/${locale}/cms/blog/posts/new`)}>
+        <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/new`)}>
           <Plus className="h-4 w-4 mr-2" />
           New Post
         </Button>
@@ -406,7 +407,7 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
               <p className="text-muted-foreground mb-4">
                 {searchQuery ? 'Try adjusting your search criteria' : 'Get started by creating your first post'}
               </p>
-              <Button onClick={() => router.push(`/${locale}/cms/blog/posts/new`)}>
+              <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/new`)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Post
               </Button>
@@ -453,13 +454,13 @@ export function BlogPostList({ blogId, locale = 'en' }: BlogPostListProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => router.push(`/${locale}/cms/blog/posts/edit/${post.id}`)}
+                            onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/edit/${post.id}`)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => window.open(`/${locale}/blog/post/${post.slug}`, '_blank')}
+                            onClick={() => window.open(`/${locale}/${tenantSlug}/blog/post/${post.slug}`, '_blank')}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             View

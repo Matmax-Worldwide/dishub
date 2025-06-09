@@ -52,7 +52,7 @@ export interface SidebarConfig {
   tenantAdminNavigationItems: (locale: string, tenantSlug?: string) => NavItem[];
   tenantEngineNavigationItems: (locale: string, tenantSlug?: string) => NavItem[];
   superAdminNavigationItems: (locale: string) => NavItem[];
-  featureBasedNavigationItems: (locale: string) => NavItem[];
+  featureBasedNavigationItems: (locale: string, tenantSlug: string) => NavItem[];
 }
 
 export const sidebarConfig: SidebarConfig = {
@@ -770,11 +770,11 @@ export const sidebarConfig: SidebarConfig = {
   ],
 
   // Feature-based navigation items (based on tenant features)
-  featureBasedNavigationItems: (locale: string) => [
+  featureBasedNavigationItems: (locale: string, tenantSlug: string) => [
     // CMS Engine - Always available as it's the core
     {
       name: 'sidebar.cms',
-      href: `/${locale}/cms`,
+      href: `/${locale}/${tenantSlug}/cms`,
       icon: LayoutDashboardIcon,
       features: ['CMS_ENGINE'],
       permissions: ['cms:access'],
@@ -782,7 +782,7 @@ export const sidebarConfig: SidebarConfig = {
       children: [
         {
           name: 'sidebar.cmsPages',
-          href: `/${locale}/cms/pages`,
+          href: `/${locale}/${tenantSlug}/cms/pages`,
           icon: FileTextIcon,
           features: ['CMS_ENGINE'],
           permissions: ['cms:access'],
@@ -790,7 +790,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.cmsMedia',
-          href: `/${locale}/cms/media`,
+          href: `/${locale}/${tenantSlug}/cms/media`,
           icon: ImageIcon,
           features: ['CMS_ENGINE'],
           permissions: ['cms:access'],
@@ -798,7 +798,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.cmsMenus',
-          href: `/${locale}/cms/menus`,
+          href: `/${locale}/${tenantSlug}/cms/menus`,
           icon: MenuIcon,
           features: ['CMS_ENGINE'],
           permissions: ['cms:access'],
@@ -806,7 +806,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.cmsSettings',
-          href: `/${locale}/cms/settings`,
+          href: `/${locale}/${tenantSlug}/cms/settings`,
           icon: SettingsIcon,
           features: ['CMS_ENGINE'],
           permissions: ['cms:access'],
@@ -818,7 +818,7 @@ export const sidebarConfig: SidebarConfig = {
     // Blog Module
     {
       name: 'sidebar.blog',
-      href: `/${locale}/cms/blog`,
+      href: `/${locale}/${tenantSlug}/cms/blog`,
       icon: BookOpenIcon,
       features: ['BLOG_MODULE'],
       permissions: ['blog:access'],
@@ -826,7 +826,7 @@ export const sidebarConfig: SidebarConfig = {
       children: [
         {
           name: 'sidebar.blogPosts',
-          href: `/${locale}/cms/blog/posts`,
+          href: `/${locale}/${tenantSlug}/cms/blog/posts`,
           icon: PenToolIcon,
           features: ['BLOG_MODULE'],
           permissions: ['blog:write'],
@@ -834,7 +834,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.blogCategories',
-          href: `/${locale}/cms/blog/categories`,
+          href: `/${locale}/${tenantSlug}/cms/blog/categories`,
           icon: ClipboardListIcon,
           features: ['BLOG_MODULE'],
           permissions: ['blog:manage'],
@@ -842,7 +842,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.blogSettings',
-          href: `/${locale}/cms/blog/settings`,
+          href: `/${locale}/${tenantSlug}/cms/blog/settings`,
           icon: SettingsIcon,
           features: ['BLOG_MODULE'],
           permissions: ['blog:manage'],
@@ -854,7 +854,7 @@ export const sidebarConfig: SidebarConfig = {
     // Forms Module
     {
       name: 'sidebar.forms',
-      href: `/${locale}/cms/forms`,
+      href: `/${locale}/${tenantSlug}/cms/forms`,
       icon: FormInputIcon,
       features: ['FORMS_MODULE'],
       permissions: ['forms:access'],
@@ -862,7 +862,7 @@ export const sidebarConfig: SidebarConfig = {
       children: [
         {
           name: 'sidebar.formBuilder',
-          href: `/${locale}/cms/forms/builder`,
+          href: `/${locale}/${tenantSlug}/cms/forms/builder`,
           icon: PenToolIcon,
           features: ['FORMS_MODULE'],
           permissions: ['forms:create'],
@@ -870,7 +870,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.formSubmissions',
-          href: `/${locale}/cms/forms/submissions`,
+          href: `/${locale}/${tenantSlug}/cms/forms/submissions`,
           icon: ClipboardListIcon,
           features: ['FORMS_MODULE'],
           permissions: ['forms:read'],
@@ -878,7 +878,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.formSettings',
-          href: `/${locale}/cms/forms/settings`,
+          href: `/${locale}/${tenantSlug}/cms/forms/settings`,
           icon: SettingsIcon,
           features: ['FORMS_MODULE'],
           permissions: ['forms:manage'],
@@ -890,7 +890,7 @@ export const sidebarConfig: SidebarConfig = {
     // E-commerce Engine
     {
       name: 'sidebar.ecommerce',
-      href: `/${locale}/ecommerce`,
+      href: `/${locale}/${tenantSlug}/ecommerce`,
       icon: ShoppingCartIcon,
       features: ['ECOMMERCE_ENGINE'],
       permissions: ['ecommerce:access'],
@@ -898,7 +898,7 @@ export const sidebarConfig: SidebarConfig = {
       children: [
         {
           name: 'sidebar.products',
-          href: `/${locale}/ecommerce/products`,
+          href: `/${locale}/${tenantSlug}/ecommerce/products`,
           icon: PackageIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['products:read'],
@@ -906,7 +906,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.orders',
-          href: `/${locale}/ecommerce/orders`,
+          href: `/${locale}/${tenantSlug}/ecommerce/orders`,
           icon: ClipboardListIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['orders:read'],
@@ -914,7 +914,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.customers',
-          href: `/${locale}/ecommerce/customers`,
+          href: `/${locale}/${tenantSlug}/ecommerce/customers`,
           icon: UsersIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['customers:read'],
@@ -922,7 +922,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.payments',
-          href: `/${locale}/ecommerce/payments`,
+          href: `/${locale}/${tenantSlug}/ecommerce/payments`,
           icon: CreditCardIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['payments:read'],
@@ -930,7 +930,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.shipping',
-          href: `/${locale}/ecommerce/shipping`,
+          href: `/${locale}/${tenantSlug}/ecommerce/shipping`,
           icon: TruckIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['shipping:read'],
@@ -938,7 +938,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.reviews',
-          href: `/${locale}/ecommerce/reviews`,
+          href: `/${locale}/${tenantSlug}/ecommerce/reviews`,
           icon: StarIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['reviews:read'],
@@ -946,7 +946,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.ecommerceSettings',
-          href: `/${locale}/ecommerce/settings`,
+          href: `/${locale}/${tenantSlug}/ecommerce/settings`,
           icon: SettingsIcon,
           features: ['ECOMMERCE_ENGINE'],
           permissions: ['ecommerce:manage'],
@@ -958,7 +958,7 @@ export const sidebarConfig: SidebarConfig = {
     // Booking Engine
     {
       name: 'sidebar.bookings',
-      href: `/${locale}/bookings`,
+      href: `/${locale}/${tenantSlug}/bookings`,
       icon: CalendarIcon,
       features: ['BOOKING_ENGINE'],
       permissions: ['bookings:access'],
@@ -966,7 +966,7 @@ export const sidebarConfig: SidebarConfig = {
       children: [
         {
           name: 'sidebar.calendar',
-          href: `/${locale}/bookings/calendar`,
+          href: `/${locale}/${tenantSlug}/bookings/calendar`,
           icon: CalendarIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['bookings:read'],
@@ -974,7 +974,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.services',
-          href: `/${locale}/bookings/services`,
+          href: `/${locale}/${tenantSlug}/bookings/services`,
           icon: ClipboardListIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['services:read'],
@@ -982,7 +982,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.staff',
-          href: `/${locale}/bookings/staff`,
+          href: `/${locale}/${tenantSlug}/bookings/staff`,
           icon: UsersIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['staff:read'],
@@ -990,7 +990,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.locations',
-          href: `/${locale}/bookings/locations`,
+          href: `/${locale}/${tenantSlug}/bookings/locations`,
           icon: HomeIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['locations:read'],
@@ -998,7 +998,7 @@ export const sidebarConfig: SidebarConfig = {
         },
         {
           name: 'sidebar.bookingSettings',
-          href: `/${locale}/bookings/settings`,
+          href: `/${locale}/${tenantSlug}/bookings/settings`,
           icon: SettingsIcon,
           features: ['BOOKING_ENGINE'],
           permissions: ['bookings:manage'],

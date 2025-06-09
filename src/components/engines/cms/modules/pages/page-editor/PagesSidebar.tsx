@@ -143,6 +143,7 @@ export function PagesSidebar({ onPageSelect, onComponentSelect }: PagesSidebarPr
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string || 'en';
+  const tenantSlug = params.tenantSlug as string || 'admin';
   // Get current slug from URL params
   const currentSlug = params.slug as string;
   
@@ -346,7 +347,7 @@ export function PagesSidebar({ onPageSelect, onComponentSelect }: PagesSidebarPr
 
   // Handle page selection - always navigate to edit page
   const handlePageClick = (slug: string) => {
-    const targetPath = `/${locale}/cms/pages/edit/${slug}`;
+    const targetPath = `/${locale}/${tenantSlug}/cms/pages/edit/${slug}`;
     
     // Check if we have unsaved changes
     if (hasUnsavedChanges && currentSlug !== slug) {
@@ -367,7 +368,7 @@ export function PagesSidebar({ onPageSelect, onComponentSelect }: PagesSidebarPr
   const handleCreatePage = () => {
     setIsCreating(true);
     // Navigate to create page route
-    router.push(`/${locale}/cms/pages/create`);
+    router.push(`/${locale}/${tenantSlug}/cms/pages/create`);
   };
   
   // Reset isCreating state when component unmounts or when coming back to the page
@@ -422,7 +423,7 @@ export function PagesSidebar({ onPageSelect, onComponentSelect }: PagesSidebarPr
         setShowQuickCreate(false);
         
         // Navigate to the edit page
-        router.push(`/${locale}/cms/pages/edit/${slug}`);
+        router.push(`/${locale}/${tenantSlug}/cms/pages/edit/${slug}`);
       } else {
         throw new Error(result?.message || 'Error creating page');
       }

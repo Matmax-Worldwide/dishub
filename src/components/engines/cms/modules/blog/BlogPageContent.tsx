@@ -14,9 +14,10 @@ import { BlogLoading } from './BlogLoading';
 
 export interface BlogPageContentProps {
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
+export function BlogPageContent({ locale = 'en', tenantSlug = 'admin' }: BlogPageContentProps) {
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
 
   // Navigate to create blog page
   const handleCreateBlog = () => {
-    router.push(`/${locale}/cms/blog/new`);
+    router.push(`/${locale}/${tenantSlug}/cms/blog/new`);
   };
 
   // Handle search change
@@ -81,12 +82,12 @@ export function BlogPageContent({ locale = 'en' }: BlogPageContentProps) {
 
   // Handle editing a blog
   const handleEditBlog = (id: string) => {
-    router.push(`/${locale}/cms/blog/edit/${id}`);
+    router.push(`/${locale}/${tenantSlug}/cms/blog/edit/${id}`);
   };
 
   // Handle viewing blog posts
   const handleViewPosts = (id: string) => {
-    router.push(`/${locale}/cms/blog/posts/${id}`);
+    router.push(`/${locale}/${tenantSlug}/cms/blog/posts/${id}`);
   };
 
   // Handle blog deletion
