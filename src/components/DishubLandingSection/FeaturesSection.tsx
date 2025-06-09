@@ -255,7 +255,7 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
               </span>
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Construido desde cero con tecnología de vanguardia para el futuro digital
+              {t('dishub.features.subtitle')}
             </p>
           </div>
         </ScrollReveal>

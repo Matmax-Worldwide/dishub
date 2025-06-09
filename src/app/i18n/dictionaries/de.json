@@ -670,6 +670,7 @@
     },
     "features": {
       "nativeByDesign": "Nativ im Design",
+      "subtitle": "Von Grund auf mit modernster Technologie für die digitale Zukunft entwickelt",
       "nativeByDesignDesc": "Datensouveränität in jede Schicht eingebaut",
       "privacyFirst": {
         "title": "Privatsphäre Zuerst",
@@ -706,6 +707,14 @@
       "federatedSystem": {
         "title": "Föderiertes System",
         "desc": "Verteilte Architektur für ultimative Widerstandsfähigkeit"
+      },
+      "guarantee": {
+        "title": "Totale Privatsphäre-Garantie",
+        "description": "Ihre Privatsphäre ist nicht verhandelbar. DISHUB ist von Grund auf mit Zero-Knowledge-Architektur, nativer DSGVO-Konformität und garantierter Datensouveränität entworfen. Ihre Daten gehören Ihnen, immer.",
+        "zeroLogs": "Null Protokolle",
+        "endToEnd": "Ende-zu-Ende-Verschlüsselung",
+        "gdprCompliant": "DSGVO-Konform",
+        "openSource": "Open Source"
       },
       "architecture": {
         "title": "Zero Knowledge Architektur",

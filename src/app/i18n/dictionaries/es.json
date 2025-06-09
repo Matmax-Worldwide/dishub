@@ -666,6 +666,7 @@
     },
     "features": {
       "nativeByDesign": "Diseñada para la Soberanía de Datos",
+      "subtitle": "Construido desde cero con tecnología de vanguardia para el futuro digital",
       "nativeByDesignDesc": "Soberanía de datos integrada en cada capa",
       "privacyFirst": {
         "title": "Privacidad Primero",
@@ -702,6 +703,14 @@
       "federatedSystem": {
         "title": "Sistema Federado",
         "desc": "Arquitectura distribuida para máxima resistencia"
+      },
+      "guarantee": {
+        "title": "Garantía de Privacidad Total",
+        "description": "Tu privacidad no es negociable. DISHUB está diseñado desde cero con arquitectura zero-knowledge, cumplimiento GDPR nativo y soberanía de datos garantizada. Tus datos te pertenecen, siempre.",
+        "zeroLogs": "Zero Logs",
+        "endToEnd": "Encriptación Extremo a Extremo",
+        "gdprCompliant": "Cumple con GDPR",
+        "openSource": "Código Abierto"
       },
       "architecture": {
         "title": "Arquitectura de Zero Knowledge",

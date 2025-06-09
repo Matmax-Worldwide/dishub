@@ -277,7 +277,20 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
 
   return (
     <section className="relative h-screen flex items-center justify-center px-6 overflow-hidden z-0">
-      {/* Nuevo Background Espacial/Ciberpunk con Parallax */}
+      {/* Multi-layer Parallax Background System */}
+      
+      {/* Layer 1: Deep Background - Slowest */}
+      <div 
+        className="absolute inset-0 z-0 will-change-transform"
+        style={{ 
+          transform: `translateY(${scrollY * 0.2}px) scale(${1 + scrollY * 0.0001})`,
+          transformOrigin: 'center center'
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20"></div>
+      </div>
+
+      {/* Layer 2: Main SVG Background - Medium Speed */}
       <div 
         className="absolute inset-0 z-0 will-change-transform"
         style={{ 
@@ -286,12 +299,56 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
         }}
       >
         <CyberSpaceBackgroundSVG />
-        {/* Overlay para mejorar legibilidad del texto */}
-        <div className="absolute inset-0 bg-black/30"></div>
       </div>
+
+      {/* Layer 3: Floating Elements - Fast Speed */}
+      <div 
+        className="absolute inset-0 z-0 will-change-transform"
+        style={{ 
+          transform: `translateY(${scrollY * 0.8}px)`,
+          transformOrigin: 'center center'
+        }}
+      >
+        {/* Floating tech elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute opacity-40"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                transform: `translateY(${scrollY * (0.1 + Math.random() * 0.2)}px)`,
+                willChange: 'transform'
+              }}
+            >
+              {i % 5 === 0 ? (
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+              ) : i % 5 === 1 ? (
+                <div className="w-3 h-3 border border-purple-400/50 rotate-45 animate-spin" style={{animationDuration: '8s'}}></div>
+              ) : i % 5 === 2 ? (
+                <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-transparent animate-pulse"></div>
+              ) : i % 5 === 3 ? (
+                <div className="w-6 h-1 bg-gradient-to-r from-purple-400 to-transparent animate-pulse"></div>
+              ) : (
+                <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Layer 4: Overlay for text readability */}
+      <div className="absolute inset-0 bg-black/30 z-1"></div>
       
-      {/* Content overlay */}
-      <div className="relative max-w-5xl mx-auto text-center z-10">
+      {/* Content overlay with subtle parallax */}
+      <div 
+        className="relative max-w-5xl mx-auto text-center z-10"
+        style={{ 
+          transform: `translateY(${scrollY * -0.1}px)`,
+          willChange: 'transform'
+        }}
+      >
         <ScrollReveal direction="scale" duration={1000} delay={200}>
           <h1 
             className="text-6xl md:text-8xl font-bold mb-6 leading-tight"
@@ -347,7 +404,11 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
       
       <ChevronDown 
         onClick={handleLearnMore}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-8 h-8 animate-bounce cursor-pointer hover:text-cyan-400 transition-colors duration-300 z-10 pointer-events-auto" 
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-8 h-8 animate-bounce cursor-pointer hover:text-cyan-400 transition-colors duration-300 z-10 pointer-events-auto"
+        style={{ 
+          transform: `translateX(-50%) translateY(${scrollY * -0.3}px)`,
+          willChange: 'transform'
+        }}
       />
     </section>
   );

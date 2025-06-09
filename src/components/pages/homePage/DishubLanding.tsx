@@ -18,61 +18,94 @@ export default function DishubLanding() {
   
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
-
-  const privacyFeatures = [
-    {
-      title: t('dishub.privacy.gdprCompliant.title'),
-      desc: t('dishub.privacy.gdprCompliant.desc'),
-      gradient: "from-blue-500 to-purple-500"
-    },
-    {
-      title: t('dishub.privacy.zeroKnowledge.title'),
-      desc: t('dishub.privacy.zeroKnowledge.desc'),
-      gradient: "from-purple-500 to-pink-500"
-    },
-    {
-      title: t('dishub.privacy.dataSovereignty.title'),
-      desc: t('dishub.privacy.dataSovereignty.desc'),
-      gradient: "from-pink-500 to-red-500"
-    },
-    {
-      title: t('dishub.privacy.federatedSystem.title'),
-      desc: t('dishub.privacy.federatedSystem.desc'),
-      gradient: "from-cyan-500 to-blue-500"
-    }
-  ];
-
-
+  // Calculate parallax values for different layers
+  const techParallax = scrollY * 0.15;
 
   return (
     <AuthProvider>
       <div className="min-h-screen bg-black text-white overflow-x-hidden relative scrollbar-hide">
     
-        {/* Header Navigation */}
+        {/* Header Navigation - Fixed */}
         <Header />
 
-        {/* Hero Section */}
+        {/* Hero Section with Enhanced Parallax */}
         <HeroSection scrollY={scrollY} />
 
-        {/* Features Section with Animations */}
+        {/* Features Section with Parallax */}
         <FeaturesSection scrollY={scrollY} />
 
-        {/* Privacy Section with Animations */}
-        <PrivacySection />
+        {/* Privacy Section with Enhanced Parallax */}
+        <PrivacySection scrollY={scrollY} />
 
-       
-        {/* Technology Section */}
-        <section className="relative py-10 px-6 pointer-events-auto overflow-hidden">
-          {/* Transition background from global to deep tech */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/10 to-black/30"></div>
+        {/* Technology Section with Parallax Layers */}
+        <section className="relative py-20 px-6 pointer-events-auto overflow-hidden">
+          {/* Multi-layer parallax backgrounds */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ 
+              transform: `translateY(${techParallax}px)`,
+              willChange: 'transform'
+            }}
+          >
+            {/* Deep space background layer */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-900/10 to-black/30"></div>
+            
+            {/* Animated tech grid */}
+            <div 
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)
+                `,
+                backgroundSize: '40px 40px',
+                transform: `translateY(${scrollY * 0.1}px)`
+              }}
+            />
+          </div>
+
+          {/* Floating tech elements with different parallax speeds */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute opacity-30"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  transform: `translateY(${scrollY * (0.05 + Math.random() * 0.1)}px)`,
+                  willChange: 'transform'
+                }}
+              >
+                {i % 4 === 0 ? (
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                ) : i % 4 === 1 ? (
+                  <div className="w-3 h-3 border border-purple-400/50 rotate-45 animate-spin" style={{animationDuration: '10s'}}></div>
+                ) : i % 4 === 2 ? (
+                  <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-transparent animate-pulse"></div>
+                ) : (
+                  <div className="w-4 h-1 bg-gradient-to-r from-purple-400 to-transparent animate-pulse"></div>
+                )}
+              </div>
+            ))}
+          </div>
           
-          <div className="relative max-w-7xl mx-auto">
+          <div className="relative max-w-7xl mx-auto z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
+              <div 
+                style={{ 
+                  transform: `translateY(${scrollY * 0.05}px)`,
+                  willChange: 'transform'
+                }}
+              >
                 <h2 className="text-5xl font-bold mb-6">
                   <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                     {t('dishub.technology.title')}
@@ -98,8 +131,20 @@ export default function DishubLanding() {
                   </div>
                 </div>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-3xl filter blur-3xl opacity-30 animate-pulse" />
+              <div 
+                className="relative"
+                style={{ 
+                  transform: `translateY(${scrollY * -0.03}px)`,
+                  willChange: 'transform'
+                }}
+              >
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-3xl filter blur-3xl opacity-30 animate-pulse"
+                  style={{ 
+                    transform: `translateY(${scrollY * 0.02}px)`,
+                    willChange: 'transform'
+                  }}
+                />
                 <div className="relative backdrop-blur-xl bg-white/5 border border-white/20 rounded-3xl p-8 hover:bg-white/10 transition-all duration-500">
                   <TechArchitectureSVG />
                 </div>
@@ -108,63 +153,40 @@ export default function DishubLanding() {
           </div>
         </section>
 
- {/* Privacy & Compliance Section */}
- <section className="relative px-6 overflow-hidden pointer-events-auto">
-          {/* Deep space transition background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-purple-900/20 to-black/40"></div>
+
+
+        {/* CTA Section with Parallax */}
+        <div 
+          style={{ 
+            transform: `translateY(${scrollY * 0.1}px)`,
+            willChange: 'transform'
+          }}
+        >
+          <CTASection />
+        </div>
+
+        {/* Footer with Parallax */}
+        <footer 
+          className="relative py-8 px-6 border-t border-white/10 pointer-events-auto"
+          style={{ 
+            transform: `translateY(${scrollY * 0.05}px)`,
+            willChange: 'transform'
+          }}
+        >
+          {/* Subtle background animation */}
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px)
+              `,
+              backgroundSize: '60px 60px',
+              transform: `translateY(${scrollY * 0.02}px)`
+            }}
+          />
           
-          {/* Floating cosmic particles */}
-          <div className="absolute inset-0">
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-60"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animation: `float ${Math.random() * 10 + 5}s ease-in-out infinite`,
-                  animationDelay: `${Math.random() * 5}s`
-                }}
-              />
-            ))}
-          </div>
-          
-          <div className="relative max-w-7xl mx-auto">
-            <h2 className="text-5xl font-bold text-center mb-4">
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                {t('dishub.privacy.title')}
-              </span>
-            </h2>
-            <p className="text-xl text-gray-300 text-center mb-16 max-w-3xl mx-auto">
-              {t('dishub.privacy.subtitle')}
-            </p>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {privacyFeatures.map((feature, i) => (
-                <div key={i} className="relative group">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl`} />
-                  <div className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 h-full hover:bg-white/10 transition-all duration-500 hover:scale-105 hover:border-white/20">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-lg mb-4 flex items-center justify-center`}>
-                      <Lock className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold mb-2">{feature.title}</h3>
-                    <p className="text-gray-400">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            
-          </div>
-        </section>
-
-
-
-        {/* CTA Section */}
-        <CTASection />
-
-        {/* Footer */}
-        <footer className="relative  py-8 px-6 border-t border-white/10 pointer-events-auto">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+          <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center z-10">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
@@ -177,7 +199,7 @@ export default function DishubLanding() {
           </div>
         </footer>
 
-        {/* Custom Styles */}
+        {/* Enhanced Custom Styles with Parallax Optimizations */}
         <style jsx>{`
           @keyframes gradient {
             0%, 100% { background-position: 0% 50%; }
@@ -196,6 +218,23 @@ export default function DishubLanding() {
               transform: translateY(-20px) translateX(10px); 
               opacity: 0.9;
             }
+          }
+          
+          /* Parallax performance optimizations */
+          .parallax-layer {
+            will-change: transform;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+          }
+          
+          /* Smooth scrolling for better parallax */
+          html {
+            scroll-behavior: smooth;
+          }
+          
+          /* Hardware acceleration for parallax elements */
+          [style*="translateY"] {
+            transform: translateZ(0);
           }
         `}</style>
       </div>
