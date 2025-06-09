@@ -634,11 +634,7 @@ export default function CreateTenantPage() {
                         }`}>
                           {feature.category}
                         </span>
-                        {feature.pricing > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
-                            ${feature.pricing}/mo
-                          </span>
-                        )}
+                        
                       </div>
                     <p className="text-sm text-gray-500 mt-1">
                       {feature.description}

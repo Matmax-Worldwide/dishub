@@ -96,9 +96,7 @@ const TechNavDropdown = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-xs font-bold text-cyan-400">
-                          {engine.pricing === 0 ? 'FREE' : `$${engine.pricing}/mo`}
-                        </span>
+                        
                         <div className="flex items-center mt-1">
                           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                           <span className="text-xs text-green-400 ml-1">Active</span>
@@ -151,9 +149,7 @@ const TechNavDropdown = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-xs font-bold text-cyan-400">
-                          ${module.pricing}/mo
-                        </span>
+                       
                         <div className="flex items-center mt-1">
                           <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                           <span className="text-xs text-blue-400 ml-1">Available</span>
