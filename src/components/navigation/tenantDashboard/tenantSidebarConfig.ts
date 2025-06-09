@@ -25,7 +25,12 @@ import {
   MenuIcon,
   ScaleIcon,
   BuildingIcon,
-  DollarSignIcon
+  DollarSignIcon,
+  MicIcon,
+  LanguagesIcon,
+  HeadphonesIcon,
+  RadioIcon,
+  ClockIcon
 } from 'lucide-react';
 
 export interface TenantNavItem {
@@ -487,6 +492,71 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
             permissions: ['legal:settings:manage']
           }
         ]
+      },
+
+      // 🌐 Interpretation Engine
+      {
+        name: 'sidebar.interpretationEngine',
+        href: `${basePath}/dashboard/interpretation`,
+        icon: LanguagesIcon,
+        permissions: ['interpretation:access'],
+        features: ['INTERPRETATION_ENGINE'], // Required feature
+        children: [
+          {
+            name: 'sidebar.interpretationDashboard',
+            href: `${basePath}/dashboard/interpretation`,
+            icon: LayoutDashboardIcon,
+            permissions: ['interpretation:read']
+          },
+          {
+            name: 'sidebar.liveSessions',
+            href: `${basePath}/dashboard/interpretation/live`,
+            icon: RadioIcon,
+            permissions: ['interpretation:sessions:read']
+          },
+          {
+            name: 'sidebar.sessionHistory',
+            href: `${basePath}/dashboard/interpretation/history`,
+            icon: ClockIcon,
+            permissions: ['interpretation:history:read']
+          },
+          {
+            name: 'sidebar.interpreters',
+            href: `${basePath}/dashboard/interpretation/interpreters`,
+            icon: HeadphonesIcon,
+            permissions: ['interpretation:interpreters:read']
+          },
+          {
+            name: 'sidebar.interpretationClients',
+            href: `${basePath}/dashboard/interpretation/clients`,
+            icon: UsersIcon,
+            permissions: ['interpretation:clients:read']
+          },
+          {
+            name: 'sidebar.languages',
+            href: `${basePath}/dashboard/interpretation/languages`,
+            icon: LanguagesIcon,
+            permissions: ['interpretation:languages:read']
+          },
+          {
+            name: 'sidebar.interpretationReports',
+            href: `${basePath}/dashboard/interpretation/reports`,
+            icon: BarChartIcon,
+            permissions: ['interpretation:reports:read']
+          },
+          {
+            name: 'sidebar.interpretationBilling',
+            href: `${basePath}/dashboard/interpretation/billing`,
+            icon: DollarSignIcon,
+            permissions: ['interpretation:billing:read']
+          },
+          {
+            name: 'sidebar.interpretationSettings',
+            href: `${basePath}/dashboard/interpretation/settings`,
+            icon: SettingsIcon,
+            permissions: ['interpretation:settings:manage']
+          }
+        ]
       }
     ];
   },
@@ -591,7 +661,12 @@ export const getTenantIconComponent = (iconName: string): React.ElementType => {
     MenuIcon,
     ScaleIcon,
     BuildingIcon,
-    DollarSignIcon
+    DollarSignIcon,
+    MicIcon,
+    LanguagesIcon,
+    HeadphonesIcon,
+    RadioIcon,
+    ClockIcon
   };
   
   return iconMap[iconName] || HomeIcon;

@@ -729,10 +729,14 @@ export const superAdminResolvers = {
 
         // Extract admin user data from settings if provided there, or use direct fields
         let adminData = null;
+        let isExistingUser = false;
+        let selectedUserId: string | undefined;
 
         if (input.settings && typeof input.settings === 'object') {
           const settings = input.settings as Record<string, unknown>;
-       
+          isExistingUser = settings.existingUser === true;
+          selectedUserId = settings.selectedUserId as string;
+          
           if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
             adminData = {
               email: (settings.adminEmail as string) || input.adminEmail,
@@ -767,8 +771,57 @@ export const superAdminResolvers = {
 
           let adminUser = null;
 
+          // Handle existing user assignment
+          if (isExistingUser && selectedUserId) {
+            // Update existing user to be admin of this tenant
+            const existingUser = await tx.user.findUnique({
+              where: { id: selectedUserId },
+              include: { role: true }
+            });
+
+            if (!existingUser) {
+              throw new Error(`User with ID "${selectedUserId}" not found`);
+            }
+
+            // Find or create TenantAdmin role
+            let tenantAdminRole = await tx.roleModel.findFirst({
+              where: { 
+                OR: [
+                  { name: 'TenantAdmin' },
+                  { name: 'TENANT_ADMIN' }
+                ]
+              }
+            });
+
+            if (!tenantAdminRole) {
+              tenantAdminRole = await tx.roleModel.create({
+                data: {
+                  name: 'TenantAdmin',
+                  description: 'Administrator of a tenant'
+                }
+              });
+            }
+
+            // Update user role and create tenant relationship
+            adminUser = await tx.user.update({
+              where: { id: selectedUserId },
+              data: {
+                roleId: tenantAdminRole.id,
+                userTenants: {
+                  create: {
+                    tenantId: tenant.id,
+                    role: 'TenantAdmin'
+                  }
+                }
+              },
+              include: {
+                role: true,
+                userTenants: true
+              }
+            });
+          }
           // Create admin user if admin data is provided
-          if (adminData && adminData.email && adminData.firstName && adminData.lastName && adminData.password) {
+          else if (adminData && adminData.email && adminData.firstName && adminData.lastName && adminData.password) {
             // Check if user with this email already exists
             const existingUser = await tx.user.findUnique({
               where: { email: adminData.email }
