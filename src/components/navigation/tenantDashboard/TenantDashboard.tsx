@@ -10,6 +10,8 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   LockIcon,
+  BuildingIcon,
+  CheckIcon,
   } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -106,6 +108,7 @@ export function TenantDashboard() {
   const { t } = useI18n();
   const { features: tenantFeatures } = useFeatureAccess();
   const [isOpen, setIsOpen] = useState(false);
+  const [tenantDropdownOpen, setTenantDropdownOpen] = useState(false);
   const { user: authUser } = useAuth();
 
   // Get tenant slug from params
@@ -221,6 +224,19 @@ export function TenantDashboard() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close tenant dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (tenantDropdownOpen && !target.closest('.tenant-dropdown')) {
+        setTenantDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [tenantDropdownOpen]);
 
   // Transform navigation items for tenant context - ONLY ADMINISTRATION
   const transformedTenantNavigationItems: TenantNavItem[] = useMemo(() => {
@@ -391,6 +407,25 @@ export function TenantDashboard() {
     return tenantName || tenantSlugDisplay || 'T';
   };
 
+  // Get available tenants for dropdown
+  const availableTenants = useMemo(() => {
+    return data?.me?.userTenants?.map((ut: { tenantId: string; role: string; tenant: { id: string; slug: string; name: string } }) => ({
+      id: ut.tenantId,
+      name: ut.tenant.name,
+      slug: ut.tenant.slug,
+      role: ut.role,
+      isActive: ut.tenant.slug === tenantSlug
+    })) || [];
+  }, [data?.me?.userTenants, tenantSlug]);
+
+  // Handle tenant switch
+  const handleTenantSwitch = (newTenantSlug: string) => {
+    if (newTenantSlug !== tenantSlug) {
+      window.location.href = `/${params.locale}/${newTenantSlug}/dashboard`;
+    }
+    setTenantDropdownOpen(false);
+  };
+
   // Helper function to check if a path is active
   const isPathActive = (itemHref: string, currentPath: string): boolean => {
     if (currentPath === itemHref) return true;
@@ -511,14 +546,60 @@ export function TenantDashboard() {
         <div className="flex flex-col bg-white border-r border-gray-200 h-screen">
           {/* Sidebar header */}
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <Link href={`/${params.locale}/${tenantSlug}/dashboard`} className="flex items-center">
-              <h1 
-                className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors"
-                title={tenantData?.tenant?.name || 'Cargando...'}
-              >
-                🏢 {getTenantDisplayName()}
-              </h1>
-            </Link>
+            {/* Tenant Selector/Link */}
+            {availableTenants.length > 1 ? (
+              <div className="relative tenant-dropdown">
+                <button
+                  onClick={() => setTenantDropdownOpen(!tenantDropdownOpen)}
+                  className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors"
+                  title="Switch tenant"
+                >
+                  <BuildingIcon className="h-5 w-5" />
+                  {getTenantDisplayName()}
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${tenantDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Tenant Dropdown */}
+                {tenantDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="py-2">
+                                              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">
+                          {t('sidebar.switchTenant') || 'Switch Tenant'}
+                        </div>
+                      {availableTenants.map((tenant: { id: string; slug: string; name: string; isActive: boolean }) => (
+                        <button
+                          key={tenant.id}
+                          onClick={() => handleTenantSwitch(tenant.slug)}
+                          className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                            tenant.isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <BuildingIcon className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">{tenant.name}</div>
+                              <div className="text-xs text-gray-500">/{tenant.slug}</div>
+                            </div>
+                          </div>
+                          {tenant.isActive && <CheckIcon className="h-4 w-4 text-blue-600" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href={`/${params.locale}/${tenantSlug}/dashboard`} className="flex items-center gap-2">
+                <h1 
+                  className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors flex items-center gap-2"
+                  title={tenantData?.tenant?.name || 'Cargando...'}
+                >
+                  <BuildingIcon className="h-5 w-5" />
+                  {getTenantDisplayName()}
+                </h1>
+              </Link>
+            )}
+            
             <div className="flex items-center gap-3">
               <LanguageSwitcher variant="sidebar" />
               
@@ -675,14 +756,60 @@ export function TenantDashboard() {
           <div className="fixed inset-y-0 left-0 w-full max-w-xs bg-white shadow-xl flex flex-col border-r border-gray-200">
             {/* Mobile sidebar header */}
             <div className="flex items-center justify-between h-16 px-4 border-b shrink-0">
-              <Link href={`/${params.locale}/${tenantSlug}/dashboard`} className="flex items-center" onClick={() => setIsOpen(false)}>
-                <h1 
-                  className="text-lg font-bold text-gray-800 hover:text-indigo-600 transition-colors"
-                  title={tenantData?.tenant?.name || 'Cargando...'}
-                >
-                  🏢 {getTenantDisplayName()}
-                </h1>
-              </Link>
+              {/* Mobile Tenant Selector/Link */}
+              {availableTenants.length > 1 ? (
+                <div className="relative tenant-dropdown">
+                  <button
+                    onClick={() => setTenantDropdownOpen(!tenantDropdownOpen)}
+                    className="flex items-center gap-2 text-lg font-bold text-gray-800 hover:text-indigo-600 transition-colors"
+                    title="Switch tenant"
+                  >
+                    <BuildingIcon className="h-4 w-4" />
+                    {getTenantDisplayName()}
+                    <ChevronDownIcon className={`h-3 w-3 transition-transform ${tenantDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {/* Mobile Tenant Dropdown */}
+                  {tenantDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="py-2">
+                        <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">
+                          {t('sidebar.switchTenant') || 'Switch Tenant'}
+                        </div>
+                        {availableTenants.map((tenant: { id: string; slug: string; name: string; isActive: boolean }) => (
+                          <button
+                            key={tenant.id}
+                            onClick={() => handleTenantSwitch(tenant.slug)}
+                            className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                              tenant.isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <BuildingIcon className="h-3 w-3" />
+                              <div>
+                                <div className="font-medium text-sm">{tenant.name}</div>
+                                <div className="text-xs text-gray-500">/{tenant.slug}</div>
+                              </div>
+                            </div>
+                            {tenant.isActive && <CheckIcon className="h-3 w-3 text-blue-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link href={`/${params.locale}/${tenantSlug}/dashboard`} className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                  <h1 
+                    className="text-lg font-bold text-gray-800 hover:text-indigo-600 transition-colors flex items-center gap-2"
+                    title={tenantData?.tenant?.name || 'Cargando...'}
+                  >
+                    <BuildingIcon className="h-4 w-4" />
+                    {getTenantDisplayName()}
+                  </h1>
+                </Link>
+              )}
+              
               <div className="flex items-center gap-2">
                 <LanguageSwitcher variant="sidebar" />
                 

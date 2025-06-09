@@ -1,6 +1,7 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { TenantDashboard } from '@/components/navigation/tenantDashboard/TenantDashboard';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
@@ -36,6 +37,20 @@ const GET_TENANT_FEATURES = gql`
   }
 `;
 
+// GraphQL query to get all tenants (for SuperAdmin to find by slug)
+const GET_ALL_TENANTS = gql`
+  query GetAllTenants {
+    allTenants {
+      items {
+        id
+        slug
+        name
+        features
+      }
+    }
+  }
+`;
+
 interface TenantDashboardLayoutProps {
   children: ReactNode;
   params: Promise<{
@@ -48,6 +63,8 @@ export default function TenantDashboardLayout({
   children 
 }: TenantDashboardLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
 
   // Get user data first
   const { data: userData, loading: userLoading } = useQuery(GET_USER_DATA, {
@@ -60,27 +77,66 @@ export default function TenantDashboardLayout({
     }
   });
 
-  // Get first tenant from user's tenant relationships
-  const firstTenantId = userData?.me?.userTenants?.[0]?.tenantId;
+  // Find the current tenant from user's tenant relationships using the URL slug
+  const currentUserTenant = useMemo(() => {
+    if (!userData?.me?.userTenants || !tenantSlug) return null;
+    return userData.me.userTenants.find(
+      (ut: { tenant: { slug: string } }) => ut.tenant.slug === tenantSlug
+    );
+  }, [userData?.me?.userTenants, tenantSlug]);
+
+  // Check if user is SuperAdmin
+  const isSuperAdmin = userData?.me?.role?.name === 'SuperAdmin';
   
-  // Get tenant features based on user's first tenantId
+  // Get the target tenant ID from the current user tenant relationship
+  const targetTenantId = currentUserTenant?.tenantId;
+  
+  // Get tenant features based on the current tenant being accessed
   const { data: tenantData } = useQuery(GET_TENANT_FEATURES, {
-    variables: { tenantId: firstTenantId || '' },
-    skip: !firstTenantId,
+    variables: { tenantId: targetTenantId || '' },
+    skip: !targetTenantId,
     onCompleted: (data) => {
-      console.log('Tenant features loaded:', data?.tenant?.features);
+      console.log('Tenant features loaded for tenant:', tenantSlug, data?.tenant?.features);
     },
     onError: (error) => {
       console.error('Error loading tenant features:', error);
     }
   });
 
-  // Parse tenant features - provide defaults for tenant dashboard
-  const tenantFeatures: FeatureType[] = tenantData?.tenant?.features 
-    ? (Array.isArray(tenantData.tenant.features) 
-        ? tenantData.tenant.features as FeatureType[]
-        : [tenantData.tenant.features as FeatureType])
-    : ['CMS_ENGINE', 'BLOG_MODULE', 'FORMS_MODULE', 'BOOKING_ENGINE', 'ECOMMERCE_ENGINE', 'LEGAL_ENGINE']; // Default features for tenant
+  // For SuperAdmin without direct tenant relationship, get all tenants and find by slug
+  const { data: allTenantsData } = useQuery(GET_ALL_TENANTS, {
+    skip: !isSuperAdmin || !!targetTenantId || !tenantSlug,
+    onCompleted: (data) => {
+      const targetTenant = data?.allTenants?.items?.find((t: { slug: string }) => t.slug === tenantSlug);
+      console.log('Tenant found for SuperAdmin:', tenantSlug, targetTenant?.features);
+    },
+    onError: (error) => {
+      console.error('Error loading tenants for SuperAdmin:', error);
+    }
+  });
+
+  // Parse tenant features - IMPORTANT: Only use actual tenant features, no defaults for SuperAdmin
+  // Use tenant data from direct relationship or fallback to all tenants query for SuperAdmin
+  const tenantFromAllTenants = allTenantsData?.allTenants?.items?.find((t: { slug: string }) => t.slug === tenantSlug);
+  const effectiveTenantData = tenantData?.tenant || tenantFromAllTenants;
+  
+  const tenantFeatures: FeatureType[] = effectiveTenantData?.features 
+    ? (Array.isArray(effectiveTenantData.features) 
+        ? effectiveTenantData.features as FeatureType[]
+        : [effectiveTenantData.features as FeatureType])
+    : ['CMS_ENGINE']; // Only CMS_ENGINE as default, not all features
+
+  // Debug logging for feature access
+  console.log('=== TENANT FEATURES DEBUG ===');
+  console.log('Tenant slug:', tenantSlug);
+  console.log('Is SuperAdmin:', isSuperAdmin);
+  console.log('Current user tenant:', currentUserTenant);
+  console.log('Target tenant ID:', targetTenantId);
+  console.log('Tenant data from relationship:', tenantData?.tenant);
+  console.log('Tenant data from all tenants query:', tenantFromAllTenants);
+  console.log('Effective tenant data:', effectiveTenantData);
+  console.log('Final tenant features:', tenantFeatures);
+  console.log('=============================');
 
   return (
     <FeatureProvider features={tenantFeatures} isLoading={isLoading || userLoading}>

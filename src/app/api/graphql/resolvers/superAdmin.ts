@@ -729,8 +729,10 @@ export const superAdminResolvers = {
 
         // Extract admin user data from settings if provided there, or use direct fields
         let adminData = null;
+
         if (input.settings && typeof input.settings === 'object') {
           const settings = input.settings as Record<string, unknown>;
+       
           if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
             adminData = {
               email: (settings.adminEmail as string) || input.adminEmail,
