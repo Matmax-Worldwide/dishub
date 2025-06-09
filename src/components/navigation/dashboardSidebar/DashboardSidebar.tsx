@@ -355,7 +355,8 @@ export function DashboardSidebar() {
 
   // Get feature-based navigation items and filter by tenant features
   const featureBasedNavigationItems: NavItem[] = useMemo(() => {
-    const items = sidebarConfig.featureBasedNavigationItems(params.locale as string).map(item => ({
+    const currentTenantSlug = firstTenant?.slug || tenantData?.tenant?.slug || tenantSlug || '';
+    const items = sidebarConfig.featureBasedNavigationItems(params.locale as string, currentTenantSlug).map(item => ({
       ...item,
       name: t(item.name),
       children: item.children?.map(child => ({

@@ -14,9 +14,10 @@ import graphqlClient from '@/lib/graphql-client';
 
 interface BlogNewPageContentProps {
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function BlogNewPageContent({ locale = 'en' }: BlogNewPageContentProps) {
+export function BlogNewPageContent({ locale, tenantSlug }: BlogNewPageContentProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -61,7 +62,7 @@ export function BlogNewPageContent({ locale = 'en' }: BlogNewPageContentProps) {
 
       if (result.success) {
         toast.success('Blog created successfully!');
-        router.push(`/${locale}/cms/blog`);
+        router.push(`/${locale}/${tenantSlug}/cms/blog`);
       } else {
         toast.error(result.message || 'Failed to create blog');
       }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FeatureType, useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { FeatureGuard } from '@/components/FeatureGuard';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -58,7 +58,7 @@ interface SidebarItem {
   description?: string;
 }
 
-const SIDEBAR_SECTIONS: SidebarSection[] = [
+  const SIDEBAR_SECTIONS = (locale: string, tenantSlug: string): SidebarSection[] => [
   {
     id: 'dashboard',
     title: 'Dashboard',
@@ -67,14 +67,14 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'overview',
         title: 'Resumen',
-        href: '/admin',
+        href: `/${locale}/${tenantSlug}/dashboard`,
         icon: BarChart3,
         description: 'Vista general del sistema'
       },
       {
         id: 'analytics',
         title: 'Analíticas',
-        href: '/admin/analytics',
+        href: `/${locale}/${tenantSlug}/dashboard/analytics`,
         icon: BarChart3,
         description: 'Métricas y estadísticas'
       }
@@ -90,7 +90,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'pages',
         title: 'Páginas',
-        href: '/admin/cms/pages',
+        href: `/${locale}/${tenantSlug}/cms/pages`,
         icon: FileText,
         feature: 'CMS_ENGINE',
         description: 'Crear y editar páginas'
@@ -98,7 +98,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'sections',
         title: 'Secciones',
-        href: '/admin/cms/sections',
+        href: `/${locale}/${tenantSlug}/cms/sections`,
         icon: Palette,
         feature: 'CMS_ENGINE',
         description: 'Componentes reutilizables'
@@ -106,7 +106,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'media',
         title: 'Medios',
-        href: '/admin/cms/media',
+        href: `/${locale}/${tenantSlug}/cms/media`,
         icon: Image,
         feature: 'CMS_ENGINE',
         description: 'Imágenes y archivos'
@@ -114,7 +114,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'menus',
         title: 'Menús',
-        href: '/admin/cms/menus',
+        href: `/${locale}/${tenantSlug}/cms/menus`,
         icon: Menu,
         feature: 'CMS_ENGINE',
         description: 'Navegación del sitio'
@@ -132,7 +132,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'posts',
         title: 'Artículos',
-        href: '/admin/cms/blog/posts',
+        href: `/${locale}/${tenantSlug}/cms/blog/posts`,
         icon: MessageSquare,
         feature: 'BLOG_MODULE',
         description: 'Crear y gestionar artículos'
@@ -140,7 +140,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'categories',
         title: 'Categorías',
-        href: '/admin/cms/blog/categories',
+        href: `/${locale}/${tenantSlug}/cms/blog/categories`,
         icon: Package,
         feature: 'BLOG_MODULE',
         description: 'Organizar contenido'
@@ -148,7 +148,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'comments',
         title: 'Comentarios',
-        href: '/admin/cms/blog/comments',
+        href: `/${locale}/${tenantSlug}/cms/blog/comments`,
         icon: MessageSquare,
         feature: 'BLOG_MODULE',
         description: 'Moderar comentarios'
@@ -166,7 +166,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'form-builder',
         title: 'Constructor',
-        href: '/admin/cms/forms',
+        href: `/${locale}/${tenantSlug}/cms/forms`,
         icon: FormInput,
         feature: 'FORMS_MODULE',
         description: 'Crear formularios'
@@ -174,7 +174,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'submissions',
         title: 'Respuestas',
-        href: '/admin/cms/forms/submissions',
+        href: `/${locale}/${tenantSlug}/cms/forms/submissions`,
         icon: Mail,
         feature: 'FORMS_MODULE',
         description: 'Ver envíos'
@@ -182,7 +182,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'form-analytics',
         title: 'Analíticas',
-        href: '/admin/cms/forms/analytics',
+        href: `/${locale}/${tenantSlug}/cms/forms/analytics`,
         icon: BarChart3,
         feature: 'FORMS_MODULE',
         description: 'Estadísticas de formularios'
@@ -200,7 +200,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'calendar',
         title: 'Calendario',
-        href: '/admin/bookings/calendar',
+          href: `/${locale}/${tenantSlug}/bookings/calendar`,
         icon: Calendar,
         feature: 'BOOKING_ENGINE',
         description: 'Vista de calendario'
@@ -208,7 +208,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'services',
         title: 'Servicios',
-        href: '/admin/bookings/services',
+        href: `/${locale}/${tenantSlug}/bookings/services`,
         icon: Megaphone,
         feature: 'BOOKING_ENGINE',
         description: 'Gestionar servicios'
@@ -216,7 +216,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'staff',
         title: 'Personal',
-        href: '/admin/bookings/staff',
+        href: `/${locale}/${tenantSlug}/bookings/staff`,
         icon: Users,
         feature: 'BOOKING_ENGINE',
         description: 'Equipo de trabajo'
@@ -224,7 +224,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'locations',
         title: 'Ubicaciones',
-        href: '/admin/bookings/locations',
+        href: `/${locale}/${tenantSlug}/bookings/locations`,
         icon: MapPin,
         feature: 'BOOKING_ENGINE',
         description: 'Lugares de servicio'
@@ -232,7 +232,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'booking-rules',
         title: 'Reglas',
-        href: '/admin/bookings/rules',
+        href: `/${locale}/${tenantSlug}/bookings/rules`,
         icon: Clock,
         feature: 'BOOKING_ENGINE',
         description: 'Configurar disponibilidad'
@@ -250,7 +250,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'products',
         title: 'Productos',
-        href: '/admin/commerce/products',
+        href: `/${locale}/${tenantSlug}/commerce/products`,
         icon: Package,
         feature: 'ECOMMERCE_ENGINE',
         description: 'Catálogo de productos'
@@ -258,7 +258,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'orders',
         title: 'Pedidos',
-        href: '/admin/commerce/orders',
+        href: `/${locale}/${tenantSlug}/commerce/orders`,
         icon: ShoppingBag,
         feature: 'ECOMMERCE_ENGINE',
         description: 'Gestionar pedidos'
@@ -266,7 +266,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'customers',
         title: 'Clientes',
-        href: '/admin/commerce/customers',
+        href: `/${locale}/${tenantSlug}/commerce/customers`,
         icon: Users,
         feature: 'ECOMMERCE_ENGINE',
         description: 'Base de clientes'
@@ -274,7 +274,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'reviews',
         title: 'Reseñas',
-        href: '/admin/commerce/reviews',
+        href: `/${locale}/${tenantSlug}/commerce/reviews`,
         icon: Star,
         feature: 'ECOMMERCE_ENGINE',
         description: 'Opiniones de clientes'
@@ -282,7 +282,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'payments',
         title: 'Pagos',
-        href: '/admin/commerce/payments',
+        href: `/${locale}/${tenantSlug}/commerce/payments`,
         icon: CreditCard,
         feature: 'ECOMMERCE_ENGINE',
         description: 'Transacciones'
@@ -298,28 +298,28 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       {
         id: 'general',
         title: 'General',
-        href: '/admin/settings',
+        href: `/${locale}/${tenantSlug}/settings`,
         icon: Settings,
         description: 'Configuración básica'
       },
       {
         id: 'users',
         title: 'Usuarios',
-        href: '/admin/settings/users',
+        href: `/${locale}/${tenantSlug}/settings/users`,
         icon: Users,
         description: 'Gestionar usuarios'
       },
       {
         id: 'roles',
         title: 'Roles',
-        href: '/admin/settings/roles',
+        href: `/${locale}/${tenantSlug}/settings/roles`,
         icon: Shield,
         description: 'Permisos y roles'
       },
       {
         id: 'domain',
         title: 'Dominio',
-        href: '/admin/settings/domain',
+          href: `/${locale}/${tenantSlug}/settings/domain`,
         icon: Globe,
         description: 'Configurar dominio'
       }
@@ -332,12 +332,16 @@ interface CustomSidebarProps {
 }
 
 export function CustomSidebar({ className }: CustomSidebarProps) {
+  const { locale, tenantSlug } = useParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['dashboard', 'cms']);
   const { calculateCost, getAvailableFeatures } = useFeatureAccess();
   const pathname = usePathname();
   const monthlyCost = calculateCost();
   const availableFeatures = getAvailableFeatures();
+
+  const localeStr = locale as string || 'en';
+  const tenantSlugStr = tenantSlug as string || '';
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
@@ -402,7 +406,7 @@ export function CustomSidebar({ className }: CustomSidebarProps) {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-2">
         <nav className="space-y-1">
-          {SIDEBAR_SECTIONS.map((section) => (
+          {SIDEBAR_SECTIONS(localeStr, tenantSlugStr).map((section) => (
             <SidebarSection
               key={section.id}
               section={section}

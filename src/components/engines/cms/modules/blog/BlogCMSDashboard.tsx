@@ -75,9 +75,10 @@ interface Post {
 
 interface BlogCMSDashboardProps {
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
+export function BlogCMSDashboard({ locale = 'en', tenantSlug = 'admin' }: BlogCMSDashboardProps) {
   const router = useRouter();
   
   // State management
@@ -262,7 +263,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
   };
 
   // Post card component
-  const PostCard = ({ post }: { post: Post }) => (
+  const PostCard = ({ post, locale, tenantSlug }: { post: Post, locale: string, tenantSlug: string   }) => (
     <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer">
       {post.featuredImageMedia && (
         <div className="aspect-video overflow-hidden rounded-t-lg">
@@ -283,11 +284,11 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/${locale}/cms/blog/posts/edit/${post.id}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/edit/${post.id}`)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/${locale}/blog/post/${post.slug}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/${locale}/${tenantSlug}/blog/post/${post.slug}`)}>
                 <Eye className="h-4 w-4 mr-2" />
                 View
               </DropdownMenuItem>
@@ -348,7 +349,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
   );
 
   // Blog card component
-  const BlogCard = ({ blog }: { blog: Blog }) => {
+  const BlogCard = ({ blog, locale, tenantSlug }: { blog: Blog, locale: string, tenantSlug: string }) => {
     const postCount = blog.posts?.length || 0;
     const publishedCount = blog.posts?.filter(p => p.status === 'PUBLISHED').length || 0;
     
@@ -366,11 +367,11 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push(`/${locale}/cms/blog/edit/${blog.id}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/edit/${blog.id}`)}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(`/${locale}/cms/blog/posts?blog=${blog.id}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts?blog=${blog.id}`)}>
                   <BookOpen className="h-4 w-4 mr-2" />
                   View Posts
                 </DropdownMenuItem>
@@ -412,7 +413,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
               variant="outline" 
               size="sm" 
               className="w-full"
-              onClick={() => router.push(`/${locale}/cms/blog/posts/new?blog=${blog.id}`)}
+              onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/new?blog=${blog.id}`)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Post
@@ -448,11 +449,11 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
           <p className="text-muted-foreground text-lg">Manage your blogs and content</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => router.push(`/${locale}/cms/blog/analytics`)}>
+          <Button variant="outline" onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/analytics`)}>
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
           </Button>
-          <Button onClick={() => router.push(`/${locale}/cms/blog/new`)}>
+          <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/new`)}>
             <Plus className="h-4 w-4 mr-2" />
             New Blog
           </Button>
@@ -561,7 +562,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
           {/* Blogs Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {blogs.map(blog => (
-              <BlogCard key={blog.id} blog={blog} />
+              <BlogCard key={blog.id} blog={blog} locale={locale} tenantSlug={tenantSlug} />
             ))}
           </div>
         </TabsContent>
@@ -626,7 +627,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
                   </Button>
                 </div>
                 
-                <Button onClick={() => router.push(`/${locale}/cms/blog/posts/new`)}>
+                <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/new`)}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Post
                 </Button>
@@ -645,7 +646,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
                     ? 'Try adjusting your filters to see more posts.'
                     : 'Get started by creating your first blog post.'}
                 </p>
-                <Button onClick={() => router.push(`/${locale}/cms/blog/posts/new`)}>
+                <Button onClick={() => router.push(`/${locale}/${tenantSlug}/cms/blog/posts/new`)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Post
                 </Button>
@@ -657,7 +658,7 @@ export function BlogCMSDashboard({ locale = 'en' }: BlogCMSDashboardProps) {
               : 'space-y-4'
             }>
               {filteredPosts.map(post => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} locale={locale} tenantSlug={tenantSlug} />
               ))}
             </div>
           )}

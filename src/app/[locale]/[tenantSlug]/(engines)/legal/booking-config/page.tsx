@@ -21,6 +21,7 @@ import {
   Save
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 // Mock data para servicios legales configurados
 const mockLegalServices = [
@@ -251,6 +252,9 @@ export default function LegalBookingConfigPage() {
     setFormData(emptyService);
   };
 
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -306,7 +310,7 @@ export default function LegalBookingConfigPage() {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <Link
-            href={`/${locale}/legal/settings`}
+            href={`/${locale}/${tenantSlug}/legal/settings`}
             className="text-gray-600 hover:text-gray-800"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -322,7 +326,7 @@ export default function LegalBookingConfigPage() {
         </div>
         <div className="flex space-x-3">
           <Link
-            href={`/${locale}/bookings/services`}
+            href={`/${locale}/${tenantSlug}/bookings/services`}
             className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
           >
             <Settings className="h-4 w-4 mr-2" />
@@ -552,7 +556,7 @@ export default function LegalBookingConfigPage() {
             </div>
             <div className="mt-4">
               <Link
-                href={`/${locale}/bookings/services`}
+                href={`/${locale}/${tenantSlug}/bookings/services`}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Settings className="h-4 w-4 mr-2" />

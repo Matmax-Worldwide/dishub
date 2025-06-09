@@ -15,7 +15,7 @@ interface PageParams {
 // Componente principal con el provider
 const EditPageContent = () => {
   const params = useParams<PageParams>();
-  const { locale, slug } = params;
+  const { slug } = params;
   const { activeTab, setActiveTab } = useTabContext();
   
   useEffect(() => {
@@ -31,7 +31,7 @@ const EditPageContent = () => {
   }, [activeTab]);
   
   return (
-    <PageEditor slug={slug} locale={locale} />
+    <PageEditor slug={slug} />
   );
 };
 

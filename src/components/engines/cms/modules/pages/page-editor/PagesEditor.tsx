@@ -11,10 +11,10 @@ const PagesEditor: React.FC<PagesEditorProps> = ({ children }) => {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string || 'en';
-
+  const tenantSlug = params.tenantSlug as string || 'admin';
   // Handle page selection from sidebar
   const handlePageSelect = (slug: string) => {
-      router.push(`/${locale}/cms/pages/edit/${slug}`);
+      router.push(`/${locale}/${tenantSlug}/cms/pages/edit/${slug}`);
   };
 
   // Handle component selection from ComponentsGrid

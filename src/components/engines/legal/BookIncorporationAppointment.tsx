@@ -14,6 +14,7 @@ import {
   X,
   ArrowRight
 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface BookIncorporationAppointmentProps {
   incorporationId?: string;
@@ -97,7 +98,8 @@ export default function BookIncorporationAppointment({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string>('');
   const [selectedMeetingType, setSelectedMeetingType] = useState<string>('');
-
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -118,11 +120,11 @@ export default function BookIncorporationAppointment({
       ...(clientName && { clientName }),
       ...(jurisdiction && { jurisdiction }),
       category: 'legal_incorporation',
-      returnUrl: `/${locale}/legal/incorporations${incorporationId ? `/${incorporationId}` : ''}`
+      returnUrl: `/${locale}/${tenantSlug}/legal/incorporations${incorporationId ? `/${incorporationId}` : ''}`
     });
 
     // Redirigir al booking engine con los parámetros
-    window.location.href = `/${locale}/bookings/book?${bookingParams.toString()}`;
+    window.location.href = `/${locale}/${tenantSlug}/bookings/book?${bookingParams.toString()}`;
   };
 
   const selectedType = appointmentTypes.find(type => type.id === selectedAppointmentType);

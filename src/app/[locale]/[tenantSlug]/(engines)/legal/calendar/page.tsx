@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 // Mock data - En producción esto vendría del Booking Engine
 const mockAppointments = [
@@ -141,6 +142,8 @@ const meetingTypes = {
 
 export default function LegalCalendarPage() {
   const { t, locale } = useI18n();
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [selectedDate, setSelectedDate] = useState('2024-01-15');
   const [filterType, setFilterType] = useState('all');
   const [filterLawyer, setFilterLawyer] = useState('all');
@@ -195,7 +198,7 @@ export default function LegalCalendarPage() {
         </div>
         <div className="flex space-x-3">
           <Link
-            href={`/${locale}/bookings/calendar`}
+            href={`/${locale}/${tenantSlug}/bookings/calendar`}
             className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
           >
             <Calendar className="h-4 w-4 mr-2" />
@@ -385,7 +388,7 @@ export default function LegalCalendarPage() {
                               <p>
                                 <strong>{t('legal.incorporation') || 'Incorporación'}:</strong>{' '}
                                 <Link
-                                  href={`/${locale}/legal/incorporations/${appointment.incorporationId}`}
+                                  href={`/${locale}/${tenantSlug}/legal/incorporations/${appointment.incorporationId}`}
                                   className="text-blue-600 hover:text-blue-700"
                                 >
                                   {appointment.incorporationNumber}
@@ -437,7 +440,7 @@ export default function LegalCalendarPage() {
 
                         <div className="ml-4 flex flex-col space-y-2">
                           <Link
-                            href={`/${locale}/bookings/list?appointment=${appointment.id}`}
+                            href={`/${locale}/${tenantSlug}/bookings/list?appointment=${appointment.id}`}
                             className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                           >
                             {t('legal.viewDetails') || 'Ver Detalles'}

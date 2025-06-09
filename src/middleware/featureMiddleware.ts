@@ -28,6 +28,11 @@ const FEATURE_ROUTES: Record<string, string[]> = {
   '/admin/hrms': ['HRMS_MODULE'],
   '/[tenantSlug]/hrms': ['HRMS_MODULE'],
   
+  // Interpretation Engine routes
+  '/admin/interpretation': ['INTERPRETATION_ENGINE'],
+  '/admin/business/interpretation': ['INTERPRETATION_ENGINE'],
+  '/[tenantSlug]/dashboard/interpretation': ['INTERPRETATION_ENGINE'],
+  
   // Performance and analytics
   '/admin/reports/advanced': ['PERFORMANCE_MODULE'],
   '/admin/analytics': ['PERFORMANCE_MODULE'],
@@ -131,7 +136,8 @@ const ALWAYS_ALLOWED_ROUTES = [
 export function createFeatureMiddleware() {
   return async function featureMiddleware(
     request: NextRequest,
-    tenantFeatures: string[]
+    tenantFeatures: string[],
+    tenantSlug: string
   ): Promise<NextResponse | null> {
     const pathname = request.nextUrl.pathname;
     
@@ -166,8 +172,8 @@ export function createFeatureMiddleware() {
     }
 
     // Verificar usando la función general de rutas permitidas
-    if (!isRouteAllowed(tenantFeatures, routeWithoutLocale)) {
-      const upgradeUrl = new URL(`/${locale}/admin/billing/upgrade`, request.url);
+    if (!isRouteAllowed(tenantFeatures, routeWithoutLocale, locale, tenantSlug)) {
+      const upgradeUrl = new URL(`/${locale}/${tenantSlug}/billing/upgrade`, request.url);
       upgradeUrl.searchParams.set('redirect', pathname);
       
       return NextResponse.redirect(upgradeUrl);
@@ -255,6 +261,10 @@ function getRequiredFeaturesForRoute(routeWithoutLocale: string): string[] {
 
   if (routeWithoutLocale.includes('/time') || routeWithoutLocale.includes('/timeentries')) {
     return ['TIME_MODULE'];
+  }
+
+  if (routeWithoutLocale.includes('/interpretation') || routeWithoutLocale.includes('/interpreters')) {
+    return ['INTERPRETATION_ENGINE'];
   }
 
   return [];

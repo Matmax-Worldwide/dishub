@@ -3,6 +3,7 @@ import { GraphQLContext } from '../route';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
+import { UserTenantRole } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -553,7 +554,7 @@ export const tenantResolvers = {
             data: {
               userId: user.id,
               tenantId: tenant.id,
-              role: 'OWNER',
+              role: 'TenantAdmin',
               isActive: true
             }
           });
@@ -621,7 +622,7 @@ export const tenantResolvers = {
             }
           });
 
-          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+          if (!userTenant || !['TenantAdmin', 'TenantManager'].includes(userTenant.role)) {
             throw new Error('Unauthorized: Only tenant owners and admins can add users');
           }
         }
@@ -667,7 +668,7 @@ export const tenantResolvers = {
                 }
               },
               data: {
-                role: input.role,
+                role: input.role as UserTenantRole,
                 isActive: true,
                 leftAt: null
               },
@@ -694,7 +695,7 @@ export const tenantResolvers = {
           data: {
             userId: input.userId,
             tenantId: input.tenantId,
-            role: input.role,
+            role: input.role as UserTenantRole,
             isActive: true
           },
           include: {
@@ -739,7 +740,7 @@ export const tenantResolvers = {
             }
           });
 
-          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+          if (!userTenant || !['TenantAdmin', 'TenantManager'].includes(userTenant.role)) {
             throw new Error('Unauthorized: Only tenant owners and admins can update user roles');
           }
         }
@@ -767,7 +768,7 @@ export const tenantResolvers = {
             }
           },
           data: {
-            role: input.role
+            role: input.role as UserTenantRole
           },
           include: {
             user: {
@@ -811,7 +812,7 @@ export const tenantResolvers = {
             }
           });
 
-          if (!userTenant || !['OWNER', 'ADMIN'].includes(userTenant.role)) {
+          if (!userTenant || !['TenantAdmin', 'TenantManager'].includes(userTenant.role)) {
             throw new Error('Unauthorized: Only tenant owners and admins can remove users');
           }
         }
@@ -831,11 +832,11 @@ export const tenantResolvers = {
         }
 
         // Prevent removing the last owner
-        if (existingUserTenant.role === 'OWNER') {
+        if (existingUserTenant.role === 'TenantAdmin') {
           const ownerCount = await prisma.userTenant.count({
             where: {
               tenantId: input.tenantId,
-              role: 'OWNER',
+              role: 'TenantAdmin',
               isActive: true
             }
           });

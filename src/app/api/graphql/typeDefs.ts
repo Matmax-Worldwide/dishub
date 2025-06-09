@@ -72,11 +72,10 @@ export const typeDefs = gql`
 
   # Enum for user roles within a tenant
   enum UserTenantRole {
-    OWNER
-    ADMIN
-    MANAGER
-    MEMBER
-    VIEWER
+    TenantAdmin
+    TenantManager
+    TenantUser
+    Employee
   }
 
   # Add or ensure TenantStatus enum exists

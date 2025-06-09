@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { useI18n } from '@/hooks/useI18n';
@@ -60,7 +60,8 @@ export default function LegalSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
-  
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string || 'admin';
   // Unsaved changes context
   const {
     hasUnsavedChanges,
@@ -249,7 +250,7 @@ export default function LegalSidebar() {
                         {t('nav.dashboard') || 'Dashboard'}
                       </Link>
                       <Link
-                        href={`/${locale}/cms`}
+                        href={`/${locale}/${tenantSlug}/cms`}
                         className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >
@@ -257,7 +258,7 @@ export default function LegalSidebar() {
                         {t('engines.cms') || 'CMS'}
                       </Link>
                       <Link
-                        href={`/${locale}/bookings`}
+                        href={`/${locale}/${tenantSlug}/bookings`}
                         className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >
@@ -265,7 +266,7 @@ export default function LegalSidebar() {
                         {t('engines.booking') || 'Booking'}
                       </Link>
                       <Link
-                        href={`/${locale}/commerce`}
+                        href={`/${locale}/${tenantSlug}/commerce`}
                         className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >

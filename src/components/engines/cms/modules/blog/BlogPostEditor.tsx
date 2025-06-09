@@ -77,9 +77,10 @@ interface BlogPostEditorProps {
   postId?: string;
   blogId?: string;
   locale?: string;
+  tenantSlug?: string;
 }
 
-export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditorProps) {
+export function BlogPostEditor({ postId, blogId, locale = 'en', tenantSlug = 'admin' }: BlogPostEditorProps) {
   const router = useRouter();
   
   // State management
@@ -346,7 +347,7 @@ export function BlogPostEditor({ postId, blogId, locale = 'en' }: BlogPostEditor
         
         // If creating a new post, redirect to edit mode
         if (!postId && result.post?.id) {
-          router.push(`/${locale}/cms/blog/posts/edit/${result.post.id}`);
+          router.push(`/${locale}/${tenantSlug}/cms/blog/posts/edit/${result.post.id}`);
         }
       } else {
         throw new Error(result.message || 'Failed to save post');

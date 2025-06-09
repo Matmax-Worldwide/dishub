@@ -58,7 +58,7 @@ export default function CalendarManagementPage() {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  
+  const tenantSlug = params.tenantSlug as string;
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
@@ -251,7 +251,7 @@ export default function CalendarManagementPage() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => router.push(`/${locale}/bookings/rules`)}
+            onClick={() => router.push(`/${locale}/${tenantSlug}/bookings/rules`)}
           >
             <SettingsIcon className="w-4 h-4 mr-2" />
             Settings

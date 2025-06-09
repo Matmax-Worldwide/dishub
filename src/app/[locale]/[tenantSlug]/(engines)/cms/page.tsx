@@ -28,7 +28,7 @@ type CMSModule = {
 };
 
 export default function CMSDashboard() {
-  const { locale } = useParams();
+  const { locale, tenantSlug } = useParams();
   const [pageCount, setPageCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
   const [formCount, setFormCount] = useState(0);
@@ -80,7 +80,7 @@ export default function CMSDashboard() {
       title: 'Páginas',
       description: 'Crear y gestionar páginas del sitio web con contenido dinámico',
       icon: FileTextIcon,
-      href: `/${locale}/cms/pages`,
+      href: `/${locale}/${tenantSlug}/cms/pages`,
       count: pageCount,
       color: 'bg-blue-500',
       disabled: false
@@ -89,7 +89,7 @@ export default function CMSDashboard() {
       title: 'Menús',
       description: 'Configurar menús de navegación en todo el sitio',
       icon: MenuIcon,
-      href: `/${locale}/cms/menus`,
+      href: `/${locale}/${tenantSlug}/cms/menus`,
       count: menuCount,
       color: 'bg-green-500',
       disabled: false
@@ -98,7 +98,7 @@ export default function CMSDashboard() {
       title: 'Formularios',
       description: 'Subir y gestionar formularios',
       icon: ClipboardList,
-      href: `/${locale}/cms/forms`,
+      href: `/${locale}/${tenantSlug}/cms/forms`,
       count: formCount,
       color: 'bg-amber-500',
       disabled: false
@@ -108,7 +108,7 @@ export default function CMSDashboard() {
       title: 'Blog',
       description: 'Gestionar publicaciones y categorías del blog',
       icon: NewspaperIcon,
-      href: `/${locale}/cms/blog`,
+      href: `/${locale}/${tenantSlug}/cms/blog`,
       count: blogCount,
       posts: postsCount,
       color: 'bg-indigo-500',
@@ -118,7 +118,7 @@ export default function CMSDashboard() {
       title: 'Biblioteca de Medios',
       description: 'Subir y gestionar imágenes, videos y documentos',
       icon: ImageIcon,
-      href: `/${locale}/cms/media`,
+      href: `/${locale}/${tenantSlug}/cms/media`,
       color: 'bg-purple-500',
       disabled: false
     },
@@ -126,7 +126,7 @@ export default function CMSDashboard() {
       title: 'Configuración',
       description: 'Configurar ajustes globales del sitio web y apariencia',
       icon: SettingsIcon,
-      href: `/${locale}/cms/settings`,
+      href: `/${locale}/${tenantSlug}/cms/settings`,
       color: 'bg-orange-500',
       disabled: false
     }

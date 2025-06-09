@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { useI18n } from '@/hooks/useI18n';
@@ -56,7 +56,7 @@ export default function BookingsSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
-  
+  const { tenantSlug } = useParams();
   // Unsaved changes context
   const {
     hasUnsavedChanges,
@@ -72,17 +72,17 @@ export default function BookingsSidebar() {
   const mainNavigationItems = [
     {
       name: t('bookings.dashboard') || 'Dashboard',
-      href: `/${locale}/bookings`,
+      href: `/${locale}/${tenantSlug}/bookings`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
       name: t('bookings.calendar') || 'Calendar',
-      href: `/${locale}/bookings/calendar`,
+      href: `/${locale}/${tenantSlug}/bookings/calendar`,
       icon: <Calendar className="h-4 w-4" />
     },
     {
       name: t('bookings.bookings') || 'Bookings',
-      href: `/${locale}/bookings/list`,
+      href: `/${locale}/${tenantSlug}/bookings/list`,
       icon: <BookOpen className="h-4 w-4" />
     },
   ];
@@ -90,35 +90,35 @@ export default function BookingsSidebar() {
   const managementItems = [
     {
       name: t('bookings.services') || 'Services',
-      href: `/${locale}/bookings/services`,
+      href: `/${locale}/${tenantSlug}/bookings/services`,
       icon: <Briefcase className="h-4 w-4" />
     },
     {
       name: t('bookings.categories') || 'Categories',
-      href: `/${locale}/bookings/categories`,
+      href: `/${locale}/${tenantSlug}/bookings/categories`,
       icon: <Users className="h-4 w-4" />
     },
     {
       name: t('bookings.locations') || 'Locations',
-      href: `/${locale}/bookings/locations`,
+      href: `/${locale}/${tenantSlug}/bookings/locations`,
       icon: <MapPin className="h-4 w-4" />
     },
     {
       name: t('bookings.staff') || 'Staff',
-      href: `/${locale}/bookings/staff`,
+      href: `/${locale}/${tenantSlug}/bookings/staff`,
       icon: <UserCheck className="h-4 w-4" />
     },
     {
       name: t('bookings.rules') || 'Rules',
-      href: `/${locale}/bookings/rules`,
+      href: `/${locale}/${tenantSlug}/bookings/rules`,
       icon: <Clock className="h-4 w-4" />
     },
   ];
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/bookings`) {
-      return pathname === `/${locale}/bookings` || pathname === `/${locale}/bookings/`;
+    if (path === `/${locale}/${tenantSlug}/bookings`) {
+      return pathname === `/${locale}/${tenantSlug}/bookings` || pathname === `/${locale}/${tenantSlug}/bookings/`;
     }
     
     // For other links, check if pathname starts with the link path
@@ -209,14 +209,14 @@ export default function BookingsSidebar() {
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                     <Link
-                      href={`/${locale}/cms`}
+                      href={`/${locale}/${tenantSlug}/cms`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span>{t('cms.title') || 'CMS'}</span>
                     </Link>
                     <Link
-                      href={`/${locale}/commerce`}
+                      href={`/${locale}/${tenantSlug}/commerce`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -232,11 +232,6 @@ export default function BookingsSidebar() {
               <CollapsibleButton className="sidebar-header-collapse-button" />
             </div>
           </SidebarHeader>
-          
-          {/* Button that will be positioned in the middle of the sidebar when collapsed */}
-          <div className="sidebar-header-collapse-container">
-            <CollapsibleButton />
-          </div>
           
           <SidebarContent>
             <SidebarGroup title={t('bookings.main') || 'Main'}>
@@ -278,9 +273,9 @@ export default function BookingsSidebar() {
           
           <SidebarFooter>
             <Link 
-              href={`/${locale}/admin/dashboard`} 
+              href={`/${locale}/${tenantSlug}/dashboard`} 
               className="block w-full"
-              onClick={(e) => handleNavigation(`/${locale}/admin/dashboard`, e)}
+              onClick={(e) => handleNavigation(`/${locale}/${tenantSlug}/dashboard`, e)}
             >
               <SidebarItem 
                 icon={<LogOut className="h-4 w-4" />}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import BookIncorporationAppointment from '@/components/engines/legal/BookIncorporationAppointment';
+import { useParams } from 'next/navigation';
 
 // Mock data - En producción esto vendría de la API
 const mockIncorporations = [
@@ -120,7 +121,8 @@ export default function IncorporationsPage() {
   const [filterJurisdiction, setFilterJurisdiction] = useState('all');
   const [sortBy, setSortBy] = useState('dateInitiated');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -203,7 +205,7 @@ export default function IncorporationsPage() {
           </p>
         </div>
         <Link
-          href={`/${locale}/legal/incorporations/new`}
+          href={`/${locale}/${tenantSlug}/legal/incorporations/new`}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -311,7 +313,7 @@ export default function IncorporationsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <Link
-                        href={`/${locale}/legal/incorporations/${incorporation.id}`}
+                        href={`/${locale}/${tenantSlug}/legal/incorporations/${incorporation.id}`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
                         {incorporation.incorporationNumber}
@@ -375,14 +377,14 @@ export default function IncorporationsPage() {
                         className="p-1 text-green-600 hover:text-green-700"
                       />
                       <Link
-                        href={`/${locale}/legal/incorporations/${incorporation.id}`}
+                        href={`/${locale}/${tenantSlug}/legal/incorporations/${incorporation.id}`}
                         className="text-blue-600 hover:text-blue-700 p-1"
                         title={t('legal.view') || 'Ver'}
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
                       <Link
-                        href={`/${locale}/legal/incorporations/${incorporation.id}/edit`}
+                        href={`/${locale}/${tenantSlug}/legal/incorporations/${incorporation.id}/edit`}
                         className="text-gray-600 hover:text-gray-700 p-1"
                         title={t('legal.edit') || 'Editar'}
                       >
@@ -414,7 +416,7 @@ export default function IncorporationsPage() {
             </p>
             <div className="mt-6">
               <Link
-                href={`/${locale}/legal/incorporations/new`}
+                href={`/${locale}/${tenantSlug}/legal/incorporations/new`}
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Plus className="h-4 w-4 mr-2" />

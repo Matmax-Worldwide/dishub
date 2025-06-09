@@ -30,6 +30,7 @@ const AVAILABLE_FEATURES = [
   { id: 'BOOKING_ENGINE', name: 'Booking Engine', description: 'Appointment and booking system' },
   { id: 'ECOMMERCE_ENGINE', name: 'E-commerce Engine', description: 'Online store and payments' },
   { id: 'LEGAL_ENGINE', name: 'Legal Engine', description: 'Company incorporation and legal services' },
+  { id: 'INTERPRETATION_ENGINE', name: 'Interpretation Engine', description: 'Real-time language interpretation services' },
 ];
 
 const STATUS_OPTIONS = [
