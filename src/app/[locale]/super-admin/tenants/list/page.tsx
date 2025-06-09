@@ -112,38 +112,47 @@ export default function SuperAdminTenantsPage() {
     if (!tenantToDelete) return;
     
     try {
-      // Optimistic UI: Remove tenant from list immediately
-      const previousData = data;
-      const optimisticTenants = {
-        ...data.tenants!,
-        items: data.tenants!.items.filter(t => t.id !== tenantToDelete.id),
-        totalCount: data.tenants!.totalCount - 1
-      };
+      // Show loading state
+      toast.loading(`Deleting tenant "${tenantToDelete.name}"...`);
       
-      setData({
-        ...data,
-        tenants: optimisticTenants
-      });
-      
-      setDeleteDialogOpen(false);
-      setTenantToDelete(null);
-      toast.success('Tenant deleted successfully');
-
-      // Make the actual API call in the background
+      // Make the actual API call first (removed optimistic update)
       const result = await SuperAdminClient.deleteTenant(tenantToDelete.id);
       
-      if (!result.success) {
-        // Revert optimistic update on failure
-        setData(previousData);
-        toast.dismiss();
+      // Dismiss loading toast
+      toast.dismiss();
+      
+      if (result.success) {
+        // Update UI after successful deletion
+        const updatedTenants = {
+          ...data.tenants!,
+          items: data.tenants!.items.filter(t => t.id !== tenantToDelete.id),
+          totalCount: data.tenants!.totalCount - 1
+        };
+        
+        setData({
+          ...data,
+          tenants: updatedTenants
+        });
+        
+        setDeleteDialogOpen(false);
+        setTenantToDelete(null);
+        toast.success(result.message || 'Tenant deleted successfully');
+      } else {
         toast.error(result.message || 'Failed to delete tenant');
       }
     } catch (error) {
       console.error('Delete tenant error:', error);
-      // Revert optimistic update on error
-      await loadTenantsData();
       toast.dismiss();
-      toast.error('Failed to delete tenant');
+      
+      // Try to extract error message
+      let errorMessage = 'Failed to delete tenant';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -478,15 +487,30 @@ export default function SuperAdminTenantsPage() {
       {/* Delete Confirmation Section */}
       {deleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full border-red-200 bg-red-50 shadow-lg">
+          <Card className="max-w-lg w-full border-red-200 bg-red-50 shadow-lg">
             <CardHeader>
               <CardTitle className="text-red-900 flex items-center">
                 <AlertCircleIcon className="h-5 w-5 mr-2" />
                 Delete Tenant
               </CardTitle>
-              <CardDescription className="text-red-700">
-                Are you sure you want to delete the tenant &quot;{tenantToDelete?.name}&quot;? 
-                This action cannot be undone and will permanently remove all associated data.
+              <CardDescription className="text-red-700 space-y-3">
+                <p>
+                  Are you sure you want to delete the tenant <strong>&quot;{tenantToDelete?.name}&quot;</strong>?
+                </p>
+                <div className="bg-red-100 p-3 rounded-lg border border-red-200">
+                  <p className="font-semibold text-red-800 mb-2">⚠️ This will permanently delete:</p>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    <li>• All CMS pages and content</li>
+                    <li>• All blog posts and media files</li>
+                    <li>• All forms and submissions</li>
+                    <li>• All user accounts and data</li>
+                    <li>• All menus and navigation</li>
+                    <li>• All tenant-specific settings</li>
+                  </ul>
+                </div>
+                <p className="text-red-800 font-medium">
+                  This action cannot be undone!
+                </p>
               </CardDescription>
             </CardHeader>
             <CardContent>

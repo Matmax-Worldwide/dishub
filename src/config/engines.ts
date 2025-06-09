@@ -231,6 +231,67 @@ export const ENGINES_CONFIG: EngineConfig[] = [
         'sidebar.legalSettings': 'Rechtseinstellungen',
       }
     }
+  },
+  {
+    id: 'INTERPRETATION_ENGINE',
+    name: 'Interpretation Engine',
+    description: 'AI-powered translation and interpretation services',
+    icon: '🌐',
+    pricing: 40,
+    category: 'Engine',
+    dependencies: ['CMS_ENGINE'],
+    routes: {
+      main: '/dashboard/(engines)/interpretation',
+      children: [
+        { name: 'projects', path: '/projects', icon: '📁' },
+        { name: 'interpreters', path: '/interpreters', icon: '👥' },
+        { name: 'languages', path: '/languages', icon: '🗣️' },
+        { name: 'bookings', path: '/bookings', icon: '📅' },
+        { name: 'documents', path: '/documents', icon: '📄' },
+        { name: 'translations', path: '/translations', icon: '🔤' },
+        { name: 'billing', path: '/billing', icon: '💰' },
+        { name: 'analytics', path: '/analytics', icon: '📊' },
+        { name: 'settings', path: '/settings', icon: '⚙️' },
+      ]
+    },
+    translations: {
+      en: {
+        'sidebar.interpretationEngine': 'Interpretation Engine',
+        'sidebar.interpretationProjects': 'Projects',
+        'sidebar.interpreters': 'Interpreters',
+        'sidebar.interpretationLanguages': 'Languages',
+        'sidebar.interpretationBookings': 'Bookings',
+        'sidebar.interpretationDocuments': 'Documents',
+        'sidebar.translations': 'Translations',
+        'sidebar.interpretationBilling': 'Billing',
+        'sidebar.interpretationAnalytics': 'Analytics',
+        'sidebar.interpretationSettings': 'Settings',
+      },
+      es: {
+        'sidebar.interpretationEngine': 'Motor de Interpretación',
+        'sidebar.interpretationProjects': 'Proyectos',
+        'sidebar.interpreters': 'Intérpretes',
+        'sidebar.interpretationLanguages': 'Idiomas',
+        'sidebar.interpretationBookings': 'Reservas',
+        'sidebar.interpretationDocuments': 'Documentos',
+        'sidebar.translations': 'Traducciones',
+        'sidebar.interpretationBilling': 'Facturación',
+        'sidebar.interpretationAnalytics': 'Analíticas',
+        'sidebar.interpretationSettings': 'Configuración',
+      },
+      de: {
+        'sidebar.interpretationEngine': 'Dolmetsch-Engine',
+        'sidebar.interpretationProjects': 'Projekte',
+        'sidebar.interpreters': 'Dolmetscher',
+        'sidebar.interpretationLanguages': 'Sprachen',
+        'sidebar.interpretationBookings': 'Buchungen',
+        'sidebar.interpretationDocuments': 'Dokumente',
+        'sidebar.translations': 'Übersetzungen',
+        'sidebar.interpretationBilling': 'Abrechnung',
+        'sidebar.interpretationAnalytics': 'Analytik',
+        'sidebar.interpretationSettings': 'Einstellungen',
+      }
+    }
   }
 ];
 

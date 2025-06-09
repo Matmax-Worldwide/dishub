@@ -50,6 +50,14 @@ export const ONBOARDING_FEATURES: OnboardingFeature[] = [
     dependencies: ['CMS_ENGINE'],
     icon: '💼'
   },
+  {
+    id: 'INTERPRETATION_ENGINE',
+    label: 'Interpretation Engine',
+    description: 'AI-powered translation and interpretation services with live sessions',
+    category: 'Engine',
+    dependencies: ['CMS_ENGINE'],
+    icon: '🌐'
+  },
 
   // Modules (automatically included - not shown in selection)
   {

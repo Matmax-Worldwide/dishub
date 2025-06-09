@@ -881,7 +881,7 @@ model Page {
   sections        CMSSection[] @relation("PageToSection")
   directSections  CMSSection[] @relation("SectionToPage")
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -906,7 +906,7 @@ model CMSSection {
   media           Media[]
   order           Int                @default(0)
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, sectionId])
   @@map("CMSSection")
@@ -928,7 +928,7 @@ model Media {
   cmsSection      CMSSection? @relation(fields: [cmsSectionId], references: [id])
   posts           Post[]      @relation("PostMedia")
   featuredInPosts Post[]      @relation("PostFeaturedImage")
-  tenant          Tenant @relation(fields: [tenantId], references: [id])
+  tenant          Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId        String
   @@index([tenantId])
 }
@@ -963,7 +963,7 @@ model Menu {
   footerStyle FooterStyle?
   items       MenuItem[]
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@unique([tenantId, name])
@@ -1043,7 +1043,7 @@ model Collection {
   documents   CMSDocument[]
   fields      CollectionField[]
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@unique([tenantId, slug])
@@ -1085,7 +1085,7 @@ model CMSDocument {
   collection   Collection @relation(fields: [collectionId], references: [id])
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
 }
 
@@ -1102,7 +1102,7 @@ model CMSTemplate {
   components  CMSComponent[] // Components that can be part of this template
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
   // @@unique([tenantId, name])
@@ -1125,7 +1125,7 @@ model CMSComponent {
   sectionInstances SectionComponent[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
   // @@unique([tenantId, name])
@@ -1158,7 +1158,7 @@ model NavigationMenu {
   items       NavigationMenuItem[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, name])
 }
@@ -1219,7 +1219,7 @@ model HeaderStyle {
   menu               Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
 }
 
@@ -1241,7 +1241,7 @@ model FooterStyle {
   updatedAt DateTime @updatedAt
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
 }
 
@@ -1269,7 +1269,7 @@ model Form {
   submissions       FormSubmission[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1540,7 +1540,7 @@ model Blog {
   posts       Post[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1571,7 +1571,7 @@ model Post {
   media              Media[]    @relation("PostMedia")
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, slug])
 }
@@ -1640,7 +1640,7 @@ model Location {
   bookingRules     BookingRule[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@index([shopId])
   // @@unique([tenantId, name]) // Location name could be unique per tenant
@@ -1660,7 +1660,7 @@ model ServiceCategory {
   childCategories ServiceCategory[] @relation("ServiceCategoryToParent")
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   @@unique([tenantId, name])
   @@map("ServiceCategories")
@@ -1689,7 +1689,7 @@ model Service {
   prices    Price[]
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
   // @@unique([tenantId, name]) // Service name could be unique per tenant
 }
@@ -1709,7 +1709,7 @@ model StaffProfile {
   bookings            Booking[]                 @relation("StaffBookings")
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId])
 }
 
@@ -1735,7 +1735,7 @@ model StaffSchedule {
   updatedAt DateTime @updatedAt
 
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([staffProfileId, date])
   @@index([staffProfileId, dayOfWeek])
