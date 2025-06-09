@@ -346,23 +346,23 @@ export default function PrivacySection({ scrollY }: PrivacySectionProps) {
         ))}
       </div>
       
-      <div className="relative max-w-7xl mx-auto z-10 w-full py-8">
-        {/* Header - Reduced spacing */}
+      <div className="relative max-w-7xl mx-auto z-10 w-full py-4 sm:py-6 lg:py-8">
+        {/* Header - Mobile optimized */}
         <ScrollReveal direction="down" duration={1000} delay={200}>
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-6 sm:mb-8 px-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
               <span className="bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                 {t('dishub.privacy.title')}
               </span>
             </h2>
-            <p className="text-lg text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base lg:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
               {t('dishub.privacy.subtitle')}
             </p>
           </div>
         </ScrollReveal>
 
-        {/* Privacy Features Grid - Compact version */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Privacy Features Grid - Mobile first layout */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-6 sm:mb-8 px-4">
           {privacyFeatures.map((feature, index) => (
             <ScrollReveal
               key={index}
@@ -370,7 +370,7 @@ export default function PrivacySection({ scrollY }: PrivacySectionProps) {
               duration={800}
               delay={400 + index * 100}
             >
-              <div className={`group relative p-4 rounded-xl ${feature.bgColor} ${feature.borderColor} border backdrop-blur-xl hover:scale-105 transition-all duration-500 hover:shadow-xl overflow-hidden`}>
+              <div className={`group relative p-2 sm:p-3 lg:p-4 rounded-lg lg:rounded-xl ${feature.bgColor} ${feature.borderColor} border backdrop-blur-xl hover:scale-105 transition-all duration-500 hover:shadow-xl overflow-hidden`}>
                 {/* Security grid pattern background */}
                 <div className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
                   <div className="w-full h-full" style={{
@@ -378,70 +378,70 @@ export default function PrivacySection({ scrollY }: PrivacySectionProps) {
                       linear-gradient(rgba(16,185,129,0.1) 1px, transparent 1px),
                       linear-gradient(90deg, rgba(16,185,129,0.1) 1px, transparent 1px)
                     `,
-                    backgroundSize: '20px 20px'
+                    backgroundSize: '15px 15px'
                   }}></div>
                 </div>
 
                 {/* Subtle security glow */}
-                <div className={`absolute -inset-1 bg-gradient-to-br ${feature.color.replace('text-', 'from-')}/20 to-black/20 opacity-0 group-hover:opacity-40 rounded-xl blur-xl transition-opacity duration-500`}></div>
+                <div className={`absolute -inset-1 bg-gradient-to-br ${feature.color.replace('text-', 'from-')}/20 to-black/20 opacity-0 group-hover:opacity-40 rounded-lg lg:rounded-xl blur-xl transition-opacity duration-500`}></div>
                 
                 <div className="relative z-10 text-center">
-                  <div className={`w-12 h-12 ${feature.bgColor} rounded-lg flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform duration-300 relative overflow-hidden`}>
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 ${feature.bgColor} rounded-md lg:rounded-lg flex items-center justify-center mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform duration-300 relative overflow-hidden`}>
                     {/* Icon glow effect */}
                     <div className={`absolute inset-0 ${feature.bgColor} opacity-0 group-hover:opacity-60 transition-opacity duration-300 animate-pulse`}></div>
-                    <feature.icon className={`w-6 h-6 ${feature.color} relative z-10 drop-shadow-lg`} />
+                    <feature.icon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${feature.color} relative z-10 drop-shadow-lg`} />
                   </div>
-                  <h3 className={`text-sm font-bold mb-2 ${feature.color} group-hover:text-white transition-colors duration-300`}>
+                  <h3 className={`text-xs sm:text-sm font-bold mb-1 sm:mb-2 ${feature.color} group-hover:text-white transition-colors duration-300`}>
                     {feature.title}
                   </h3>
-                  <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300 leading-relaxed">
+                  <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300 leading-relaxed hidden sm:block">
                     {feature.description}
                   </p>
                 </div>
 
                 {/* Animated security border */}
-                <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className={`absolute inset-0 rounded-xl border ${feature.borderColor} animate-pulse`}></div>
-                  <div className={`absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 ${feature.color.replace('text-', 'border-')} rounded-tl-xl`}></div>
-                  <div className={`absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 ${feature.color.replace('text-', 'border-')} rounded-tr-xl`}></div>
-                  <div className={`absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 ${feature.color.replace('text-', 'border-')} rounded-bl-xl`}></div>
-                  <div className={`absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 ${feature.color.replace('text-', 'border-')} rounded-br-xl`}></div>
+                <div className="absolute inset-0 rounded-lg lg:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className={`absolute inset-0 rounded-lg lg:rounded-xl border ${feature.borderColor} animate-pulse`}></div>
+                  <div className={`absolute top-0 left-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-t-2 border-l-2 ${feature.color.replace('text-', 'border-')} rounded-tl-lg lg:rounded-tl-xl`}></div>
+                  <div className={`absolute top-0 right-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-t-2 border-r-2 ${feature.color.replace('text-', 'border-')} rounded-tr-lg lg:rounded-tr-xl`}></div>
+                  <div className={`absolute bottom-0 left-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-b-2 border-l-2 ${feature.color.replace('text-', 'border-')} rounded-bl-lg lg:rounded-bl-xl`}></div>
+                  <div className={`absolute bottom-0 right-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-b-2 border-r-2 ${feature.color.replace('text-', 'border-')} rounded-br-lg lg:rounded-br-xl`}></div>
                 </div>
               </div>
             </ScrollReveal>
           ))}
         </div>
 
-        {/* Privacy Guarantee Statement - Compact version */}
+        {/* Privacy Guarantee Statement - Mobile optimized */}
         <ScrollReveal direction="up" duration={1000} delay={600}>
-          <div className="text-center bg-gradient-to-r from-green-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-xl rounded-2xl p-6 border border-green-500/20">
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                <Lock className="w-7 h-7 text-white drop-shadow-lg" />
+          <div className="text-center bg-gradient-to-r from-green-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-xl rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-6 border border-green-500/20 mx-4">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                <Lock className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white drop-shadow-lg" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
               {t('dishub.privacy.guarantee.title')}
             </h3>
-            <p className="text-sm text-gray-300 max-w-2xl mx-auto leading-relaxed mb-4">
+            <p className="text-xs sm:text-sm text-gray-300 max-w-lg sm:max-w-xl lg:max-w-2xl mx-auto leading-relaxed mb-3 sm:mb-4">
               {t('dishub.privacy.guarantee.description')}
             </p>
-            <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-400">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>{t('dishub.privacy.guarantee.zeroLogs')}</span>
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:justify-center gap-2 sm:gap-3 lg:gap-4 text-xs">
+              <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs">{t('dishub.privacy.guarantee.zeroLogs')}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <span>{t('dishub.privacy.guarantee.endToEnd')}</span>
+              <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-xs">{t('dishub.privacy.guarantee.endToEnd')}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                <span>{t('dishub.privacy.guarantee.gdprCompliant')}</span>
+              <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-xs">{t('dishub.privacy.guarantee.gdprCompliant')}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                <span>{t('dishub.privacy.guarantee.openSource')}</span>
+              <div className="flex items-center space-x-1 sm:space-x-2 text-gray-400">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                <span className="text-xs">{t('dishub.privacy.guarantee.openSource')}</span>
               </div>
             </div>
           </div>

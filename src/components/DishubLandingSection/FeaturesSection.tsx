@@ -232,7 +232,7 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
   ];
 
   return (
-    <div className="relative w-full h-full px-6 overflow-hidden flex items-center justify-center" data-section="features">
+    <div className="relative w-full h-full overflow-hidden flex items-center justify-center" data-section="features">
       {/* Connecting Background SVG with Parallax */}
       <div 
         className="absolute inset-0 z-0 will-change-transform"
@@ -246,21 +246,21 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-gray-900/40 to-black/60"></div>
       </div>
       
-      <div className="relative max-w-7xl mx-auto z-10 w-full">
+      <div className="relative max-w-7xl mx-auto z-10 w-full py-4 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
         <ScrollReveal direction="up" duration={800} delay={200}>
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+          <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6">
               <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 {t('dishub.features.nativeByDesign')}
               </span>
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-gray-300 max-w-3xl mx-auto px-2 sm:px-4 leading-relaxed">
               {t('dishub.features.subtitle')}
             </p>
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 xl:gap-8">
           {features.map((feature, index) => (
             <ScrollReveal
               key={index}
@@ -268,7 +268,7 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
               duration={800}
               delay={400 + index * 200}
             >
-              <div className="group relative bg-gray-900/30 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/30 hover:border-cyan-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/10 overflow-hidden">
+              <div className="group relative bg-gray-900/40 backdrop-blur-xl rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 xl:p-8 border border-gray-700/30 hover:border-cyan-500/50 transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-xl sm:hover:shadow-2xl hover:shadow-cyan-500/10 overflow-hidden min-h-[200px] sm:min-h-[240px] lg:min-h-[280px]">
                 {/* Tech grid pattern background */}
                 <div className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
                   <div className="w-full h-full" style={{
@@ -276,44 +276,44 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
                       linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
                       linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)
                     `,
-                    backgroundSize: '20px 20px'
+                    backgroundSize: '12px 12px sm:15px sm:15px'
                   }}></div>
                 </div>
                 
                 {/* Subtle glow effect */}
-                <div className="absolute -inset-1 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-30 rounded-2xl blur-xl transition-opacity duration-500"></div>
+                <div className="absolute -inset-1 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-30 rounded-xl lg:rounded-2xl blur-xl transition-opacity duration-500"></div>
                 
-                {/* SVG Icon - Much larger and without background container */}
-                <div className="relative z-10 mb-8 flex justify-center group-hover:scale-110 transition-transform duration-500">
-                  <feature.icon className="w-24 h-24 md:w-28 md:h-28 drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-500" />
+                {/* SVG Icon - Better mobile sizing */}
+                <div className="relative z-10 mb-3 sm:mb-4 lg:mb-6 flex justify-center group-hover:scale-110 transition-transform duration-500">
+                  <feature.icon className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-500" />
                 </div>
                 
-                {/* Content */}
-                <div className="relative z-10 text-center">
-                  <h3 className="text-xl font-bold text-white mb-4 transition-all duration-300 group-hover:text-cyan-100">
+                {/* Content - Better mobile typography */}
+                <div className="relative z-10 text-center flex-1 flex flex-col justify-center">
+                  <h3 className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold text-white mb-2 sm:mb-3 transition-all duration-300 group-hover:text-cyan-100 leading-tight">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300 text-sm leading-relaxed">
+                  <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300 text-xs sm:text-sm lg:text-base leading-relaxed line-clamp-3 sm:line-clamp-none">
                     {feature.description}
                   </p>
                 </div>
 
                 {/* Animated tech border effect */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute inset-0 rounded-2xl border border-cyan-500/30 animate-pulse"></div>
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400 rounded-tl-2xl"></div>
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400 rounded-tr-2xl"></div>
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400 rounded-bl-2xl"></div>
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400 rounded-br-2xl"></div>
+                <div className="absolute inset-0 rounded-xl lg:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="absolute inset-0 rounded-xl lg:rounded-2xl border border-cyan-500/30 animate-pulse"></div>
+                  <div className="absolute top-0 left-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-t-2 border-l-2 border-cyan-400 rounded-tl-xl lg:rounded-tl-2xl"></div>
+                  <div className="absolute top-0 right-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-t-2 border-r-2 border-cyan-400 rounded-tr-xl lg:rounded-tr-2xl"></div>
+                  <div className="absolute bottom-0 left-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-b-2 border-l-2 border-cyan-400 rounded-bl-xl lg:rounded-bl-2xl"></div>
+                  <div className="absolute bottom-0 right-0 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-b-2 border-r-2 border-cyan-400 rounded-br-xl lg:rounded-br-2xl"></div>
                 </div>
               </div>
             </ScrollReveal>
           ))}
         </div>
 
-        {/* Tech floating elements animation */}
+        {/* Tech floating elements animation - Mobile optimized */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(15)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <div
               key={i}
               className="absolute opacity-10"
@@ -325,11 +325,11 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
               }}
             >
               {i % 3 === 0 ? (
-                <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse"></div>
+                <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-cyan-400 rounded-full animate-pulse"></div>
               ) : i % 3 === 1 ? (
-                <div className="w-2 h-2 border border-cyan-400/50 rotate-45 animate-spin" style={{animationDuration: '8s'}}></div>
+                <div className="w-1 h-1 sm:w-2 sm:h-2 border border-cyan-400/50 rotate-45 animate-spin" style={{animationDuration: '8s'}}></div>
               ) : (
-                <div className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-transparent animate-pulse"></div>
+                <div className="w-0.5 h-2 sm:w-1 sm:h-4 bg-gradient-to-b from-cyan-400 to-transparent animate-pulse"></div>
               )}
             </div>
           ))}
