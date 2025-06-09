@@ -232,7 +232,7 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
   ];
 
   return (
-    <div className="relative py-32 px-6 overflow-hidden" data-section="features">
+    <div className="relative w-full h-full px-6 overflow-hidden flex items-center justify-center" data-section="features">
       {/* Connecting Background SVG with Parallax */}
       <div 
         className="absolute inset-0 z-0 will-change-transform"
@@ -246,7 +246,7 @@ export default function FeaturesSection({ scrollY }: FeaturesSectionProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-gray-900/40 to-black/60"></div>
       </div>
       
-      <div className="relative max-w-7xl mx-auto z-10">
+      <div className="relative max-w-7xl mx-auto z-10 w-full">
         <ScrollReveal direction="up" duration={800} delay={200}>
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-6xl font-bold mb-6">

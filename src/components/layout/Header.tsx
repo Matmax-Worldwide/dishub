@@ -14,16 +14,47 @@ interface HeaderProps {
 
 // Smooth scroll to section utility function
 const scrollToSection = (sectionId: string) => {
+  console.log('🚀 Scrolling to slide:', sectionId);
+  
+  // Simple approach - use the browser's native scrollIntoView with snap behavior
   const element = document.querySelector(`[data-section="${sectionId}"]`);
+  
   if (element) {
-    const headerHeight = 80; // Approximate header height
-    const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-    const offsetPosition = elementPosition - headerHeight;
+    console.log('✅ Found slide, scrolling...');
     
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
-    });
+    // Get the parent slide container
+    const slideContainer = element.closest('.snap-start');
+    
+    if (slideContainer) {
+      slideContainer.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+    } else {
+      // Fallback to element itself
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  } else {
+    console.log('❌ Slide not found, using index-based navigation...');
+    
+    // Use slide index for navigation
+    const slideOrder = ['hero', 'features', 'privacy', 'technology', 'cta'];
+    const slideIndex = slideOrder.indexOf(sectionId);
+    
+    if (slideIndex >= 0) {
+      const targetY = slideIndex * window.innerHeight;
+      console.log(`📍 Scrolling to slide ${slideIndex} at position ${targetY}`);
+      
+      window.scrollTo({
+        top: targetY,
+        behavior: 'smooth'
+      });
+    }
   }
 };
 
@@ -57,7 +88,10 @@ export default function Header({ className = '' }: HeaderProps) {
             {/* Navigation Links */}
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => scrollToSection('features')}
+                onClick={() => {
+                  console.log('Features button clicked');
+                  scrollToSection('features');
+                }}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Rocket className="w-4 h-4" />
@@ -65,7 +99,10 @@ export default function Header({ className = '' }: HeaderProps) {
               </button>
               
               <button
-                onClick={() => scrollToSection('technology')}
+                onClick={() => {
+                  console.log('Technology button clicked');
+                  scrollToSection('technology');
+                }}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Globe className="w-4 h-4" />
@@ -73,7 +110,10 @@ export default function Header({ className = '' }: HeaderProps) {
               </button>
               
               <button
-                onClick={() => scrollToSection('privacy')}
+                onClick={() => {
+                  console.log('Privacy button clicked');
+                  scrollToSection('privacy');
+                }}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Shield className="w-4 h-4" />
@@ -127,6 +167,7 @@ export default function Header({ className = '' }: HeaderProps) {
                   <div className="space-y-2">
                     <button
                       onClick={() => {
+                        console.log('Features button clicked');
                         scrollToSection('features');
                         setIsMobileMenuOpen(false);
                       }}
@@ -138,6 +179,7 @@ export default function Header({ className = '' }: HeaderProps) {
                     
                     <button
                       onClick={() => {
+                        console.log('Technology button clicked');
                         scrollToSection('technology');
                         setIsMobileMenuOpen(false);
                       }}
@@ -149,6 +191,7 @@ export default function Header({ className = '' }: HeaderProps) {
                     
                     <button
                       onClick={() => {
+                        console.log('Privacy button clicked');
                         scrollToSection('privacy');
                         setIsMobileMenuOpen(false);
                       }}
