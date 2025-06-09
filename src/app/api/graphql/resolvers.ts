@@ -61,11 +61,33 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Helper function to ensure system roles exist
 async function ensureSystemRoles() {
   const defaultRoles = [
-    { name: 'USER', description: 'Basic user with limited permissions' },
-    { name: 'ADMIN', description: 'Administrator with full system access' },
-    { name: 'MANAGER', description: 'Manager with access to team resources' },
-    { name: 'EMPLOYEE', description: 'Employee with standard workspace access' },
+    // Global Platform Roles
     { name: 'SuperAdmin', description: 'Super Administrator with platform-wide access across all tenants' },
+    { name: 'PlatformAdmin', description: 'Platform Administrator with system-wide access' },
+    { name: 'SupportAgent', description: 'Support agent with customer assistance capabilities' },
+    // Tenant Level Roles
+    { name: 'TenantAdmin', description: 'Tenant Administrator with full tenant access' },
+    { name: 'TenantManager', description: 'Tenant Manager with management capabilities' },
+    { name: 'TenantUser', description: 'Basic tenant user with limited permissions' },
+    // CMS Module Roles
+    { name: 'ContentManager', description: 'Content Manager with full content management access' },
+    { name: 'ContentEditor', description: 'Content Editor with content editing capabilities' },
+    // HRMS Module Roles
+    { name: 'HRAdmin', description: 'HR Administrator with full HR system access' },
+    { name: 'HRManager', description: 'HR Manager with HR management capabilities' },
+    { name: 'Employee', description: 'Employee with standard workspace access' },
+    // Booking Module Roles
+    { name: 'BookingAdmin', description: 'Booking Administrator with full booking system access' },
+    { name: 'Agent', description: 'Booking agent with customer service capabilities' },
+    { name: 'Customer', description: 'Customer with booking and service access' },
+    // E-Commerce Module Roles
+    { name: 'StoreAdmin', description: 'Store Administrator with full e-commerce access' },
+    { name: 'StoreManager', description: 'Store Manager with store management capabilities' },
+    // Future/Complementary Roles
+    { name: 'FinanceManager', description: 'Finance Manager with financial system access' },
+    { name: 'SalesRep', description: 'Sales Representative with sales capabilities' },
+    { name: 'Instructor', description: 'Instructor with educational content access' },
+    { name: 'ProjectLead', description: 'Project Lead with project management capabilities' },
   ];
   
   // Check if roles exist, if not create them
@@ -121,7 +143,7 @@ async function ensureSystemPermissions() {
   
   // Get admin role
   const adminRole = await prisma.roleModel.findFirst({
-    where: { name: 'ADMIN' }
+    where: { name: 'TenantAdmin' }
   });
   
   if (adminRole) {
@@ -157,7 +179,7 @@ async function ensureSystemPermissions() {
   
   // Get manager role
   const managerRole = await prisma.roleModel.findFirst({
-    where: { name: 'MANAGER' }
+    where: { name: 'TenantManager' }
   });
   
   if (managerRole) {
@@ -329,11 +351,11 @@ const resolvers = {
           }
         });
         
-        const requesterRole = requester?.role?.name || 'USER';
+        const requesterRole = requester?.role?.name || 'TenantUser';
         
-        // Only admin and manager can see any user
+        // Only admins and managers can see any user
         // Normal users can only see themselves
-        if (requesterRole !== 'ADMIN' && requesterRole !== 'MANAGER' && decoded.userId !== args.id) {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin', 'TenantManager', 'HRAdmin', 'HRManager'].includes(requesterRole) && decoded.userId !== args.id) {
           throw new Error('Unauthorized: You can only view your own profile');
         }
         
@@ -410,10 +432,10 @@ const resolvers = {
           }
         });
         
-        const userRole = currentUser?.role?.name || 'USER';
+        const userRole = currentUser?.role?.name || 'TenantUser';
         
         // Allow admins, managers, and super admins to access this endpoint
-        if (!['ADMIN', 'MANAGER', 'SuperAdmin'].includes(userRole)) {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin', 'TenantManager', 'HRAdmin', 'HRManager'].includes(userRole)) {
           throw new Error('Unauthorized: Admin, Manager, or Super Admin access required');
         }
         
@@ -1100,7 +1122,7 @@ const resolvers = {
       }
       
       // Get role name and ID for the token
-      const roleName = user.role?.name || 'USER';
+      const roleName = user.role?.name || 'TenantUser';
       console.log('Login successful for:', email, 'with role:', roleName);
       
       // Include both roleId and role name in the token
@@ -1145,9 +1167,9 @@ const resolvers = {
         throw new Error('User with this email already exists');
       }
       
-      // Find the USER role
+      // Find the TenantUser role
       const userRole = await prisma.roleModel.findFirst({
-        where: { name: 'USER' }
+        where: { name: 'TenantUser' }
       });
       
       if (!userRole) {
@@ -1157,7 +1179,7 @@ const resolvers = {
       
       // Try to get the role again
       const defaultRole = await prisma.roleModel.findFirst({
-        where: { name: 'USER' }
+        where: { name: 'TenantUser' }
       });
       
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -1197,7 +1219,7 @@ const resolvers = {
       });
       
       // Get role name
-      const roleName = user.role?.name || 'USER';
+      const roleName = user.role?.name || 'TenantUser';
       console.log('User registered:', email, 'with role:', roleName);
       
       // Include both roleId and role name in token
@@ -1278,7 +1300,7 @@ const resolvers = {
           }
         });
         
-        if (user?.role?.name !== 'ADMIN') {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin'].includes(user?.role?.name || '')) {
           throw new Error('Unauthorized: Only admins can create roles');
         }
         
@@ -1324,7 +1346,7 @@ const resolvers = {
           }
         });
         
-        if (user?.role?.name !== 'ADMIN') {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin'].includes(user?.role?.name || '')) {
           throw new Error('Unauthorized: Only admins can create permissions');
         }
         
@@ -1385,7 +1407,7 @@ const resolvers = {
           }
         });
         
-        if (user?.role?.name !== 'ADMIN') {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin'].includes(user?.role?.name || '')) {
           throw new Error('Unauthorized: Only admins can assign permissions to roles');
         }
         
@@ -1449,7 +1471,7 @@ const resolvers = {
           }
         });
         
-        if (user?.role?.name !== 'ADMIN') {
+        if (!['TenantAdmin', 'PlatformAdmin', 'SuperAdmin'].includes(user?.role?.name || '')) {
           throw new Error('Unauthorized: Only admins can remove permissions from roles');
         }
         
