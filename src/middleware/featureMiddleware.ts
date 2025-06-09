@@ -4,46 +4,47 @@ import { isRouteAllowed } from '@/lib/feature-access';
 // Rutas que requieren features específicas (con locale)
 const FEATURE_ROUTES: Record<string, string[]> = {
   // Blog Module routes
-  '/admin/cms/blog': ['BLOG_MODULE'],
-  '/admin/business/blog': ['BLOG_MODULE'],
+  '/cms/blog': ['BLOG_MODULE'],
+  '/business/blog': ['BLOG_MODULE'],
   '/[tenantSlug]/cms/blog': ['BLOG_MODULE'],
   
   // Forms Module routes
-  '/admin/cms/forms': ['FORMS_MODULE'],
-  '/admin/business/forms': ['FORMS_MODULE'],
+  '/cms/forms': ['FORMS_MODULE'],
+  '/business/forms': ['FORMS_MODULE'],
   '/[tenantSlug]/cms/forms': ['FORMS_MODULE'],
   
   // E-commerce Engine routes
-  '/admin/business/ecommerce': ['ECOMMERCE_ENGINE'],
-  '/admin/commerce': ['ECOMMERCE_ENGINE'],
+  '/business/ecommerce': ['ECOMMERCE_ENGINE'],
+  '/commerce': ['ECOMMERCE_ENGINE'],
   '/[tenantSlug]/commerce': ['ECOMMERCE_ENGINE'],
   
   // Booking Engine routes
-  '/admin/business/booking': ['BOOKING_ENGINE'],
-  '/admin/bookings': ['BOOKING_ENGINE'],
+  '/business/booking': ['BOOKING_ENGINE'],
+  '/bookings': ['BOOKING_ENGINE'],
   '/[tenantSlug]/bookings': ['BOOKING_ENGINE'],
   
   // HRMS Module routes
-  '/admin/business/hrms': ['HRMS_MODULE'],
-  '/admin/hrms': ['HRMS_MODULE'],
+  '/business/hrms': ['HRMS_MODULE'],
+  '/hrms': ['HRMS_MODULE'],
   '/[tenantSlug]/hrms': ['HRMS_MODULE'],
   
   // Interpretation Engine routes
-  '/admin/interpretation': ['INTERPRETATION_ENGINE'],
-  '/admin/business/interpretation': ['INTERPRETATION_ENGINE'],
-  '/[tenantSlug]/dashboard/interpretation': ['INTERPRETATION_ENGINE'],
+  '/interpretation': ['INTERPRETATION_ENGINE'],
+  '/business/interpretation': ['INTERPRETATION_ENGINE'],
+  '/[tenantSlug]/interpretation': ['INTERPRETATION_ENGINE'],
+  '/[tenantSlug]/(engines)/interpretation': ['INTERPRETATION_ENGINE'],
   
   // Performance and analytics
-  '/admin/reports/advanced': ['PERFORMANCE_MODULE'],
-  '/admin/analytics': ['PERFORMANCE_MODULE'],
+  '/reports/advanced': ['PERFORMANCE_MODULE'],
+  '/analytics': ['PERFORMANCE_MODULE'],
   
   // Help and support
-  '/admin/help/advanced': ['HELP_MODULE'],
-  '/admin/support': ['HELP_MODULE'],
+  '/help/advanced': ['HELP_MODULE'],
+  '/support': ['HELP_MODULE'],
   
   // Time tracking
-  '/admin/timeentries': ['TIME_MODULE'],
-  '/admin/time-tracking': ['TIME_MODULE'],
+  '/timeentries': ['TIME_MODULE'],
+  '/time-tracking': ['TIME_MODULE'],
 };
 
 // Rutas que siempre están disponibles (no requieren features específicas)
@@ -105,7 +106,12 @@ const ALWAYS_ALLOWED_ROUTES = [
   '/[tenantSlug]/cms/media',
   '/[tenantSlug]/cms/menus',
   '/[tenantSlug]/cms/settings',
-
+  '/[tenantSlug]/(engines)',
+  '/[tenantSlug]/(engines)/interpretation',
+  '/[tenantSlug]/(engines)/legal',
+  '/[tenantSlug]/(engines)/commerce',
+  '/[tenantSlug]/(engines)/bookings',
+  '/[tenantSlug]/(engines)/hrms',
   
   // SuperAdmin routes (no feature restrictions)
   '/super-admin',

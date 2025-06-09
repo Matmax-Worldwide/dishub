@@ -469,15 +469,15 @@
     "switchTenant": "Cambiar Tenant",
     "interpretationEngine": "Motor de Interpretación",
     "interpretation": "Interpretación",
-    "interpretationDashboard": "Dashboard de Interpretación",
+    "interpretationDashboard": "Panel Principal",
     "liveSessions": "Sesiones en Vivo",
     "sessionHistory": "Historial de Sesiones",
     "interpreters": "Intérpretes",
-    "interpretationClients": "Clientes de Interpretación",
+    "interpretationClients": "Clientes",
     "languages": "Idiomas",
-    "interpretationReports": "Reportes de Interpretación",
-    "interpretationBilling": "Facturación de Interpretación",
-    "interpretationSettings": "Configuración de Interpretación"
+    "interpretationReports": "Reportes",
+    "interpretationBilling": "Facturación",
+    "interpretationSettings": "Configuración"
   },
   "auth": {
     "login": {

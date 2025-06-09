@@ -489,15 +489,15 @@
     "switchTenant": "Tenant Wechseln",
     "interpretationEngine": "Dolmetsch-Engine",
     "interpretation": "Dolmetschen",
-    "interpretationDashboard": "Dolmetsch-Dashboard",
+    "interpretationDashboard": "Dashboard",
     "liveSessions": "Live-Sitzungen",
     "sessionHistory": "Sitzungsverlauf",
     "interpreters": "Dolmetscher",
-    "interpretationClients": "Dolmetsch-Kunden",
+    "interpretationClients": "Kunden",
     "languages": "Sprachen",
-    "interpretationReports": "Dolmetsch-Berichte",
-    "interpretationBilling": "Dolmetsch-Abrechnung",
-    "interpretationSettings": "Dolmetsch-Einstellungen"
+    "interpretationReports": "Berichte",
+    "interpretationBilling": "Abrechnung",
+    "interpretationSettings": "Einstellungen"
   },
   "auth": {
     "login": {

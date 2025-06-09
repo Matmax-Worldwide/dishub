@@ -330,7 +330,7 @@ export default function TenantDashboard() {
         name: 'Motor de Interpretación',
         description: 'Servicios profesionales de interpretación en vivo',
         icon: MessageSquareIcon,
-        href: `/${params.locale}/${params.tenantSlug}/dashboard/interpretation`,
+        href: `/${params.locale}/${params.tenantSlug}/interpretation`,
         color: 'bg-teal-500',
         stats: { sesiones: 0, intérpretes: 0 }, // TODO: Add interpretation engine queries
         enabled: true

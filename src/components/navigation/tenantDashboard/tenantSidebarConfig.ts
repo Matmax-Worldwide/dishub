@@ -497,62 +497,62 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
       // 🌐 Interpretation Engine
       {
         name: 'sidebar.interpretationEngine',
-        href: `${basePath}/dashboard/interpretation`,
+        href: `${basePath}/(engines)/interpretation`,
         icon: LanguagesIcon,
         permissions: ['interpretation:access'],
         features: ['INTERPRETATION_ENGINE'], // Required feature
         children: [
           {
             name: 'sidebar.interpretationDashboard',
-            href: `${basePath}/dashboard/interpretation`,
+            href: `${basePath}/(engines)/interpretation`,
             icon: LayoutDashboardIcon,
             permissions: ['interpretation:read']
           },
           {
             name: 'sidebar.liveSessions',
-            href: `${basePath}/dashboard/interpretation/live`,
+            href: `${basePath}/(engines)/interpretation/live`,
             icon: RadioIcon,
             permissions: ['interpretation:sessions:read']
           },
           {
             name: 'sidebar.sessionHistory',
-            href: `${basePath}/dashboard/interpretation/history`,
+            href: `${basePath}/(engines)/interpretation/history`,
             icon: ClockIcon,
             permissions: ['interpretation:history:read']
           },
           {
             name: 'sidebar.interpreters',
-            href: `${basePath}/dashboard/interpretation/interpreters`,
+            href: `${basePath}/(engines)/interpretation/interpreters`,
             icon: HeadphonesIcon,
             permissions: ['interpretation:interpreters:read']
           },
           {
             name: 'sidebar.interpretationClients',
-            href: `${basePath}/dashboard/interpretation/clients`,
+            href: `${basePath}/(engines)/interpretation/clients`,
             icon: UsersIcon,
             permissions: ['interpretation:clients:read']
           },
           {
             name: 'sidebar.languages',
-            href: `${basePath}/dashboard/interpretation/languages`,
+            href: `${basePath}/(engines)/interpretation/languages`,
             icon: LanguagesIcon,
             permissions: ['interpretation:languages:read']
           },
           {
             name: 'sidebar.interpretationReports',
-            href: `${basePath}/dashboard/interpretation/reports`,
+            href: `${basePath}/(engines)/interpretation/reports`,
             icon: BarChartIcon,
             permissions: ['interpretation:reports:read']
           },
           {
             name: 'sidebar.interpretationBilling',
-            href: `${basePath}/dashboard/interpretation/billing`,
+            href: `${basePath}/(engines)/interpretation/billing`,
             icon: DollarSignIcon,
             permissions: ['interpretation:billing:read']
           },
           {
             name: 'sidebar.interpretationSettings',
-            href: `${basePath}/dashboard/interpretation/settings`,
+            href: `${basePath}/(engines)/interpretation/settings`,
             icon: SettingsIcon,
             permissions: ['interpretation:settings:manage']
           }

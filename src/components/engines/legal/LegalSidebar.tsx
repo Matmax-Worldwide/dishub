@@ -77,27 +77,27 @@ export default function LegalSidebar() {
   const mainNavigationItems = [
     {
       name: t('legal.dashboard') || 'Dashboard',
-      href: `/${locale}/legal`,
+      href: `/${locale}/${tenantSlug}/legal`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
       name: t('legal.incorporations') || 'Incorporations',
-      href: `/${locale}/legal/incorporations`,
+      href: `/${locale}/${tenantSlug}/legal/incorporations`,
       icon: <Scale className="h-4 w-4" />
     },
     {
       name: t('legal.clients') || 'Clients',
-      href: `/${locale}/legal/clients`,
+      href: `/${locale}/${tenantSlug}/legal/clients`,
       icon: <Users className="h-4 w-4" />
     },
     {
       name: t('legal.documents') || 'Documents',
-      href: `/${locale}/legal/documents`,
+      href: `/${locale}/${tenantSlug}/legal/documents`,
       icon: <FileText className="h-4 w-4" />
     },
     {
       name: t('legal.calendar') || 'Calendar',
-      href: `/${locale}/legal/calendar`,
+      href: `/${locale}/${tenantSlug}/legal/calendar`,
       icon: <Calendar className="h-4 w-4" />
     },
   ];
@@ -105,17 +105,17 @@ export default function LegalSidebar() {
   const managementItems = [
     {
       name: t('legal.billing') || 'Billing',
-      href: `/${locale}/legal/billing`,
+      href: `/${locale}/${tenantSlug}/legal/billing`,
       icon: <DollarSign className="h-4 w-4" />
     },
     {
       name: t('legal.timeTracking') || 'Time Tracking',
-      href: `/${locale}/legal/billing/time-tracking`,
+      href: `/${locale}/${tenantSlug}/legal/billing/time-tracking`,
       icon: <Clock className="h-4 w-4" />
     },
     {
       name: t('legal.reports') || 'Reports',
-      href: `/${locale}/legal/reports`,
+      href: `/${locale}/${tenantSlug}/legal/reports`,
       icon: <BarChart3 className="h-4 w-4" />
     },
   ];
@@ -123,30 +123,30 @@ export default function LegalSidebar() {
   const settingsItems = [
     {
       name: t('legal.settings') || 'Settings',
-      href: `/${locale}/legal/settings`,
+      href: `/${locale}/${tenantSlug}/legal/settings`,
       icon: <Settings className="h-4 w-4" />
     },
     {
       name: t('legal.bookingConfiguration') || 'Booking Configuration',
-      href: `/${locale}/legal/booking-config`,
+      href: `/${locale}/${tenantSlug}/legal/booking-config`,
       icon: <Calendar className="h-4 w-4" />
     },
     {
       name: t('legal.jurisdictions') || 'Jurisdictions',
-      href: `/${locale}/legal/settings/jurisdictions`,
+      href: `/${locale}/${tenantSlug}/legal/settings/jurisdictions`,
       icon: <Building className="h-4 w-4" />
     },
     {
       name: t('legal.companyTypes') || 'Company Types',
-      href: `/${locale}/legal/settings/company-types`,
+      href: `/${locale}/${tenantSlug}/legal/settings/company-types`,
       icon: <Briefcase className="h-4 w-4" />
     },
   ];
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/legal`) {
-      return pathname === `/${locale}/legal` || pathname === `/${locale}/legal/`;
+    if (path === `/${locale}/${tenantSlug}/legal`) {
+      return pathname === `/${locale}/${tenantSlug}/legal` || pathname === `/${locale}/${tenantSlug}/legal/`;
     }
     
     // For other links, check if pathname starts with the link path
@@ -242,7 +242,7 @@ export default function LegalSidebar() {
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
                     <div className="py-1">
                       <Link
-                        href={`/${locale}/dashboard`}
+                        href={`/${locale}/${tenantSlug}/dashboard`}
                         className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >

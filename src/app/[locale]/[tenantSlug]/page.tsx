@@ -26,7 +26,7 @@ export default function TenantRootPage() {
       }
       
       // For any other role, redirect to general dashboard
-      window.location.href = `/${params.locale}/dashboard`;
+      window.location.href = `/${params.locale}/${params.tenantSlug}/dashboard`;
     }
   }, [isLoading, user, hasRole, params.locale, params.tenantSlug]);
 

@@ -25,7 +25,7 @@ export default function CTASection() {
       } else if (user.tenantSlug) {
         router.push(`/${params.locale}/${user.tenantSlug}/dashboard`);
       } else {
-        router.push(`/${params.locale}/dashboard`);
+        router.push(`/${params.locale}/${user.tenantSlug}/dashboard`);
       }
     }
   };
