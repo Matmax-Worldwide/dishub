@@ -499,62 +499,52 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         name: 'sidebar.interpretationEngine',
         href: `${basePath}/(engines)/interpretation`,
         icon: LanguagesIcon,
-        permissions: ['interpretation:access'],
         features: ['INTERPRETATION_ENGINE'], // Required feature
         children: [
           {
             name: 'sidebar.interpretationDashboard',
             href: `${basePath}/(engines)/interpretation`,
-            icon: LayoutDashboardIcon,
-            permissions: ['interpretation:read']
+            icon: LayoutDashboardIcon
           },
           {
             name: 'sidebar.liveSessions',
             href: `${basePath}/(engines)/interpretation/live`,
-            icon: RadioIcon,
-            permissions: ['interpretation:sessions:read']
+            icon: RadioIcon
           },
           {
             name: 'sidebar.sessionHistory',
             href: `${basePath}/(engines)/interpretation/history`,
-            icon: ClockIcon,
-            permissions: ['interpretation:history:read']
+            icon: ClockIcon
           },
           {
             name: 'sidebar.interpreters',
             href: `${basePath}/(engines)/interpretation/interpreters`,
-            icon: HeadphonesIcon,
-            permissions: ['interpretation:interpreters:read']
+            icon: HeadphonesIcon
           },
           {
             name: 'sidebar.interpretationClients',
             href: `${basePath}/(engines)/interpretation/clients`,
-            icon: UsersIcon,
-            permissions: ['interpretation:clients:read']
+            icon: UsersIcon
           },
           {
             name: 'sidebar.languages',
             href: `${basePath}/(engines)/interpretation/languages`,
-            icon: LanguagesIcon,
-            permissions: ['interpretation:languages:read']
+            icon: LanguagesIcon
           },
           {
             name: 'sidebar.interpretationReports',
             href: `${basePath}/(engines)/interpretation/reports`,
-            icon: BarChartIcon,
-            permissions: ['interpretation:reports:read']
+            icon: BarChartIcon
           },
           {
             name: 'sidebar.interpretationBilling',
             href: `${basePath}/(engines)/interpretation/billing`,
-            icon: DollarSignIcon,
-            permissions: ['interpretation:billing:read']
+            icon: DollarSignIcon
           },
           {
             name: 'sidebar.interpretationSettings',
             href: `${basePath}/(engines)/interpretation/settings`,
-            icon: SettingsIcon,
-            permissions: ['interpretation:settings:manage']
+            icon: SettingsIcon
           }
         ]
       }
