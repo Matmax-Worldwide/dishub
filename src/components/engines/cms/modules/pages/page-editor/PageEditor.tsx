@@ -837,8 +837,6 @@ const PageEditor: React.FC<PageEditorProps> = ({ slug }) => {
   
   // Handle cancel/back button
   const handleCancel = () => {
-    const params = useParams();
-    const locale = params.locale as string || 'en';
     const tenantSlug = params.tenantSlug as string || 'admin';
     if (hasUnsavedChanges) {
       setRedirectTarget(`/${locale}/${tenantSlug}/cms/pages`);
