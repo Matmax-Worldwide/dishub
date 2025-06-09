@@ -50,7 +50,7 @@ export default function DishubLanding() {
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
+      <div className="min-h-screen bg-black text-white overflow-x-hidden relative scrollbar-hide">
     
         {/* Header Navigation */}
         <Header />
@@ -178,7 +178,28 @@ export default function DishubLanding() {
         </footer>
 
         {/* Custom Styles */}
-        <style jsx>{`
+        <style jsx global>{`
+          /* Hide scrollbar for Chrome, Safari and Opera */
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+          
+          /* Hide scrollbar for IE, Edge and Firefox */
+          .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+          
+          /* Apply to html and body to ensure no scrollbar anywhere */
+          html, body {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+          }
+          
+          html::-webkit-scrollbar, body::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+          }
+          
           @keyframes gradient {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
