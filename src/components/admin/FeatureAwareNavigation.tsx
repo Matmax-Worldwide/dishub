@@ -168,7 +168,8 @@ export function FeatureStatusCard() {
     'FORMS_MODULE': { label: 'Forms Module', description: 'Form builder', category: 'Module' },
     'BOOKING_ENGINE': { label: 'Booking Engine', description: 'Reservation system', category: 'Engine' },
     'ECOMMERCE_ENGINE': { label: 'E-commerce Engine', description: 'Online store', category: 'Engine' },
-    'LEGAL_ENGINE': { label: 'Legal Engine', description: 'Legal services and compliance', category: 'Engine' }
+    'LEGAL_ENGINE': { label: 'Legal Engine', description: 'Legal services and compliance', category: 'Engine' },
+    'INTERPRETATION_ENGINE': { label: 'Interpretation Engine', description: 'Real-time language interpretation', category: 'Engine' }
   } as const;
 
   return (
@@ -180,7 +181,8 @@ export function FeatureStatusCard() {
       
       <div className="space-y-3">
         {availableFeatures.map((feature) => {
-          const info = featureDisplayInfo[feature];
+          const info = featureDisplayInfo[feature as keyof typeof featureDisplayInfo];
+          if (!info) return null;
           return (
             <div key={feature} className="flex items-center justify-between">
               <div>
