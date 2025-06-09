@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface User {
   id: string;
@@ -24,6 +24,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; redirectUrl?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  autoLogin: (email: string, hash: string) => Promise<{ success: boolean; error?: string; redirectUrl?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const checkAuth = async () => {
     try {
@@ -88,6 +90,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const autoLogin = async (email: string, hash: string) => {
+    try {
+      const response = await fetch('/api/auth/auto-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, hash }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUser(data.user);
+        
+        // Limpiar los parámetros de la URL después de la autenticación exitosa
+        const url = new URL(window.location.href);
+        url.searchParams.delete('user');
+        url.searchParams.delete('hash');
+        window.history.replaceState({}, '', url.toString());
+        
+        return { 
+          success: true, 
+          redirectUrl: data.redirectUrl || '/dashboard' 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: data.message || 'Auto-login failed' 
+        };
+      }
+    } catch (error) {
+      console.error('Auto-login error:', error);
+      return { 
+        success: false, 
+        error: 'Network error occurred' 
+      };
+    }
+  };
+
   const logout = async () => {
     try {
       // Clear all auth-related cookies
@@ -123,9 +166,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Función para verificar y manejar autenticación automática desde URL
+  const handleAutoLoginFromURL = async () => {
+    const userParam = searchParams?.get('user');
+    const hashParam = searchParams?.get('hash');
+
+    if (userParam && hashParam) {
+      try {
+        console.log('Attempting auto-login for user:', userParam);
+        const result = await autoLogin(userParam, hashParam);
+        
+        if (result.success) {
+          console.log('Auto-login successful, redirecting...');
+          if (result.redirectUrl) {
+            router.push(result.redirectUrl);
+          }
+        } else {
+          console.error('Auto-login failed:', result.error);
+          // Limpiar parámetros incluso si falla
+          const url = new URL(window.location.href);
+          url.searchParams.delete('user');
+          url.searchParams.delete('hash');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } catch (error) {
+        console.error('Error in auto-login process:', error);
+      }
+    }
+  };
+
   useEffect(() => {
-    checkAuth();
-  }, []);
+    const initializeAuth = async () => {
+      // Primero verificar si hay parámetros de autenticación automática
+      const userParam = searchParams?.get('user');
+      const hashParam = searchParams?.get('hash');
+
+      if (userParam && hashParam) {
+        // Si hay parámetros de auto-login, intentar autenticación automática
+        await handleAutoLoginFromURL();
+      } else {
+        // Si no hay parámetros, hacer verificación normal de autenticación
+        await checkAuth();
+      }
+    };
+
+    initializeAuth();
+  }, [searchParams]);
 
   const value = {
     user,
@@ -134,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     checkAuth,
+    autoLogin,
   };
 
   return (

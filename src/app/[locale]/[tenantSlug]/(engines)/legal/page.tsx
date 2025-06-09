@@ -250,6 +250,24 @@ export default function LegalDashboard() {
         </div>
       </div>
 
+      {/* Ejemplo de Auto-Login - Solo para desarrollo */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-2">
+            🔧 Herramientas de Desarrollo - Auto-Login
+          </h3>
+          <p className="text-blue-700 text-sm mb-3">
+            Puedes probar la funcionalidad de auto-login accediendo a URLs con parámetros como:
+          </p>
+          <code className="block bg-white p-2 rounded text-xs text-gray-800 mb-3">
+            {`${window.location.origin}?user=tu-email@ejemplo.com&hash=tu-hash-seguro`}
+          </code>
+          <p className="text-blue-700 text-sm">
+            El sistema detectará automáticamente estos parámetros e iniciará sesión si son válidos.
+          </p>
+        </div>
+      )}
+
       {/* Métricas de Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
