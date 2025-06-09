@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,14 @@ import {
   SaveIcon,
   HomeIcon,
   UserIcon,
-  PackageIcon
+  PackageIcon,
+  SearchIcon,
+  UserPlusIcon,
+  UserCheckIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SuperAdminClient } from '@/lib/graphql/superAdmin';
+import graphqlClient from '@/lib/graphql-client';
 import { ALL_FEATURES_CONFIG, getRequiredFeatures, addFeatureWithDependencies, removeFeatureWithDependents, getEngineById } from '@/config/engines';
 
 interface TenantFormData {
@@ -27,10 +31,26 @@ interface TenantFormData {
   description: string;
   status: string;
   features: string[];
+  adminMode: 'create' | 'select';
+  selectedUserId?: string;
   adminEmail: string;
   adminFirstName: string;
   adminLastName: string;
   adminPassword: string;
+}
+
+interface ExistingUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  role: {
+    id: string;
+    name: string;
+  };
+  isActive?: boolean;
+  createdAt: string;
 }
 
 // Features are now loaded from centralized configuration
@@ -54,6 +74,10 @@ const TENANT_STATUSES = [
 export default function CreateTenantPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [users, setUsers] = useState<ExistingUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ExistingUser[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [formData, setFormData] = useState<TenantFormData>({
     name: '',
     slug: '',
@@ -61,11 +85,57 @@ export default function CreateTenantPage() {
     description: '',
     status: 'ACTIVE',
     features: getRequiredFeatures(),
+    adminMode: 'create',
     adminEmail: '',
     adminFirstName: '',
     adminLastName: '',
     adminPassword: ''
   });
+
+  // Load users when component mounts or when switching to select mode
+  useEffect(() => {
+    if (formData.adminMode === 'select' && users.length === 0) {
+      loadUsers();
+    }
+  }, [formData.adminMode, users.length]);
+
+  // Filter users based on search term
+  useEffect(() => {
+    if (!userSearchTerm) {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => 
+        user.firstName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [users, userSearchTerm]);
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const usersData = await graphqlClient.users();
+      // Map CalendarUser to ExistingUser format
+      const mappedUsers: ExistingUser[] = usersData.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: { id: user.roleId || 'default', name: 'USER' }, // CalendarUser doesn't have role object
+        isActive: user.isActive,
+        createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt) // Handle both Date and string
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const handleInputChange = (field: keyof TenantFormData, value: string) => {
     setFormData(prev => ({
@@ -85,6 +155,29 @@ export default function CreateTenantPage() {
         slug
       }));
     }
+  };
+
+  const handleAdminModeChange = (mode: 'create' | 'select') => {
+    setFormData(prev => ({
+      ...prev,
+      adminMode: mode,
+      selectedUserId: mode === 'create' ? undefined : prev.selectedUserId,
+      adminEmail: mode === 'create' ? '' : prev.adminEmail,
+      adminFirstName: mode === 'create' ? '' : prev.adminFirstName,
+      adminLastName: mode === 'create' ? '' : prev.adminLastName,
+      adminPassword: mode === 'create' ? '' : prev.adminPassword
+    }));
+  };
+
+  const handleUserSelect = (user: ExistingUser) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedUserId: user.id,
+      adminEmail: user.email,
+      adminFirstName: user.firstName,
+      adminLastName: user.lastName,
+      adminPassword: '' // Clear password when selecting existing user
+    }));
   };
 
   const handleFeatureToggle = (featureId: string, checked: boolean) => {
@@ -133,8 +226,9 @@ export default function CreateTenantPage() {
     setLoading(true);
 
     try {
-      if (!formData.name || !formData.slug || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName || !formData.adminPassword) {
-        toast.error('Please fill in all required fields');
+      // Basic validation
+      if (!formData.name || !formData.slug) {
+        toast.error('Please fill in tenant name and slug');
         return;
       }
 
@@ -143,43 +237,60 @@ export default function CreateTenantPage() {
         return;
       }
 
-      if (formData.adminPassword.length < 6) {
-        toast.error('Admin password must be at least 6 characters long');
-        return;
+      // Admin user validation based on mode
+      if (formData.adminMode === 'create') {
+        if (!formData.adminEmail || !formData.adminFirstName || !formData.adminLastName || !formData.adminPassword) {
+          toast.error('Please fill in all admin user fields');
+          return;
+        }
+        if (formData.adminPassword.length < 6) {
+          toast.error('Admin password must be at least 6 characters long');
+          return;
+        }
+      } else if (formData.adminMode === 'select') {
+        if (!formData.selectedUserId) {
+          toast.error('Please select an existing user');
+          return;
+        }
       }
 
-      console.log('Creating tenant with data:', {
+      // Prepare tenant data
+      const tenantData = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         domain: formData.domain.trim() || undefined,
         features: formData.features,
-        settings: {
-          adminEmail: formData.adminEmail,
-          adminFirstName: formData.adminFirstName,
-          adminLastName: formData.adminLastName,
-          adminPassword: formData.adminPassword
-        }
-      });
+      };
+
+      // Add admin user data based on mode
+      const createData = formData.adminMode === 'create' 
+        ? {
+            ...tenantData,
+            adminEmail: formData.adminEmail,
+            adminFirstName: formData.adminFirstName,
+            adminLastName: formData.adminLastName,
+            adminPassword: formData.adminPassword,
+            settings: {
+              adminEmail: formData.adminEmail,
+              adminFirstName: formData.adminFirstName,
+              adminLastName: formData.adminLastName,
+              adminPassword: formData.adminPassword
+            }
+          }
+        : {
+            ...tenantData,
+            adminUserId: formData.selectedUserId,
+            settings: {
+              adminUserId: formData.selectedUserId
+            }
+          };
+
+      console.log('Creating tenant with data:', createData);
 
       // Show immediate feedback
       toast.success('Creating tenant...');
       
-      const result = await SuperAdminClient.createTenant({
-        name: formData.name.trim(),
-        slug: formData.slug.trim(),
-        domain: formData.domain.trim() || undefined,
-        features: formData.features,
-        adminEmail: formData.adminEmail,
-        adminFirstName: formData.adminFirstName,
-        adminLastName: formData.adminLastName,
-        adminPassword: formData.adminPassword,
-        settings: {
-          adminEmail: formData.adminEmail,
-          adminFirstName: formData.adminFirstName,
-          adminLastName: formData.adminLastName,
-          adminPassword: formData.adminPassword
-        }
-      });
+      const result = await SuperAdminClient.createTenant(createData);
 
       console.log('Create result:', result);
 
@@ -310,57 +421,171 @@ export default function CreateTenantPage() {
               Admin User
             </CardTitle>
             <CardDescription>
-              Create the initial admin user for this tenant
+              Choose how to set up the admin user for this tenant
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adminFirstName">First Name *</Label>
-                <Input
-                  id="adminFirstName"
-                  value={formData.adminFirstName}
-                  onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
-                  placeholder="John"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminLastName">Last Name *</Label>
-                <Input
-                  id="adminLastName"
-                  value={formData.adminLastName}
-                  onChange={(e) => handleInputChange('adminLastName', e.target.value)}
-                  placeholder="Doe"
-                  required
-                />
+            {/* Admin Mode Toggle */}
+            <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center space-x-2">
+                <Button
+                  type="button"
+                  variant={formData.adminMode === 'create' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleAdminModeChange('create')}
+                  className="flex items-center space-x-2"
+                >
+                  <UserPlusIcon className="h-4 w-4" />
+                  <span>Create New User</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.adminMode === 'select' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleAdminModeChange('select')}
+                  className="flex items-center space-x-2"
+                >
+                  <UserCheckIcon className="h-4 w-4" />
+                  <span>Select Existing User</span>
+                </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adminEmail">Email *</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={formData.adminEmail}
-                  onChange={(e) => handleInputChange('adminEmail', e.target.value)}
-                  placeholder="admin@acme.com"
-                  required
-                />
+            {/* Create New User Form */}
+            {formData.adminMode === 'create' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminFirstName">First Name *</Label>
+                    <Input
+                      id="adminFirstName"
+                      value={formData.adminFirstName}
+                      onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminLastName">Last Name *</Label>
+                    <Input
+                      id="adminLastName"
+                      value={formData.adminLastName}
+                      onChange={(e) => handleInputChange('adminLastName', e.target.value)}
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminEmail">Email *</Label>
+                    <Input
+                      id="adminEmail"
+                      type="email"
+                      value={formData.adminEmail}
+                      onChange={(e) => handleInputChange('adminEmail', e.target.value)}
+                      placeholder="admin@acme.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPassword">Password *</Label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      value={formData.adminPassword}
+                      onChange={(e) => handleInputChange('adminPassword', e.target.value)}
+                      placeholder="Secure password"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Select Existing User */}
+            {formData.adminMode === 'select' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="userSearch">Search Users</Label>
+                  <div className="relative">
+                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="userSearch"
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      placeholder="Search by name or email..."
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin h-6 w-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
+                    <span className="ml-2 text-gray-600">Loading users...</span>
+                  </div>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        {userSearchTerm ? 'No users found matching your search' : 'No users available'}
+                      </div>
+                    ) : (
+                      <div className="space-y-1 p-2">
+                        {filteredUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              formData.selectedUserId === user.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                            onClick={() => handleUserSelect(user)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {user.firstName} {user.lastName}
+                                </p>
+                                <p className="text-sm text-gray-500">{user.email}</p>
+                                {user.phoneNumber && (
+                                  <p className="text-xs text-gray-400">{user.phoneNumber}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {user.role.name}
+                                </span>
+                                {formData.selectedUserId === user.id && (
+                                  <div className="mt-1">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      ✓ Selected
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {formData.selectedUserId && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Selected user:</strong> {formData.adminFirstName} {formData.adminLastName} ({formData.adminEmail})
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      This user will be assigned as the admin for the new tenant.
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminPassword">Password *</Label>
-                <Input
-                  id="adminPassword"
-                  type="password"
-                  value={formData.adminPassword}
-                  onChange={(e) => handleInputChange('adminPassword', e.target.value)}
-                  placeholder="Secure password"
-                  required
-                />
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

@@ -22,7 +22,8 @@ import {
   ArrowRightIcon,
   ScaleIcon,
   TrendingUpIcon,
-  ActivityIcon
+  ActivityIcon,
+  MessageSquareIcon
 } from 'lucide-react';
 
 // Import UserTenant type for extended user data
@@ -319,6 +320,19 @@ export default function TenantDashboard() {
         href: `/${params.locale}/${params.tenantSlug}/dashboard/legal`,
         color: 'bg-amber-500',
         stats: { casos: 0, documentos: 0 }, // TODO: Add legal engine queries
+        enabled: true
+      });
+    }
+
+    // Interpretation Engine
+    if (tenantFeatures.includes('INTERPRETATION_ENGINE')) {
+      engines.push({
+        name: 'Motor de Interpretación',
+        description: 'Servicios profesionales de interpretación en vivo',
+        icon: MessageSquareIcon,
+        href: `/${params.locale}/${params.tenantSlug}/dashboard/interpretation`,
+        color: 'bg-teal-500',
+        stats: { sesiones: 0, intérpretes: 0 }, // TODO: Add interpretation engine queries
         enabled: true
       });
     }
