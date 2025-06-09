@@ -266,26 +266,29 @@ export default function CreateTenantPage() {
       const createData = formData.adminMode === 'create' 
         ? {
             ...tenantData,
-        adminEmail: formData.adminEmail,
-        adminFirstName: formData.adminFirstName,
-        adminLastName: formData.adminLastName,
-        adminPassword: formData.adminPassword,
-        settings: {
-          adminEmail: formData.adminEmail,
-          adminFirstName: formData.adminFirstName,
-          adminLastName: formData.adminLastName,
-          adminPassword: formData.adminPassword
-        }
+            adminEmail: formData.adminEmail,
+            adminFirstName: formData.adminFirstName,
+            adminLastName: formData.adminLastName,
+            adminPassword: formData.adminPassword,
+            settings: {
+              adminEmail: formData.adminEmail,
+              adminFirstName: formData.adminFirstName,
+              adminLastName: formData.adminLastName,
+              adminPassword: formData.adminPassword
+            }
           }
         : {
             ...tenantData,
-            adminUserId: formData.selectedUserId,
             settings: {
-              adminUserId: formData.selectedUserId
+              existingUser: true,
+              selectedUserId: formData.selectedUserId
             }
           };
 
       console.log('Creating tenant with data:', createData);
+      console.log('Admin mode:', formData.adminMode);
+      console.log('Selected user ID:', formData.selectedUserId);
+      console.log('Settings object:', createData.settings);
 
       // Show immediate feedback
       toast.success('Creating tenant...');

@@ -1,4 +1,4 @@
-import { Prisma, TenantStatus } from '@prisma/client';
+import { Prisma, TenantStatus, UserTenantRole } from '@prisma/client';
 import { Context } from '@/app/api/graphql/types';
 import { verifySession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
@@ -732,10 +732,18 @@ export const superAdminResolvers = {
         let isExistingUser = false;
         let selectedUserId: string | undefined;
 
+        console.log('🔍 Input received:', JSON.stringify(input, null, 2));
+
         if (input.settings && typeof input.settings === 'object') {
           const settings = input.settings as Record<string, unknown>;
           isExistingUser = settings.existingUser === true;
           selectedUserId = settings.selectedUserId as string;
+          
+          console.log('📋 Settings found:', {
+            isExistingUser,
+            selectedUserId,
+            settings
+          });
           
           if (settings.adminEmail || settings.adminFirstName || settings.adminLastName || settings.adminPassword) {
             adminData = {
@@ -753,6 +761,12 @@ export const superAdminResolvers = {
             password: input.adminPassword
           };
         }
+
+        console.log('🎯 Processing mode:', {
+          isExistingUser,
+          selectedUserId,
+          hasAdminData: !!adminData
+        });
 
         // Use transaction to create tenant and admin user atomically
         const result = await prisma.$transaction(async (tx) => {
@@ -773,10 +787,19 @@ export const superAdminResolvers = {
 
           // Handle existing user assignment
           if (isExistingUser && selectedUserId) {
+            console.log('👤 Processing existing user assignment:', { selectedUserId });
+            
             // Update existing user to be admin of this tenant
             const existingUser = await tx.user.findUnique({
               where: { id: selectedUserId },
-              include: { role: true }
+              include: { role: true, userTenants: true }
+            });
+
+            console.log('🔍 Found existing user:', {
+              id: existingUser?.id,
+              email: existingUser?.email,
+              currentRole: existingUser?.role?.name,
+              currentTenants: existingUser?.userTenants?.length
             });
 
             if (!existingUser) {
@@ -794,6 +817,7 @@ export const superAdminResolvers = {
             });
 
             if (!tenantAdminRole) {
+              console.log('🔧 Creating TenantAdmin role...');
               tenantAdminRole = await tx.roleModel.create({
                 data: {
                   name: 'TenantAdmin',
@@ -802,22 +826,61 @@ export const superAdminResolvers = {
               });
             }
 
+            console.log('🎭 Using role:', { roleId: tenantAdminRole.id, roleName: tenantAdminRole.name });
+
             // Update user role and create tenant relationship
+            console.log('🔗 Creating UserTenant relationship...', {
+              userId: selectedUserId,
+              tenantId: tenant.id,
+              role: 'TenantAdmin'
+            });
+
+            // Check if user is already associated with this tenant
+            const existingUserTenant = await tx.userTenant.findUnique({
+              where: {
+                userId_tenantId: {
+                  userId: selectedUserId,
+                  tenantId: tenant.id
+                }
+              }
+            });
+
+            if (existingUserTenant) {
+              console.log('⚠️ User already associated with tenant, updating role...');
+              // Update existing relationship
+              await tx.userTenant.update({
+                where: { id: existingUserTenant.id },
+                data: { role: UserTenantRole.TenantAdmin }
+              });
+            } else {
+              console.log('➕ Creating new UserTenant relationship...');
+              // Create new relationship
+              await tx.userTenant.create({
+                data: {
+                  userId: selectedUserId,
+                  tenantId: tenant.id,
+                  role: UserTenantRole.TenantAdmin
+                }
+              });
+            }
+
+            // Update user role
             adminUser = await tx.user.update({
               where: { id: selectedUserId },
               data: {
-                roleId: tenantAdminRole.id,
-                userTenants: {
-                  create: {
-                    tenantId: tenant.id,
-                    role: 'TenantAdmin'
-                  }
-                }
+                roleId: tenantAdminRole.id
               },
               include: {
                 role: true,
                 userTenants: true
               }
+            });
+
+            console.log('✅ User updated successfully:', {
+              userId: adminUser.id,
+              email: adminUser.email,
+              roleId: adminUser.roleId,
+              userTenantsCount: adminUser.userTenants?.length
             });
           }
           // Create admin user if admin data is provided
@@ -864,7 +927,7 @@ export const superAdminResolvers = {
                 userTenants: {
                   create: {
                     tenantId: tenant.id,
-                    role: 'TenantAdmin'
+                    role: UserTenantRole.TenantAdmin
                   }
                 },
                 emailVerified: new Date(), // Auto-verify admin user
@@ -1186,7 +1249,7 @@ export const superAdminResolvers = {
             userTenants: {
               create: {
                 tenantId: tenantId,
-                role: 'TenantAdmin'
+                role: UserTenantRole.TenantAdmin
               }
             },
             roleId: tenantAdminRole.id
