@@ -68,7 +68,7 @@ export default function CTASection() {
             </button>
           ) : (
             <div className="flex justify-center">
-              <Link href={`/${params.locale}/get-started`} className="interactive-element">
+              <Link href={`/${params.locale}/login`} className="interactive-element">
                 <button className="group px-12 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer">
                   {t('dishub.cta.launchFuture')}
                   <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />

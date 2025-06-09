@@ -335,7 +335,7 @@ export default function InlineLoginForm({
                       <p className="text-white font-medium mb-4">
                         {t('auth.login.noAccount')}
                       </p>
-                      <Link href={`/${params.locale}/get-started`}>
+                      <Link href={`/${params.locale}/login`}>
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
@@ -444,7 +444,7 @@ export default function InlineLoginForm({
                     <p className="text-xs text-gray-300 mb-3">
                       {t('auth.login.joinThousands')}
                     </p>
-                    <Link href={`/${params.locale}/get-started`}>
+                    <Link href={`/${params.locale}/login`}>
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}

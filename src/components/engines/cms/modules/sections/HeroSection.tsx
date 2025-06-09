@@ -43,7 +43,7 @@ interface HeroSectionProps extends ComponentStyleProps {
   onUpdate?: (data: Partial<HeroSectionProps>) => void;
 }
 
-function InterpretationSVG(props: React.SVGProps<SVGSVGElement>) {
+function CyberSpaceSVG(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 200 200"
@@ -51,37 +51,133 @@ function InterpretationSVG(props: React.SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      {/* Background Circle */}
-      <circle cx="100" cy="100" r="95" stroke="#3B82F6" strokeWidth="5" fill="#F9FAFB" />
-
-      {/* Headset */}
-      <path
-        d="M50 80 C50 50, 150 50, 150 80 M50 120 C50 150, 150 150, 150 120"
-        stroke="#3B82F6"
-        strokeWidth="4"
-        fill="none"
-      />
-      <circle cx="45" cy="100" r="5" fill="#3B82F6" />
-      <circle cx="155" cy="100" r="5" fill="#3B82F6" />
-      <path
-        d="M70 140 L70 160 Q100 170, 130 160 L130 140"
-        stroke="#3B82F6"
-        strokeWidth="4"
-        fill="none"
-      />
-
-      {/* Chat bubbles */}
-      <rect x="60" y="40" width="40" height="20" rx="5" ry="5" fill="#8B5CF6" />
-      <rect x="100" y="50" width="40" height="20" rx="5" ry="5" fill="#3B82F6" />
-
-      {/* Tiny text indicators */}
-      <circle cx="70" cy="50" r="2" fill="#F9FAFB" />
-      <circle cx="80" cy="50" r="2" fill="#F9FAFB" />
-      <circle cx="90" cy="50" r="2" fill="#F9FAFB" />
-
-      <circle cx="110" cy="60" r="2" fill="#F9FAFB" />
-      <circle cx="120" cy="60" r="2" fill="#F9FAFB" />
-      <circle cx="130" cy="60" r="2" fill="#F9FAFB" />
+      {/* Background Grid Pattern */}
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#00FFFF" strokeWidth="0.5" opacity="0.3"/>
+        </pattern>
+        <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00FFFF" />
+          <stop offset="100%" stopColor="#0080FF" />
+        </linearGradient>
+        <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FF00FF" />
+          <stop offset="100%" stopColor="#8000FF" />
+        </linearGradient>
+      </defs>
+      
+      {/* Grid Background */}
+      <rect width="200" height="200" fill="url(#grid)" opacity="0.4" />
+      
+      {/* Connection Lines */}
+      <g stroke="#00FFFF" strokeWidth="2" opacity="0.6">
+        {/* Main network connections */}
+        <line x1="100" y1="50" x2="60" y2="100" strokeDasharray="5,3" />
+        <line x1="100" y1="50" x2="140" y2="100" strokeDasharray="5,3" />
+        <line x1="60" y1="100" x2="100" y2="150" strokeDasharray="5,3" />
+        <line x1="140" y1="100" x2="100" y2="150" strokeDasharray="5,3" />
+        <line x1="60" y1="100" x2="140" y2="100" strokeDasharray="5,3" />
+        
+        {/* Outer connections */}
+        <line x1="30" y1="60" x2="60" y2="100" strokeDasharray="3,3" opacity="0.4" />
+        <line x1="170" y1="60" x2="140" y2="100" strokeDasharray="3,3" opacity="0.4" />
+        <line x1="30" y1="140" x2="60" y2="100" strokeDasharray="3,3" opacity="0.4" />
+        <line x1="170" y1="140" x2="140" y2="100" strokeDasharray="3,3" opacity="0.4" />
+      </g>
+      
+      {/* Data Flow Particles */}
+      <g fill="#00FFFF" opacity="0.8">
+        <circle cx="80" cy="75" r="2">
+          <animateMotion dur="3s" repeatCount="indefinite">
+            <path d="M 0,0 L 20,-25 L 40,0 L 20,25 Z" />
+          </animateMotion>
+        </circle>
+        <circle cx="120" cy="125" r="2">
+          <animateMotion dur="4s" repeatCount="indefinite">
+            <path d="M 0,0 L -20,25 L -40,0 L -20,-25 Z" />
+          </animateMotion>
+        </circle>
+        <circle cx="100" cy="100" r="1.5">
+          <animateMotion dur="2.5s" repeatCount="indefinite">
+            <path d="M 0,0 L -40,-50 L 40,-50 L 0,0 L 40,50 L -40,50 Z" />
+          </animateMotion>
+        </circle>
+      </g>
+      
+      {/* Main Network Nodes */}
+      <g>
+        {/* Central Core Node */}
+        <circle cx="100" cy="100" r="15" fill="url(#coreGradient)" stroke="#FF00FF" strokeWidth="2">
+          <animate attributeName="r" values="15;18;15" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="100" cy="100" r="8" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.7">
+          <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite" />
+        </circle>
+        
+        {/* Primary Nodes */}
+        <circle cx="100" cy="50" r="10" fill="url(#nodeGradient)" stroke="#00FFFF" strokeWidth="2" />
+        <circle cx="60" cy="100" r="10" fill="url(#nodeGradient)" stroke="#00FFFF" strokeWidth="2" />
+        <circle cx="140" cy="100" r="10" fill="url(#nodeGradient)" stroke="#00FFFF" strokeWidth="2" />
+        <circle cx="100" cy="150" r="10" fill="url(#nodeGradient)" stroke="#00FFFF" strokeWidth="2" />
+        
+        {/* Secondary Nodes */}
+        <circle cx="30" cy="60" r="6" fill="#0080FF" stroke="#00FFFF" strokeWidth="1" opacity="0.8" />
+        <circle cx="170" cy="60" r="6" fill="#0080FF" stroke="#00FFFF" strokeWidth="1" opacity="0.8" />
+        <circle cx="30" cy="140" r="6" fill="#0080FF" stroke="#00FFFF" strokeWidth="1" opacity="0.8" />
+        <circle cx="170" cy="140" r="6" fill="#0080FF" stroke="#00FFFF" strokeWidth="1" opacity="0.8" />
+      </g>
+      
+      {/* Digital Elements */}
+      <g fill="#00FF00" fontSize="8" fontFamily="monospace" opacity="0.6">
+        <text x="15" y="25">01001</text>
+        <text x="160" y="25">11010</text>
+        <text x="15" y="180">10110</text>
+        <text x="160" y="180">01101</text>
+      </g>
+      
+      {/* Orbiting Elements */}
+      <g fill="#FFFFFF" opacity="0.7">
+        <circle cx="100" cy="100" r="1">
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="0 100 100;360 100 100"
+            dur="8s"
+            repeatCount="indefinite" />
+          <animate attributeName="cx" values="125;125" dur="8s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="100" cy="100" r="1">
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="180 100 100;540 100 100"
+            dur="6s"
+            repeatCount="indefinite" />
+          <animate attributeName="cx" values="75;75" dur="6s" repeatCount="indefinite" />
+        </circle>
+      </g>
+      
+      {/* Outer Ring */}
+      <circle cx="100" cy="100" r="85" fill="none" stroke="#00FFFF" strokeWidth="1" opacity="0.3" strokeDasharray="10,5">
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="0 100 100;360 100 100"
+          dur="20s"
+          repeatCount="indefinite" />
+      </circle>
+      
+      {/* Energy Pulses */}
+      <g opacity="0.5">
+        <circle cx="100" cy="100" r="25" fill="none" stroke="#FF00FF" strokeWidth="1">
+          <animate attributeName="r" values="25;45;25" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="100" cy="100" r="35" fill="none" stroke="#00FFFF" strokeWidth="1">
+          <animate attributeName="r" values="35;55;35" dur="4s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.3;0;0.3" dur="4s" repeatCount="indefinite" />
+        </circle>
+      </g>
     </svg>
   );
 }
@@ -604,7 +700,7 @@ const HeroSection = React.memo(function HeroSection({
             animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <InterpretationSVG 
+            <CyberSpaceSVG 
               className="w-full h-auto max-w-md" 
               style={{ 
                 filter: localStyling.textColor ? `hue-rotate(${localStyling.textColor === '#ffffff' ? '180deg' : '0deg'})` : undefined 

@@ -330,7 +330,7 @@ export default function LoginPage() {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-200">
               {t('auth.login.noAccount')}{' '}
-              <Link href={`/${locale}/get-started`} className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
+              <Link href={`/${locale}/login`} className="text-purple-300 hover:text-cyan-300 hover:underline transition-colors duration-300">
                 {t('auth.login.createAccount')}
               </Link>
             </p>

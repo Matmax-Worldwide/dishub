@@ -1,34 +1,37 @@
 'use client';
 
 import React from 'react';
-import { Shield, Zap, Globe, Cpu } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
 import { ScrollReveal } from '@/components/animations/ScrollReveal';
+import PrivacyFirstSVG from '@/components/animations/PrivacyFirstSVG';
+import AIPoweredSVG from '@/components/animations/AIPoweredSVG';
+import BlockchainReadySVG from '@/components/animations/BlockchainReadySVG';
+import GlobalScaleIconSVG from '@/components/animations/GlobalScaleIconSVG';
 
 export default function FeaturesSection() {
   const { t } = useI18n();
 
   const features = [
     {
-      icon: Shield,
+      icon: PrivacyFirstSVG,
       title: t('dishub.features.privacyFirst.title'),
       description: t('dishub.features.privacyFirst.desc'),
       gradient: 'from-purple-500 to-pink-500',
     },
     {
-      icon: Cpu,
+      icon: AIPoweredSVG,
       title: t('dishub.features.aiPowered.title'),
       description: t('dishub.features.aiPowered.desc'),
       gradient: 'from-cyan-500 to-blue-500',
     },
     {
-      icon: Zap,
+      icon: BlockchainReadySVG,
       title: t('dishub.features.blockchainReady.title'),
       description: t('dishub.features.blockchainReady.desc'),
       gradient: 'from-yellow-500 to-orange-500',
     },
     {
-      icon: Globe,
+      icon: GlobalScaleIconSVG,
       title: t('dishub.features.globalScale.title'),
       description: t('dishub.features.globalScale.desc'),
       gradient: 'from-green-500 to-emerald-500',
@@ -59,30 +62,31 @@ export default function FeaturesSection() {
               duration={800}
               delay={400 + index * 200}
             >
-              <div className="group relative bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="group relative bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 overflow-hidden">
                 {/* Gradient background on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-500`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-500`}></div>
+                
+                {/* Subtle glow effect */}
+                <div className={`absolute -inset-1 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-20 rounded-2xl blur-xl transition-opacity duration-500`}></div>
                 
                 {/* Icon */}
-                <div className={`relative mb-6 w-16 h-16 rounded-xl bg-gradient-to-br ${feature.gradient} p-4 group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`relative z-10 mb-6 w-16 h-16 rounded-xl bg-gradient-to-br ${feature.gradient} p-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                   <feature.icon className="w-full h-full text-white" />
                 </div>
                 
                 {/* Content */}
-                <div className="relative">
-                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-cyan-400 group-hover:bg-clip-text transition-all duration-300">
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold text-white mb-4 transition-all duration-300 group-hover:text-white">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
+                  <p className="text-gray-400 group-hover:text-gray-200 transition-colors duration-300">
                     {feature.description}
                   </p>
                 </div>
 
-                {/* Animated border */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${feature.gradient} p-[1px]`}>
-                    <div className="w-full h-full bg-gray-800 rounded-2xl"></div>
-                  </div>
+                {/* Animated border effect */}
+                <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r ${feature.gradient} p-[2px]`}>
+                  <div className="w-full h-full bg-gray-800/90 rounded-2xl"></div>
                 </div>
               </div>
             </ScrollReveal>

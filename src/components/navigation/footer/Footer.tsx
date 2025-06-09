@@ -71,7 +71,7 @@ const Footer: React.FC<FooterProps> = ({
         { title: t('footer.platform.features'), href: `/${locale}#features` },
         { title: t('footer.platform.pricing'), href: `/${locale}/pricing` },
         { title: t('footer.platform.demo'), href: `/${locale}/demo` },
-        { title: t('footer.platform.getStarted'), href: `/${locale}/get-started` },
+        { title: t('footer.platform.getStarted'), href: `/${locale}/login` },
         { title: t('footer.platform.documentation'), href: `/${locale}/docs` }
       ]
     },
