@@ -46,7 +46,7 @@ export default function DishubLanding() {
         <PrivacySection scrollY={scrollY} />
 
         {/* Technology Section with Parallax Layers */}
-        <section className="relative py-20 px-6 pointer-events-auto overflow-hidden">
+        <div className="relative py-20 px-6 pointer-events-auto overflow-hidden">
           {/* Multi-layer parallax backgrounds */}
           <div 
             className="absolute inset-0 z-0"
@@ -151,7 +151,7 @@ export default function DishubLanding() {
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
 
 
