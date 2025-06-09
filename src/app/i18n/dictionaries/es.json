@@ -665,7 +665,8 @@
       "learnMore": "Saber Más"
     },
     "features": {
-      "nativeByDesign": "Nativo por Diseño",
+      "nativeByDesign": "Diseñada para la Soberanía de Datos",
+      "nativeByDesignDesc": "Soberanía de datos integrada en cada capa",
       "privacyFirst": {
         "title": "Privacidad Primero",
         "desc": "Soberanía de datos integrada en cada capa"

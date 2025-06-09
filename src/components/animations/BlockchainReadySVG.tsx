@@ -22,13 +22,7 @@ export default function BlockchainReadySVG({ className }: BlockchainReadySVGProp
           <stop offset="0%" stopColor="#FFFF00" />
           <stop offset="100%" stopColor="#FFD700" />
         </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-          <feMerge> 
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
+
       </defs>
 
       {/* Cuerpo principal de la llave */}
@@ -39,7 +33,6 @@ export default function BlockchainReadySVG({ className }: BlockchainReadySVGProp
         height="8" 
         rx="4" 
         fill="url(#keyGradient)" 
-        filter="url(#glow)"
       />
       
       {/* Cabeza circular de la llave */}
@@ -50,7 +43,6 @@ export default function BlockchainReadySVG({ className }: BlockchainReadySVGProp
         fill="none" 
         stroke="url(#keyGradient)" 
         strokeWidth="3"
-        filter="url(#glow)"
       />
       
       {/* Agujero interior de la llave */}
@@ -123,17 +115,7 @@ export default function BlockchainReadySVG({ className }: BlockchainReadySVGProp
         <text x="56" y="58">011</text>
       </g>
       
-      {/* Efecto de brillo en la llave */}
-      <ellipse 
-        cx="32" 
-        cy="32" 
-        rx="20" 
-        ry="8" 
-        fill="url(#keyGradient)" 
-        opacity="0.2"
-      >
-        <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" />
-      </ellipse>
+
     </svg>
   );
 } 

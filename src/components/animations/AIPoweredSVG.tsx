@@ -22,23 +22,10 @@ export default function AIPoweredSVG({ className }: AIPoweredSVGProps) {
           <stop offset="0%" stopColor="#00FFFF" />
           <stop offset="100%" stopColor="#0080FF" />
         </linearGradient>
-        <radialGradient id="aiGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#06B6D4" stopOpacity="0" />
-        </radialGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-          <feMerge> 
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
+
       </defs>
 
-      {/* Resplandor de fondo */}
-      <circle cx="32" cy="32" r="28" fill="url(#aiGlow)" opacity="0.4">
-        <animate attributeName="opacity" values="0.4;0.6;0.4" dur="3s" repeatCount="indefinite" />
-      </circle>
+
 
       {/* Cerebro principal */}
       <g transform="translate(16, 12)">
@@ -46,7 +33,6 @@ export default function AIPoweredSVG({ className }: AIPoweredSVGProps) {
         <path 
           d="M8 8 Q2 8 2 16 Q2 24 8 28 Q12 30 16 28 L16 12 Q12 8 8 8 Z" 
           fill="url(#brainGradient)" 
-          filter="url(#glow)"
           stroke="#00FFFF" 
           strokeWidth="0.5"
         />
@@ -55,7 +41,6 @@ export default function AIPoweredSVG({ className }: AIPoweredSVGProps) {
         <path 
           d="M24 8 Q30 8 30 16 Q30 24 24 28 Q20 30 16 28 L16 12 Q20 8 24 8 Z" 
           fill="url(#brainGradient)" 
-          filter="url(#glow)"
           stroke="#00FFFF" 
           strokeWidth="0.5"
         />
@@ -99,10 +84,10 @@ export default function AIPoweredSVG({ className }: AIPoweredSVGProps) {
       {/* Nodos neuronales */}
       <g fill="url(#neuralGradient)">
         {/* Nodos principales */}
-        <circle cx="32" cy="20" r="3" filter="url(#glow)">
+        <circle cx="32" cy="20" r="3">
           <animate attributeName="r" values="3;4;3" dur="2s" repeatCount="indefinite" />
         </circle>
-        <circle cx="32" cy="44" r="3" filter="url(#glow)">
+        <circle cx="32" cy="44" r="3">
           <animate attributeName="r" values="3;4;3" dur="2.5s" repeatCount="indefinite" />
         </circle>
         
@@ -143,17 +128,7 @@ export default function AIPoweredSVG({ className }: AIPoweredSVGProps) {
         </circle>
       </g>
 
-      {/* Ondas de procesamiento */}
-      <g fill="none" stroke="#06B6D4" strokeWidth="1" opacity="0.3">
-        <circle cx="32" cy="32" r="18">
-          <animate attributeName="r" values="18;22;18" dur="4s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.3;0;0.3" dur="4s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="32" cy="32" r="22">
-          <animate attributeName="r" values="22;26;22" dur="5s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.2;0;0.2" dur="5s" repeatCount="indefinite" />
-        </circle>
-      </g>
+
 
       {/* Indicadores de AI */}
       <g fill="#00FFFF" fontSize="3" fontFamily="monospace" opacity="0.5">

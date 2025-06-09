@@ -722,7 +722,8 @@
       "learnMore": "Learn More"
     },
     "features": {
-      "nativeByDesign": "Native by Design",
+      "nativeByDesign": "Built for Data Ownership from Day One",
+      "nativeByDesignDesc": "Data sovereignty built into every layer",
       "privacyFirst": {
         "title": "Privacy First",
         "desc": "Data sovereignty built into every layer"

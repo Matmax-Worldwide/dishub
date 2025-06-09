@@ -22,29 +22,15 @@ export default function PrivacyFirstSVG({ className }: PrivacyFirstSVGProps) {
           <stop offset="0%" stopColor="#F472B6" />
           <stop offset="100%" stopColor="#BE185D" />
         </linearGradient>
-        <radialGradient id="glowEffect" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
-        </radialGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-          <feMerge> 
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
+
       </defs>
 
-      {/* Resplandor de fondo */}
-      <circle cx="32" cy="32" r="28" fill="url(#glowEffect)" opacity="0.4">
-        <animate attributeName="opacity" values="0.4;0.6;0.4" dur="3s" repeatCount="indefinite" />
-      </circle>
+
 
       {/* Escudo principal */}
       <path 
         d="M32 8 L48 16 L48 32 Q48 48 32 56 Q16 48 16 32 L16 16 Z" 
         fill="url(#shieldGradient)" 
-        filter="url(#glow)"
         stroke="#F472B6" 
         strokeWidth="1"
       />
@@ -68,7 +54,6 @@ export default function PrivacyFirstSVG({ className }: PrivacyFirstSVGProps) {
           height="8" 
           rx="2" 
           fill="url(#lockGradient)"
-          filter="url(#glow)"
         />
         
         {/* Arco del candado */}
@@ -134,17 +119,7 @@ export default function PrivacyFirstSVG({ className }: PrivacyFirstSVGProps) {
         </path>
       </g>
 
-      {/* Ondas de protección */}
-      <g fill="none" stroke="#8B5CF6" strokeWidth="1" opacity="0.3">
-        <circle cx="32" cy="32" r="20">
-          <animate attributeName="r" values="20;24;20" dur="4s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.3;0;0.3" dur="4s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="32" cy="32" r="24">
-          <animate attributeName="r" values="24;28;24" dur="5s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.2;0;0.2" dur="5s" repeatCount="indefinite" />
-        </circle>
-      </g>
+
 
       {/* Texto de encriptación */}
       <g fill="#F472B6" fontSize="3" fontFamily="monospace" opacity="0.4">

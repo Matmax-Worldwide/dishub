@@ -670,6 +670,7 @@
     },
     "features": {
       "nativeByDesign": "Nativ im Design",
+      "nativeByDesignDesc": "Datensouveränität in jede Schicht eingebaut",
       "privacyFirst": {
         "title": "Privatsphäre Zuerst",
         "desc": "Datensouveränität in jede Schicht eingebaut"

@@ -22,23 +22,11 @@ export default function GlobalScaleIconSVG({ className }: GlobalScaleIconSVGProp
           <stop offset="0%" stopColor="#34D399" />
           <stop offset="100%" stopColor="#10B981" />
         </linearGradient>
-        <radialGradient id="globalGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-        </radialGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-          <feMerge> 
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
+
+
       </defs>
 
-      {/* Resplandor de fondo */}
-      <circle cx="32" cy="32" r="28" fill="url(#globalGlow)" opacity="0.4">
-        <animate attributeName="opacity" values="0.4;0.6;0.4" dur="3s" repeatCount="indefinite" />
-      </circle>
+
 
       {/* Globo principal */}
       <circle 
@@ -46,7 +34,6 @@ export default function GlobalScaleIconSVG({ className }: GlobalScaleIconSVGProp
         cy="32" 
         r="16" 
         fill="url(#globeGradient)" 
-        filter="url(#glow)"
         stroke="#34D399" 
         strokeWidth="1"
       />
@@ -139,17 +126,7 @@ export default function GlobalScaleIconSVG({ className }: GlobalScaleIconSVGProp
         </circle>
       </g>
 
-      {/* Ondas de expansión global */}
-      <g fill="none" stroke="#10B981" strokeWidth="1" opacity="0.3">
-        <circle cx="32" cy="32" r="20">
-          <animate attributeName="r" values="20;24;20" dur="4s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.3;0;0.3" dur="4s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="32" cy="32" r="24">
-          <animate attributeName="r" values="24;28;24" dur="5s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.2;0;0.2" dur="5s" repeatCount="indefinite" />
-        </circle>
-      </g>
+
 
       {/* Indicadores de regiones */}
       <g fill="#34D399" fontSize="3" fontFamily="monospace" opacity="0.5">
