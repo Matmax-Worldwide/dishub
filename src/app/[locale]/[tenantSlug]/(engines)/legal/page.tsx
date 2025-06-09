@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useI18n } from '@/hooks/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Scale, 
   Users, 
@@ -132,6 +133,7 @@ const mockData = {
 
 export default function LegalDashboard() {
   const { t, locale } = useI18n();
+  const { isLoading } = useAuth(); // Add useAuth hook to handle auto-login
   const params = useParams();
   const tenantSlug = params.tenantSlug as string;
   const formatCurrency = (amount: number) => {
@@ -219,6 +221,18 @@ export default function LegalDashboard() {
       default: return <Calendar className="h-4 w-4 text-gray-600" />;
     }
   };
+
+  // Show loading state while auto-login is processing
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('legal.loading') || 'Cargando...'}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

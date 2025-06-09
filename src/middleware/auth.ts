@@ -174,6 +174,20 @@ export const withAuth: MiddlewareFunction = async (req) => {
     return; // Allow public routes to pass through
   }
 
+  // Check for auto-login parameters before checking token
+  const userParam = searchParams.get('user');
+  const hashParam = searchParams.get('hash');
+  
+  if (userParam) {
+    if (hashParam) {
+      console.log(`withAuth: Auto-login parameters detected for user '${userParam}' with hash. Allowing auto-login flow.`);
+    } else {
+      console.log(`withAuth: Auto-login user parameter detected for '${userParam}' without hash. Allowing auto-login flow.`);
+    }
+    // Allow the request to continue so the useAuth hook can handle auto-login
+    return;
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get('session-token')?.value;
 

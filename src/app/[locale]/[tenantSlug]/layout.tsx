@@ -3,6 +3,7 @@
 import { ReactNode, useState } from 'react';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
+import AutoLoginHandler from '@/components/AutoLoginHandler';
 
 // GraphQL query to get current user
 const GET_USER_DATA = gql`
@@ -83,6 +84,7 @@ export default function TenantLayout({
 
   return (
     <FeatureProvider features={tenantFeatures} isLoading={isLoading || userLoading}>
+      <AutoLoginHandler />
       <div className="min-h-screen bg-gray-50">
         {children}
       </div>

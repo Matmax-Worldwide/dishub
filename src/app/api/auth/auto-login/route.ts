@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Auto-login attempt for email:', email, 'with hash provided:', !!hash);
+    console.log('Hash format check:', hash ? hash.substring(0, 15) + '...' : 'no hash');
 
     // Buscar el usuario por email
     const user = await prisma.user.findUnique({
