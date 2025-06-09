@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,7 +42,24 @@ const GET_TENANT = gql`
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
 
-export default function AccessDeniedPage() {
+// Loading component
+function AccessDeniedLoading() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6 py-8">
+      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-10 shadow-md">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-center text-gray-600">
+            Cargando...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Internal component that uses useAuth
+function AccessDeniedContent() {
   const { locale } = useParams();
   const { isAuthenticated } = useAuth();
   const [redirectPath, setRedirectPath] = useState('/dashboard');
@@ -165,5 +182,14 @@ export default function AccessDeniedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component wrapped in Suspense
+export default function AccessDeniedPage() {
+  return (
+    <Suspense fallback={<AccessDeniedLoading />}>
+      <AccessDeniedContent />
+    </Suspense>
   );
 } 

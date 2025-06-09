@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/lib/apollo-client';
@@ -9,12 +9,22 @@ type ClientProvidersProps = {
   children: ReactNode;
 };
 
-export function ClientProviders({ children }: ClientProvidersProps) {
+function AuthProviderWrapper({ children }: { children: ReactNode }) {
   return (
-    <ApolloProvider client={client}>
+    <Suspense fallback={<div>Loading...</div>}>
       <AuthProvider>
         {children}
       </AuthProvider>
+    </Suspense>
+  );
+}
+
+export function ClientProviders({ children }: ClientProvidersProps) {
+  return (
+    <ApolloProvider client={client}>
+      <AuthProviderWrapper>
+        {children}
+      </AuthProviderWrapper>
     </ApolloProvider>
   );
 } 

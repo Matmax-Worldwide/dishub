@@ -168,6 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Función para verificar y manejar autenticación automática desde URL
   const handleAutoLoginFromURL = async () => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') return;
+    
     const userParam = searchParams?.get('user');
     const hashParam = searchParams?.get('hash');
 
@@ -184,10 +187,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.error('Auto-login failed:', result.error);
           // Limpiar parámetros incluso si falla
-          const url = new URL(window.location.href);
-          url.searchParams.delete('user');
-          url.searchParams.delete('hash');
-          window.history.replaceState({}, '', url.toString());
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('user');
+            url.searchParams.delete('hash');
+            window.history.replaceState({}, '', url.toString());
+          }
         }
       } catch (error) {
         console.error('Error in auto-login process:', error);
@@ -197,6 +202,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Solo ejecutar en el cliente para evitar problemas de SSR
+      if (typeof window === 'undefined') return;
+      
       // Primero verificar si hay parámetros de autenticación automática
       const userParam = searchParams?.get('user');
       const hashParam = searchParams?.get('hash');

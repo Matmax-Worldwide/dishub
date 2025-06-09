@@ -1,13 +1,12 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 
 /**
- * Componente que maneja el auto-login automáticamente
- * Se debe incluir en layouts de páginas protegidas
+ * Componente interno que maneja el auto-login
  */
-export default function AutoLoginHandler() {
+function AutoLoginLogic() {
   const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -20,4 +19,16 @@ export default function AutoLoginHandler() {
 
   // Este componente no renderiza nada, solo ejecuta el hook useAuth
   return null;
+}
+
+/**
+ * Componente que maneja el auto-login automáticamente
+ * Se debe incluir en layouts de páginas protegidas
+ */
+export default function AutoLoginHandler() {
+  return (
+    <Suspense fallback={null}>
+      <AutoLoginLogic />
+    </Suspense>
+  );
 } 
