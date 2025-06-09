@@ -12,6 +12,21 @@ interface HeaderProps {
   className?: string;
 }
 
+// Smooth scroll to section utility function
+const scrollToSection = (sectionId: string) => {
+  const element = document.querySelector(`[data-section="${sectionId}"]`);
+  if (element) {
+    const headerHeight = 80; // Approximate header height
+    const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+    const offsetPosition = elementPosition - headerHeight;
+    
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
+  }
+};
+
 export default function Header({ className = '' }: HeaderProps) {
   const { t } = useI18n();
   const { isAuthenticated } = useAuth();
@@ -21,14 +36,17 @@ export default function Header({ className = '' }: HeaderProps) {
     <nav className={`fixed top-0 w-full z-[9999] backdrop-blur-xl bg-black/30 border-b border-white/10 pointer-events-auto ${className}`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Brand Logo */}
-        <div className="flex items-center space-x-2">
+        <button 
+          onClick={() => scrollToSection('hero')}
+          className="flex items-center space-x-2 cursor-pointer"
+        >
           <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center">
             <Zap className="w-6 h-6 text-white" />
           </div>
           <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
             {t('dishub.nav.brand')}
           </span>
-        </div>
+        </button>
 
         {/* Tech Navigation - Solo mostrar si NO está autenticado */}
         {!isAuthenticated && (
@@ -38,29 +56,29 @@ export default function Header({ className = '' }: HeaderProps) {
             
             {/* Navigation Links */}
             <div className="flex items-center space-x-4">
-              <a
-                href="#features"
+              <button
+                onClick={() => scrollToSection('features')}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Rocket className="w-4 h-4" />
                 <span className="text-sm font-medium">Features</span>
-              </a>
+              </button>
               
-              <a
-                href="#global"
+              <button
+                onClick={() => scrollToSection('technology')}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Globe className="w-4 h-4" />
-                <span className="text-sm font-medium">Global</span>
-              </a>
+                <span className="text-sm font-medium">Technology</span>
+              </button>
               
-              <a
-                href="#privacy"
+              <button
+                onClick={() => scrollToSection('privacy')}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 cursor-pointer"
               >
                 <Shield className="w-4 h-4" />
                 <span className="text-sm font-medium">Privacy</span>
-              </a>
+              </button>
             </div>
           </div>
         )}
@@ -107,32 +125,38 @@ export default function Header({ className = '' }: HeaderProps) {
                   
                   {/* Mobile Navigation Links */}
                   <div className="space-y-2">
-                    <a
-                      href="#features"
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <button
+                      onClick={() => {
+                        scrollToSection('features');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 w-full text-left"
                     >
                       <Rocket className="w-5 h-5" />
                       <span className="font-medium">Features</span>
-                    </a>
+                    </button>
                     
-                    <a
-                      href="#global"
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <button
+                      onClick={() => {
+                        scrollToSection('technology');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 w-full text-left"
                     >
                       <Globe className="w-5 h-5" />
-                      <span className="font-medium">Global Scale</span>
-                    </a>
+                      <span className="font-medium">Technology</span>
+                    </button>
                     
-                    <a
-                      href="#privacy"
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <button
+                      onClick={() => {
+                        scrollToSection('privacy');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 w-full text-left"
                     >
                       <Shield className="w-5 h-5" />
                       <span className="font-medium">Privacy & Security</span>
-                    </a>
+                    </button>
                   </div>
                 </>
               )}

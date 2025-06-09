@@ -276,7 +276,7 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
   };
 
   return (
-    <section className="relative h-screen flex items-center justify-center px-6 overflow-hidden z-0">
+    <section className="relative h-screen flex items-center justify-center px-6 overflow-hidden z-0" data-section="hero">
       {/* Multi-layer Parallax Background System */}
       
       {/* Layer 1: Deep Background - Slowest */}

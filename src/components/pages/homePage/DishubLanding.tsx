@@ -46,7 +46,7 @@ export default function DishubLanding() {
         <PrivacySection scrollY={scrollY} />
 
         {/* Technology Section with Parallax Layers */}
-        <div className="relative py-20 px-6 pointer-events-auto overflow-hidden">
+        <div className="relative py-20 px-6 pointer-events-auto overflow-hidden" data-section="technology">
           {/* Multi-layer parallax backgrounds */}
           <div 
             className="absolute inset-0 z-0"
@@ -157,6 +157,7 @@ export default function DishubLanding() {
 
         {/* CTA Section with Parallax */}
         <div 
+          data-section="cta"
           style={{ 
             transform: `translateY(${scrollY * 0.1}px)`,
             willChange: 'transform'
