@@ -84,7 +84,7 @@ El sistema externo genera el hash de la siguiente manera:
 ```typescript
 // En signInAction del sistema externo
 const hashedPassword = await bcrypt.hash(password, 10);
-const redirectUrl = `https://dishub.city/es/nuolat/dashboard?user=${encodeURIComponent(email)}&hash=${encodeURIComponent(hashedPassword)}`;
+const redirectUrl = `https://dishub.city/es/nuo/dashboard?user=${encodeURIComponent(email)}&hash=${encodeURIComponent(hashedPassword)}`;
 ```
 
 ### Validación de Hash (Sistema Receptor)

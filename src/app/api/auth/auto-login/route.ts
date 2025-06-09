@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         redirectUrl,
       });
 
-      // Establecer cookies de sesión
+      // Establecer cookies de sesión (mantener consistencia con el resto del sistema)
       if (session.sessionToken) {
         response.cookies.set('session-token', session.sessionToken, {
           httpOnly: true,

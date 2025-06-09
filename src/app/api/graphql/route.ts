@@ -175,7 +175,8 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
     if (!token) {
       const cookies = req.headers.get('cookie');
       if (cookies) {
-        const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+        // Try both auth-token and session-token for compatibility
+        const authTokenMatch = cookies.match(/auth-token=([^;]+)/) || cookies.match(/session-token=([^;]+)/);
         token = authTokenMatch ? authTokenMatch[1] : null;
       }
     }
