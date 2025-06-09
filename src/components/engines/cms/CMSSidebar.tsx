@@ -8,6 +8,7 @@ import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/hooks/useI18n';
+import { useParams } from 'next/navigation';
 import { 
   LayoutDashboard,
   FileText,
@@ -56,7 +57,7 @@ export default function CMSSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
-  
+  const { tenantSlug } = useParams();
   // Use the actual FeatureProvider context instead of hardcoded function
   const { hasFeature } = useFeatureAccess();
 
@@ -76,25 +77,25 @@ export default function CMSSidebar() {
   const baseNavigationItems = [
     {
       name: t('cms.dashboard') || 'Dashboard',
-      href: `/${locale}/cms/`,
+      href: `/${locale}/${tenantSlug}/cms/`,
       icon: <LayoutDashboard className="h-4 w-4" />,
       feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.pages') || 'Pages',
-      href: `/${locale}/cms/pages`,
+      href: `/${locale}/${tenantSlug}/cms/pages`,
       icon: <FileText className="h-4 w-4" />,
       feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.menus') || 'Menus',
-      href: `/${locale}/cms/menus`,
+      href: `/${locale}/${tenantSlug}/cms/menus`,
       icon: <Menu className="h-4 w-4" />,
       feature: 'CMS_ENGINE' as FeatureType
     },
     {
       name: t('cms.media') || 'Media',
-      href: `/${locale}/cms/media`,
+      href: `/${locale}/${tenantSlug}/cms/media`,
       icon: <ImageIcon className="h-4 w-4" />,
       feature: 'CMS_ENGINE' as FeatureType
     },
@@ -104,13 +105,13 @@ export default function CMSSidebar() {
   const featureNavigationItems = [
     {
       name: t('forms.title') || 'Forms',
-      href: `/${locale}/cms/forms`,
+      href: `/${locale}/${tenantSlug}/cms/forms`,
       icon: <FileText className="h-4 w-4" />,
       feature: 'FORMS_MODULE' as FeatureType
     },
     {
       name: t('blog.title') || 'Blog',
-      href: `/${locale}/cms/blog`,
+      href: `/${locale}/${tenantSlug}/cms/blog`,
       icon: <BookOpen className="h-4 w-4" />,
       feature: 'BLOG_MODULE' as FeatureType
     },
@@ -126,25 +127,25 @@ export default function CMSSidebar() {
   const dropdownItems = [
     ...(hasFeature('BOOKING_ENGINE') ? [{
       name: t('bookings.title') || 'Bookings',
-      href: `/${locale}/bookings`,
+      href: `/${locale}/${tenantSlug}/bookings`,
     }] : []),
     ...(hasFeature('ECOMMERCE_ENGINE') ? [{
       name: t('commerce.title') || 'E-COMMERCE',
-      href: `/${locale}/ecommerce`,
+      href: `/${locale}/${tenantSlug}/ecommerce`,
     }] : []),
   ];
 
   const settingsNavItem = {
     name: t('cms.settings') || 'Settings',
-    href: `/${locale}/cms/settings`,
+    href: `/${locale}/${tenantSlug}/cms/settings`,
     icon: <Settings className="h-4 w-4" />,
     feature: 'CMS_ENGINE' as FeatureType
   };
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/cms/`) {
-      return pathname === `/${locale}/cms` || pathname === `/${locale}/cms/`;
+    if (path === `/${locale}/${tenantSlug}/cms/`) {
+      return pathname === `/${locale}/${tenantSlug}/cms` || pathname === `/${locale}/${tenantSlug}/cms/`;
     }
     
     // For other links, check if pathname starts with the link path
@@ -262,11 +263,6 @@ export default function CMSSidebar() {
           </div>
         </SidebarHeader>
         
-        {/* Button that will be positioned in the middle of the sidebar when collapsed */}
-        <div className="sidebar-header-collapse-container">
-          <CollapsibleButton />
-        </div>
-        
         <SidebarContent className="bg-white">
           <SidebarGroup title={t('cms.mainNavigation') || 'Main Navigation'} className="px-3 py-4">
             <div className="space-y-1">
@@ -327,9 +323,9 @@ export default function CMSSidebar() {
         
         <SidebarFooter className="bg-white border-t border-gray-100 p-3">
           <Link 
-            href={`/${locale}/admin/dashboard`} 
+            href={`/${locale}/${tenantSlug}/dashboard`} 
             className="block w-full"
-            onClick={(e) => handleNavigation(`/${locale}/admin/dashboard`, e)}
+            onClick={(e) => handleNavigation(`/${locale}/${tenantSlug}/dashboard`, e)}
           >
             <SidebarItem 
               icon={<LogOut className="h-4 w-4 text-gray-500" />}

@@ -57,15 +57,15 @@ export interface SidebarConfig {
 
 export const sidebarConfig: SidebarConfig = {
   // Base navigation items (for all users)
-  baseNavigationItems: (locale: string) => [
+  baseNavigationItems: (locale: string, tenantSlug?: string) => [
     { 
       name: 'sidebar.dashboard', 
-      href: `/${locale}/admin/dashboard`, 
+      href: `/${locale}/${tenantSlug}/dashboard`, 
       icon: HomeIcon 
     },
     { 
       name: 'sidebar.notifications', 
-      href: `/${locale}/admin/dashboard/notifications`, 
+      href: `/${locale}/${tenantSlug}/dashboard/notifications`, 
       icon: BellIcon,
       permissions: ['notifications:read'],
       badge: {
@@ -75,44 +75,44 @@ export const sidebarConfig: SidebarConfig = {
     },
     { 
       name: 'sidebar.benefits', 
-      href: `/${locale}/admin/dashboard/benefits`, 
+      href: `/${locale}/${tenantSlug}/dashboard/benefits`, 
       icon: UserIcon 
     },
     { 
       name: 'sidebar.help', 
-      href: `/${locale}/admin/dashboard/help`, 
+      href: `/${locale}/${tenantSlug}/dashboard/help`, 
       icon: HelpCircleIcon 
     },
     { 
       name: 'sidebar.settings', 
-      href: `/${locale}/admin/dashboard/settings`, 
+      href: `/${locale}/${tenantSlug}/dashboard/settings`, 
       icon: SettingsIcon 
     },
   ],
 
   // Admin-specific navigation items
-  adminNavigationItems: (locale: string) => [
+  adminNavigationItems: (locale: string, tenantSlug?: string) => [
     { 
       name: 'sidebar.adminDashboard', 
-      href: `/${locale}/admin`, 
+      href: `/${locale}/${tenantSlug}/dashboard`, 
       icon: BarChartIcon, 
       permissions: ['admin:view']
     },
     { 
       name: 'sidebar.createNotifications', 
-      href: `/${locale}/admin/notifications`, 
+      href: `/${locale}/${tenantSlug}/dashboard/notifications`, 
       icon: MessageSquareIcon,
       permissions: ['notifications:create']
     },
     { 
       name: 'sidebar.userManagement', 
-      href: `/${locale}/admin/users`, 
+      href: `/${locale}/${tenantSlug}/dashboard/users`, 
       icon: UsersIcon, 
       permissions: ['users:read']
     },
     {
       name: 'sidebar.externalLinks',
-      href: `/${locale}/admin/external-links`,
+      href: `/${locale}/${tenantSlug}/dashboard/external-links`,
       icon: LinkIcon,
       permissions: ['admin:view']
     },

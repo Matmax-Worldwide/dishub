@@ -20,54 +20,54 @@ interface NavigationItem {
   badge?: string;
 }
 
-const NAVIGATION_ITEMS: NavigationItem[] = [
+const NAVIGATION_ITEMS = (locale: string, tenantSlug: string): NavigationItem[] => [
   {
     label: 'Dashboard',
-    href: '/admin',
+    href: `/${locale}/${tenantSlug}/dashboard`,
     icon: LayoutDashboard,
   },
   {
     label: 'CMS',
-    href: '/admin/cms',
+    href: `/${locale}/${tenantSlug}/cms`,
     icon: FileText,
     feature: 'CMS_ENGINE',
   },
   {
     label: 'Blog',
-    href: '/admin/cms/blog',
+    href: `/${locale}/${tenantSlug}/cms/blog`,
     icon: MessageSquare,
     feature: 'BLOG_MODULE',
     badge: 'Premium',
   },
   {
     label: 'Formularios',
-    href: '/admin/cms/forms',
+    href: `/${locale}/${tenantSlug}/cms/forms`,
     icon: FileText,
     feature: 'FORMS_MODULE',
     badge: 'Premium',
   },
   {
     label: 'Reservas',
-    href: '/admin/bookings',
+    href: `/${locale}/${tenantSlug}/bookings`,
     icon: Calendar,
     feature: 'BOOKING_ENGINE',
     badge: 'Premium',
   },
   {
     label: 'E-commerce',
-    href: '/admin/commerce',
+    href: `/${locale}/${tenantSlug}/commerce`,
     icon: ShoppingCart,
     feature: 'ECOMMERCE_ENGINE',
     badge: 'Premium',
   },
   {
     label: 'Configuración',
-    href: '/admin/settings',
+    href: `/${locale}/${tenantSlug}/settings`,
     icon: Settings,
   },
 ];
 
-export function FeatureAwareNavigation() {
+export function FeatureAwareNavigation({ locale, tenantSlug }: { locale: string, tenantSlug: string }) {
   const { features, calculateCost } = useFeatureAccess();
   const monthlyCost = calculateCost();
 
@@ -87,14 +87,14 @@ export function FeatureAwareNavigation() {
       </div>
 
       {/* Items de navegación */}
-      {NAVIGATION_ITEMS.map((item) => (
+      {NAVIGATION_ITEMS(locale, tenantSlug).map((item) => (
         <NavigationItem key={item.href} item={item} />
       ))}
 
       {/* Enlace para actualizar plan */}
       <div className="pt-4 border-t">
         <Link
-          href="/admin/billing/upgrade"
+          href={`/${locale}/${tenantSlug}/billing/upgrade`}
           className="flex items-center px-3 py-2 text-sm font-medium text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
         >
           <Zap className="w-4 h-4 mr-3" />

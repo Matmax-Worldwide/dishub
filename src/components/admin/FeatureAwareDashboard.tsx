@@ -46,7 +46,7 @@ interface DashboardSection {
   widgets: DashboardWidget[];
 }
 
-const DASHBOARD_SECTIONS: DashboardSection[] = [
+const getDashboardSections = (locale: string, tenantSlug: string): DashboardSection[] => [
   {
     id: 'overview',
     title: 'Resumen General',
@@ -84,7 +84,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         description: 'Contenido disponible',
         icon: FileText,
         value: '24',
-        href: '/admin/cms/pages',
+        href: `/${locale}/${tenantSlug}/cms/pages`,
         action: 'Ver páginas',
         size: 'small'
       },
@@ -94,7 +94,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         description: 'Imágenes y documentos',
         icon: Package,
         value: '156',
-        href: '/admin/cms/media',
+        href: `/${locale}/${tenantSlug}/cms/media`,
         action: 'Gestionar media',
         size: 'small'
       },
@@ -103,7 +103,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         title: 'Crear Nueva Página',
         description: 'Añadir contenido al sitio',
         icon: Plus,
-        href: '/admin/cms/pages/create',
+        href: `/${locale}/${tenantSlug}/cms/pages/create`,
         action: 'Crear página',
         size: 'medium'
       }
@@ -122,7 +122,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         value: '45',
         change: '+8',
         changeType: 'positive',
-        href: '/admin/cms/blog/posts',
+        href: `/${locale}/${tenantSlug}/cms/blog/posts`,
         action: 'Ver artículos',
         size: 'small'
       },
@@ -141,7 +141,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         title: 'Escribir Artículo',
         description: 'Crear nuevo contenido',
         icon: Plus,
-        href: '/admin/cms/blog/posts/create',
+        href: `/${locale}/${tenantSlug}/cms/blog/posts/create`,
         action: 'Nuevo artículo',
         size: 'medium'
       }
@@ -160,7 +160,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         value: '234',
         change: '+15%',
         changeType: 'positive',
-        href: '/admin/cms/forms/submissions',
+        href: `/${locale}/${tenantSlug}/cms/forms/submissions`,
         action: 'Ver respuestas',
         size: 'small'
       },
@@ -170,7 +170,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         description: 'Formularios publicados',
         icon: FileText,
         value: '8',
-        href: '/admin/cms/forms',
+        href: `/${locale}/${tenantSlug}/cms/forms`,
         action: 'Gestionar formularios',
         size: 'small'
       },
@@ -179,7 +179,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         title: 'Crear Formulario',
         description: 'Nuevo formulario de contacto',
         icon: Plus,
-        href: '/admin/cms/forms/create',
+        href: `/${locale}/${tenantSlug}/cms/forms/create`,
         action: 'Crear formulario',
         size: 'medium'
       }
@@ -196,7 +196,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         description: 'Citas programadas',
         icon: Calendar,
         value: '12',
-        href: '/admin/bookings/calendar',
+        href: `/${locale}/${tenantSlug}/bookings/calendar`,
         action: 'Ver calendario',
         size: 'small'
       },
@@ -225,7 +225,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         title: 'Gestionar Servicios',
         description: 'Configurar disponibilidad',
         icon: Clock,
-        href: '/admin/bookings/services',
+        href: `/${locale}/${tenantSlug}/bookings/services`,
         action: 'Ver servicios',
         size: 'medium'
       }
@@ -254,7 +254,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         value: '89',
         change: '+12',
         changeType: 'positive',
-        href: '/admin/commerce/orders',
+        href: `/${locale}/${tenantSlug}/commerce/orders`,
         action: 'Ver pedidos',
         size: 'small'
       },
@@ -264,7 +264,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
         description: 'Catálogo disponible',
         icon: Package,
         value: '156',
-        href: '/admin/commerce/products',
+        href: `/${locale}/${tenantSlug}/commerce/products`,
         action: 'Gestionar productos',
         size: 'small'
       },
@@ -282,7 +282,7 @@ const DASHBOARD_SECTIONS: DashboardSection[] = [
   }
 ];
 
-export function FeatureAwareDashboard() {
+export function FeatureAwareDashboard({ locale, tenantSlug }: { locale: string, tenantSlug: string }) {
   let getAvailableFeatures: () => FeatureType[] = () => ['CMS_ENGINE'];
   let calculateCost: () => number = () => 0;
   
@@ -331,7 +331,7 @@ export function FeatureAwareDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <ShowIfFeature feature="CMS_ENGINE">
-              <Link href="/admin/cms/pages/create">
+              <Link href={`/${locale}/${tenantSlug}/cms/pages/create`}>
                 <Button variant="outline" className="w-full h-20 flex flex-col">
                   <FileText className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nueva Página</span>
@@ -340,7 +340,7 @@ export function FeatureAwareDashboard() {
             </ShowIfFeature>
             
             <ShowIfFeature feature="BLOG_MODULE">
-              <Link href="/admin/cms/blog/posts/create">
+              <Link href={`/${locale}/${tenantSlug}/cms/blog/posts/create`}>
                 <Button variant="outline" className="w-full h-20 flex flex-col">
                   <MessageSquare className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nuevo Artículo</span>
@@ -349,7 +349,7 @@ export function FeatureAwareDashboard() {
             </ShowIfFeature>
             
             <ShowIfFeature feature="FORMS_MODULE">
-              <Link href="/admin/cms/forms/create">
+              <Link href={`/${locale}/${tenantSlug}/cms/forms/create`}>
                 <Button variant="outline" className="w-full h-20 flex flex-col">
                   <Mail className="w-6 h-6 mb-2" />
                   <span className="text-sm">Nuevo Formulario</span>
@@ -370,7 +370,7 @@ export function FeatureAwareDashboard() {
       </Card>
 
       {/* Dashboard Sections */}
-      {DASHBOARD_SECTIONS.map((section) => (
+      {getDashboardSections(locale, tenantSlug).map((section) => (
         <DashboardSection key={section.id} section={section} />
       ))}
 

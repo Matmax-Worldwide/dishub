@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { useI18n } from '@/hooks/useI18n';
@@ -56,7 +56,7 @@ export default function BookingsSidebar() {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
-  
+  const { tenantSlug } = useParams();
   // Unsaved changes context
   const {
     hasUnsavedChanges,
@@ -233,11 +233,6 @@ export default function BookingsSidebar() {
             </div>
           </SidebarHeader>
           
-          {/* Button that will be positioned in the middle of the sidebar when collapsed */}
-          <div className="sidebar-header-collapse-container">
-            <CollapsibleButton />
-          </div>
-          
           <SidebarContent>
             <SidebarGroup title={t('bookings.main') || 'Main'}>
               {mainNavigationItems.map((item) => (
@@ -278,9 +273,9 @@ export default function BookingsSidebar() {
           
           <SidebarFooter>
             <Link 
-              href={`/${locale}/admin/dashboard`} 
+              href={`/${locale}/${tenantSlug}/dashboard`} 
               className="block w-full"
-              onClick={(e) => handleNavigation(`/${locale}/admin/dashboard`, e)}
+              onClick={(e) => handleNavigation(`/${locale}/${tenantSlug}/dashboard`, e)}
             >
               <SidebarItem 
                 icon={<LogOut className="h-4 w-4" />}

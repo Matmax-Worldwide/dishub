@@ -68,65 +68,65 @@ export function getAvailableFeatures(tenantFeatures: string[]): FeatureDefinitio
 /**
  * Obtiene las rutas permitidas para un tenant basado en sus features
  */
-export function getAllowedRoutes(tenantFeatures: string[]): string[] {
+export function getAllowedRoutes(tenantFeatures: string[], locale: string, tenantSlug: string): string[] {
   const routes: string[] = [
-    '/admin', // Dashboard siempre disponible
+    `/${locale}/${tenantSlug}/dashboard`, // Dashboard siempre disponible
   ];
   
   // CMS Engine routes
   if (hasFeatureAccess(tenantFeatures, 'CMS_ENGINE')) {
     routes.push(
-      '/admin/cms',
-      '/admin/cms/pages',
-      '/admin/cms/pages/create',
-      '/admin/cms/pages/edit',
-      '/admin/cms/sections',
-      '/admin/cms/media',
-      '/admin/cms/settings'
+      `/${locale}/${tenantSlug}/cms`,
+      `/${locale}/${tenantSlug}/cms/pages`,
+      `/${locale}/${tenantSlug}/cms/pages/create`,
+      `/${locale}/${tenantSlug}/cms/pages/edit`,
+      `/${locale}/${tenantSlug}/cms/sections`,
+      `/${locale}/${tenantSlug}/cms/media`,
+      `/${locale}/${tenantSlug}/cms/settings`
     );
   }
   
   // Blog Module routes
   if (hasFeatureAccess(tenantFeatures, 'BLOG_MODULE')) {
     routes.push(
-      '/admin/cms/blog',
-      '/admin/cms/blog/new',
-      '/admin/cms/blog/edit',
-      '/admin/cms/blog/posts'
+      `/${locale}/${tenantSlug}/cms/blog`,
+      `/${locale}/${tenantSlug}/cms/blog/new`,
+      `/${locale}/${tenantSlug}/cms/blog/edit`,
+      `/${locale}/${tenantSlug}/cms/blog/posts`
     );
   }
   
   // Forms Module routes
   if (hasFeatureAccess(tenantFeatures, 'FORMS_MODULE')) {
     routes.push(
-      '/admin/cms/forms',
-      '/admin/cms/forms/create',
-      '/admin/cms/forms/edit',
-      '/admin/cms/forms/submissions'
+      `/${locale}/${tenantSlug}/cms/forms`,
+      `/${locale}/${tenantSlug}/cms/forms/create`,
+      `/${locale}/${tenantSlug}/cms/forms/edit`,
+      `/${locale}/${tenantSlug}/cms/forms/submissions`
     );
   }
   
   // Booking Engine routes
   if (hasFeatureAccess(tenantFeatures, 'BOOKING_ENGINE')) {
     routes.push(
-      '/admin/bookings',
-      '/admin/bookings/calendar',
-      '/admin/bookings/services',
-      '/admin/bookings/staff',
-      '/admin/bookings/locations',
-      '/admin/bookings/rules'
+      `/${locale}/${tenantSlug}/bookings`,
+      `/${locale}/${tenantSlug}/bookings/calendar`,
+      `/${locale}/${tenantSlug}/bookings/services`,
+      `/${locale}/${tenantSlug}/bookings/staff`,
+      `/${locale}/${tenantSlug}/bookings/locations`,
+      `/${locale}/${tenantSlug}/bookings/rules`
     );
   }
   
   // E-commerce Engine routes
   if (hasFeatureAccess(tenantFeatures, 'ECOMMERCE_ENGINE')) {
     routes.push(
-      '/admin/commerce',
-      '/admin/commerce/products',
-      '/admin/commerce/orders',
-      '/admin/commerce/customers',
-      '/admin/commerce/analytics',
-      '/admin/commerce/settings'
+        `/${locale}/${tenantSlug}/commerce`,
+      `/${locale}/${tenantSlug}/commerce/products`,
+      `/${locale}/${tenantSlug}/commerce/orders`,
+      `/${locale}/${tenantSlug}/commerce/customers`,
+      `/${locale}/${tenantSlug}/commerce/analytics`,
+      `/${locale}/${tenantSlug}/commerce/settings`
     );
   }
   
@@ -136,8 +136,8 @@ export function getAllowedRoutes(tenantFeatures: string[]): string[] {
 /**
  * Verifica si una ruta está permitida para un tenant
  */
-export function isRouteAllowed(tenantFeatures: string[], route: string): boolean {
-  const allowedRoutes = getAllowedRoutes(tenantFeatures);
+export function isRouteAllowed(tenantFeatures: string[], route: string, locale: string, tenantSlug: string): boolean {
+  const allowedRoutes = getAllowedRoutes(tenantFeatures, locale, tenantSlug);
   
   // Verificar coincidencia exacta o si la ruta es un subrutas de una permitida
   return allowedRoutes.some(allowedRoute => 
