@@ -285,7 +285,7 @@ export default function TenantDashboard() {
       const recentBookings = dashboardData?.recentBookings?.edges?.length || 0;
       
       engines.push({
-        name: 'Bukmi',
+        name: 'Booking Engine',
         description: 'Gestiona citas y reservas de tus clientes',
         icon: CalendarIcon,
         href: `/${params.locale}/${params.tenantSlug}/bookings`,
