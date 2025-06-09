@@ -1,30 +1,16 @@
-/* CSS Variables
-:root {
-  --primary-color: #2563eb;
-  --secondary-color: #7c3aed;
-  --doctor-color: #059669;
-  --patient-color: #dc2626;
-  --bg-dark: #0f172a;
-  --bg-card: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent-green: #10b981;
-  --accent-red: #ef4444;
-  --accent-yellow: #f59e0b;
-}
-   */
+/* Interprompter Module Styles */
 
-.container {
+/* Base Container */
+.interprompterContainer {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg-dark);
-  color: var(--text-primary);
+  background: var(--interprompter-bg-dark);
+  color: var(--interprompter-text-primary);
   overflow-x: hidden;
   min-height: 100vh;
-  position: relative;
 }
 
 /* Animated Background */
-.animatedBg {
+.interprompterAnimatedBg {
   position: fixed;
   top: 0;
   left: 0;
@@ -35,7 +21,7 @@
   overflow: hidden;
 }
 
-.animatedBg::before {
+.interprompterAnimatedBg::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -43,16 +29,11 @@
   width: 200%;
   height: 200%;
   background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
-  animation: pulse 15s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-10%, -10%) scale(1.1); }
+  animation: interprompter-pulse 15s ease-in-out infinite;
 }
 
 /* Header */
-.header {
+.interprompterHeader {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -66,50 +47,45 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.logo {
+.interprompterLogo {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(135deg, var(--interprompter-primary-color), var(--interprompter-secondary-color));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 3s ease-in-out infinite;
+  animation: interprompter-shimmer 3s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-
-.interpreterInfo {
+.interprompterInfo {
   display: flex;
   align-items: center;
   gap: 2rem;
 }
 
-.infoItem {
+.interprompterInfoItem {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.infoLabel {
+.interprompterInfoLabel {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--interprompter-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.infoValue {
+.interprompterInfoValue {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--interprompter-text-primary);
 }
 
 /* Analytics Bar */
-.analyticsBar {
+.interprompterAnalyticsBar {
   position: sticky;
   top: 87px;
   z-index: 99;
@@ -123,7 +99,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.statCard {
+.interprompterStatCard {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
   border-radius: 0.5rem;
@@ -133,52 +109,52 @@
   transition: all 0.3s ease;
 }
 
-.statCard::before {
+.interprompterStatCard::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.05));
   opacity: 0;
   transition: opacity 0.3s ease;
-  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.05));
 }
 
-.statCard:hover::before {
+.interprompterStatCard:hover::before {
   opacity: 1;
 }
 
-.statCard:hover {
+.interprompterStatCard:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
-.statHeader {
+.interprompterStatHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
 
-.statTitle {
+.interprompterStatTitle {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--interprompter-text-secondary);
 }
 
-.statIcon {
+.interprompterStatIcon {
   width: 20px;
   height: 20px;
   opacity: 0.5;
 }
 
-.statValue {
+.interprompterStatValue {
   font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
 
-.statChange {
+.interprompterStatChange {
   font-size: 0.75rem;
   display: flex;
   align-items: center;
@@ -187,20 +163,20 @@
   transition: opacity 0.3s ease;
 }
 
-.statChange.positive {
-  color: var(--accent-green);
+.interprompterStatChangePositive {
+  color: var(--interprompter-accent-green);
 }
 
-.statChange.negative {
-  color: var(--accent-red);
+.interprompterStatChangeNegative {
+  color: var(--interprompter-accent-red);
 }
 
 /* Active Call Indicator */
-.activeCall {
+.interprompterActiveCall {
   position: fixed;
   top: 1rem;
   right: 1rem;
-  background: var(--accent-green);
+  background: var(--interprompter-accent-green);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 2rem;
@@ -208,30 +184,20 @@
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  animation: pulseCall 2s infinite;
+  animation: interprompter-pulse-call 2s infinite;
   z-index: 101;
 }
 
-@keyframes pulseCall {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.recordingDot {
+.interprompterRecordingDot {
   width: 8px;
   height: 8px;
   background: white;
   border-radius: 50%;
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  animation: interprompter-blink 1s infinite;
 }
 
 /* Main Content */
-.mainContent {
+.interprompterMainContent {
   display: grid;
   grid-template-columns: 1fr 350px;
   gap: 1.5rem;
@@ -241,7 +207,7 @@
 }
 
 /* Chat Container */
-.chatContainer {
+.interprompterChatContainer {
   background: rgba(30, 41, 59, 0.6);
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -250,7 +216,7 @@
   overflow: hidden;
 }
 
-.chatHeader {
+.interprompterChatHeader {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -259,14 +225,14 @@
   align-items: center;
 }
 
-.languagePair {
+.interprompterLanguagePair {
   display: flex;
   align-items: center;
   gap: 1rem;
   font-weight: 600;
 }
 
-.languageFlag {
+.interprompterLanguageFlag {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -276,7 +242,7 @@
   font-size: 0.875rem;
 }
 
-.chatMessages {
+.interprompterChatMessages {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
@@ -286,49 +252,38 @@
   max-height: 500px;
 }
 
-.chatPlaceholder {
+.interprompterChatPlaceholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 400px;
-  color: var(--text-secondary);
+  color: var(--interprompter-text-secondary);
 }
 
-.message {
+.interprompterMessage {
   max-width: 85%;
   padding: 1rem 1.25rem;
   border-radius: 1rem;
   position: relative;
-  animation: slideInFromTop 0.4s ease-out;
+  animation: interprompter-slideInFromTop 0.4s ease-out;
   margin-bottom: 0.5rem;
 }
 
-@keyframes slideInFromTop {
-  from {
-    opacity: 0;
-    transform: translateY(-15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message.doctor {
+.interprompterMessageDoctor {
   align-self: flex-start;
-  background: linear-gradient(135deg, var(--doctor-color), #047857);
+  background: linear-gradient(135deg, var(--interprompter-doctor-color), #047857);
   border-bottom-left-radius: 0.25rem;
 }
 
-.message.patient {
+.interprompterMessagePatient {
   align-self: flex-end;
-  background: linear-gradient(135deg, var(--patient-color), #b91c1c);
+  background: linear-gradient(135deg, var(--interprompter-patient-color), #b91c1c);
   margin-left: auto;
   border-bottom-right-radius: 0.25rem;
 }
 
-.messageHeader {
+.interprompterMessageHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -340,17 +295,17 @@
   opacity: 0.9;
 }
 
-.speakerName {
+.interprompterSpeakerName {
   font-weight: 700;
   font-size: 0.8rem;
 }
 
-.messageTime {
+.interprompterMessageTime {
   font-size: 0.7rem;
   opacity: 0.7;
 }
 
-.originalText {
+.interprompterOriginalText {
   font-size: 0.85rem;
   line-height: 1.4;
   margin-bottom: 0.75rem;
@@ -359,7 +314,7 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.translationText {
+.interprompterTranslationText {
   font-size: 1.1rem;
   line-height: 1.5;
   font-weight: 600;
@@ -372,24 +327,53 @@
   margin-top: 0.5rem;
 }
 
-.languageLabel {
+.interprompterLanguageLabel {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
   font-weight: 600;
+}
+
+.interprompterLanguageLabelOriginal {
   opacity: 0.6;
   color: rgba(255, 255, 255, 0.6);
 }
 
+.interprompterLanguageLabelTranslation {
+  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.interprompterTypingIndicator {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem;
+}
+
+.interprompterTypingDot {
+  width: 8px;
+  height: 8px;
+  background: var(--interprompter-text-secondary);
+  border-radius: 50%;
+  animation: interprompter-typing 1.4s infinite;
+}
+
+.interprompterTypingDot:nth-child(2) { animation-delay: 0.2s; }
+.interprompterTypingDot:nth-child(3) { animation-delay: 0.4s; }
+
 /* Assistant Panel */
-.assistantPanel {
+.interprompterAssistantPanel {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.panelCard {
+.interprompterPanelCard {
   background: rgba(30, 41, 59, 0.6);
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -398,7 +382,7 @@
   overflow: hidden;
 }
 
-.panelHeader {
+.interprompterPanelHeader {
   font-size: 1.125rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -407,12 +391,12 @@
   gap: 0.5rem;
 }
 
-.keywordsGrid {
+.interprompterKeywordsGrid {
   display: grid;
   gap: 0.75rem;
 }
 
-.keywordItem {
+.interprompterKeywordItem {
   background: rgba(255, 255, 255, 0.05);
   padding: 0.75rem;
   border-radius: 0.5rem;
@@ -425,59 +409,161 @@
   position: relative;
 }
 
-.keywordItem:hover {
+.interprompterKeywordItem:hover {
   background: rgba(37, 99, 235, 0.15);
-  border-color: var(--primary-color);
+  border-color: var(--interprompter-primary-color);
   transform: translateX(5px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
-.keywordText {
+.interprompterKeywordItem:active {
+  transform: translateX(3px) scale(0.98);
+  background: rgba(37, 99, 235, 0.25);
+}
+
+.interprompterKeywordItemCopied {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--interprompter-accent-green);
+}
+
+.interprompterKeywordItem::after {
+  content: '📋';
+  position: absolute;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.interprompterKeywordItem:hover::after {
+  opacity: 0.6;
+}
+
+.interprompterKeywordText {
   font-weight: 500;
 }
 
-.keywordTranslation {
+.interprompterKeywordTranslation {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--interprompter-text-secondary);
 }
 
-.phraseItem {
+.interprompterPhraseItem {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
   border-radius: 0.5rem;
   margin-bottom: 0.75rem;
-  border-left: 3px solid var(--accent-yellow);
+  border-left: 3px solid var(--interprompter-accent-yellow);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   border: 1px solid transparent;
 }
 
-.phraseItem:hover {
+.interprompterPhraseItem:hover {
   background: rgba(245, 158, 11, 0.15);
-  border-color: var(--accent-yellow);
+  border-color: var(--interprompter-accent-yellow);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
-.phraseItem:active {
+.interprompterPhraseItem:active {
   transform: translateY(0) scale(0.98);
   background: rgba(245, 158, 11, 0.25);
 }
 
-.phraseOriginal {
+.interprompterPhraseItemCopied {
+  background: rgba(16, 185, 129, 0.2);
+  border-left-color: var(--interprompter-accent-green);
+}
+
+.interprompterPhraseItem::after {
+  content: '🗣️';
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.interprompterPhraseItem:hover::after {
+  opacity: 0.7;
+}
+
+.interprompterPhraseOriginal {
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
-.phraseTranslation {
+.interprompterPhraseTranslation {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--interprompter-text-secondary);
   font-style: italic;
 }
 
+/* Quality Indicators */
+.interprompterQualityIndicators {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.interprompterQualityItem {
+  text-align: center;
+}
+
+.interprompterQualityLabel {
+  font-size: 0.75rem;
+  color: var(--interprompter-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.interprompterQualityBar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.interprompterQualityFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.interprompterQualityFillHigh {
+  background: var(--interprompter-accent-green);
+}
+
+.interprompterQualityFillMedium {
+  background: var(--interprompter-accent-yellow);
+}
+
+.interprompterQualityFillLow {
+  background: var(--interprompter-accent-red);
+}
+
+/* Notification */
+.interprompterNotification {
+  position: fixed;
+  top: 100px;
+  right: 1rem;
+  background: var(--interprompter-accent-green);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  z-index: 102;
+  animation: interprompter-slideInRight 0.3s ease-out;
+  font-weight: 500;
+}
+
+.interprompterNotificationError {
+  background: var(--interprompter-accent-red);
+}
+
 /* Demo Button */
-.demoButton {
+.interprompterDemoButton {
+  background: linear-gradient(135deg, var(--interprompter-primary-color), var(--interprompter-secondary-color));
   color: white;
   border: none;
   padding: 0.5rem 1.25rem;
@@ -490,10 +576,9 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
 }
 
-.demoButton::before {
+.interprompterDemoButton::before {
   content: '';
   position: absolute;
   top: 0;
@@ -504,29 +589,30 @@
   transition: left 0.5s ease;
 }
 
-.demoButton:hover::before {
+.interprompterDemoButton:hover::before {
   left: 100%;
 }
 
-.demoButton:hover {
+.interprompterDemoButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
 }
 
-.demoButton:active {
+.interprompterDemoButton:active {
   transform: translateY(0);
 }
 
-.speedSelector {
+/* Speed Selector */
+.interprompterSpeedSelector {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
 }
 
-.speedSelect {
+.interprompterSpeedSelect {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
+  color: var(--interprompter-text-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
@@ -535,41 +621,41 @@
   transition: all 0.3s ease;
 }
 
-.speedSelect:hover {
+.interprompterSpeedSelect:hover {
   background: rgba(255, 255, 255, 0.15);
-  border-color: var(--primary-color);
+  border-color: var(--interprompter-primary-color);
 }
 
-.speedSelect:focus {
+.interprompterSpeedSelect:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--interprompter-primary-color);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
-.speedSelect option {
-  background: var(--bg-card);
-  color: var(--text-primary);
+.interprompterSpeedSelect option {
+  background: var(--interprompter-bg-card);
+  color: var(--interprompter-text-primary);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .mainContent {
+  .interprompterMainContent {
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 1rem;
   }
   
-  .header {
+  .interprompterHeader {
     padding: 1rem;
     flex-direction: column;
     gap: 1rem;
   }
   
-  .interpreterInfo {
+  .interprompterInfo {
     gap: 1rem;
   }
   
-  .analyticsBar {
+  .interprompterAnalyticsBar {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     padding: 1rem;

@@ -1399,6 +1399,69 @@ video[preload="auto"] {
   animation: gradient 3s ease infinite;
 }
 
+/* Interprompter specific animations and keyframes */
+@keyframes interprompter-pulse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-10%, -10%) scale(1.1); }
+}
+
+@keyframes interprompter-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes interprompter-pulse-call {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes interprompter-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes interprompter-slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes interprompter-typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
+}
+
+@keyframes interprompter-slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Interprompter CSS Variables */
+:root {
+  --interprompter-primary-color: #2563eb;
+  --interprompter-secondary-color: #7c3aed;
+  --interprompter-doctor-color: #059669;
+  --interprompter-patient-color: #dc2626;
+  --interprompter-bg-dark: #0f172a;
+  --interprompter-bg-card: #1e293b;
+  --interprompter-text-primary: #f1f5f9;
+  --interprompter-text-secondary: #94a3b8;
+  --interprompter-accent-green: #10b981;
+  --interprompter-accent-red: #ef4444;
+  --interprompter-accent-yellow: #f59e0b;
+}
+
 /* Header should always be on top */
 .header-element {
   z-index: 9999 !important;
