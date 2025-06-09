@@ -18,6 +18,7 @@ import {
   MapPin
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 // Mock data - En producción esto vendría de la API
 const mockData = {
@@ -131,7 +132,8 @@ const mockData = {
 
 export default function LegalDashboard() {
   const { t, locale } = useI18n();
-
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -232,14 +234,14 @@ export default function LegalDashboard() {
         </div>
         <div className="flex space-x-3">
           <Link
-            href={`/${locale}/legal/incorporations/new`}
+            href={`/${locale}/${tenantSlug}/legal/incorporations/new`}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
           >
             <Plus className="h-4 w-4 mr-2" />
             {t('legal.newIncorporation') || 'Nueva Incorporación'}
           </Link>
           <Link
-            href={`/${locale}/legal/clients/new`}
+            href={`/${locale}/${tenantSlug}/legal/clients/new`}
             className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -338,7 +340,7 @@ export default function LegalDashboard() {
                 {t('legal.recentIncorporations') || 'Incorporaciones Recientes'}
               </h2>
               <Link
-                href={`/${locale}/legal/incorporations`}
+                href={`/${locale}/${tenantSlug}/legal/incorporations`}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
               >
                 {t('legal.viewAll') || 'Ver todas'}
@@ -353,7 +355,7 @@ export default function LegalDashboard() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <Link
-                        href={`/${locale}/legal/incorporations/${incorporation.id}`}
+                        href={`/${locale}/${tenantSlug}/legal/incorporations/${incorporation.id}`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
                         {incorporation.incorporationNumber}
@@ -402,7 +404,7 @@ export default function LegalDashboard() {
                 {t('legal.upcomingAppointments') || 'Próximas Citas'}
               </h2>
               <Link
-                href={`/${locale}/legal/calendar`}
+                href={`/${locale}/${tenantSlug}/legal/calendar`}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
               >
                 {t('legal.viewCalendar') || 'Ver calendario'}
@@ -438,7 +440,7 @@ export default function LegalDashboard() {
                           <p className="flex items-center">
                             <Scale className="h-3 w-3 mr-1" />
                             <Link
-                              href={`/${locale}/legal/incorporations/${appointment.incorporationId}`}
+                              href={`/${locale}/${tenantSlug}/legal/incorporations/${appointment.incorporationId}`}
                               className="text-blue-600 hover:text-blue-700"
                             >
                               {appointment.incorporationId}

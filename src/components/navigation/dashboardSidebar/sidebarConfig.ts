@@ -118,7 +118,7 @@ export const sidebarConfig: SidebarConfig = {
     },
     { 
       name: 'sidebar.bookNow', 
-      href: `/${locale}/bookings`, 
+      href: `/${locale}/${tenantSlug}/bookings`, 
       icon: CalendarIcon,
       disabled: true,
       locked: true

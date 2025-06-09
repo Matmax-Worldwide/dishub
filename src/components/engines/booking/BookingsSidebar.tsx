@@ -72,17 +72,17 @@ export default function BookingsSidebar() {
   const mainNavigationItems = [
     {
       name: t('bookings.dashboard') || 'Dashboard',
-      href: `/${locale}/bookings`,
+      href: `/${locale}/${tenantSlug}/bookings`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
       name: t('bookings.calendar') || 'Calendar',
-      href: `/${locale}/bookings/calendar`,
+      href: `/${locale}/${tenantSlug}/bookings/calendar`,
       icon: <Calendar className="h-4 w-4" />
     },
     {
       name: t('bookings.bookings') || 'Bookings',
-      href: `/${locale}/bookings/list`,
+      href: `/${locale}/${tenantSlug}/bookings/list`,
       icon: <BookOpen className="h-4 w-4" />
     },
   ];
@@ -90,35 +90,35 @@ export default function BookingsSidebar() {
   const managementItems = [
     {
       name: t('bookings.services') || 'Services',
-      href: `/${locale}/bookings/services`,
+      href: `/${locale}/${tenantSlug}/bookings/services`,
       icon: <Briefcase className="h-4 w-4" />
     },
     {
       name: t('bookings.categories') || 'Categories',
-      href: `/${locale}/bookings/categories`,
+      href: `/${locale}/${tenantSlug}/bookings/categories`,
       icon: <Users className="h-4 w-4" />
     },
     {
       name: t('bookings.locations') || 'Locations',
-      href: `/${locale}/bookings/locations`,
+      href: `/${locale}/${tenantSlug}/bookings/locations`,
       icon: <MapPin className="h-4 w-4" />
     },
     {
       name: t('bookings.staff') || 'Staff',
-      href: `/${locale}/bookings/staff`,
+      href: `/${locale}/${tenantSlug}/bookings/staff`,
       icon: <UserCheck className="h-4 w-4" />
     },
     {
       name: t('bookings.rules') || 'Rules',
-      href: `/${locale}/bookings/rules`,
+      href: `/${locale}/${tenantSlug}/bookings/rules`,
       icon: <Clock className="h-4 w-4" />
     },
   ];
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/bookings`) {
-      return pathname === `/${locale}/bookings` || pathname === `/${locale}/bookings/`;
+    if (path === `/${locale}/${tenantSlug}/bookings`) {
+      return pathname === `/${locale}/${tenantSlug}/bookings` || pathname === `/${locale}/${tenantSlug}/bookings/`;
     }
     
     // For other links, check if pathname starts with the link path
@@ -209,14 +209,14 @@ export default function BookingsSidebar() {
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                     <Link
-                      href={`/${locale}/cms`}
+                      href={`/${locale}/${tenantSlug}/cms`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span>{t('cms.title') || 'CMS'}</span>
                     </Link>
                     <Link
-                      href={`/${locale}/commerce`}
+                      href={`/${locale}/${tenantSlug}/commerce`}
                       className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >

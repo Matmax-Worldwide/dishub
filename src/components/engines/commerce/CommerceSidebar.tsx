@@ -121,22 +121,22 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   const mainNavigationItems = [
     {
       name: nav.dashboard,
-      href: `/${locale}/commerce`,
+      href: `/${locale}/${tenantSlug}/commerce`,
       icon: <LayoutDashboard className="h-4 w-4" />
     },
     {
       name: nav.shops,
-      href: `/${locale}/commerce/shops`,
+      href: `/${locale}/${tenantSlug}/commerce/shops`,
       icon: <Store className="h-4 w-4" />
     },
     {
       name: nav.orders,
-      href: `/${locale}/commerce/orders`,
+      href: `/${locale}/${tenantSlug}/commerce/orders`,
       icon: <ShoppingCart className="h-4 w-4" />
     },
     {
       name: nav.customers,
-      href: `/${locale}/commerce/customers`,
+      href: `/${locale}/${tenantSlug}/commerce/customers`,
       icon: <Users className="h-4 w-4" />
     },
   ];
@@ -144,17 +144,17 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   const catalogItems = [
     {
       name: nav.products,
-      href: `/${locale}/commerce/products`,
+      href: `/${locale}/${tenantSlug}/commerce/products`,
       icon: <Package className="h-4 w-4" />
     },
     {
       name: nav.categories,
-      href: `/${locale}/commerce/categories`,
+      href: `/${locale}/${tenantSlug}/commerce/categories`,
       icon: <Tags className="h-4 w-4" />
     },
     {
       name: nav.inventory,
-      href: `/${locale}/commerce/inventory`,
+      href: `/${locale}/${tenantSlug}/commerce/inventory`,
       icon: <Warehouse className="h-4 w-4" />
     },
   ];
@@ -162,22 +162,22 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   const pricingItems = [
     {
       name: nav.pricing,
-      href: `/${locale}/commerce/pricing`,
+      href: `/${locale}/${tenantSlug}/commerce/pricing`,
       icon: <DollarSign className="h-4 w-4" />
     },
     {
       name: nav.currencies,
-      href: `/${locale}/commerce/currencies`,
+      href: `/${locale}/${tenantSlug}/commerce/currencies`,
       icon: <Globe className="h-4 w-4" />
     },
     {
       name: nav.taxes,
-      href: `/${locale}/commerce/taxes`,
+      href: `/${locale}/${tenantSlug}/commerce/taxes`,
       icon: <Receipt className="h-4 w-4" />
     },
     {
       name: nav.discounts,
-      href: `/${locale}/commerce/discounts`,
+      href: `/${locale}/${tenantSlug}/commerce/discounts`,
       icon: <Percent className="h-4 w-4" />
     },
   ];
@@ -185,17 +185,17 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   const operationsItems = [
     {
       name: nav.shipping,
-      href: `/${locale}/commerce/shipping`,
+      href: `/${locale}/${tenantSlug}/commerce/shipping`,
       icon: <Truck className="h-4 w-4" />
     },
     {
       name: nav.payments,
-      href: `/${locale}/commerce/payments`,
+      href: `/${locale}/${tenantSlug}/commerce/payments`,
       icon: <CreditCard className="h-4 w-4" />
     },
     {
       name: nav.reviews,
-      href: `/${locale}/commerce/reviews`,
+      href: `/${locale}/${tenantSlug}/commerce/reviews`,
       icon: <Star className="h-4 w-4" />
     },
   ];
@@ -203,21 +203,21 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
   const analyticsItems = [
     {
       name: nav.analytics,
-      href: `/${locale}/commerce/analytics`,
+      href: `/${locale}/${tenantSlug}/commerce/analytics`,
       icon: <BarChart3 className="h-4 w-4" />
     },
   ];
 
   const settingsNavItem = {
     name: nav.settings,
-    href: `/${locale}/commerce/settings`,
+    href: `/${locale}/${tenantSlug}/commerce/settings`,
     icon: <Settings className="h-4 w-4" />
   };
 
   const isActiveLink = (path: string): boolean => {
     // Special case for dashboard - exact match only
-    if (path === `/${locale}/commerce`) {
-      return pathname === `/${locale}/commerce` || pathname === `/${locale}/commerce/`;
+    if (path === `/${locale}/${tenantSlug}/commerce`) {
+      return pathname === `/${locale}/${tenantSlug}/commerce` || pathname === `/${locale}/${tenantSlug}/commerce/`;
     }
     
     // For other links, check if pathname starts with the link path
