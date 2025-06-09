@@ -119,10 +119,10 @@ export const notificationResolvers = {
         let token = context.req.headers.get('authorization')?.split(' ')[1];
         
         if (!token) {
-          // Try to get token from cookies
+          // Try to get token from cookies (check both auth-token and session-token)
           const cookies = context.req.headers.get('cookie');
           if (cookies) {
-            const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+            const authTokenMatch = cookies.match(/auth-token=([^;]+)/) || cookies.match(/session-token=([^;]+)/);
             token = authTokenMatch ? authTokenMatch[1] : undefined;
           }
         }

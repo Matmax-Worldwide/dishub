@@ -193,7 +193,7 @@ export const tenantResolvers = {
 
         return userTenants.map(userTenant => ({
           ...userTenant.user,
-          role: userTenant.user.role || { id: "default", name: "USER", description: null },
+          role: userTenant.user.role || { id: "default", name: "TenantUser", description: null },
           createdAt: userTenant.user.createdAt.toISOString(),
           updatedAt: userTenant.user.updatedAt.toISOString()
         }));
@@ -359,7 +359,7 @@ export const tenantResolvers = {
         
         return userTenants.map(userTenant => ({
           ...userTenant.user,
-          role: userTenant.user.role || { id: "default", name: "USER", description: null },
+          role: userTenant.user.role || { id: "default", name: "TenantUser", description: null },
           createdAt: userTenant.user.createdAt.toISOString(),
           updatedAt: userTenant.user.updatedAt.toISOString()
         }));
@@ -566,7 +566,7 @@ export const tenantResolvers = {
         const token = jwt.sign(
           { 
             userId: result.user.id, 
-            role: result.user.role?.name || 'USER',
+            role: result.user.role?.name || 'TenantUser',
             roleId: result.user.role?.id || 'default',
             roleDescription: result.user.role?.description || null,
             tenantId: result.tenant.id
@@ -593,7 +593,7 @@ export const tenantResolvers = {
           token,
           user: {
             ...completeUser!,
-            role: completeUser!.role || { id: "default", name: "USER", description: null },
+            role: completeUser!.role || { id: "default", name: "TenantUser", description: null },
             createdAt: completeUser!.createdAt.toISOString(),
             updatedAt: completeUser!.updatedAt.toISOString()
           },

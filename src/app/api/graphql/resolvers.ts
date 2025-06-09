@@ -218,10 +218,10 @@ const resolvers = {
         let token = context.req.headers.get('authorization')?.split(' ')[1];
         
         if (!token) {
-          // Try to get token from cookies
+          // Try to get token from cookies (check both auth-token and session-token)
           const cookies = context.req.headers.get('cookie');
           if (cookies) {
-            const authTokenMatch = cookies.match(/auth-token=([^;]+)/);
+            const authTokenMatch = cookies.match(/auth-token=([^;]+)/) || cookies.match(/session-token=([^;]+)/);
             token = authTokenMatch ? authTokenMatch[1] : undefined;
           }
         }
@@ -290,7 +290,7 @@ const resolvers = {
           return {
             ...user,
             // En lugar de devolver role: roleName, devolvemos el objeto role completo
-            role: user.role || { id: "default", name: "USER", description: null }
+            role: user.role || { id: "default", name: "TenantUser", description: null }
           };
         } catch (prismaError) {
           console.error('Prisma error:', prismaError);
@@ -367,7 +367,7 @@ const resolvers = {
         // Return user with formatted dates
         return {
           ...user,
-          role: user.role || { id: "default", name: "USER", description: null },
+          role: user.role || { id: "default", name: "TenantUser", description: null },
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()
         };
@@ -492,7 +492,7 @@ const resolvers = {
         }) => ({
           ...user,
           // Asegurar que el role es siempre un objeto completo
-          role: user.role || { id: "default", name: "USER", description: null },
+          role: user.role || { id: "default", name: "TenantUser", description: null },
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()
         }));
@@ -1118,7 +1118,7 @@ const resolvers = {
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
         userTenants: user.userTenants, // Include tenantId
-        role: user.role || { id: '', name: 'USER', description: null }, // Return role as object
+        role: user.role || { id: '', name: 'TenantUser', description: null }, // Return role as object
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -1214,7 +1214,7 @@ const resolvers = {
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
         userTenants: user.userTenants,
-        role: user.role || { id: '', name: 'USER', description: null },
+        role: user.role || { id: '', name: 'TenantUser', description: null },
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };

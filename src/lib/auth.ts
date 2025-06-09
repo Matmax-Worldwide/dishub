@@ -50,7 +50,7 @@ export async function generateToken(
   tenantId?: string | null // Added tenantId parameter
 ): Promise<string> {
   let roleId: string | undefined = undefined;
-  let roleName: string = 'USER'; // Default role
+  let roleName: string = 'TenantUser'; // Default role
 
   if (roleInfo != null) {
     if (typeof roleInfo === 'string') {
@@ -112,7 +112,7 @@ export async function verifyToken(token: string): Promise<UserJwtPayload | null>
     // Cast to UserJwtPayload. Ensure all required fields are present or handled.
     const userPayload: UserJwtPayload = {
         userId: payload.userId as string,
-        role: payload.role ? (payload.role as string).toUpperCase() : 'USER', // Default to USER if role is missing/invalid
+        role: payload.role ? (payload.role as string).toUpperCase() : 'TenantUser', // Default to TenantUser if role is missing/invalid
         roleId: payload.roleId as string | undefined,
         tenantId: payload.tenantId as string | null | undefined, // tenantId is optional
     };
@@ -168,7 +168,7 @@ export async function createSession(userId: string, tenantId?: string | null) {
 
   const roleInfo = {
     id: user?.role?.id, // roleId from user object
-    name: user?.role?.name || 'USER', // roleName from user object, default to 'USER'
+    name: user?.role?.name || 'TenantUser', // roleName from user object, default to 'TenantUser'
   };
   
   // Pass tenantId to generateToken
