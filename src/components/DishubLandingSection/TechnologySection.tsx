@@ -312,12 +312,12 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
           {/* Left Column - Main Content - Mobile First */}
           <div className="text-center lg:text-left space-y-3 sm:space-y-4 lg:space-y-6 xl:space-y-8">
             <ScrollReveal direction="up" duration={800} delay={200}>
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 lg:mb-4 xl:mb-6">
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold mb-2 sm:mb-3 lg:mb-4 xl:mb-6 px-1">
                 <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                   {t('dishub.technology.title')}
                 </span>
                 <br />
-                <span className="text-white text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl">
+                <span className="text-white text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl">
                   {t('dishub.technology.subtitle')}
                 </span>
               </h2>
@@ -329,8 +329,8 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
               </p>
             </ScrollReveal>
 
-            {/* Tech Features List - Mobile optimized */}
-            <div className="space-y-1.5 sm:space-y-2 lg:space-y-3 xl:space-y-4">
+            {/* Tech Features List - iPhone optimized */}
+            <div className="space-y-1 sm:space-y-2 lg:space-y-3 xl:space-y-4">
               {techFeatures.map((feature, index) => (
                 <ScrollReveal
                   key={index}
@@ -338,15 +338,15 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
                   duration={600}
                   delay={600 + index * 200}
                 >
-                  <div className={`group flex items-start space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg lg:rounded-xl backdrop-blur-xl ${feature.bgColor} border ${feature.borderColor} hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] sm:hover:scale-[1.02] lg:hover:scale-105`}>
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12 ${feature.bgColor} rounded-md lg:rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-                      <feature.icon className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 ${feature.color}`} />
+                  <div className={`group flex items-start space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 lg:p-4 xl:p-5 rounded-md sm:rounded-lg lg:rounded-xl backdrop-blur-xl ${feature.bgColor} border ${feature.borderColor} hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] sm:hover:scale-[1.02] lg:hover:scale-105`}>
+                    <div className={`w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 xl:w-10 xl:h-10 ${feature.bgColor} rounded-md lg:rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                      <feature.icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 xl:w-5 xl:h-5 ${feature.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className={`text-xs sm:text-sm lg:text-base xl:text-lg font-semibold ${feature.color} mb-0.5 sm:mb-1 lg:mb-2 leading-tight`}>
                         {feature.title}
                       </h3>
-                      <p className="text-xs sm:text-sm text-gray-400 leading-relaxed line-clamp-2 sm:line-clamp-none">
+                      <p className="text-xs sm:text-sm text-gray-400 leading-relaxed line-clamp-2 sm:line-clamp-3 lg:line-clamp-none">
                         {feature.description}
                       </p>
                     </div>
@@ -356,36 +356,36 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
             </div>
           </div>
 
-          {/* Right Column - Architecture Diagram - Mobile responsive */}
-          <div className="relative mt-4 lg:mt-0">
+          {/* Right Column - Architecture Diagram - iPhone responsive */}
+          <div className="relative mt-3 sm:mt-4 lg:mt-0">
             <ScrollReveal direction="right" duration={1000} delay={800}>
-              <div className="bg-gradient-to-br from-gray-900/60 to-black/40 backdrop-blur-xl rounded-lg lg:rounded-xl xl:rounded-2xl p-3 sm:p-4 lg:p-6 xl:p-8 border border-gray-700/30">
-                <div className="mb-3 sm:mb-4 lg:mb-6">
-                  <h3 className="text-base sm:text-lg lg:text-xl xl:text-2xl font-bold text-white mb-1 sm:mb-2 lg:mb-3">
+              <div className="bg-gradient-to-br from-gray-900/60 to-black/40 backdrop-blur-xl rounded-lg lg:rounded-xl xl:rounded-2xl p-2 sm:p-3 lg:p-4 xl:p-6 border border-gray-700/30">
+                <div className="mb-2 sm:mb-3 lg:mb-4 xl:mb-6">
+                  <h3 className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold text-white mb-1 sm:mb-2 lg:mb-3 px-1">
                     <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
                       {t('dishub.federated.title')}
                     </span>
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-300 leading-relaxed px-1">
                     {t('dishub.federated.description')}
                   </p>
                 </div>
 
-                {/* Architecture SVG - Responsive height */}
-                <div className="mb-3 sm:mb-4 lg:mb-6 h-48 sm:h-64 lg:h-72 xl:h-96">
+                {/* Architecture SVG - iPhone responsive height */}
+                <div className="mb-2 sm:mb-3 lg:mb-4 xl:mb-6 h-32 sm:h-40 lg:h-48 xl:h-64">
                   <TechArchitectureSVG />
                 </div>
 
-                {/* Architecture Features - Mobile optimized */}
-                <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
+                {/* Architecture Features - iPhone optimized */}
+                <div className="space-y-1 sm:space-y-2 lg:space-y-3">
                   {architectureFeatures.map((feature, index) => (
-                    <div key={index} className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-md lg:rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
-                      <feature.icon className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ${feature.color} flex-shrink-0 mt-0.5`} />
+                    <div key={index} className="flex items-start space-x-1.5 sm:space-x-2 lg:space-x-3 p-1.5 sm:p-2 lg:p-3 rounded-md lg:rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                      <feature.icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 ${feature.color} flex-shrink-0 mt-0.5`} />
                       <div className="flex-1 min-w-0">
                         <h4 className={`text-xs sm:text-sm font-semibold ${feature.color} mb-0.5 sm:mb-1 leading-tight`}>
                           {feature.title}
                         </h4>
-                        <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 sm:line-clamp-3 lg:line-clamp-none">
+                        <p className="text-[10px] sm:text-xs text-gray-400 leading-relaxed line-clamp-2 sm:line-clamp-3 lg:line-clamp-none">
                           {feature.description}
                         </p>
                       </div>

@@ -351,20 +351,20 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
       >
         <ScrollReveal direction="scale" duration={1000} delay={200}>
           <h1 
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-3 sm:mb-4 lg:mb-6 leading-tight px-1"
             style={{ transform: `translateY(${scrollY * -0.2}px)` }}
           >
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent animate-gradient">
               {t('dishub.hero.disruption')}
             </span>
             <br />
-            <span className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">{t('dishub.hero.isInnovation')}</span>
+            <span className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl">{t('dishub.hero.isInnovation')}</span>
           </h1>
         </ScrollReveal>
         
         <ScrollReveal direction="up" duration={800} delay={600}>
           <p 
-            className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto px-2"
+            className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-300 mb-4 sm:mb-6 lg:mb-8 max-w-3xl mx-auto px-3 sm:px-4 leading-relaxed"
             style={{ transform: `translateY(${scrollY * -0.15}px)` }}
           >
             {t('dishub.hero.subtitle')}
@@ -373,28 +373,28 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
         
         <ScrollReveal direction="up" duration={800} delay={1000}>
           <div 
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4"
+            className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 justify-center items-center px-3 sm:px-4"
             style={{ transform: `translateY(${scrollY * -0.1}px)` }}
           >
             {isAuthenticated && user ? (
               <button 
                 onClick={handleAuthAction} 
-                className="relative z-1 group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto"
+                className="relative z-1 group w-full sm:w-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-sm sm:text-base lg:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto"
               >
                 {t('dishub.hero.goToDashboard')}
-                <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-1.5 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             ) : (
               <Link href={`/${params.locale}/login`} className="relative z-1 pointer-events-auto w-full sm:w-auto">
-                <button className="group w-full px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto">
+                <button className="group w-full px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-bold text-sm sm:text-base lg:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center cursor-pointer pointer-events-auto">
                   {t('dishub.hero.startDisrupting')}
-                  <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-1.5 sm:ml-2 w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
             )}
             <button 
               onClick={handleLearnMore}
-              className="relative z-1 w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 border-2 border-white/20 rounded-full font-bold text-base sm:text-lg hover:bg-white/10 backdrop-blur-xl transition-all duration-300 cursor-pointer pointer-events-auto"
+              className="relative z-1 w-full sm:w-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 border-2 border-white/20 rounded-full font-bold text-sm sm:text-base lg:text-lg hover:bg-white/10 backdrop-blur-xl transition-all duration-300 cursor-pointer pointer-events-auto"
             >
               {t('dishub.hero.learnMore')}
             </button>
