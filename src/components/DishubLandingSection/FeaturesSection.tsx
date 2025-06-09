@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useI18n } from '@/hooks/useI18n';
 import { ScrollReveal } from '@/components/animations/ScrollReveal';
 import PrivacyFirstSVG from '@/components/animations/PrivacyFirstSVG';
@@ -8,170 +8,8 @@ import AIPoweredSVG from '@/components/animations/AIPoweredSVG';
 import BlockchainReadySVG from '@/components/animations/BlockchainReadySVG';
 import GlobalScaleIconSVG from '@/components/animations/GlobalScaleIconSVG';
 
-// SVG de transición que conecta con el HeroSection
-function CyberTransitionSVG({ scrollProgress }: { scrollProgress: number }) {
-  return (
-    <svg
-      viewBox="0 0 1920 1080"
-      className="absolute inset-0 w-full h-full object-cover"
-      preserveAspectRatio="xMidYMid slice"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id="transitionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00FFFF" stopOpacity={0.6 * scrollProgress} />
-          <stop offset="50%" stopColor="#8000FF" stopOpacity={0.4 * scrollProgress} />
-          <stop offset="100%" stopColor="#FF00FF" stopOpacity={0.3 * scrollProgress} />
-        </linearGradient>
-        
-        <radialGradient id="featureGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#00FFFF" stopOpacity={0.3 * scrollProgress} />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </radialGradient>
-
-        <pattern id="techGrid" width="80" height="80" patternUnits="userSpaceOnUse">
-          <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#00FFFF" strokeWidth="0.5" opacity={0.2 * scrollProgress}/>
-          <circle cx="0" cy="0" r="1" fill="#00FFFF" opacity={0.4 * scrollProgress} />
-          <circle cx="80" cy="0" r="1" fill="#00FFFF" opacity={0.4 * scrollProgress} />
-          <circle cx="0" cy="80" r="1" fill="#00FFFF" opacity={0.4 * scrollProgress} />
-          <circle cx="80" cy="80" r="1" fill="#00FFFF" opacity={0.4 * scrollProgress} />
-        </pattern>
-      </defs>
-
-      {/* Grid de fondo que se intensifica con el scroll */}
-      <rect width="1920" height="1080" fill="url(#techGrid)" />
-      
-      {/* Conexiones que emergen desde arriba */}
-      <g stroke="url(#transitionGradient)" strokeWidth="2" fill="none" opacity={scrollProgress}>
-        {/* Líneas que bajan desde el hero */}
-        <path 
-          d={`M 960,${-200 + (scrollProgress * 400)} Q 800,${100 + (scrollProgress * 200)} 600,${400 + (scrollProgress * 100)} Q 400,${600 + (scrollProgress * 50)} 200,${800 + (scrollProgress * 100)}`}
-          strokeDasharray="8,4"
-        >
-          <animate attributeName="stroke-dashoffset" values="0;-24;0" dur="6s" repeatCount="indefinite" />
-        </path>
-        <path 
-          d={`M 960,${-200 + (scrollProgress * 400)} Q 1120,${100 + (scrollProgress * 200)} 1320,${400 + (scrollProgress * 100)} Q 1520,${600 + (scrollProgress * 50)} 1720,${800 + (scrollProgress * 100)}`}
-          strokeDasharray="8,4"
-        >
-          <animate attributeName="stroke-dashoffset" values="0;24;0" dur="8s" repeatCount="indefinite" />
-        </path>
-        
-        {/* Conexiones horizontales que se forman */}
-        <path 
-          d={`M ${200 - (scrollProgress * 100)},${400 + (scrollProgress * 200)} Q 960,${300 + (scrollProgress * 150)} ${1720 + (scrollProgress * 100)},${400 + (scrollProgress * 200)}`}
-          strokeDasharray="12,6"
-          opacity={scrollProgress * 0.8}
-        >
-          <animate attributeName="stroke-dashoffset" values="0;-36;0" dur="10s" repeatCount="indefinite" />
-        </path>
-      </g>
-
-      {/* Nodos que aparecen progresivamente */}
-      <g opacity={scrollProgress}>
-        {/* Nodos principales que emergen */}
-        <circle cx="480" cy={400 + (scrollProgress * 200)} r={8 + (scrollProgress * 4)} fill="url(#featureGlow)" />
-        <circle cx="480" cy={400 + (scrollProgress * 200)} r="6" fill="#00FFFF" opacity={0.9 * scrollProgress} />
-        
-        <circle cx="960" cy={300 + (scrollProgress * 150)} r={10 + (scrollProgress * 5)} fill="url(#featureGlow)" />
-        <circle cx="960" cy={300 + (scrollProgress * 150)} r="8" fill="#FF00FF" opacity={0.9 * scrollProgress} />
-        
-        <circle cx="1440" cy={400 + (scrollProgress * 200)} r={8 + (scrollProgress * 4)} fill="url(#featureGlow)" />
-        <circle cx="1440" cy={400 + (scrollProgress * 200)} r="6" fill="#8000FF" opacity={0.9 * scrollProgress} />
-        
-        <circle cx="720" cy={600 + (scrollProgress * 100)} r={6 + (scrollProgress * 3)} fill="url(#featureGlow)" />
-        <circle cx="720" cy={600 + (scrollProgress * 100)} r="4" fill="#0080FF" opacity={0.8 * scrollProgress} />
-        
-        <circle cx="1200" cy={600 + (scrollProgress * 100)} r={6 + (scrollProgress * 3)} fill="url(#featureGlow)" />
-        <circle cx="1200" cy={600 + (scrollProgress * 100)} r="4" fill="#0080FF" opacity={0.8 * scrollProgress} />
-      </g>
-
-      {/* Partículas de datos que fluyen */}
-      <g fill="#00FFFF" opacity={scrollProgress * 0.8}>
-        <circle cx="300" cy="200" r="2">
-          <animateMotion dur={`${12 - (scrollProgress * 4)}s`} repeatCount="indefinite">
-            <path d={`M 0,0 Q 400,${200 + (scrollProgress * 100)} 800,${100 + (scrollProgress * 200)} Q 1200,${0 + (scrollProgress * 150)} 1400,${200 + (scrollProgress * 100)}`} />
-          </animateMotion>
-        </circle>
-        <circle cx="600" cy="100" r="1.5">
-          <animateMotion dur={`${15 - (scrollProgress * 5)}s`} repeatCount="indefinite">
-            <path d={`M 0,0 Q 300,${300 + (scrollProgress * 150)} 600,${200 + (scrollProgress * 100)} Q 900,${100 + (scrollProgress * 200)} 1200,${300 + (scrollProgress * 150)}`} />
-          </animateMotion>
-        </circle>
-      </g>
-
-      {/* Ondas de energía que se expanden hacia las features */}
-      <g fill="none" strokeWidth="1" opacity={scrollProgress * 0.4}>
-        <circle cx="480" cy={400 + (scrollProgress * 200)} r={50 + (scrollProgress * 100)} stroke="#00FFFF">
-          <animate attributeName="r" values={`${50 + (scrollProgress * 100)};${80 + (scrollProgress * 120)};${50 + (scrollProgress * 100)}`} dur="6s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values={`${scrollProgress * 0.4};0;${scrollProgress * 0.4}`} dur="6s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="1440" cy={400 + (scrollProgress * 200)} r={50 + (scrollProgress * 100)} stroke="#8000FF">
-          <animate attributeName="r" values={`${50 + (scrollProgress * 100)};${80 + (scrollProgress * 120)};${50 + (scrollProgress * 100)}`} dur="8s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values={`${scrollProgress * 0.4};0;${scrollProgress * 0.4}`} dur="8s" repeatCount="indefinite" />
-        </circle>
-      </g>
-
-      {/* Código binario que fluye */}
-      <g fill="#00FF00" fontSize="12" fontFamily="monospace" opacity={scrollProgress * 0.3}>
-        <text x={100 + (scrollProgress * 50)} y={200 + (scrollProgress * 100)}>
-          01010000 01110010 01101001
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values={`0,0; ${50 + (scrollProgress * 30)},${20 + (scrollProgress * 40)}; 0,0`}
-            dur="20s"
-            repeatCount="indefinite"
-          />
-        </text>
-        <text x={1600 - (scrollProgress * 50)} y={300 + (scrollProgress * 150)}>
-          01110110 01100001 01100011
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values={`0,0; ${-30 - (scrollProgress * 20)},${15 + (scrollProgress * 30)}; 0,0`}
-            dur="18s"
-            repeatCount="indefinite"
-          />
-        </text>
-      </g>
-    </svg>
-  );
-}
-
-interface FeaturesSectionProps {
-  scrollY?: number;
-}
-
-export default function FeaturesSection({ scrollY = 0 }: FeaturesSectionProps) {
+export default function FeaturesSection() {
   const { t } = useI18n();
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = scrollY || window.scrollY;
-      const windowHeight = window.innerHeight;
-      const heroHeight = windowHeight; // Altura del hero section
-      
-      // Calcular progreso basado en cuánto hemos scrolleado después del hero
-      const progress = Math.max(0, Math.min(1, (scrollTop - heroHeight * 0.5) / (windowHeight * 0.8)));
-      setScrollProgress(progress);
-    };
-
-    // Si tenemos scrollY como prop, usarlo directamente
-    if (scrollY !== undefined) {
-      handleScroll();
-    } else {
-      window.addEventListener('scroll', handleScroll);
-      handleScroll(); // Llamar una vez para establecer el estado inicial
-    }
-    
-    return () => {
-      if (scrollY === undefined) {
-        window.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [scrollY]);
 
   const features = [
     {
@@ -201,15 +39,8 @@ export default function FeaturesSection({ scrollY = 0 }: FeaturesSectionProps) {
   ];
 
   return (
-    <div className="relative py-32 px-6 bg-gradient-to-b from-gray-900 to-black overflow-hidden" data-section="features">
-      {/* Background SVG de transición */}
-      <div className="absolute inset-0 z-0">
-        <CyberTransitionSVG scrollProgress={scrollProgress} />
-        {/* Overlay para mejorar legibilidad */}
-        <div className="absolute inset-0 bg-black/40"></div>
-      </div>
-
-      <div className="relative max-w-7xl mx-auto z-10">
+    <div className="relative py-32 px-6 bg-gradient-to-b from-gray-900 to-black" data-section="features">
+      <div className="max-w-7xl mx-auto">
         <ScrollReveal direction="up" duration={800} delay={200}>
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-6xl font-bold mb-6">

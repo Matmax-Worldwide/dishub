@@ -279,15 +279,7 @@ export default function HeroSection({ scrollY }: HeroSectionProps) {
     <section className="relative h-screen flex items-center justify-center px-6 overflow-hidden z-0">
       {/* Nuevo Background Espacial/Ciberpunk */}
       <div className="absolute inset-0 z-0">
-        <div 
-          className="transform transition-transform duration-1000 ease-out"
-          style={{ 
-            transform: `translateY(${scrollY * 0.5}px) scale(${1 + scrollY * 0.0005})`,
-            opacity: Math.max(0.3, 1 - scrollY * 0.001)
-          }}
-        >
-          <CyberSpaceBackgroundSVG />
-        </div>
+        <CyberSpaceBackgroundSVG />
         {/* Overlay para mejorar legibilidad del texto */}
         <div className="absolute inset-0 bg-black/30"></div>
       </div>

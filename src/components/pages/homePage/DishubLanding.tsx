@@ -59,7 +59,7 @@ export default function DishubLanding() {
         <HeroSection scrollY={scrollY} />
 
         {/* Features Section with Animations */}
-        <FeaturesSection scrollY={scrollY} />
+        <FeaturesSection />
 
         {/* Privacy Section with Animations */}
         <PrivacySection />
