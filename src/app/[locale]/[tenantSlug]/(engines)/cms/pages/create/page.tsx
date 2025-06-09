@@ -153,7 +153,7 @@ export default function CreatePageWithSections() {
         
         // Navigate to the edit page for the newly created page
         setTimeout(() => {
-          router.push(`/${params.locale}/cms/pages/edit/${pageData.slug}`);
+          router.push(`/${params.locale}/${params.tenantSlug}/cms/pages/edit/${pageData.slug}`);
         }, 1000);
       } else {
         throw new Error(result?.message || 'Error al crear la página');
@@ -173,10 +173,10 @@ export default function CreatePageWithSections() {
   // Handle cancel/back button
   const handleCancel = () => {
     if (hasUnsavedChanges) {
-      setRedirectTarget(`/${params.locale}/cms/pages`);
+      setRedirectTarget(`/${params.locale}/${params.tenantSlug}/cms/pages`);
       setIsExitConfirmationOpen(true);
     } else {
-      router.push(`/${params.locale}/cms/pages`);
+      router.push(`/${params.locale}/${params.tenantSlug}/cms/pages`);
     }
   };
   

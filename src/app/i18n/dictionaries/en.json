@@ -536,6 +536,11 @@
     "interpretationSettings": "Settings",
     "reportsInsights": "Reports & Insights"
   },
+  "engines": {
+    "cms": "CMS",
+    "booking": "Booking",
+    "commerce": "E-commerce"
+  },
   "auth": {
     "login": {
       "welcomeBack": "Welcome Back",
@@ -1022,5 +1027,23 @@
     "active": "Active",
     "ready": "Ready",
     "speed": "Speed"
+  },
+  "legal": {
+    "engine": "Legal",
+    "dashboard": "Dashboard",
+    "incorporations": "Incorporations",
+    "clients": "Clients",
+    "documents": "Documents",
+    "calendar": "Calendar",
+    "billing": "Billing",
+    "timeTracking": "Time Tracking",
+    "reports": "Reports",
+    "settings": "Settings",
+    "bookingConfiguration": "Booking Configuration",
+    "jurisdictions": "Jurisdictions",
+    "companyTypes": "Company Types",
+    "navigation": "Legal Management",
+    "management": "Finance & Reports",
+    "configuration": "Configuration"
   }
 } 

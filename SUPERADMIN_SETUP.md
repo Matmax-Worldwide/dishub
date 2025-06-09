@@ -73,7 +73,7 @@ GET  /api/auth/me
 
 #### **Tenant Management** (SuperAdmin only)
 ```
-GET    /api/admin/tenants          # List all tenants
+GET    /api/  /tenants          # List all tenants
 POST   /api/admin/tenants          # Create new tenant
 GET    /api/admin/tenants/[id]     # Get tenant details
 PUT    /api/admin/tenants/[id]     # Update tenant

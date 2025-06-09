@@ -317,7 +317,7 @@ export default function TenantDashboard() {
         name: 'Gestión Legal',
         description: 'Administra casos legales y documentos',
         icon: ScaleIcon,
-        href: `/${params.locale}/${params.tenantSlug}/dashboard/legal`,
+        href: `/${params.locale}/${params.tenantSlug}/legal`,
         color: 'bg-amber-500',
         stats: { casos: 0, documentos: 0 }, // TODO: Add legal engine queries
         enabled: true

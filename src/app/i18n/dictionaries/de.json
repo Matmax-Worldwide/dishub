@@ -969,5 +969,28 @@
     "active": "Aktiv",
     "ready": "Bereit",
     "speed": "Geschwindigkeit"
+  },
+  "legal": {
+    "engine": "Recht",
+    "dashboard": "Dashboard",
+    "incorporations": "Unternehmensgründungen",
+    "clients": "Kunden",
+    "documents": "Dokumente",
+    "calendar": "Kalender",
+    "billing": "Abrechnung",
+    "timeTracking": "Zeiterfassung",
+    "reports": "Berichte",
+    "settings": "Einstellungen",
+    "bookingConfiguration": "Terminbuchung Konfiguration",
+    "jurisdictions": "Gerichtsbarkeiten",
+    "companyTypes": "Unternehmenstypen",
+    "navigation": "Rechtsverwaltung",
+    "management": "Finanzen & Berichte",
+    "configuration": "Konfiguration"
+  },
+  "engines": {
+    "cms": "CMS",
+    "booking": "Buchungen",
+    "commerce": "E-Commerce"
   }
 } 

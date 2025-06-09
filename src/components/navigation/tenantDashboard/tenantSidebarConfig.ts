@@ -438,56 +438,56 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
       // ⚖️ Legal Engine
       {
         name: 'sidebar.legalEngine',
-        href: `${basePath}/dashboard/legal`,
+        href: `${basePath}/legal`,
         icon: ScaleIcon,
         permissions: ['legal:access'],
         features: ['LEGAL_ENGINE'], // Required feature
         children: [
           {
             name: 'sidebar.incorporations',
-            href: `${basePath}/dashboard/legal/incorporations`,
+            href: `${basePath}/legal/incorporations`,
             icon: BuildingIcon,
             permissions: ['legal:incorporations:read']
           },
           {
             name: 'sidebar.legalCalendar',
-            href: `${basePath}/dashboard/legal/calendar`,
+            href: `${basePath}/legal/calendar`,
             icon: CalendarIcon,
             permissions: ['legal:calendar:read']
           },
           {
             name: 'sidebar.legalClients',
-            href: `${basePath}/dashboard/legal/clients`,
+            href: `${basePath}/legal/clients`,
             icon: UsersIcon,
             permissions: ['legal:clients:read']
           },
           {
             name: 'sidebar.legalDocuments',
-            href: `${basePath}/dashboard/legal/documents`,
+            href: `${basePath}/legal/documents`,
             icon: FileTextIcon,
             permissions: ['legal:documents:read']
           },
           {
             name: 'sidebar.legalBilling',
-            href: `${basePath}/dashboard/legal/billing`,
+            href: `${basePath}/legal/billing`,
             icon: DollarSignIcon,
             permissions: ['legal:billing:read']
           },
           {
             name: 'sidebar.legalReports',
-            href: `${basePath}/dashboard/legal/reports`,
+            href: `${basePath}/legal/reports`,
             icon: BarChartIcon,
             permissions: ['legal:reports:read']
           },
           {
             name: 'sidebar.legalBookingConfig',
-            href: `${basePath}/dashboard/legal/booking-config`,
+            href: `${basePath}/legal/booking-config`,
             icon: SettingsIcon,
             permissions: ['legal:settings:manage']
           },
           {
             name: 'sidebar.legalSettings',
-            href: `${basePath}/dashboard/legal/settings`,
+            href: `${basePath}/legal/settings`,
             icon: SettingsIcon,
             permissions: ['legal:settings:manage']
           }

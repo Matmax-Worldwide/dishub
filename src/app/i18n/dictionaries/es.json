@@ -479,6 +479,11 @@
     "interpretationBilling": "Facturación",
     "interpretationSettings": "Configuración"
   },
+  "engines": {
+    "cms": "CMS",
+    "booking": "Reservas",
+    "commerce": "E-commerce"
+  },
   "auth": {
     "login": {
       "welcomeBack": "Bienvenido de Vuelta",
@@ -965,5 +970,23 @@
     "active": "Activo",
     "ready": "Listo",
     "speed": "Velocidad"
+  },
+  "legal": {
+    "engine": "Legal",
+    "dashboard": "Panel Principal",
+    "incorporations": "Incorporaciones",
+    "clients": "Clientes",
+    "documents": "Documentos",
+    "calendar": "Calendario",
+    "billing": "Facturación",
+    "timeTracking": "Control de Tiempo",
+    "reports": "Reportes",
+    "settings": "Configuración",
+    "bookingConfiguration": "Configuración de Citas",
+    "jurisdictions": "Jurisdicciones",
+    "companyTypes": "Tipos de Empresa",
+    "navigation": "Gestión Legal",
+    "management": "Finanzas y Reportes",
+    "configuration": "Configuración"
   }
 } 
