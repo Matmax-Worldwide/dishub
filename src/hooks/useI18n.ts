@@ -20,7 +20,13 @@ export function useI18n() {
       }
     }
     
-    let translation = result as string;
+    // Ensure we only return strings, not objects
+    if (typeof result !== 'string') {
+      console.warn(`Translation key "${key}" resolved to non-string value:`, result);
+      return key; // Return the key as fallback
+    }
+    
+    let translation = result;
     
     // Handle variable interpolation
     if (variables && typeof translation === 'string') {
