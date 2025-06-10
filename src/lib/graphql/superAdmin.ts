@@ -105,6 +105,70 @@ export const TENANT_BY_ID_QUERY = `
   }
 `;
 
+export const TENANT_USERS_QUERY = `
+  query TenantUsers($tenantId: ID!) {
+    tenantUsers(tenantId: $tenantId) {
+      id
+      email
+      firstName
+      lastName
+      phoneNumber
+      isActive
+      role {
+        id
+        name
+        description
+      }
+      userTenants {
+        id
+        tenantId
+        role
+        isActive
+        joinedAt
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const TENANT_DETAILED_METRICS_QUERY = `
+  query TenantDetailedMetrics($tenantId: ID!) {
+    tenantDetailedMetrics(tenantId: $tenantId) {
+      tenantId
+      tenantName
+      metrics {
+        totalUsers
+        activeUsers
+        totalPages
+        publishedPages
+        totalPosts
+        publishedPosts
+        totalBlogs
+        activeBlogs
+        totalForms
+        activeForms
+        totalFormSubmissions
+        last30DaysFormSubmissions
+        totalBookings
+        last30DaysBookings
+        totalProducts
+        activeProducts
+        totalOrders
+        last30DaysOrders
+        features
+        modules {
+          moduleName
+          isActive
+          itemCount
+          last30DaysActivity
+        }
+      }
+      lastActivity
+    }
+  }
+`;
+
 export const GLOBAL_ANALYTICS_QUERY = `
   query GlobalAnalytics($timeRange: String) {
     globalAnalytics(timeRange: $timeRange) {
@@ -343,6 +407,90 @@ export const PERFORM_SYSTEM_MAINTENANCE_MUTATION = `
   }
 `;
 
+export const ALL_USERS_QUERY = `
+  query AllUsers($filter: UserFilterInput, $pagination: PaginationInput) {
+    allUsers(filter: $filter, pagination: $pagination) {
+      items {
+        id
+        email
+        firstName
+        lastName
+        phoneNumber
+        isActive
+        role {
+          id
+          name
+        }
+        userTenants {
+          id
+          tenantId
+          role
+          isActive
+        }
+        createdAt
+        updatedAt
+      }
+      totalCount
+      page
+      pageSize
+      totalPages
+    }
+  }
+`;
+
+export const CREATE_USER_AND_ASSIGN_TENANT_MUTATION = `
+  mutation CreateUserAndAssignTenant($input: CreateUserAndAssignTenantInput!) {
+    createUserAndAssignTenant(input: $input) {
+      success
+      message
+      user {
+        id
+        email
+        firstName
+        lastName
+        phoneNumber
+        isActive
+        role {
+          id
+          name
+        }
+        userTenants {
+          id
+          tenantId
+          role
+          isActive
+          joinedAt
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const ASSIGN_USER_TO_TENANT_MUTATION = `
+  mutation AssignUserToTenant($tenantId: ID!, $userId: ID!, $role: String!) {
+    assignUserToTenant(tenantId: $tenantId, userId: $userId, role: $role) {
+      success
+      message
+      userTenant {
+        id
+        userId
+        tenantId
+        role
+        isActive
+        joinedAt
+        user {
+          id
+          email
+          firstName
+          lastName
+        }
+      }
+    }
+  }
+`;
+
 export const ASSIGN_TENANT_ADMIN_MUTATION = `
   mutation AssignTenantAdmin($tenantId: ID!, $userId: ID!) {
     assignTenantAdmin(tenantId: $tenantId, userId: $userId) {
@@ -361,7 +509,7 @@ export const ASSIGN_TENANT_ADMIN_MUTATION = `
         }
         userTenants {
           id
-        tenantId
+          tenantId
           role
           isActive
           joinedAt
@@ -438,6 +586,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  isActive?: boolean;
   role: {
     id: string;
     name: string;
@@ -452,6 +601,49 @@ export interface User {
   }>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserList {
+  items: User[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface CreateUserAndAssignTenantInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  password: string;
+  tenantId: string;
+  role?: string;
+}
+
+export interface AssignUserToTenantResult {
+  success: boolean;
+  message: string;
+  userTenant?: {
+    id: string;
+    userId: string;
+    tenantId: string;
+    role: string;
+    isActive: boolean;
+    joinedAt: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
+
+export interface CreateUserAndAssignTenantResult {
+  success: boolean;
+  message: string;
+  user?: User;
 }
 
 export interface TenantList {
@@ -475,6 +667,39 @@ export interface TenantHealthMetric {
     totalPosts: number;
     publishedPosts: number;
     features: string[];
+  };
+  lastActivity: string;
+}
+
+export interface TenantDetailedMetrics {
+  tenantId: string;
+  tenantName: string;
+  metrics: {
+    totalUsers: number;
+    activeUsers: number;
+    totalPages: number;
+    publishedPages: number;
+    totalPosts: number;
+    publishedPosts: number;
+    totalBlogs: number;
+    activeBlogs: number;
+    totalForms: number;
+    activeForms: number;
+    totalFormSubmissions: number;
+    last30DaysFormSubmissions: number;
+    totalBookings: number;
+    last30DaysBookings: number;
+    totalProducts: number;
+    activeProducts: number;
+    totalOrders: number;
+    last30DaysOrders: number;
+    features: string[];
+    modules: Array<{
+      moduleName: string;
+      isActive: boolean;
+      itemCount: number;
+      last30DaysActivity: number;
+    }>;
   };
   lastActivity: string;
 }
@@ -752,6 +977,32 @@ export class SuperAdminClient {
     }
   }
 
+  static async getTenantUsers(tenantId: string): Promise<User[]> {
+    try {
+      const response = await gqlRequest<{ tenantUsers: User[] }>(
+        TENANT_USERS_QUERY,
+        { tenantId }
+      );
+      return response.tenantUsers || [];
+    } catch (error) {
+      console.error('Error fetching tenant users:', error);
+      return [];
+    }
+  }
+
+  static async getTenantDetailedMetrics(tenantId: string): Promise<TenantDetailedMetrics | null> {
+    try {
+      const response = await gqlRequest<{ tenantDetailedMetrics: TenantDetailedMetrics | null }>(
+        TENANT_DETAILED_METRICS_QUERY,
+        { tenantId }
+      );
+      return response.tenantDetailedMetrics;
+    } catch (error) {
+      console.error('Error fetching tenant detailed metrics:', error);
+      return null;
+    }
+  }
+
   static async updateTenantSettings(id: string, settings: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
     // Simulate API call with tenant ID and settings
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -764,6 +1015,33 @@ export class SuperAdminClient {
     await new Promise(resolve => setTimeout(resolve, 2000));
     console.log(`Creating backup for tenant ${id}`);
     return { success: true, message: 'Backup created successfully' };
+  }
+
+  static async getAllUsers(
+    filter?: { search?: string; role?: string; isActive?: boolean },
+    pagination?: { page?: number; pageSize?: number }
+  ): Promise<UserList> {
+    const response = await gqlRequest<{ allUsers: UserList }>(
+      ALL_USERS_QUERY,
+      { filter, pagination }
+    );
+    return response.allUsers;
+  }
+
+  static async createUserAndAssignTenant(input: CreateUserAndAssignTenantInput): Promise<CreateUserAndAssignTenantResult> {
+    const response = await gqlRequest<{ createUserAndAssignTenant: CreateUserAndAssignTenantResult }>(
+      CREATE_USER_AND_ASSIGN_TENANT_MUTATION,
+      { input }
+    );
+    return response.createUserAndAssignTenant;
+  }
+
+  static async assignUserToTenant(tenantId: string, userId: string, role: string = 'TenantUser'): Promise<AssignUserToTenantResult> {
+    const response = await gqlRequest<{ assignUserToTenant: AssignUserToTenantResult }>(
+      ASSIGN_USER_TO_TENANT_MUTATION,
+      { tenantId, userId, role }
+    );
+    return response.assignUserToTenant;
   }
 
   static async assignTenantAdmin(tenantId: string, userId: string): Promise<{

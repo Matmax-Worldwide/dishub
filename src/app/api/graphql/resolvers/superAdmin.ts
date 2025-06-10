@@ -225,6 +225,189 @@ export const superAdminResolvers = {
       }
     },
 
+    // Detailed Tenant Metrics for SuperAdmin
+    tenantDetailedMetrics: async (_parent: Parent, { tenantId }: { tenantId: string }, context: Context) => {
+      await requireSuperAdmin(context);
+      
+      try {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          include: {
+            userTenants: {
+              where: { isActive: true },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    isActive: true,
+                    createdAt: true
+                  }
+                }
+              }
+            },
+            pages: {
+              select: {
+                id: true,
+                isPublished: true
+              }
+            },
+            posts: {
+              select: {
+                id: true,
+                status: true,
+                createdAt: true
+              }
+            },
+            blogs: {
+              select: {
+                id: true,
+                isActive: true
+              }
+            },
+            forms: {
+              select: {
+                id: true,
+                isActive: true
+              }
+            },
+            bookings: {
+              select: {
+                id: true,
+                createdAt: true,
+                status: true
+              }
+            },
+            products: {
+              select: {
+                id: true
+              }
+            },
+            orders: {
+              select: {
+                id: true,
+                createdAt: true,
+                status: true
+              }
+            }
+          }
+        });
+
+        if (!tenant) {
+          throw new Error(`Tenant with ID "${tenantId}" not found`);
+        }
+
+        // Get form submissions separately
+        const formSubmissions = await prisma.formSubmission.findMany({
+          where: {
+            form: {
+              tenantId: tenantId
+            }
+          },
+          select: {
+            id: true,
+            createdAt: true
+          }
+        });
+
+        const users = tenant.userTenants.map(ut => ut.user);
+        const activeUsers = users.filter(u => u.isActive).length;
+        const publishedPages = tenant.pages.filter(p => p.isPublished).length;
+        const publishedPosts = tenant.posts.filter(p => p.status === 'PUBLISHED').length;
+        const activeBlogs = tenant.blogs.filter(b => b.isActive).length;
+        const activeForms = tenant.forms.filter(f => f.isActive).length;
+
+        // Calculate last 30 days activity
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const last30DaysFormSubmissions = formSubmissions.filter(sub => 
+          new Date(sub.createdAt) > thirtyDaysAgo
+        ).length;
+
+        const last30DaysBookings = tenant.bookings.filter(booking => 
+          new Date(booking.createdAt) > thirtyDaysAgo
+        ).length;
+
+        const last30DaysOrders = tenant.orders.filter(order => 
+          new Date(order.createdAt) > thirtyDaysAgo
+        ).length;
+
+        const last30DaysPosts = tenant.posts.filter(post => 
+          new Date(post.createdAt) > thirtyDaysAgo
+        ).length;
+
+        // Prepare module-specific metrics
+        const modules = [];
+        
+        if (tenant.features.includes('BLOG_MODULE')) {
+          modules.push({
+            moduleName: 'Blog Module',
+            isActive: true,
+            itemCount: tenant.blogs.length,
+            last30DaysActivity: last30DaysPosts
+          });
+        }
+
+        if (tenant.features.includes('FORMS_MODULE')) {
+          modules.push({
+            moduleName: 'Forms Module',
+            isActive: true,
+            itemCount: tenant.forms.length,
+            last30DaysActivity: last30DaysFormSubmissions
+          });
+        }
+
+        if (tenant.features.includes('ECOMMERCE_ENGINE')) {
+          modules.push({
+            moduleName: 'E-commerce Engine',
+            isActive: true,
+            itemCount: tenant.products.length,
+            last30DaysActivity: last30DaysOrders
+          });
+        }
+
+        if (tenant.features.includes('BOOKING_ENGINE')) {
+          modules.push({
+            moduleName: 'Booking Engine',
+            isActive: true,
+            itemCount: tenant.bookings.length,
+            last30DaysActivity: last30DaysBookings
+          });
+        }
+
+        return {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          metrics: {
+            totalUsers: users.length,
+            activeUsers,
+            totalPages: tenant.pages.length,
+            publishedPages,
+            totalPosts: tenant.posts.length,
+            publishedPosts,
+            totalBlogs: tenant.blogs.length,
+            activeBlogs,
+            totalForms: tenant.forms.length,
+            activeForms,
+            totalFormSubmissions: formSubmissions.length,
+            last30DaysFormSubmissions,
+            totalBookings: tenant.bookings.length,
+            last30DaysBookings,
+            totalProducts: tenant.products.length,
+            activeProducts: tenant.products.length, // For now, assume all products are active
+            totalOrders: tenant.orders.length,
+            last30DaysOrders,
+            features: tenant.features,
+            modules
+          },
+          lastActivity: tenant.updatedAt.toISOString()
+        };
+      } catch (error) {
+        console.error('Error fetching tenant detailed metrics:', error);
+        throw new Error('Failed to fetch tenant detailed metrics');
+      }
+    },
+
     // Tenant Health Monitoring
     tenantHealthMetrics: async (_parent: Parent, { tenantId }: { tenantId?: string }, context: Context) => {
       await requireSuperAdmin(context);
@@ -575,6 +758,86 @@ export const superAdminResolvers = {
       } catch (error) {
         console.error('Error fetching module versions:', error);
         throw new Error('Failed to fetch module versions');
+      }
+    },
+
+    // User Management
+    allUsers: async (_parent: Parent, { filter, pagination }: {
+      filter?: { search?: string; role?: string; isActive?: boolean };
+      pagination?: { page?: number; pageSize?: number };
+    }, context: Context) => {
+      await requireSuperAdmin(context);
+      
+      try {
+        const page = pagination?.page || 1;
+        const pageSize = Math.min(pagination?.pageSize || 20, 100);
+        const skip = (page - 1) * pageSize;
+
+        const whereClause: {
+          OR?: Array<{ [key: string]: { contains: string; mode: string } }>;
+          isActive?: boolean;
+          role?: { name: string };
+        } = {};
+
+        if (filter?.search) {
+          whereClause.OR = [
+            { firstName: { contains: filter.search, mode: 'insensitive' } },
+            { lastName: { contains: filter.search, mode: 'insensitive' } },
+            { email: { contains: filter.search, mode: 'insensitive' } }
+          ];
+        }
+
+        if (filter?.isActive !== undefined) {
+          whereClause.isActive = filter.isActive;
+        }
+
+        if (filter?.role) {
+          whereClause.role = {
+            name: filter.role
+          };
+        }
+
+        const [users, totalCount] = await Promise.all([
+          prisma.user.findMany({
+            where: whereClause,
+            include: {
+              role: true,
+              userTenants: {
+                where: { isActive: true },
+                select: {
+                  id: true,
+                  tenantId: true,
+                  role: true,
+                  isActive: true,
+                  joinedAt: true
+                }
+              }
+            },
+            skip,
+            take: pageSize,
+            orderBy: { createdAt: 'desc' }
+          }),
+          prisma.user.count({ where: whereClause })
+        ]);
+
+        return {
+          items: users.map(user => ({
+            ...user,
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+            userTenants: user.userTenants.map(ut => ({
+              ...ut,
+              joinedAt: ut.joinedAt.toISOString()
+            }))
+          })),
+          totalCount,
+          page,
+          pageSize,
+          totalPages: Math.ceil(totalCount / pageSize)
+        };
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        throw new Error('Failed to fetch users');
       }
     },
 
@@ -1285,6 +1548,225 @@ export const superAdminResolvers = {
           success: false,
           message: error instanceof Error ? error.message : 'Failed to assign tenant admin',
           user: null
+        };
+      }
+    },
+
+    // Create User and Assign to Tenant
+    createUserAndAssignTenant: async (_parent: Parent, { input }: {
+      input: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        phoneNumber?: string;
+        password: string;
+        tenantId: string;
+        role?: string;
+      };
+    }, context: Context) => {
+      await requireSuperAdmin(context);
+      
+      try {
+        // Check if email already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: input.email }
+        });
+        
+        if (existingUser) {
+          return {
+            success: false,
+            message: `User with email "${input.email}" already exists`,
+            user: null
+          };
+        }
+
+        // Check if tenant exists
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: input.tenantId }
+        });
+        
+        if (!tenant) {
+          return {
+            success: false,
+            message: `Tenant with ID "${input.tenantId}" not found`,
+            user: null
+          };
+        }
+
+        // Get default role for tenant users
+        let userRole = await prisma.roleModel.findFirst({
+          where: { name: 'TenantUser' }
+        });
+
+        if (!userRole) {
+          userRole = await prisma.roleModel.create({
+            data: {
+              name: 'TenantUser',
+              description: 'Default tenant user role'
+            }
+          });
+        }
+
+                 // Hash password
+         const hashedPassword = await bcrypt.hash(input.password, 10);
+
+        // Create user and assign to tenant in transaction
+        const result = await prisma.$transaction(async (tx) => {
+          // Create user
+          const newUser = await tx.user.create({
+            data: {
+              email: input.email,
+              firstName: input.firstName,
+              lastName: input.lastName,
+              phoneNumber: input.phoneNumber || '',
+              password: hashedPassword,
+              roleId: userRole!.id,
+              isActive: true
+            },
+            include: {
+              role: true
+            }
+          });
+
+          // Create UserTenant relationship
+          const userTenant = await tx.userTenant.create({
+            data: {
+              userId: newUser.id,
+              tenantId: input.tenantId,
+              role: input.role === 'TenantAdmin' ? 'TenantAdmin' : 
+                    input.role === 'TenantManager' ? 'TenantManager' : 'TenantUser',
+              isActive: true
+            }
+          });
+
+          return {
+            ...newUser,
+            userTenants: [userTenant]
+          };
+        });
+
+        return {
+          success: true,
+          message: `User "${input.firstName} ${input.lastName}" created and assigned to tenant successfully`,
+          user: {
+            ...result,
+            createdAt: result.createdAt.toISOString(),
+            updatedAt: result.updatedAt.toISOString(),
+            userTenants: result.userTenants.map(ut => ({
+              ...ut,
+              joinedAt: ut.joinedAt.toISOString()
+            }))
+          }
+        };
+      } catch (error) {
+        console.error('Error creating user and assigning to tenant:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to create user and assign to tenant',
+          user: null
+        };
+      }
+    },
+
+    // Assign Existing User to Tenant
+    assignUserToTenant: async (_parent: Parent, { tenantId, userId, role }: {
+      tenantId: string;
+      userId: string;
+      role: string;
+    }, context: Context) => {
+      await requireSuperAdmin(context);
+      
+      try {
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
+        });
+        
+        if (!user) {
+          return {
+            success: false,
+            message: `User with ID "${userId}" not found`,
+            userTenant: null
+          };
+        }
+
+        // Check if tenant exists
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+        
+        if (!tenant) {
+          return {
+            success: false,
+            message: `Tenant with ID "${tenantId}" not found`,
+            userTenant: null
+          };
+        }
+
+        // Check if user is already assigned to this tenant
+        const existingAssignment = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId,
+              tenantId
+            }
+          }
+        });
+
+        if (existingAssignment && existingAssignment.isActive) {
+          return {
+            success: false,
+            message: `User is already assigned to this tenant`,
+            userTenant: null
+          };
+        }
+
+        // Create or update UserTenant relationship
+        const userTenant = await prisma.userTenant.upsert({
+          where: {
+            userId_tenantId: {
+              userId,
+              tenantId
+            }
+          },
+          update: {
+            role: role === 'TenantAdmin' ? 'TenantAdmin' : 
+                  role === 'TenantManager' ? 'TenantManager' : 'TenantUser',
+            isActive: true
+          },
+          create: {
+            userId,
+            tenantId,
+            role: role === 'TenantAdmin' ? 'TenantAdmin' : 
+                  role === 'TenantManager' ? 'TenantManager' : 'TenantUser',
+            isActive: true
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        });
+
+        return {
+          success: true,
+          message: `User "${user.firstName} ${user.lastName}" assigned to tenant "${tenant.name}" successfully`,
+          userTenant: {
+            ...userTenant,
+            joinedAt: userTenant.joinedAt.toISOString()
+          }
+        };
+      } catch (error) {
+        console.error('Error assigning user to tenant:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Failed to assign user to tenant',
+          userTenant: null
         };
       }
     }

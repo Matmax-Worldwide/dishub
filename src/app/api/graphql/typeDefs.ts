@@ -4111,6 +4111,44 @@ export const typeDefs = gql`
     features: [String!]!
   }
 
+  # Detailed Tenant Metrics for SuperAdmin
+  type TenantDetailedMetrics {
+    tenantId: ID!
+    tenantName: String!
+    metrics: TenantDetailedMetricsData!
+    lastActivity: String!
+  }
+
+  type TenantDetailedMetricsData {
+    totalUsers: Int!
+    activeUsers: Int!
+    totalPages: Int!
+    publishedPages: Int!
+    totalPosts: Int!
+    publishedPosts: Int!
+    totalBlogs: Int!
+    activeBlogs: Int!
+    totalForms: Int!
+    activeForms: Int!
+    totalFormSubmissions: Int!
+    last30DaysFormSubmissions: Int!
+    totalBookings: Int!
+    last30DaysBookings: Int!
+    totalProducts: Int!
+    activeProducts: Int!
+    totalOrders: Int!
+    last30DaysOrders: Int!
+    features: [String!]!
+    modules: [ModuleActivityData!]!
+  }
+
+  type ModuleActivityData {
+    moduleName: String!
+    isActive: Boolean!
+    itemCount: Int!
+    last30DaysActivity: Int!
+  }
+
   # Global Analytics Types
   type GlobalAnalytics {
     tenantGrowth: [GrowthPoint!]!
@@ -4313,6 +4351,28 @@ export const typeDefs = gql`
     message: String!
   }
 
+  type UserList {
+    items: [User!]!
+    totalCount: Int!
+    page: Int!
+    pageSize: Int!
+    totalPages: Int!
+  }
+
+  type CreateUserAndAssignTenantResult {
+    success: Boolean!
+    message: String!
+    user: User
+  }
+
+  type AssignUserToTenantResult {
+    success: Boolean!
+    message: String!
+    userTenant: UserTenant
+  }
+
+
+
   type AssignTenantAdminResult {
     success: Boolean!
     message: String!
@@ -4326,9 +4386,25 @@ export const typeDefs = gql`
     planId: String
   }
 
+  input UserFilterInput {
+    search: String
+    role: String
+    isActive: Boolean
+  }
+
   input PaginationInput {
     page: Int
     pageSize: Int
+  }
+
+  input CreateUserAndAssignTenantInput {
+    email: String!
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    password: String!
+    tenantId: ID!
+    role: String
   }
 
   input CreateTenantInput {
@@ -4377,7 +4453,11 @@ export const typeDefs = gql`
     # Tenant Management
     allTenants(filter: TenantFilterInput, pagination: PaginationInput): TenantList!
     tenantById(id: ID!): TenantDetails
+    tenantDetailedMetrics(tenantId: ID!): TenantDetailedMetrics
     tenantHealthMetrics(tenantId: ID): [TenantHealthMetric!]!
+    
+    # User Management
+    allUsers(filter: UserFilterInput, pagination: PaginationInput): UserList!
     
     # Analytics & Monitoring
     globalAnalytics(timeRange: String): GlobalAnalytics!
@@ -4398,6 +4478,10 @@ export const typeDefs = gql`
     updateTenantSuperAdmin(id: ID!, input: UpdateTenantInputSuperAdmin!): TenantMutationResult!
     deleteTenant(id: ID!): SimpleResult!
     assignTenantAdmin(tenantId: ID!, userId: ID!): AssignTenantAdminResult!
+    
+    # User Management
+    createUserAndAssignTenant(input: CreateUserAndAssignTenantInput!): CreateUserAndAssignTenantResult!
+    assignUserToTenant(tenantId: ID!, userId: ID!, role: String!): AssignUserToTenantResult!
     
     # Tenant Operations
     impersonateTenant(tenantId: ID!): ImpersonationResult!

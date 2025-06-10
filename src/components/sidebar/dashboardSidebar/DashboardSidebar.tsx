@@ -946,40 +946,6 @@ export function DashboardSidebar() {
               )}
             </div>
           </div>
-
-          {isSuperAdmin && (
-            <div className="mt-4 p-4 bg-gray-50 border-b border-gray-100">
-              <h3 className="mb-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                {t('sidebar.adminTools')}
-              </h3>
-              <div className="px-3 py-2 text-sm text-gray-700">
-                <p>{t('sidebar.adminMessage')}</p>
-              </div>
-              
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/super-admin/tenants/create`}
-                >
-                  <UserIcon className="h-3 w-3" />
-                  {t('sidebar.newTenant')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                  onClick={() => window.location.href = `/${params.locale}/${tenantSlug}/notifications`}
-                >
-                  <BellIcon className="h-3 w-3" />
-                  {t('sidebar.message')}
-                </Button>
-              </div>
-              
-
-            </div>
-          )}
           
           {/* Nav items */}
           <div className="flex-1 overflow-y-auto">
@@ -1119,43 +1085,6 @@ export function DashboardSidebar() {
             {/* Mobile nav items */}
             <div className="flex-1 overflow-y-auto">
               <nav className="p-3 space-y-1">
-                {isSuperAdmin && (
-                  <div className="mb-4">
-                    <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">
-                      {t('sidebar.adminTools')}
-                    </h3>
-                    
-
-                    
-                    <div className="grid grid-cols-2 gap-2 px-3 mb-2">
-                                              <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex items-center justify-center gap-2"
-                          onClick={() => {
-                            window.location.href = `/${params.locale}/super-admin/tenants/create`;
-                            setIsOpen(false);
-                          }}
-                        >
-                          <UserIcon className="h-3 w-3" />
-                          {t('sidebar.newTenant')}
-                        </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center justify-center gap-2"
-                        onClick={() => {
-                        window.location.href = `/${params.locale}/${tenantSlug}/notifications`;
-                          setIsOpen(false);
-                        }}
-                      >
-                        <BellIcon className="h-3 w-3" />
-                        {t('sidebar.message')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
                 {showAsUser && (
                   <div className="mb-4">
                     <h3 className="mb-2 text-xs font-medium uppercase text-gray-500">

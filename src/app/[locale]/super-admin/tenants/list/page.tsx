@@ -281,11 +281,15 @@ export default function SuperAdminTenantsPage() {
           {/* Tenants Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {tenants?.items.map((tenant) => (
-              <Card key={tenant.id} className="hover:shadow-lg transition-shadow">
+              <Card key={tenant.id} className="hover:shadow-lg transition-all duration-200 hover:border-blue-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{tenant.name}</CardTitle>
+                      <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
+                        <CardTitle className="text-lg cursor-pointer hover:text-blue-600 hover:underline transition-colors duration-200">
+                          {tenant.name}
+                        </CardTitle>
+                      </Link>
                       <CardDescription className="mt-1">
                         <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
                           {tenant.slug}
@@ -440,10 +444,14 @@ export default function SuperAdminTenantsPage() {
             <CardContent>
               <div className="space-y-4">
                 {healthMetrics?.map((metric) => (
-                  <div key={metric.tenantId} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={metric.tenantId} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <h3 className="font-medium">{metric.tenantName}</h3>
+                        <Link href={`/super-admin/tenants/edit/${metric.tenantId}`}>
+                          <h3 className="font-medium cursor-pointer hover:text-blue-600 hover:underline transition-colors duration-200">
+                            {metric.tenantName}
+                          </h3>
+                        </Link>
                         {getStatusBadge(metric.status)}
                         {getHealthBadge(metric.healthScore)}
                       </div>
