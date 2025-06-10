@@ -1,7 +1,7 @@
 'use client';
 
 import { UnsavedChangesProvider } from '@/contexts/UnsavedChangesContext';
-import LegalSidebar from '@/components/engines/legal/LegalSidebar';
+import LegalSidebar from '@/components/sidebar/LegalSidebar';
 
 interface LegalLayoutProps {
   children: React.ReactNode;
