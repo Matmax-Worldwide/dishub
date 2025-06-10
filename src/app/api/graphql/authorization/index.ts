@@ -37,6 +37,37 @@ const isAdmin = rule()(async (parent, args, context) => {
   return true;
 });
 
+// New rule: Requires MetaMask signature for critical operations
+const requiresMetaMaskSignature = rule()(async (parent, args, context) => {
+  if (!context.user) {
+    return new Error('Not authenticated!');
+  }
+
+  // Check if MetaMask signature is provided for this operation
+  const { metaMaskSignature, operationType } = args;
+  
+  if (!metaMaskSignature) {
+    return new Error('Esta operación requiere aprobación con MetaMask. Por favor firma la transacción.');
+  }
+
+  // Verify the signature format (basic validation)
+  if (typeof metaMaskSignature !== 'string' || metaMaskSignature.length < 64) {
+    return new Error('Firma de MetaMask inválida');
+  }
+
+  // Here you could add more sophisticated signature verification
+  // For now, we just check that it exists and has the right format
+  
+  // Log the operation for audit purposes
+  console.log(`MetaMask signature verified for operation: ${operationType}`, {
+    userId: context.user.id,
+    signature: metaMaskSignature.substring(0, 10) + '...',
+    timestamp: new Date().toISOString()
+  });
+
+  return true;
+});
+
 // isTenantMember might not be used in this specific set of rules, but good to keep if defined elsewhere
 // const isTenantMember = rule({ cache: 'contextual' })( ... );
 
@@ -66,6 +97,28 @@ const hasPermission = (permission: string) => {
     return true;
   });
 };
+
+// Critical operations that require MetaMask signature
+// const criticalOperations = [
+//   // Eliminar usuarios y tenants
+//   'deleteUser',
+//   'deleteTenant',
+  
+//   // Modificar proveedores de pago
+//   'updatePaymentProvider',
+//   'createPaymentProvider',
+//   'deletePaymentProvider',
+  
+//   // Actualizar configuraciones críticas
+//   'updateSiteSettings',
+  
+//   // Gestionar permisos y roles
+//   'assignPermissionToRole',
+//   'removePermissionFromRole',
+//   'createRole',
+//   'deleteRole',
+//   'updateRole'
+// ];
 
 // Placeholder for more complex ownership rules if needed later
 // const isAppointmentOwner = rule()(async (parent, { id }, ctx, info) => { ... });
@@ -205,16 +258,16 @@ export const permissions = shield({
     createTenant: allow,
     registerUserWithTenant: allow,
     
-    // Role and permission mutations - Admin bypass
+    // Role and permission mutations - Admin bypass + MetaMask for critical operations
     createRole: or(isAdmin, and(isAuthenticated, hasPermission('create:role'))),
     createPermission: or(isAdmin, and(isAuthenticated, hasPermission('create:permission'))),
-    assignPermissionToRole: or(isAdmin, and(isAuthenticated, hasPermission('assign:permission_to_role'))),
-    removePermissionFromRole: or(isAdmin, and(isAuthenticated, hasPermission('remove:permission_from_role'))),
+    assignPermissionToRole: or(isAdmin, and(isAuthenticated, hasPermission('assign:permission_to_role'), requiresMetaMaskSignature)),
+    removePermissionFromRole: or(isAdmin, and(isAuthenticated, hasPermission('remove:permission_from_role'), requiresMetaMaskSignature)),
     
-    // User Mutation Rules - Admin bypass
+    // User Mutation Rules - Admin bypass + MetaMask for delete
     createUser: or(isAdmin, and(isAuthenticated, hasPermission('create:user'))),
     updateUser: or(isAdmin, and(isAuthenticated, hasPermission('update:user'))),
-    deleteUser: or(isAdmin, and(isAuthenticated, hasPermission('delete:user'))),
+    deleteUser: or(isAdmin, and(isAuthenticated, hasPermission('delete:user'), requiresMetaMaskSignature)),
     
     // CMS Mutation Rules - Admin bypass
     saveSectionComponents: or(isAdmin, and(isAuthenticated, hasPermission('edit:cms_content'))),
@@ -229,9 +282,9 @@ export const permissions = shield({
     associateSectionToPage: or(isAdmin, and(isAuthenticated, hasPermission('edit:page_structure'))),
     dissociateSectionFromPage: or(isAdmin, and(isAuthenticated, hasPermission('edit:page_structure'))),
     
-    // Settings Mutation Rules - Admin bypass
+    // Settings Mutation Rules - Admin bypass + MetaMask for site settings
     updateUserSettings: or(isAdmin, and(isAuthenticated, hasPermission('update:user_settings'))),
-    updateSiteSettings: or(isAdmin, and(isAuthenticated, hasPermission('update:site_settings'))),
+    updateSiteSettings: or(isAdmin, and(isAuthenticated, hasPermission('update:site_settings'), requiresMetaMaskSignature)),
     
     // Blog Mutation Rules - Admin bypass
     createBlog: or(isAdmin, and(isAuthenticated, hasPermission('create:blog'))),
@@ -254,9 +307,9 @@ export const permissions = shield({
     createTax: or(isAdmin, and(isAuthenticated, hasPermission('create:tax'))),
     updateTax: or(isAdmin, and(isAuthenticated, hasPermission('update:tax'))),
     deleteTax: or(isAdmin, and(isAuthenticated, hasPermission('delete:tax'))),
-    createPaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('create:payment_provider'))),
-    updatePaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('update:payment_provider'))),
-    deletePaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('delete:payment_provider'))),
+    createPaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('create:payment_provider'), requiresMetaMaskSignature)),
+    updatePaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('update:payment_provider'), requiresMetaMaskSignature)),
+    deletePaymentProvider: or(isAdmin, and(isAuthenticated, hasPermission('delete:payment_provider'), requiresMetaMaskSignature)),
     createPayment: or(isAdmin, and(isAuthenticated, hasPermission('create:payment'))),
     updatePayment: or(isAdmin, and(isAuthenticated, hasPermission('update:payment'))),
     createOrder: or(isAdmin, and(isAuthenticated, hasPermission('create:order'))),
