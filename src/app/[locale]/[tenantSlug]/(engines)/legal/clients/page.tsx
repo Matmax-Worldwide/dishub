@@ -1,463 +1,522 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useI18n } from '@/hooks/useI18n';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from 'react';
+import PageHeader from '@/components/PageHeader';
 import { 
-  Users, 
-  Search,
-  Filter,
-  Plus,
+  Search, 
+  Briefcase, 
+  User, 
+  Calendar, 
+  Phone, 
+  Mail, 
+  Building2,
+  MapPin,
   Eye,
-  Edit,
-  ArrowUpDown,
-  Mail,
-  Phone,
-  Building,
-  MapPin
+  Clock,
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  ChevronRight,
+  DollarSign,
+  Target,
+  X
 } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
-// Types for GraphQL readiness
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  position?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  incorporationsCount: number;
-  totalRevenue: number;
-  status: 'active' | 'inactive';
-}
-
-// Mock data - Replace with GraphQL query
-const mockClients: Client[] = [
+// Enhanced clients data that matches incorporation structure
+const clients = [
   {
-    id: 'c1',
-    firstName: 'María',
-    lastName: 'García',
-    email: 'maria@techstart.com',
-    phone: '+1-555-0123',
-    company: 'TechStart LLC',
-    position: 'CEO',
-    address: '123 Tech Street',
-    city: 'San Francisco',
-    state: 'CA',
-    country: 'United States',
-    postalCode: '94105',
-    notes: 'Startup founder, tech industry',
-    createdAt: '2024-01-01T10:00:00Z',
-    updatedAt: '2024-01-10T15:30:00Z',
-    incorporationsCount: 2,
+    id: 1,
+    name: 'TechVentures Peru S.A.C.',
+    contact: 'María Elena Rodriguez',
+    email: 'maria@techventures.pe',
+    phone: '+51 999 123 456',
+    address: 'Av. Larco 1301, Miraflores, Lima 15074, Peru',
+    status: 'active',
+    clientSince: '2023-06-15',
+    type: 'S.A.C.',
+    location: 'Lima, Peru',
+    industry: 'Technology',
+    totalProjects: 1,
+    activeProjects: 0,
+    totalRevenue: 12500,
+    incorporations: [
+      {
+        id: 'INC-2024-001',
+        companyName: 'TechVentures Peru S.A.C.',
+        status: 'completed',
+        priority: 'high',
+        startDate: '2024-01-10',
+        estimatedCompletion: '2024-02-15',
+        progress: 100,
+        assignedTo: 'Carlos Mendoza',
+        office: '🇵🇪 Peru Office',
+        lastUpdate: '2024-02-15',
+        country: 'Peru'
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Global Commerce E.I.R.L.',
+    contact: 'Carlos Alberto Silva',
+    email: 'carlos@globalcommerce.pe',
+    phone: '+51 999 789 012',
+    address: 'Jr. de la Unión 500, Cercado de Lima, Lima 15001, Peru',
+    status: 'active',
+    clientSince: '2023-09-20',
+    type: 'E.I.R.L.',
+    location: 'Arequipa, Peru',
+    industry: 'Import/Export',
+    totalProjects: 2,
+    activeProjects: 1,
+    totalRevenue: 18000,
+    incorporations: [
+      {
+        id: 'INC-2024-008',
+        companyName: 'Global Commerce E.I.R.L.',
+        status: 'on-track',
+        priority: 'medium',
+        startDate: '2024-01-12',
+        estimatedCompletion: '2024-02-10',
+        progress: 85,
+        assignedTo: 'Luis Rodriguez',
+        office: '🇵🇪 Peru Office',
+        lastUpdate: '2024-01-19'
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Innovation Labs S.A.',
+    contact: 'Ana Patricia Vargas',
+    email: 'ana@innovationlabs.pe',
+    phone: '+51 999 345 678',
+    address: 'Av. El Sol 315, San Blas, Cusco 08003, Peru',
+    status: 'completed',
+    clientSince: '2023-08-10',
+    type: 'S.A.',
+    location: 'Cusco, Peru',
+    industry: 'Research & Development',
+    totalProjects: 1,
+    activeProjects: 0,
     totalRevenue: 15000,
-    status: 'active'
+    incorporations: [
+      {
+        id: 'INC-2023-045',
+        companyName: 'Innovation Labs S.A.',
+        status: 'completed',
+        priority: 'high',
+        startDate: '2023-12-15',
+        estimatedCompletion: '2024-01-15',
+        progress: 100,
+        assignedTo: 'Carmen Flores',
+        office: '🇵🇪 Peru Office',
+        lastUpdate: '2024-01-15'
+      }
+    ]
   },
   {
-    id: 'c2',
-    firstName: 'Pedro',
-    lastName: 'Martínez',
-    email: 'pedro@globaltrading.com',
-    phone: '+44-20-7946-0958',
-    company: 'Global Trading Ltd',
-    position: 'Managing Director',
-    address: '456 Business Ave',
-    city: 'London',
-    state: 'England',
-    country: 'United Kingdom',
-    postalCode: 'SW1A 1AA',
-    notes: 'International trading business',
-    createdAt: '2024-01-02T10:00:00Z',
-    updatedAt: '2024-01-11T14:20:00Z',
-    incorporationsCount: 1,
-    totalRevenue: 8500,
-    status: 'active'
+    id: 4,
+    name: 'Digital Solutions Mexico S.A. de C.V.',
+    contact: 'Roberto Martinez',
+    email: 'roberto@digitalsolutions.mx',
+    phone: '+52 55 1234 5678',
+    address: 'Paseo de la Reforma 250, Cuauhtémoc, 06500 Ciudad de México, CDMX',
+    status: 'active',
+    clientSince: '2023-11-05',
+    type: 'S.A. de C.V.',
+    location: 'Mexico City, Mexico',
+    industry: 'Software Development',
+    totalProjects: 2,
+    activeProjects: 1,
+    totalRevenue: 32000,
+    incorporations: [
+      {
+        id: 'INC-2024-012',
+        companyName: 'Digital Solutions Mexico S.A. de C.V.',
+        status: 'at-risk',
+        priority: 'critical',
+        startDate: '2024-01-08',
+        estimatedCompletion: '2024-02-05',
+        progress: 30,
+        assignedTo: 'Miguel Santos',
+        office: '🇲🇽 Mexico Office',
+        lastUpdate: '2024-01-17'
+      }
+    ]
   },
   {
-    id: 'c3',
-    firstName: 'Tech',
-    lastName: 'Solutions Inc.',
-    email: 'info@techsolutions.com',
-    phone: '+65-6123-4567',
-    company: 'Tech Solutions Inc.',
-    position: 'Corporate Entity',
-    address: '789 Innovation Drive',
-    city: 'Singapore',
-    state: 'Singapore',
-    country: 'Singapore',
-    postalCode: '018956',
-    notes: 'Technology consulting firm',
-    createdAt: '2024-01-03T10:00:00Z',
-    updatedAt: '2024-01-12T16:45:00Z',
-    incorporationsCount: 3,
-    totalRevenue: 25000,
-    status: 'active'
-  },
-  {
-    id: 'c4',
-    firstName: 'Ana',
-    lastName: 'Rodriguez',
-    email: 'ana@startup.com',
-    phone: '+1-555-0456',
-    company: 'Startup Ventures',
-    position: 'Founder',
-    address: '321 Venture Blvd',
-    city: 'Austin',
-    state: 'TX',
-    country: 'United States',
-    postalCode: '73301',
-    notes: 'Serial entrepreneur',
-    createdAt: '2024-01-04T10:00:00Z',
-    updatedAt: '2024-01-13T12:15:00Z',
-    incorporationsCount: 0,
-    totalRevenue: 0,
-    status: 'inactive'
+    id: 5,
+    name: 'Exportadora Andina S.A.S.',
+    contact: 'Gabriela Moreno',
+    email: 'gabriela@exportadoraandina.co',
+    phone: '+57 1 345 6789',
+    address: 'Carrera 7 # 71-21, Chapinero, Bogotá, Colombia',
+    status: 'active',
+    clientSince: '2023-10-12',
+    type: 'S.A.S.',
+    location: 'Bogotá, Colombia',
+    industry: 'Agriculture Export',
+    totalProjects: 1,
+    activeProjects: 1,
+    totalRevenue: 22000,
+    incorporations: [
+      {
+        id: 'INC-2024-003',
+        companyName: 'Exportadora Andina S.A.S.',
+        status: 'in-progress',
+        priority: 'medium',
+        startDate: '2024-01-05',
+        estimatedCompletion: '2024-02-12',
+        progress: 60,
+        assignedTo: 'Diana Castro',
+        office: '🇨🇴 Colombia Office',
+        lastUpdate: '2024-01-19'
+      }
+    ]
   }
 ];
 
 export default function ClientsPage() {
-  const { t, locale } = useI18n();
-  const params = useParams();
-  const tenantSlug = params.tenantSlug as string;
-
-  // State for filtering and search
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortField, setSortField] = useState<keyof Client>('createdAt');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-  // Filtered and sorted data
-  const filteredClients = useMemo(() => {
-    const filtered = mockClients.filter(client => {
-      const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
-      const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                           client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    });
-
-    // Sort
-    return filtered.sort((a, b) => {
-      let aValue: string | number = a[sortField] as string | number;
-      let bValue: string | number = b[sortField] as string | number;
-      
-      if (sortField === 'firstName' || sortField === 'lastName') {
-        aValue = `${a.firstName} ${a.lastName}`;
-        bValue = `${b.firstName} ${b.lastName}`;
-      }
-      
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [searchTerm, statusFilter, sortField, sortDirection]);
-
-  const handleSort = (field: keyof Client) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
+  const [selectedClient, setSelectedClient] = useState<typeof clients[0] | null>(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const {locale, tenantSlug} = useParams();
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.industry.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || client.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-700';
+      case 'in-progress': return 'bg-blue-100 text-blue-700';
+      case 'completed': return 'bg-purple-100 text-purple-700';
+      case 'pending-documents': return 'bg-yellow-100 text-yellow-700';
+      case 'at-risk': return 'bg-red-100 text-red-700';
+      case 'on-track': return 'bg-emerald-100 text-emerald-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const getIncorporationStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'in-progress': return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'pending-documents': return <FileText className="h-4 w-4 text-yellow-500" />;
+      case 'at-risk': return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'on-track': return <Target className="h-4 w-4 text-emerald-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
+    }
   };
 
+  const totalClients = clients.length;
+  const activeClients = clients.filter(c => c.status === 'active').length;
+  const completedProjects = clients.reduce((sum, c) => sum + (c.totalProjects - c.activeProjects), 0);
+  const totalRevenue = clients.reduce((sum, c) => sum + c.totalRevenue, 0);
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('legal.clients') || 'Clients'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {t('legal.clients.subtitle') || 'Manage your legal clients and their information'}
-          </p>
-        </div>
-        <Link
-          href={`/${locale}/${tenantSlug}/legal/clients/new`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('legal.newClient') || 'New Client'}
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Client Overview"
+        description="Manage client relationships and track incorporation projects"
+        onMenuClick={() => {}}
+      />
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder={t('legal.clients.searchPlaceholder') || 'Search by name, email, or company...'}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <select
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">{t('legal.clients.allStatuses') || 'All Statuses'}</option>
-            <option value="active">{t('legal.clients.active') || 'Active'}</option>
-            <option value="inactive">{t('legal.clients.inactive') || 'Inactive'}</option>
-          </select>
-
-          <div className="flex items-center text-sm text-gray-600">
-            <Filter className="h-4 w-4 mr-2" />
-            {filteredClients.length} {t('legal.results') || 'results'}
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center">
+            <Briefcase className="h-8 w-8 text-blue-500" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Total Clients</p>
+              <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
+            </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center">
+            <User className="h-8 w-8 text-green-500" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Active Clients</p>
+              <p className="text-2xl font-bold text-gray-900">{activeClients}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center">
+            <Building2 className="h-8 w-8 text-purple-500" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Completed Projects</p>
+              <p className="text-2xl font-bold text-gray-900">{completedProjects}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center">
+            <DollarSign className="h-8 w-8 text-orange-500" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('firstName')}
-                >
-                  <div className="flex items-center">
-                    {t('legal.clients.name') || 'Name'}
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('legal.clients.contact') || 'Contact'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('legal.clients.company') || 'Company'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('legal.clients.location') || 'Location'}
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('incorporationsCount')}
-                >
-                  <div className="flex items-center">
-                    {t('legal.clients.incorporations') || 'Incorporations'}
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('totalRevenue')}
-                >
-                  <div className="flex items-center">
-                    {t('legal.clients.revenue') || 'Revenue'}
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('legal.status') || 'Status'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('legal.actions') || 'Actions'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="ml-4">
-                        <Link
-                          href={`/${locale}/${tenantSlug}/legal/clients/${client.id}`}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                        >
-                          {client.firstName} {client.lastName}
-                        </Link>
-                        {client.position && (
-                          <div className="text-sm text-gray-500">
-                            {client.position}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                        <a href={`mailto:${client.email}`} className="hover:text-blue-600">
-                          {client.email}
-                        </a>
-                      </div>
-                      {client.phone && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                          <a href={`tel:${client.phone}`} className="hover:text-blue-600">
-                            {client.phone}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {client.company && (
-                      <div className="flex items-center">
-                        <Building className="h-4 w-4 text-gray-400 mr-2" />
-                        <div className="text-sm text-gray-900">
-                          {client.company}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {client.city && client.country && (
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                        <div className="text-sm text-gray-900">
-                          {client.city}, {client.country}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">
-                        {client.incorporationsCount}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {t('legal.clients.cases') || 'cases'}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">
-                        {formatCurrency(client.totalRevenue)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {t('legal.clients.total') || 'total'}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
-                      {t(`legal.clients.${client.status}`) || client.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/${locale}/${tenantSlug}/legal/clients/${client.id}`}
-                        className="text-blue-600 hover:text-blue-700"
-                        title={t('legal.view') || 'View'}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        href={`/${locale}/${tenantSlug}/legal/clients/${client.id}/edit`}
-                        className="text-gray-600 hover:text-gray-700"
-                        title={t('legal.edit') || 'Edit'}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">Client Directory</h2>
+          <div className="flex items-center space-x-4">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </div>
-        
-        {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {t('legal.clients.noClients') || 'No clients found'}
+      </div>
+
+      {/* Main Content Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Clients List */}
+        <div className={`${selectedClient ? 'lg:col-span-1' : 'lg:col-span-3'} bg-white rounded-xl shadow-sm`}>
+          <div className="p-6 border-b">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {filteredClients.length} Client{filteredClients.length !== 1 ? 's' : ''}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {t('legal.clients.noClientsDescription') || 'Get started by adding a new client.'}
-            </p>
-            <div className="mt-6">
-              <Link
-                href={`/${locale}/${tenantSlug}/legal/clients/new`}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          </div>
+          <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+            {filteredClients.map((client) => (
+              <div 
+                key={client.id} 
+                className={`p-6 hover:bg-gray-50 transition-colors cursor-pointer ${
+                  selectedClient?.id === client.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                }`}
+                onClick={() => setSelectedClient(client)}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                {t('legal.newClient') || 'New Client'}
-              </Link>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                      <Building2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="font-medium text-gray-900">{client.name}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
+                          {client.status.replace('-', ' ')}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 text-sm text-gray-500">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4" />
+                          <span>{client.contact}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Building2 className="h-4 w-4" />
+                          <span>{client.industry}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">{client.incorporations?.length || 0} countries</span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Client Detail Panel */}
+        {selectedClient && (
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-800">Client Details</h3>
+              <button
+                onClick={() => setSelectedClient(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Client Information */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">{selectedClient.name}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Contact Person:</span>
+                        <p className="font-medium text-gray-900">{selectedClient.contact}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Email:</span>
+                        <p className="font-medium text-gray-900">{selectedClient.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Phone:</span>
+                        <p className="font-medium text-gray-900">{selectedClient.phone}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Address:</span>
+                        <p className="font-medium text-gray-900">{selectedClient.address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Industry:</span>
+                        <p className="font-medium text-gray-900">{selectedClient.industry}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-gray-500">Client Since:</span>
+                        <p className="font-medium text-gray-900">{new Date(selectedClient.clientSince).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Client Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{selectedClient.incorporations.length}</div>
+                  <div className="text-sm text-gray-600">Countries</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{selectedClient.incorporations.filter(inc => inc.status === 'completed').length}</div>
+                  <div className="text-sm text-gray-600">Completed</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">${selectedClient.totalRevenue.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Total Revenue</div>
+                </div>
+              </div>
+
+              {/* Client Dashboard Button */}
+              <div className="flex justify-center">
+                <Link
+                  href={`/${locale}/${tenantSlug}/legal/client-dashboard`}
+                  className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Eye className="h-5 w-5" />
+                  <span className="font-medium">View Client Dashboard</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              {/* Incorporation Projects */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Incorporation Projects</h4>
+                <div className="space-y-4">
+                  {selectedClient.incorporations.map((incorporation) => (
+                    <div key={incorporation.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h5 className="font-medium text-gray-900">{incorporation.companyName}</h5>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(incorporation.status)}`}>
+                              {incorporation.status.replace('-', ' ')}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              incorporation.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                              incorporation.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                              incorporation.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {incorporation.priority} priority
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600">ID: {incorporation.id}</p>
+                        </div>
+                        {getIncorporationStatusIcon(incorporation.status)}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                        <div>
+                          <span className="font-medium">Start Date:</span> {new Date(incorporation.startDate).toLocaleDateString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Est. Completion:</span> {new Date(incorporation.estimatedCompletion).toLocaleDateString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Assigned To:</span> {incorporation.assignedTo}
+                        </div>
+                        <div>
+                          <span className="font-medium">Office:</span> {incorporation.office}
+                        </div>
+                      </div>
+                      
+                      <div className="mb-2">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="font-medium text-gray-700">Progress</span>
+                          <span className="text-gray-600">{incorporation.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              incorporation.status === 'completed' ? 'bg-green-500' :
+                              incorporation.status === 'at-risk' ? 'bg-red-500' :
+                              'bg-blue-500'
+                            }`}
+                            style={{ width: `${incorporation.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500">
+                        Last updated: {new Date(incorporation.lastUpdate).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
-      </div>
-
-      {/* Statistics Footer */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">
-              {mockClients.length}
-            </div>
-            <div className="text-sm text-gray-500">
-              {t('legal.clients.totalClients') || 'Total Clients'}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {mockClients.filter(c => c.status === 'active').length}
-            </div>
-            <div className="text-sm text-gray-500">
-              {t('legal.clients.active') || 'Active'}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {mockClients.reduce((sum, c) => sum + c.incorporationsCount, 0)}
-            </div>
-            <div className="text-sm text-gray-500">
-              {t('legal.clients.totalCases') || 'Total Cases'}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {formatCurrency(mockClients.reduce((sum, c) => sum + c.totalRevenue, 0))}
-            </div>
-            <div className="text-sm text-gray-500">
-              {t('legal.clients.totalRevenue') || 'Total Revenue'}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

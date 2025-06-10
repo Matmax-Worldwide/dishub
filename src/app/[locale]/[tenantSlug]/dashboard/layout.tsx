@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { TenantDashboard } from '@/components/navigation/tenantDashboard/TenantDashboard';
+import { TenantDashboard } from '@/components/sidebar/tenantSidebar/TenantDashboard';
 import { FeatureProvider, FeatureType } from '@/hooks/useFeatureAccess';
 import { useQuery, gql } from '@apollo/client';
 

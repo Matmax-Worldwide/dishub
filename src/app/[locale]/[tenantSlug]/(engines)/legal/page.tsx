@@ -1,534 +1,793 @@
 'use client';
 
-import React from 'react';
-import { useI18n } from '@/hooks/useI18n';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from 'react';
 import { 
-  Scale, 
-  Users, 
-  FileText, 
-  DollarSign, 
-  TrendingUp, 
-  Clock,
+  Building2,
   AlertTriangle,
-  Calendar,
-  Plus,
-  ArrowUpRight,
-  Video,
-  Phone,
-  MapPin
+  CheckCircle2,
+  Clock,
+  Award,
+  TrendingUp,
+  DollarSign,
+  UserPlus,
+  Eye,
+  MessageSquare,
+  MoreVertical,
+  AlertCircle,
+  Download,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import NewIncorporationModal from '@/components/NewIncorporationModal';
+import PageHeader from '@/components/PageHeader';
 
-// Mock data - En producción esto vendría de la API
-const mockData = {
-  overview: {
-    totalIncorporations: 45,
-    activeIncorporations: 23,
-    totalClients: 78,
-    pendingInvoices: 12,
-    totalRevenue: 245000,
-    monthlyRevenue: 28500,
-    completedThisMonth: 8,
-    averageCompletionDays: 14
+// TypeScript interfaces
+interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  avatar: string;
+  activeIncorporations: number;
+  completedThisMonth: number;
+  efficiency: number;
+  status: 'available' | 'busy';
+  workload: number;
+}
+
+interface Incorporation {
+  id: number;
+  companyName: string;
+  client: string;
+  type: string;
+  status: string;
+  progress: number;
+  startDate: string;
+  expectedDate: string;
+  assignedTeam: string[];
+  leadAnalyst: string;
+  currentStep: string;
+  location: string;
+  capital: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  lastUpdate: string;
+  blockers: string[];
+  clientSatisfaction: number;
+}
+
+// Badge Components
+function PriorityBadge({ priority }: { priority: string }) {
+  const colors = {
+    low: 'bg-gray-100 text-gray-700',
+    medium: 'bg-blue-100 text-blue-700',
+    high: 'bg-orange-100 text-orange-700',
+    critical: 'bg-red-100 text-red-700'
+  };
+  
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[priority as keyof typeof colors] || colors.medium}`}>
+      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const colors = {
+    'in-progress': 'bg-blue-100 text-blue-700',
+    'pending-documents': 'bg-yellow-100 text-yellow-700',
+    'at-risk': 'bg-red-100 text-red-700',
+    'on-track': 'bg-green-100 text-green-700',
+    'completed': 'bg-green-100 text-green-700'
+  };
+  
+  const labels = {
+    'in-progress': 'In Progress',
+    'pending-documents': 'Pending Docs',
+    'at-risk': 'At Risk',
+    'on-track': 'On Track',
+    'completed': 'Completed'
+  };
+  
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors] || colors['in-progress']}`}>
+      {labels[status as keyof typeof labels] || status}
+    </span>
+  );
+}
+
+// Mock team members data
+const teamMembers: TeamMember[] = [
+  {
+    id: 1,
+    name: "María González",
+    role: "Senior Legal Analyst",
+    avatar: "MG",
+    activeIncorporations: 5,
+    completedThisMonth: 3,
+    efficiency: 92,
+    status: "available",
+    workload: 75
   },
-  recentIncorporations: [
-    {
-      id: '1',
-      incorporationNumber: 'INC-2024-001',
-      companyName: 'TechStart LLC',
-      client: 'María García',
-      jurisdiction: 'usa_delaware',
-      companyType: 'llc',
-      status: 'government_filing',
-      priority: 'high',
-      expectedCompletion: '2024-01-15T10:00:00Z',
-      assignedLawyer: 'Dr. Carlos Rodríguez'
-    },
-    {
-      id: '2',
-      incorporationNumber: 'INC-2024-002',
-      companyName: 'Global Trading Ltd',
-      client: 'Pedro Martínez',
-      jurisdiction: 'uk_england',
-      companyType: 'limited_company',
-      status: 'documentation_gathering',
-      priority: 'medium',
-      expectedCompletion: '2024-01-25T10:00:00Z',
-      assignedLawyer: 'Dra. Ana López'
-    },
-    {
-      id: '3',
-      incorporationNumber: 'INC-2024-003',
-      companyName: 'Innovation Holdings Pte Ltd',
-      client: 'Tech Solutions Inc.',
-      jurisdiction: 'singapore',
-      companyType: 'private_limited',
-      status: 'pending_approval',
-      priority: 'low',
-      expectedCompletion: '2024-01-20T14:30:00Z',
-      assignedLawyer: 'Dr. Carlos Rodríguez'
-    }
-  ],
-  upcomingAppointments: [
-    {
-      id: '1',
-      title: 'Consulta inicial - TechStart LLC',
-      client: 'María García',
-      date: '2024-01-15T09:00:00Z',
-      type: 'initial_consultation',
-      lawyer: 'Dr. Carlos Rodríguez',
-      incorporationId: 'INC-2024-001',
-      jurisdiction: 'usa_delaware',
-      duration: 60,
-      meetingType: 'in_person'
-    },
-    {
-      id: '2',
-      title: 'Revisión de documentos - Global Trading Ltd',
-      client: 'Pedro Martínez',
-      date: '2024-01-15T14:00:00Z',
-      type: 'document_review',
-      lawyer: 'Dra. Ana López',
-      incorporationId: 'INC-2024-002',
-      jurisdiction: 'uk_england',
-      duration: 90,
-      meetingType: 'video_call'
-    },
-    {
-      id: '3',
-      title: 'Firma de documentos - Innovation Holdings',
-      client: 'Tech Solutions Inc.',
-      date: '2024-01-16T11:00:00Z',
-      type: 'document_signing',
-      lawyer: 'Dr. Carlos Rodríguez',
-      incorporationId: 'INC-2024-003',
-      jurisdiction: 'singapore',
-      duration: 45,
-      meetingType: 'in_person'
-    }
-  ],
-  recentActivity: [
-    {
-      id: '1',
-      type: 'case_created',
-      message: 'Nuevo caso creado: CASE-2024-004',
-      timestamp: '2024-01-10T15:30:00Z'
-    },
-    {
-      id: '2',
-      type: 'document_uploaded',
-      message: 'Documento subido al caso CASE-2024-001',
-      timestamp: '2024-01-10T14:15:00Z'
-    },
-    {
-      id: '3',
-      type: 'appointment_scheduled',
-      message: 'Cita programada con Pedro Martínez',
-      timestamp: '2024-01-10T11:20:00Z'
-    }
-  ]
+  {
+    id: 2,
+    name: "Carlos Mendez",
+    role: "Legal Analyst",
+    avatar: "CM",
+    activeIncorporations: 4,
+    completedThisMonth: 2,
+    efficiency: 88,
+    status: "busy",
+    workload: 90
+  },
+  {
+    id: 3,
+    name: "Ana Vargas",
+    role: "Senior Legal Analyst",
+    avatar: "AV",
+    activeIncorporations: 6,
+    completedThisMonth: 4,
+    efficiency: 95,
+    status: "available",
+    workload: 80
+  },
+  {
+    id: 4,
+    name: "José Rodriguez",
+    role: "Junior Legal Analyst",
+    avatar: "JR",
+    activeIncorporations: 3,
+    completedThisMonth: 1,
+    efficiency: 85,
+    status: "available",
+    workload: 60
+  }
+];
+
+// Enhanced mock incorporations with team responsibility
+const mockIncorporations: Incorporation[] = [
+  {
+    id: 1,
+    companyName: "TechVentures Peru S.A.C.",
+    client: "John Smith",
+    type: "S.A.C.",
+    status: "in-progress",
+    progress: 65,
+    startDate: "2025-05-15",
+    expectedDate: "2025-06-25",
+    assignedTeam: ["María González", "José Rodriguez"],
+    leadAnalyst: "María González",
+    currentStep: "SUNARP Registration",
+    location: "Lima",
+    capital: "S/ 50,000",
+    priority: "high",
+    lastUpdate: "2 hours ago",
+    blockers: [],
+    clientSatisfaction: 4.5
+  },
+  {
+    id: 2,
+    companyName: "Global Commerce E.I.R.L.",
+    client: "Sarah Johnson",
+    type: "E.I.R.L.",
+    status: "pending-documents",
+    progress: 35,
+    startDate: "2025-05-20",
+    expectedDate: "2025-06-30",
+    assignedTeam: ["Carlos Mendez"],
+    leadAnalyst: "Carlos Mendez",
+    currentStep: "Document Collection",
+    location: "Arequipa",
+    capital: "S/ 20,000",
+    priority: "medium",
+    lastUpdate: "1 day ago",
+    blockers: ["Missing power of attorney", "Pending client signature"],
+    clientSatisfaction: 4.0
+  },
+  {
+    id: 3,
+    companyName: "Innovation Labs S.A.",
+    client: "Michael Chen",
+    type: "S.A.",
+    status: "at-risk",
+    progress: 45,
+    startDate: "2025-04-25",
+    expectedDate: "2025-06-15",
+    assignedTeam: ["Ana Vargas", "María González"],
+    leadAnalyst: "Ana Vargas",
+    currentStep: "Notary Process",
+    location: "Lima",
+    capital: "S/ 100,000",
+    priority: "critical",
+    lastUpdate: "5 hours ago",
+    blockers: ["Notary availability", "Document revision needed"],
+    clientSatisfaction: 3.5
+  },
+  {
+    id: 4,
+    companyName: "Digital Solutions S.R.L.",
+    client: "Emma Davis",
+    type: "S.R.L.",
+    status: "on-track",
+    progress: 85,
+    startDate: "2025-05-10",
+    expectedDate: "2025-06-20",
+    assignedTeam: ["José Rodriguez", "Ana Vargas"],
+    leadAnalyst: "Ana Vargas",
+    currentStep: "Municipal License",
+    location: "Cusco",
+    capital: "S/ 30,000",
+    priority: "medium",
+    lastUpdate: "30 minutes ago",
+    blockers: [],
+    clientSatisfaction: 5.0
+  }
+];
+
+// Team performance metrics
+const performanceMetrics = {
+  overall: {
+    incorporationsCompleted: 24,
+    averageTimeToComplete: 28,
+    clientSatisfaction: 4.3,
+    onTimeDelivery: 87
+  },
+  byOffice: {
+    peru: { active: 15, completed: 12, efficiency: 89 },
+    mexico: { active: 8, completed: 6, efficiency: 85 },
+    colombia: { active: 10, completed: 6, efficiency: 82 }
+  }
 };
 
-export default function LegalDashboard() {
-  const { t, locale } = useI18n();
-  const { isLoading } = useAuth(); // Add useAuth hook to handle auto-login
-  const params = useParams();
-  const tenantSlug = params.tenantSlug as string;
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP'
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat(locale, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(dateString));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'initiated': return 'bg-blue-100 text-blue-800';
-      case 'documentation_gathering': return 'bg-yellow-100 text-yellow-800';
-      case 'name_reservation': return 'bg-purple-100 text-purple-800';
-      case 'filing_preparation': return 'bg-orange-100 text-orange-800';
-      case 'government_filing': return 'bg-indigo-100 text-indigo-800';
-      case 'pending_approval': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'certificate_issued': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'on_hold': return 'bg-orange-100 text-orange-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getAppointmentTypeColor = (type: string) => {
-    switch (type) {
-      case 'initial_consultation': return 'bg-blue-100 text-blue-800';
-      case 'document_review': return 'bg-green-100 text-green-800';
-      case 'document_signing': return 'bg-purple-100 text-purple-800';
-      case 'follow_up': return 'bg-yellow-100 text-yellow-800';
-      case 'compliance': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getAppointmentTypeIcon = (type: string) => {
-    switch (type) {
-      case 'initial_consultation': return <Users className="h-3 w-3" />;
-      case 'document_review': return <FileText className="h-3 w-3" />;
-      case 'document_signing': return <FileText className="h-3 w-3" />;
-      case 'follow_up': return <Clock className="h-3 w-3" />;
-      case 'compliance': return <AlertTriangle className="h-3 w-3" />;
-      default: return <Calendar className="h-3 w-3" />;
-    }
-  };
-
-  const getAppointmentTypeName = (type: string) => {
-    const types: { [key: string]: string } = {
-      'initial_consultation': 'Consulta Inicial',
-      'document_review': 'Revisión de Documentos',
-      'document_signing': 'Firma de Documentos',
-      'follow_up': 'Seguimiento',
-      'compliance': 'Cumplimiento'
-    };
-    return types[type] || type;
-  };
-
-  const getMeetingTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video_call': return <Video className="h-4 w-4 text-blue-600" />;
-      case 'phone_call': return <Phone className="h-4 w-4 text-green-600" />;
-      case 'in_person': return <MapPin className="h-4 w-4 text-purple-600" />;
-      default: return <Calendar className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  // Show loading state while auto-login is processing
-  if (isLoading) {
-    return (
-      <div className="p-6 flex items-center justify-center">
+// Team Member Card Component
+function TeamMemberCard({ member, onAssign }: { member: TeamMember; onAssign: (member: TeamMember) => void }) {
+  const statusColor = member.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+  
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 border">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-medium">{member.avatar}</span>
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900">{member.name}</h3>
+            <p className="text-sm text-gray-500">{member.role}</p>
+          </div>
+        </div>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+          {member.status}
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('legal.loading') || 'Cargando...'}</p>
+          <p className="text-lg font-semibold text-gray-900">{member.activeIncorporations}</p>
+          <p className="text-xs text-gray-500">Active Cases</p>
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-semibold text-gray-900">{member.completedThisMonth}</p>
+          <p className="text-xs text-gray-500">Completed MTD</p>
         </div>
       </div>
-    );
-  }
+      
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-gray-500">Efficiency</span>
+          <span className="text-sm font-medium">{member.efficiency}%</span>
+        </div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-gray-500">Workload</span>
+          <span className="text-sm font-medium">{member.workload}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+          <div 
+            className={`h-2 rounded-full ${member.workload > 85 ? 'bg-red-500' : member.workload > 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+            style={{ width: `${member.workload}%` }}
+          />
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => onAssign(member)}
+        className="w-full flex items-center justify-center space-x-2 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 rounded-lg"
+      >
+        <UserPlus className="h-4 w-4" />
+        <span>Assign Task</span>
+      </button>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [showNewIncorporationModal, setShowNewIncorporationModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 7;
+  
+  // Multi-step incorporation form state
+  const [incorporationData, setIncorporationData] = useState({
+    // Step 1: Basic Company Information
+    basicInfo: {
+      companyName: '',
+      entityType: 'S.A.C.',
+      businessActivity: '',
+      industry: '',
+      priority: 'medium'
+    },
+    // Step 2: Shareholders & Capital
+    shareholders: {
+      shareholders: [
+        { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '', percentage: 100, contribution: 0 }
+      ],
+      shareCapital: 0,
+      paidCapital: 0,
+      sharesPerSol: 1
+    },
+    // Step 3: Company Management
+    management: {
+      hasBoard: false,
+      boardMembers: [],
+      manager: { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '' },
+      legalRepresentative: { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '' }
+    },
+    // Step 4: Company Address & Contact
+    address: {
+      legalAddress: '',
+      district: '',
+      province: 'Lima',
+      department: 'Lima',
+      postalCode: '',
+      phone: '',
+      email: '',
+      businessPremises: 'rented' // rented, owned, shared
+    },
+    // Step 5: Banking & Financial
+    banking: {
+      bankName: '',
+      accountType: 'current', // current, savings
+      initialDeposit: 0,
+      hasAccountantPlan: false,
+      accountant: { name: '', cip: '', phone: '' }
+    },
+    // Step 6: Legal Requirements
+    legal: {
+      hasLegalRepresentative: true,
+      powerOfAttorney: false,
+      notaryOffice: '',
+      registryOffice: 'Lima',
+      sunatOffice: '',
+      municipalLicense: false
+    },
+    // Step 7: Assignment & Timeline
+    assignment: {
+      office: 'Peru',
+      assignedTo: 'Carlos Mendoza',
+      estimatedCompletion: '',
+      urgency: 'normal', // normal, express, urgent
+      clientContact: {
+        name: '',
+        email: '',
+        phone: '',
+        preferredContact: 'email'
+      }
+    }
+  });
+
+  // Helper functions for multi-step form
+  const updateIncorporationData = (section: string, data: Record<string, unknown>) => {
+    setIncorporationData(prev => ({
+      ...prev,
+      [section]: { ...prev[section as keyof typeof prev], ...data }
+    }));
+  };
+
+  const addShareholder = () => {
+    setIncorporationData(prev => ({
+      ...prev,
+      shareholders: {
+        ...prev.shareholders,
+        shareholders: [
+          ...prev.shareholders.shareholders,
+          { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '', percentage: 0, contribution: 0 }
+        ]
+      }
+    }));
+  };
+
+  const removeShareholder = (index: number) => {
+    setIncorporationData(prev => ({
+      ...prev,
+      shareholders: {
+        ...prev.shareholders,
+        shareholders: prev.shareholders.shareholders.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const nextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentStep(1);
+    setIncorporationData({
+      basicInfo: {
+        companyName: '',
+        entityType: 'S.A.C.',
+        businessActivity: '',
+        industry: '',
+        priority: 'medium'
+      },
+      shareholders: {
+        shareholders: [
+          { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '', percentage: 100, contribution: 0 }
+        ],
+        shareCapital: 0,
+        paidCapital: 0,
+        sharesPerSol: 1
+      },
+      management: {
+        hasBoard: false,
+        boardMembers: [],
+        manager: { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '' },
+        legalRepresentative: { name: '', nationality: 'Peruvian', idType: 'DNI', idNumber: '' }
+      },
+      address: {
+        legalAddress: '',
+        district: '',
+        province: 'Lima',
+        department: 'Lima',
+        postalCode: '',
+        phone: '',
+        email: '',
+        businessPremises: 'rented'
+      },
+      banking: {
+        bankName: '',
+        accountType: 'current',
+        initialDeposit: 0,
+        hasAccountantPlan: false,
+        accountant: { name: '', cip: '', phone: '' }
+      },
+      legal: {
+        hasLegalRepresentative: true,
+        powerOfAttorney: false,
+        notaryOffice: '',
+        registryOffice: 'Lima',
+        sunatOffice: '',
+        municipalLicense: false
+      },
+      assignment: {
+        office: 'Peru',
+        assignedTo: 'Carlos Mendoza',
+        estimatedCompletion: '',
+        urgency: 'normal',
+        clientContact: {
+          name: '',
+          email: '',
+          phone: '',
+          preferredContact: 'email'
+        }
+      }
+    });
+  };
+
+  const handleIncorporationSubmit = () => {
+    // Here you would typically submit the data to your backend
+    console.log('Submitting incorporation data:', incorporationData);
+    
+    // For demo purposes, show success message
+    alert(`New incorporation "${incorporationData.basicInfo.companyName}" has been created successfully! Assigned to ${incorporationData.assignment.assignedTo} in ${incorporationData.assignment.office} office.`);
+    
+    // Reset form and close modal
+    resetForm();
+    setShowNewIncorporationModal(false);
+  };
+
+  // Horizontal metrics organization
+  const horizontalMetrics = [
+    { label: 'Total Active', value: '24', change: '+3', trend: 'up', icon: Building2 },
+    { label: 'At Risk', value: '3', change: '+1', trend: 'up', icon: AlertTriangle, alert: true },
+    { label: 'Completed MTD', value: '12', change: '+2', trend: 'up', icon: CheckCircle2 },
+    { label: 'Avg. Days', value: '28', change: '-2', trend: 'down', icon: Clock },
+    { label: 'Client Satisfaction', value: '4.3/5', change: '+0.2', trend: 'up', icon: Award },
+    { label: 'Team Efficiency', value: '89%', change: '+3%', trend: 'up', icon: TrendingUp },
+    { label: 'Revenue MTD', value: 'S/145K', change: '+18%', trend: 'up', icon: DollarSign }
+  ];
+
+  const handleDelegateClick = (incorporation: Incorporation) => {
+    console.log('Delegate clicked for:', incorporation.companyName);
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('legal.dashboard') || 'Company Incorporation Dashboard'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {t('legal.dashboardSubtitle') || 'Gestiona incorporaciones de empresas en jurisdicciones internacionales'}
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            href={`/${locale}/${tenantSlug}/legal/incorporations/new`}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t('legal.newIncorporation') || 'Nueva Incorporación'}
-          </Link>
-          <Link
-            href={`/${locale}/${tenantSlug}/legal/clients/new`}
-            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t('legal.newClient') || 'Nuevo Cliente'}
-          </Link>
-        </div>
-      </div>
-
-      {/* Ejemplo de Auto-Login - Solo para desarrollo */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">
-            🔧 Herramientas de Desarrollo - Auto-Login
-          </h3>
-          <p className="text-blue-700 text-sm mb-3">
-            Puedes probar la funcionalidad de auto-login accediendo a URLs con parámetros como:
-          </p>
-          <code className="block bg-white p-2 rounded text-xs text-gray-800 mb-3">
-            {`${window.location.origin}?user=tu-email@ejemplo.com&hash=tu-hash-seguro`}
-          </code>
-          <p className="text-blue-700 text-sm">
-            El sistema detectará automáticamente estos parámetros e iniciará sesión si son válidos.
-          </p>
-        </div>
-      )}
-
-      {/* Métricas de Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Scale className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                {t('legal.totalIncorporations') || 'Total de Incorporaciones'}
-              </p>
-              <p className="text-2xl font-bold text-gray-900">{mockData.overview.totalIncorporations}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <span className="text-green-600 font-medium">{mockData.overview.activeIncorporations}</span>
-            <span className="text-gray-600 ml-1">{t('legal.activeIncorporations') || 'activas'}</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Users className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                {t('legal.totalClients') || 'Total de Clientes'}
-              </p>
-              <p className="text-2xl font-bold text-gray-900">{mockData.overview.totalClients}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
-            <span className="text-green-600 font-medium">+5</span>
-            <span className="text-gray-600 ml-1">{t('legal.thisMonth') || 'este mes'}</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <FileText className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                {t('legal.pendingInvoices') || 'Facturas Pendientes'}
-              </p>
-              <p className="text-2xl font-bold text-gray-900">{mockData.overview.pendingInvoices}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 mr-1" />
-            <span className="text-yellow-600 font-medium">
-              {t('legal.requiresAttention') || 'Requiere atención'}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                {t('legal.monthlyRevenue') || 'Ingresos del Mes'}
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(mockData.overview.monthlyRevenue)}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <TrendingUp className="h-4 w-4 text-purple-600 mr-1" />
-            <span className="text-purple-600 font-medium">12%</span>
-            <span className="text-gray-600 ml-1">{t('legal.vs') || 'vs mes anterior'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Incorporaciones Recientes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {t('legal.recentIncorporations') || 'Incorporaciones Recientes'}
-              </h2>
-              <Link
-                href={`/${locale}/${tenantSlug}/legal/incorporations`}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
-              >
-                {t('legal.viewAll') || 'Ver todas'}
-                <ArrowUpRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {mockData.recentIncorporations.map((incorporation) => (
-                <div key={incorporation.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <Link
-                        href={`/${locale}/${tenantSlug}/legal/incorporations/${incorporation.id}`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                      >
-                        {incorporation.incorporationNumber}
-                      </Link>
-                      <h3 className="text-sm font-medium text-gray-900 mt-1">
-                        {incorporation.companyName}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {t('legal.client') || 'Cliente'}: {incorporation.client}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {t('legal.jurisdiction') || 'Jurisdicción'}: {incorporation.jurisdiction}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {t('legal.lawyer') || 'Abogado'}: {incorporation.assignedLawyer}
-                      </p>
-                    </div>
-                    <div className="text-right space-y-2">
-                      <div className="flex space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(incorporation.status)}`}>
-                          {t(`legal.status.${incorporation.status}`) || incorporation.status}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(incorporation.priority)}`}>
-                          {t(`legal.priority.${incorporation.priority}`) || incorporation.priority}
-                        </span>
-                      </div>
-                      {incorporation.expectedCompletion && (
-                        <div className="flex items-center text-xs text-gray-600">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatDate(incorporation.expectedCompletion)}
-                        </div>
-                      )}
+    <>
+      <PageHeader
+        title="Management Dashboard"
+        description="Monitor and delegate incorporation processes"
+        onMenuClick={() => {}} // No-op since sidebar is handled by layout
+        showNewButton={true}
+        newButtonText="New Incorporation"
+        onNewClick={() => setShowNewIncorporationModal(true)}
+      >
+        {/* Horizontal Metrics Bar */}
+        <div className="px-6 py-3 bg-gray-50 border-t">
+          <div className="grid grid-cols-7 gap-4">
+            {horizontalMetrics.map((metric, index) => {
+              const Icon = metric.icon;
+              return (
+                <div key={index} className={`flex items-center space-x-3 ${metric.alert ? 'text-red-600' : ''}`}>
+                  <Icon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">{metric.label}</p>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold">{metric.value}</span>
+                      <span className={`text-xs flex items-center ${
+                        metric.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {metric.change}
+                        {metric.trend === 'up' ? '↑' : '↓'}
+                      </span>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
+      </PageHeader>
 
-        {/* Próximas Citas */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {t('legal.upcomingAppointments') || 'Próximas Citas'}
-              </h2>
-              <Link
-                href={`/${locale}/${tenantSlug}/legal/calendar`}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
-              >
-                {t('legal.viewCalendar') || 'Ver calendario'}
-                <ArrowUpRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-6">
+        {/* Team Overview */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Team Overview</h2>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              View All Members →
+            </button>
           </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {mockData.upcomingAppointments.map((appointment) => (
-                <div key={appointment.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAppointmentTypeColor(appointment.type)}`}>
-                          {getAppointmentTypeIcon(appointment.type)}
-                          <span className="ml-1">{getAppointmentTypeName(appointment.type)}</span>
-                        </span>
-                        <span className="text-xs text-gray-500 flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {appointment.duration} min
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-1">
-                        {appointment.title}
-                      </h3>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <p className="flex items-center">
-                          <Users className="h-3 w-3 mr-1" />
-                          {appointment.client}
-                        </p>
-                        {appointment.incorporationId && (
-                          <p className="flex items-center">
-                            <Scale className="h-3 w-3 mr-1" />
-                            <Link
-                              href={`/${locale}/${tenantSlug}/legal/incorporations/${appointment.incorporationId}`}
-                              className="text-blue-600 hover:text-blue-700"
-                            >
-                              {appointment.incorporationId}
-                            </Link>
-                          </p>
-                        )}
-                        <p className="flex items-center">
-                          <FileText className="h-3 w-3 mr-1" />
-                          {appointment.lawyer}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right space-y-2">
-                      <div className="flex items-center justify-end space-x-2">
-                        <div className="text-sm text-gray-900 font-medium">
-                          {formatDate(appointment.date)}
-                        </div>
-                        <div className="flex items-center">
-                          {getMeetingTypeIcon(appointment.meetingType)}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 capitalize">
-                        {appointment.jurisdiction?.replace('_', ' ')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Actividad Reciente */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t('legal.recentActivity') || 'Actividad Reciente'}
-          </h2>
-        </div>
-        <div className="p-6">
-          <div className="space-y-3">
-            {mockData.recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{activity.message}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatDate(activity.timestamp)}
-                  </p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {teamMembers.map(member => (
+              <TeamMemberCard 
+                key={member.id} 
+                member={member} 
+                onAssign={(member) => console.log('Assign to', member.name)}
+              />
             ))}
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Active Incorporations with Management Actions */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">Active Incorporations</h2>
+            <div className="flex items-center space-x-3">
+              <select className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
+                <option>All Priorities</option>
+                <option>Critical</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+              <select className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
+                <option>All Status</option>
+                <option>At Risk</option>
+                <option>On Track</option>
+                <option>In Progress</option>
+                <option>Pending Documents</option>
+              </select>
+              <button className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800">
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Company / Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Team
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Progress
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Blockers
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client Satisfaction
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {mockIncorporations.map((inc) => (
+                  <tr key={inc.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <PriorityBadge priority={inc.priority} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{inc.companyName}</div>
+                        <div className="text-xs text-gray-500">{inc.client} • {inc.type}</div>
+                        <div className="text-xs text-gray-400">{inc.location} • {inc.capital}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={inc.status} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center -space-x-2">
+                        {inc.assignedTeam.map((member, idx) => {
+                          const initials = member.split(' ').map(n => n[0]).join('');
+                          return (
+                            <div 
+                              key={idx}
+                              className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center border-2 border-white"
+                              title={member}
+                            >
+                              <span className="text-xs text-white font-medium">{initials}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Lead: {inc.leadAnalyst}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                inc.progress < 30 ? 'bg-red-500' :
+                                inc.progress < 70 ? 'bg-yellow-500' : 'bg-green-500'
+                              }`}
+                              style={{ width: `${inc.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium">{inc.progress}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{inc.currentStep}</p>
+                        <p className="text-xs text-gray-400">{inc.lastUpdate}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {inc.blockers.length > 0 ? (
+                        <div className="space-y-1">
+                          {inc.blockers.map((blocker, idx) => (
+                            <div key={idx} className="flex items-center space-x-1">
+                              <AlertCircle className="h-3 w-3 text-red-500" />
+                              <span className="text-xs text-red-600">{blocker}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-green-600">No blockers</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(inc.clientSatisfaction) 
+                                ? 'text-yellow-400' 
+                                : 'text-gray-300'
+                            }`}
+                          >
+                            ★
+                          </div>
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">({inc.clientSatisfaction})</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleDelegateClick(inc)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Delegate"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                          title="Send Message"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                          title="More Actions"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Office Performance Comparison */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {Object.entries(performanceMetrics.byOffice).map(([office, metrics]) => (
+            <div key={office} className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800 capitalize">{office} Office</h3>
+                <span className="text-2xl">
+                  {office === 'peru' ? '🇵🇪' : office === 'mexico' ? '🇲🇽' : '🇨🇴'}
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Active Cases</span>
+                  <span className="font-semibold">{metrics.active}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Completed</span>
+                  <span className="font-semibold">{metrics.completed}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Efficiency</span>
+                  <span className="font-semibold text-green-600">{metrics.efficiency}%</span>
+                </div>
+                <div className="pt-3 border-t">
+                  <button className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* Multi-Step New Incorporation Modal */}
+      {showNewIncorporationModal && (
+        <NewIncorporationModal
+          showModal={showNewIncorporationModal}
+          onClose={() => {
+            setShowNewIncorporationModal(false);
+            resetForm();
+          }}
+          currentStep={currentStep}
+          totalSteps={totalSteps}
+          incorporationData={incorporationData}
+          updateIncorporationData={updateIncorporationData}
+          addShareholder={addShareholder}
+          removeShareholder={removeShareholder}
+          nextStep={nextStep}
+          prevStep={prevStep}
+          onSubmit={handleIncorporationSubmit}
+        />
+      )}
+    </>
   );
 } 

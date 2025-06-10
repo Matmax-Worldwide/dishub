@@ -19,12 +19,15 @@ import {
   Settings,
   Briefcase,
   Calendar,
-  Clock,
-  Building,
+  Building2,
   Receipt,
   PanelLeftClose,
   PanelLeftOpen,
-  LogOut
+  LogOut,
+  Send,
+  Activity,
+  AlertTriangle,
+  PieChart
 } from 'lucide-react';
 
 import {
@@ -78,7 +81,7 @@ export default function LegalSidebar() {
     {
       href: `/${locale}/${tenantSlug}/dashboard`,
       icon: <LayoutDashboard className="h-4 w-4" />,
-      label: t('nav.dashboard') || 'Dashboard'
+      label: t('sidebar.dashboard') || 'Dashboard'
     },
     {
       href: `/${locale}/${tenantSlug}/cms`,
@@ -97,73 +100,122 @@ export default function LegalSidebar() {
     }
   ];
 
-  const mainNavigationItems = [
+  // Navigation items structure with i18n
+  const navigationItems = [
     {
-      name: t('legal.dashboard') || 'Dashboard',
-      href: `/${locale}/${tenantSlug}/legal`,
-      icon: <LayoutDashboard className="h-4 w-4" />
+      section: 'main',
+      title: t('legal.legalManagement') || 'Legal Management',
+      items: [
+        { 
+          id: 'dashboard', 
+          label: t('legal.dashboard') || 'Management Dashboard', 
+          icon: LayoutDashboard, 
+          href: `/${locale}/${tenantSlug}/legal`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'incorporations', 
+          label: t('legal.incorporations') || 'All Incorporations', 
+          icon: Building2, 
+          href: `/${locale}/${tenantSlug}/legal/incorporations`, 
+          badge: '24',
+          badgeColor: undefined
+        },
+        { 
+          id: 'team', 
+          label: t('legal.team') || 'Team Management', 
+          icon: Users, 
+          href: `/${locale}/${tenantSlug}/legal/team`, 
+          badge: '4',
+          badgeColor: undefined
+        },
+        { 
+          id: 'delegation', 
+          label: t('legal.delegation') || 'Task Delegation', 
+          icon: Send, 
+          href: `/${locale}/${tenantSlug}/legal/delegation`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'performance', 
+          label: t('legal.performance') || 'Performance', 
+          icon: Activity, 
+          href: `/${locale}/${tenantSlug}/legal/performance`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'clients', 
+          label: t('legal.clients') || 'Client Overview', 
+          icon: Briefcase, 
+          href: `/${locale}/${tenantSlug}/legal/clients`, 
+          badge: null,
+          badgeColor: undefined
+        }
+      ]
     },
     {
-      name: t('legal.incorporations') || 'Incorporations',
-      href: `/${locale}/${tenantSlug}/legal/incorporations`,
-      icon: <Scale className="h-4 w-4" />
+      section: 'monitoring',
+      title: t('legal.management') || 'Monitoring & Analytics',
+      items: [
+        { 
+          id: 'alerts', 
+          label: t('legal.alerts') || 'Alerts & Blockers', 
+          icon: AlertTriangle, 
+          href: `/${locale}/${tenantSlug}/legal/alerts`, 
+          badge: '3', 
+          badgeColor: 'red' 
+        },
+        { 
+          id: 'reports', 
+          label: t('legal.reports') || 'Reports', 
+          icon: BarChart3, 
+          href: `/${locale}/${tenantSlug}/legal/reports`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'analytics', 
+          label: t('legal.analytics') || 'Analytics', 
+          icon: PieChart, 
+          href: `/${locale}/${tenantSlug}/legal/analytics`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'calendar', 
+          label: t('legal.calendar') || 'Calendar View', 
+          icon: Calendar, 
+          href: `/${locale}/${tenantSlug}/legal/calendar`, 
+          badge: null,
+          badgeColor: undefined
+        }
+      ]
     },
     {
-      name: t('legal.clients') || 'Clients',
-      href: `/${locale}/${tenantSlug}/legal/clients`,
-      icon: <Users className="h-4 w-4" />
-    },
-    {
-      name: t('legal.documents') || 'Documents',
-      href: `/${locale}/${tenantSlug}/legal/documents`,
-      icon: <FileText className="h-4 w-4" />
-    },
-    {
-      name: t('legal.calendar') || 'Calendar',
-      href: `/${locale}/${tenantSlug}/legal/calendar`,
-      icon: <Calendar className="h-4 w-4" />
-    },
-  ];
-
-  const managementItems = [
-    {
-      name: t('legal.billing') || 'Billing',
-      href: `/${locale}/${tenantSlug}/legal/billing`,
-      icon: <DollarSign className="h-4 w-4" />
-    },
-    {
-      name: t('legal.timeTracking') || 'Time Tracking',
-      href: `/${locale}/${tenantSlug}/legal/billing/time-tracking`,
-      icon: <Clock className="h-4 w-4" />
-    },
-    {
-      name: t('legal.reports') || 'Reports',
-      href: `/${locale}/${tenantSlug}/legal/reports`,
-      icon: <BarChart3 className="h-4 w-4" />
-    },
-  ];
-
-  const settingsItems = [
-    {
-      name: t('legal.settings') || 'Settings',
-      href: `/${locale}/${tenantSlug}/legal/settings`,
-      icon: <Settings className="h-4 w-4" />
-    },
-    {
-      name: t('legal.bookingConfiguration') || 'Booking Configuration',
-      href: `/${locale}/${tenantSlug}/legal/booking-config`,
-      icon: <Calendar className="h-4 w-4" />
-    },
-    {
-      name: t('legal.jurisdictions') || 'Jurisdictions',
-      href: `/${locale}/${tenantSlug}/legal/settings/jurisdictions`,
-      icon: <Building className="h-4 w-4" />
-    },
-    {
-      name: t('legal.companyTypes') || 'Company Types',
-      href: `/${locale}/${tenantSlug}/legal/settings/company-types`,
-      icon: <Briefcase className="h-4 w-4" />
-    },
+      section: 'administration',
+      title: t('legal.configuration') || 'Administration',
+      items: [
+        { 
+          id: 'billing', 
+          label: t('legal.billing') || 'Billing & Revenue', 
+          icon: DollarSign, 
+          href: `/${locale}/${tenantSlug}/legal/billing`, 
+          badge: null,
+          badgeColor: undefined
+        },
+        { 
+          id: 'settings', 
+          label: t('legal.settings') || 'Settings', 
+          icon: Settings, 
+          href: `/${locale}/${tenantSlug}/legal/settings`, 
+          badge: null,
+          badgeColor: undefined
+        }
+      ]
+    }
   ];
 
   const isActiveLink = (path: string): boolean => {
@@ -260,62 +312,43 @@ export default function LegalSidebar() {
           </SidebarHeader>
 
           <SidebarContent className="flex-1 overflow-y-auto">
-            {/* Main Navigation */}
-            <SidebarGroup title={t('legal.navigation') || 'Legal Management'}>
-              {mainNavigationItems.map((item) => (
-                <Link 
-                  key={item.name} 
-                  href={item.href} 
-                  className="block"
-                  onClick={(e) => handleNavigation(item.href, e)}
-                >
-                  <SidebarItem 
-                    icon={item.icon}
-                    active={isActiveLink(item.href)}
-                  >
-                    {item.name}
-                  </SidebarItem>
-                </Link>
-              ))}
-            </SidebarGroup>
-
-            {/* Management Items */}
-            <SidebarGroup title={t('legal.management') || 'Finance & Reports'}>
-              {managementItems.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block"
-                  onClick={(e) => handleNavigation(item.href, e)}
-                >
-                  <SidebarItem
-                    icon={item.icon}
-                    active={isActiveLink(item.href)}
-                  >
-                    {item.name}
-                  </SidebarItem>
-                </Link>
-              ))}
-            </SidebarGroup>
-
-            {/* Settings */}
-            <SidebarGroup title={t('legal.configuration') || 'Configuration'}>
-              {settingsItems.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block"
-                  onClick={(e) => handleNavigation(item.href, e)}
-                >
-                  <SidebarItem
-                    icon={item.icon}
-                    active={isActiveLink(item.href)}
-                  >
-                    {item.name}
-                  </SidebarItem>
-                </Link>
-              ))}
-            </SidebarGroup>
+            {/* Render navigation sections */}
+            {navigationItems.map((section) => (
+              <SidebarGroup 
+                key={section.section} 
+                title={section.title || (section.section === 'main' ? t('legal.legalManagement') || 'Legal Management' : '')}
+              >
+                {section.items.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <Link 
+                      key={item.id} 
+                      href={item.href} 
+                      className="block"
+                      onClick={(e) => handleNavigation(item.href, e)}
+                    >
+                      <SidebarItem 
+                        icon={<IconComponent className="h-4 w-4" />}
+                        active={isActiveLink(item.href)}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span>{item.label}</span>
+                          {item.badge && (
+                            <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+                              item.badgeColor === 'red' 
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      </SidebarItem>
+                    </Link>
+                  );
+                })}
+              </SidebarGroup>
+            ))}
           </SidebarContent>
 
           <SidebarFooter className="p-3 border-t border-gray-200">

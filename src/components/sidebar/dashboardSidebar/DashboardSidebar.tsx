@@ -27,7 +27,7 @@ import {
   getIconComponent, 
   filterNavigationByFeatures,
   type NavItem 
-} from './sidebarConfig';
+} from '../navigation/dashboardSidebar/sidebarConfig';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 // GraphQL queries y mutations
