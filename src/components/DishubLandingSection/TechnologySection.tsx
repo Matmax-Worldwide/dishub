@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lock, Database, Rocket, Globe, Cpu, Zap, Shield, Network } from 'lucide-react';
+import { Lock, Database, Rocket, Cpu, Network } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
 import { ScrollReveal } from '@/components/animations/ScrollReveal';
 import TechArchitectureSVG from '@/components/animations/TechArchitectureSVG';
@@ -248,29 +248,26 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
   // Reduced tech features for mobile (only 2)
   const techFeaturesMobile = techFeatures.slice(0, 2);
 
-  const architectureFeatures = [
-    {
-      icon: Globe,
-      title: t('dishub.federated.multiRegion.title'),
-      description: t('dishub.federated.multiRegion.desc'),
-      color: 'text-blue-400',
-    },
-    {
-      icon: Shield,
-      title: t('dishub.federated.sovereignZones.title'),
-      description: t('dishub.federated.sovereignZones.desc'),
-      color: 'text-green-400',
-    },
-    {
-      icon: Zap,
-      title: t('dishub.federated.edgeComputing.title'),
-      description: t('dishub.federated.edgeComputing.desc'),
-      color: 'text-yellow-400',
-    },
-  ];
-
-  // Reduced architecture features for mobile (only 1)
-  const architectureFeaturesMobile = architectureFeatures.slice(0, 1);
+  // const architectureFeatures = [
+  //   {
+  //     icon: Globe,
+  //     title: t('dishub.federated.multiRegion.title'),
+  //     description: t('dishub.federated.multiRegion.desc'),
+  //     color: 'text-blue-400',
+  //   },
+  //   {
+  //     icon: Shield,
+  //     title: t('dishub.federated.sovereignZones.title'),
+  //     description: t('dishub.federated.sovereignZones.desc'),
+  //     color: 'text-green-400',
+  //   },
+  //   {
+  //     icon: Zap,
+  //     title: t('dishub.federated.edgeComputing.title'),
+  //     description: t('dishub.federated.edgeComputing.desc'),
+  //     color: 'text-yellow-400',
+  //   },
+  // ];
 
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center" data-section="technology">
@@ -358,28 +355,7 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
               ))}
             </div>
 
-            {/* Simplified Architecture for Mobile */}
-            <ScrollReveal direction="up" duration={800} delay={1000}>
-              <div className="bg-gradient-to-br from-gray-900/60 to-black/40 backdrop-blur-xl rounded-lg p-3 border border-gray-700/30 mt-4">
-                <h3 className="text-sm font-bold text-white mb-2 text-center">
-                  <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-                    {t('dishub.federated.title')}
-                  </span>
-                </h3>
-                
-                {/* Mobile Architecture Feature - Only 1 */}
-                {architectureFeaturesMobile.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2 p-2 rounded-md bg-white/5 border border-white/10">
-                    <feature.icon className={`w-3 h-3 ${feature.color} flex-shrink-0`} />
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`text-xs font-semibold ${feature.color} leading-tight`}>
-                        {feature.title}
-                      </h4>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollReveal>
+
           </div>
         </div>
 
@@ -453,22 +429,6 @@ export default function TechnologySection({ scrollY }: TechnologySectionProps) {
                   <TechArchitectureSVG />
                 </div>
 
-                {/* Architecture Features - Desktop - All 3 features */}
-                <div className="space-y-3">
-                  {architectureFeatures.map((feature, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
-                      <feature.icon className={`w-4 h-4 ${feature.color} flex-shrink-0 mt-0.5`} />
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-sm font-semibold ${feature.color} mb-1 leading-tight`}>
-                          {feature.title}
-                        </h4>
-                        <p className="text-xs text-gray-400 leading-relaxed">
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </ScrollReveal>
           </div>
