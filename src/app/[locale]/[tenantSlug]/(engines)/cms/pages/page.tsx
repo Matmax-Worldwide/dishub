@@ -2,15 +2,16 @@
 
 import React from 'react';
 import { FileTextIcon, PlusIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
 export default function PagesPage() {
   const router = useRouter();
+  const { locale, tenantSlug } = useParams();
 
   const handleQuickCreate = () => {
     // Simulate Ctrl+N / quick create functionality
-    router.push('/cms/pages/create');
+    router.push(`/${locale}/${tenantSlug}/cms/pages/create`);
   };
 
   return (

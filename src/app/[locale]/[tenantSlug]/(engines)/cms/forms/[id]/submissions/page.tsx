@@ -40,7 +40,7 @@ interface RouteParams {
 export default function FormSubmissionsPage() {
   const params = useParams<RouteParams>();
   const formId = params.id;
-  
+  const { locale, tenantSlug } = useParams();
   const [form, setForm] = useState<FormBase | null>(null);
   const [submissions, setSubmissions] = useState<FormSubmissionBase[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<FormSubmissionBase[]>([]);
@@ -272,7 +272,7 @@ export default function FormSubmissionsPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <Link 
-              href="/cms/forms" 
+              href={`/${locale}/${tenantSlug}/cms/forms`} 
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -296,7 +296,7 @@ export default function FormSubmissionsPage() {
           <div>
             <div className="flex items-center mb-2">
             <Link 
-              href="/cms/forms" 
+                href={`/${locale}/${tenantSlug}/cms/forms`} 
                 className="mr-3 p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors"
             >
                 <ArrowLeft className="h-5 w-5" />

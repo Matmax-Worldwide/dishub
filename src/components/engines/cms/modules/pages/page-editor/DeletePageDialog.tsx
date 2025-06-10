@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircleIcon, XIcon, LoaderIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 interface DeletePageDialogProps {
   open: boolean;
@@ -21,10 +21,10 @@ export const DeletePageDialog: React.FC<DeletePageDialogProps> = ({
   isLoading = false
 }) => {
   const router = useRouter();
-  
+  const { locale, tenantSlug } = useParams();
   const handleConfirm = async () => {
     await onConfirm();
-    router.push('/cms/pages/edit');
+    router.push(`/${locale}/${tenantSlug}/cms/pages/edit`);
   };
   
   if (!open) return null;

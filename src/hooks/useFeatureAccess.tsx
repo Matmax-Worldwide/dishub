@@ -11,6 +11,7 @@ export type FeatureType =
   | 'BOOKING_ENGINE'
   | 'ECOMMERCE_ENGINE'
   | 'LEGAL_ENGINE'
+  | 'HRMS_ENGINE'
   | 'INTERPRETATION_ENGINE';
 
 // Feature context type
@@ -64,6 +65,7 @@ export const FeatureProvider: React.FC<FeatureProviderProps> = ({
       'BOOKING_ENGINE': 25,
       'ECOMMERCE_ENGINE': 35,
       'LEGAL_ENGINE': 75,
+      'HRMS_ENGINE': 50,
       'INTERPRETATION_ENGINE': 40
     };
     

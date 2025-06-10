@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { gqlRequest } from '@/lib/graphql-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ interface PostCreateFormProps {
 }
 
 export default function PostCreateForm({ blogId }: PostCreateFormProps) {
+  const { locale, tenantSlug } = useParams();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -231,7 +232,7 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
 
       if (response.createPost.success) {
         toast.success(response.createPost.message);
-        router.push(`/cms/blog/posts`);
+        router.push(`/${locale}/${tenantSlug}/cms/blog/posts`);
       } else {
         toast.error(response.createPost.message);
       }
@@ -253,7 +254,7 @@ export default function PostCreateForm({ blogId }: PostCreateFormProps) {
     
     // Store preview data in sessionStorage
     sessionStorage.setItem('postPreview', JSON.stringify(previewData));
-    window.open('/cms/blog/preview', '_blank');
+    window.open(`/${locale}/${tenantSlug}/cms/blog/preview`, '_blank');
   };
 
   return (

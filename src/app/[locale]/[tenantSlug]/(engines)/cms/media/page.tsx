@@ -5,8 +5,11 @@ import { CacheWarning } from '@/components/shared/CacheWarning';
 import { CacheHelpButton } from '@/components/shared/CacheHelpButton';
 import { ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function MediaLibraryPage() {
+  const { locale, tenantSlug } = useParams();
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl min-h-screen flex flex-col">
       <CacheWarning />
@@ -17,7 +20,7 @@ export default function MediaLibraryPage() {
           <ol className="inline-flex items-center space-x-1 md:space-x-3">
             <li className="inline-flex items-center">
               <Link 
-                href="/cms" 
+                href={`/${locale}/${tenantSlug}/cms`} 
                 className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600"
               >
                 <Home className="w-4 h-4 mr-2" />

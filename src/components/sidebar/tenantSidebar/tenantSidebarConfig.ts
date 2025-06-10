@@ -199,57 +199,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         name: 'sidebar.contentManagement',
         href: `${basePath}/cms`,
         icon: FileTextIcon,
-        permissions: ['cms:access'],
-        children: [
-          {
-            name: 'sidebar.pages',
-            href: `${basePath}/cms/pages`,
-            icon: FileTextIcon,
-            permissions: ['pages:manage']
-          },
-          {
-            name: 'sidebar.media',
-            href: `${basePath}/cms/media`,
-            icon: ImageIcon,
-            permissions: ['media:manage']
-          },
-          {
-            name: 'sidebar.templates',
-            href: `${basePath}/cms/templates`,
-            icon: LayoutDashboardIcon,
-            permissions: ['templates:manage']
-          },
-          {
-            name: 'sidebar.multilingual',
-            href: `${basePath}/cms/languages`,
-            icon: SettingsIcon,
-            permissions: ['languages:manage']
-          },
-          {
-            name: 'sidebar.blog',
-            href: `${basePath}/cms/blog`,
-            icon: BookOpenIcon,
-            permissions: ['blog:manage']
-          },
-          {
-            name: 'sidebar.forms',
-            href: `${basePath}/cms/forms`,
-            icon: FormInputIcon,
-            permissions: ['forms:manage']
-          },
-          {
-            name: 'sidebar.menus',
-            href: `${basePath}/cms/menus`,
-            icon: MenuIcon,
-            permissions: ['menus:manage']
-          },
-          {
-            name: 'sidebar.settings',
-            href: `${basePath}/cms/settings`,
-            icon: SettingsIcon,
-            permissions: ['cms:settings']
-          }
-        ]
+        permissions: ['cms:access']
       },
 
       // 📅 Booking Engine
@@ -258,57 +208,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         href: `${basePath}/bookings`,
         icon: CalendarIcon,
         permissions: ['booking:access'],
-        features: ['BOOKING_ENGINE'], // Required feature
-        children: [
-          {
-            name: 'sidebar.calendar',
-            href: `${basePath}/bookings/calendar`,
-            icon: CalendarIcon,
-            permissions: ['booking:read']
-          },
-          {
-            name: 'sidebar.bookingsList',
-            href: `${basePath}/bookings/list`,
-            icon: ClipboardListIcon,
-            permissions: ['booking:read']
-          },
-          {
-            name: 'sidebar.services',
-            href: `${basePath}/bookings/services`,
-            icon: ClipboardListIcon,
-            permissions: ['services:read']
-          },
-          {
-            name: 'sidebar.categories',
-            href: `${basePath}/bookings/categories`,
-            icon: PackageIcon,
-            permissions: ['categories:read']
-          },
-          {
-            name: 'sidebar.staff',
-            href: `${basePath}/bookings/staff`,
-            icon: UsersIcon,
-            permissions: ['staff:read']
-          },
-          {
-            name: 'sidebar.locations',
-            href: `${basePath}/bookings/locations`,
-            icon: HomeIcon,
-            permissions: ['locations:read']
-          },
-          {
-            name: 'sidebar.rules',
-            href: `${basePath}/bookings/rules`,
-            icon: ShieldIcon,
-            permissions: ['rules:read']
-          },
-          {
-            name: 'sidebar.bookingSettings',
-            href: `${basePath}/bookings/settings`,
-            icon: SettingsIcon,
-            permissions: ['bookings:manage']
-          }
-        ]
+        features: ['BOOKING_ENGINE'] // Required feature
       },
 
       // 🛒 E-commerce Engine
@@ -317,75 +217,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         href: `${basePath}/commerce`,
         icon: ShoppingCartIcon,
         permissions: ['ecommerce:access'],
-        features: ['ECOMMERCE_ENGINE'], // Required feature
-        children: [
-          {
-            name: 'sidebar.products',
-            href: `${basePath}/commerce/products`,
-            icon: PackageIcon,
-            permissions: ['products:read']
-          },
-          {
-            name: 'sidebar.categories',
-            href: `${basePath}/commerce/categories`,
-            icon: PackageIcon,
-            permissions: ['categories:read']
-          },
-          {
-            name: 'sidebar.inventory',
-            href: `${basePath}/commerce/inventory`,
-            icon: PackageIcon,
-            permissions: ['inventory:read']
-          },
-          {
-            name: 'sidebar.orders',
-            href: `${basePath}/commerce/orders`,
-            icon: ClipboardListIcon,
-            permissions: ['orders:read']
-          },
-          {
-            name: 'sidebar.customers',
-            href: `${basePath}/commerce/customers`,
-            icon: UsersIcon,
-            permissions: ['customers:read']
-          },
-          {
-            name: 'sidebar.payments',
-            href: `${basePath}/commerce/payments`,
-            icon: CreditCardIcon,
-            permissions: ['payments:read']
-          },
-          {
-            name: 'sidebar.shipping',
-            href: `${basePath}/commerce/shipping`,
-            icon: TruckIcon,
-            permissions: ['shipping:read']
-          },
-          {
-            name: 'sidebar.taxes',
-            href: `${basePath}/commerce/taxes`,
-            icon: CreditCardIcon,
-            permissions: ['taxes:read']
-          },
-          {
-            name: 'sidebar.analytics',
-            href: `${basePath}/commerce/analytics`,
-            icon: BarChartIcon,
-            permissions: ['analytics:read']
-          },
-          {
-            name: 'sidebar.reviews',
-            href: `${basePath}/commerce/reviews`,
-            icon: StarIcon,
-            permissions: ['reviews:read']
-          },
-          {
-            name: 'sidebar.ecommerceSettings',
-            href: `${basePath}/commerce/settings`,
-            icon: SettingsIcon,
-            permissions: ['ecommerce:manage']
-          }
-        ]
+        features: ['ECOMMERCE_ENGINE'] // Required feature
       },
 
       // 👥 HRMS Engine
@@ -394,45 +226,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         href: `${basePath}/hrms`,
         icon: UsersIcon,
         permissions: ['hrms:access'],
-        features: ['HRMS_MODULE'], // Required feature
-        children: [
-          {
-            name: 'sidebar.employees',
-            href: `${basePath}/hrms/employees`,
-            icon: UserIcon,
-            permissions: ['employees:read']
-          },
-          {
-            name: 'sidebar.departments',
-            href: `${basePath}/hrms/departments`,
-            icon: HomeIcon,
-            permissions: ['departments:read']
-          },
-          {
-            name: 'sidebar.payroll',
-            href: `${basePath}/hrms/payroll`,
-            icon: CreditCardIcon,
-            permissions: ['payroll:read']
-          },
-          {
-            name: 'sidebar.attendance',
-            href: `${basePath}/hrms/attendance`,
-            icon: ClipboardListIcon,
-            permissions: ['attendance:read']
-          },
-          {
-            name: 'sidebar.performance',
-            href: `${basePath}/hrms/performance`,
-            icon: BarChartIcon,
-            permissions: ['performance:read']
-          },
-          {
-            name: 'sidebar.hrmsSettings',
-            href: `${basePath}/hrms/settings`,
-            icon: SettingsIcon,
-            permissions: ['hrms:manage']
-          }
-        ]
+        features: ['HRMS_MODULE'] // Required feature
       },
 
       // ⚖️ Legal Engine
@@ -441,57 +235,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         href: `${basePath}/legal`,
         icon: ScaleIcon,
         permissions: ['legal:access'],
-        features: ['LEGAL_ENGINE'], // Required feature
-        children: [
-          {
-            name: 'sidebar.incorporations',
-            href: `${basePath}/legal/incorporations`,
-            icon: BuildingIcon,
-            permissions: ['legal:incorporations:read']
-          },
-          {
-            name: 'sidebar.legalCalendar',
-            href: `${basePath}/legal/calendar`,
-            icon: CalendarIcon,
-            permissions: ['legal:calendar:read']
-          },
-          {
-            name: 'sidebar.legalClients',
-            href: `${basePath}/legal/clients`,
-            icon: UsersIcon,
-            permissions: ['legal:clients:read']
-          },
-          {
-            name: 'sidebar.legalDocuments',
-            href: `${basePath}/legal/documents`,
-            icon: FileTextIcon,
-            permissions: ['legal:documents:read']
-          },
-          {
-            name: 'sidebar.legalBilling',
-            href: `${basePath}/legal/billing`,
-            icon: DollarSignIcon,
-            permissions: ['legal:billing:read']
-          },
-          {
-            name: 'sidebar.legalReports',
-            href: `${basePath}/legal/reports`,
-            icon: BarChartIcon,
-            permissions: ['legal:reports:read']
-          },
-          {
-            name: 'sidebar.legalBookingConfig',
-            href: `${basePath}/legal/booking-config`,
-            icon: SettingsIcon,
-            permissions: ['legal:settings:manage']
-          },
-          {
-            name: 'sidebar.legalSettings',
-            href: `${basePath}/legal/settings`,
-            icon: SettingsIcon,
-            permissions: ['legal:settings:manage']
-          }
-        ]
+        features: ['LEGAL_ENGINE'] // Required feature
       },
 
       // 🌐 Interpretation Engine
@@ -499,54 +243,7 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         name: 'sidebar.interpretationEngine',
         href: `${basePath}/(engines)/interpretation`,
         icon: LanguagesIcon,
-        features: ['INTERPRETATION_ENGINE'], // Required feature
-        children: [
-          {
-            name: 'sidebar.interpretationDashboard',
-            href: `${basePath}/(engines)/interpretation`,
-            icon: LayoutDashboardIcon
-          },
-          {
-            name: 'sidebar.liveSessions',
-            href: `${basePath}/(engines)/interpretation/live`,
-            icon: RadioIcon
-          },
-          {
-            name: 'sidebar.sessionHistory',
-            href: `${basePath}/(engines)/interpretation/history`,
-            icon: ClockIcon
-          },
-          {
-            name: 'sidebar.interpreters',
-            href: `${basePath}/(engines)/interpretation/interpreters`,
-            icon: HeadphonesIcon
-          },
-          {
-            name: 'sidebar.interpretationClients',
-            href: `${basePath}/(engines)/interpretation/clients`,
-            icon: UsersIcon
-          },
-          {
-            name: 'sidebar.languages',
-            href: `${basePath}/(engines)/interpretation/languages`,
-            icon: LanguagesIcon
-          },
-          {
-            name: 'sidebar.interpretationReports',
-            href: `${basePath}/(engines)/interpretation/reports`,
-            icon: BarChartIcon
-          },
-          {
-            name: 'sidebar.interpretationBilling',
-            href: `${basePath}/(engines)/interpretation/billing`,
-            icon: DollarSignIcon
-          },
-          {
-            name: 'sidebar.interpretationSettings',
-            href: `${basePath}/(engines)/interpretation/settings`,
-            icon: SettingsIcon
-          }
-        ]
+        features: ['INTERPRETATION_ENGINE'] // Required feature
       }
     ];
   },

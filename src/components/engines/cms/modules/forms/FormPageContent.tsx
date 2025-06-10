@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import graphqlClient from '@/lib/graphql-client';
 import { FormBase } from '@/types/forms';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import { FormPageHeader } from './FormPageHeader';
 import { FormToolbar } from './FormToolbar';
@@ -20,7 +20,7 @@ export function FormPageContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortField, setSortField] = useState<'title' | 'createdAt' | 'updatedAt'>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
+  const { locale, tenantSlug } = useParams();
   // Load forms on component mount
   useEffect(() => {
     loadForms();
@@ -40,7 +40,7 @@ export function FormPageContent() {
 
   // Navigate to create form page
   const handleCreateForm = () => {
-    router.push('/cms/forms/create');
+    router.push(`/${locale}/${tenantSlug}/cms/forms/create`);
   };
 
   // Handle search change
@@ -60,12 +60,12 @@ export function FormPageContent() {
 
   // Handle editing a form
   const handleEditForm = (id: string) => {
-    router.push(`/cms/forms/edit/${id}`);
+    router.push(`/${locale}/${tenantSlug}/cms/forms/edit/${id}`);
   };
 
   // Handle viewing form submissions
   const handleViewSubmissions = (id: string) => {
-    router.push(`/cms/forms/submissions/${id}`);
+    router.push(`/${locale}/${tenantSlug}/cms/forms/submissions/${id}`);
   };
 
   // Handle form deletion

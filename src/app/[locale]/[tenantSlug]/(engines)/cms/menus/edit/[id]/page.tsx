@@ -65,7 +65,7 @@ export default function EditMenuPage() {
   const menuId = params.id as string;
   const itemIdToEdit = searchParams.get('itemId');
   const shouldAddItem = searchParams.get('addItem') === 'true';
-  
+  const { locale, tenantSlug } = useParams();
   const [menu, setMenu] = useState<Menu | null>(null);
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -336,7 +336,7 @@ export default function EditMenuPage() {
 
       if (response && response.deleteMenu) {
         // Redirect to menus list
-        router.push('/cms/menus');
+        router.push(`/${locale}/${tenantSlug}/cms/menus`);
       } else {
         setError('Failed to delete menu');
         setShowDeleteConfirm(false);
@@ -501,7 +501,7 @@ export default function EditMenuPage() {
         setEditingItem(null);
         
         // Update URL to remove query parameters
-        router.push(`/cms/menus/edit/${menuId}`);
+        router.push(`/${locale}/${tenantSlug}/cms/menus/edit/${menuId}`);
       } else {
         setError(`Failed to ${editingItem ? 'update' : 'create'} menu item`);
       }
@@ -544,7 +544,7 @@ export default function EditMenuPage() {
         setShowItemDeleteConfirm(false);
         
         // Update URL to remove query parameters
-        router.push(`/cms/menus/edit/${menuId}`);
+        router.push(`/${locale}/${tenantSlug}/cms/menus/edit/${menuId}`);
       } else {
         setError('Failed to delete menu item');
         setShowItemDeleteConfirm(false);
@@ -781,7 +781,7 @@ export default function EditMenuPage() {
       <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
         <p className="font-medium">Error</p>
         <p>Menu not found or could not be loaded</p>
-        <Link href="/cms/menus" className="mt-4 inline-block px-4 py-2 bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50">
+        <Link href={`/${locale}/${tenantSlug}/cms/menus`} className="mt-4 inline-block px-4 py-2 bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50">
           Back to Menus
         </Link>
       </div>
@@ -805,7 +805,7 @@ export default function EditMenuPage() {
         >
           <div className="flex items-center justify-center mb-6">
             <Link 
-              href="/cms/menus" 
+              href={`/${locale}/${tenantSlug}/cms/menus`} 
               className="mr-4 p-3 rounded-xl bg-white shadow-md hover:shadow-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200 group"
             >
               <ArrowLeftIcon className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" />

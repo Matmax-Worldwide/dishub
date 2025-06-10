@@ -1,4 +1,4 @@
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { FormBase } from '@/types/forms';
 import { FileEdit, Database, Eye, Copy, Trash2 } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface FormListItemProps {
 
 export function FormListItem({ form, onDuplicate, onDelete }: FormListItemProps) {
   const router = useRouter();
-
+  const { locale, tenantSlug } = useParams();
   return (
     <div className="flex items-center py-4 px-6 hover:bg-gray-50">
       <div className="flex-1 min-w-0">
@@ -29,21 +29,21 @@ export function FormListItem({ form, onDuplicate, onDelete }: FormListItemProps)
       </div>
       <div className="flex gap-2">
         <button
-          onClick={() => router.push(`/cms/forms/edit/${form.id}`)}
+          onClick={() => router.push(`/${locale}/${tenantSlug}/cms/forms/edit/${form.id}`)}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
           title="Edit form"
         >
           <FileEdit className="h-4 w-4" />
         </button>
         <button
-          onClick={() => router.push(`/cms/forms/submissions/${form.id}`)}
+          onClick={() => router.push(`/${locale}/${tenantSlug}/cms/forms/submissions/${form.id}`)}
           className="p-1.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded"
           title="View submissions"
         >
           <Database className="h-4 w-4" />
         </button>
         <button
-          onClick={() => router.push(`/cms/forms/preview/${form.id}`)}
+          onClick={() => router.push(`/${locale}/${tenantSlug}/cms/forms/preview/${form.id}`)}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded"
           title="Preview form"
         >

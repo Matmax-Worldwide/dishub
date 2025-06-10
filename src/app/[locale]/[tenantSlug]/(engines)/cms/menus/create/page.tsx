@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { gqlRequest } from '@/lib/graphql-client';
 import { ArrowLeftIcon, Loader2Icon, PlusIcon, TrashIcon } from 'lucide-react';
@@ -24,6 +24,7 @@ export default function CreateMenuPageWrapper() {
 
 function CreateMenuPage() {
   const router = useRouter();
+  const { locale, tenantSlug } = useParams();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [menuItems, setMenuItems] = useState<Omit<MenuItem, 'id' | 'children' | 'page'>[]>([]);
@@ -236,7 +237,7 @@ function CreateMenuPage() {
       }
 
       // Navigate to the edit page
-      router.push(`/cms/menus/edit/${menuId}`);
+      router.push(`/${locale}/${tenantSlug}/cms/menus/edit/${menuId}`);
     } catch (err) {
       console.error('Error creating menu:', err);
       if (err instanceof Error && err.message.includes('Unique constraint failed')) {
@@ -252,7 +253,7 @@ function CreateMenuPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center mb-6">
-        <Link href="/cms/menus" className="mr-4 p-2 hover:bg-gray-100 rounded-md">
+        <Link href={`/${locale}/${tenantSlug}/cms/menus`} className="mr-4 p-2 hover:bg-gray-100 rounded-md">
           <ArrowLeftIcon className="h-5 w-5" />
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">Create New Menu</h1>
@@ -514,7 +515,7 @@ function CreateMenuPage() {
             )}
           </button>
           <Link
-            href="/cms/menus"
+            href={`/${locale}/${tenantSlug}/cms/menus`}
             className="ml-4 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
           >
             Cancel

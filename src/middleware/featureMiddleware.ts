@@ -4,12 +4,12 @@ import { isRouteAllowed } from '@/lib/feature-access';
 // Rutas que requieren features específicas (con locale)
 const FEATURE_ROUTES: Record<string, string[]> = {
   // Blog Module routes
-  '/cms/blog': ['BLOG_MODULE'],
+  '/[locale]/[tenantSlug]/cms/blog': ['BLOG_MODULE'],
   '/business/blog': ['BLOG_MODULE'],
   '/[tenantSlug]/cms/blog': ['BLOG_MODULE'],
   
   // Forms Module routes
-  '/cms/forms': ['FORMS_MODULE'],
+  '/[locale]/[tenantSlug]/cms/forms': ['FORMS_MODULE'],
   '/business/forms': ['FORMS_MODULE'],
   '/[tenantSlug]/cms/forms': ['FORMS_MODULE'],
   

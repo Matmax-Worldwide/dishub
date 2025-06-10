@@ -113,8 +113,7 @@ export default function LanguageSwitcher({
         aria-expanded={isOpen}
         title={t('language.switch')}
       >
-        <GlobeAltIcon className={`h-5 w-5 ${isContactInView ? 'text-white' : ''}`} />
-        <span>{getLanguageName(currentLocale)}</span>
+        <GlobeAltIcon className={`h-5 w-5 ${isContactInView ? 'text-white' : ''}`} /> 
       </button>
 
       {isOpen && (

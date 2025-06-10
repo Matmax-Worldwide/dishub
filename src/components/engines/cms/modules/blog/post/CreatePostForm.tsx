@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import graphqlClient from '@/lib/graphql-client';
 import { ArrowLeft, Save, Eye, Globe } from 'lucide-react';
@@ -60,7 +60,7 @@ export function CreatePostForm() {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [blogs, setBlogs] = useState<Array<{ id: string; title: string }>>([]);
-  
+  const { locale, tenantSlug } = useParams();
   // Check if we're still loading session data
   const isLoadingSession = status === 'loading';
 
@@ -178,7 +178,7 @@ export function CreatePostForm() {
       
       if (result.success) {
         toast.success(asDraft ? 'Post saved as draft!' : 'Post created successfully!');
-        router.push('/cms/blog/posts');
+        router.push(`/${locale}/${tenantSlug}/cms/blog/posts`);
       } else {
         toast.error(result.message || 'Failed to create post');
       }
@@ -193,7 +193,7 @@ export function CreatePostForm() {
   const handlePreview = () => {
     // Open preview in new window/tab
     const previewData = encodeURIComponent(JSON.stringify(formData));
-    window.open(`/preview/post?data=${previewData}`, '_blank');
+    window.open(`/${locale}/${tenantSlug}/preview/post?data=${previewData}`, '_blank');
   };
 
   // Show loading state during session check

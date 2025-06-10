@@ -22,7 +22,7 @@ interface RouteParams {
 export default function EditFormPage() {
   const params = useParams<RouteParams>();
   const { id } = params;
-  
+  const { locale, tenantSlug } = useParams();
   const { loadForm, updateForm, createFormField, updateFormField, updateFieldOrders, deleteFormField } = useFormComponent();
   const [form, setForm] = useState<FormBase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -560,7 +560,7 @@ export default function EditFormPage() {
           Form not found or failed to load
         </div>
         <div className="mt-4">
-          <Link href="/cms/forms" className="text-blue-600 hover:underline">
+          <Link href={`/${locale}/${tenantSlug}/cms/forms`} className="text-blue-600 hover:underline">
             Back to forms list
           </Link>
         </div>
@@ -573,7 +573,7 @@ export default function EditFormPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <Link 
-            href="/cms/forms" 
+            href={`/${locale}/${tenantSlug}/cms/forms`} 
             className="mr-4 p-2 rounded-full hover:bg-gray-100"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />

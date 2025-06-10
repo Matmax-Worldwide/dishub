@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { PageData } from '@/types/cms';
 import { cmsOperations } from '@/lib/graphql-client';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import DeletePageDialog from './DeletePageDialog';
@@ -53,7 +53,7 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
-
+  const { tenantSlug } = useParams();
   const handleDeletePage = async () => {
     if (!pageData.id) return;
     
@@ -67,7 +67,7 @@ export const PageDetailsTab: React.FC<PageDetailsTabProps> = ({
         PageEvents.emit('page:deleted', { id: pageData.id });
         
         toast.success('Página eliminada correctamente');
-        router.push('/cms/pages');
+        router.push(`/${locale}/${tenantSlug}/cms/pages`);
       } else {
         toast.error(result.message || 'Error al eliminar la página');
       }

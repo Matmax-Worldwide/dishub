@@ -201,6 +201,7 @@ export function DashboardSidebar() {
 
     // Transform CMS routes to tenant dashboard routes (legacy)
     if (url.includes('/cms/')) {
+      console.log('Transforming CMS route to tenant dashboard route:', url);
       return url.replace('/cms/', `/${tenantSlug}/cms/`);
     }
 

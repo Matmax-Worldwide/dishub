@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+
 import { 
   Plus, 
   Search, 
@@ -68,7 +69,7 @@ interface FormError {
 
 export default function FormsPage() {
   const router = useRouter();
-  
+  const { locale, tenantSlug } = useParams();
   const [forms, setForms] = useState<FormWithStats[]>([]);
   const [filteredForms, setFilteredForms] = useState<FormWithStats[]>([]);
   const [overallStats, setOverallStats] = useState<{
@@ -467,7 +468,7 @@ export default function FormsPage() {
       ));
       
       // Navigate to edit the new form
-      router.push(`/cms/forms/${result.form.id}/edit`);
+      router.push(`/${locale}/${tenantSlug}/cms/forms/${result.form.id}/edit`);
       showToast('Form duplicated successfully!', 'success');
     } catch (err) {
       const error = err as FormError;
@@ -640,7 +641,7 @@ export default function FormsPage() {
             <p className="text-gray-600">Manage and monitor all your forms</p>
           </div>
           <Link 
-            href="/cms/forms/create"
+            href={`/${locale}/${tenantSlug}/cms/forms/create`}
             className="mt-4 sm:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center shadow-md hover:shadow-lg transition-all duration-200"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -943,14 +944,14 @@ export default function FormsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <Link 
-                            href={`/cms/forms/${form.id}/submissions`}
+                            href={`/${locale}/${tenantSlug}/cms/forms/${form.id}/submissions`}
                             className="text-blue-600 hover:text-blue-900"
                             title="View Submissions"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
                           <Link 
-                            href={`/cms/forms/${form.id}/edit`}
+                            href={`/${locale}/${tenantSlug}/cms/forms/${form.id}/edit`}
                             className="text-gray-600 hover:text-gray-900"
                             title="Edit Form"
                           >
@@ -1004,7 +1005,7 @@ export default function FormsPage() {
                   : 'Get started by creating your first form'}
               </p>
               <Link
-                href="/cms/forms/create"
+                href={`/${locale}/${tenantSlug}/cms/forms/create`}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-2" />

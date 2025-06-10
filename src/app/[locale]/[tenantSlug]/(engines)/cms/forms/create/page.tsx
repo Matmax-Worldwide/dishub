@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useFormComponent } from '@/components/engines/cms/modules/forms/hooks/useFormComponent';
 import { FormInput } from '@/types/forms';
 import { ArrowLeft, Save, FileText, Settings, Eye, Sparkles } from 'lucide-react';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 
 export default function NewFormPage() {
   const router = useRouter();
+  const { locale, tenantSlug } = useParams();
   const { createForm } = useFormComponent();
   const [formData, setFormData] = useState<FormInput>({
     title: '',
@@ -56,7 +57,7 @@ export default function NewFormPage() {
       const result = await createForm(formData);
       
       if (result.success && result.form) {
-        router.push('/cms/forms');
+        router.push(`/${locale}/${tenantSlug}/cms/forms`);
       } else {
         setError(result.error || 'Failed to create form');
       }
@@ -85,7 +86,7 @@ export default function NewFormPage() {
         >
           <div className="flex items-center justify-center mb-6">
           <Link 
-            href="/cms/forms" 
+            href={`/${locale}/${tenantSlug}/cms/forms`} 
               className="mr-4 p-3 rounded-xl bg-white shadow-md hover:shadow-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200 group"
           >
               <ArrowLeft className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" />
@@ -367,7 +368,7 @@ export default function NewFormPage() {
                 <Button
               type="button"
                   variant="outline"
-              onClick={() => router.push('/cms/forms')}
+              onClick={() => router.push(`/${locale}/${tenantSlug}/cms/forms`)}
                   className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
