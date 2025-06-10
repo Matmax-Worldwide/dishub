@@ -33,6 +33,53 @@ import {
 import LegalClientSidebar from '@/components/sidebar/LegalClientSidebar';
 import PageHeader from '@/components/PageHeader';
 
+interface Communication {
+  id: number;
+  type: string;
+  subject: string;
+  date: string;
+  from: string;
+  fromRole: string;
+  to?: string;
+  status: string;
+  priority: string;
+  content: string;
+  attachments?: string[];
+  relatedProject: string;
+  actionRequired?: boolean;
+  dueDate?: string;
+  tags: string[];
+  duration?: string;
+  participants?: string[];
+  notes?: string;
+}
+
+interface Document {
+  id: number;
+  name: string;
+  type: string;
+  size: string;
+  uploadDate: string;
+  status: string;
+  category: string;
+  country: string;
+  projectId: string;
+  lastModified: string;
+  signedBy?: string[];
+  validUntil?: string;
+  isPublic: boolean;
+  tags: string[];
+  dueDate?: string;
+  actionRequired?: string;
+  issuedBy?: string;
+  registrationNumber?: string;
+  accountNumber?: string;
+  reviewedBy?: string;
+  expectedCompletion?: string;
+  submittedTo?: string;
+  trackingNumber?: string;
+}
+
 export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -686,8 +733,8 @@ export default function ClientDashboard() {
   );
 
   const renderCommunications = () => {
-    const actionRequiredComms = clientData.communications.filter((comm: any) => comm.actionRequired);
-    const recentComms = clientData.communications;
+    const actionRequiredComms = (clientData.communications as Communication[]).filter(comm => comm.actionRequired);
+    const recentComms = clientData.communications as Communication[];
 
     return (
       <div className="space-y-6">
@@ -702,7 +749,7 @@ export default function ClientDashboard() {
               </span>
             </div>
             <div className="space-y-3">
-              {actionRequiredComms.map((comm: any) => (
+              {actionRequiredComms.map((comm) => (
                 <div key={comm.id} className="bg-white rounded-lg p-4 border border-red-100">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -751,7 +798,7 @@ export default function ClientDashboard() {
           </div>
 
           <div className="space-y-4">
-            {recentComms.map((comm: any) => (
+            {recentComms.map((comm) => (
               <div key={comm.id} className={`border rounded-lg p-4 ${comm.status === 'unread' ? 'border-blue-200 bg-blue-50' : 'border-gray-200'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3 flex-1">
@@ -844,10 +891,10 @@ export default function ClientDashboard() {
   };
 
   const renderDocuments = () => {
-    const pendingDocs = clientData.documents.filter((doc: any) => 
+    const pendingDocs = (clientData.documents as Document[]).filter(doc => 
       doc.status === 'pending-signature' || doc.actionRequired
     );
-    const docsByCountry = clientData.documents.reduce((acc: any, doc: any) => {
+    const docsByCountry = (clientData.documents as Document[]).reduce((acc: Record<string, Document[]>, doc) => {
       if (!acc[doc.country]) acc[doc.country] = [];
       acc[doc.country].push(doc);
       return acc;
@@ -866,7 +913,7 @@ export default function ClientDashboard() {
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pendingDocs.map((doc: any) => (
+              {pendingDocs.map((doc) => (
                 <div key={doc.id} className="bg-white rounded-lg p-4 border border-yellow-100">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
@@ -942,7 +989,7 @@ export default function ClientDashboard() {
 
           {/* Documents Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {clientData.documents.map((doc: any) => (
+            {(clientData.documents as Document[]).map((doc) => (
               <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3">
@@ -1034,19 +1081,19 @@ export default function ClientDashboard() {
           <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-700">
-                {clientData.documents.filter((d: any) => d.status === 'signed' || d.status === 'approved' || d.status === 'active').length}
+                {(clientData.documents as Document[]).filter(d => d.status === 'signed' || d.status === 'approved' || d.status === 'active').length}
               </div>
               <div className="text-sm text-green-600">Completed Documents</div>
             </div>
             <div className="bg-yellow-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-yellow-700">
-                {clientData.documents.filter((d: any) => d.status === 'pending-signature' || d.actionRequired).length}
+                {(clientData.documents as Document[]).filter(d => d.status === 'pending-signature' || d.actionRequired).length}
               </div>
               <div className="text-sm text-yellow-600">Pending Action</div>
             </div>
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-blue-700">
-                {clientData.documents.filter((d: any) => d.status === 'under-review' || d.status === 'submitted').length}
+                {(clientData.documents as Document[]).filter(d => d.status === 'under-review' || d.status === 'submitted').length}
               </div>
               <div className="text-sm text-blue-600">Under Review</div>
             </div>
@@ -1286,7 +1333,7 @@ export default function ClientDashboard() {
         <PageHeader
           title="Client Dashboard"
           description={`Managing ${clientData.profile.name}`}
-          onMenuClick={() => setSidebarOpen(true)}
+          onMenuClick={() => {}}
         />
 
         <div className="flex-1 flex overflow-hidden">
