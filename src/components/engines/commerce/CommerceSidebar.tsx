@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
+import DropdownSwitcher from '@/components/sidebar/header/DropdownSwitcher';
 import { 
   LayoutDashboard,
   Package,
@@ -20,13 +21,15 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  ChevronDown,
   Percent,
   Star,
   DollarSign,
   Receipt,
   Globe,
-  Warehouse
+  Warehouse,
+  FileText,
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 
 import {
@@ -84,7 +87,6 @@ function CollapsibleButton({ className = "" }) {
 export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { tenantSlug } = useParams();
   // Unsaved changes context
   const {
@@ -296,33 +298,34 @@ export default function CommerceSidebar({ dictionary, locale }: CommerceSidebarP
               
               {/* Dropdown Switcher */}
               <div className="relative flex-1">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-between w-full text-lg font-semibold text-foreground sidebar-title hover:bg-gray-100 rounded-md px-2 py-1 transition-colors"
-                >
-                  <span>E-COMMERCE</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {/* Dropdown Menu */}
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                    <Link
-                      href={`/${locale}/${tenantSlug}/cms`}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <span>CMS</span>
-                    </Link>
-                    <Link
-                      href={`/${locale}/${tenantSlug}/bookings`}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <span>Bookings</span>
-                    </Link>
-                  </div>
-                )}
+                <DropdownSwitcher
+                  buttonContent={{
+                    icon: <Store className="h-4 w-4 text-blue-600" />,
+                    label: 'E-COMMERCE'
+                  }}
+                  items={[
+                    {
+                      href: `/${locale}/${tenantSlug}/dashboard`,
+                      icon: <LayoutDashboard className="h-4 w-4" />,
+                      label: 'Dashboard'
+                    },
+                    {
+                      href: `/${locale}/${tenantSlug}/cms`,
+                      icon: <FileText className="h-4 w-4" />,
+                      label: 'CMS'
+                    },
+                    {
+                      href: `/${locale}/${tenantSlug}/bookings`,
+                      icon: <Calendar className="h-4 w-4" />,
+                      label: 'Bookings'
+                    },
+                    {
+                      href: `/${locale}/${tenantSlug}/legal`,
+                      icon: <BookOpen className="h-4 w-4" />,
+                      label: 'Legal'
+                    }
+                  ]}
+                />
               </div>
             </div>
             

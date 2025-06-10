@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useParams } from 'next/navigation';
@@ -8,6 +8,7 @@ import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { useI18n } from '@/hooks/useI18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import DropdownSwitcher from '@/components/sidebar/header/DropdownSwitcher';
 import { 
   LayoutDashboard,
   Calendar,
@@ -20,7 +21,8 @@ import {
   PanelLeftOpen,
   LogOut,
   Clock,
-  ChevronDown
+  FileText,
+  Receipt
 } from 'lucide-react';
 
 import {
@@ -54,7 +56,6 @@ function CollapsibleButton({ className = "" }) {
 export default function BookingsSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
   const { tenantSlug } = useParams();
   // Unsaved changes context
@@ -196,35 +197,34 @@ export default function BookingsSidebar() {
               </div>
               
               {/* Dropdown Switcher */}
-              <div className="relative flex-1">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-between w-full text-lg font-semibold text-foreground sidebar-title hover:bg-gray-100 rounded-md px-2 py-1 transition-colors"
-                >
-                  <span>{t('bookings.title') || 'Bookings'}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {/* Dropdown Menu */}
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                    <Link
-                      href={`/${locale}/${tenantSlug}/cms`}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <span>{t('cms.title') || 'CMS'}</span>
-                    </Link>
-                    <Link
-                      href={`/${locale}/${tenantSlug}/commerce`}
-                      className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <span>{t('commerce.title') || 'E-COMMERCE'}</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
+              <DropdownSwitcher
+                buttonContent={{
+                  icon: <Calendar className="h-4 w-4 text-blue-600" />,
+                  label: t('bookings.title') || 'Bookings'
+                }}
+                items={[
+                  {
+                    href: `/${locale}/${tenantSlug}/dashboard`,
+                    icon: <LayoutDashboard className="h-4 w-4" />,
+                    label: t('nav.dashboard') || 'Dashboard'
+                  },
+                  {
+                    href: `/${locale}/${tenantSlug}/cms`,
+                    icon: <FileText className="h-4 w-4" />,
+                    label: t('cms.title') || 'CMS'
+                  },
+                  {
+                    href: `/${locale}/${tenantSlug}/commerce`,
+                    icon: <Receipt className="h-4 w-4" />,
+                    label: t('commerce.title') || 'E-COMMERCE'
+                  },
+                  {
+                    href: `/${locale}/${tenantSlug}/legal`,
+                    icon: <BookOpen className="h-4 w-4" />,
+                    label: t('legal.engine') || 'Legal'
+                  }
+                ]}
+              />
             </div>
             
             <div className="flex items-center space-x-2">

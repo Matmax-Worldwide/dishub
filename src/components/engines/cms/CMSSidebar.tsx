@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import DropdownSwitcher, { DropdownItem } from '@/components/sidebar/header/DropdownSwitcher';
 import { useI18n } from '@/hooks/useI18n';
 import { useParams } from 'next/navigation';
 import { 
@@ -18,8 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  BookOpen,
-  ChevronDown
+  BookOpen
 } from 'lucide-react';
 import { FeatureType } from '@/hooks/useFeatureAccess';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -55,7 +55,6 @@ function CollapsibleButton({ className = "" }) {
 export default function CMSSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
   const { tenantSlug } = useParams();
   // Use the actual FeatureProvider context instead of hardcoded function
@@ -72,6 +71,30 @@ export default function CMSSidebar() {
     showUnsavedAlert,
     setShowUnsavedAlert,
   } = useUnsavedChanges();
+
+  // Dropdown items for engine switcher
+  const engineDropdownItems: DropdownItem[] = [
+    {
+      href: `/${locale}/${tenantSlug}/dashboard`,
+      icon: <LayoutDashboard className="h-4 w-4" />,
+      label: t('nav.dashboard') || 'Dashboard'
+    },
+    ...(hasFeature('BOOKING_ENGINE') ? [{
+      href: `/${locale}/${tenantSlug}/bookings`,
+      icon: <BookOpen className="h-4 w-4" />,
+      label: t('bookings.title') || 'Bookings'
+    }] : []),
+    ...(hasFeature('ECOMMERCE_ENGINE') ? [{
+      href: `/${locale}/${tenantSlug}/commerce`,
+      icon: <Settings className="h-4 w-4" />,
+      label: t('commerce.title') || 'E-COMMERCE'
+    }] : []),
+    ...(hasFeature('LEGAL_ENGINE') ? [{
+      href: `/${locale}/${tenantSlug}/legal`,
+      icon: <Settings className="h-4 w-4" />,
+      label: t('legal.engine') || 'Legal'
+    }] : [])
+  ];
 
   // Base navigation items (always available with CMS_ENGINE)
   const baseNavigationItems = [
@@ -121,18 +144,6 @@ export default function CMSSidebar() {
   const navigationItems = [
     ...baseNavigationItems.filter(item => hasFeature(item.feature)),
     ...featureNavigationItems.filter(item => hasFeature(item.feature))
-  ];
-
-  // Dropdown items based on features
-  const dropdownItems = [
-    ...(hasFeature('BOOKING_ENGINE') ? [{
-      name: t('bookings.title') || 'Bookings',
-      href: `/${locale}/${tenantSlug}/bookings`,
-    }] : []),
-    ...(hasFeature('ECOMMERCE_ENGINE') ? [{
-      name: t('commerce.title') || 'E-COMMERCE',
-      href: `/${locale}/${tenantSlug}/ecommerce`,
-    }] : []),
   ];
 
   const settingsNavItem = {
@@ -224,37 +235,13 @@ export default function CMSSidebar() {
             </div>
             
             {/* Dropdown Switcher */}
-            <div className="relative flex-1">
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between w-full text-lg font-semibold text-gray-800 sidebar-title hover:bg-gray-50 rounded-lg px-3 py-2 transition-all duration-200"
-              >
-                <span>CMS</span>
-                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                  {dropdownItems.length > 0 ? (
-                    dropdownItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 first:rounded-t-lg last:rounded-b-lg"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                        <span className="font-medium">{item.name}</span>
-                    </Link>
-                    ))
-                  ) : (
-                    <div className="px-4 py-3 text-sm text-gray-500 italic">
-                      {t('cms.noAdditionalModules') || 'No additional modules available'}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <DropdownSwitcher
+              buttonContent={{
+                icon: <FileText className="h-4 w-4 text-blue-600" />,
+                label: 'CMS'
+              }}
+              items={engineDropdownItems}
+            />
           </div>
           
           <div className="flex items-center space-x-2">

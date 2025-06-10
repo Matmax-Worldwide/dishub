@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useParams } from 'next/navigation';
@@ -8,6 +8,7 @@ import { useUnsavedChanges } from '@/contexts/UnsavedChangesContext';
 import { UnsavedChangesAlert } from '@/components/engines/cms/UnsavedChangesAlert';
 import { useI18n } from '@/hooks/useI18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import DropdownSwitcher, { DropdownItem } from '@/components/sidebar/header/DropdownSwitcher';
 import { 
   LayoutDashboard,
   Scale,
@@ -23,8 +24,7 @@ import {
   Receipt,
   PanelLeftClose,
   PanelLeftOpen,
-  LogOut,
-  ChevronDown
+  LogOut
 } from 'lucide-react';
 
 import {
@@ -58,7 +58,6 @@ function CollapsibleButton({ className = "" }) {
 export default function LegalSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { t, locale } = useI18n();
   const params = useParams();
   const tenantSlug = params.tenantSlug as string || 'admin';
@@ -73,6 +72,30 @@ export default function LegalSidebar() {
     showUnsavedAlert,
     setShowUnsavedAlert,
   } = useUnsavedChanges();
+
+  // Dropdown items for engine switcher
+  const dropdownItems: DropdownItem[] = [
+    {
+      href: `/${locale}/${tenantSlug}/dashboard`,
+      icon: <LayoutDashboard className="h-4 w-4" />,
+      label: t('nav.dashboard') || 'Dashboard'
+    },
+    {
+      href: `/${locale}/${tenantSlug}/cms`,
+      icon: <FileText className="h-4 w-4" />,
+      label: t('engines.cms') || 'CMS'
+    },
+    {
+      href: `/${locale}/${tenantSlug}/bookings`,
+      icon: <Calendar className="h-4 w-4" />,
+      label: t('engines.booking') || 'Booking'
+    },
+    {
+      href: `/${locale}/${tenantSlug}/commerce`,
+      icon: <Receipt className="h-4 w-4" />,
+      label: t('engines.commerce') || 'E-commerce'
+    }
+  ];
 
   const mainNavigationItems = [
     {
@@ -214,7 +237,7 @@ export default function LegalSidebar() {
             <div className="flex items-center space-x-2 flex-1">
               <div className="relative h-8 w-8 mr-2">
                 <Image 
-                  src="/images/logo.png" 
+                  src="/nuo_logo_light.webp" 
                   alt="Legal Engine" 
                   fill
                   sizes="32px"
@@ -224,59 +247,13 @@ export default function LegalSidebar() {
               </div>
               
               {/* Dropdown Switcher */}
-              <div className="relative flex-1">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-between w-full text-left px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <div className="flex items-center">
-                    <Scale className="h-4 w-4 mr-2 text-blue-600" />
-                    <span className="sidebar-text truncate">
-                      {t('legal.engine') || 'Legal'}
-                    </span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                </button>
-                
-                {isDropdownOpen && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
-                    <div className="py-1">
-                      <Link
-                        href={`/${locale}/${tenantSlug}/dashboard`}
-                        className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <LayoutDashboard className="h-4 w-4 mr-2" />
-                        {t('nav.dashboard') || 'Dashboard'}
-                      </Link>
-                      <Link
-                        href={`/${locale}/${tenantSlug}/cms`}
-                        className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        {t('engines.cms') || 'CMS'}
-                      </Link>
-                      <Link
-                        href={`/${locale}/${tenantSlug}/bookings`}
-                        className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {t('engines.booking') || 'Booking'}
-                      </Link>
-                      <Link
-                        href={`/${locale}/${tenantSlug}/commerce`}
-                        className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <Receipt className="h-4 w-4 mr-2" />
-                        {t('engines.commerce') || 'E-commerce'}
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <DropdownSwitcher
+                buttonContent={{
+                  icon: <Scale className="h-4 w-4 text-blue-600" />,
+                  label: t('legal.engine') || 'Legal'
+                }}
+                items={dropdownItems}
+              />
             </div>
             
             <CollapsibleButton className="ml-2" />
