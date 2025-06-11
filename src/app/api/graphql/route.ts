@@ -284,6 +284,20 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
+  
+  // Debug: Log the GraphQL query
+  try {
+    const body = JSON.parse(text);
+    const queryName = body.query?.match(/query\s+(\w+)/)?.[1] || 'Unknown';
+    console.log(`\n🔥🔥🔥 GraphQL Request [${queryName}] ==================`);
+    console.log('Query:', body.query?.substring(0, 300) + '...');
+    console.log('Variables:', JSON.stringify(body.variables));
+    console.log('Operation:', body.operationName);
+    console.log('==========================================\n');
+  } catch {
+    console.log('🔥🔥🔥 Could not parse GraphQL request body');
+  }
+  
   return handler(request);
 }
 
