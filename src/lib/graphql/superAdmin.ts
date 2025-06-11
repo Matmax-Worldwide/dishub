@@ -145,14 +145,7 @@ export const TENANT_DETAILED_METRICS_QUERY = `
         totalPosts
         publishedPosts
         features
-        modules {
-          moduleName
-          isActive
-          itemCount
-          last30DaysActivity
-        }
       }
-      lastActivity
     }
   }
 `;
@@ -670,14 +663,7 @@ export interface TenantDetailedMetrics {
     totalPosts: number;
     publishedPosts: number;
     features: string[];
-    modules: Array<{
-      moduleName: string;
-      isActive: boolean;
-      itemCount: number;
-      last30DaysActivity: number;
-    }>;
   };
-  lastActivity: string;
 }
 
 export interface GlobalAnalytics {

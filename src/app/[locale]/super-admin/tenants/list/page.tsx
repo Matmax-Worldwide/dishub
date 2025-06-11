@@ -64,9 +64,19 @@ export default function SuperAdminTenantsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<TenantDetails | null>(null);
 
-  const loadTenantsData = async () => {
+  // Enhanced loading states for better UX
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [deletingTenant, setDeletingTenant] = useState(false);
+  const [loadingTenantId, setLoadingTenantId] = useState<string | null>(null);
+  const [paginationLoading, setPaginationLoading] = useState(false);
+
+  const loadTenantsData = async (showPaginationLoader = false) => {
     try {
-      setLoading(true);
+      if (showPaginationLoader) {
+        setPaginationLoading(true);
+      } else {
+        setLoading(true);
+      }
       
       const filter = {
         ...(searchTerm && { search: searchTerm }),
@@ -93,6 +103,7 @@ export default function SuperAdminTenantsPage() {
       toast.error('Failed to load tenants data');
     } finally {
       setLoading(false);
+      setPaginationLoading(false);
     }
   };
 
@@ -103,23 +114,34 @@ export default function SuperAdminTenantsPage() {
     toast.success('Tenants list refreshed');
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    setSearchLoading(true);
     setCurrentPage(1);
-    loadTenantsData();
+    try {
+      await loadTenantsData();
+      toast.success(`Found ${data.tenants?.totalCount || 0} tenants`);
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
   const handleDeleteTenant = async () => {
     if (!tenantToDelete) return;
     
     try {
-      // Show loading state
-      toast.loading(`Deleting tenant "${tenantToDelete.name}"...`);
+      setDeletingTenant(true);
+      setLoadingTenantId(tenantToDelete.id);
       
-      // Make the actual API call first (removed optimistic update)
+      // Show loading state with specific tenant info
+      const loadingToastId = toast.loading(`Deleting tenant "${tenantToDelete.name}"...`, {
+        description: 'This may take a few moments'
+      });
+      
+      // Make the actual API call
       const result = await SuperAdminClient.deleteTenant(tenantToDelete.id);
       
       // Dismiss loading toast
-      toast.dismiss();
+      toast.dismiss(loadingToastId);
       
       if (result.success) {
         // Update UI after successful deletion
@@ -136,13 +158,16 @@ export default function SuperAdminTenantsPage() {
         
         setDeleteDialogOpen(false);
         setTenantToDelete(null);
-        toast.success(result.message || 'Tenant deleted successfully');
+        toast.success(result.message || 'Tenant deleted successfully', {
+          description: `"${tenantToDelete.name}" has been permanently removed`
+        });
       } else {
-        toast.error(result.message || 'Failed to delete tenant');
+        toast.error(result.message || 'Failed to delete tenant', {
+          description: 'Please try again or contact support'
+        });
       }
     } catch (error) {
       console.error('Delete tenant error:', error);
-      toast.dismiss();
       
       // Try to extract error message
       let errorMessage = 'Failed to delete tenant';
@@ -152,7 +177,12 @@ export default function SuperAdminTenantsPage() {
         errorMessage = error;
       }
       
-      toast.error(errorMessage);
+      toast.error(errorMessage, {
+        description: 'Please check your connection and try again'
+      });
+    } finally {
+      setDeletingTenant(false);
+      setLoadingTenantId(null);
     }
   };
 
@@ -184,7 +214,11 @@ export default function SuperAdminTenantsPage() {
   };
 
   useEffect(() => {
-    loadTenantsData();
+    if (currentPage > 1) {
+      loadTenantsData(true);
+    } else {
+      loadTenantsData();
+    }
   }, [currentPage]);
 
   if (loading) {
@@ -205,11 +239,29 @@ export default function SuperAdminTenantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            🏢 Tenant Management
-          </h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              🏢 Tenant Management
+            </h1>
+            {(loading || searchLoading || paginationLoading || deletingTenant) && (
+              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
+                <RefreshCwIcon className="h-4 w-4 animate-spin text-blue-600" />
+                <span className="text-sm text-blue-700 font-medium">
+                  {loading && 'Loading tenants...'}
+                  {searchLoading && 'Searching...'}
+                  {paginationLoading && 'Loading page...'}
+                  {deletingTenant && 'Deleting tenant...'}
+                </span>
+              </div>
+            )}
+          </div>
           <p className="text-gray-600 mt-1">
             Manage all tenants across the platform • {tenants?.totalCount || 0} total tenants
+            {(searchLoading || paginationLoading) && (
+              <span className="ml-2 text-blue-600 font-medium">
+                (Updating...)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -270,9 +322,18 @@ export default function SuperAdminTenantsPage() {
                     <SelectItem value="ARCHIVED">Archived</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button onClick={handleSearch} className="w-full">
-                  <SearchIcon className="h-4 w-4 mr-2" />
-                  Search
+                <Button onClick={handleSearch} className="w-full" disabled={searchLoading || loading}>
+                  {searchLoading ? (
+                    <>
+                      <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <SearchIcon className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -298,14 +359,22 @@ export default function SuperAdminTenantsPage() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVerticalIcon className="h-4 w-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          disabled={loadingTenantId === tenant.id || deletingTenant}
+                        >
+                          {loadingTenantId === tenant.id ? (
+                            <RefreshCwIcon className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MoreVerticalIcon className="h-4 w-4" />
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem disabled={deletingTenant}>
                           <EyeIcon className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
@@ -324,6 +393,7 @@ export default function SuperAdminTenantsPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           className="text-red-600"
+                          disabled={deletingTenant}
                           onClick={() => {
                             setTenantToDelete(tenant);
                             setDeleteDialogOpen(true);
@@ -405,15 +475,30 @@ export default function SuperAdminTenantsPage() {
           {tenants && tenants.totalPages > 1 && (
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, tenants.totalCount)} of {tenants.totalCount} tenants
+                {paginationLoading ? (
+                  <div className="flex items-center">
+                    <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                    Loading page {currentPage}...
+                  </div>
+                ) : (
+                  <>
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, tenants.totalCount)} of {tenants.totalCount} tenants
+                  </>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                    loadTenantsData(true);
+                  }}
+                  disabled={currentPage === 1 || paginationLoading}
                 >
+                  {paginationLoading && currentPage > 1 ? (
+                    <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Previous
                 </Button>
                 <span className="text-sm">
@@ -422,9 +507,15 @@ export default function SuperAdminTenantsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(tenants.totalPages, prev + 1))}
-                  disabled={currentPage === tenants.totalPages}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(tenants.totalPages, prev + 1));
+                    loadTenantsData(true);
+                  }}
+                  disabled={currentPage === tenants.totalPages || paginationLoading}
                 >
+                  {paginationLoading && currentPage < tenants.totalPages ? (
+                    <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Next
                 </Button>
               </div>
@@ -485,7 +576,7 @@ export default function SuperAdminTenantsPage() {
             <CardContent>
               <div className="text-center py-12 text-gray-500">
                 <SettingsIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>The Analytics Dashboard will be available soon. We’re currently collecting more data to generate meaningful insights.</p>
+                <p>The Analytics Dashboard will be available soon. We&apos;re currently collecting more data to generate meaningful insights.</p>
               </div>
             </CardContent>
           </Card>
@@ -523,12 +614,29 @@ export default function SuperAdminTenantsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex space-x-2">
-                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={deletingTenant}
+                >
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={handleDeleteTenant}>
-                  <TrashIcon className="h-4 w-4 mr-2" />
-                  Delete Tenant
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteTenant}
+                  disabled={deletingTenant}
+                >
+                  {deletingTenant ? (
+                    <>
+                      <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <TrashIcon className="h-4 w-4 mr-2" />
+                      Delete Tenant
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>

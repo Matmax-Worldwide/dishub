@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { SuperAdminClient } from '@/lib/graphql/superAdmin';
 
@@ -47,6 +46,62 @@ const STATUS_OPTIONS = [
   { value: 'SUSPENDED', label: 'Suspended', color: 'red' },
   { value: 'ARCHIVED', label: 'Archived', color: 'gray' }
 ];
+
+// Custom Switch Component
+const Switch = ({ 
+  checked, 
+  onCheckedChange, 
+  disabled = false,
+  id 
+}: { 
+  checked: boolean; 
+  onCheckedChange: (checked: boolean) => void; 
+  disabled?: boolean;
+  id?: string;
+}) => {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className={`
+        relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105
+        ${checked 
+          ? 'bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 shadow-lg shadow-blue-500/25' 
+          : 'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400'
+        }
+        ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : 'cursor-pointer'}
+      `}
+    >
+      <span
+        className={`
+          inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-all duration-300 ease-in-out
+          ${checked ? 'translate-x-6 shadow-blue-500/20' : 'translate-x-1'}
+          ${!disabled && 'hover:shadow-xl'}
+        `}
+      >
+        {/* Inner dot for visual enhancement */}
+        <span 
+          className={`
+            absolute inset-0.5 rounded-full transition-all duration-300
+            ${checked 
+              ? 'bg-gradient-to-br from-blue-100 to-blue-200' 
+              : 'bg-gradient-to-br from-gray-50 to-gray-100'
+            }
+          `}
+        />
+      </span>
+      
+      {/* Glow effect when active */}
+      {checked && !disabled && (
+        <span className="absolute inset-0 rounded-full bg-blue-400 opacity-20 blur-sm animate-pulse" />
+      )}
+    </button>
+  );
+};
 
 export default function EditTenantPage() {
   const params = useParams();
@@ -120,6 +175,17 @@ export default function EditTenantPage() {
     features: ['CMS_ENGINE']
   });
 
+  // Change detection states
+  const [originalFormData, setOriginalFormData] = useState({
+    name: '',
+    slug: '',
+    domain: '',
+    status: 'ACTIVE',
+    features: ['CMS_ENGINE']
+  });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+
   const loadTenant = async () => {
     try {
       setLoading(true);
@@ -128,10 +194,9 @@ export default function EditTenantPage() {
       console.log('Loading tenant data for tenantId:', tenantId);
       console.log('Current user:', currentUser);
       
-      // Load tenant data, detailed metrics, and tenant users in parallel
-      const [tenantData, metricsData, usersData] = await Promise.all([
+      // Load tenant data and tenant users in parallel
+      const [tenantData, usersData] = await Promise.all([
         graphqlClient.getTenantById(tenantId),
-        graphqlClient.getTenantDetailedMetrics(tenantId),
         graphqlClient.getTenantUsers(tenantId).catch(error => {
           console.error('Error loading tenant users:', error);
           return [];
@@ -141,24 +206,22 @@ export default function EditTenantPage() {
       if (tenantData) {
         setTenant(tenantData);
         
-        // Transform metrics data to match expected structure
-        if (metricsData) {
-          setDetailedMetrics({
-            tenantId: metricsData.tenantId,
-            tenantName: tenantData.name,
-            lastActivity: metricsData.lastActivity,
-            metrics: {
-              totalUsers: tenantData.userCount || 0,
-              activeUsers: tenantData.userCount || 0,
-              totalPages: tenantData.pageCount || 0,
-              publishedPages: tenantData.pageCount || 0,
-              totalPosts: tenantData.postCount || 0,
-              publishedPosts: tenantData.postCount || 0,
-              features: tenantData.features,
-              modules: metricsData.metrics.modules || []
-            }
-          });
-        }
+        // Create simple metrics from tenant data
+        setDetailedMetrics({
+          tenantId: tenantData.id,
+          tenantName: tenantData.name,
+          lastActivity: tenantData.updatedAt,
+          metrics: {
+            totalUsers: tenantData.userCount || 0,
+            activeUsers: tenantData.userCount || 0,
+            totalPages: tenantData.pageCount || 0,
+            publishedPages: tenantData.pageCount || 0,
+            totalPosts: tenantData.postCount || 0,
+            publishedPosts: tenantData.postCount || 0,
+            features: tenantData.features,
+            modules: []
+          }
+        });
         
         // Set tenant users from the separate query
         setTenantUsers(usersData || []);
@@ -183,6 +246,7 @@ export default function EditTenantPage() {
         };
         
         setFormData(newFormData);
+        setOriginalFormData(newFormData); // Store original data for comparison
         validateForm(newFormData);
       } else {
         toast.error('Tenant not found');
@@ -195,6 +259,23 @@ export default function EditTenantPage() {
       setLoadingTenantUsers(false);
     }
   };
+
+  // Check if form has unsaved changes
+  const checkForChanges = useCallback((currentData = formData) => {
+    // Deep comparison for arrays (features)
+    const featuresChanged = JSON.stringify([...currentData.features].sort()) !== JSON.stringify([...originalFormData.features].sort());
+    
+    // Simple comparison for other fields
+    const basicFieldsChanged = 
+      currentData.name.trim() !== originalFormData.name.trim() ||
+      currentData.slug.trim() !== originalFormData.slug.trim() ||
+      currentData.domain.trim() !== originalFormData.domain.trim() ||
+      currentData.status !== originalFormData.status;
+    
+    const hasChanges = basicFieldsChanged || featuresChanged;
+    setHasUnsavedChanges(hasChanges);
+    return hasChanges;
+  }, [formData, originalFormData]);
 
   const validateForm = (data = formData) => {
     const errors: Record<string, string> = {};
@@ -225,6 +306,10 @@ export default function EditTenantPage() {
     
     setFormErrors(errors);
     setIsFormValid(Object.keys(errors).length === 0);
+    
+    // Check for changes whenever validation runs
+    checkForChanges(data);
+    
     return Object.keys(errors).length === 0;
   };
 
@@ -388,6 +473,48 @@ export default function EditTenantPage() {
     }
   };
 
+  // Handle navigation with unsaved changes check
+  const handleNavigation = useCallback((destination: string) => {
+    // Only show confirmation if there are actual unsaved changes
+    if (hasUnsavedChanges) {
+      setShowExitConfirmation(true);
+      return false;
+    }
+    router.push(destination);
+    return true;
+  }, [hasUnsavedChanges, router]);
+
+  // Handle browser back/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only prevent unload if there are actual unsaved changes
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.';
+        return e.returnValue;
+      }
+    };
+
+    const handlePopState = () => {
+      // Handle browser back button
+      if (hasUnsavedChanges) {
+        const confirmLeave = window.confirm('¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.');
+        if (!confirmLeave) {
+          // Push current state back to prevent navigation
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [hasUnsavedChanges]);
+
   const handleSave = async () => {
     if (!validateForm()) {
       toast.error('Please fix the errors before saving');
@@ -436,6 +563,9 @@ export default function EditTenantPage() {
         if (result.tenant) {
           setTenant(result.tenant);
         }
+        // Update original data to reflect saved state
+        setOriginalFormData(formData);
+        setHasUnsavedChanges(false);
         toast.success('Tenant updated successfully');
       } else {
         // Revert optimistic update on failure
@@ -494,12 +624,14 @@ export default function EditTenantPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/super-admin/tenants/list">
-            <Button variant="ghost" size="sm">
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Tenants
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleNavigation('/super-admin/tenants/list')}
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Tenants
+          </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Edit Tenant</h1>
             <p className="text-gray-600">Modify tenant settings and configuration</p>
@@ -514,11 +646,22 @@ export default function EditTenantPage() {
                   ({Object.keys(formErrors).length} error{Object.keys(formErrors).length > 1 ? 's' : ''})
                 </span>
               )}
+              {hasUnsavedChanges && (
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                  <span className="text-xs font-medium text-amber-600">
+                    Cambios sin guardar
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => router.push('/super-admin/tenants/list')}>
+          <Button 
+            variant="outline" 
+            onClick={() => handleNavigation('/super-admin/tenants/list')}
+          >
             Cancel
           </Button>
           <Button 
@@ -535,6 +678,7 @@ export default function EditTenantPage() {
               <>
                 <SaveIcon className="h-4 w-4 mr-2" />
                 Save Changes
+                {hasUnsavedChanges && <span className="ml-1 text-xs">*</span>}
               </>
             )}
           </Button>
@@ -631,20 +775,24 @@ export default function EditTenantPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {AVAILABLE_FEATURES.map(feature => (
-                  <div key={feature.id} className="flex items-center space-x-2 p-2 border rounded text-sm">
-                    <Checkbox
-                      id={feature.id}
+                  <div key={feature.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200">
+                    <div className="flex-1 mr-3">
+                      <Label htmlFor={feature.id} className="text-sm font-medium leading-tight cursor-pointer block">
+                        {feature.name.replace(' Engine', '').replace(' Module', '')}
+                        {feature.required && <span className="text-red-500 ml-1">*</span>}
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1 leading-tight">
+                        {feature.description}
+                      </p>
+                    </div> qué tal
+                    <Switch
                       checked={formData.features.includes(feature.id)}
                       onCheckedChange={() => handleFeatureToggle(feature.id)}
                       disabled={feature.id === 'CMS_ENGINE'}
-                      className="h-4 w-4"
+                      id={feature.id}
                     />
-                    <Label htmlFor={feature.id} className="text-xs font-medium leading-tight cursor-pointer">
-                      {feature.name.replace(' Engine', '').replace(' Module', '')}
-                      {feature.required && <span className="text-red-500 ml-1">*</span>}
-                    </Label>
                   </div>
                 ))}
               </div>
@@ -654,8 +802,9 @@ export default function EditTenantPage() {
                   {formErrors.features}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-3">
-                * CMS is required and cannot be disabled
+              <p className="text-xs text-gray-500 mt-3 flex items-center">
+                <span className="text-red-500 mr-1">*</span>
+                CMS is required and cannot be disabled
               </p>
             </CardContent>
           </Card>
@@ -1036,6 +1185,81 @@ export default function EditTenantPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirmation && hasUnsavedChanges && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl border">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
+                <AlertCircleIcon className="h-6 w-6 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                ¿Salir sin guardar?
+              </h2>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-600 mb-3">
+                Tienes cambios sin guardar que se perderán si sales ahora.
+              </p>
+              
+              {/* Show what changes will be lost */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800 mb-2">Cambios pendientes:</p>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  {formData.name !== originalFormData.name && (
+                    <li>• Nombre del tenant</li>
+                  )}
+                  {formData.slug !== originalFormData.slug && (
+                    <li>• Slug del tenant</li>
+                  )}
+                  {formData.domain !== originalFormData.domain && (
+                    <li>• Dominio personalizado</li>
+                  )}
+                  {formData.status !== originalFormData.status && (
+                    <li>• Estado del tenant</li>
+                  )}
+                  {JSON.stringify([...formData.features].sort()) !== JSON.stringify([...originalFormData.features].sort()) && (
+                    <li>• Configuración de módulos</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowExitConfirmation(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setShowExitConfirmation(false);
+                  handleSave();
+                }}
+                disabled={!isFormValid}
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <SaveIcon className="h-4 w-4 mr-2" />
+                Guardar y Salir
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  setShowExitConfirmation(false);
+                  setHasUnsavedChanges(false);
+                  router.push('/super-admin/tenants/list');
+                }}
+              >
+                Salir sin Guardar
+              </Button>
+            </div>
           </div>
         </div>
       )}
