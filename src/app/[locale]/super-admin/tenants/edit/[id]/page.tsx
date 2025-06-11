@@ -79,18 +79,6 @@ export default function EditTenantPage() {
       publishedPages: number;
       totalPosts: number;
       publishedPosts: number;
-      totalBlogs: number;
-      activeBlogs: number;
-      totalForms: number;
-      activeForms: number;
-      totalFormSubmissions: number;
-      last30DaysFormSubmissions: number;
-      totalBookings: number;
-      last30DaysBookings: number;
-      totalProducts: number;
-      activeProducts: number;
-      totalOrders: number;
-      last30DaysOrders: number;
       features: string[];
       modules: Array<{
         moduleName: string;
@@ -158,7 +146,7 @@ export default function EditTenantPage() {
           setDetailedMetrics({
             tenantId: metricsData.tenantId,
             tenantName: tenantData.name,
-            lastActivity: metricsData.lastUpdated,
+            lastActivity: metricsData.lastActivity,
             metrics: {
               totalUsers: tenantData.userCount || 0,
               activeUsers: tenantData.userCount || 0,
@@ -166,20 +154,8 @@ export default function EditTenantPage() {
               publishedPages: tenantData.pageCount || 0,
               totalPosts: tenantData.postCount || 0,
               publishedPosts: tenantData.postCount || 0,
-              totalBlogs: metricsData.metrics.blogs?.total || 0,
-              activeBlogs: metricsData.metrics.blogs?.active || 0,
-              totalForms: metricsData.metrics.forms?.total || 0,
-              activeForms: metricsData.metrics.forms?.active || 0,
-              totalFormSubmissions: metricsData.metrics.forms?.submissions || 0,
-              last30DaysFormSubmissions: metricsData.metrics.forms?.recentActivity || 0,
-              totalBookings: metricsData.metrics.bookings?.total || 0,
-              last30DaysBookings: metricsData.metrics.bookings?.recentActivity || 0,
-              totalProducts: metricsData.metrics.ecommerce?.products || 0,
-              activeProducts: metricsData.metrics.ecommerce?.products || 0,
-              totalOrders: metricsData.metrics.ecommerce?.orders || 0,
-              last30DaysOrders: metricsData.metrics.ecommerce?.recentActivity || 0,
               features: tenantData.features,
-              modules: []
+              modules: metricsData.metrics.modules || []
             }
           });
         }
@@ -723,62 +699,15 @@ export default function EditTenantPage() {
                   </div>
                 </div>
 
-                {/* Module-specific Metrics (only show if > 0) */}
+                {/* Module-specific Metrics - Simplified */}
                 <div className="space-y-2">
-                  {formData.features.includes('BLOG_MODULE') && detailedMetrics?.metrics?.totalBlogs && detailedMetrics.metrics.totalBlogs > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Blogs</span>
-                      <span className="font-medium">{detailedMetrics.metrics.totalBlogs}</span>
-                    </div>
-                  )}
-                  {formData.features.includes('FORMS_MODULE') && detailedMetrics?.metrics?.totalForms && detailedMetrics.metrics.totalForms > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Forms</span>
-                      <span className="font-medium">{detailedMetrics.metrics.totalForms}</span>
-                    </div>
-                  )}
-                  {formData.features.includes('ECOMMERCE_ENGINE') && detailedMetrics?.metrics?.totalProducts && detailedMetrics.metrics.totalProducts > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Products</span>
-                      <span className="font-medium">{detailedMetrics.metrics.totalProducts}</span>
-                    </div>
-                  )}
-                  {formData.features.includes('BOOKING_ENGINE') && detailedMetrics?.metrics?.totalBookings && detailedMetrics.metrics.totalBookings > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Bookings</span>
-                      <span className="font-medium">{detailedMetrics.metrics.totalBookings}</span>
-                    </div>
-                  )}
+                  <div className="text-xs text-gray-500">
+                    Active modules: {formData.features.filter(f => f !== 'CMS_ENGINE').length}
+                  </div>
                 </div>
               </div>
 
-              {/* Recent Activity Summary (only if there's activity) */}
-              {detailedMetrics?.metrics && (
-                (detailedMetrics.metrics.last30DaysFormSubmissions && detailedMetrics.metrics.last30DaysFormSubmissions > 0) || 
-                (detailedMetrics.metrics.last30DaysOrders && detailedMetrics.metrics.last30DaysOrders > 0) || 
-                (detailedMetrics.metrics.last30DaysBookings && detailedMetrics.metrics.last30DaysBookings > 0)
-              ) && (
-                <div className="mt-4 pt-3 border-t">
-                  <p className="text-xs text-gray-500 mb-2">Last 30 days</p>
-                  <div className="flex flex-wrap gap-2">
-                    {detailedMetrics.metrics.last30DaysFormSubmissions && detailedMetrics.metrics.last30DaysFormSubmissions > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {detailedMetrics.metrics.last30DaysFormSubmissions} submissions
-                      </Badge>
-                    )}
-                    {detailedMetrics.metrics.last30DaysOrders && detailedMetrics.metrics.last30DaysOrders > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {detailedMetrics.metrics.last30DaysOrders} orders
-                      </Badge>
-                    )}
-                    {detailedMetrics.metrics.last30DaysBookings && detailedMetrics.metrics.last30DaysBookings > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {detailedMetrics.metrics.last30DaysBookings} bookings
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
+
 
               {/* Metadata */}
               <div className="mt-4 pt-3 border-t text-xs text-gray-500">

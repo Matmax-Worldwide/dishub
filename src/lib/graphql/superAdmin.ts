@@ -144,18 +144,6 @@ export const TENANT_DETAILED_METRICS_QUERY = `
         publishedPages
         totalPosts
         publishedPosts
-        totalBlogs
-        activeBlogs
-        totalForms
-        activeForms
-        totalFormSubmissions
-        last30DaysFormSubmissions
-        totalBookings
-        last30DaysBookings
-        totalProducts
-        activeProducts
-        totalOrders
-        last30DaysOrders
         features
         modules {
           moduleName
@@ -681,18 +669,6 @@ export interface TenantDetailedMetrics {
     publishedPages: number;
     totalPosts: number;
     publishedPosts: number;
-    totalBlogs: number;
-    activeBlogs: number;
-    totalForms: number;
-    activeForms: number;
-    totalFormSubmissions: number;
-    last30DaysFormSubmissions: number;
-    totalBookings: number;
-    last30DaysBookings: number;
-    totalProducts: number;
-    activeProducts: number;
-    totalOrders: number;
-    last30DaysOrders: number;
     features: string[];
     modules: Array<{
       moduleName: string;
