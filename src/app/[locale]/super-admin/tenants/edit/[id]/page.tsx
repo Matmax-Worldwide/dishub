@@ -2,12 +2,22 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  Button, 
+  Input, 
+  Label, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue, 
+  Badge,
+  Switch
+} from '@/components/super-admin';
 import { SuperAdminClient } from '@/lib/graphql/superAdmin';
 
 import { 
@@ -47,61 +57,7 @@ const STATUS_OPTIONS = [
   { value: 'ARCHIVED', label: 'Archived', color: 'gray' }
 ];
 
-// Custom Switch Component
-const Switch = ({ 
-  checked, 
-  onCheckedChange, 
-  disabled = false,
-  id 
-}: { 
-  checked: boolean; 
-  onCheckedChange: (checked: boolean) => void; 
-  disabled?: boolean;
-  id?: string;
-}) => {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={`
-        relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105
-        ${checked 
-          ? 'bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 shadow-lg shadow-blue-500/25' 
-          : 'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400'
-        }
-        ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : 'cursor-pointer'}
-      `}
-    >
-      <span
-        className={`
-          inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-all duration-300 ease-in-out
-          ${checked ? 'translate-x-6 shadow-blue-500/20' : 'translate-x-1'}
-          ${!disabled && 'hover:shadow-xl'}
-        `}
-      >
-        {/* Inner dot for visual enhancement */}
-        <span 
-          className={`
-            absolute inset-0.5 rounded-full transition-all duration-300
-            ${checked 
-              ? 'bg-gradient-to-br from-blue-100 to-blue-200' 
-              : 'bg-gradient-to-br from-gray-50 to-gray-100'
-            }
-          `}
-        />
-      </span>
-      
-      {/* Glow effect when active */}
-      {checked && !disabled && (
-        <span className="absolute inset-0 rounded-full bg-blue-400 opacity-20 blur-sm animate-pulse" />
-      )}
-    </button>
-  );
-};
+
 
 export default function EditTenantPage() {
   const params = useParams();
@@ -620,7 +576,8 @@ export default function EditTenantPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -633,23 +590,23 @@ export default function EditTenantPage() {
             Back to Tenants
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Tenant</h1>
-            <p className="text-gray-600">Modify tenant settings and configuration</p>
+            <h1 className="text-3xl font-bold text-gray-100">Edit Tenant</h1>
+            <p className="text-gray-400">Modify tenant settings and configuration</p>
             {/* Form validation status indicator */}
             <div className="flex items-center mt-2 space-x-2">
               <div className={`w-2 h-2 rounded-full ${isFormValid ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`text-xs font-medium ${isFormValid ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs font-medium ${isFormValid ? 'text-green-400' : 'text-red-400'}`}>
                 {isFormValid ? 'Form is valid' : 'Please fix errors to save'}
               </span>
               {Object.keys(formErrors).length > 0 && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-400">
                   ({Object.keys(formErrors).length} error{Object.keys(formErrors).length > 1 ? 's' : ''})
                 </span>
               )}
               {hasUnsavedChanges && (
                 <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                  <span className="text-xs font-medium text-amber-600">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                  <span className="text-xs font-medium text-amber-400">
                     Cambios sin guardar
                   </span>
                 </div>
@@ -665,6 +622,7 @@ export default function EditTenantPage() {
             Cancel
           </Button>
           <Button 
+            variant="success"
             onClick={handleSave} 
             disabled={saving || !isFormValid}
             className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}
@@ -708,7 +666,7 @@ export default function EditTenantPage() {
                     className={`h-9 ${formErrors.name ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
                   {formErrors.name && (
-                    <p className="text-xs text-red-600 flex items-center">
+                    <p className="text-xs text-red-400 flex items-center">
                       <span className="mr-1">⚠</span>
                       {formErrors.name}
                     </p>
@@ -724,7 +682,7 @@ export default function EditTenantPage() {
                     className={`h-9 ${formErrors.slug ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
                   {formErrors.slug && (
-                    <p className="text-xs text-red-600 flex items-center">
+                    <p className="text-xs text-red-400 flex items-center">
                       <span className="mr-1">⚠</span>
                       {formErrors.slug}
                     </p>
@@ -757,7 +715,7 @@ export default function EditTenantPage() {
                   className={`h-9 ${formErrors.domain ? 'border-red-500 focus:border-red-500' : ''}`}
                 />
                 {formErrors.domain && (
-                  <p className="text-xs text-red-600 flex items-center">
+                  <p className="text-xs text-red-400 flex items-center">
                     <span className="mr-1">⚠</span>
                     {formErrors.domain}
                   </p>
@@ -777,15 +735,15 @@ export default function EditTenantPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {AVAILABLE_FEATURES.map(feature => (
-                  <div key={feature.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200">
+                  <div key={feature.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg hover:border-blue-500 hover:bg-gray-800/50 transition-all duration-200">
                     <div className="flex-1 mr-3">
                       <Label htmlFor={feature.id} className="text-sm font-medium leading-tight cursor-pointer block">
                         {feature.name.replace(' Engine', '').replace(' Module', '')}
                         {feature.required && <span className="text-red-500 ml-1">*</span>}
                       </Label>
-                      <p className="text-xs text-gray-500 mt-1 leading-tight">
-                        {feature.description}
-                      </p>
+                                              <p className="text-xs text-gray-400 mt-1 leading-tight">
+                          {feature.description}
+                        </p>
                     </div>
                     <Switch
                       checked={formData.features.includes(feature.id)}
@@ -797,12 +755,12 @@ export default function EditTenantPage() {
                 ))}
               </div>
               {formErrors.features && (
-                <p className="text-xs text-red-600 flex items-center mt-3">
+                <p className="text-xs text-red-400 flex items-center mt-3">
                   <span className="mr-1">⚠</span>
                   {formErrors.features}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-3 flex items-center">
+              <p className="text-xs text-gray-400 mt-3 flex items-center">
                 <span className="text-red-500 mr-1">*</span>
                 CMS is required and cannot be disabled
               </p>
@@ -820,11 +778,11 @@ export default function EditTenantPage() {
                   <BarChart3Icon className="h-4 w-4 mr-2" />
                   Overview
                 </span>
-                <Badge className={
-                  formData.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                  formData.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
-                  formData.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
+                <Badge variant={
+                  formData.status === 'ACTIVE' ? 'success' :
+                  formData.status === 'SUSPENDED' ? 'destructive' :
+                  formData.status === 'PENDING' ? 'warning' :
+                  'secondary'
                 }>
                   {formData.status}
                 </Badge>
@@ -835,22 +793,22 @@ export default function EditTenantPage() {
                 {/* Core Metrics */}
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Users</span>
+                    <span className="text-gray-400">Users</span>
                     <span className="font-medium">{detailedMetrics?.metrics?.totalUsers || tenant?.userCount || 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Pages</span>
+                    <span className="text-gray-400">Pages</span>
                     <span className="font-medium">{detailedMetrics?.metrics?.totalPages || tenant?.pageCount || 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Posts</span>
+                    <span className="text-gray-400">Posts</span>
                     <span className="font-medium">{detailedMetrics?.metrics?.totalPosts || tenant?.postCount || 0}</span>
                   </div>
                 </div>
 
                 {/* Module-specific Metrics - Simplified */}
                 <div className="space-y-2">
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     Active modules: {formData.features.filter(f => f !== 'CMS_ENGINE').length}
                   </div>
                 </div>
@@ -859,7 +817,7 @@ export default function EditTenantPage() {
 
 
               {/* Metadata */}
-              <div className="mt-4 pt-3 border-t text-xs text-gray-500">
+              <div className="mt-4 pt-3 border-t border-gray-700 text-xs text-gray-400">
                 <div className="flex justify-between">
                   <span>Created</span>
                   <span>{new Date(tenant?.createdAt || '').toLocaleDateString()}</span>
@@ -906,14 +864,14 @@ export default function EditTenantPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tenantUsers.length > 0 ? (
-                    <>
-                      {/* Show all users if current user is TenantAdmin, otherwise show only first 2 */}
-                      {(currentUser?.role?.name === 'TenantAdmin' ? tenantUsers : tenantUsers.slice(0, 2)).map((user) => (
-                        <div key={user.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                                        {tenantUsers.length > 0 ? (
+                        <>
+                          {/* Show all users if current user is TenantAdmin, otherwise show only first 2 */}
+                          {(currentUser?.role?.name === 'TenantAdmin' ? tenantUsers : tenantUsers.slice(0, 2)).map((user) => (
+                            <div key={user.id} className="flex items-center justify-between p-2 bg-gray-800 rounded text-sm">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{user.firstName} {user.lastName}</p>
-                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                                          <p className="text-xs text-gray-400 truncate">{user.email}</p>
                           </div>
                           <Badge variant="outline" className="text-xs ml-2">
                             {user.userTenants?.find(ut => ut.tenantId === tenantId)?.role?.replace('Tenant', '') || 'User'}
@@ -921,48 +879,48 @@ export default function EditTenantPage() {
                         </div>
                       ))}
                       
-                      {/* Only show "more" indicator if not TenantAdmin and there are more than 2 users */}
-                      {currentUser?.role?.name !== 'TenantAdmin' && tenantUsers.length > 2 && (
-                        <div className="text-center py-1">
-                          <span className="text-xs text-gray-500">
-                            +{tenantUsers.length - 2} more
-                          </span>
+                                                {/* Only show "more" indicator if not TenantAdmin and there are more than 2 users */}
+                          {currentUser?.role?.name !== 'TenantAdmin' && tenantUsers.length > 2 && (
+                            <div className="text-center py-1">
+                              <span className="text-xs text-gray-400">
+                                +{tenantUsers.length - 2} more
+                              </span>
+                            </div>
+                          )}
+                    </>
+                                        ) : (
+                        <div className="text-center py-4 text-gray-400">
+                          <UsersIcon className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                          <p className="text-xs">
+                            {currentUser?.role?.name === 'TenantAdmin' ? 'No users assigned to this tenant' : 'No users assigned'}
+                          </p>
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-gray-500">
-                      <UsersIcon className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                      <p className="text-xs">
-                        {currentUser?.role?.name === 'TenantAdmin' ? 'No users assigned to this tenant' : 'No users assigned'}
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
               {/* Compact Action Buttons */}
-              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs h-8"
-                  onClick={() => openUserModal('create')}
-                  disabled={saving}
-                >
-                  <UserPlusIcon className="h-3 w-3 mr-1" />
-                  Create
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs h-8"
-                  onClick={() => openUserModal('select')}
-                  disabled={saving}
-                >
-                  <SearchIcon className="h-3 w-3 mr-1" />
-                  Assign
-                </Button>
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gray-700">
+                                  <Button 
+                    variant="primary" 
+                    size="sm"
+                    className="text-xs h-8"
+                    onClick={() => openUserModal('create')}
+                    disabled={saving}
+                  >
+                    <UserPlusIcon className="h-3 w-3 mr-1" />
+                    Create
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    className="text-xs h-8"
+                    onClick={() => openUserModal('select')}
+                    disabled={saving}
+                  >
+                    <SearchIcon className="h-3 w-3 mr-1" />
+                    Assign
+                  </Button>
               </div>
             </CardContent>
           </Card>
@@ -993,11 +951,11 @@ export default function EditTenantPage() {
       {/* User Management Modal */}
       {showUserModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">
-                {userModalMode === 'create' ? 'Create New User' : 'Assign Existing User'}
-              </h2>
+                              <h2 className="text-xl font-semibold text-gray-100">
+                  {userModalMode === 'create' ? 'Create New User' : 'Assign Existing User'}
+                </h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -1088,6 +1046,7 @@ export default function EditTenantPage() {
                     Cancel
                   </Button>
                   <Button 
+                    variant="success"
                     onClick={handleCreateUser}
                     disabled={saving || !newUserForm.email || !newUserForm.firstName || !newUserForm.lastName || !newUserForm.password}
                     className={(!newUserForm.email || !newUserForm.firstName || !newUserForm.lastName || !newUserForm.password) ? 'opacity-50 cursor-not-allowed' : ''}
@@ -1132,14 +1091,14 @@ export default function EditTenantPage() {
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {users.length > 0 ? (
                       users.map((user) => (
-                        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                        <div key={user.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg hover:bg-gray-800">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
                               <div>
-                                <p className="font-medium">{user.firstName} {user.lastName}</p>
-                                <p className="text-sm text-gray-500">{user.email}</p>
+                                <p className="font-medium text-gray-100">{user.firstName} {user.lastName}</p>
+                                <p className="text-sm text-gray-400">{user.email}</p>
                                 {user.phoneNumber && (
-                                  <p className="text-xs text-gray-400">{user.phoneNumber}</p>
+                                  <p className="text-xs text-gray-500">{user.phoneNumber}</p>
                                 )}
                               </div>
                             </div>
@@ -1149,6 +1108,7 @@ export default function EditTenantPage() {
                               {user.role.name}
                             </Badge>
                             <Button
+                              variant="success"
                               size="sm"
                               onClick={() => handleAssignUser(user.id)}
                               disabled={saving}
@@ -1167,7 +1127,7 @@ export default function EditTenantPage() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-center text-gray-500 py-8">
+                      <p className="text-center text-gray-400 py-8">
                         {searchQuery ? 'No users found matching your search.' : 'No available users to assign.'}
                       </p>
                     )}
@@ -1178,7 +1138,7 @@ export default function EditTenantPage() {
                   <Button variant="outline" onClick={() => setShowUserModal(false)}>
                     Cancel
                   </Button>
-                  <Button variant="outline" onClick={loadUsers}>
+                  <Button variant="primary" onClick={loadUsers}>
                     <SearchIcon className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
@@ -1192,25 +1152,25 @@ export default function EditTenantPage() {
       {/* Exit Confirmation Modal */}
       {showExitConfirmation && hasUnsavedChanges && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl border">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
-                <AlertCircleIcon className="h-6 w-6 text-amber-600" />
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-md shadow-2xl">
+                          <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-amber-900/50 rounded-full flex items-center justify-center mr-3">
+                  <AlertCircleIcon className="h-6 w-6 text-amber-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-100">
+                  ¿Salir sin guardar?
+                </h2>
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                ¿Salir sin guardar?
-              </h2>
-            </div>
             
             <div className="mb-6">
-              <p className="text-gray-600 mb-3">
+              <p className="text-gray-300 mb-3">
                 Tienes cambios sin guardar que se perderán si sales ahora.
               </p>
               
               {/* Show what changes will be lost */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-amber-800 mb-2">Cambios pendientes:</p>
-                <ul className="text-sm text-amber-700 space-y-1">
+              <div className="bg-amber-900/20 border border-amber-700 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-300 mb-2">Cambios pendientes:</p>
+                <ul className="text-sm text-amber-200 space-y-1">
                   {formData.name !== originalFormData.name && (
                     <li>• Nombre del tenant</li>
                   )}
@@ -1238,13 +1198,12 @@ export default function EditTenantPage() {
                 Cancelar
               </Button>
               <Button 
-                variant="outline"
+                variant="success"
                 onClick={() => {
                   setShowExitConfirmation(false);
                   handleSave();
                 }}
                 disabled={!isFormValid}
-                className="border-blue-500 text-blue-600 hover:bg-blue-50"
               >
                 <SaveIcon className="h-4 w-4 mr-2" />
                 Guardar y Salir
@@ -1263,6 +1222,7 @@ export default function EditTenantPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

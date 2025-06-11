@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Textarea,
+  Checkbox,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/super-admin';
 import { 
   ArrowLeftIcon,
   SaveIcon,
@@ -317,7 +327,8 @@ export default function CreateTenantPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button 
@@ -329,21 +340,35 @@ export default function CreateTenantPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-100">
               🏢 Create New Tenant
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-400 mt-1">
               Set up a new tenant with admin user and features
             </p>
+            <div className="flex items-center mt-2 space-x-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <span className="text-xs font-medium text-blue-400">
+                Step 1 of 1: Configuration
+              </span>
+            </div>
           </div>
         </div>
+        {loading && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-900/50 border border-blue-700 rounded-full">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+            <span className="text-sm text-blue-300 font-medium">
+              Creating tenant...
+            </span>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <HomeIcon className="h-5 w-5 mr-2" />
+              <HomeIcon className="h-5 w-5 mr-2 text-blue-400" />
               Basic Information
             </CardTitle>
             <CardDescription>
@@ -371,7 +396,7 @@ export default function CreateTenantPage() {
                   placeholder="e.g., acme-corp"
                   required
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-400">
                   Used in URLs and must be unique
                 </p>
               </div>
@@ -420,7 +445,7 @@ export default function CreateTenantPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <UserIcon className="h-5 w-5 mr-2" />
+              <UserIcon className="h-5 w-5 mr-2 text-green-400" />
               Admin User
             </CardTitle>
             <CardDescription>
@@ -428,12 +453,11 @@ export default function CreateTenantPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Admin Mode Toggle */}
-            <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50">
+            <div className="flex items-center space-x-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
               <div className="flex items-center space-x-2">
                 <Button
                   type="button"
-                  variant={formData.adminMode === 'create' ? 'default' : 'outline'}
+                  variant={formData.adminMode === 'create' ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => handleAdminModeChange('create')}
                   className="flex items-center space-x-2"
@@ -443,7 +467,7 @@ export default function CreateTenantPage() {
                 </Button>
                 <Button
                   type="button"
-                  variant={formData.adminMode === 'select' ? 'default' : 'outline'}
+                  variant={formData.adminMode === 'select' ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => handleAdminModeChange('select')}
                   className="flex items-center space-x-2"
@@ -454,62 +478,71 @@ export default function CreateTenantPage() {
               </div>
             </div>
 
-            {/* Create New User Form */}
             {formData.adminMode === 'create' && (
-              <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adminFirstName">First Name *</Label>
-                <Input
-                  id="adminFirstName"
-                  value={formData.adminFirstName}
-                  onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
-                  placeholder="John"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminLastName">Last Name *</Label>
-                <Input
-                  id="adminLastName"
-                  value={formData.adminLastName}
-                  onChange={(e) => handleInputChange('adminLastName', e.target.value)}
-                  placeholder="Doe"
-                  required
-                />
-              </div>
-            </div>
+              <div className="space-y-4 p-4 border border-green-700/50 rounded-lg bg-green-900/10">
+                <div className="flex items-center space-x-2 mb-3">
+                  <UserPlusIcon className="h-4 w-4 text-green-400" />
+                  <span className="text-sm font-medium text-green-400">Creating New Admin User</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminFirstName">First Name *</Label>
+                    <Input
+                      id="adminFirstName"
+                      value={formData.adminFirstName}
+                      onChange={(e) => handleInputChange('adminFirstName', e.target.value)}
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminLastName">Last Name *</Label>
+                    <Input
+                      id="adminLastName"
+                      value={formData.adminLastName}
+                      onChange={(e) => handleInputChange('adminLastName', e.target.value)}
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adminEmail">Email *</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={formData.adminEmail}
-                  onChange={(e) => handleInputChange('adminEmail', e.target.value)}
-                  placeholder="admin@acme.com"
-                  required
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminEmail">Email *</Label>
+                    <Input
+                      id="adminEmail"
+                      type="email"
+                      value={formData.adminEmail}
+                      onChange={(e) => handleInputChange('adminEmail', e.target.value)}
+                      placeholder="admin@acme.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPassword">Password *</Label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      value={formData.adminPassword}
+                      onChange={(e) => handleInputChange('adminPassword', e.target.value)}
+                      placeholder="Secure password (min 6 chars)"
+                      required
+                    />
+                    <p className="text-xs text-gray-400">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminPassword">Password *</Label>
-                <Input
-                  id="adminPassword"
-                  type="password"
-                  value={formData.adminPassword}
-                  onChange={(e) => handleInputChange('adminPassword', e.target.value)}
-                  placeholder="Secure password"
-                  required
-                />
-              </div>
-            </div>
-              </>
             )}
 
-            {/* Select Existing User */}
             {formData.adminMode === 'select' && (
-              <div className="space-y-4">
+              <div className="space-y-4 p-4 border border-blue-700/50 rounded-lg bg-blue-900/10">
+                <div className="flex items-center space-x-2 mb-3">
+                  <UserCheckIcon className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm font-medium text-blue-400">Selecting Existing User</span>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="userSearch">Search Users</Label>
                   <div className="relative">
@@ -526,13 +559,13 @@ export default function CreateTenantPage() {
 
                 {loadingUsers ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin h-6 w-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-                    <span className="ml-2 text-gray-600">Loading users...</span>
+                    <div className="animate-spin h-6 w-6 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                    <span className="ml-2 text-gray-400">Loading users...</span>
                   </div>
                 ) : (
-                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                  <div className="max-h-64 overflow-y-auto border border-gray-700 rounded-lg">
                     {filteredUsers.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-gray-400">
                         {userSearchTerm ? 'No users found matching your search' : 'No users available'}
                       </div>
                     ) : (
@@ -542,28 +575,28 @@ export default function CreateTenantPage() {
                             key={user.id}
                             className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                               formData.selectedUserId === user.id
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                ? 'border-blue-500 bg-blue-900/30'
+                                : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/50'
                             }`}
                             onClick={() => handleUserSelect(user)}
                           >
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium text-gray-900">
+                                <p className="font-medium text-gray-100">
                                   {user.firstName} {user.lastName}
                                 </p>
-                                <p className="text-sm text-gray-500">{user.email}</p>
+                                <p className="text-sm text-gray-400">{user.email}</p>
                                 {user.phoneNumber && (
-                                  <p className="text-xs text-gray-400">{user.phoneNumber}</p>
+                                  <p className="text-xs text-gray-500">{user.phoneNumber}</p>
                                 )}
                               </div>
                               <div className="text-right">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
                                   {user.role.name}
                                 </span>
                                 {formData.selectedUserId === user.id && (
                                   <div className="mt-1">
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-600 text-blue-100">
                                       ✓ Selected
                                     </span>
                                   </div>
@@ -578,11 +611,11 @@ export default function CreateTenantPage() {
                 )}
 
                 {formData.selectedUserId && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
+                  <div className="p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                    <p className="text-sm text-blue-300">
                       <strong>Selected user:</strong> {formData.adminFirstName} {formData.adminLastName} ({formData.adminEmail})
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-blue-400 mt-1">
                       This user will be assigned as the admin for the new tenant.
                     </p>
                   </div>
@@ -595,7 +628,7 @@ export default function CreateTenantPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <PackageIcon className="h-5 w-5 mr-2" />
+              <PackageIcon className="h-5 w-5 mr-2 text-purple-400" />
               Features & Modules
             </CardTitle>
             <CardDescription>
@@ -613,46 +646,46 @@ export default function CreateTenantPage() {
                 const isDisabled = isRequired || hasSelectedDependents;
                 
                 return (
-                  <div key={feature.id} className={`flex items-start space-x-3 p-3 border rounded-lg ${
-                    isDisabled ? 'bg-gray-50' : ''
+                  <div key={feature.id} className={`flex items-start space-x-3 p-3 border rounded-lg transition-all duration-200 ${
+                    isDisabled ? 'bg-gray-800/50 border-gray-600' : 'border-gray-700 hover:border-blue-500 hover:bg-gray-800/30'
                   }`}>
-                  <Checkbox
-                    id={feature.id}
+                    <Checkbox
+                      id={feature.id}
                       checked={isSelected}
-                    onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
+                      onCheckedChange={(checked) => handleFeatureToggle(feature.id, checked as boolean)}
                       disabled={isDisabled}
-                  />
-                  <div className="flex-1">
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                    <Label htmlFor={feature.id} className="font-medium">
-                      {feature.name}
-                    </Label>
+                        <Label htmlFor={feature.id} className="font-medium text-gray-200">
+                          {feature.name}
+                        </Label>
                         <span className={`px-2 py-0.5 rounded-full text-xs ${
                           feature.category === 'Engine' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-green-100 text-green-800'
+                            ? 'bg-blue-600 text-blue-100' 
+                            : 'bg-green-600 text-green-100'
                         }`}>
                           {feature.category}
                         </span>
-                        
                       </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {feature.description}
-                    </p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {feature.description}
+                      </p>
                       {feature.dependencies && feature.dependencies.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           Requires: {feature.dependencies.map(dep => 
                             getEngineById(dep)?.name || dep
                           ).join(', ')}
                         </p>
                       )}
                       {isRequired && (
-                        <p className="text-xs text-blue-600 mt-1 font-medium">
+                        <p className="text-xs text-blue-400 mt-1 font-medium">
                           ✓ Required
                         </p>
                       )}
                       {hasSelectedDependents && !isRequired && (
-                        <p className="text-xs text-orange-600 mt-1 font-medium">
+                        <p className="text-xs text-amber-400 mt-1 font-medium">
                           ⚠ Required by selected features
                         </p>
                       )}
@@ -660,48 +693,57 @@ export default function CreateTenantPage() {
                   </div>
                 );
               })}
-                </div>
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800 font-medium mb-1">
+            </div>
+            
+            <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+              <p className="text-xs text-blue-300 font-medium mb-1">
                 💡 Feature Selection Tips:
               </p>
-              <ul className="text-xs text-blue-700 space-y-1">
+              <ul className="text-xs text-blue-200 space-y-1">
                 <li>• CMS Engine is required for all tenants</li>
                 <li>• Dependencies are automatically added when selecting features</li>
                 <li>• Features with dependents cannot be removed</li>
-                <li>• Pricing is calculated based on selected features</li>
+                <li>• You can modify features later in tenant settings</li>
               </ul>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end space-x-4">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="min-w-[120px]"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
-                Creating...
-              </div>
-            ) : (
-              <>
-                <SaveIcon className="h-4 w-4 mr-2" />
-                Create Tenant
-              </>
-            )}
-          </Button>
+        <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+          <div className="text-sm text-gray-400">
+            {formData.features.length} feature{formData.features.length !== 1 ? 's' : ''} selected
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="success"
+              disabled={loading}
+              className="min-w-[140px]"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
+                  Creating...
+                </div>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Create Tenant
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
+      </div>
     </div>
   );
 } 

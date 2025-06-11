@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from 'react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle,
+  Badge,
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/super-admin';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/super-admin';
 import { 
   HomeIcon, 
   SearchIcon,
@@ -37,7 +47,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/super-admin';
 
 
 interface TenantsPageData {
@@ -189,13 +199,13 @@ export default function SuperAdminTenantsPage() {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircleIcon className="h-3 w-3 mr-1" />Active</Badge>;
+        return <Badge variant="success"><CheckCircleIcon className="h-3 w-3 mr-1" />Active</Badge>;
       case 'archived':
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200"><XCircleIcon className="h-3 w-3 mr-1" />Archived</Badge>;
+        return <Badge variant="secondary"><XCircleIcon className="h-3 w-3 mr-1" />Archived</Badge>;
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800 border-red-200"><AlertCircleIcon className="h-3 w-3 mr-1" />Suspended</Badge>;
+        return <Badge variant="destructive"><AlertCircleIcon className="h-3 w-3 mr-1" />Suspended</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><ClockIcon className="h-3 w-3 mr-1" />Pending</Badge>;
+        return <Badge variant="warning"><ClockIcon className="h-3 w-3 mr-1" />Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -207,10 +217,10 @@ export default function SuperAdminTenantsPage() {
   };
 
   const getHealthBadge = (score: number) => {
-    if (score >= 80) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-100 text-yellow-800">Good</Badge>;
-    if (score >= 40) return <Badge className="bg-orange-100 text-orange-800">Fair</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Poor</Badge>;
+    if (score >= 80) return <Badge variant="success">Excellent</Badge>;
+    if (score >= 60) return <Badge variant="warning">Good</Badge>;
+    if (score >= 40) return <Badge variant="warning">Fair</Badge>;
+    return <Badge variant="destructive">Poor</Badge>;
   };
 
   useEffect(() => {
@@ -235,18 +245,19 @@ export default function SuperAdminTenantsPage() {
   const { tenants, healthMetrics } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-3">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-100">
               🏢 Tenant Management
             </h1>
             {(loading || searchLoading || paginationLoading || deletingTenant) && (
-              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
-                <RefreshCwIcon className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-sm text-blue-700 font-medium">
+              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-900/50 border border-blue-700 rounded-full">
+                <RefreshCwIcon className="h-4 w-4 animate-spin text-blue-400" />
+                <span className="text-sm text-blue-300 font-medium">
                   {loading && 'Loading tenants...'}
                   {searchLoading && 'Searching...'}
                   {paginationLoading && 'Loading page...'}
@@ -255,10 +266,10 @@ export default function SuperAdminTenantsPage() {
               </div>
             )}
           </div>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-400 mt-1">
             Manage all tenants across the platform • {tenants?.totalCount || 0} total tenants
             {(searchLoading || paginationLoading) && (
-              <span className="ml-2 text-blue-600 font-medium">
+              <span className="ml-2 text-blue-400 font-medium">
                 (Updating...)
               </span>
             )}
@@ -275,7 +286,7 @@ export default function SuperAdminTenantsPage() {
             Refresh
           </Button>
           <Link href="/super-admin/tenants/create">
-          <Button>
+          <Button variant="primary">
             <PlusIcon className="h-4 w-4 mr-2" />
             Create Tenant
           </Button>
@@ -322,7 +333,7 @@ export default function SuperAdminTenantsPage() {
                     <SelectItem value="ARCHIVED">Archived</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button onClick={handleSearch} className="w-full" disabled={searchLoading || loading}>
+                <Button variant="primary" onClick={handleSearch} className="w-full" disabled={searchLoading || loading}>
                   {searchLoading ? (
                     <>
                       <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
@@ -342,20 +353,20 @@ export default function SuperAdminTenantsPage() {
           {/* Tenants Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {tenants?.items.map((tenant) => (
-              <Card key={tenant.id} className="hover:shadow-lg transition-all duration-200 hover:border-blue-200">
+              <Card key={tenant.id} className="hover:shadow-lg transition-all duration-200 hover:border-blue-500">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
-                        <CardTitle className="text-lg cursor-pointer hover:text-blue-600 hover:underline transition-colors duration-200">
+                        <CardTitle className="text-lg cursor-pointer hover:text-blue-400 hover:underline transition-colors duration-200">
                           {tenant.name}
                         </CardTitle>
                       </Link>
-                      <CardDescription className="mt-1">
-                        <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                          {tenant.slug}
-                        </span>
-                      </CardDescription>
+                                              <CardDescription className="mt-1">
+                          <span className="font-mono text-sm bg-gray-800 px-2 py-1 rounded">
+                            {tenant.slug}
+                          </span>
+                        </CardDescription>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -415,39 +426,39 @@ export default function SuperAdminTenantsPage() {
 
                   {/* Domain */}
                   {tenant.domain && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-400">
                       <span className="font-medium">Domain:</span> {tenant.domain}
                     </div>
                   )}
 
                   {/* Stats */}
-                  <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                  <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-700">
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-1">
-                        <UsersIcon className="h-4 w-4 text-gray-500" />
+                        <UsersIcon className="h-4 w-4 text-gray-400" />
                       </div>
                       <div className="text-lg font-semibold">{tenant.userCount}</div>
-                      <div className="text-xs text-gray-500">Users</div>
+                      <div className="text-xs text-gray-400">Users</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-1">
-                        <FileTextIcon className="h-4 w-4 text-gray-500" />
+                        <FileTextIcon className="h-4 w-4 text-gray-400" />
                       </div>
                       <div className="text-lg font-semibold">{tenant.pageCount}</div>
-                      <div className="text-xs text-gray-500">Pages</div>
+                      <div className="text-xs text-gray-400">Pages</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-1">
-                        <HomeIcon className="h-4 w-4 text-gray-500" />
+                        <HomeIcon className="h-4 w-4 text-gray-400" />
                       </div>
                       <div className="text-lg font-semibold">{tenant.postCount}</div>
-                      <div className="text-xs text-gray-500">Posts</div>
+                      <div className="text-xs text-gray-400">Posts</div>
                     </div>
                   </div>
 
                   {/* Features */}
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-gray-700">Features:</div>
+                    <div className="text-sm font-medium text-gray-300">Features:</div>
                     <div className="flex flex-wrap gap-1">
                       {tenant.features.slice(0, 3).map((feature) => (
                         <Badge key={feature} variant="outline" className="text-xs">
@@ -463,7 +474,7 @@ export default function SuperAdminTenantsPage() {
                   </div>
 
                   {/* Created Date */}
-                  <div className="text-xs text-gray-500 pt-2 border-t">
+                  <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
                     Created: {new Date(tenant.createdAt).toLocaleDateString()}
                   </div>
                 </CardContent>
@@ -474,7 +485,7 @@ export default function SuperAdminTenantsPage() {
           {/* Pagination */}
           {tenants && tenants.totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-400">
                 {paginationLoading ? (
                   <div className="flex items-center">
                     <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
@@ -586,7 +597,7 @@ export default function SuperAdminTenantsPage() {
       {/* Delete Confirmation Section */}
       {deleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-lg w-full border-red-200 bg-red-50 shadow-lg">
+          <Card className="max-w-lg w-full border-red-700 bg-red-900/20 shadow-lg">
             <CardHeader>
               <CardTitle className="text-red-900 flex items-center">
                 <AlertCircleIcon className="h-5 w-5 mr-2" />
@@ -643,6 +654,7 @@ export default function SuperAdminTenantsPage() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 } 
