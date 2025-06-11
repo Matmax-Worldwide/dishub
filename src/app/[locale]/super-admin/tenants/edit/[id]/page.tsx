@@ -786,7 +786,7 @@ export default function EditTenantPage() {
                       <p className="text-xs text-gray-500 mt-1 leading-tight">
                         {feature.description}
                       </p>
-                    </div> qué tal
+                    </div>
                     <Switch
                       checked={formData.features.includes(feature.id)}
                       onCheckedChange={() => handleFeatureToggle(feature.id)}
