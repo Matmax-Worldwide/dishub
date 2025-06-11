@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { SuperAdminClient } from '@/lib/graphql/superAdmin';
 
 import { 
   ArrowLeftIcon, 
@@ -26,7 +27,7 @@ import {
   EyeIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { SuperAdminClient, type TenantDetails, type TenantDetailedMetrics, type User } from '@/lib/graphql/superAdmin';
+import graphqlClient, { type User, type UserTenant } from '@/lib/graphql-client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -53,8 +54,52 @@ export default function EditTenantPage() {
   const tenantId = params.id as string;
   const { user: currentUser } = useAuth();
 
-  const [tenant, setTenant] = useState<TenantDetails | null>(null);
-  const [detailedMetrics, setDetailedMetrics] = useState<TenantDetailedMetrics | null>(null);
+  const [tenant, setTenant] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string;
+    status: string;
+    planId?: string;
+    features: string[];
+    userCount: number;
+    pageCount: number;
+    postCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null>(null);
+  const [detailedMetrics, setDetailedMetrics] = useState<{
+    tenantId: string;
+    tenantName: string;
+    lastActivity: string;
+    metrics: {
+      totalUsers: number;
+      activeUsers: number;
+      totalPages: number;
+      publishedPages: number;
+      totalPosts: number;
+      publishedPosts: number;
+      totalBlogs: number;
+      activeBlogs: number;
+      totalForms: number;
+      activeForms: number;
+      totalFormSubmissions: number;
+      last30DaysFormSubmissions: number;
+      totalBookings: number;
+      last30DaysBookings: number;
+      totalProducts: number;
+      activeProducts: number;
+      totalOrders: number;
+      last30DaysOrders: number;
+      features: string[];
+      modules: Array<{
+        moduleName: string;
+        isActive: boolean;
+        itemCount: number;
+        last30DaysActivity: number;
+      }>;
+    };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -92,16 +137,52 @@ export default function EditTenantPage() {
       setLoading(true);
       setLoadingTenantUsers(true);
       
+      console.log('Loading tenant data for tenantId:', tenantId);
+      console.log('Current user:', currentUser);
+      
       // Load tenant data, detailed metrics, and tenant users in parallel
       const [tenantData, metricsData, usersData] = await Promise.all([
-        SuperAdminClient.getTenantById(tenantId),
-        SuperAdminClient.getTenantDetailedMetrics(tenantId),
-        SuperAdminClient.getTenantUsers(tenantId)
+        graphqlClient.getTenantById(tenantId),
+        graphqlClient.getTenantDetailedMetrics(tenantId),
+        graphqlClient.getTenantUsers(tenantId).catch(error => {
+          console.error('Error loading tenant users:', error);
+          return [];
+        })
       ]);
       
       if (tenantData) {
         setTenant(tenantData);
-        setDetailedMetrics(metricsData);
+        
+        // Transform metrics data to match expected structure
+        if (metricsData) {
+          setDetailedMetrics({
+            tenantId: metricsData.tenantId,
+            tenantName: tenantData.name,
+            lastActivity: metricsData.lastUpdated,
+            metrics: {
+              totalUsers: tenantData.userCount || 0,
+              activeUsers: tenantData.userCount || 0,
+              totalPages: tenantData.pageCount || 0,
+              publishedPages: tenantData.pageCount || 0,
+              totalPosts: tenantData.postCount || 0,
+              publishedPosts: tenantData.postCount || 0,
+              totalBlogs: metricsData.metrics.blogs?.total || 0,
+              activeBlogs: metricsData.metrics.blogs?.active || 0,
+              totalForms: metricsData.metrics.forms?.total || 0,
+              activeForms: metricsData.metrics.forms?.active || 0,
+              totalFormSubmissions: metricsData.metrics.forms?.submissions || 0,
+              last30DaysFormSubmissions: metricsData.metrics.forms?.recentActivity || 0,
+              totalBookings: metricsData.metrics.bookings?.total || 0,
+              last30DaysBookings: metricsData.metrics.bookings?.recentActivity || 0,
+              totalProducts: metricsData.metrics.ecommerce?.products || 0,
+              activeProducts: metricsData.metrics.ecommerce?.products || 0,
+              totalOrders: metricsData.metrics.ecommerce?.orders || 0,
+              last30DaysOrders: metricsData.metrics.ecommerce?.recentActivity || 0,
+              features: tenantData.features,
+              modules: []
+            }
+          });
+        }
         
         // Set tenant users from the separate query
         setTenantUsers(usersData || []);
@@ -174,13 +255,10 @@ export default function EditTenantPage() {
   const loadUsers = async () => {
     try {
       setLoadingUsers(true);
-      const usersData = await SuperAdminClient.getAllUsers(
-        { search: searchQuery, isActive: true },
-        { page: 1, pageSize: 50 }
-      );
+      const usersData = await graphqlClient.getAllUsers(searchQuery, undefined, true);
       // Filter out users that are already assigned to this tenant
-      const availableUsers = usersData.items.filter(user => 
-        !user.userTenants.some(ut => ut.tenantId === tenantId && ut.isActive)
+      const availableUsers = usersData.filter((user: User) => 
+        !user.userTenants?.some((ut: UserTenant) => ut.tenantId === tenantId && ut.isActive)
       );
       setUsers(availableUsers);
     } catch (error) {
@@ -197,9 +275,10 @@ export default function EditTenantPage() {
     try {
       setSaving(true);
       
-      const result = await SuperAdminClient.createUserAndAssignTenant({
+      const result = await graphqlClient.createUserAndAssignTenant({
         ...newUserForm,
-        tenantId
+        tenantId,
+        tenantRole: newUserForm.role as 'TenantAdmin' | 'TenantManager' | 'TenantUser' | 'Employee'
       });
 
       if (result.success && result.user) {
@@ -223,7 +302,7 @@ export default function EditTenantPage() {
     try {
       setSaving(true);
       
-      const result = await SuperAdminClient.assignUserToTenant(tenantId, userId, 'TenantUser');
+      const result = await graphqlClient.assignUserToTenant(tenantId, userId, 'TenantUser');
       
       if (result.success && result.userTenant) {
         // Find the user and add to tenant users (optimistic update)
@@ -350,7 +429,7 @@ export default function EditTenantPage() {
 
       // Optimistic UI: Update tenant state immediately
       const previousTenant = tenant;
-      const optimisticTenant: TenantDetails = {
+      const optimisticTenant = {
         ...tenant!,
         name: formData.name.trim(),
         slug: formData.slug.trim(),
@@ -759,7 +838,7 @@ export default function EditTenantPage() {
                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
                           </div>
                           <Badge variant="outline" className="text-xs ml-2">
-                            {user.userTenants.find(ut => ut.tenantId === tenantId)?.role?.replace('Tenant', '') || 'User'}
+                            {user.userTenants?.find(ut => ut.tenantId === tenantId)?.role?.replace('Tenant', '') || 'User'}
                           </Badge>
                         </div>
                       ))}

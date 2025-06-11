@@ -8453,6 +8453,278 @@ const graphqlClient = {
   },
 
   // Tenant Management (SuperAdmin)
+  async getUsersByTenantSlug(tenantSlug: string): Promise<User[]> {
+    const query = `
+      query GetUsersByTenantSlug($tenantSlug: String!) {
+        getUsersByTenantSlug(tenantSlug: $tenantSlug) {
+          id
+          email
+          firstName
+          lastName
+          phoneNumber
+          profileImageUrl
+          isActive
+          role {
+            id
+            name
+            description
+          }
+          userTenants {
+            id
+            tenantId
+            role
+            isActive
+            joinedAt
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ getUsersByTenantSlug: User[] }>(query, { tenantSlug });
+      return result.getUsersByTenantSlug || [];
+    } catch (error) {
+      console.error('Error fetching users by tenant slug:', error);
+      return [];
+    }
+  },
+
+  async getTenantUsers(tenantId: string): Promise<User[]> {
+    console.log('🚀 GraphQL Client - getTenantUsers called with tenantId:', tenantId);
+    const query = `
+      query TenantUsers($tenantId: ID!) {
+        tenantUsers(tenantId: $tenantId) {
+          id
+          email
+          firstName
+          lastName
+          phoneNumber
+          profileImageUrl
+          isActive
+          role {
+            id
+            name
+            description
+          }
+          userTenants {
+            id
+            tenantId
+            role
+            isActive
+            joinedAt
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      console.log('🚀 GraphQL Client - Making gqlRequest for tenantUsers');
+      const result = await gqlRequest<{ tenantUsers: User[] }>(query, { tenantId });
+      console.log('🚀 GraphQL Client - tenantUsers result:', result);
+      console.log('🚀 GraphQL Client - result.tenantUsers:', result.tenantUsers);
+      console.log('🚀 GraphQL Client - result keys:', Object.keys(result));
+      return result.tenantUsers || [];
+    } catch (error) {
+      console.error('❌ Error fetching tenant users:', error);
+      return [];
+    }
+  },
+
+  async getTenantDetailedMetrics(tenantId: string): Promise<{
+    tenantId: string;
+    lastUpdated: string;
+    metrics: {
+      blogs: { total: number; active: number; recentActivity: number };
+      forms: { total: number; active: number; submissions: number; recentActivity: number };
+      ecommerce: { products: number; orders: number; revenue: number; recentActivity: number };
+      bookings: { total: number; confirmed: number; revenue: number; recentActivity: number };
+    };
+  } | null> {
+    const query = `
+      query TenantDetailedMetrics($tenantId: ID!) {
+        tenantDetailedMetrics(tenantId: $tenantId) {
+          tenantId
+          lastUpdated
+          metrics {
+            blogs {
+              total
+              active
+              recentActivity
+            }
+            forms {
+              total
+              active
+              submissions
+              recentActivity
+            }
+            ecommerce {
+              products
+              orders
+              revenue
+              recentActivity
+            }
+            bookings {
+              total
+              confirmed
+              revenue
+              recentActivity
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ tenantDetailedMetrics: {
+        tenantId: string;
+        lastUpdated: string;
+        metrics: {
+          blogs: { total: number; active: number; recentActivity: number };
+          forms: { total: number; active: number; submissions: number; recentActivity: number };
+          ecommerce: { products: number; orders: number; revenue: number; recentActivity: number };
+          bookings: { total: number; confirmed: number; revenue: number; recentActivity: number };
+        };
+      } | null }>(query, { tenantId });
+      return result.tenantDetailedMetrics;
+    } catch (error) {
+      console.error('Error fetching tenant detailed metrics:', error);
+      return null;
+    }
+  },
+
+  async getAllUsers(search?: string, role?: string, isActive?: boolean): Promise<User[]> {
+    const query = `
+      query AllUsers($search: String, $role: String, $isActive: Boolean) {
+        allUsers(search: $search, role: $role, isActive: $isActive) {
+          id
+          email
+          firstName
+          lastName
+          phoneNumber
+          profileImageUrl
+          isActive
+          role {
+            id
+            name
+            description
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ allUsers: User[] }>(query, { search, role, isActive });
+      return result.allUsers || [];
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      return [];
+    }
+  },
+
+  async createUserAndAssignTenant(input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    password: string;
+    role: string;
+    tenantId: string;
+    tenantRole: 'TenantAdmin' | 'TenantManager' | 'TenantUser' | 'Employee';
+  }): Promise<{
+    success: boolean;
+    message: string;
+    user?: User;
+    userTenant?: UserTenant;
+  }> {
+    const mutation = `
+      mutation CreateUserAndAssignTenant($input: CreateUserAndAssignTenantInput!) {
+        createUserAndAssignTenant(input: $input) {
+          success
+          message
+          user {
+            id
+            email
+            firstName
+            lastName
+            phoneNumber
+            role {
+              id
+              name
+              description
+            }
+            createdAt
+          }
+          userTenant {
+            id
+            tenantId
+            role
+            isActive
+            joinedAt
+          }
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ createUserAndAssignTenant: {
+        success: boolean;
+        message: string;
+        user?: User;
+        userTenant?: UserTenant;
+      } }>(mutation, { input });
+      return result.createUserAndAssignTenant;
+    } catch (error) {
+      console.error('Error creating user and assigning to tenant:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create user and assign to tenant'
+      };
+    }
+  },
+
+  async assignUserToTenant(tenantId: string, userId: string, role: string = 'TenantUser'): Promise<{
+    success: boolean;
+    message: string;
+    userTenant?: UserTenant;
+  }> {
+    const mutation = `
+      mutation AssignUserToTenant($tenantId: ID!, $userId: ID!, $role: String!) {
+        assignUserToTenant(tenantId: $tenantId, userId: $userId, role: $role) {
+          success
+          message
+          userTenant {
+            id
+            tenantId
+            role
+            isActive
+            joinedAt
+          }
+        }
+      }
+    `;
+
+    try {
+      const result = await gqlRequest<{ assignUserToTenant: {
+        success: boolean;
+        message: string;
+        userTenant?: UserTenant;
+      } }>(mutation, { tenantId, userId, role });
+      return result.assignUserToTenant;
+    } catch (error) {
+      console.error('Error assigning user to tenant:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to assign user to tenant'
+      };
+    }
+  },
+
   async getTenantById(id: string): Promise<{
     id: string;
     name: string;

@@ -151,18 +151,19 @@ export const tenantResolvers = {
     },
 
     tenantUsers: async (_parent: unknown, { tenantId }: { tenantId: string }, context: GraphQLContext) => {
+      console.log('🔥🔥🔥 TENANTUSERS RESOLVER CALLED - tenantId:', tenantId);
+      console.log('🔥🔥🔥 TenantUsers query - User context:', context.user);
+      console.log('🔥🔥🔥 TenantUsers query - User role:', context.user?.role);
       try {
-        console.log('TenantUsers query - User context:', context.user);
-        console.log('TenantUsers query - User role:', context.user?.role);
         
         // Check if user is authenticated
         if (!context.user) {
           throw new Error('Unauthorized: Authentication required');
         }
 
-        // Allow super admins or users with access to the tenant
+        // Allow super admins, tenant admins, or users with access to the tenant
         const userRole = context.user.role.name;
-        const allowedRoles = ['SuperAdmin', 'ADMIN', 'Admin'];
+        const allowedRoles = ['SuperAdmin', 'TenantAdmin', 'TenantManager'];
         
         if (!allowedRoles.includes(userRole)) {
           // Check if user has access to this tenant
@@ -190,15 +191,32 @@ export const tenantResolvers = {
         });
 
         console.log(`TenantUsers query - Found ${userTenants.length} users for tenant ${tenantId}`);
+        console.log(`TenantUsers query - Current user ID: ${context.user.id}`);
+        console.log(`TenantUsers query - UserTenant records:`, userTenants.map(ut => ({ 
+          userId: ut.userId, 
+          tenantId: ut.tenantId, 
+          role: ut.role, 
+          isActive: ut.isActive,
+          userEmail: ut.user.email 
+        })));
 
         return userTenants.map(userTenant => ({
           ...userTenant.user,
           role: userTenant.user.role || { id: "default", name: "TenantUser", description: null },
           createdAt: userTenant.user.createdAt.toISOString(),
-          updatedAt: userTenant.user.updatedAt.toISOString()
+          updatedAt: userTenant.user.updatedAt.toISOString(),
+          // Include the userTenants relationship so frontend can access tenant-specific info
+          userTenants: [{
+            id: userTenant.id,
+            tenantId: userTenant.tenantId,
+            role: userTenant.role,
+            isActive: userTenant.isActive,
+            joinedAt: userTenant.joinedAt.toISOString()
+          }]
         }));
       } catch (error) {
-        console.error('Get tenant users error:', error);
+        console.error('🔥🔥🔥 Get tenant users error:', error);
+        console.error('🔥🔥🔥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         throw error;
       }
     },
