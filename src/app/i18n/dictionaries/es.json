@@ -341,7 +341,6 @@
     "tenantAdministration": "Administración de Tenant",
     "moduleManagement": "Gestión de Módulos",
     "activeModules": "Módulos Activos",
-    "requestModules": "Solicitar Módulos",
     "moduleConfiguration": "Configuración de Módulos",
     "usersList": "Lista de Usuarios",
     "rolesPermissions": "Roles y Permisos",

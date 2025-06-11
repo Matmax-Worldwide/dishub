@@ -80,15 +80,9 @@ export const tenantSidebarConfig: TenantSidebarConfig = {
         children: [
           {
             name: 'sidebar.activeModules',
-            href: `${basePath}/modules/active`,
+            href: `${basePath}/modules`,
             icon: BarChartIcon,
             permissions: ['modules:read']
-          },
-          {
-            name: 'sidebar.requestModules',
-            href: `${basePath}/modules/request`,
-            icon: UserPlusIcon,
-            permissions: ['modules:request']
           },
           {
             name: 'sidebar.moduleConfiguration',

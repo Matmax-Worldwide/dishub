@@ -401,7 +401,6 @@
     "tenantAdministration": "Tenant Administration",
     "moduleManagement": "Module Management",
     "activeModules": "Active Modules",
-    "requestModules": "Request Modules",
     "moduleConfiguration": "Module Configuration",
     "usersList": "Users List",
     "rolesPermissions": "Roles & Permissions",
