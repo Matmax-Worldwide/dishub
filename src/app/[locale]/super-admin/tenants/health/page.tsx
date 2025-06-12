@@ -1,13 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle,
+  Badge,
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Progress
+} from '@/components/super-admin';
 import { 
   RefreshCwIcon,
   TrendingUpIcon,
@@ -40,10 +53,26 @@ interface HealthFilters {
   lastActivity: string;
 }
 
+interface HealthStats {
+  totalTenants: number;
+  excellentHealth: number;
+  goodHealth: number;
+  fairHealth: number;
+  poorHealth: number;
+  averageScore: number;
+  activeToday: number;
+  totalUsers: number;
+  totalPages: number;
+  totalPosts: number;
+  criticalAlerts: number;
+  systemLoad: number;
+}
+
 export default function TenantHealthPage() {
   const [healthMetrics, setHealthMetrics] = useState<TenantHealthMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [filters, setFilters] = useState<HealthFilters>({
     search: '',
     healthRange: 'ALL',
@@ -51,6 +80,8 @@ export default function TenantHealthPage() {
     lastActivity: 'ALL'
   });
   const [activeTab, setActiveTab] = useState('overview');
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const loadHealthData = async () => {
     try {

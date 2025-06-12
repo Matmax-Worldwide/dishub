@@ -453,7 +453,7 @@ export default function ModulesPage() {
   };
 
   if (isLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600 mx-auto mb-4"></div>
@@ -513,8 +513,8 @@ export default function ModulesPage() {
                 <ActivityIcon className="h-4 w-4" />
                 <span>Todo funcionando</span>
               </div>
-            </div>
-            
+      </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeModules.map((module) => (
                 <Card key={module.id} className="group hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden">
@@ -525,11 +525,11 @@ export default function ModulesPage() {
                         <div className={`w-12 h-12 bg-gradient-to-r ${module.bgGradient} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                           <module.icon className="h-6 w-6 text-white" />
                         </div>
-                        <div>
+                      <div>
                           <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
                             {module.shortName}
                           </h3>
-                          <p className="text-sm text-gray-600">{module.description}</p>
+                        <p className="text-sm text-gray-600">{module.description}</p>
                         </div>
                       </div>
                     </div>
@@ -540,7 +540,7 @@ export default function ModulesPage() {
                         {module.stats.map((stat, index) => (
                           <div key={index} className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">{stat.label}</span>
-                            <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
                               <span className="font-bold text-gray-900">{stat.value}</span>
                               {stat.trend && (
                                 <span className="text-green-600 text-xs flex items-center">
@@ -548,9 +548,9 @@ export default function ModulesPage() {
                                   {stat.trend}
                                 </span>
                               )}
-                            </div>
-                          </div>
-                        ))}
+                    </div>
+                  </div>
+                ))}
                       </div>
                     )}
                     
@@ -570,9 +570,9 @@ export default function ModulesPage() {
                           </Button>
                         </Link>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+              </div>
+            </CardContent>
+          </Card>
               ))}
             </div>
           </div>
@@ -673,8 +673,8 @@ export default function ModulesPage() {
                           <div key={index} className="flex items-center text-sm text-gray-700">
                             <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                             {benefit}
-                          </div>
-                        ))}
+                  </div>
+                ))}
                       </div>
                     </div>
 
@@ -732,9 +732,9 @@ export default function ModulesPage() {
                         </Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
+            </CardContent>
+          </Card>
             )}
           </div>
         )}

@@ -2,15 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle,
+  Badge,
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/super-admin';
 import { 
   SearchIcon,
   FilterIcon,
-  EyeIcon,
   UserIcon,
   HomeIcon,
   AlertTriangleIcon,
@@ -19,7 +28,14 @@ import {
   ClockIcon,
   LogInIcon,
   ArrowLeftIcon,
-  LoaderIcon
+  LoaderIcon,
+  ShieldIcon,
+  ActivityIcon,
+  CalendarIcon,
+  GlobeIcon,
+  SettingsIcon,
+  RefreshCwIcon,
+  InfoIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -31,15 +47,21 @@ export default function TenantImpersonationPage() {
   
   const [tenants, setTenants] = useState<TenantList | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const loadTenants = async () => {
+  const loadTenants = async (showRefreshLoader = false) => {
     try {
-      setLoading(true);
+      if (showRefreshLoader) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       
       const filter = {
         ...(searchTerm && { search: searchTerm }),
@@ -63,32 +85,55 @@ export default function TenantImpersonationPage() {
             const element = document.getElementById(`tenant-${targetTenant.id}`);
             if (element) {
               element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              element.classList.add('ring-2', 'ring-indigo-500', 'ring-opacity-50');
+              element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
             }
           }, 100);
         }
       }
     } catch (error) {
       console.error('Error loading tenants:', error);
-      toast.error('Failed to load tenants');
+      toast.error('Failed to load tenants', {
+        description: 'Please check your connection and try again'
+      });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    setSearchLoading(true);
     setCurrentPage(1);
-    loadTenants();
+    try {
+      await loadTenants();
+      toast.success(`Found ${tenants?.totalCount || 0} tenants`, {
+        description: searchTerm ? `Matching "${searchTerm}"` : 'All tenants loaded'
+      });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    await loadTenants(true);
+    toast.success('Tenants list refreshed');
   };
 
   const handleImpersonate = async (tenant: TenantDetails) => {
     try {
       setImpersonating(tenant.id);
       
+      // Show detailed loading feedback
+      const loadingToast = toast.loading(`Starting impersonation session...`, {
+        description: `Connecting to ${tenant.name} (${tenant.slug})`
+      });
+      
       console.log('Starting impersonation for tenant:', tenant.slug);
       
       // Call the real GraphQL impersonation mutation
       const result = await SuperAdminClient.impersonateTenant(tenant.id);
+      
+      toast.dismiss(loadingToast);
       
       if (result.success && result.impersonationData) {
         // Store impersonation data in sessionStorage
@@ -103,7 +148,9 @@ export default function TenantImpersonationPage() {
           timestamp: new Date().toISOString()
         }));
 
-        toast.success(`Successfully impersonating tenant: ${tenant.name}`);
+        toast.success(`Successfully impersonating ${tenant.name}`, {
+          description: 'Redirecting to tenant dashboard...'
+        });
         
         // Redirect to tenant dashboard
         const tenantDashboardUrl = `/${tenant.slug}/dashboard`;
@@ -112,11 +159,15 @@ export default function TenantImpersonationPage() {
         // Use window.location for full page redirect to ensure session is properly established
         window.location.href = tenantDashboardUrl;
       } else {
-        toast.error(result.message || 'Failed to start impersonation session');
+        toast.error('Failed to start impersonation session', {
+          description: result.message || 'Please try again or contact support'
+        });
       }
     } catch (error) {
       console.error('Error starting impersonation:', error);
-      toast.error('Failed to start impersonation session');
+      toast.error('Failed to start impersonation session', {
+        description: 'Please check your connection and try again'
+      });
     } finally {
       setImpersonating(null);
     }
@@ -125,16 +176,26 @@ export default function TenantImpersonationPage() {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircleIcon className="h-3 w-3 mr-1" />Active</Badge>;
+        return <Badge variant="success"><CheckCircleIcon className="h-3 w-3 mr-1" />Active</Badge>;
       case 'archived':
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200"><XCircleIcon className="h-3 w-3 mr-1" />Archived</Badge>;
+        return <Badge variant="secondary"><XCircleIcon className="h-3 w-3 mr-1" />Archived</Badge>;
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800 border-red-200"><AlertTriangleIcon className="h-3 w-3 mr-1" />Suspended</Badge>;
+        return <Badge variant="destructive"><AlertTriangleIcon className="h-3 w-3 mr-1" />Suspended</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><ClockIcon className="h-3 w-3 mr-1" />Pending</Badge>;
+        return <Badge variant="warning"><ClockIcon className="h-3 w-3 mr-1" />Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const canImpersonate = (tenant: TenantDetails) => {
+    return tenant.status === 'ACTIVE';
+  };
+
+  const getImpersonateButtonText = (tenant: TenantDetails) => {
+    if (impersonating === tenant.id) return 'Starting...';
+    if (!canImpersonate(tenant)) return 'Unavailable';
+    return 'Impersonate';
   };
 
   useEffect(() => {
@@ -143,249 +204,375 @@ export default function TenantImpersonationPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading tenants...</p>
+      <div className="min-h-screen bg-gray-950 text-gray-100">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-400">Loading tenants for impersonation...</p>
+            <p className="text-sm text-gray-500 mt-2">Preparing secure access</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/super-admin/tenants/list">
-            <Button variant="ghost" size="sm">
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Tenants
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              👤 Tenant Impersonation
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Switch to tenant admin view to manage tenants directly • {tenants?.totalCount || 0} total tenants
-              {tenantSlugParam && (
-                <span className="ml-2 text-indigo-600 font-medium">
-                  • Targeting: {tenantSlugParam}
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="space-y-6 p-6">
+        {/* Header with Status Visibility */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link href="/super-admin/tenants/list">
+              <Button variant="ghost" size="sm">
+                <ArrowLeftIcon className="h-4 w-4 mr-2" />
+                Back to Tenants
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-100 flex items-center">
+                <ShieldIcon className="h-8 w-8 mr-3 text-blue-400" />
+                Tenant Impersonation
+              </h1>
+              <div className="flex items-center space-x-4 mt-2">
+                <p className="text-gray-400">
+                  Secure tenant access for administrative purposes
+                </p>
+                {refreshing && (
+                  <div className="flex items-center text-blue-400 text-sm">
+                    <RefreshCwIcon className="h-4 w-4 mr-1 animate-spin" />
+                    Refreshing...
+                  </div>
+                )}
+                {searchLoading && (
+                  <div className="flex items-center text-amber-400 text-sm">
+                    <SearchIcon className="h-4 w-4 mr-1 animate-pulse" />
+                    Searching...
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-6 mt-2 text-sm text-gray-400">
+                <span className="flex items-center">
+                  <ActivityIcon className="h-4 w-4 mr-1" />
+                  {tenants?.totalCount || 0} total tenants
                 </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Impersonation Notice */}
-      <Card className="border-yellow-200 bg-yellow-50">
-        <CardHeader>
-          <CardTitle className="flex items-center text-yellow-800">
-            <AlertTriangleIcon className="h-5 w-5 mr-2" />
-            Impersonation Notice
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-yellow-700 space-y-2">
-            <p>
-              <strong>Important:</strong> When you impersonate a tenant, you will be redirected to their dashboard 
-              with tenant admin privileges.
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>You will have full access to the tenant&apos;s data and settings</li>
-              <li>All actions will be logged under your SuperAdmin account</li>
-              <li>Use this feature responsibly and only when necessary</li>
-              <li>To return to SuperAdmin view, log out and log back in</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FilterIcon className="h-5 w-5 mr-2" />
-            Search & Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <Input
-                placeholder="Search tenants by name, slug, or domain..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
+                {tenantSlugParam && (
+                  <span className="flex items-center text-blue-400 font-medium">
+                    <GlobeIcon className="h-4 w-4 mr-1" />
+                    Targeting: {tenantSlugParam}
+                  </span>
+                )}
+                <span className="flex items-center">
+                  <CheckCircleIcon className="h-4 w-4 mr-1 text-green-400" />
+                  {tenants?.items.filter(t => t.status === 'ACTIVE').length || 0} available
+                </span>
+              </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleSearch} className="w-full">
-              <SearchIcon className="h-4 w-4 mr-2" />
-              Search
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCwIcon className="h-4 w-4 mr-2" />
+            )}
+            Refresh
+          </Button>
+        </div>
 
-      {/* Tenants Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {tenants?.items.map((tenant) => (
-          <Card 
-            key={tenant.id} 
-            id={`tenant-${tenant.id}`}
-            className="hover:shadow-lg transition-all duration-200"
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{tenant.name}</CardTitle>
-                  <CardDescription className="mt-1">
-                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                      {tenant.slug}
-                    </span>
-                  </CardDescription>
+        {/* Enhanced Security Notice */}
+        <Card className="border-amber-700 bg-amber-900/20">
+          <CardHeader>
+            <CardTitle className="flex items-center text-amber-300">
+              <AlertTriangleIcon className="h-5 w-5 mr-2" />
+              Security & Compliance Notice
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-amber-200 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="font-medium mb-2">⚠️ Important Guidelines:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Full tenant admin privileges will be granted</li>
+                    <li>All actions are logged and auditable</li>
+                    <li>Use only for legitimate administrative purposes</li>
+                    <li>Session expires automatically after inactivity</li>
+                  </ul>
                 </div>
-                {getStatusBadge(tenant.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {tenant.domain && (
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Domain:</span> {tenant.domain}
-                </div>
-              )}
-
-              <div className="grid grid-cols-3 gap-4 pt-3 border-t">
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <UserIcon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div className="text-lg font-semibold">{tenant.userCount}</div>
-                  <div className="text-xs text-gray-500">Users</div>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <HomeIcon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div className="text-lg font-semibold">{tenant.pageCount}</div>
-                  <div className="text-xs text-gray-500">Pages</div>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <HomeIcon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div className="text-lg font-semibold">{tenant.postCount}</div>
-                  <div className="text-xs text-gray-500">Posts</div>
+                <div>
+                  <p className="font-medium mb-2">🔄 How to Exit:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Log out from the tenant dashboard</li>
+                    <li>Clear browser session and log back in</li>
+                    <li>Return to SuperAdmin panel automatically</li>
+                    <li>Contact support if session issues occur</li>
+                  </ul>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-gray-700">Features:</div>
-                <div className="flex flex-wrap gap-1">
-                  {tenant.features.slice(0, 3).map((feature) => (
-                    <Badge key={feature} variant="outline" className="text-xs">
-                      {feature.replace('_', ' ')}
-                    </Badge>
-                  ))}
-                  {tenant.features.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{tenant.features.length - 3} more
-                    </Badge>
-                  )}
-                </div>
+        {/* Enhanced Search and Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FilterIcon className="h-5 w-5 mr-2 text-blue-400" />
+              Search & Filter Tenants
+            </CardTitle>
+            <CardDescription>
+              Find the tenant you need to access quickly and efficiently
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="md:col-span-3">
+                <Input
+                  placeholder="Search by tenant name, slug, or domain..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="h-10"
+                />
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Statuses</SelectItem>
+                  <SelectItem value="ACTIVE">Active Only</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="ARCHIVED">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={handleSearch} disabled={searchLoading} className="h-10">
+                {searchLoading ? (
+                  <LoaderIcon className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <SearchIcon className="h-4 w-4 mr-2" />
+                )}
+                Search
+              </Button>
+            </div>
+            {(searchTerm || statusFilter !== 'ALL') && (
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
+                <div className="text-sm text-gray-400">
+                  {tenants?.totalCount || 0} results found
+                  {searchTerm && ` for "${searchTerm}"`}
+                  {statusFilter !== 'ALL' && ` with status "${statusFilter}"`}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('ALL');
+                    setCurrentPage(1);
+                    loadTenants();
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-              <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
-                    Created: {new Date(tenant.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
-                      <Button variant="outline" size="sm">
-                        <EyeIcon className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    </Link>
-                    <Button
-                      size="sm"
-                      onClick={() => handleImpersonate(tenant)}
-                      disabled={tenant.status !== 'ACTIVE' || impersonating === tenant.id}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      {impersonating === tenant.id ? (
-                        <LoaderIcon className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <LogInIcon className="h-4 w-4 mr-1" />
+        {/* Enhanced Tenants Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {tenants?.items.map((tenant) => {
+            const isImpersonating = impersonating === tenant.id;
+            const canAccess = canImpersonate(tenant);
+            
+            return (
+              <Card 
+                key={tenant.id} 
+                id={`tenant-${tenant.id}`}
+                className={`transition-all duration-200 hover:shadow-lg ${
+                  isImpersonating ? 'ring-2 ring-blue-500 bg-blue-900/10' : 
+                  canAccess ? 'hover:border-blue-500 hover:bg-gray-800/50' : 
+                  'opacity-75 hover:opacity-90'
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg text-gray-100 truncate">
+                        {tenant.name}
+                      </CardTitle>
+                      <CardDescription className="mt-1 flex items-center space-x-2">
+                        <span className="font-mono text-sm bg-gray-800 px-2 py-1 rounded border border-gray-700">
+                          {tenant.slug}
+                        </span>
+                        {tenant.domain && (
+                          <span className="text-xs text-gray-400 flex items-center">
+                            <GlobeIcon className="h-3 w-3 mr-1" />
+                            {tenant.domain}
+                          </span>
+                        )}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end space-y-1">
+                      {getStatusBadge(tenant.status)}
+                      {!canAccess && (
+                        <div className="flex items-center text-xs text-gray-500">
+                          <InfoIcon className="h-3 w-3 mr-1" />
+                          Unavailable
+                        </div>
                       )}
-                      {impersonating === tenant.id ? 'Starting...' : 'Impersonate'}
-                    </Button>
+                    </div>
                   </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  {/* Metrics Grid */}
+                  <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-gray-700">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <UserIcon className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <div className="text-lg font-semibold text-gray-100">{tenant.userCount}</div>
+                      <div className="text-xs text-gray-400">Users</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <HomeIcon className="h-4 w-4 text-green-400" />
+                      </div>
+                      <div className="text-lg font-semibold text-gray-100">{tenant.pageCount}</div>
+                      <div className="text-xs text-gray-400">Pages</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <ActivityIcon className="h-4 w-4 text-purple-400" />
+                      </div>
+                      <div className="text-lg font-semibold text-gray-100">{tenant.postCount}</div>
+                      <div className="text-xs text-gray-400">Posts</div>
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-300">Active Features:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {tenant.features.slice(0, 4).map((feature) => (
+                        <Badge key={feature} variant="outline" className="text-xs">
+                          {feature.replace('_ENGINE', '').replace('_MODULE', '').replace('_', ' ')}
+                        </Badge>
+                      ))}
+                      {tenant.features.length > 4 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{tenant.features.length - 4} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                    <div className="flex items-center text-xs text-gray-400">
+                      <CalendarIcon className="h-3 w-3 mr-1" />
+                      {new Date(tenant.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
+                        <Button variant="outline" size="sm">
+                          <SettingsIcon className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      </Link>
+                      <Button
+                        variant={canAccess ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => canAccess && handleImpersonate(tenant)}
+                        disabled={!canAccess || isImpersonating}
+                        className={!canAccess ? 'opacity-50 cursor-not-allowed' : ''}
+                      >
+                        {isImpersonating ? (
+                          <LoaderIcon className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <LogInIcon className="h-3 w-3 mr-1" />
+                        )}
+                        {getImpersonateButtonText(tenant)}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Enhanced Pagination */}
+        {tenants && tenants.totalPages > 1 && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-400">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, tenants.totalCount)} of {tenants.totalCount} tenants
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-300 px-3">
+                    Page {currentPage} of {tenants.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(tenants.totalPages, prev + 1))}
+                    disabled={currentPage === tenants.totalPages}
+                  >
+                    Next
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
+        )}
+
+        {/* Enhanced Empty State */}
+        {tenants && tenants.items.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-300 mb-2">
+                    {searchTerm || statusFilter !== 'ALL' ? 'No matching tenants found' : 'No tenants available'}
+                  </h3>
+                  <p className="text-gray-400 max-w-md">
+                    {searchTerm || statusFilter !== 'ALL' 
+                      ? 'Try adjusting your search criteria or filters to find the tenant you\'re looking for.'
+                      : 'No tenants are currently available for impersonation. Check back later or contact support.'}
+                  </p>
+                </div>
+                {(searchTerm || statusFilter !== 'ALL') && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStatusFilter('ALL');
+                      setCurrentPage(1);
+                      loadTenants();
+                    }}
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {/* Pagination */}
-      {tenants && tenants.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, tenants.totalCount)} of {tenants.totalCount} tenants
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {tenants.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(tenants.totalPages, prev + 1))}
-              disabled={currentPage === tenants.totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* No tenants found */}
-      {tenants && tenants.items.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tenants found</h3>
-            <p className="text-gray-500">
-              {searchTerm || statusFilter !== 'ALL' 
-                ? 'Try adjusting your search criteria or filters.'
-                : 'No tenants are available for impersonation.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 } 

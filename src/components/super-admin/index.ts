@@ -47,4 +47,6 @@ export {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
-} from './DropdownMenu'; 
+} from './DropdownMenu';
+
+export { Progress } from './progress'; 
