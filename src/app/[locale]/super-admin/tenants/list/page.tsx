@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { 
   Card, 
@@ -34,7 +35,10 @@ import {
   AlertCircleIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  LogInIcon,
+  LayoutGrid as LayoutGridIcon,
+  List as ListIcon
 } from 'lucide-react';
 
 import { SuperAdminClient, type TenantList, type TenantDetails, type TenantHealthMetric } from '@/lib/graphql/superAdmin';
@@ -56,13 +60,14 @@ interface TenantsPageData {
 }
 
 export default function SuperAdminTenantsPage() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<TenantsPageData>({
     tenants: null,
     healthMetrics: null
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('list');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'list');
   
   // Filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +84,9 @@ export default function SuperAdminTenantsPage() {
   const [deletingTenant, setDeletingTenant] = useState(false);
   const [loadingTenantId, setLoadingTenantId] = useState<string | null>(null);
   const [paginationLoading, setPaginationLoading] = useState(false);
+
+  // View type (table or grid)
+  const [viewType, setViewType] = useState<'table' | 'grid'>('table');
 
   const loadTenantsData = async (showPaginationLoader = false) => {
     try {
@@ -223,6 +231,63 @@ export default function SuperAdminTenantsPage() {
     return <Badge variant="destructive">Poor</Badge>;
   };
 
+  // Impersonation functions
+  const handleImpersonate = async (tenant: TenantDetails) => {
+    try {
+
+      // Show detailed loading feedback
+      const loadingToast = toast.loading(`Starting impersonation session...`, {
+        description: `Connecting to ${tenant.name} (${tenant.slug})`
+      });
+      
+      console.log('Starting impersonation for tenant:', tenant.slug);
+      
+      // Call the real GraphQL impersonation mutation
+      const result = await SuperAdminClient.impersonateTenant(tenant.id);
+      
+      toast.dismiss(loadingToast);
+      
+      if (result.success && result.impersonationData) {
+        // Store impersonation data in sessionStorage
+        sessionStorage.setItem('superadmin_impersonation', JSON.stringify({
+          originalRole: 'SuperAdmin',
+          impersonatedTenant: result.impersonationData.tenantId,
+          impersonatedTenantName: result.impersonationData.tenantName,
+          impersonatedTenantSlug: result.impersonationData.tenantSlug,
+          impersonatedUserId: result.impersonationData.userId,
+          impersonatedUserEmail: result.impersonationData.userEmail,
+          impersonatedUserRole: result.impersonationData.userRole,
+          timestamp: new Date().toISOString()
+        }));
+
+        toast.success(`Successfully impersonating ${tenant.name}`, {
+          description: 'Redirecting to tenant dashboard...'
+        });
+        
+        // Redirect to tenant dashboard
+        const tenantDashboardUrl = `/${tenant.slug}/dashboard`;
+        console.log('Redirecting to:', tenantDashboardUrl);
+        
+        // Use window.location for full page redirect to ensure session is properly established
+        window.location.href = tenantDashboardUrl;
+      } else {
+        toast.error('Failed to start impersonation session', {
+          description: result.message || 'Please try again or contact support'
+        });
+      }
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      toast.error('Failed to start impersonation session', {
+        description: 'Please check your connection and try again'
+      });
+    } finally {
+      console.log('Impersonation session ended');
+    }
+  };
+
+  const canImpersonate = (tenant: TenantDetails) => {
+    return tenant.status === 'ACTIVE';
+  };
   useEffect(() => {
     if (currentPage > 1) {
       loadTenantsData(true);
@@ -350,18 +415,130 @@ export default function SuperAdminTenantsPage() {
             </CardContent>
           </Card>
 
-          {/* Tenants Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {tenants?.items.map((tenant) => (
-              <Card key={tenant.id} className="hover:shadow-lg transition-all duration-200 hover:border-blue-500">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
-                        <CardTitle className="text-lg cursor-pointer hover:text-blue-400 hover:underline transition-colors duration-200">
+          {/* View Toggle */}
+          <div className="flex justify-end">
+            <Button
+              variant={viewType === 'table' ? 'primary' : 'outline'}
+              size="sm"
+              className="mr-2"
+              onClick={() => setViewType('table')}
+            >
+              <ListIcon className="h-4 w-4 mr-1" />
+              Table
+            </Button>
+            <Button
+              variant={viewType === 'grid' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setViewType('grid')}
+            >
+              <LayoutGridIcon className="h-4 w-4 mr-1" />
+              Grid
+            </Button>
+          </div>
+
+          {/* Table View */}
+          {viewType === 'table' && (
+            <div className="overflow-x-auto mt-4">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-800">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Name</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Slug</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Domain</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Status</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-300">Users</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-300">Pages</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-300">Posts</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Created</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {tenants?.items?.map((tenant) => (
+                    <tr key={tenant.id} className="hover:bg-gray-800/50">
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <Link href={`/super-admin/tenants/edit/${tenant.id}`} className="text-blue-400 hover:underline">
                           {tenant.name}
-                        </CardTitle>
-                      </Link>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs bg-gray-800 rounded">
+                        {tenant.slug}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-400">
+                        {tenant.domain || '-'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {getStatusBadge(tenant.status)}
+                      </td>
+                      <td className="px-3 py-2 text-center whitespace-nowrap">{tenant.userCount}</td>
+                      <td className="px-3 py-2 text-center whitespace-nowrap">{tenant.pageCount}</td>
+                      <td className="px-3 py-2 text-center whitespace-nowrap">{tenant.postCount}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-400">{new Date(tenant.createdAt).toLocaleDateString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={loadingTenantId === tenant.id || deletingTenant}
+                            >
+                              {loadingTenantId === tenant.id ? (
+                                <RefreshCwIcon className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreVerticalIcon className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
+                                <EditIcon className="h-4 w-4 mr-2" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              disabled={!canImpersonate(tenant) || deletingTenant}
+                              onClick={() => canImpersonate(tenant) && handleImpersonate(tenant)}
+                            >
+                              <LogInIcon className="h-4 w-4 mr-2" />
+                              Impersonate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              disabled={deletingTenant}
+                              onClick={() => {
+                                setTenantToDelete(tenant);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <TrashIcon className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Grid View */}
+          {viewType === 'grid' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {tenants?.items.map((tenant) => (
+                <Card key={tenant.id} className="hover:shadow-lg transition-all duration-200 hover:border-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <Link href={`/super-admin/tenants/edit/${tenant.id}`}>
+                          <CardTitle className="text-lg cursor-pointer hover:text-blue-400 hover:underline transition-colors duration-200">
+                            {tenant.name}
+                          </CardTitle>
+                        </Link>
                                               <CardDescription className="mt-1">
                           <span className="font-mono text-sm bg-gray-800 px-2 py-1 rounded">
                             {tenant.slug}
@@ -394,6 +571,13 @@ export default function SuperAdminTenantsPage() {
                           <EditIcon className="h-4 w-4 mr-2" />
                           Edit Tenant
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          disabled={!canImpersonate(tenant) || deletingTenant}
+                          onClick={() => canImpersonate(tenant) && handleImpersonate(tenant)}
+                        >
+                          <LogInIcon className="h-4 w-4 mr-2" />
+                          Impersonate
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/super-admin/tenants/settings/${tenant.id}`}>
@@ -479,8 +663,9 @@ export default function SuperAdminTenantsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
           {tenants && tenants.totalPages > 1 && (
@@ -768,12 +953,14 @@ export default function SuperAdminTenantsPage() {
                                  Configure
                                </Button>
                              </Link>
-                             <Link href={`/super-admin/tenants/impersonate?tenant=${metric.tenantId}`}>
-                               <Button variant="ghost" size="sm">
-                                 <EyeIcon className="h-3 w-3 mr-1" />
-                                 View
-                               </Button>
-                             </Link>
+                             <Button 
+                               variant="ghost" 
+                               size="sm"
+                               onClick={() => setActiveTab('impersonation')}
+                             >
+                               <EyeIcon className="h-3 w-3 mr-1" />
+                               Impersonate
+                             </Button>
                            </div>
                         </div>
                       </div>

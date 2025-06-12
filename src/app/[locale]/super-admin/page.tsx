@@ -126,7 +126,7 @@ export default function SuperAdminDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            🌐 Master Control Panel (MCP)
+            🌐 Core Control Panel (CCP)
           </h1>
           <p className="text-gray-600 mt-1">
             Welcome back, {user?.firstName} {user?.lastName} • System Overview & Management

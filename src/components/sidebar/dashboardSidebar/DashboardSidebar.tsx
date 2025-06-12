@@ -338,7 +338,7 @@ export function DashboardSidebar() {
     return filteredItems;
   }, [params.locale, t, tenantFeatures, firstTenant?.slug, tenantData?.tenant?.slug, tenantSlug]);
 
-  // SuperAdmin navigation items - MCP (Master Control Panel)
+  // SuperAdmin navigation items - CCP (Core Control Panel)
   const transformedSuperAdminNavigationItems: NavItem[] = useMemo(() => {
     const items = sidebarConfig.superAdminNavigationItems(params.locale as string).map(item => ({
       ...item,
@@ -645,12 +645,12 @@ export function DashboardSidebar() {
     
     return (
       <> 
-        {/* SuperAdmin items - MCP (Master Control Panel) */}
+        {/* SuperAdmin items - CCP (Core Control Panel) */}
         {isSuperAdmin && (
           <>
             <div className="mb-4 mt-2">
               <h3 className="text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                🌐 {t('sidebar.masterControlPanel')} (MCP)
+                🌐 {t('sidebar.masterControlPanel')} (CCP)
               </h3>
             </div>
 

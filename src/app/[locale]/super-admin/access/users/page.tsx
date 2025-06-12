@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { UsersIcon, ArrowLeftIcon, ShieldIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function MCPUsersPage() {
+export default function CCPUsersPage() {
   const router = useRouter();
 
   return (
@@ -22,10 +22,10 @@ export default function MCPUsersPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              👥 MCP Users
+              👥 CCP Users
             </h1>
             <p className="text-gray-600 mt-1">
-              Manage Master Control Panel user access
+              Manage Core Control Panel user access
             </p>
           </div>
         </div>
@@ -43,9 +43,9 @@ export default function MCPUsersPage() {
         </CardHeader>
         <CardContent className="text-center py-12">
           <UsersIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">MCP User Management</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">CCP User Management</h3>
           <p className="text-gray-500 mb-6">
-            The MCP user management interface will be available in a future update.
+            The CCP user management interface will be available in a future update.
           </p>
           <Button onClick={() => router.push('/super-admin')}>
             Back to Dashboard

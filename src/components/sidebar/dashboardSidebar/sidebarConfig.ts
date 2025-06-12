@@ -470,7 +470,7 @@ export const sidebarConfig: SidebarConfig = {
     ];
   },
 
-  // SuperAdmin navigation items - MCP (Master Control Panel)
+  // SuperAdmin navigation items - CCP (Core Control Panel)
   superAdminNavigationItems: (locale: string) => [
     // 📊 Dashboard Overview
     { 
@@ -482,36 +482,10 @@ export const sidebarConfig: SidebarConfig = {
 
     // 🏙️ 1. Gestión de Tenants
     {
-      name: 'sidebar.tenantManagement',
-      href: `/${locale}/super-admin/tenants`,
+      name: 'sidebar.allTenants',
+      href: `/${locale}/super-admin/tenants/list`,
       icon: HomeIcon,
-      permissions: ['tenants:manage'],
-      children: [
-        {
-          name: 'sidebar.allTenants',
-          href: `/${locale}/super-admin/tenants/list`,
-          icon: HomeIcon,
-          permissions: ['tenants:read']
-        },
-        {
-          name: 'sidebar.createTenant',
-          href: `/${locale}/super-admin/tenants/create`,
-          icon: UserPlusIcon,
-          permissions: ['tenants:create']
-        },
-        {
-          name: 'sidebar.tenantHealth',
-          href: `/${locale}/super-admin/tenants/health`,
-          icon: BarChartIcon,
-          permissions: ['tenants:monitor']
-        },
-        {
-          name: 'sidebar.tenantImpersonation',
-          href: `/${locale}/super-admin/tenants/impersonate`,
-          icon: UserIcon,
-          permissions: ['tenants:impersonate']
-        }
-      ]
+      permissions: ['tenants:read']
     },
 
     // 🧩 2. Módulos disponibles
@@ -580,7 +554,7 @@ export const sidebarConfig: SidebarConfig = {
       ]
     },
 
-    // 🧠 4. Automatizaciones del MCP
+    // 🧠 4. Automatizaciones del CCP
     {
       name: 'sidebar.mcpAutomation',
       href: `/${locale}/super-admin/automation`,
